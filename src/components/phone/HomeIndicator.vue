@@ -108,8 +108,11 @@ const gesture = useSwipeGesture(rootRef, {
     // 每次手势开始都重置悬停标记：上一次手势（尤其是从切换器恢复应用那条路径）
     // 可能把它留成 true，否则这一次轻微上滑会被误判为「已悬停」而直接打开切换器。
     system.switcherDwell = false
+    /* 第八轮（需求⑥）：清掉上一次手势残留的横向/纵向位移与速度 ——
+       否则卡片会带着上一轮的偏移与形变出生。 */
+    system.resetSwitcherDrag()
   },
-  onProgress(p, d) {
+  onProgress(p, d, other) {
     const switcherCandidate =
       system.recentApps.length > 0 &&
       system.baseLayer !== 'lock' &&
@@ -126,9 +129,10 @@ const gesture = useSwipeGesture(rootRef, {
          算出这一帧的手指速度 —— 超过 REST_SPEED 才算「还在滑」并重置倒计时；
          低于阈值（含慢飘）就什么都不做，让已起的计时器继续跑。 */
       const now = performance.now()
+      let speed = 0
       if (lastMoveAt) {
         const dt = now - lastMoveAt
-        const speed = dt > 0 ? (Math.abs(raw - lastRaw) / dt) * 1000 : 0
+        speed = dt > 0 ? (Math.abs(raw - lastRaw) / dt) * 1000 : 0
         if (speed > REST_SPEED) {
           if (system.switcherDwell) system.switcherDwell = false // 又快起来了 → 撤销
           if (p >= 0.05) armDwell()
@@ -142,6 +146,11 @@ const gesture = useSwipeGesture(rootRef, {
         // 手势的第一帧：没有上一帧可算速度 → 直接起算
         armDwell()
       }
+      /* 第八轮（需求⑥）：把【副轴（横向）位移】与纵向瞬时速度一并发布出去。
+         AppSwitcher 的跟手卡用 other 做 X 轴跟随、用 speed 做弹性挤压拉伸。
+         other 在 useSwipeGesture 里不做任何截断/橡皮筋（它是被丢弃的那个分量），
+         所以这里原样透传；纵向仍走 progress（与旧行为完全一致）。 */
+      system.setSwitcherDrag(other || 0, raw, speed)
       lastMoveAt = now
       lastRaw = raw
     } else {
@@ -150,6 +159,12 @@ const gesture = useSwipeGesture(rootRef, {
   },
   onRelease(p, velocity) {
     clearDwellArm()
+    /* 第八轮（需求⑥）：松手即刻把「手指瞬时速度」清零 —— 速度项驱动的是
+       弹性挤压（scaleX/scaleY 反向变化），松手后它必须立刻退场，
+       否则卡片会带着形变停在原地。横向/纵向【位移】保留，由 AppSwitcher 的
+       followFree 弹簧在落位过程中平滑归零（落位那一刻必须严格等于槽位几何，
+       否则与堆叠前卡交接会跳一下）。 */
+    system.switcherDragV = 0
     /* 激活条件（第五轮）：上滑 >5% 且【速度 ≥150px/s 的停顿持续了 120ms】。
        松手时的速度门槛与 REST_SPEED 同源 —— 要求「到松手那一刻手指仍处于停住状态」，
        所以真正的快甩（手指一直在动，凑不满 120ms 的静止）依旧走回桌面，与 iOS 一致。 */
@@ -167,6 +182,9 @@ const gesture = useSwipeGesture(rootRef, {
 
     // 未激活：跟手进度归零，走原逻辑（回桌面 / 回弹）
     system.setSwitcherProgress(0)
+    /* 第八轮：这条路径上跟手卡会立刻卸载（进度归零），横向/纵向偏移不再有人消费
+       —— 一并清掉，避免在下一次手势真正开始前残留在 store 里。 */
+    system.resetSwitcherDrag()
 
     if (system.baseLayer === 'home') {
       animateTo(0, { initialVelocity: velocity })

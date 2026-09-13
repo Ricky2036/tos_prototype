@@ -88,6 +88,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Multi-select drag to bottom thumbnail cards drop placement, edit icon refinement, and fix extra blank page | `antigravity/lane` | None (locks released) | `62a064f` | `9f31e70` |
 | Merged | Antigravity | Replace desktop edit wallpaper icon with settings wallpaper icon | `antigravity/lane` | None (locks released) | `134061b` | `aee15d9` |
 | Merged | Antigravity | Replace desktop edit delete icon with notification center trash SVG | `antigravity/lane` | None (locks released) | `c122c3b` | `52f3576` |
+| Merged | Workbuddy | App Switcher rounds 7-11: gesture follow, inertia snapping, card exit animations, left-slide group motion | `workbuddy/lane` | None (locks released) | `a6c0f0b` | `9377307` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
