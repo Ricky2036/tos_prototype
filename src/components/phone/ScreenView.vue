@@ -61,6 +61,7 @@ const homeInteractive = computed(() => system.baseLayer !== 'app')
  * 注意：home-layer 必须常驻 DOM 布局树以提供物理锚点，不可使用 v-show 隐藏。
  */
 const isWallpaperVisible = computed(() => {
+  if (!system.screenOn) return false
   if (system.baseLayer === 'app') {
     if (heroVisual.value?.phase === 'open' && system.homeGestureProgress === 0) {
       return false
@@ -254,7 +255,11 @@ useSwipeGesture(sideEdgeRef, {
 </script>
 
 <template>
-  <div ref="rootEl" class="screen-view">
+  <div
+    ref="rootEl"
+    class="screen-view"
+    :class="{ 'is-screen-off': !system.screenOn }"
+  >
     <!-- 桌面/锁屏统一壁纸（notificationscreen.tsx 同款，本地化） -->
     <div
       v-show="isWallpaperVisible"
@@ -415,6 +420,11 @@ useSwipeGesture(sideEdgeRef, {
   pointer-events: none;
   z-index: var(--z-brightness-filter);
   transition: opacity 0.12s linear;
+}
+
+/* 灭屏状态：彻底隐藏所有底层图层（桌面、锁屏、壁纸、叠层、状态栏），杜绝四角圆角抗锯齿和硬件加速透色漏光 */
+.screen-view.is-screen-off > *:not(.screen-off) {
+  visibility: hidden !important;
 }
 
 /* 灭屏黑幕：盖住整块屏幕（含状态栏/Home 条），阻断所有指针事件 */
