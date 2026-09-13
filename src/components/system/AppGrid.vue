@@ -91,7 +91,7 @@ function activate(event, id, item) {
 .home-item.is-widget :deep(.widget),
 .home-item.is-widget :deep(.smart-suggestion-stack) { width:100%; height:auto; aspect-ratio:1/1; flex:none; }
 .home-item.is-dragging-source { opacity:.16; }
-.home-item.is-folder-open { opacity:0; }
+.home-item.is-folder-open { opacity:0 !important; transition:none !important; }
 .home-item.is-folder-target > :not(.selection-mark) { transform:scale(1.1);filter:drop-shadow(0 0 14px rgba(255,255,255,.6)); }
 .home-item.is-folder-candidate{z-index:3}.home-item.is-folder-candidate::before{content:"";position:absolute;z-index:0;top:-4px;left:50%;width:calc(var(--icon-size) * 1.14);height:calc(var(--icon-size) * 1.14);border-radius:calc(var(--icon-size) * .31);background:rgba(255,255,255,.28);border:1px solid rgba(255,255,255,.34);backdrop-filter:blur(18px) saturate(170%);opacity:1;transform:translateX(-50%) scale(1);animation:folder-candidate-in 140ms cubic-bezier(.22,.8,.24,1) both;box-shadow:inset 0 1px 1px rgba(255,255,255,.34)}.home-item.is-folder-candidate> :not(.selection-mark){position:relative;z-index:1;transition:transform 280ms cubic-bezier(.22,.8,.24,1)}.home-item.is-folder-armed> :not(.selection-mark){transform:scale(.94);filter:drop-shadow(0 0 12px rgba(255,255,255,.58))}@keyframes folder-candidate-in{from{opacity:0;transform:translateX(-50%) scale(.88)}to{opacity:1;transform:translateX(-50%) scale(1)}}
 .home-item.is-removing{opacity:0;transition:opacity 180ms ease}
