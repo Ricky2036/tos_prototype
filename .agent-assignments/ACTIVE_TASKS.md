@@ -87,6 +87,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Fix edit dashboard button deformation, cut-off layout, and refine thumbnail cards frosted glass styling | `antigravity/lane` | None (locks released) | `73b3e79` | `84be4fd` |
 | Merged | Antigravity | Multi-select drag to bottom thumbnail cards drop placement, edit icon refinement, and fix extra blank page | `antigravity/lane` | None (locks released) | `62a064f` | `9f31e70` |
 | Merged | Antigravity | Replace desktop edit wallpaper icon with settings wallpaper icon | `antigravity/lane` | None (locks released) | `134061b` | `aee15d9` |
+| Active | Antigravity | Replace desktop edit delete icon with notification center trash SVG | `antigravity/lane` | `src/components/system/HomeScreen.vue` | `c122c3b` | Pending |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
