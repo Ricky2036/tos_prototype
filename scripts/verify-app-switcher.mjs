@@ -1067,12 +1067,28 @@ await page.waitForTimeout(1000)
        ② 离场槽距 EXIT_FRAC: 0.88 屏宽 → 0.544 屏宽（378 → 234px = 一张卡的手指行程）
           ⇒ 离场卡位移 ≡ 手指位移 = 1:1 跟手；且换一张后它【停在右屏边内侧露出 ≈119px】
             （参考实测 ≈96px），第二张才把它推出去。
+          ⚠️ **第七轮·批次 4 已把这条改掉**（见下）
        ③ u 的指数 TRANS_POW / EXIT_POW: 1.6 → 1（整条链从第一帧就与手指同速）。
+
+   ── 第七轮·批次 4（2026-09-13）对 ② 的修正（Ricky 需求②）──
+     Ricky 原话：「顶层卡片右滑要最多滑到跟底层卡片刚好完全分离再锁死」，
+     拍板取值：**刚好贴住不重叠**，顶卡左缘 = 352.5px。
+     ② 的 234px（= 手指行程 0.85 卡宽）**小于一张卡宽**，于是离场卡永远停在
+     frontX + 233.9 = 311.4px，与居中底卡右缘 352.5px **恒重叠 41px** ——
+     这就是他说的「滑到底也跟底卡锁死在一起」。
+     改法：EXIT_FRAC 0.544 → **0.64 = CARD_W_FRAC**（离场槽距 ≡ 一张卡宽）⇒
+     静止态左缘 = frontX + cardW = **352.5px 恰好相切**，零重叠零空隙。
+     代价：位移比 exit : 手指行程 = 1 : 0.85 = **1.176**，不再是严格 1:1
+     （但第六轮逐帧实测参考视频本身就是 272 : 255 ≈ 1.07，方向一致）。
+     ⇒ 本块的「1:1 跟手」断言随之作废，改为断言
+       ① 整段拖动两卡**永不重叠**（改前恒重叠 41px）；
+       ② 手指走满一整层时两卡间隙 ≈ 0（**刚好贴住**）；
+       ③ 该时刻离场卡的一层净位移 ≡ **一张卡宽**（275px，改前 233.9px）。
 
    为什么这不是「又把牵连加回来」（数学根因，第四轮的教训）：
      层位置仍 = frontX − stair(aEff)，aEff = d − u，对 u 严格单调 ⇒ 零回退。
-     第六轮改的是【槽位间距】（静态几何），不是【会归零的包络】。
-     离场卡走线性斜坡 234 × |a|，仍是 |a| 的单调函数，一帧都不会往左。
+     第六/七轮改的是【槽位间距】（静态几何），不是【会归零的包络】。
+     离场卡走线性斜坡 exit × |a|，仍是 |a| 的单调函数，一帧都不会往左。
 
    本块拖 1.45 层（≈340px），覆盖到「离场卡逼近右屏边、即将出屏」为止，
    同时保证配对（顶卡 i / 被它带着走的 i+1）在整段里都还在 DOM 里。 */
@@ -1130,7 +1146,6 @@ await page.waitForTimeout(1000)
     if (!atOneLayer && finger >= SPAN - 1e-6) atOneLayer = { nn, tt, finger }
   }
   const nextTravel = nextPeak - next0.x
-  const topTravel = topPeak - top0.x
   check(
     '第六轮·定律三：背景层【全程】单调右移，绝不回退（含离场卡逼近右屏边之后）',
     frames >= 24 && mono,
@@ -1138,9 +1153,10 @@ await page.waitForTimeout(1000)
       `（第四轮：峰值 57px 后回退 24px，出屏点附近还有一次 77px 二次回退）`
   )
   check(
-    '第六轮·连锁：整段拖动两卡【恒重叠、永不出现空隙】',
-    frames >= 24 && minGlue > 0,
-    `最小重叠 ${minGlue.toFixed(1)}px（第五轮此处是 -81px 的空隙 = 「顶卡独自飞走」）`
+    '需求②（整段）：拖动全程两卡【永不重叠】—— 改前（exit 233.9）此处是恒重叠 41px',
+    frames >= 24 && minGlue >= -1,
+    `最小间隙 ${(minGlue + 0).toFixed(1)}px（第五轮此处是 -81px 的「空隙」= 顶卡独自飞走；` +
+      `第六轮是 -41px 的「恒重叠」= 顶卡与底卡锁死）`
   )
   check(
     '第六轮：背景层一整层净位移 = stair(1) ≈ 52px（参考实测 51~56px；第五轮只有 33px）',
@@ -1158,19 +1174,32 @@ await page.waitForTimeout(1000)
       ? `位移走到 25% 时缩放已走 ${(((atQuarter.nn.s - next0.s) / (1 - DECK.SCALE_DECAY)) * 100).toFixed(0)}%`
       : '没采到「位移 25%」的样本'
   )
+  /* 需求②的核心量化判据（活体实测，与单测的纯函数断言互为印证）：
+     手指走满一整层的那一刻，离场卡应当【正好停靠在底卡右缘】——
+     · 一层净位移 = 一张卡宽（275px；改前 233.9px）
+     · 此刻两卡间隙 ≈ 0（刚好贴住；改前 −41px 重叠） */
   check(
-    '第六轮：离场卡 1:1 跟手（位移 ≡ 手指行程，EXIT_POW = 1）',
-    topTravel > 0 && Math.abs(topTravel - SPAN * 1.45) <= 14,
-    `离场卡位移 ${topTravel.toFixed(1)}px vs 手指行程 ${(SPAN * 1.45).toFixed(1)}px` +
-      `（偏差 ${(topTravel - SPAN * 1.45).toFixed(1)}px；第五轮是 1.6 次幂曲线，前 1/3 段几乎不动）`
+    '需求②（关键时刻）：手指走满一整层时，离场卡一层净位移 = 一张卡宽（改前 233.9px）',
+    !!atOneLayer && Math.abs(atOneLayer.tt.x - top0.x - cardW) <= 3,
+    atOneLayer
+      ? `离场卡位移 ${(atOneLayer.tt.x - top0.x).toFixed(1)}px vs 一张卡宽 ${cardW}px`
+      : '没采到「手指走满一整层」的样本'
+  )
+  check(
+    '需求②（关键时刻）：手指走满一整层时两卡间隙 ≈ 0（刚好贴住，改前重叠 41px）',
+    !!atOneLayer && Math.abs(atOneLayer.tt.x - (atOneLayer.nn.x + cardW * atOneLayer.nn.s)) <= 3,
+    atOneLayer
+      ? `间隙 ${(atOneLayer.nn.x + cardW * atOneLayer.nn.s - atOneLayer.tt.x).toFixed(1)}px` +
+        `（离场卡左缘 ${atOneLayer.tt.x.toFixed(1)} / 底卡右缘 ${(atOneLayer.nn.x + cardW * atOneLayer.nn.s).toFixed(1)}）`
+      : '没采到「手指走满一整层」的样本'
   )
   /* 静止态：换一张后离场卡仍停在右屏边内侧露出（参考视频实测 ≈96px） */
   {
     const parked = (await deck()).find((r) => r.depth === -1)
     check(
-      '第六轮：换一张后离场卡停在右屏边内侧露出（参考实测 ≈96px；旧契约「一张就出屏」已作废）',
-      !!parked && parked.x < screenBox.width && screenBox.width - parked.x > 60,
-      parked ? `露出 ${(screenBox.width - parked.x).toFixed(1)}px（x=${parked.x.toFixed(1)}）` : '找不到 depth=-1 的卡'
+      '需求②（静止态）：换一张后离场卡左缘 = 352.5px = 居中卡右缘，露出 77.5px = frontX',
+      !!parked && Math.abs(parked.x - 352.5) <= 1.5 && parked.x < screenBox.width,
+      parked ? `左缘 ${parked.x.toFixed(1)}px（露出 ${(screenBox.width - parked.x).toFixed(1)}px）` : '找不到 depth=-1 的卡'
     )
   }
 }
@@ -1188,7 +1217,7 @@ await page.waitForTimeout(1000)
      代价：合成 pointerdown 下 setPointerCapture 抛 InvalidPointerId → 先在原型上打桩。
 
    ⚠️ wheel 的宿主元素必须选 .app-switcher 根，不能选 elementFromPoint 的结果：
-     前卡会因为 renderedCards（|a| > 1.56 剔除）在 focus 增大时被移出 DOM，
+     前卡会因为 renderedCards（|a| > 1.28 剔除）在 focus 增大时被移出 DOM，
      再往那个【游离节点】dispatchEvent 不会冒泡到 window → 后半串事件全部丢失
      （踩过一次：「连拨 1000px 只走 2 张」，不是实现的问题）。 */
 console.log('\n───── 批次 3：松手吸附（需求④⑤）与触控板双指横滑（需求①）─────')
@@ -1458,6 +1487,192 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
     })
     check('需求①：切换器打开时桌面分页让位（不会在底下偷偷翻页）',
       Math.abs(home.before - home.after) < 1, `桌面 strip x: ${home.before} → ${home.after}`)
+  }
+
+  /* ══════════ 第七轮 · 批次 4 ══════════
+     ⑩「点击一键清理时卡片上滑消失（参考视频 e6da8c6c…mp4）」
+     ②「顶层卡片右滑要最多滑到跟底层卡片刚好完全分离再锁死」
+     ③「应用内上滑进入多任务页面后应用卡片会非常明显地闪一下」（回归复验）*/
+
+  /* 批次 2/3 的用例动过最近列表（上滑移除过卡片、快滑回过桌面），
+     这里先把 5 个应用重新灌满，否则「一键清理」的卡数不确定。 */
+  const repopulate = async () => {
+    await page.evaluate(() => window.__system.exitSwitcherToHome())
+    await page.waitForTimeout(420)
+    for (const id of OPENED) {
+      await page.evaluate((a) => window.__system.openApp(a), id)
+      await page.waitForTimeout(300)
+    }
+  }
+
+  // ---- ⑩ 一键清理：逐卡上滑飞出 ----
+  await repopulate()
+  check('批次 4 前置（⑩）：最近任务恢复为 5 个', (await S()).recent.length === 5, (await S()).recent.join('/'))
+  check('批次 4 前置（⑩）：回到「切换器打开、焦点 0」', (await resetFocus0()) === true)
+  {
+    /* CSS 过渡无法回放，只能在真实时间轴上用 rAF 逐帧采（≈16.7ms/帧，
+       一次 260 + 90 + 60ms 的清理能采到 ~24 帧）。采 translateY / opacity / translateX。 */
+    await page.evaluate(() => {
+      window.__cl = []
+      window.__clStop = false
+      const tick = () => {
+        if (window.__clStop) return
+        const root = document.querySelector('.app-switcher')
+        window.__cl.push({
+          t: performance.now(),
+          cards: root
+            ? [...root.querySelectorAll('.switcher-card.is-deck')].map((c) => {
+                const cs = getComputedStyle(c)
+                const m = new DOMMatrixReadOnly(cs.transform)
+                return {
+                  id: c.dataset.appId,
+                  i: +c.dataset.index,
+                  ty: +m.f.toFixed(2),
+                  tx: +m.e.toFixed(2),
+                  op: +(+cs.opacity).toFixed(3)
+                }
+              })
+            : []
+        })
+        requestAnimationFrame(tick)
+      }
+      tick()
+    })
+    const btn = await page.locator('.switcher-trash').boundingBox()
+    await page.mouse.click(btn.x + btn.width / 2, btn.y + btn.height / 2)
+    await page.waitForTimeout(1000)
+    await page.evaluate(() => { window.__clStop = true })
+    const tl = await page.evaluate(() => window.__cl)
+
+    const start = tl[0]?.cards || []
+    const y0 = Object.fromEntries(start.map((c) => [c.id, c.ty]))
+    const x0 = Object.fromEntries(start.map((c) => [c.id, c.tx]))
+    const takeoff = {} // 首次「真的动了」（Δ ≥ 3px 向上）的时刻
+    const maxRise = {} // 最大上移量
+    const xDrift = {} // 最大横向漂移
+    let minOp = 1
+    for (const f of tl) {
+      for (const c of f.cards) {
+        const rise = y0[c.id] - c.ty
+        if (!(c.id in takeoff) && rise >= 3) takeoff[c.id] = f.t
+        maxRise[c.id] = Math.max(maxRise[c.id] ?? 0, rise)
+        xDrift[c.id] = Math.max(xDrift[c.id] ?? 0, Math.abs(c.tx - x0[c.id]))
+        minOp = Math.min(minOp, c.op)
+      }
+    }
+    const times = start.map((c) => takeoff[c.id]).filter((v) => typeof v === 'number')
+    const spread = times.length === start.length ? Math.max(...times) - Math.min(...times) : -1
+    /* 参考视频 V10 逐帧：卡底沿 1020 → 1020 → 860 → 490 → 140 → 出屏（5 帧 ≈ 208ms），
+       增量 0 / −160 / −370 / −350 = **加速上扬**；且末帧残余卡条仍是纯白 229 → **不淡出**。
+       本项目飞出位移 = screenH × 1.15（从 cardY 155 起 ⇒ 终点 ty ≈ −917）。 */
+    check(`需求⑩：一键清理 → ${start.length} 张卡全部上滑飞出（越出屏幕上沿）`,
+      start.length === 3 && start.every((c) => (maxRise[c.id] ?? 0) >= screenBox.height * 1.0),
+      start.map((c) => `${c.i}:↑${(maxRise[c.id] ?? 0).toFixed(0)}px`).join(' '))
+    check('需求⑩：飞出全程不淡出（对齐参考视频：末帧残余卡条仍是纯白）', minOp >= 0.999, `最低 opacity=${minOp}`)
+    check('需求⑩：飞出是纯纵向位移（横向漂移 < 1px）',
+      Object.values(xDrift).every((d) => d < 1), Object.entries(xDrift).map(([k, v]) => `${k}:${v.toFixed(2)}`).join(' '))
+    check('需求⑩：多卡 45ms 错峰（C 位先走、越靠后越晚）',
+      spread >= 30 && start.every((c, k) => k === 0 || (takeoff[start[k].id] ?? 0) >= (takeoff[start[k - 1].id] ?? 0)),
+      `起飞时刻差 ${spread.toFixed(0)}ms（${start.map((c) => `${c.i}:${((takeoff[c.id] ?? 0) - (times[0] ?? 0)).toFixed(0)}ms`).join(' ')}）`)
+    const after = await S()
+    check('需求⑩：全部出屏后清空最近任务并回桌面',
+      after.recent.length === 0 && after.switcher === false && after.app === null && after.base === 'home',
+      `recent=${after.recent.length} switcher=${after.switcher} app=${after.app} base=${after.base}`)
+  }
+
+  // ---- ② 顶卡右滑「最多滑到刚好完全分离」：离场卡左缘 ≡ 底卡右缘 ----
+  await repopulate()
+  check('批次 4 前置（②）：回到「切换器打开、焦点 0」', (await resetFocus0()) === true)
+  {
+    /* 改前（EXIT_FRAC 0.544）：离场卡停在 frontX + 233.9 = 311.4px，
+       而居中底卡右缘 = frontX + cardW = 352.5px ⇒ **恒重叠 41px**（Ricky 说的「跟底卡锁死」）。
+       改后（EXIT_FRAC 0.64 = CARD_W_FRAC）：离场槽距 = 一张卡宽 ⇒ 左缘正好落在 352.5px。 */
+    await page.evaluate(() => {
+      window.__gapTL = []
+      window.__gapStop = false
+      const tick = () => {
+        if (window.__gapStop) return
+        const root = document.querySelector('.app-switcher')
+        window.__gapTL.push(
+          root
+            ? [...root.querySelectorAll('.switcher-card.is-deck')].map((c) => {
+                const m = new DOMMatrixReadOnly(getComputedStyle(c).transform)
+                return { i: +c.dataset.index, x: +m.e.toFixed(2), sx: +m.a.toFixed(4), w: c.clientWidth }
+              })
+            : []
+        )
+        requestAnimationFrame(tick)
+      }
+      tick()
+    })
+    await synthDrag([{ dx: SPAN * 1.0, vPx: 0.5 }], { pause: 200 })
+    await page.waitForTimeout(1000)
+    await page.evaluate(() => { window.__gapStop = true })
+    const gapTL = await page.evaluate(() => window.__gapTL)
+    /* 离场卡 = 原来的 C 位（index 0）；顶上来的那张 = index 1。
+       「刚好贴住」的充要条件：右缘(index1) − 左缘(index0) ≡ 0。 */
+    const gaps = []
+    for (const f of gapTL) {
+      const a = f.find((c) => c.i === 0)
+      const b = f.find((c) => c.i === 1)
+      if (a && b) gaps.push(+(b.x + b.w * b.sx - a.x).toFixed(2))
+    }
+    const minGap = Math.min(...gaps)
+    const endGap = gaps.slice(-8).reduce((s, v) => s + v, 0) / Math.min(8, gaps.length)
+    check('需求②：拖动全程两卡【永不重叠】（离场卡左缘 ≥ 底卡右缘，改前恒重叠 41px）',
+      gaps.length > 10 && minGap >= -0.5, `最小间隙 ${minGap.toFixed(2)}px（共 ${gaps.length} 帧）`)
+    check('需求②：松手静止后顶卡左缘【正好贴住】底卡右缘（间隙 ≈ 0，不靠不叠）',
+      Math.abs(endGap) <= 1.5, `静止间隙 ${endGap.toFixed(2)}px`)
+    const parked = await page.evaluate(() => {
+      const c = document.querySelector('.switcher-card.is-deck[data-index="0"]')
+      const b = c.getBoundingClientRect()
+      return { left: +b.x.toFixed(1), right: +b.y.toFixed(0) }
+    })
+    const centerRight = await page.evaluate(() => {
+      const c = document.querySelector('.switcher-card.is-deck[data-index="1"]')
+      return +(c.getBoundingClientRect().right).toFixed(1)
+    })
+    check('需求②：静止态离场卡左缘 = 居中卡右缘 = 352.5px（仍在屏内露出 ≈77.5px）',
+      Math.abs(parked.left - 352.5) <= 1.5 && Math.abs(parked.left - centerRight) <= 1.5,
+      `离场卡左缘=${parked.left} 居中卡右缘=${centerRight}`)
+    await resetFocus0()
+  }
+
+  // ---- ③ 回归复验：应用内上滑进多任务，交接【零半透明帧】 ----
+  {
+    await page.evaluate(() => window.__system.openApp('settings'))
+    await page.waitForTimeout(500)
+    await page.evaluate(() => {
+      window.__b4TL = []
+      let k = 0
+      const tick = () => {
+        const f = document.querySelector('.switcher-card.is-follow')
+        const cards = [...document.querySelectorAll('.switcher-card.is-deck')].map((c) => ({
+          depth: c.dataset.depth,
+          rootOp: +(+getComputedStyle(c).opacity).toFixed(3),
+          bodyOp: +(+getComputedStyle(c.querySelector('.switcher-card-body')).opacity).toFixed(3)
+        }))
+        window.__b4TL.push({ f: !!f, cards })
+        if (++k < 200) requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    })
+    /* 比批次 2 的 500ms 停驻更短的上滑（300ms），覆盖「快速停驻就松手」这条更急的路径 */
+    const cx = 215
+    await page.mouse.move(cx, 925)
+    await page.mouse.down()
+    for (let i = 1; i <= 26; i++) { await page.mouse.move(cx, 925 - i * 14, { steps: 1 }); await page.waitForTimeout(12) }
+    for (let i = 0; i < 6; i++) { await page.mouse.move(cx, 925 - 364, { steps: 1 }); await page.waitForTimeout(50) }
+    await page.mouse.up()
+    await page.waitForTimeout(1300)
+    const b4 = await page.evaluate(() => window.__b4TL)
+    const iH = b4.findIndex((r) => !r.f && r.cards.length > 0)
+    const front = (r) => r.cards.find((c) => c.depth === '0')
+    const halfBody = b4.filter((r) => r.cards.some((c) => c.bodyOp > 0.02 && c.bodyOp < 0.98))
+    check('需求③ 回归：应用内上滑进多任务，交接那一帧前卡已完全不透明（无淡入中间帧）',
+      iH > 0 && front(b4[iH])?.rootOp === 1, `交接帧=${iH} 前卡卡根 op=${front(b4[iH])?.rootOp}`)
+    check('需求③ 回归：卡体透明度只做硬切（全程无半透明帧）',
+      halfBody.length === 0, `半透明帧数=${halfBody.length}`)
   }
 }
 

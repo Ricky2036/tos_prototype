@@ -323,6 +323,15 @@ let settleTimer = null
    watcher 里的 cancelWheel() 会踩到 TDZ。 */
 const wheelAcc = ref(null)
 let wheelIdleTimer = null
+/* ---- 一键清理（需求⑩）的编排态 —— 同样必须声明在 watch 之前（TDZ）----
+   clearing = 已武装：卡片拿到「飞出」专用过渡，但目标值还是原位（位姿不动）；
+   clearGo  = 放行：下一帧才把目标值切到屏外。分两帧是必须的，与 resumeWithExpand
+             同一个理由：过渡属性与目标值同帧变更时，before-change style 里没有过渡
+             可依，浏览器会把这次变更当成瞬移。
+   多卡时按 |a| 递增错峰（C 位先走、两侧跟进），让「清空后台」读起来是一次连锁。 */
+const clearing = ref(false)
+const clearGo = ref(false)
+let clearTimer = null
 
 function markEntrance() {
   clearTimeout(settleTimer)
@@ -352,6 +361,11 @@ watch(
          而 focusMoving 挂着会把「关闭」那一段的卡片过渡全关掉（卡片瞬移）。 */
       cancelWheel()
       focusMoving.value = false
+      /* 一键清理的未决定时器同理：若它还活着，会在下一次打开时把新卡片「清空」掉 */
+      clearTimeout(clearTimer)
+      clearTimer = null
+      clearing.value = false
+      clearGo.value = false
       return
     }
     /* 同步编排（不放到 nextTick）：邻居卡要和开关置位在同一帧就带上目标样式，
@@ -639,7 +653,7 @@ function vtVelocity(now = performance.now()) {
 }
 
 function onPointerDown(e) {
-  if (dismissing.value) return
+  if (dismissing.value || clearing.value) return
   measure()
   vLetGo.value = null
   vt.length = 0
@@ -790,7 +804,7 @@ const WHEEL_PAGE_PX = 400 // deltaMode=2（按页）
 const WHEEL_IDLE = 140
 
 function onWheel(e) {
-  if (!system.appSwitcherOpen || drag.value || dismissing.value || expanding.value) return
+  if (!system.appSwitcherOpen || drag.value || dismissing.value || clearing.value || expanding.value) return
   /* deltaMode 归一：部分设备/浏览器给「行」或「页」，要折成像素才与 span 同量纲 */
   const k = e.deltaMode === 1 ? WHEEL_LINE_PX : e.deltaMode === 2 ? WHEEL_PAGE_PX : 1
   const px = e.deltaX * k
@@ -889,14 +903,78 @@ function expandingStyle(i) {
 
 /* 卡片样式分派 —— 锚点几何（跟手/展开）居中缩放，堆叠几何以左上角为原点 */
 function cardStyle(id, i) {
+  if (clearing.value) return clearingStyle(i) // 一键清理优先（清空动作压过一切）
   if (id === dismissing.value) return dismissingStyle(i)
   if (id === expanding.value) return expandingStyle(i)
   return stackStyle(i)
 }
 
-/* 底部垃圾桶：清空最近任务回桌面 */
+/* ---- 一键清理（需求⑩）：逐卡上滑飞出 ----
+ * 参考视频 V10 逐帧量测（592×1280 / 24fps / 109 帧 → /tmp/vwork/v10）：
+ *   · 起跳时刻：f032 静止 → f037 完全出屏，**5 帧 ≈ 208ms 走完**。
+ *   · 卡底沿轨迹（逐帧 bbox，避开状态栏白字）：1020 → 1020 → 860 → 490 → 140 → 出屏，
+ *     增量 0 / −160 / −370 / −350 —— **加速上扬（ease-in）**，不是匀速、也不是缓出。
+ *     末帧仍有 ≈8400px/s，说明是「被甩出去」而不是「滑到位」。
+ *   · **全程亮度不变**（f036 的残余卡条仍是纯白 229）⇒ **只位移、不淡出**。
+ *   · 垃圾桶按钮在起飞前 1~2 帧先有按压高亮（f030/f031 实心白 → f032 回弹）
+ *     ⇒ 先给按压反馈、再起飞。
+ *
+ * 本项目只跑 1 张卡时与视频同构；多卡时按 |a| 递增 45ms 错峰（C 位先走、两侧跟进）。
+ * 关键取舍：**不用 `dismissWithAnimation` 的 240ms + `-screenH×1.1`** ——
+ * 那是「上滑移除单卡」的缓出曲线（属于跟手抛掷的收尾），而一键清理在视频里是
+ * 从静止直接加速，两者不该共用同一条曲线。
+ *
+ * ⚠️ 时长常量与 CSS 里那条 `cubic-bezier(0.55, 0, 0.9, 0.35)` 是同一条曲线的两个表述，
+ *    改这里必须同步 clearingStyle 的 transition；断言见 verify-app-switcher 的「批次 4」。 */
+const CLEAR_MS = 260 // 单卡飞出时长（视频实测 208ms，留一点余量避免「啪」地切断）
+const CLEAR_STAGGER = 45 // 多卡错峰
+const CLEAR_TAIL = 60 // 收尾缓冲：等最后一张真的出屏再清空，否则会看到「半空消失」
+const CLEAR_RISE = 1.15 // 飞出位移 = screenH × 1.15（确保完全离屏，含卡片自身高度）
+
+/** 某张卡的起飞延迟（层深越靠外越晚） */
+function clearDelayOf(i) {
+  return Math.min(Math.abs(i - focus.value), 2) * CLEAR_STAGGER
+}
+
+function clearingStyle(i) {
+  const p = deckPose(i - focus.value, metrics.value, xFrac.value)
+  return {
+    width: cardW.value + 'px',
+    height: cardH.value + 'px',
+    transform: `translate3d(${p.x}px, ${p.y - (clearGo.value ? screenH.value * CLEAR_RISE : 0)}px, 0) scale(${p.scale})`,
+    /* 需求⑩：参考视频是纯位移（末帧残余卡条仍纯白）→ 不淡出，opacity 恒 1 */
+    opacity: 1,
+    filter: `brightness(${p.bright})`,
+    zIndex: deckZ(i),
+    borderRadius: RADIUS.value + 'px',
+    /* 覆盖 .switcher-card 的默认过渡（0.32s 弹性缓出）—— 那条是「吸附收尾」的曲线，
+       一键清理要的是「从静止加速甩出」的 ease-in。delay 承担多卡错峰。 */
+    transition: `transform ${CLEAR_MS}ms cubic-bezier(0.55, 0, 0.9, 0.35) ${clearDelayOf(i)}ms`
+  }
+}
+
+/* 底部垃圾桶：清空最近任务回桌面（第七轮·批次 4：补上逐卡上滑飞出） */
 function clearAll() {
-  system.dismissAll()
+  if (clearing.value || dismissing.value || expanding.value) return
+  const n = renderedCards.value.length
+  if (!n) {
+    system.dismissAll()
+    return
+  }
+  clearing.value = true
+  clearGo.value = false
+  /* 分两帧：先把「飞出过渡 + 起飞前位姿」渲染出来，下一帧再改目标值。 */
+  requestAnimationFrame(() => {
+    if (clearing.value) clearGo.value = true
+  })
+  clearTimeout(clearTimer)
+  const last = Math.max(0, Math.min(n - 1, 2)) // 错峰按 |a| ≤ 2 计，与 clearDelayOf 同口径
+  clearTimer = setTimeout(() => {
+    clearTimer = null
+    clearing.value = false
+    clearGo.value = false
+    system.dismissAll()
+  }, CLEAR_MS + last * CLEAR_STAGGER + CLEAR_TAIL)
 }
 
 /** 点空白：关掉切换器并【回桌面】（需求⑪）。
@@ -925,6 +1003,7 @@ onBeforeUnmount(() => {
   if (ro) { ro.disconnect(); ro = null }
   clearTimeout(dwellTimer)
   clearTimeout(settleTimer)
+  clearTimeout(clearTimer)
   cancelWheel()
   window.removeEventListener('wheel', onWheel)
 })

@@ -15,18 +15,22 @@ import {
 
 // 430 × 932（本项目基准机型）
 const m = deckMetrics(430, 932)
-/** 一次换卡的松手落点（第 1 层恰好成为焦点） */
-const U_OFF = (m.screenW - m.frontX) / m.exit // 顶卡左缘越过屏宽所需进度 ≈ 1.51（第六轮）
+/** 离场卡左缘越过屏宽所需进度 ≈ 1.28（第七轮·批次 4：右侧槽距改成一张卡宽） */
+const U_OFF = (m.screenW - m.frontX) / m.exit
 
 test('几何度量：卡宽 275、焦点层水平居中', () => {
   assert.equal(m.cardW, 275)
   assert.equal(m.cardH, 596)
   assert.equal(m.frontX, 77.5)
   assert.equal(m.radius, 29)
-  assert.ok(Math.abs(m.exit - 233.92) < 1e-9) // = 屏宽 × 0.544 = 卡宽 × 0.85 = 一张卡的手指行程（第六轮）
+  assert.equal(m.exit, 275) // = 卡宽（第七轮·批次 4：EXIT_FRAC = CARD_W_FRAC）
   assert.equal(m.span, 233.75) // = 卡宽 × 0.85（对齐参考视频实测 0.87 卡宽/张）
-  /* 第六轮核心契约：离场槽距 ≡ 一次换卡的手指行程 → 离场卡 1:1 跟手 */
-  assert.ok(Math.abs(m.exit - m.span) < 0.5, `exit=${m.exit} span=${m.span}`)
+  /* 第七轮·批次 4 核心契约（需求②）：离场槽距 ≡ **一张卡宽** ⇒ 静止态离场卡左缘
+     = frontX + cardW = 352.5px ≡ 居中卡右缘 —— **刚好贴住、零重叠零空隙**。
+     改前（第六轮 233.92 = 手指行程）会停在 311.4px，与底卡重叠 41px。 */
+  assert.ok(Math.abs(m.exit - m.cardW) < 1e-9, `exit=${m.exit} cardW=${m.cardW}`)
+  assert.ok(Math.abs(m.frontX + m.exit - (m.frontX + m.cardW)) < 1e-9)
+  assert.equal(m.frontX + m.cardW, 352.5)
 })
 
 test('修正 A：卡片整体在删除按钮上方居中（图标行 + 卡片作为整体）', () => {
@@ -106,11 +110,13 @@ test('规则⑤ 最多三层：3 个槽位 + 正在离场的卡，第 4 层起�
   assert.ok(deckVisible(2), '第 3 层（最深槽位）必须渲染')
   assert.ok(!deckVisible(2.01), '超过第 3 个槽位即剔除')
   assert.ok(!deckVisible(3), '第 4 张在层深 3 处必须剔除')
-  /* 第六轮：离场卡到 a ≈ -1.51 才越过右屏边（frontX + 233.92×1.51 ≈ 431），
-     所以剔除界从 -1.02 放宽到 -1.56，保证出屏全程有 DOM 可画。 */
-  assert.ok(deckVisible(-1), '刚换出去的那张要留在屏内露出（参考视频实测露出 ≈96px）')
-  assert.ok(deckVisible(-1.5), '还没完全出屏的离场卡不能提前剔除')
-  assert.ok(!deckVisible(-1.56 - 1e-6), '越过右屏边后剔除')
+  /* 第七轮·批次 4：离场卡到 a ≈ -1.28125 才越过右屏边（frontX + 275×1.28125 ≈ 430），
+     剔除界从 -1.56 收到 -1.30（= DECK.EXIT_CULL）——
+     因为 deckVisible 用的是【严格大于】，门槛必须 ≥ 1.28125 才不会剔掉还露着的卡。 */
+  assert.ok(deckVisible(-1), '刚换出去的那张要留在屏内露出 = 352.5px 左缘（露出 77.5px）')
+  assert.ok(deckVisible(-1.2812), '还剩 0.14px 在屏内时绝不能提前剔除（闪断高危区）')
+  assert.ok(deckVisible(-1.3 + 1e-9), '刚好卡在剔除界上仍要渲染（左缘 435 已出屏，但边界要保守）')
+  assert.ok(!deckVisible(-1.3), '越过界限才剔除')
   assert.ok(!deckVisible(-2), '再往外一层必须剔除')
 })
 
@@ -152,7 +158,7 @@ test('规则⑥⑦ 层间位移按层递减（由 stair 的几何级数天然给
      这是 stair 的几何级数决定的，改 STAIR_DECAY 就会同步变。 */
   assert.ok(Math.abs(travel[2] / travel[1] - DECK.STAIR_DECAY) < 1e-9, `第三层/第二层 = ${(travel[2] / travel[1]).toFixed(4)}`)
   /* 顶卡（离场卡）与第二层的量级差：第六轮逐帧实测参考视频 = 272 : 55 ≈ 4.9 : 1。
-     本项目 = exit : stair(1) = 233.92 : 52.25 ≈ 4.5 : 1。
+     本项目（第七轮·批次 4）= exit : stair(1) = 275 : 52.25 ≈ 5.3 : 1。
      第五轮是 378.4 : 33 ≈ 11.5 : 1 —— 正是 Ricky 口中的「一次只能滑走一张」。 */
   {
     const ratio = travel[0] / travel[1]
@@ -163,7 +169,7 @@ test('规则⑥⑦ 层间位移按层递减（由 stair 的几何级数天然给
 test('第六轮·连锁：整条链从第一帧起与手指同速推进（u = x，不再后加载）', () => {
   /* 第五轮 u = x^1.6 ⇒ 前 1/3 段背景层几乎不动（x=0.2 时只走了 4%），
      叠加 stair(1)=33px，观感就是「只有顶卡在动」。
-     第六轮 u = x：离场卡位移 = span·x（1:1 跟手），背景层也从第一帧就动。 */
+     第六轮 u = x：离场卡位移 = cardW·x（第七轮·批次 4），背景层也从第一帧就动。 */
   assert.equal(DECK.TRANS_POW, 1)
   assert.equal(DECK.EXIT_POW, 1)
   for (const x of [0.02, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99]) {
@@ -177,9 +183,15 @@ test('第六轮·连锁：整条链从第一帧起与手指同速推进（u = x�
     const bgProgress = moved / deckExposure(1, m.cardW)
     assert.ok(bgProgress <= x + 1e-9, `x=${x} 背景层抢跑：${(bgProgress * 100).toFixed(1)}% > ${(x * 100).toFixed(0)}%`)
   }
-  /* 1:1 跟手：离场卡一整层的位移 ≡ 一次换卡的手指行程 */
+  /* 第七轮·批次 4 改写的契约：离场卡一整层的位移 = **一张卡宽**（275px），
+     而一次换卡的手指行程 = 233.75px ⇒ 位移比 1 : 0.85 = **1.176**，略快于手指。
+     这不是拍脑袋 —— 第六轮逐帧实测参考视频本身就是 272 : 255 ≈ 1.07（同方向）；
+     旧值 1.0（严格 1:1）反而偏慢，正是需求②「顶卡跟底卡永远分不开」的成因。
+     换成 1.176 之后，离场卡停下的位置正好是居中卡右缘 ⇒ 刚好贴住不重叠。 */
   const exitTravel = deckPose(-(1 - 1e-9), m, 1 - 1e-9).x - m.frontX
-  assert.ok(Math.abs(exitTravel - m.span) < 0.5, `离场位移 ${exitTravel.toFixed(2)} ≟ 手指行程 ${m.span}`)
+  assert.ok(Math.abs(exitTravel - m.cardW) < 0.5, `离场位移 ${exitTravel.toFixed(2)} ≟ 一张卡宽 ${m.cardW}`)
+  const travelRatio = exitTravel / m.span
+  assert.ok(travelRatio > 1 && travelRatio < 1.25, `离场位移/手指行程 = ${travelRatio.toFixed(3)}（参考实测 1.07）`)
 
   /* 层边界零跳变：x→1⁻ 时第 1 层正好落进槽位；下一层的 x=0 就是同一个位姿 */
   const eps = 1e-6
@@ -230,32 +242,41 @@ test('第五轮·定律三 不得回退：整段拖动（含顶卡出屏之后�
   assert.ok(deckPose(-2, m, 0).x >= m.screenW, `换两张后仍未出屏：${deckPose(-2, m, 0).x.toFixed(1)}`)
 })
 
-test('第六轮·连锁：整段拖动里两卡始终重叠（第五轮的 ≈77px 空隙消失）', () => {
-  /* 第五轮的「几何必然」：顶卡一次飞出 378px，而居中底卡的右缘最多只能到
-     frontX + cardW = 352.5px ⇒ 顶卡还在屏内时就已经裂开 ≈81px 空隙 —— 这正是
-     Ricky 看到的「顶卡独自飞走、底下的卡没跟上」。
-     第六轮把离场卡的一层行程压到 233.9px（= 一次换卡的手指行程，1:1 跟手），
-     于是顶卡左缘最多到 frontX + exit = 311.4px，恒小于底卡右缘 352.5px
-     ⇒ **全程重叠，永不出现空隙**（= 用户要的「粘连在一起被拉走」）。
+test('第七轮·批次 4：整段拖动里两卡【永不重叠】，松手静止时刚好贴住（需求②）', () => {
+  /* 改前（第六轮 exit = 233.9）：离场卡停下的位置 = frontX + exit = 311.4px，
+     而居中底卡右缘 = frontX + cardW = 352.5px ⇒ **恒重叠 41px**。
+     这正是 Ricky 的原话「顶层卡片右滑最多滑到跟底层卡片刚好完全分离再锁死」——
+     他要的是「滑到底就刚好分开」，而旧实现是「无论怎么滑都糊在一起」。
+     （第六轮那条「整段拖动里两卡始终重叠」的旧断言在本轮被【方向性推翻】：
+       它守护的「粘连被拉走」观感由「两卡位移比 5.3 : 1」承担，不再靠重叠。）
 
-     注意：重叠只是「不分离」，不是「反向运动」—— 两卡的位置在整个 x∈[0,1]
-     里都各自严格单调右移（由「定律三」用例守护）。 */
+     改后（exit = cardW = 275）：间隙从 x=0 的 206px 单调收缩到 x=1 的 **0px** ——
+     拖动全程 ≥ 0（永不互相盖住），终点恰好相切（既不分离出缝、也不压在一起）。 */
   const right = (p) => p.x + m.cardW * p.scale
   let minGap = Infinity
   let maxGap = -Infinity
+  const tail = []
   for (let i = 0; i <= 500; i++) {
     const x = i / 500
-    const top = deckPose(-x, m, x) // 正在离场的那张
+    const top = deckPose(-x, m, x) // 正在离场的那张（原 C 位）
     const below = deckPose(1 - x, m, x) // 顶上来的那张
     const gap = right(below) - top.x
     minGap = Math.min(minGap, gap)
     maxGap = Math.max(maxGap, gap)
+    if (i >= 490) tail.push(gap)
   }
-  assert.ok(minGap > 0, `拖动中两卡出现空隙 ${minGap.toFixed(1)}px（第六轮应为恒重叠）`)
-  assert.ok(minGap < 60, `末尾重叠过多 ${minGap.toFixed(1)}px → 离场卡几乎没走`)
-  assert.ok(maxGap < m.cardW, `起始重叠超过一张卡宽 ${maxGap.toFixed(1)}px → 布局异常`)
-  /* 副产物：静止态离场卡仍在屏内（旧值 455.9 > 430），这也是「连锁感」的来源之一 */
-  assert.ok(deckPose(-1, m, 0).x < m.screenW, `静止态离场卡左缘 ${deckPose(-1, m, 0).x.toFixed(1)} 已出屏`)
+  assert.ok(minGap >= -1e-6, `拖动中两卡重叠了 ${(-minGap).toFixed(2)}px（需求②要求永不重叠）`)
+  assert.ok(Math.abs(tail[tail.length - 1]) < 0.5, `静止时间隙 ${tail[tail.length - 1].toFixed(2)}px（应为 0 = 刚好贴住）`)
+  assert.ok(maxGap < m.cardW, `起始间隙超过一张卡宽 ${maxGap.toFixed(1)}px → 布局异常`)
+  /* 单调收缩：不允许「先分开再合上」那种反直觉的往复 */
+  for (let k = 1; k < tail.length; k++) {
+    assert.ok(tail[k] <= tail[k - 1] + 1e-9, `末尾间隙非单调：${tail[k - 1].toFixed(2)} → ${tail[k].toFixed(2)}`)
+  }
+  /* 静止态离场卡仍在屏内（左缘 352.5 < 430），露出 = frontX = 77.5px */
+  const parked = deckPose(-1, m, 0)
+  assert.ok(parked.x < m.screenW, `静止态离场卡左缘 ${parked.x.toFixed(1)} 已出屏`)
+  assert.ok(Math.abs(parked.x - (m.frontX + m.cardW)) < 1e-9, '静止态左缘 ≠ 居中卡右缘')
+  assert.ok(Math.abs(m.screenW - parked.x - m.frontX) < 1e-9, `露出应为 frontX=${m.frontX}px，实为 ${(m.screenW - parked.x).toFixed(1)}`)
 })
 
 test('第五轮：位移与放大「同时」发生（同相位，不是先位移后放大）', () => {
