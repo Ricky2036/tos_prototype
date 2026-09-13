@@ -88,6 +88,7 @@ function prepareMotion() {
   }
 
   phase.value = 'opening'
+  if (backdropRef.value) backdropRef.value.style.opacity = '1'
 
   const prefersReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
   const dur = prefersReduced ? 1 : 320
@@ -155,6 +156,7 @@ function prepareMotion() {
 
   const finishOpen = () => {
     phase.value = 'open'
+    if (backdropRef.value) backdropRef.value.style.opacity = '1'
     emit('transition-finished', 'open')
   }
 
@@ -169,6 +171,7 @@ function close() {
   if (phase.value === 'closing' || phase.value === 'launching') return
   phase.value = 'closing'
   clearTimeout(closeTimer)
+  if (backdropRef.value) backdropRef.value.style.opacity = '0'
 
   const prefersReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
   const dur = prefersReduced ? 1 : 260
@@ -309,11 +312,21 @@ onBeforeUnmount(() => {
 .folder-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(15, 18, 30, 0.2);
+  background: rgba(15, 18, 30, 0.22);
   backdrop-filter: blur(28px) saturate(130%);
   -webkit-backdrop-filter: blur(28px) saturate(130%);
   pointer-events: none;
   opacity: 0;
+  transition: opacity 300ms cubic-bezier(0.2, 0.9, 0.25, 1);
+  will-change: opacity;
+}
+.phase-opening .folder-backdrop,
+.phase-open .folder-backdrop {
+  opacity: 1 !important;
+}
+.phase-closing .folder-backdrop {
+  opacity: 0 !important;
+  transition-duration: 260ms;
 }
 .folder-panel {
   position: relative;
@@ -324,6 +337,8 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
   border-radius: 36px;
   background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(28px) saturate(130%);
+  -webkit-backdrop-filter: blur(28px) saturate(130%);
   border: 1px solid rgba(255, 255, 255, 0.32);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
   transform-origin: 0 0;
