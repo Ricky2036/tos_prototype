@@ -58,7 +58,12 @@ const stripStyle = computed(() => ({
 const homeStyle = computed(() => system.unlockProgress <= 0 ? {} : ({
   transform: `scale(${1.12 - system.unlockProgress * .12})`, opacity: .3 + system.unlockProgress * .7
 }))
-const indicatorStyle = computed(() => ({ bottom: home.editing ? '194px' : `${home.profile.height - home.profile.indicatorY - 4}px` }))
+const hasSelection = computed(() => home.selectedItemIds.length > 0)
+const indicatorStyle = computed(() => ({
+  bottom: home.editing
+    ? (hasSelection.value ? '118px' : '184px')
+    : `${home.profile.height - home.profile.indicatorY - 4}px`
+}))
 
 const justUnlocked = ref(false)
 let unlockTimer = null
@@ -265,7 +270,6 @@ function onItemPointerDown(event, id, page, index) {
       pointer.mode = 'item-ready'
     } else startItemDrag(pointer.startX,pointer.startY)
   }, 450)
-  else startItemDrag(event.clientX,event.clientY)
   bindWindow()
 }
 function onFolderResizePointerDown(event,itemId,folderId) {
@@ -301,7 +305,6 @@ function onDockPointerDown(event, id, index) {
     if (!pointer || pointer.itemId !== id) return
     startItemDrag(pointer.startX,pointer.startY)
   },450)
-  else startItemDrag(event.clientX,event.clientY)
   bindWindow()
 }
 function startItemDrag(x, y) {
@@ -843,30 +846,41 @@ function animateRemoval(ids) {
     removingIds.value = []
   },180)
 }
-const selectedFolder = computed(() => {
-  if (home.selectedItemIds.length !== 1) return null
-  const item = home.items[home.selectedItemIds[0]]
-  return item?.type === 'folder' ? home.folders[item.folderId] : null
-})
-const hasSelection = computed(() => home.selectedItemIds.length > 0)
 const canGroupSelection = computed(() => home.selectedItemIds.filter((id) => home.items[id]?.type === 'app').length >= 2)
 const canUninstallSelection = computed(() => hasSelection.value && home.selectedItemIds.every((id) => {
   const item = home.items[id]
   return item?.type === 'app' && home.canUninstall(item.appId)
 }))
-const layoutPresets = ['free','dense','balanced','focus','blank']
+
 const folderSizes = [[1,1],[2,1],[1,2],[2,2]]
-function chooseLayoutPreset(index) {
-  if (selectedFolder.value && folderSizes[index]) {
-    home.resizeFolder(selectedFolder.value.id,...folderSizes[index])
-    return
-  }
-  showToast('布局：开发中')
+
+function getPageThumbnailItems(pageIndex) {
+  const page = displayPages.value[pageIndex] || []
+  const frames = displayPositions.value[pageIndex] || {}
+  const rowHeight = (home.profile.workspaceRect.height || 562) / 6
+  return page.map((id) => {
+    const frame = frames[id] || { col: 0, y: home.profile.workspaceRect.top, spanX: 1, spanY: 1 }
+    const row = Math.max(0, Math.min(5, Math.round((frame.y - home.profile.workspaceRect.top) / rowHeight)))
+    const isSelected = home.selectedItemIds.includes(id)
+    const isLarge = (frame.spanX || 1) > 1 || (frame.spanY || 1) > 1
+    return {
+      id,
+      col: frame.col || 0,
+      row,
+      spanX: frame.spanX || 1,
+      spanY: frame.spanY || 1,
+      isLarge,
+      isSelected
+    }
+  })
 }
-function layoutPresetActive(index) {
-  if (!selectedFolder.value) return index === 0
-  const size = folderSizes[index]
-  return Boolean(size && selectedFolder.value.width === size[0] && selectedFolder.value.height === size[1])
+
+function chooseThumbnailCard(index) {
+  if (index < displayPages.value.length) {
+    home.setPage(index)
+  } else {
+    showToast('空白页')
+  }
 }
 let resizeObserver = null
 let resizeFrame = null
@@ -1033,9 +1047,33 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
         </div>
       </div>
       <div v-else-if="home.editing" key="layouts" class="layout-picker home-editor">
-        <button v-for="(preset,index) in layoutPresets" :key="preset" type="button" :class="['layout-option',`preset-${preset}`,{active:layoutPresetActive(index)}]" @click="chooseLayoutPreset(index)">
-          <span v-for="cell in 20" :key="cell"></span>
-        </button>
+        <div class="thumbnail-scroll">
+          <button
+            v-for="index in displayPages.length + 1"
+            :key="index - 1"
+            type="button"
+            class="thumbnail-card"
+            :class="{
+              'is-active': index - 1 === home.currentPage,
+              'is-blank': index - 1 === displayPages.length
+            }"
+            :aria-label="index - 1 < displayPages.length ? `第${index}页缩略图` : '空白页缩略图'"
+            @click="chooseThumbnailCard(index - 1)"
+          >
+            <div v-if="index - 1 < displayPages.length" class="mini-grid">
+              <span
+                v-for="item in getPageThumbnailItems(index - 1)"
+                :key="item.id"
+                class="mini-cell"
+                :class="{ 'is-large': item.isLarge, 'is-selected': item.isSelected }"
+                :style="{
+                  gridColumn: `${item.col + 1} / span ${item.spanX}`,
+                  gridRow: `${item.row + 1} / span ${item.spanY}`
+                }"
+              ></span>
+            </div>
+          </button>
+        </div>
       </div>
     </Transition>
     <div v-if="toast" class="home-toast">{{ toast }}</div>
@@ -1054,7 +1092,6 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
 .home-page-strip{position:absolute;inset:0;display:flex;will-change:transform}
 .home-page{flex:0 0 100%;width:100%;height:100%}
 .indicator-wrap{position:absolute;bottom:136px;left:0;right:0;display:flex;justify-content:center;transition:bottom 320ms cubic-bezier(.22,.8,.26,1)}
-.is-editing .indicator-wrap{bottom:180px}
 .drag-ghost{position:absolute;left:0;top:0;z-index:999;pointer-events:none;filter:drop-shadow(0 12px 18px rgba(0,0,0,.35));transform-origin:center;will-change:transform}
 .drag-ghost>*{transform:scale(1.08)!important;transform-origin:center!important;transition:transform 200ms cubic-bezier(.34,1.56,.64,1)}
 .drag-ghost.is-page-flipping>*{transform:scale(1.18)!important}
@@ -1067,7 +1104,7 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
 .edit-action-items svg{width:26px;height:26px;color:#fff}
 .done-pill{position:absolute;opacity:0;pointer-events:none;width:0;height:0;margin:0;padding:0;border:0;overflow:hidden}
 .edit-dashboard{position:absolute;left:18px;right:18px;bottom:20px;height:148px;z-index:22;display:grid;grid-template-columns:1fr 1.08fr;gap:10px}
-.depth-card,.edit-tool-grid button,.layout-option{border:.5px solid rgba(255,255,255,.16);background:rgba(30,32,44,.55);box-shadow:0 4px 16px rgba(0,0,0,.22),inset 0 1px 1px rgba(255,255,255,.16);backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%);color:#fff;cursor:pointer;transition:transform 160ms ease,background 160ms ease}
+.depth-card,.edit-tool-grid button{border:.5px solid rgba(255,255,255,.16);background:rgba(30,32,44,.55);box-shadow:0 4px 16px rgba(0,0,0,.22),inset 0 1px 1px rgba(255,255,255,.16);backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%);color:#fff;cursor:pointer;transition:transform 160ms ease,background 160ms ease}
 .depth-card:active,.edit-tool-grid button:active{transform:scale(.96);background:rgba(45,48,64,.65)}
 .depth-card{border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:10px 8px 12px;box-sizing:border-box}
 .depth-preview{position:relative;width:96px;height:82px;display:flex;align-items:center;justify-content:center}
@@ -1079,15 +1116,17 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
 .depth-label svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .edit-tool-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .edit-tool-grid button{border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px 0;font:500 12px/1 var(--font-stack);color:rgba(255,255,255,.9)}
-.edit-tool-grid svg{width:25px;height:25px;color:#fff}
-.layout-picker{position:absolute;left:25px;right:25px;bottom:34px;height:116px;z-index:22;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.layout-option{position:relative;border-radius:15px;padding:12px 8px;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(5,1fr);gap:4px;opacity:.84}
-.layout-option span{border-radius:3px;background:rgba(224,228,237,.82)}
-.layout-option.active{opacity:1;border-color:rgba(255,255,255,.48)}
-.layout-option.active span:nth-child(8){background:#1689ff}
-.layout-option.active span:nth-child(17){grid-column:span 2;background:#f5f8fb}
-.layout-option.preset-focus span:nth-child(1){grid-column:span 2;grid-row:span 2}
-.layout-option.preset-blank span{opacity:0}
+.layout-picker,.thumbnail-deck{position:absolute;left:0;right:0;bottom:22px;height:86px;z-index:22;display:flex;align-items:center;justify-content:center;padding:0 12px;box-sizing:border-box}
+.thumbnail-scroll{display:flex;align-items:center;justify-content:center;gap:10px;max-width:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:4px}
+.thumbnail-scroll::-webkit-scrollbar{display:none}
+.thumbnail-card{position:relative;width:52px;height:80px;flex:0 0 52px;border-radius:14px;box-sizing:border-box;padding:8px 6px;cursor:pointer;background:rgba(30,36,50,.55);backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%);border:1px solid rgba(255,255,255,.14);box-shadow:0 4px 16px rgba(0,0,0,.25);transition:transform 160ms ease,background 160ms ease,border-color 160ms ease,box-shadow 160ms ease;display:flex;align-items:center;justify-content:center}
+.thumbnail-card:active{transform:scale(.95)}
+.thumbnail-card.is-active{background:rgba(44,54,74,.68);border:1.5px solid rgba(255,255,255,.68);box-shadow:0 6px 20px rgba(0,0,0,.35),inset 0 1px 1px rgba(255,255,255,.24)}
+.thumbnail-card.is-blank{/* empty frosted glass card */}
+.mini-grid{width:100%;height:100%;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(6,1fr);gap:3.5px 3px;align-items:center;justify-items:center;pointer-events:none}
+.mini-cell{width:100%;height:100%;max-width:7.5px;max-height:7.5px;border-radius:2.2px;background:rgba(255,255,255,.55);box-sizing:border-box;transition:background 160ms ease,box-shadow 160ms ease}
+.mini-cell.is-large{max-width:100%;max-height:100%;border-radius:4.5px;background:rgba(255,255,255,.42)}
+.mini-cell.is-selected{background:#007aff!important;box-shadow:0 0 4px rgba(0,122,255,.85)}
 .editor-panel-enter-active,.editor-panel-leave-active{transition:opacity 180ms ease,transform 220ms cubic-bezier(.22,.8,.26,1)}
 .editor-panel-enter-from,.editor-panel-leave-to{opacity:0;transform:translateY(16px) scale(.96)}
 .home-toast{position:absolute;left:50%;bottom:198px;z-index:80;transform:translateX(-50%);padding:9px 15px;border-radius:17px;background:rgba(20,20,24,.82);color:#fff;white-space:nowrap;font:600 13px/1 var(--font-stack);animation:toast-in 180ms ease}
