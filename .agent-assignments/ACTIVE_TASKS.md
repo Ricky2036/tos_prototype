@@ -81,6 +81,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Workbuddy | Polish iOS app switcher: chain reaction drag, continuous scaling, and gesture physics | `workbuddy/lane` | None (locks released) | `0dc5cac` | `a6c0f0b` |
 | Active | Antigravity | Desktop Phase 1 & 2: Edit mode safe layout, Done button, 2x2 folder direct launch, Smart Stack vertical swipe | `antigravity/lane` | `src/components/system/HomeScreen.vue`; `src/components/system/AppGrid.vue`; `src/components/home/HomeFolder.vue`; `src/components/widgets/SmartSuggestionWidget.vue` | `a94248e` | |
 
-| Active | Antigravity | Desktop Phase 1 & 2: Edit mode safe layout, Done button, 2x2 folder direct launch, Smart Stack vertical swipe | `antigravity/lane` | `src/components/system/HomeScreen.vue`; `src/components/system/AppGrid.vue`; `src/components/home/HomeFolder.vue`; `src/components/widgets/SmartSuggestionWidget.vue` | `a94248e` | |
+| Active | Antigravity | Desktop Phase 3: Cross-screen icon drag with iOS-style edge dwell paging, elastic peek, and spring animations | `antigravity/lane` | `src/components/system/HomeScreen.vue`; `src/components/system/AppGrid.vue`; `src/components/home/HomeFolder.vue`; `src/components/widgets/SmartSuggestionWidget.vue`; `src/stores/homeStore.js`; `src/utils/homeLayout.js` | `a94248e` | |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.

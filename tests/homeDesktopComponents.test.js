@@ -265,3 +265,17 @@ test('smart suggestion widget supports vertical swipe gestures with tap separati
   assert.match(widget, /toggleMode\(\)/)
 })
 
+test('cross-screen icon drag implements iOS-style spring edge dwell, peek offset and haptic pulse', async () => {
+  const source = await read('../src/components/system/HomeScreen.vue')
+  assert.match(source, /edgePeekOffset/)
+  assert.match(source, /edgeThreshold = 38/)
+  assert.match(source, /edgePeekOffset\.value = direction === 1 \? -12 : 12/)
+  assert.match(source, /transform 440ms cubic-bezier\(.22, 1, .36, 1\)/)
+  assert.match(source, /triggerEdgePageFlip/)
+  assert.match(source, /600/)
+  assert.match(source, /isPageFlipping/)
+  assert.match(source, /\.drag-ghost\.is-page-flipping/)
+  assert.match(source, /\[\.\.\.basePages, \[\]\]/)
+})
+
+

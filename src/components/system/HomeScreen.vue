@@ -37,12 +37,22 @@ const displayFolders = computed(() => {
   const folder = home.folders[folderResize.value.folderId]
   return { ...home.folders, [folderResize.value.folderId]:{ ...folder, width:folderResize.value.width, height:folderResize.value.height } }
 })
+const edgePeekOffset = ref(0)
+const isPageFlipping = ref(false)
+let pageFlipResetTimer = null
+
 const previewLayout = computed(() => (previewOrder.value || folderResize.value) ? layoutHomeOrder(previewOrder.value || home.order, home.items, displayFolders.value, home.profile) : null)
-const displayPages = computed(() => previewLayout.value?.pages || home.pages)
+const displayPages = computed(() => {
+  const basePages = previewLayout.value?.pages || home.pages
+  if (dragging.value && home.currentPage >= basePages.length - 1) {
+    return [...basePages, []]
+  }
+  return basePages
+})
 const displayPositions = computed(() => previewLayout.value?.frames || home.positions)
 const stripStyle = computed(() => ({
-  transform: `translate3d(calc(${-home.currentPage * 100}% + ${pageDragX.value}px),0,0)`,
-  transition: pageDragX.value || dragging.value ? 'none' : 'transform 420ms cubic-bezier(.22,.8,.26,1)'
+  transform: `translate3d(calc(${-home.currentPage * 100}% + ${pageDragX.value + edgePeekOffset.value}px),0,0)`,
+  transition: pageDragX.value ? 'none' : 'transform 440ms cubic-bezier(.22, 1, .36, 1)'
 }))
 const homeStyle = computed(() => system.unlockProgress <= 0 ? {} : ({
   transform: `scale(${1.12 - system.unlockProgress * .12})`, opacity: .3 + system.unlockProgress * .7
@@ -111,7 +121,11 @@ function onPinchEnd(event) {
   pinch = null
   unbindPinchWindow()
 }
-function clearTimers() { clearTimeout(pressTimer); clearTimeout(edgeTimer); clearTimeout(folderTimer); pressTimer = null; edgeTimer = null; folderTimer = null }
+function clearTimers() {
+  clearTimeout(pressTimer); clearTimeout(edgeTimer); clearTimeout(folderTimer); clearTimeout(pageFlipResetTimer)
+  pressTimer = null; edgeTimer = null; folderTimer = null; pageFlipResetTimer = null
+  edgePeekOffset.value = 0; isPageFlipping.value = false
+}
 function revealPageDots() {
   clearTimeout(pageIndicatorTimer)
   pageIndicatorTimer = null
@@ -385,20 +399,63 @@ function updatePreview(x, y) {
   previewOrder.value = moveHomeOrderItem(previewOrder.value, dragging.value.id, rank)
   dragging.value.page = home.currentPage; dragging.value.index = index
   const rect = rootRef.value.getBoundingClientRect()
-  const direction = x < rect.left + 34 ? -1 : x > rect.right - 34 ? 1 : 0
-  if (direction === pointer.edgeDirection) return
-  clearTimeout(edgeTimer); pointer.edgeDirection = direction
-  if (!direction) return
-  edgeTimer = setTimeout(() => {
-    if (!dragging.value) return
-    const requested = home.currentPage + direction
-    if (requested < 0) return
-    revealPageDots()
-    home.currentPage = Math.min(requested, displayPages.value.length - 1)
-    dragging.value.page = home.currentPage
-    dragging.value.index = displayPages.value[home.currentPage].length
-    updatePreview(x, y)
-  }, 400)
+  const edgeThreshold = 38
+  const direction = x < rect.left + edgeThreshold ? -1 : x > rect.right - edgeThreshold ? 1 : 0
+  const canFlip = direction === -1
+    ? home.currentPage > 0
+    : direction === 1
+      ? home.currentPage < displayPages.value.length - 1
+      : false
+
+  if (!direction || !canFlip) {
+    clearTimeout(edgeTimer)
+    edgeTimer = null
+    if (pointer) pointer.edgeDirection = 0
+    edgePeekOffset.value = 0
+    return
+  }
+
+  if (direction !== pointer.edgeDirection) {
+    clearTimeout(edgeTimer)
+    edgeTimer = null
+    pointer.edgeDirection = direction
+    edgePeekOffset.value = direction === 1 ? -12 : 12
+    edgeTimer = setTimeout(() => {
+      triggerEdgePageFlip(x, y, direction)
+    }, 400)
+  }
+}
+function triggerEdgePageFlip(x, y, direction) {
+  if (!dragging.value || pointer?.edgeDirection !== direction) return
+  const requested = home.currentPage + direction
+  if (requested < 0 || requested >= displayPages.value.length) return
+
+  // 触觉微脉冲
+  isPageFlipping.value = true
+  clearTimeout(pageFlipResetTimer)
+  pageFlipResetTimer = setTimeout(() => { isPageFlipping.value = false }, 320)
+
+  revealPageDots()
+  edgePeekOffset.value = 0
+  home.currentPage = requested
+  dragging.value.page = home.currentPage
+  const pageItems = displayPages.value[home.currentPage] || []
+  dragging.value.index = pageItems.length
+  updatePreview(x, y)
+
+  // 连续翻页支持：若同方向仍有页面，等待 600ms 冷却后继续翻页
+  const canFlipFurther = direction === -1
+    ? home.currentPage > 0
+    : home.currentPage < displayPages.value.length - 1
+  if (canFlipFurther) {
+    edgePeekOffset.value = direction === 1 ? -12 : 12
+    edgeTimer = setTimeout(() => {
+      triggerEdgePageFlip(x, y, direction)
+    }, 600)
+  } else {
+    if (pointer) pointer.edgeDirection = 0
+    edgePeekOffset.value = 0
+  }
 }
 function onPointerMove(event) {
   if (!pointer || event.pointerId !== pointer.id) return
@@ -433,6 +490,14 @@ function onPointerMove(event) {
   }
 }
 function finishItem(cancelled) {
+  clearTimeout(edgeTimer)
+  clearTimeout(pageFlipResetTimer)
+  edgeTimer = null
+  pageFlipResetTimer = null
+  edgePeekOffset.value = 0
+  isPageFlipping.value = false
+  if (pointer) pointer.edgeDirection = 0
+
   if (!pointer.didMove) {
     previewOrder.value = null; dragging.value = null; ghost.value = null; folderTargetId.value = null; dockTargetIndex.value = null
     return
@@ -642,7 +707,7 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
   <div ref="rootRef" class="home-screen" :class="{ 'just-unlocked':justUnlocked, 'is-editing':home.editing }" :style="homeStyle" @pointerdown.capture="onRootPointerDownCapture" @pointerdown="onEmptyPointerDown" @wheel="onWheel" @dragstart.prevent>
     <div class="home-page-strip" :style="stripStyle">
       <section v-for="(page,pageIndex) in displayPages" :key="pageIndex" class="home-page">
-        <AppGrid :page-index="pageIndex" :item-ids="page" :items="home.items" :positions="displayPositions[pageIndex]" :profile="home.profile"
+        <AppGrid :page-index="pageIndex" :item-ids="page" :items="home.items" :positions="displayPositions[pageIndex] || {}" :profile="home.profile"
           :folders="displayFolders" :editing="home.editing" :selected-ids="home.selectedItemIds" :dragging-id="dragging?.id" :folder-target-id="folderTargetId" :folder-candidate-id="folderMergeCandidate?.id" :folder-candidate-armed="folderMergeCandidate?.armed" :merging-folder-item-id="folderMergeAnimation" :removing-ids="removingIds" :suppress-click-id="suppressedClickId" :open-folder-id="openFolderId" :folder-operation-id="folderOperation?.folderId"
           @item-pointerdown="onItemPointerDown" @folder-resize-pointerdown="onFolderResizePointerDown" @toggle-select="home.toggleSelected" @open-folder="showFolder" @request-remove="requestRemove"
           @launch-app="launchFolderApp" />
@@ -692,7 +757,7 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
     <div v-if="toast" class="home-toast">{{ toast }}</div>
     <ActionModal :visible="pendingRemoval.length > 0" title="卸载应用？" desc="应用将从桌面、文件夹、Dock 和应用资源库中移除。"
       cancel-text="取消" confirm-text="卸载" @cancel="pendingRemoval=[]" @backdrop="pendingRemoval=[]" @confirm="confirmRemoval" />
-    <div v-if="ghost" ref="ghostRef" class="drag-ghost" :style="{ width:`${ghost.width}px`,height:`${ghost.height}px`,transform:`translate3d(${ghost.x}px,${ghost.y}px,0)` }"></div>
+    <div v-if="ghost" ref="ghostRef" class="drag-ghost" :class="{ 'is-page-flipping': isPageFlipping }" :style="{ width:`${ghost.width}px`,height:`${ghost.height}px`,transform:`translate3d(${ghost.x}px,${ghost.y}px,0)` }"></div>
   </div>
 </template>
 
@@ -707,7 +772,8 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
 .indicator-wrap{position:absolute;bottom:136px;left:0;right:0;display:flex;justify-content:center;transition:bottom 320ms cubic-bezier(.22,.8,.26,1)}
 .is-editing .indicator-wrap{bottom:194px}
 .drag-ghost{position:absolute;left:0;top:0;z-index:999;pointer-events:none;filter:drop-shadow(0 12px 18px rgba(0,0,0,.35));transform-origin:center;will-change:transform}
-.drag-ghost>*{transform:scale(1.08)!important;transform-origin:center!important}
+.drag-ghost>*{transform:scale(1.08)!important;transform-origin:center!important;transition:transform 200ms cubic-bezier(.34,1.56,.64,1)}
+.drag-ghost.is-page-flipping>*{transform:scale(1.18)!important}
 .edit-actions{position:absolute;left:24px;right:24px;top:calc(var(--safe-top,54px) + 8px);z-index:22;display:flex;align-items:center;justify-content:space-between}
 .edit-action-items{display:flex;align-items:center;gap:14px}
 .edit-action-items button{display:flex;flex-direction:column;align-items:center;gap:3px;color:#fff;font:600 12px/1.2 var(--font-stack);text-shadow:0 1px 3px rgba(0,0,0,.45);background:transparent;border:none;cursor:pointer;padding:0;transition:opacity 160ms ease,transform 160ms ease}

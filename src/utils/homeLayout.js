@@ -69,7 +69,7 @@ function findSkylinePosition(bottoms, metrics, profile) {
 
 /** Packs canonical item order into viewport-derived pages and pixel frames. */
 export function layoutHomeOrder(order, items, folders = {}, profile = createHomeGridProfile()) {
-  const source = [...new Set((order || []).filter((id) => items[id]))]
+  const source = [...new Set((order || []).filter((id) => items[id] || (typeof id === 'string' && id.startsWith('page-break:'))))]
   const pages = []
   const frames = {}
   let index = 0
@@ -82,6 +82,11 @@ export function layoutHomeOrder(order, items, folders = {}, profile = createHome
 
     while (index < source.length) {
       const id = source[index]
+      if (typeof id === 'string' && id.startsWith('page-break:')) {
+        index += 1
+        if (page.length > 0) break
+        continue
+      }
       const metrics = homeItemMetrics(items[id], folders, profile)
       const position = findSkylinePosition(bottoms, metrics, profile)
       if (!position && page.length) break
@@ -108,6 +113,11 @@ export function layoutHomeOrder(order, items, folders = {}, profile = createHome
 
     pages.push(page)
     frames[pageIndex] = pageFrames
+  }
+
+  while (pages.length > 1 && pages.at(-1).length === 0) {
+    pages.pop()
+    delete frames[pages.length]
   }
 
   return { pages, frames, positions: frames }
