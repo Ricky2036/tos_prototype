@@ -48,11 +48,11 @@ export function useHeroTransition({
     }
     phase.value = 'opening'
     frame.value = deriveHeroFrame({ ...options, timeMs: 0 })
-    let startedAt = null
+    let startedAt = typeof performance !== 'undefined' ? performance.now() : null
     const tick = (now) => {
       if (run !== generation) return
       if (startedAt === null) startedAt = now
-      const elapsed = Math.min(openDuration, now - startedAt)
+      const elapsed = Math.min(openDuration, Math.max(0, now - startedAt))
       frame.value = deriveHeroFrame({ ...options, timeMs: elapsed })
       if (elapsed >= openDuration) {
         animationFrame = null
@@ -98,7 +98,8 @@ export function useHeroTransition({
 
     const settle = (now) => {
       if (run !== generation) return
-      const elapsed = Math.min(handoffDuration, now - handoffStartedAt)
+      if (handoffStartedAt === null) handoffStartedAt = now
+      const elapsed = Math.min(handoffDuration, Math.max(0, now - handoffStartedAt))
       frame.value = deriveHandoffFrame(handoffFrame, elapsed / handoffDuration)
       if (elapsed >= handoffDuration) {
         animationFrame = null
@@ -114,11 +115,11 @@ export function useHeroTransition({
 
     let handoffFrame = null
     let handoffStartedAt = null
-    let startedAt = null
+    let startedAt = typeof performance !== 'undefined' ? performance.now() : null
     const tick = (now) => {
       if (run !== generation) return
       if (startedAt === null) startedAt = now
-      const elapsed = Math.min(duration, now - startedAt)
+      const elapsed = Math.min(duration, Math.max(0, now - startedAt))
       frame.value = deriveHeroFrame({ ...options, timeMs: elapsed })
       if (elapsed >= duration) {
         // 先提交一帧精确终点，让布局/合成器实际落到 anchorRect；下一帧进入

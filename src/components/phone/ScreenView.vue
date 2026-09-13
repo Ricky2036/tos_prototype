@@ -43,9 +43,7 @@ const heroBackdropStrength = computed(() => Math.min(
 const heroBackdropStyle = computed(() => {
   const strength = heroBackdropStrength.value
   return {
-    backgroundColor: `rgba(0, 0, 0, ${strength * 0.08})`,
-    backdropFilter: `blur(${strength * 12}px) saturate(${100 - strength * 8}%)`,
-    WebkitBackdropFilter: `blur(${strength * 12}px) saturate(${100 - strength * 8}%)`
+    opacity: strength
   }
 })
 
@@ -351,14 +349,19 @@ useSwipeGesture(sideEdgeRef, {
   inset: 0;
   z-index: var(--z-hero-backdrop);
   pointer-events: none;
+  background-color: rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(12px) saturate(92%);
+  -webkit-backdrop-filter: blur(12px) saturate(92%);
+  will-change: opacity;
 }
 .hero-desktop-backdrop.is-active {
-  will-change: backdrop-filter, background-color;
+  will-change: opacity;
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .hero-desktop-backdrop {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+    background-color: rgba(0, 0, 0, 0.28);
   }
 }
 

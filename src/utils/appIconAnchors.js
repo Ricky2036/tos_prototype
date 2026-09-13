@@ -1,7 +1,7 @@
 import { rectRelativeToScreen } from './dom.js'
 
-const homeAnchors = new Map()
-const lastValidAnchors = new Map()
+const homeAnchors = globalThis.__TOS_HOME_ANCHORS__ || (globalThis.__TOS_HOME_ANCHORS__ = new Map())
+const lastValidAnchors = globalThis.__TOS_LAST_VALID_ANCHORS__ || (globalThis.__TOS_LAST_VALID_ANCHORS__ = new Map())
 let pendingLaunch = null
 const HOME_LAYOUT_SUBPIXELS = 8
 
@@ -55,10 +55,16 @@ export function getAnchorRect(appId, viewport) {
     }
   }
   if (viewport) {
-    const folderAppEl = viewport.querySelector?.(`[data-folder-app="${appId}"] .app-icon-anchor`)
+    // 降级兜底：按优先级检查文件夹内图标、桌面网格图标、Dock 图标或全局挂载的应用图标节点
+    const candidate = viewport.querySelector?.(`[data-folder-app="${appId}"] .app-icon-anchor`)
       || viewport.querySelector?.(`[data-folder-app="${appId}"]`)
-    if (folderAppEl?.isConnected) {
-      const raw = rectRelativeToScreen(folderAppEl, viewport)
+      || viewport.querySelector?.(`[data-home-item="app:${appId}"] .app-icon-anchor`)
+      || viewport.querySelector?.(`[data-dock-item="app:${appId}"] .app-icon-anchor`)
+      || viewport.querySelector?.(`[data-app-id="${appId}"] .app-icon-anchor`)
+      || viewport.querySelector?.(`[data-app-id="${appId}"]`)
+
+    if (candidate?.isConnected) {
+      const raw = rectRelativeToScreen(candidate, viewport)
       if (raw && raw.width > 0 && raw.height > 0) {
         const normalized = normalizeHomeAnchorRect(raw)
         lastValidAnchors.set(appId, normalized)
