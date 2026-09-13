@@ -907,15 +907,15 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
     <div v-if="home.editing" class="edit-actions home-editor">
       <div class="edit-action-items">
         <button type="button" :disabled="!canGroupSelection" @click="createSelectedFolder">
-          <span class="action-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3.5 9.5h10l2.2 2.5h12.8v14.5a2 2 0 0 1-2 2h-23a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2Z"/><path d="M16 15v9M11.5 19.5h9"/></svg></span>
+          <span class="action-icon"><svg viewBox="0 0 28 28" aria-hidden="true"><rect x="3" y="3" width="22" height="22" rx="6" stroke="currentColor" stroke-width="2" fill="none"/><path d="M14 8v12M8 14h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
           <span>成组</span>
         </button>
         <button type="button" :disabled="!hasSelection" @click="removeSelectedFromDesktop">
-          <span class="action-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12"/><path d="M10 16h12"/></svg></span>
+          <span class="action-icon"><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M9 14h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
           <span>移除</span>
         </button>
         <button type="button" :disabled="!canUninstallSelection" @click="requestSelectedRemoval">
-          <span class="action-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 10h14l-1.1 17H10.1L9 10Z"/><path d="M12 10V6.5h8V10M6.5 10h19M13.5 14v9M18.5 14v9"/></svg></span>
+          <span class="action-icon"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M7 9.5h14l-1.2 13.5a2 2 0 0 1-2 1.5H10.2a2 2 0 0 1-2-1.5L7 9.5Z" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M5 9.5h18M10.5 9.5V6.5a1.5 1.5 0 0 1 1.5-1.5h4a1.5 1.5 0 0 1 1.5 1.5v3M11.5 13v7M16.5 13v7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
           <span>卸载</span>
         </button>
       </div>
@@ -929,14 +929,107 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
     <Transition name="editor-panel" mode="out-in">
       <div v-if="home.editing && !hasSelection" key="tools" class="edit-dashboard home-editor">
         <button class="depth-card" type="button" @click="showToast('景深桌面：开发中')">
-          <span class="depth-preview"><i></i><i></i><i></i></span>
-          <span class="depth-label"><svg viewBox="0 0 24 24"><path d="m4 15 8 4 8-4-8-4-8 4Zm3-5 5 2.5L17 10l-5-2.5L7 10Z"/></svg>景深桌面</span>
+          <span class="depth-preview">
+            <span class="depth-phone depth-phone-back">
+              <svg class="depth-svg-screen" viewBox="0 0 36 68" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="sky-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#4a7ebb"/>
+                    <stop offset="65%" stop-color="#8bb8e8"/>
+                    <stop offset="100%" stop-color="#dce8f7"/>
+                  </linearGradient>
+                </defs>
+                <rect width="36" height="68" fill="url(#sky-grad)"/>
+                <circle cx="18" cy="3.5" r="1.1" fill="#111"/>
+                <g fill="rgba(255,255,255,0.72)">
+                  <rect x="4.5" y="8" width="4.5" height="4.5" rx="1.2"/>
+                  <rect x="11.5" y="8" width="4.5" height="4.5" rx="1.2"/>
+                  <rect x="18.5" y="8" width="4.5" height="4.5" rx="1.2"/>
+                  <rect x="25.5" y="8" width="4.5" height="4.5" rx="1.2"/>
+                  <rect x="4.5" y="15" width="4.5" height="4.5" rx="1.2"/>
+                  <rect x="11.5" y="15" width="4.5" height="4.5" rx="1.2"/>
+                  <rect x="18.5" y="15" width="4.5" height="4.5" rx="1.2"/>
+                  <rect x="25.5" y="15" width="4.5" height="4.5" rx="1.2"/>
+                </g>
+                <path d="M4 68 C4 48 14 44 20 48 C24 50 32 54 34 68 Z" fill="#2d4868"/>
+                <circle cx="17" cy="41" r="5.5" fill="#f3cbaf"/>
+                <path d="M12 39 C12 35 17 33 22 35 C24 37 24 41 22 42 Z" fill="#1b2a40"/>
+                <path d="M18 68 C18 53 25 49 33 51 C36 52 36 68 36 68 Z" fill="#446a94"/>
+                <circle cx="28" cy="45" r="4.5" fill="#f0c2a2"/>
+                <path d="M24 43 C24 40 28 38 32 40 C34 42 34 45 32 46 Z" fill="#2d4868"/>
+              </svg>
+            </span>
+            <span class="depth-phone depth-phone-front">
+              <svg class="depth-svg-screen" viewBox="0 0 38 72" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="lawn-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#edf6e6"/>
+                    <stop offset="35%" stop-color="#a4ce8c"/>
+                    <stop offset="100%" stop-color="#467735"/>
+                  </linearGradient>
+                  <radialGradient id="ball-grad" cx="35%" cy="35%" r="65%">
+                    <stop offset="0%" stop-color="#ff9179"/>
+                    <stop offset="70%" stop-color="#d94322"/>
+                    <stop offset="100%" stop-color="#7a1a08"/>
+                  </radialGradient>
+                </defs>
+                <rect width="38" height="72" fill="url(#lawn-grad)"/>
+                <circle cx="19" cy="3.5" r="1.1" fill="#111"/>
+                <path d="M17 64 L19.5 50 L24.5 50 L23.5 64" stroke="#222" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+                <path d="M17.5 50 L19.5 38 L25.5 38 L24.5 50 Z" fill="#fff"/>
+                <circle cx="22" cy="33" r="3.6" fill="#f3cbaf"/>
+                <path d="M19 32.5 C19 29.5 23.5 28.5 25.5 30.5 L27.5 32.5 Z" fill="#222"/>
+                <path d="M21 40 L26 31 L32.5 19" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                <line x1="26" y1="31" x2="34" y2="12" stroke="#d5d5d5" stroke-width="1"/>
+                <path d="M33 12 L36 11 L35.5 13.5 Z" fill="#888"/>
+                <circle cx="11" cy="58" r="5.5" fill="url(#ball-grad)"/>
+              </svg>
+            </span>
+          </span>
+          <span class="depth-label">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m12 2 9 4.5-9 4.5-9-4.5L12 2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="m3 11 9 4.5 9-4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="m3 16 9 4.5 9-4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            </svg>
+            景深桌面
+          </span>
         </button>
         <div class="edit-tool-grid">
-          <button type="button" @click="showToast('壁纸与个性化：开发中')"><svg viewBox="0 0 24 24"><path d="M5 4h14v12H5zM8 20h8M12 16v4"/></svg><span>壁纸</span></button>
-          <button type="button" @click="showToast('小组件：开发中')"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="4" rx="1"/><rect x="13" y="10" width="7" height="10" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/></svg><span>小部件</span></button>
-          <button type="button" @click="showToast('图标：开发中')"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="3"/><rect x="13" y="4" width="7" height="7" rx="3"/><rect x="4" y="13" width="7" height="7" rx="3"/><rect x="13" y="13" width="7" height="7" rx="3"/></svg><span>图标</span></button>
-          <button type="button" @click="showToast('桌面设置：开发中')"><svg viewBox="0 0 24 24"><path d="M9.6 3.8 10.4 2h3.2l.8 1.8 2 .8 1.8-.7 2.2 2.2-.7 1.8.8 2 1.8.8v3.2l-1.8.8-.8 2 .7 1.8-2.2 2.2-1.8-.7-2 .8-.8 1.8h-3.2l-.8-1.8-2-.8-1.8.7-2.2-2.2.7-1.8-.8-2L2 13.9v-3.2l1.8-.8.8-2-.7-1.8 2.2-2.2 1.8.7 2-.8Z"/><circle cx="12" cy="12" r="3"/></svg><span>设置</span></button>
+          <button type="button" @click="showToast('壁纸与个性化：开发中')">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5" y="3" width="14" height="18" rx="2.5" stroke="currentColor" stroke-width="1.8" fill="none"/>
+              <path d="m8 13 2.5-2.5 2 2 3-3 1.5 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <circle cx="9.5" cy="8" r="1" fill="currentColor"/>
+              <circle cx="12" cy="18" r="0.75" fill="currentColor"/>
+            </svg>
+            <span>壁纸</span>
+          </button>
+          <button type="button" @click="showToast('小组件：开发中')">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="4" y="4" width="7" height="6" rx="1.5" stroke="currentColor" stroke-width="1.8" fill="none"/>
+              <rect x="13" y="4" width="7" height="11" rx="1.5" stroke="currentColor" stroke-width="1.8" fill="none"/>
+              <rect x="4" y="12" width="7" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8" fill="none"/>
+              <rect x="13" y="17" width="7" height="3" rx="1" stroke="currentColor" stroke-width="1.8" fill="none"/>
+            </svg>
+            <span>小部件</span>
+          </button>
+          <button type="button" @click="showToast('图标：开发中')">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="4" y="4" width="6.5" height="6.5" rx="2.2" fill="currentColor"/>
+              <rect x="13.5" y="4" width="6.5" height="6.5" rx="2.2" fill="currentColor"/>
+              <rect x="4" y="13.5" width="6.5" height="6.5" rx="2.2" fill="currentColor"/>
+              <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2.2" fill="currentColor"/>
+            </svg>
+            <span>图标</span>
+          </button>
+          <button type="button" @click="showToast('桌面设置：开发中')">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="1.8" fill="none"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" stroke="currentColor" stroke-width="1.8" fill="none"/>
+            </svg>
+            <span>设置</span>
+          </button>
         </div>
       </div>
       <div v-else-if="home.editing" key="layouts" class="layout-picker home-editor">
@@ -961,34 +1054,32 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
 .home-page-strip{position:absolute;inset:0;display:flex;will-change:transform}
 .home-page{flex:0 0 100%;width:100%;height:100%}
 .indicator-wrap{position:absolute;bottom:136px;left:0;right:0;display:flex;justify-content:center;transition:bottom 320ms cubic-bezier(.22,.8,.26,1)}
-.is-editing .indicator-wrap{bottom:194px}
+.is-editing .indicator-wrap{bottom:180px}
 .drag-ghost{position:absolute;left:0;top:0;z-index:999;pointer-events:none;filter:drop-shadow(0 12px 18px rgba(0,0,0,.35));transform-origin:center;will-change:transform}
 .drag-ghost>*{transform:scale(1.08)!important;transform-origin:center!important;transition:transform 200ms cubic-bezier(.34,1.56,.64,1)}
 .drag-ghost.is-page-flipping>*{transform:scale(1.18)!important}
-.edit-actions{position:absolute;left:24px;right:24px;top:calc(var(--safe-top,54px) + 8px);z-index:22;display:flex;align-items:center;justify-content:space-between}
-.edit-action-items{display:flex;align-items:center;gap:14px}
-.edit-action-items button{display:flex;flex-direction:column;align-items:center;gap:3px;color:#fff;font:600 12px/1.2 var(--font-stack);text-shadow:0 1px 3px rgba(0,0,0,.45);background:transparent;border:none;cursor:pointer;padding:0;transition:opacity 160ms ease,transform 160ms ease}
+.edit-actions{position:absolute;left:14px;right:14px;top:46px;z-index:22;display:flex;align-items:center;justify-content:space-around}
+.edit-action-items{width:100%;display:flex;align-items:center;justify-content:space-around}
+.edit-action-items button{display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(255,255,255,.9);font:500 12px/1.2 var(--font-stack);background:transparent;border:none;cursor:pointer;padding:4px 12px;transition:opacity 160ms ease,transform 160ms ease}
 .edit-action-items button:active:not(:disabled){transform:scale(.92)}
-.edit-action-items button:disabled{opacity:.28}
-.edit-action-items .action-icon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:rgba(30,35,48,.5);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);border:.5px solid rgba(255,255,255,.24);box-shadow:0 4px 12px rgba(0,0,0,.2),inset 0 1px 1px rgba(255,255,255,.28);transition:background 160ms ease,border-color 160ms ease}
-.edit-action-items svg{width:24px;height:24px;fill:rgba(255,255,255,.96);stroke:rgba(255,255,255,.96);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.edit-action-items button:first-child svg{fill:rgba(255,255,255,.9);stroke:#536079;stroke-width:1.7}
-.done-pill{height:38px;padding:0 20px;border-radius:19px;display:inline-flex;align-items:center;justify-content:center;font:600 14px/1 var(--font-stack);color:#fff;background:rgba(255,255,255,.28);border:1px solid rgba(255,255,255,.45);box-shadow:0 4px 14px rgba(0,0,0,.22),inset 0 1px 1px rgba(255,255,255,.42);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);cursor:pointer;transition:transform 160ms ease,background 160ms ease;user-select:none}
-.done-pill:active{transform:scale(.93);background:rgba(255,255,255,.42)}
-.edit-dashboard{position:absolute;left:26px;right:26px;bottom:26px;height:154px;z-index:22;display:grid;grid-template-columns:1.35fr 1fr;gap:9px}
-.depth-card,.edit-tool-grid button,.layout-option{border:.5px solid rgba(255,255,255,.18);background:linear-gradient(145deg,rgba(91,98,116,.94),rgba(48,54,70,.94));box-shadow:inset 0 1px 1px rgba(255,255,255,.2),0 8px 20px rgba(5,10,28,.2);backdrop-filter:blur(24px) saturate(120%);color:#fff}
-.depth-card{border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px}
-.depth-preview{position:relative;width:104px;height:78px;display:block}
-.depth-preview::before,.depth-preview::after,.depth-preview i{content:"";position:absolute;border-radius:9px;background:linear-gradient(145deg,rgba(213,232,255,.95),rgba(105,139,205,.9));box-shadow:0 4px 8px rgba(8,18,45,.22)}
-.depth-preview::before{width:42px;height:70px;left:15px;top:4px}.depth-preview::after{width:48px;height:72px;right:8px;top:1px;background:linear-gradient(145deg,#efe2d4,#8bb578)}
-.depth-preview i:nth-child(1){width:42px;height:30px;left:15px;bottom:4px;background:linear-gradient(145deg,#80b3ef,#475c8e);z-index:2}
-.depth-preview i:nth-child(2){width:21px;height:21px;right:20px;bottom:5px;border-radius:50%;background:#d66b42;z-index:3}
-.depth-preview i:nth-child(3){width:12px;height:12px;left:31px;top:12px;border-radius:50%;background:#1c2230;z-index:3}
-.depth-label{display:flex;align-items:center;gap:6px;font:600 14px/1 var(--font-stack)}
-.depth-label svg{width:22px;height:22px;fill:#fff}
-.edit-tool-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
-.edit-tool-grid button{border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font:500 13px/1 var(--font-stack)}
-.edit-tool-grid svg{width:27px;height:27px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.edit-action-items button:disabled{opacity:.52}
+.edit-action-items .action-icon{width:28px;height:28px;display:grid;place-items:center;background:transparent;border:none;box-shadow:none}
+.edit-action-items svg{width:26px;height:26px;color:#fff}
+.done-pill{position:absolute;opacity:0;pointer-events:none;width:0;height:0;margin:0;padding:0;border:0;overflow:hidden}
+.edit-dashboard{position:absolute;left:18px;right:18px;bottom:20px;height:148px;z-index:22;display:grid;grid-template-columns:1fr 1.08fr;gap:10px}
+.depth-card,.edit-tool-grid button,.layout-option{border:.5px solid rgba(255,255,255,.16);background:rgba(30,32,44,.55);box-shadow:0 4px 16px rgba(0,0,0,.22),inset 0 1px 1px rgba(255,255,255,.16);backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%);color:#fff;cursor:pointer;transition:transform 160ms ease,background 160ms ease}
+.depth-card:active,.edit-tool-grid button:active{transform:scale(.96);background:rgba(45,48,64,.65)}
+.depth-card{border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:10px 8px 12px;box-sizing:border-box}
+.depth-preview{position:relative;width:96px;height:82px;display:flex;align-items:center;justify-content:center}
+.depth-phone{position:absolute;border-radius:7px;overflow:hidden;box-sizing:border-box}
+.depth-phone-back{width:36px;height:68px;left:11px;top:4px;border:1.5px solid rgba(255,255,255,.36);background:#1e2430;transform:rotate(-3deg);z-index:1;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.depth-phone-front{width:38px;height:72px;right:9px;top:6px;border:1.5px solid rgba(255,255,255,.6);background:#182218;transform:rotate(2deg);z-index:2;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+.depth-svg-screen{display:block;width:100%;height:100%}
+.depth-label{display:flex;align-items:center;gap:6px;font:500 13px/1 var(--font-stack);color:#fff;letter-spacing:.2px}
+.depth-label svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.edit-tool-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.edit-tool-grid button{border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px 0;font:500 12px/1 var(--font-stack);color:rgba(255,255,255,.9)}
+.edit-tool-grid svg{width:25px;height:25px;color:#fff}
 .layout-picker{position:absolute;left:25px;right:25px;bottom:34px;height:116px;z-index:22;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 .layout-option{position:relative;border-radius:15px;padding:12px 8px;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(5,1fr);gap:4px;opacity:.84}
 .layout-option span{border-radius:3px;background:rgba(224,228,237,.82)}

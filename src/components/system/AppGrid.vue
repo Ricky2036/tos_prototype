@@ -85,7 +85,7 @@ function activate(event, id, item) {
 
 <style scoped>
 .app-grid { position:relative;width:100%;height:100%;box-sizing:border-box; }
-.app-grid.is-editing { transform:translate3d(0,-22px,0) scale(.74); transform-origin:50% 50%; transition:transform 320ms cubic-bezier(.22,.8,.26,1); }
+.app-grid.is-editing { transform:translate3d(0,20px,0) scale(.85); transform-origin:50% 36%; transition:transform 320ms cubic-bezier(.22,.8,.26,1); }
 .home-item { position:absolute;left:0;top:0;min-width:0;display:flex;align-items:flex-start;justify-content:center;transition:width 240ms cubic-bezier(.22,.8,.24,1),height 240ms cubic-bezier(.22,.8,.24,1),opacity 160ms ease;touch-action:none;will-change:transform; }
 .home-item.is-widget { min-height:0;aspect-ratio:1/1; }
 .home-item.is-widget :deep(.widget),
@@ -98,8 +98,8 @@ function activate(event, id, item) {
 .home-item.is-removing > :not(.selection-mark){transform:scale(.2);transition:transform 180ms ease}
 .home-item.is-editing:not(.is-dragging-source) > :not(.selection-mark) { animation:home-wiggle 170ms ease-in-out infinite alternate; }
 .home-item:nth-child(even).is-editing > :not(.selection-mark) { animation-delay:-85ms; }
-.selection-mark { position:absolute; top:-8px; right:-6px; width:25px; height:25px; display:grid; place-items:center; box-sizing:border-box; border-radius:50%; color:transparent; background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(240,245,255,.8)); border:1px solid rgba(255,255,255,.98); box-shadow:inset 0 1px 2px rgba(255,255,255,1),0 2px 7px rgba(15,26,62,.22); backdrop-filter:blur(12px) saturate(180%); font:700 14px/1 var(--font-stack); z-index:4; }
-.is-selected .selection-mark { color:#fff; background:linear-gradient(145deg,#47a7ff,#0878f9); border-color:rgba(255,255,255,.88); box-shadow:inset 0 1px 1px rgba(255,255,255,.7),0 3px 9px rgba(0,91,230,.42); }
+.selection-mark { position:absolute; top:-3px; right:-3px; width:20px; height:20px; display:grid; place-items:center; box-sizing:border-box; border-radius:50%; color:transparent; background:rgba(255,255,255,.78); border:1.2px solid rgba(255,255,255,.95); box-shadow:0 2px 6px rgba(0,0,0,.22); backdrop-filter:blur(12px) saturate(180%); -webkit-backdrop-filter:blur(12px) saturate(180%); font:700 11px/1 var(--font-stack); z-index:4; transition:background 160ms ease,border-color 160ms ease; }
+.is-selected .selection-mark { color:#fff; background:#007aff; border-color:#fff; box-shadow:0 2px 8px rgba(0,122,255,.45); }
 @keyframes home-wiggle { from{transform:rotate(-1deg)} to{transform:rotate(1deg)} }
 @media (prefers-reduced-motion:reduce) { .app-grid.is-editing,.home-item,.home-item.is-editing{animation:none;transition-duration:1ms} }
 </style>

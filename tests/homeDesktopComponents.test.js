@@ -237,7 +237,7 @@ test('desktop edit mode includes safe layout transform, done capsule button, and
   assert.match(home, /class="done-pill" @click="home\.setEditing\(false\)">完成<\/button>/)
   assert.match(home, /class="action-icon"/)
   assert.match(home, /:global\(\.screen-view:has\(\.home-screen\.is-editing\)\s*\.status-bar\)/)
-  assert.match(grid, /\.app-grid\.is-editing\s*\{\s*transform:translate3d\(0,-22px,0\) scale\(\.74\)/)
+  assert.match(grid, /\.app-grid\.is-editing\s*\{\s*transform:translate3d\(0,20px,0\) scale\(\.85\)/)
 })
 
 test('2x2 large folders launch apps directly with hero transition and keep overlay for title/blank taps', async () => {
