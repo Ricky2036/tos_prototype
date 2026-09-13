@@ -79,8 +79,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Trigger mobile FAB gear spin on returning to desktop & change phone border to blue | `antigravity/lane` | None (locks released) | `0be1bcb` | `d17b18a` |
 | Merged | Antigravity | Apply DevConsole palette to mini-phone FAB, equalize border thickness, and moderate corner radius | `antigravity/lane` | None (locks released) | `884e66c` | `9fe9a79` |
 | Merged | Workbuddy | Polish iOS app switcher: chain reaction drag, continuous scaling, and gesture physics | `workbuddy/lane` | None (locks released) | `0dc5cac` | `a6c0f0b` |
-| Active | Antigravity | Desktop Phase 1 & 2: Edit mode safe layout, Done button, 2x2 folder direct launch, Smart Stack vertical swipe | `antigravity/lane` | `src/components/system/HomeScreen.vue`; `src/components/system/AppGrid.vue`; `src/components/home/HomeFolder.vue`; `src/components/widgets/SmartSuggestionWidget.vue` | `a94248e` | |
-
-| Active | Antigravity | Desktop: Folder hero anchor transition, folder dissolve on 1 icon, and cross-screen drag | `antigravity/lane` | `src/components/system/HomeScreen.vue`; `src/components/system/AppGrid.vue`; `src/components/home/HomeFolder.vue`; `src/components/widgets/SmartSuggestionWidget.vue`; `src/stores/homeStore.js`; `src/utils/homeLayout.js`; `src/utils/appIconAnchors.js` | `a94248e` | |
+| Merged | Antigravity | Desktop enhancements: Phase 1 & 2 layout, iOS cross-screen icon drag, folder hero anchor, and single-app auto-dissolution with seamless zoom | `antigravity/lane` | None (desktop file locks released) | `a94248e` | `e3932d3` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
