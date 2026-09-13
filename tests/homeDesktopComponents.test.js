@@ -310,4 +310,10 @@ test('normalizeHomeAnchorRect safely derives x/y from left/top without producing
   assert.equal(normalized.cy, 370.5)
 })
 
+test('homeStore auto-dissolves single-app folders on removeAppFromFolder and ignores <=1 app folders in reconcile', async () => {
+  const storeSource = await read('../src/stores/homeStore.js')
+  assert.match(storeSource, /appIds\.length\s*>\s*1/)
+  assert.match(storeSource, /folder\.appIds\.length\s*<=\s*1\s*\)\s*this\.removeFolder\(folderId,\s*true\)/)
+})
+
 

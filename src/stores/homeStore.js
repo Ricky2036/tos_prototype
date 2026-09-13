@@ -62,7 +62,7 @@ function reconcile(raw) {
   const folders = {}
   for (const [id, folder] of Object.entries(raw.folders || {})) {
     const appIds = unique(folder.appIds).filter((appId) => knownApps.has(appId) && !uninstalled.has(appId) && !hidden.has(appId))
-    if (items[folderItemId(id)] && appIds.length) folders[id] = { id, name: String(folder.name || '文件夹').slice(0, 24), appIds, width: Math.max(1, Math.min(2, Number(folder.width) || 1)), height: Math.max(1, Math.min(2, Number(folder.height) || 1)) }
+    if (items[folderItemId(id)] && appIds.length > 1) folders[id] = { id, name: String(folder.name || '文件夹').slice(0, 24), appIds, width: Math.max(1, Math.min(2, Number(folder.width) || 1)), height: Math.max(1, Math.min(2, Number(folder.height) || 1)) }
   }
   for (const [id, item] of Object.entries(items)) if (item.type === 'folder' && !folders[item.folderId]) delete items[id]
   const dock = unique(raw.dock).filter((id) => items[id]?.type === 'app' && !hidden.has(items[id].appId)).slice(0, 4)

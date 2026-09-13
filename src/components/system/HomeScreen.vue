@@ -596,10 +596,19 @@ function finishFolderApp(cancelled) {
     const miniNode = folderEl?.querySelector?.(`[data-folder-app="${remainingAppId}"] .app-icon-anchor`)
       || folderEl?.querySelector?.(`[data-folder-app="${remainingAppId}"]`)
     const shellNode = folderEl?.querySelector?.('[data-folder-shell]')
+    let miniRect = miniNode?.getBoundingClientRect?.()
+    let shellRect = shellNode?.getBoundingClientRect?.()
+    if ((!miniRect || miniRect.width === 0) && folderEl) {
+      const fr = folderEl.getBoundingClientRect()
+      if (fr.width > 0) {
+        miniRect = { left: fr.left + 8, top: fr.top + 8, width: 14, height: 14 }
+        shellRect = { left: fr.left, top: fr.top, width: fr.width, height: fr.width }
+      }
+    }
     dissolveInfo = {
       remainingAppId,
-      miniRect: miniNode?.getBoundingClientRect?.(),
-      shellRect: shellNode?.getBoundingClientRect?.()
+      miniRect,
+      shellRect
     }
   }
 
@@ -708,7 +717,19 @@ function cleanup(cancelled) {
   pointer = null; unbindWindow()
 }
 function onPointerUp(event) { touchPoints.delete(event.pointerId); if (pointer && event.pointerId === pointer.id) cleanup(false) }
-function onPointerCancel(event) { touchPoints.delete(event.pointerId); if (pointer && event.pointerId === pointer.id) cleanup(true) }
+function onPointerCancel(event) {
+  touchPoints.delete(event.pointerId)
+  if (pointer && event.pointerId === pointer.id) {
+    if (pointer.mode === 'folder-app-drag') {
+      const dist = Math.hypot((pointer.lastX || pointer.startX) - pointer.startX, (pointer.lastY || pointer.startY) - pointer.startY)
+      if (dist > 20) {
+        cleanup(false)
+        return
+      }
+    }
+    cleanup(true)
+  }
+}
 function onWindowBlur() { if (pointer) cleanup(true) }
 function onHomeKeydown(event) {
   if (event.key !== 'Escape') return
@@ -745,7 +766,7 @@ function onFolderAppPointerDown(event, appId) {
   if (event.button != null && event.button !== 0) return
   event.stopPropagation()
   pointer = { id:event.pointerId, mode:'folder-app-ready', appId, folderId:openFolderId.value,
-    startX:event.clientX, startY:event.clientY, lastX:event.clientX, lastY:event.clientY, startedAt:performance.now(), captureTarget:event.currentTarget, captureEl:capture(event) }
+    startX:event.clientX, startY:event.clientY, lastX:event.clientX, lastY:event.clientY, startedAt:performance.now(), captureTarget:event.currentTarget, captureEl:null }
   bindWindow()
 }
 function createSelectedFolder() {
