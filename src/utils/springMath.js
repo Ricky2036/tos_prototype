@@ -1,6 +1,14 @@
 /* 弹簧物理：半隐式欧拉积分 + 四档 iOS 预设 */
 
 export const SPRING_PRESETS = {
+  /* 跟手偏移的归零（第九轮需求⑤「松手后归位跳变」）。
+     关键在于【必须比交接更快归零】，弹得好看是次要的：
+     交接判定 = openP ≥ 0.999 且 followFree ≥ 0.999（见 AppSwitcher 的 settledOne）。
+     · ios-gentle（openP）= {180,24} → ω_n 13.4、ζ 0.894 ⇒ 越 0.999 约 250ms；
+     · 本预设 = {500,38} → ω_n 22.4、ζ 0.85 ⇒ 越 0.999 约 160ms ⇒ 确定抢在交接之前。
+     旧值用 ios-deck（ω_n 14、ζ 0.65 ⇒ ≈360ms）比 openP 还慢，交接时偏移只走到 ~0.93，
+     残余 50px 被硬切（/tmp/vwork/r9/probe-settle.mjs 实测）——
+     旧注释写的「ios-deck 比 openP 更快，天然抢在交接前面」是错的。 */
   'ios-snappy': { stiffness: 500, damping: 38, mass: 1 },
   'ios-bouncy': { stiffness: 320, damping: 28, mass: 1 },
   'ios-gentle': { stiffness: 180, damping: 24, mass: 1 },
@@ -12,10 +20,11 @@ export const SPRING_PRESETS = {
      → ω_n = 1/(ζ·τ) = 14 rad/s（stiffness = 196），取 ζ = 0.65（过冲 ≈ 6.7%）
        → damping = 2ζω_n = 18.2。既有 iOS 的「弹」，又不是弹床。 */
   'ios-deck': { stiffness: 196, damping: 18.2, mass: 1 },
-  /* 左滑挤压的回弹（第八轮，需求⑦「弹性不足」）。
+  /* 左滑挤压的回弹（第八轮引入，第九轮改口：压在整组【位移】上而不是 scaleX）。
      ω_n = √300 ≈ 17.3 rad/s、ζ = 16 / (2×17.3) ≈ **0.46** ⇒ 过冲 ≈ **20%**。
-     配合 SQUEEZE_MAX = 0.16：回弹瞬间会「胀」到 1 + 0.16×0.20 ≈ 1.032，
-     即卡片组先略微弹宽一下再收回 —— 参考视频 53416f88…mp4 的往复振荡就是这个手感。
+     配合第九轮的 SQUEEZE_SHIFT_FRAC = 0.18（满挤压 = 整组左移 0.18 屏宽 @430 → 77.5px）：
+     回弹瞬间 k 会过冲到 −0.20 ⇒ 整组先【向右弹回 15.5px】再收回 ——
+     参考视频 53416f88…mp4 的往复振荡就是这个手感（实测左移曲线 0→25→62→81→94→101 往复）。
      比 ios-bouncy（ζ=0.78，过冲 1.7%）明显得多，又不会变成弹床。 */
   'ios-squish': { stiffness: 300, damping: 16, mass: 1 }
 }

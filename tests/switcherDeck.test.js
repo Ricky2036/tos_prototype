@@ -10,7 +10,7 @@ import {
   deckPhase,
   deckPose,
   deckSqueeze,
-  deckSqueezeGive,
+  deckSqueezeShift,
   deckStair,
   deckVisible,
   deckZ
@@ -418,36 +418,51 @@ test('卡宽为 0（未测量）时不抛异常', () => {
 
 /* ══════════════════ 第八轮（Ricky 2026-09-13）新增契约 ══════════════════ */
 
-test('第八轮·需求⑦：左滑挤压 = 横向压缩（不是位移），振幅对齐参考视频 0.837', () => {
-  /* 参考视频 53416f88…mp4 逐帧量测（/tmp/vwork/r8/rowrun.py，y=170 近白连续段）：
-       静止 [19, 375] 宽 356、中心 197
-       挤压 [49, 347] 宽 298、中心 198   ← 中心不动 ⇒ 是压缩不是位移
-     压缩比 = 298/356 = 0.837 ⇒ SQUEEZE_MAX = 0.163（本项目取 0.16）。 */
-  assert.equal(DECK.SQUEEZE_MAX, 0.16)
-  assert.equal(deckSqueeze(0), 1, '未越界时不压缩')
-  assert.ok(Math.abs(deckSqueeze(DECK.SQUEEZE_SPAN) - 0.84) < 1e-9, '满挤压 = 0.84')
-  assert.ok(Math.abs(deckSqueeze(0.6) - 0.84) < 1e-9, '越界更深也封顶在 0.84（不许无限压）')
-  /* 单调：越界越深 → 压得越扁（且严格递减，无振荡） */
-  let prev = 1.0001
+test('第九轮·需求③：左滑挤压 = 整组左移（不是横向压缩），行程对齐参考视频', () => {
+  /* 参考视频 53416f88…mp4 逐帧重测（第九轮，/tmp/vwork/r9/v3edge.py 列梯度 + v3track.py）：
+       静止 前卡左缘 75 / 右缘 377 ⇒ 宽 302
+       最深 前卡左缘 −26 / 右缘 276 ⇒ 宽 302     ← 宽恒 302、左右等量左移 101px
+     ⇒ 是【整组刚性左移】，不是压缩。旧契约（scaleX 0.837）就是 Ricky 说的「被压扁」。
+     左移量全帧曲线：0→25→62→81→94→101 饱和 ⇒ 满行程 101/444 = 0.2275 屏宽；
+     本项目取 0.18（= frontX/screenW，让前卡左缘正好落到屏左缘，图标不至于出屏）。 */
+  assert.equal(DECK.SQUEEZE_SHIFT_FRAC, 0.18)
+  assert.equal(deckSqueeze(0), 0, '未越界时挤压进度 = 0')
+  assert.equal(deckSqueeze(DECK.SQUEEZE_SPAN), 1, '满挤压进度 = 1')
+  assert.equal(deckSqueeze(0.6), 1, '越界更深也封顶在 1（不许无限挤）')
+  /* 单调：越界越深 → 进度越大（且严格不减，无振荡 —— 弹簧只在松手后才介入） */
+  let prev = -0.001
   for (let o = 0; o <= 0.6; o += 0.02) {
-    const q = deckSqueeze(o)
-    assert.ok(q <= prev + 1e-12, `挤压非单调：o=${o.toFixed(2)} ${prev} → ${q}`)
-    assert.ok(q >= 0.84 - 1e-12, `压过头了：${q}`)
-    prev = q
+    const k = deckSqueeze(o)
+    assert.ok(k >= prev - 1e-12, `挤压进度非单调：o=${o.toFixed(2)} ${prev} → ${k}`)
+    assert.ok(k <= 1 + 1e-12, `挤过头了：${k}`)
+    prev = k
   }
-  /* 参考视频实测压缩幅度 = 16%（356 → 298），本项目 1 − 0.84 = 16% */
-  assert.ok(Math.abs((1 - deckSqueeze(DECK.SQUEEZE_SPAN)) - 0.163) < 0.005)
-  /* 位移反馈极小：实测中心只动了 1px，所以 give 必须 ≪ 一卡宽 */
-  assert.equal(Math.abs(deckSqueezeGive(430, 0)), 0)
-  assert.ok(Math.abs(deckSqueezeGive(430, 0.35)) < 8, '左滑位移反馈必须很小（否则会变成「整组滑走」）')
-  assert.ok(deckSqueezeGive(430, 0.35) < 0, '方向必须向左')
+  /* 位移量：0 → −0.18 屏宽，方向必须向左 */
+  assert.equal(deckSqueezeShift(430, 0), 0)
+  assert.equal(deckSqueezeShift(430, 1), -430 * 0.18)
+  assert.ok(deckSqueezeShift(430, 1) < 0, '方向必须向左')
+  /* 满行程 ≡ frontX：前卡左缘（frontX）被推到 0 = 屏幕左缘。
+     ⚠️ 这是本项目对本轮行程的【唯一取舍】：参考实测 0.2275 会把前卡左缘推到屏外 −26px，
+        参考实现靠「图标最小 16px 屏边距」兜住标签；本轮需求①要求「图标与卡片作为一个整体
+        位移」，所以少走 20% 行程，保证图标与卡一起留在屏内。 */
+  const m = deckMetrics(430, 932)
+  assert.ok(Math.abs(m.frontX + deckSqueezeShift(430, 1)) < 1,
+    `满挤压应把前卡左缘推到屏幕左缘（允差 1px：0.18×430 = 77.4 vs frontX 77.5）：` +
+      `frontX=${m.frontX}，shift=${deckSqueezeShift(430, 1)}`)
+  assert.ok(Math.abs(-deckSqueezeShift(430, 1) / 430 - 0.2275) < 0.06,
+    '本项目行程 0.18 与参考实测 0.2275 的偏离必须 < 0.06 屏宽')
+  /* 回弹过冲（负数）是允许的：ios-squish ζ≈0.46 ⇒ k 短暂 ≈ −0.20 ⇒ 整组向右弹回 ≈15px */
+  assert.ok(deckSqueezeShift(430, -0.2) > 0, '过冲（k<0）时整组必须向右弹回')
+  /* 越界钳制：防止弹簧被高速注入时把整组甩出屏外 */
+  assert.equal(deckSqueezeShift(430, 99), deckSqueezeShift(430, 1.35))
+  assert.equal(deckSqueezeShift(430, -99), deckSqueezeShift(430, -0.35))
 })
 
 test('第八轮·需求⑦：左滑越界不再产生「最底部卡片消失」（层深恒 ≤ MAX_DEPTH）', () => {
   /* 根因（代码级）：旧实现把越界量灌进 focus（deckClampFocus 允许到 −0.6），
      而 renderedCards 用 deckVisible(i − focus) 过滤 —— focus = −0.6 时最深层
      i=2 的层深 = 2.6 > MAX_DEPTH(2) ⇒ 直接判为不可见、收掉 DOM。
-     修法：位姿焦点冻结在 max(0, focus)，越界量转成横向压缩。
+     修法：位姿焦点冻结在 max(0, focus)，越界量转成【整组左移】（第九轮改口径；第八轮是 scaleX）。
      本测试守的就是「冻结后，最深层在任何越界量下都 still visible」。 */
   for (const raw of [-0.1, -0.35, -0.6, -99]) {
     const focus = deckClampFocus(raw, 5) // 与 AppSwitcher 同一条夹取

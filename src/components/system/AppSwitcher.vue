@@ -17,7 +17,7 @@ import {
   deckPhase,
   deckPose,
   deckSqueeze,
-  deckSqueezeGive,
+  deckSqueezeShift,
   deckZ,
   deckVisible
 } from '../../utils/switcherDeck'
@@ -135,24 +135,32 @@ const { value: openP, animateTo: openTo, snapTo: openSnap, stop: openStop } = us
 watch(openP, (v) => system.setSwitcherProgress(v))
 const apps = computed(() => system.recentApps)
 
-/* ---- 第八轮（Ricky 2026-09-13）新增的两条弹簧 ----
+/* ---- 第八轮（Ricky 2026-09-13）新增、第九轮改口径的两条弹簧 ----
  *
- * ① sq：左滑挤压比（需求⑦）。手势期【逐帧直写】（deckSqueeze(over)，严格跟手），
- *    松手后用 'ios-squish'（ζ≈0.46，过冲 ≈20%）弹回 1 —— 这就是 Ricky 要的「弹性」：
- *    旧实现只有一个橡皮筋把 focus 单调拉回 0，压缩量跟着单调归零，一下都不弹。
- * ② followFree：跟手卡「横向/纵向跟手偏移」的释放权重（需求⑥）。
- *    手势期恒 0（偏移满量程）；松手后弹簧推到 1（偏移 → 0），
- *    在 settledOne 交接【之前】就归零 ⇒ 交接那一帧几何严格等于槽位，不跳。
- *    用 'ios-deck'（τ≈110ms）比 openP 的 ios-gentle 更快，天然抢在交接前面。 */
-const { value: sq, animateTo: sqTo, snapTo: sqSnap } = useSpring(1, 'ios-squish')
-const { value: followFree, animateTo: followFreeTo, snapTo: followFreeSnap } = useSpring(0, 'ios-deck')
+ * ① sq：左滑挤压进度 k（需求③）。手势期【逐帧直写】（deckSqueeze(over)，严格跟手），
+ *    松手后用 'ios-squish'（ζ≈0.46，过冲 ≈20%）弹回 0 —— 过冲使 k 短暂为负 ⇒
+ *    卡片组整体向右回弹一下再收回，这就是 Ricky 要的「弹性回弹」。
+ *    ⚠️ 第九轮口径变更：旧版 sq 持有的是 **scaleX 压缩比**（1 → 0.84），
+ *    现在持有的是 **挤压进度**（0 → 1），0 = 无挤压。见 switcherDeck.js 的 SQUEEZE_* 注释。
+ * ② followFree：跟手卡「横向/纵向跟手偏移」的释放权重（需求⑥/⑤）。
+ *    手势期恒 0（偏移满量程）；松手后弹簧推到 1（偏移 → 0）。
+ *    必须【早于 settledOne 交接】归零，否则交接那一帧会跳：
+ *    第九轮探针实测（/tmp/vwork/r9/probe-settle.mjs）—— 停驻期把手指横移 120px 再松手，
+ *    交接瞬间 FOLLOW 卡在 x=127.5、堆叠前卡在 77.5，**单帧硬跳 50.5px**
+ *    （= 120 × FOLLOW_X 0.42 × w，w = 1 − followFree = 1 ⇒ 偏移根本没被释放）。
+ *    根因：释放只写在 onPointerUp 里，而这条手势的 pointerup 落在 HomeIndicator 上，
+ *    本组件的 onPointerUp 根本不会跑 ⇒ releaseSqueeze() 从未被调用。
+ *    修法三件套：① appSwitcherOpen 置真（= 松手）时释放；② 交接判定并入 followFree；
+ *              ③ 预设换成 'ios-snappy'（settle ≈160ms，确定早于 openP 的 ios-gentle ≈250ms）。 */
+const { value: sq, animateTo: sqTo, snapTo: sqSnap } = useSpring(0, 'ios-squish')
+const { value: followFree, animateTo: followFreeTo, snapTo: followFreeSnap } = useSpring(0, 'ios-snappy')
 
 /** 位姿用的焦点：第八轮起【冻结在 0 以上】。
- *  左滑越界（focus < 0）不再推送卡片位置，而是转成横向压缩（见 deckSqueeze 的注释）——
- *  这同时修掉了需求⑦的「最底部卡片会直接消失」：层深 a = i − poseFocus 恒 ≤ MAX_DEPTH，
+ *  左滑越界（focus < 0）不再推送卡片位置，而是转成【整组左移】（见 deckSqueeze 的注释）——
+ *  这同时修掉了第八轮需求⑦的「最底部卡片会直接消失」：层深 a = i − poseFocus 恒 ≤ MAX_DEPTH，
  *  旧实现 a = i − (−0.6) = 2.6 > 2 会被 deckVisible 判为不可见、直接收掉 DOM。 */
 const poseFocus = computed(() => Math.max(0, focus.value))
-/** 左滑越界层数（0..0.6），驱动挤压与那一点点位移反馈 */
+/** 左滑越界层数（0..0.6），驱动整组左移（第九轮：旧版驱动 scaleX 压缩） */
 const overScroll = computed(() => Math.max(0, -focus.value))
 const frontIndex = computed(() => {
   const i = apps.value.indexOf(system.activeAppId)
@@ -161,14 +169,46 @@ const frontIndex = computed(() => {
 
 /* 可见性。
  * 第五轮新增 linger：「桌面路径取消上滑」时进度会瞬间归零，若立刻卸载会让已经升到
- * 一半的卡片「啪」地消失。这里在归零后多留 340ms，让 CSS 收场过渡播完再卸载。 */
+ * 一半的卡片「啪」地消失。这里在归零后多留 340ms，让 CSS 收场过渡播完再卸载。
+ *
+ * 第九轮新增 exitedHome（Ricky 需求⑥「点击空白处退出的动画有概率播两次，且桌面背景
+ * 出现时很闪」）—— 探针 /tmp/vwork/r9/probe-exit.mjs 逐帧实证：
+ *   t=6.9ms   加 is-closing → track 从 0 滑到 −335（300ms 过渡）
+ *   t=316ms   track 已到 −335、dim=0 ✅ 第一遍动画播完
+ *   t=328.6ms 摘 is-closing / 加 is-home-retreat → **track 弹回 0、卡片在屏幕正中
+ *             重新出现（card.x 77.5、op=1）** ⇒ 桌面背景上「闪」了一下
+ *   t=333~550 卡片再往左滑一次并淡出 ⇒ **第二遍动画**
+ * 成因：is-closing 一摘，`trackStyle` 的滑出分支就失效（transform 回 none，且那条过渡
+ * 只定义在 .is-closing 下）→ 同一帧卡片回到居中位姿；随后 watch 把 neighborsIn 置假，
+ * stackStyle 的「收场态」分支再给一次 deckEnterDx 左移 + 220ms 淡出。
+ * 修法：退场动画播完时置 exitedHome=true ⇒ visible 立刻变假 ⇒ 根节点与状态变更在
+ * **同一个 patch** 里被移除，中间那一帧根本不会上屏 —— 无第二遍、无闪。
+ *
+ * ⚠️ exitedHome 是一道【单次】闩锁，下一次入场必须放行，两处复位：
+ *   ① `switcherProgress > 0`（手势重新上滑，两条路径都覆盖）—— 见下面的 watcher；
+ *   ② `appSwitcherOpen` 置真（程序化直开 / 停驻松手）。
+ *   只留 ② 会让整段上滑手势屏幕全空（实测见 watcher 的注释）。 */
 const linger = ref(false)
 let lingerTimer = null
-const visible = computed(() => system.appSwitcherOpen || system.switcherProgress > 0 || linger.value)
+const exitedHome = ref(false)
+const visible = computed(
+  () => (system.appSwitcherOpen || system.switcherProgress > 0 || linger.value) && !exitedHome.value
+)
 
 watch(
   () => system.switcherProgress,
   (p, prev) => {
+    /* ⚠️ 第九轮（需求⑥ 的收尾，必须放在最前面 —— activeAppId 的那条早退会把它跳过）：
+       退场动画播完时 exitedHome 会把根节点按住不放（见 visible 的注释），它必须
+       在【下一次入场】放行。入场的第一信号就是进度重新 > 0。
+
+       漏了这一步的后果（探针 /tmp/vwork/r9/why-fail2.mjs 实测，严重回归）：
+       点空白退场 → 重开应用 → 上滑，fp 从 0.269 一路爬到 1.038，
+       **全程 `.app-switcher` 在场=false、`.switcher-card` 数=0** —— 整段手势屏幕全空，
+       直到松手 openSwitcher 才把整套 deck 一次性弹出来。跟手观感与停驻预提交全没了。
+       成因：exitedHome 原本只在 appSwitcherOpen 的【打开】分支复位，而手势期
+       open 仍是 false，于是 visible 恒假。 */
+    if (p > 0.001) exitedHome.value = false
     if (system.activeAppId || system.appSwitcherOpen) return
     if (p > 0.001) {
       clearTimeout(lingerTimer)
@@ -404,15 +444,22 @@ watch(
       clearing.value = false
       clearGo.value = false
       /* 第八轮：退场动画窗口 + 两条新弹簧一并复位（否则下一次打开会带着
-         上一轮的挤压量/跟手偏移出生）。 */
+         上一轮的挤压量/跟手偏移出生）。第九轮：sq 的零点从 1 改成 0（口径变更）。 */
       clearTimeout(closeTimer)
       closeTimer = null
-      sqSnap(1)
+      sqSnap(0)
       followFreeSnap(0)
       drag.value = null
       vLetGo.value = null
       return
     }
+    /* 第九轮（需求⑤）：打开 = 松手 ⇒ 在这里释放「跟手偏移」。
+       旧版把释放只写在 onPointerUp 里，而应用内上滑那条路径的 pointerup 落在
+       HomeIndicator 上，本组件的 onPointerUp 根本不会执行 ⇒ followFree 恒为 0
+       ⇒ 交接那一帧横移偏移原封不动地消失，单帧硬跳最高 50.5px（探针实测）。
+       放在 appSwitcherOpen 置真这一刻，覆盖所有打开路径（手势 / 程序化）。 */
+    exitedHome.value = false
+    releaseSqueeze()
     /* 同步编排（不放到 nextTick）：邻居卡要和开关置位在同一帧就带上目标样式，
        否则会先以 opacity 0 渲染一帧、再补 0.2s 淡入。measure() 走 .screen 兜底，
        不依赖本组件 dom 是否已挂载。 */
@@ -534,7 +581,8 @@ const labelIndex = computed(() => {
  *   中间那 100ms 屏幕上是一张【半透明的卡】。
  * 解法：把透明度【下沉到卡体】（卡根恒为 1）。
  *   ① 卡体的 opacity 没有任何 CSS 过渡 → 交接那一帧硬切，天然零闪断；
- *   ② 卡根保持 1 → 标签行（卡根的兄弟节点）在【停驻期】就一直在场。
+ *   ② 卡根保持 1 → 标签行（卡根的【子】节点，不是兄弟 —— 它挂在卡节点里，
+ *      所以位移/缩放天然与卡一致，第九轮需求①的地基）在【停驻期】就一直在场。
  *      若继续把透明度挂在卡根上，停驻期 C 位的「图标 + 应用名」会整段缺失、到交接那一帧
  *      才突然冒出来（Playwright 截图实测：b2-1-hold 里没有「计算器」标签，b2-2-settled 才有）；
  *      参考视频 981c9428…mp4 的停驻段（f100 / f104）C 位标签是全程在的。
@@ -555,16 +603,18 @@ function stackStyle(i) {
        见 bodyOpacityOf 的注释（透明度下沉到卡体是需求③「闪一下」的正解）。 */
     opacity = 1
   } else if (homeEntranceFollowing.value) {
-    /* 桌面手势进行中（第五轮新增，第八轮改方向）——
-       第八轮（需求⑤，参考视频 52b4f2fa…mp4 逐帧量测）：桌面上滑进入多任务时，
+    /* 第八轮（需求⑤，参考视频 52b4f2fa…mp4 逐帧量测）：桌面上滑进入多任务时，
        卡片组是【自左侧横向平移进场】的，不是旧版的自下方上浮。
        实测整组位移 345px / 444 屏 = 0.78 屏宽（C 卡右缘 30 → 375，左邻卡边缘与之
        严格同步 ⇒ 刚性平移而非逐卡缩放），时长约 19 帧 ≈ 0.79s；同期桌面图标在
        ~8 帧（0.33s）内虚化淡出（遮罩那条 opacity 已经在做这件事）。
-       这里仍然逐帧直写（e = 手势进度）⇒ 上滑多少卡片就横移多少，保持跟手。 */
-    const e = homeEntranceP.value
-    opacity = e
-    x += deckEnterDx(screenW.value) * (1 - e)
+       这里仍然逐帧直写（e = 手势进度）⇒ 上滑多少卡片就横移多少，保持跟手。
+       ⚠️ 第九轮（需求④）：opacity 恒 1、不再乘 e。Ricky 原话「桌面激活多任务时入场的
+       卡片不要半透明效果」—— 半透明是第八轮为了「淡入」加的，但那与「刚性平移进场」
+       自相矛盾（整组位移本身就是入场，再叠淡入会让卡片在滑动过程中忽明忽暗）。
+       入场的可见性完全交给位移：e=0 时整组在屏左 0.78 屏宽处（不可见），滑到 e=1 就位。 */
+    opacity = 1
+    x += deckEnterDx(screenW.value) * (1 - homeEntranceP.value)
     delay = '0ms'
   } else if (!neighborsIn.value) {
     /* 收场态：藏在左侧 0.78 屏宽处（与入场同一条轨迹，方向一致 ⇒ 原路退回）。
@@ -612,16 +662,47 @@ function stackStyle(i) {
 
 /** 卡片左上角标签（图标 + 名称）的位置 —— 见 LABEL_INSIDE 开关。
  *  卡外上方时 top = -(图标行高 + 间隙)，这两个值与 deckMetrics 的 LABEL_ROW_H/LABEL_GAP
- *  同源（修正 C：图标 18 → 24px，行高与间隙一起纳入「整体居中」的 blockH 计算）。 */
+ *  同源（修正 C：图标 18 → 24px，行高与间隙一起纳入「整体居中」的 blockH 计算）。
+ *  ⚠️ 这里的坐标系是【卡自身】的局部坐标：标签永远挂在卡节点里，所以位移/缩放天然一致
+ *     （第九轮需求①「图标必须与卡片作为一个整体进行位移与缩放」的地基）。 */
 function labelStyle() {
   return LABEL_INSIDE
     ? { top: '10px', left: '12px' }
     : { top: -(DECK.LABEL_ROW_H + DECK.LABEL_GAP) + 'px', left: '0px' }
 }
 
-/* 交接判定：进场进度到位（跟手卡与前卡槽位几何重合）后交给堆叠前卡 */
+/** 跟手卡（.is-follow）标签行的锚点（第九轮需求①）。
+ *
+ * 症状（Ricky 参考图 + 探针 /tmp/vwork/r9/probe-focus.mjs）：跟手卡【完全没有标签行】，
+ * 屏幕上唯一的「图标 + 应用名」挂在【堆叠前卡】上 —— 于是入场上滑 + 横向漂移时，
+ * 卡片被拖到哪，标签就与它分离多远（探针：label 在槽位、card 在 x+50）。
+ *
+ * 为什么跟手卡的标签不能直接照抄 labelStyle：
+ *   跟手卡是【整屏尺寸（430×932）+ 中心锚点缩放 s】的节点，而 s 从 1 连续变到
+ *   previewScale（0.6395）。若把标签按 24px 直接放进去，它会被外层 scale 一起缩到
+ *   15px，且在落位那一刻比堆叠卡的标签小一圈 ⇒ 交接时标签会「跳一下大小」。
+ * 做法：包一层锚点（origin 0 0）把坐标换算回【卡本身的尺寸体系】——
+ *   锚点 scale(1/previewScale)，外层再乘 s ⇒ 标签的净缩放 = s / previewScale。
+ *   · 落位（s = previewScale ⇒ 净 1）：与堆叠卡标签【逐像素一致】（24px 图标、36px 上偏），
+ *     所以交接那一帧标签零跳变；
+ *   · 手势中（s > previewScale）：标签随卡片一起放大 ⇒ 「图标与卡片作为一个整体缩放」。
+ * 位置：锚点放在卡局部 (0,0) = 卡的左上角，标签再在锚点里向上偏 36px（同 labelStyle），
+ *   两个偏移都被同一个 scale 乘 ⇒ 标签与卡的相对关系在整段手势里恒定。 */
+const followLabelStyle = computed(() => ({
+  transform: `scale(${1 / Math.max(previewScale.value, 0.01)})`
+}))
+
+/* 交接判定：进场进度到位（跟手卡与前卡槽位几何重合）+ 跟手偏移已归零后，交给堆叠前卡。
+   第九轮（需求⑤）并入 followFree —— 交接要求「几何严格相等」，而跟手卡的横向/纵向偏移
+   由 followFree 单独释放；不把它并进判据就完全依赖两个弹簧的相对速度，一旦偏移还没归零
+   就交接，那一帧会硬跳（探针实测最坏 50.5px）。并进来之后这条不变量由判据本身保证，
+   而 'ios-snappy'（settle ≈160ms）确定早于 openP 的 'ios-gentle'（≈250ms），不会拖慢交接。 */
 const settledOne = computed(
-  () => openP.value >= 0.999 && system.switcherProgress >= 0.999 && system.switcherProgress <= 1.001
+  () =>
+    openP.value >= 0.999 &&
+    followFree.value >= 0.999 &&
+    system.switcherProgress >= 0.999 &&
+    system.switcherProgress <= 1.001
 )
 
 /* ---- 跟手缩放（Ricky 2026-09-12 纠正）----
@@ -695,12 +776,22 @@ function contentScale(isFollow) {
   return isFollow ? 1 : previewScale.value
 }
 
-/* ---- 底部垃圾桶：进度后段才淡入，避免开场就「啪」地满亮 ---- */
+/* ---- 底部垃圾桶的出现/消失时机（第九轮重做，需求②）----
+ *
+ * Ricky 原话：「删除改为按钮松手后再出现，点击空白处回桌面时立即消失」。
+ *
+ * 旧判据 `(switcherProgress − 0.5) / 0.5` 的毛病：进度在【手势进行中】就已经爬到 0.8~1.0
+ * ⇒ 手指还没松、卡片还在跟手缩放，底部垃圾桶已经满亮 —— 它跟着手指「提前」出现了。
+ *
+ * 新判据只有两个状态，中间那段淡入交给 CSS 过渡（.switcher-dock 默认 opacity 200ms）：
+ *   · 未打开（手势中 / 桌面路径跟手期）→ 0：桶在 DOM 里但完全透明；
+ *   · 已打开（= 松手，appSwitcherOpen 置真）→ 1：由 CSS 过渡淡入 ⇒「松手后再出现」。
+ *
+ * 退场（closing）：恒 0，且 .is-closing 下【关掉过渡】（transition: none）——
+ *   这就是「点击空白处回桌面时立即消失」，不许它慢悠悠地淡（Ricky 要的是「立即」）。 */
 const chromeOpacity = computed(() => {
-  /* 第八轮（需求④）：退场时和卡片一起淡出，否则垃圾桶会孤零零地留在屏幕上
-     （参考视频 23a8c90d…mp4 的退出帧里底部工具条是先消失的一批）。 */
   if (closing.value) return 0
-  return Math.min(1, Math.max(0, (system.switcherProgress - 0.5) / 0.5))
+  return system.appSwitcherOpen ? 1 : 0
 })
 
 /** 垃圾桶容器距屏幕底的像素（= home inset + DECK.DOCK_GAP）。
@@ -740,15 +831,17 @@ function vtVelocity(now = performance.now()) {
   return dt > 0 ? (b.x - a.x) / dt : 0 // px/ms，向右为正
 }
 
-/* ---- 第八轮（Ricky 2026-09-13）两条状态机的收放口 ----
-   dragSqueeze：手势期把挤压量【直写】到位（不挂过渡 → 严格跟手）；
-   releaseSqueeze：松手后交给弹簧 —— 挤压用 ios-squish 弹回 1（过冲 20%，
-     这就是需求⑦「弹性不足」要的往复振荡），跟手偏移用 ios-deck 平滑归零。 */
+/* ---- 第八轮新增、第九轮改口径的两条状态机收放口 ----
+   dragSqueeze：手势期把挤压进度【直写】到位（不挂过渡 → 严格跟手）；
+   releaseSqueeze：松手后交给弹簧 —— 挤压用 ios-squish 弹回 0（过冲到负 = 整组向右回弹一点，
+     就是需求③「回弹」要的往复振荡），跟手偏移用 ios-snappy 快速归零。
+   ⚠️ releaseSqueeze 现在【也由 appSwitcherOpen 的 watch 调用】—— 应用内上滑那条路径的
+     松手发生在 HomeIndicator 上，本组件的 onPointerUp 不会执行（见该 watch 的注释）。 */
 function dragSqueeze() {
   sqSnap(deckSqueeze(overScroll.value))
 }
 function releaseSqueeze() {
-  sqTo(1)
+  sqTo(0)
   followFreeTo(1)
 }
 
@@ -1148,24 +1241,31 @@ function exitWithAnimation() {
   clearTimeout(closeTimer)
   closeTimer = setTimeout(() => {
     closeTimer = null
-    /* 先让挤压/形变回位，再交回 store（closeSwitcher 会清掉 switcherClosing） */
-    sqSnap(1)
+    /* 第九轮（需求⑥）：先把根节点判为「已回家」，再交回 store。
+       两件事必须在同一个 patch 里生效 —— exitedHome 让 visible 变假，所以根节点会被
+       直接移除，而 store 那几处变更（appSwitcherOpen / switcherProgress / neighborsIn）
+       引发的「卡片弹回居中」中间态【一帧都不会上屏】。否则就是实测到的：
+       track 从 −335 弹回 0、卡片在屏幕正中闪现一帧，然后再左滑淡出一次（动画播两遍）。 */
+    exitedHome.value = true
+    sqSnap(0)
     followFreeSnap(0)
     exitSwitcherToHome()
   }, DECK.EXIT_SLIDE_MS + 20)
 }
 
-/* ---- 卡片组的容器变换（第八轮）----
- *   常态：scaleX(挤压比) —— 需求⑦的横向压缩（实测 0.837 ⇒ SQUEEZE_MAX 0.16）；
- *   退场：平移到左侧 0.78 屏宽 —— 需求④的滑出。
- * 两者互斥（退场时挤压必须已经归 1，否则会叠出二次形变）。 */
+/* ---- 卡片组的容器变换（第九轮重做，需求③）----
+ *   常态：整组【向左平移】shift = −0.18 屏宽 × k（k = 挤压进度，见 deckSqueeze）；
+ *   退场：平移到左侧 0.78 屏宽 —— 第八轮需求④的滑出。
+ * 两者互斥（退场时 k 已被 sqSnap(0) 归零）。
+ *
+ * ⚠️ 旧版这里是 `scaleX(q)` —— 那是 Ricky 说的「卡片被压扁了」：scaleX 作用在【整组】上，
+ *    卡里的应用预览会跟着横向压扁变形，而参考视频逐帧实测卡的宽度恒定 302px、内容零形变。
+ *    改成 translate3d 之后卡的形状与内容都不动，只是整组位置左移，观感即「向左整体挤压」。 */
 const trackStyle = computed(() => {
   if (closing.value) return { transform: `translate3d(${deckEnterDx(screenW.value)}px, 0, 0)` }
-  const q = Math.max(0.7, Math.min(1.06, sq.value))
-  if (Math.abs(q - 1) < 0.0005) return { transform: 'none' }
-  /* 挤压方向：往左拖 ⇒ 往左「让」一点点（SQUEEZE_GIVE），再整体横向压缩 */
-  const give = deckSqueezeGive(screenW.value, overScroll.value)
-  return { transform: `translate3d(${give}px, 0, 0) scaleX(${q})` }
+  const shift = deckSqueezeShift(screenW.value, sq.value)
+  if (Math.abs(shift) < 0.05) return { transform: 'none' }
+  return { transform: `translate3d(${shift}px, 0, 0)` }
 })
 
 /** 遮罩不透明度：退场时归零（桌面立刻现形），其余跟随手势进度 */
@@ -1214,14 +1314,24 @@ onBeforeUnmount(() => {
     <!-- 背景模糊压暗：跟手势进度淡入；点空白退场时归零（桌面立刻现形，需求④） -->
     <div class="switcher-dim" :style="{ opacity: dimOpacity }"></div>
 
-    <!-- 卡片组容器：常态承载「左滑挤压」的 scaleX（需求⑦），退场时整体平移到左侧（需求④） -->
+    <!-- 卡片组容器：常态承载「左滑挤压」的整组左移（需求③），退场时整体平移到左侧（需求④） -->
     <div class="switcher-track" :style="trackStyle">
-      <!-- 跟手缩放卡：手势进行中（progress<1）只有它，把全屏应用连续缩到卡位 -->
+      <!-- 跟手缩放卡：手势进行中（progress<1）只有它，把全屏应用连续缩到卡位。
+           第九轮（需求①）：它【自己也带标签行】—— 旧的把它当纯预览、标签留给堆叠前卡，
+           于是入场上滑 + 横向漂移时「卡片被拖走、图标留在槽位」。 -->
       <div
         v-if="followStyle && system.activeAppId"
         class="switcher-card is-follow"
         :style="followStyle"
       >
+        <!-- 标签锚点：origin 0 0 落在卡左上角，scale(1/previewScale) 把坐标换算回卡的尺寸体系
+             ⇒ 净缩放 = 卡缩放 / previewScale（见 followLabelStyle 的注释）。 -->
+        <div class="switcher-card-label-anchor" :style="followLabelStyle">
+          <div class="switcher-card-label" :style="labelStyle()">
+            <AppIcon :app="appOf(system.activeAppId)" :size="24" :show-label="false" ignore-hidden />
+            <span>{{ nameOf(system.activeAppId) }}</span>
+          </div>
+        </div>
         <div class="switcher-card-body">
           <div
             class="switcher-card-content"
@@ -1257,8 +1367,10 @@ onBeforeUnmount(() => {
                ⚠️ 必须传 ignore-hidden：AppWindow 在前台应用打开期间会调用
                home.hideIcon(activeAppId)，把该应用的图标置成全局隐藏态。
                C 位初始正好就是前台应用 → 不加这个 prop 时「设置」那张卡的图标是空的
-               （名称还在，因为名称不吃隐藏态）。这是 Ricky 截图里「设置的图标消失了」的根因。 -->
-          <div v-if="!dismissing" class="switcher-card-label" :style="labelStyle()">
+               （名称还在，因为名称不吃隐藏态）。这是 Ricky 截图里「设置的图标消失了」的根因。
+               ⚠️ 第九轮（需求①）：前卡被跟手卡顶替时（bodyOpacityOf = 0）这一行必须【让位】——
+               标签已经挂在跟手卡上，两边都画就会同时在槽位和跟手卡上出现两份图标。 -->
+          <div v-if="!dismissing && bodyOpacityOf(c.i) !== 0" class="switcher-card-label" :style="labelStyle()">
             <AppIcon :app="appOf(c.id)" :size="24" :show-label="false" ignore-hidden />
             <span v-if="c.i === labelIndex">{{ nameOf(c.id) }}</span>
           </div>
@@ -1325,8 +1437,11 @@ onBeforeUnmount(() => {
 .switcher-track {
   position: absolute;
   inset: 0;
-  /* 挤压（scaleX）与平移都以屏幕中心为原点 —— 参考视频 53416f88…mp4 实测：
-     可见白域中心在挤压前后不动（197 → 198），只有宽度 356 → 298。 */
+  /* 第九轮（需求③）：容器只做【整组平移】——
+     左滑挤压 = translate3d(shift,0,0)，退场 = translate3d(−0.78 屏宽,0,0)。
+     旧版这里是 scaleX(挤压比)：作用在整组上会把卡里的应用预览一起横向压扁，
+     而参考视频 53416f88…mp4 逐帧实测前卡宽恒 302px、内容零形变，所以压缩一定是错的。
+     transform-origin 只影响 scale/rotate，纯位移下无所谓 —— 保留 center center 不动。 */
   transform-origin: center center;
   will-change: transform;
 }
@@ -1342,9 +1457,11 @@ onBeforeUnmount(() => {
 .app-switcher.is-closing .switcher-dim {
   transition: opacity 240ms ease;
 }
-/* 底部工具条一起淡出（其 opacity 由 chromeOpacity 内联给出，这里只加过渡） */
+/* 第九轮（需求②）：退场时垃圾桶【立即消失】——
+   这里必须是 transition:none，不能沿用 180ms 淡出（Ricky 原话「点击空白处回桌面时立即消失」）。
+   它的淡入过渡写在 .switcher-dock 基础规则里（松手后才出现那一段需要淡入）。 */
 .app-switcher.is-closing .switcher-dock {
-  transition: opacity 180ms ease;
+  transition: none;
 }
 
 .switcher-card {
@@ -1366,10 +1483,11 @@ onBeforeUnmount(() => {
    - .is-follow 的 transform 由手势/进场弹簧逐帧直写，挂 transition 会被二次低通，
      表现为「跟手滞后、松手后慢慢飘」→ 必须排除；
    - .is-focus-moving 是松手后的吸附弹簧，同理必须排除；
-   - .is-home-entrance 是桌面路径上滑【跟手】期（进度逐帧直写卡片 y/opacity）——
+   - .is-home-entrance 是桌面路径上滑【跟手】期（进度逐帧直写卡片 x；第九轮需求④起
+     opacity 恒 1、不再跟手淡入）——
      AppSwitcher 自己不持有这次拖拽（拖动发生在 HomeIndicator 上，drag 恒为 null），
      所以 .is-dragging 挡不住它；不排除的话同样会滞后发飘。
-     手势取消后会自然退出这个类 → 过渡恢复 → 卡片顺势下沉淡出。
+     手势取消后会自然退出这个类 → 过渡恢复 → 卡片顺势向左滑出淡出。
    - 曲线 0.32s / cubic-bezier(0.32, 1.16, 0.6, 1)：与 ios-deck 弹簧（τ≈110ms、
      过冲 6.7%）的收尾观感一致，末段带一点回弹余韵，不再是死板的 ease-out。 */
 .app-switcher:not(.is-dragging):not(.is-focus-moving):not(.is-home-entrance) .switcher-card:not(.is-follow) {
@@ -1377,6 +1495,17 @@ onBeforeUnmount(() => {
     transform 0.32s cubic-bezier(0.32, 1.16, 0.6, 1),
     opacity 0.22s ease,
     filter 0.28s ease;
+}
+
+/* 跟手卡的标签锚点（第九轮，需求①）——
+   把标签的坐标系从「整屏尺寸的跟手卡」换算回「卡的尺寸体系」：
+   锚点 scale(1/previewScale)，外层跟手卡再乘 s ⇒ 标签净缩放 = s / previewScale。
+   origin 必须 0 0：锚点要钉在卡左上角，标签的 36px 上偏才会跟着同一个比例走。 */
+.switcher-card-label-anchor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
 }
 
 .switcher-card-label {
@@ -1424,6 +1553,10 @@ onBeforeUnmount(() => {
   align-items: center;
   pointer-events: none;
   /* z-index 由模板绑 Z_CHROME 给（压在所有卡片之上） */
+  /* 第九轮（需求②）：默认带淡入过渡 —— appSwitcherOpen 置真（= 松手）那一帧
+     chromeOpacity 从 0 翻到 1，靠这条过渡淡入 ⇒「删除按钮松手后再出现」。
+     退场（.is-closing）下这条被显式改回 transition:none ⇒ 立即消失。 */
+  transition: opacity 0.2s ease;
 }
 /* 只有垃圾桶按钮吃指针（需求①）—— 容器其余部分视作空白，交给「点空白退出」 */
 .switcher-dock :deep(.glass-circle-btn) {
