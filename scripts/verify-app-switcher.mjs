@@ -1155,7 +1155,7 @@ await page.waitForTimeout(1000)
   check(
     '需求②（整段）：拖动全程两卡【永不重叠】—— 改前（exit 233.9）此处是恒重叠 41px',
     frames >= 24 && minGlue >= -1,
-    `最小间隙 ${(minGlue + 0).toFixed(1)}px（第五轮此处是 -81px 的「空隙」= 顶卡独自飞走；` +
+    `最小间隙 ${(minGlue > -0.05 ? 0 : minGlue).toFixed(1)}px（第五轮此处是 -81px 的「空隙」= 顶卡独自飞走；` +
       `第六轮是 -41px 的「恒重叠」= 顶卡与底卡锁死）`
   )
   check(
