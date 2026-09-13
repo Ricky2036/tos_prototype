@@ -86,11 +86,11 @@ function activate(event, id, item) {
 <style scoped>
 .app-grid { position:relative;width:100%;height:100%;box-sizing:border-box; }
 .app-grid.is-editing { transform:translate3d(0,20px,0) scale(.85); transform-origin:50% 36%; transition:transform 320ms cubic-bezier(.22,.8,.26,1); }
-.home-item { position:absolute;left:0;top:0;min-width:0;display:flex;align-items:flex-start;justify-content:center;transition:width 240ms cubic-bezier(.22,.8,.24,1),height 240ms cubic-bezier(.22,.8,.24,1),opacity 160ms ease;touch-action:none;will-change:transform; }
+.home-item { position:absolute;left:0;top:0;min-width:0;display:flex;align-items:flex-start;justify-content:center;transition:width 240ms cubic-bezier(.22,.8,.24,1),height 240ms cubic-bezier(.22,.8,.24,1);touch-action:none;will-change:transform; }
 .home-item.is-widget { min-height:0;aspect-ratio:1/1; }
 .home-item.is-widget :deep(.widget),
 .home-item.is-widget :deep(.smart-suggestion-stack) { width:100%; height:auto; aspect-ratio:1/1; flex:none; }
-.home-item.is-dragging-source { opacity:.16; }
+.home-item.is-dragging-source { opacity:.16; transition:opacity 160ms ease; }
 .home-item.is-folder-open { opacity:0 !important; transition:none !important; }
 .home-item.is-folder-target > :not(.selection-mark) { transform:scale(1.1);filter:drop-shadow(0 0 14px rgba(255,255,255,.6)); }
 .home-item.is-folder-candidate{z-index:3}.home-item.is-folder-candidate::before{content:"";position:absolute;z-index:0;top:-4px;left:50%;width:calc(var(--icon-size) * 1.14);height:calc(var(--icon-size) * 1.14);border-radius:calc(var(--icon-size) * .31);background:rgba(255,255,255,.28);border:1px solid rgba(255,255,255,.34);backdrop-filter:blur(18px) saturate(170%);opacity:1;transform:translateX(-50%) scale(1);animation:folder-candidate-in 140ms cubic-bezier(.22,.8,.24,1) both;box-shadow:inset 0 1px 1px rgba(255,255,255,.34)}.home-item.is-folder-candidate> :not(.selection-mark){position:relative;z-index:1;transition:transform 280ms cubic-bezier(.22,.8,.24,1)}.home-item.is-folder-armed> :not(.selection-mark){transform:scale(.94);filter:drop-shadow(0 0 12px rgba(255,255,255,.58))}@keyframes folder-candidate-in{from{opacity:0;transform:translateX(-50%) scale(.88)}to{opacity:1;transform:translateX(-50%) scale(1)}}

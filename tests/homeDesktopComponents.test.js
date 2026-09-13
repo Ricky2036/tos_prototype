@@ -327,5 +327,23 @@ test('folders animate into desktop when unlocking with staggered enter delay', a
   assert.match(folder, /folder-enter/)
 })
 
+test('folder collapse preserves smooth background backdrop blur and seamless desktop recovery without opacity transition delay', async () => {
+  const [grid, overlay, folder] = await Promise.all([
+    read('../src/components/system/AppGrid.vue'),
+    read('../src/components/home/HomeFolderOverlay.vue'),
+    read('../src/components/home/HomeFolder.vue')
+  ])
+  // Base home-item must not transition opacity to avoid 160ms recovery blink
+  assert.doesNotMatch(grid, /\.home-item\s*\{[^}]*opacity\s+160ms/)
+  assert.match(grid, /\.home-item\.is-dragging-source\s*\{[^}]*transition:\s*opacity 160ms ease/)
+  // Folder overlay uses smooth backdrop curve and box-shadow dissipation
+  assert.match(overlay, /easeBackdropClose\s*=\s*'cubic-bezier\(0\.33,\s*0,\s*0\.67,\s*1\)'/)
+  assert.match(overlay, /boxShadow:\s*'0 0 0 rgba\(0, 0, 0, 0\)'/)
+  assert.match(overlay, /borderColor:\s*'rgba\(255, 255, 255, 0\)'/)
+  assert.doesNotMatch(overlay, /\.folder-backdrop\s*\{[^}]*transform:\s*translateZ\(0\)/)
+  // Desktop folder does not transition background color
+  assert.doesNotMatch(folder, /\.folder-apps\{[^}]*background 180ms ease/)
+})
+
 
 
