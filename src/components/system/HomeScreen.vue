@@ -4,6 +4,7 @@ import { useHomeStore } from '../../stores/homeStore'
 import { useSystemStore } from '../../stores/systemStore'
 import { globalRankForPageIndex, homeItemMetrics, insertionIndexAtPoint, layoutHomeOrder, moveHomeOrderItem, resolveDesktopPage } from '../../utils/homeLayout.js'
 import { setLaunchRect } from '../../utils/appIconAnchors.js'
+import { rectRelativeToScreen } from '../../utils/dom.js'
 import AppGrid from './AppGrid.vue'
 import DockBar from './DockBar.vue'
 import PageIndicator from '../ui/PageIndicator.vue'
@@ -376,6 +377,69 @@ async function animateMergeAnchors(entries,folderItemId) {
   await Promise.all(animations)
   folderMergeAnimation.value = null
 }
+async function animateFolderDissolve({ remainingAppId, miniRect, shellRect }) {
+  if (shellRect && shellRect.width > 0) {
+    const shellClone = document.createElement('div')
+    shellClone.className = 'folder-apps'
+    Object.assign(shellClone.style, {
+      position: 'fixed',
+      left: `${shellRect.left}px`,
+      top: `${shellRect.top}px`,
+      width: `${shellRect.width}px`,
+      height: `${shellRect.height}px`,
+      margin: '0',
+      zIndex: '1100',
+      pointerEvents: 'none',
+      borderRadius: '17px',
+      background: 'rgba(255,255,255,.24)',
+      backdropFilter: 'blur(18px) saturate(150%)',
+      transformOrigin: 'center center'
+    })
+    document.body.appendChild(shellClone)
+    shellClone.animate([
+      { transform: 'scale(1)', opacity: 1 },
+      { transform: 'scale(1.12)', opacity: 0 }
+    ], { duration: 280, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'forwards' })
+      .finished.catch(() => {}).finally(() => shellClone.remove())
+  }
+
+  await nextTick()
+  await new Promise((resolve) => requestAnimationFrame(resolve))
+
+  const newHomeItem = rootRef.value?.querySelector(`[data-home-item="app:${remainingAppId}"]`)
+  const newAnchor = newHomeItem?.querySelector?.('.app-icon-anchor')
+  const toRect = newAnchor?.getBoundingClientRect?.()
+
+  if (newAnchor && toRect && toRect.width > 0 && miniRect?.width > 0) {
+    const dx = miniRect.left - toRect.left
+    const dy = miniRect.top - toRect.top
+    const scale = miniRect.width / toRect.width
+
+    const label = newHomeItem?.querySelector?.('.icon-label')
+    if (label) {
+      label.animate([
+        { opacity: 0 },
+        { opacity: 1 }
+      ], { duration: 320, easing: 'ease-out' })
+    }
+
+    const anim = newAnchor.animate([
+      {
+        transform: `translate3d(${dx}px,${dy}px,0) scale(${scale})`,
+        transformOrigin: 'top left'
+      },
+      {
+        transform: 'translate3d(0,0,0) scale(1)',
+        transformOrigin: 'top left'
+      }
+    ], {
+      duration: 320,
+      easing: 'cubic-bezier(.22,1,.36,1)',
+      fill: 'none'
+    })
+    await anim.finished.catch(() => {})
+  }
+}
 function targetIndexAt(x, y) {
   const grid = rootRef.value.querySelector(`[data-page="${home.currentPage}"]`)
   const rect = grid?.getBoundingClientRect()
@@ -467,12 +531,18 @@ function onPointerMove(event) {
   if (pointer.mode === 'item-ready' && Math.hypot(dx,dy) > 5) startItemDrag(event.clientX,event.clientY)
   if (pointer.mode === 'folder-app-ready' && Math.hypot(dx,dy) > 5) {
     pointer.mode = 'folder-app-drag'
-    createDragGhost(pointer.captureTarget,`app:${pointer.appId}`,event.clientX,event.clientY)
+    pointer.fromFolder = { folderId: pointer.folderId, appId: pointer.appId }
+    pointer.itemId = `app:${pointer.appId}`
+    createDragGhost(pointer.captureTarget, pointer.itemId, event.clientX, event.clientY)
     openFolderId.value = null
+    previewOrder.value = [...home.order]
+    dragging.value = { id: pointer.itemId, page: home.currentPage, index: home.currentItems.length }
   }
   if (pointer.mode === 'folder-app-drag') {
     event.preventDefault()
+    pointer.didMove = true
     setGhostPosition(ghost.value.id, event.clientX, event.clientY)
+    updatePreview(event.clientX, event.clientY)
     return
   }
   if (pointer.mode === 'item-drag') {
@@ -487,6 +557,83 @@ function onPointerMove(event) {
     revealPageDots()
     event.preventDefault()
     pageDragX.value = ((home.currentPage === 0 && dx > 0) || (home.currentPage === home.pageCount - 1 && dx < 0)) ? dx * .36 : dx
+  }
+}
+function finishFolderApp(cancelled) {
+  clearTimeout(edgeTimer)
+  clearTimeout(pageFlipResetTimer)
+  edgeTimer = null
+  pageFlipResetTimer = null
+  edgePeekOffset.value = 0
+  isPageFlipping.value = false
+  if (pointer) pointer.edgeDirection = 0
+
+  if (cancelled) {
+    openFolderId.value = pointer.folderId
+    previewOrder.value = null
+    dragging.value = null
+    ghost.value = null
+    folderTargetId.value = null
+    folderMergeCandidate.value = null
+    dockTargetIndex.value = null
+    return
+  }
+
+  const folderId = pointer.folderId
+  const appId = pointer.appId
+  const sourceFolder = home.folders[folderId]
+  const targetPage = dragging.value?.page ?? home.currentPage
+  const targetIndex = dragging.value?.index ?? home.currentItems.length
+  const folderItemId = `folder:${folderId}`
+
+  const remainingAppId = sourceFolder?.appIds?.length === 2
+    ? sourceFolder.appIds.find((id) => id !== appId)
+    : null
+
+  let dissolveInfo = null
+  if (remainingAppId) {
+    const folderEl = rootRef.value?.querySelector(`[data-home-item="${folderItemId}"]`)
+    const miniNode = folderEl?.querySelector?.(`[data-folder-app="${remainingAppId}"] .app-icon-anchor`)
+      || folderEl?.querySelector?.(`[data-folder-app="${remainingAppId}"]`)
+    const shellNode = folderEl?.querySelector?.('[data-folder-shell]')
+    dissolveInfo = {
+      remainingAppId,
+      miniRect: miniNode?.getBoundingClientRect?.(),
+      shellRect: shellNode?.getBoundingClientRect?.()
+    }
+  }
+
+  if (dockTargetIndex.value != null) {
+    home.removeAppFromFolder(appId, folderId, targetPage, targetIndex)
+    home.moveToDock(`app:${appId}`, dockTargetIndex.value)
+  } else if (folderTargetId.value) {
+    const target = home.items[folderTargetId.value]
+    const ghostAnchor = cloneMergeAnchor(ghostRef.value, appId)
+    home.removeAppFromFolder(appId, folderId, targetPage, targetIndex)
+    if (target?.type === 'folder') {
+      const targetFolderItemId = folderTargetId.value
+      home.addAppToFolder(`app:${appId}`, targetFolderItemId)
+      animateMergeAnchors([ghostAnchor], targetFolderItemId)
+    } else if (target?.type === 'app') {
+      const targetElement = rootRef.value?.querySelector(`[data-home-item="${folderTargetId.value}"]`)
+      const targetAnchor = cloneMergeAnchor(targetElement, target.appId)
+      const location = home.itemLocation(folderTargetId.value) || { page: targetPage, index: targetIndex }
+      const newFolderItemId = home.createFolder([folderTargetId.value, `app:${appId}`], location.page, location.index)
+      animateMergeAnchors([targetAnchor, ghostAnchor], newFolderItemId)
+    }
+  } else {
+    home.removeAppFromFolder(appId, folderId, targetPage, targetIndex)
+  }
+
+  previewOrder.value = null
+  dragging.value = null
+  ghost.value = null
+  folderTargetId.value = null
+  folderMergeCandidate.value = null
+  dockTargetIndex.value = null
+
+  if (dissolveInfo?.miniRect) {
+    animateFolderDissolve(dissolveInfo)
   }
 }
 function finishItem(cancelled) {
@@ -555,11 +702,7 @@ function cleanup(cancelled) {
     if (!cancelled && folderResize.value) home.resizeFolder(pointer.folderId,folderResize.value.width,folderResize.value.height)
     folderResize.value = null
   }
-  if (pointer.mode === 'folder-app-drag') {
-    if (!cancelled) home.removeAppFromFolder(pointer.appId, pointer.folderId, home.currentPage, home.currentItems.length)
-    else openFolderId.value = pointer.folderId
-    ghost.value = null
-  }
+  if (pointer.mode === 'folder-app-drag') finishFolderApp(cancelled)
   if (pointer.mode === 'page') finishPage(cancelled)
   try { pointer.captureEl?.releasePointerCapture?.(pointer.id) } catch {}
   pointer = null; unbindWindow()
@@ -586,9 +729,16 @@ function launchFolderApp(appId, anchor) {
   folderOperation.value = null
   const screen = document.querySelector('.screen-view')
   if (!screen || !anchor) return
-  const screenRect = screen.getBoundingClientRect(), rect = anchor.getBoundingClientRect()
-  const launchRect = { left:rect.left-screenRect.left,top:rect.top-screenRect.top,width:rect.width,height:rect.height,right:rect.right-screenRect.left,bottom:rect.bottom-screenRect.top }
+  const launchRect = rectRelativeToScreen(anchor, screen) || {
+    x: anchor.getBoundingClientRect().left - screen.getBoundingClientRect().left,
+    y: anchor.getBoundingClientRect().top - screen.getBoundingClientRect().top,
+    left: anchor.getBoundingClientRect().left - screen.getBoundingClientRect().left,
+    top: anchor.getBoundingClientRect().top - screen.getBoundingClientRect().top,
+    width: anchor.getBoundingClientRect().width,
+    height: anchor.getBoundingClientRect().height
+  }
   setLaunchRect(appId,launchRect)
+  openFolderId.value = null
   system.openApp(appId)
 }
 function onFolderAppPointerDown(event, appId) {

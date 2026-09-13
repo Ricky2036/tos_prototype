@@ -278,4 +278,36 @@ test('cross-screen icon drag implements iOS-style spring edge dwell, peek offset
   assert.match(source, /\[\.\.\.basePages, \[\]\]/)
 })
 
+test('folder app launch computes unscaled anchor, resets openFolderId, and provides seamless dissolution animation', async () => {
+  const [home, anchors, store] = await Promise.all([
+    read('../src/components/system/HomeScreen.vue'),
+    read('../src/utils/appIconAnchors.js'),
+    read('../src/stores/homeStore.js')
+  ])
+
+  assert.match(home, /rectRelativeToScreen\(anchor,\s*screen\)/)
+  assert.match(home, /openFolderId\.value\s*=\s*null/)
+  assert.match(home, /finishFolderApp/)
+  assert.match(home, /animateFolderDissolve/)
+  assert.match(home, /shellClone\.animate/)
+
+  assert.match(anchors, /Number\.isFinite\(rect\.x\)\s*\?\s*rect\.x\s*:\s*\(Number\.isFinite\(rect\.left\)/)
+  assert.match(anchors, /data-folder-app/)
+
+  assert.match(store, /folder\.appIds\.length\s*<=\s*1\s*\)\s*this\.removeFolder\(folderId,\s*true\)/)
+  assert.match(store, /cleanupDissolvedFolders/)
+})
+
+test('normalizeHomeAnchorRect safely derives x/y from left/top without producing NaN', async () => {
+  const { normalizeHomeAnchorRect } = await import('../src/utils/appIconAnchors.js')
+  const legacyRect = { left: 120.25, top: 340.5, width: 60, height: 60 }
+  const normalized = normalizeHomeAnchorRect(legacyRect)
+  assert.equal(normalized.x, 120.25)
+  assert.equal(normalized.y, 340.5)
+  assert.equal(Number.isNaN(normalized.x), false)
+  assert.equal(Number.isNaN(normalized.y), false)
+  assert.equal(normalized.cx, 150.25)
+  assert.equal(normalized.cy, 370.5)
+})
+
 
