@@ -110,12 +110,18 @@ function measure() {
 let ro = null
 
 /* ---- 几何：全部来自纯函数模块（可单测）---- */
-const metrics = computed(() =>
-  deckMetrics(screenW.value, screenH.value, {
+/* 几何度量。第十轮·需求③：把挤压进度 sq 一并挂进 metrics ⇒ deckPose 内部据此做
+   「整组等比缩小 + 阶梯收紧」（见 switcherDeck.js 的 SQUEEZE_SCALE_MAX / SQUEEZE_TIGHTEN）。
+   挂在 metrics 而不是给 deckPose 加第 4 个参数：四处调用点（poseOf / stackStyle /
+   bodyOpacityOf / followStyle 的槽位）全都用 metrics.value，这样它们自动拿到同一份
+   挤压后的几何，不会出现「有的缩了有的没缩」。 */
+const metrics = computed(() => ({
+  ...deckMetrics(screenW.value, screenH.value, {
     topInset: safeTop.value > 0 ? safeTop.value : undefined,
     homeInset: homeInset.value
-  })
-)
+  }),
+  sq: sq.value
+}))
 const cardW = computed(() => metrics.value.cardW)
 const cardH = computed(() => metrics.value.cardH)
 const RADIUS = computed(() => metrics.value.radius)
@@ -135,13 +141,20 @@ const { value: openP, animateTo: openTo, snapTo: openSnap, stop: openStop } = us
 watch(openP, (v) => system.setSwitcherProgress(v))
 const apps = computed(() => system.recentApps)
 
-/* ---- 第八轮（Ricky 2026-09-13）新增、第九轮改口径的两条弹簧 ----
+/* ---- 第八轮（Ricky 2026-09-13）新增、第九/十轮两次改口径的两条弹簧 ----
  *
  * ① sq：左滑挤压进度 k（需求③）。手势期【逐帧直写】（deckSqueeze(over)，严格跟手），
  *    松手后用 'ios-squish'（ζ≈0.46，过冲 ≈20%）弹回 0 —— 过冲使 k 短暂为负 ⇒
- *    卡片组整体向右回弹一下再收回，这就是 Ricky 要的「弹性回弹」。
- *    ⚠️ 第九轮口径变更：旧版 sq 持有的是 **scaleX 压缩比**（1 → 0.84），
- *    现在持有的是 **挤压进度**（0 → 1），0 = 无挤压。见 switcherDeck.js 的 SQUEEZE_* 注释。
+ *    卡片组整体向右回弹一下、并比原尺寸略大一点，再收回，这就是 Ricky 要的「弹性回弹」。
+ *    ⚠️ 第十一轮划界（别再混淆）：这条回弹只在【左滑越界】时有量（k ≠ 0）。
+ *      平面慢滑（k 恒 0）不产生任何振荡 —— 探针实测 A/B 两个慢滑场景里轨道 tx 全程 0.00，
+ *      第一轮基线里那 5~6.5px「多余的回弹」与它无关（来自焦点弹簧，见 settleFocus）。
+ *    ⚠️ 口径变更史（别再走回去）：
+ *      · 第八轮：sq 持有 **scaleX 压缩比**（1 → 0.84）⇒ 卡被「压扁」。
+ *      · 第九轮：sq 持有 **纯挤压进度**，只驱动整组左移。
+ *      · 第十轮（本轮）：sq 仍是 0 → 1 的进度，但**同时驱动三个几何分量** ——
+ *        整组左移（trackStyle）/ 整组等比缩小（deckPose 的 scale ×= g）/
+ *        阶梯收紧（deckPose 的 stair × tight）。见 switcherDeck.js 的 SQUEEZE_* 注释。
  * ② followFree：跟手卡「横向/纵向跟手偏移」的释放权重（需求⑥/⑤）。
  *    手势期恒 0（偏移满量程）；松手后弹簧推到 1（偏移 → 0）。
  *    必须【早于 settledOne 交接】归零，否则交接那一帧会跳：
@@ -258,14 +271,59 @@ const homeEntranceFollowing = computed(
 
    修法：`system.switcherDwell`（HomeIndicator 判定「上滑 >5% 后停住 120ms」）一旦成立，
    在【松手之前】就把邻居卡编排进场：
-     · renderDeck 放行 → 堆叠卡挂载（先以 opacity 0 / 左移 36px 的「待进场」态渲染一帧）
-     · 下一帧 neighborsIn = true → 靠 CSS 过渡（0.32s 弹簧曲线 + 0.22s 透明度）滑入淡入
+     · renderDeck 放行 → 堆叠卡挂载（先以「待进场」态渲染一帧：opacity 0 + 自左侧
+       neighborEnterDx(i) 处 + 略小的 scale，见第十轮·需求①那一块常量）
+     · 下一帧 neighborsIn = true → 靠 stackStyle 内联的入场过渡
+       （0.48s 缓起曲线 + 0.16s 快速淡入）逐张错峰滑入、撑开、淡入
      · hasFollow = true → 堆叠【前卡】仍由跟手卡顶替（opacity 0），避免与跟手卡双重曝光
    松手时 openSwitcher 走原路径（openSnap → openTo(1)）：邻居已经就位，只有跟手卡
    继续弹簧落到 C 槽位再交接 → 零闪断。 */
 const preCommit = ref(false)
-/** 邻居卡「待进场」态的水平偏移：自左侧滑入（仅应用内停驻路径使用） */
-const NEIGHBOR_ENTER_DX = 36
+
+/* ── 邻居卡「待进场」态（第十轮·需求①改写）────────────────────────────────
+   Ricky 原话：「应用内上滑悬停底层卡片入场没有动画，增加左侧进入的优雅入场动画」。
+
+   先证伪「没有动画」：探针 /tmp/vwork/r10/probe-neighbor-enter.mjs 逐帧采样邻居卡的
+   getBoundingClientRect().x，实测拿到 16~17 个不同取值 ⇒ 第九轮那套【确实在跑动画】。
+   真正的问题是「跑得看不见」，三个叠加原因（这才是要修的）：
+     · 行程只有 36px，而首层卡的左缘本来就落在 −10px（槽位 25.5 − 36）⇒
+       后半段完全在屏幕外，屏内可见行程只剩十几 px；
+     · 两层卡【同一拍】出发、同一拍到达（delay = i×60ms 但 i 从 0 起，两层只差 60ms，
+       而 0.32s 的过渡把这点差距抹平了）；
+     · 这张卡大半被前卡盖住，只有左侧阶梯那一条（满量程 52px、收紧后 23px）露在外面。
+   三条合起来 ⇒ 眼睛读到的就是「啪一下出现了」。不是 bug，是量级不够。
+
+   改写为三层递进（全部只作用于 preCommit 这一条路径，其余入场语义不同的路径不串味）：
+     ① 行程随层深递增：首层 0.42 卡宽（≈116px），每深一层再 +0.16 卡宽。
+        取这个量级的理由是【卡内内容会跟着一起平移】—— 这张卡大半被跟手卡盖住，
+        真正能被眼睛抓住的是「应用预览在露出条里横向扫过」这一件事，而它是 1:1 跟
+        位移量的（实测：位移 150 屏单位 ⇒ 卡内闹钟列表扫过同样距离）。
+     ② 起点略小（NEIGHBOR_ENTER_SCALE_FROM = 0.93）→ 落位时「撑开」，
+        比纯位移更有质感；配合 y 的补偿保证「所有层垂直中心恒等于 cardCy」这条不变量。
+     ③ delay 仍走 i×60ms（与 markEntrance 的节拍同源）。
+
+   ⚠️ 曲线是本轮返工的重点（第一版写错过）：
+     第一版用了 cubic-bezier(0.22, 1.12, 0.36, 1)（从吸附过渡那里抄来的），
+     探针实测「47% 的行程挤在开头 49ms、316ms 就走完了」—— 卡片是「甩」进去的，
+     拉长时长也救不了（前段斜率决定观感）。改用缓起型 cubic-bezier(0.42, 0, 0.2, 1.06)：
+       行程完成度 t=0.2 → 0.128｜t=0.4 → 0.625｜t=0.6 → 0.898｜t=0.9 → 1.002（微过冲）
+     50% 落在 t≈0.36 ⇒ 运动均匀铺在整段时长上，末段还有 0.2% 的过冲余韵。
+   节拍常量与 CSS 时长必须同源：entranceDone 若在过渡跑完之前翻真，transitionDelay
+   会从 i×60ms 跳回 0ms，正在跑的过渡会被浏览器重算 ⇒ 卡片中途一顿。 */
+const NEIGHBOR_ENTER_FRAC = 0.42
+const NEIGHBOR_ENTER_STEP_FRAC = 0.16
+const NEIGHBOR_ENTER_SCALE_FROM = 0.93
+/** 错峰步长（ms）—— markEntrance 的收尾时刻与 stackStyle 的 transitionDelay 共用 */
+const NEIGHBOR_ENTER_STAGGER_MS = 60
+/** 入场过渡时长（ms）—— 必须与 stackStyle 内联的那条 transition 逐字一致 */
+const NEIGHBOR_ENTER_MS = 480
+/** 入场过渡曲线 —— 缓起 + 末段微过冲（见上面 ⚠️ 段的实测依据） */
+const NEIGHBOR_ENTER_EASE = 'cubic-bezier(0.42, 0, 0.2, 1.06)'
+
+/** 第 i 层邻居卡的「待进场」水平偏移（正数 = 向左推离槽位，调用点自行取负）。 */
+function neighborEnterDx(i) {
+  return cardW.value * (NEIGHBOR_ENTER_FRAC + NEIGHBOR_ENTER_STEP_FRAC * Math.max(0, i))
+}
 
 const renderDeck = computed(
   () => system.appSwitcherOpen || preCommit.value || (deskPath.value && visible.value)
@@ -334,7 +392,19 @@ function focusToIndex(idx, opts = {}) {
 
    于是行为非常可预测：**翻 n 张 ⟺ 位移超过 n−0.5 张；快甩额外保证至少 1 张。**
    速度的作用落在「弹簧初速度」上（见 FLICK_V_LIMIT）—— 卡片是【加速冲出去】的，
-   而不是靠多翻张数体现速度。 */
+   而不是靠多翻张数体现速度。
+
+   ── 第十一轮：速度还有第二个作用域 ——【要不要弹性】────────────────────
+   Ricky 原话：「慢滑滑动卡卡片多了一个不必要的回弹」。
+   探针（/tmp/vwork/r11/probe-slow.mjs）改前实测，慢滑松手后的过冲：
+     不翻卡（0.35 层，目标 = 0 = 下界）       0.00px ← poseFocus = max(0, focus) 把过冲钳掉了
+     翻一张（0.65 层，停住再松手，零动量）     +5.0px（占行程 5.8%）
+     翻一张（0.55 层，松手时仍在动）           +6.5px
+     连翻两张（1.55 层，仍在动）               +6.5px
+     快甩（0.62 层 / 6 步，v = 5.6 层/s）     +12.6px ← 动量，必须留（参考视频 V4 回退 254/229px）
+   ⇒ 慢滑那 5~6.5px 就是「多余的回弹」：非快甩分支当年也用了 ios-deck（ζ=0.65 阶跃过冲 6.7%）。
+   改法见 settleFocus：慢滑走 ios-deck-settle（ζ=1.0）且不注入速度 ⇒ 位移段严格单调。
+   ⚠️ 别顺手把 ios-deck 全局改掉 —— 快甩、退场重排（dismissWithAnimation）都还在用它。 */
 const FLICK_V_MIN = 2.6 // 层/秒 —— 超过它才算「快甩」（≈608px/s，V4 峰值 7.2 远高于此）
 /* 注入弹簧的初速度上限（层/秒）。V4 峰值 7.2 层/秒；12 ≈ 2800px/s，
    再快也就是这个手感了（再高只会在到位时过冲得更明显）。 */
@@ -346,9 +416,10 @@ const FLICK_V_LIMIT = 12
 function settleFocus(vFocus, startFocus) {
   const cur = focus.value
   const last = Math.max(0, apps.value.length - 1)
+  const isFlick = Math.abs(vFocus) >= FLICK_V_MIN
   let idx = Math.round(cur)
 
-  if (Math.abs(vFocus) >= FLICK_V_MIN) {
+  if (isFlick) {
     /* 方向保底：快甩至少要翻过「起点那张」后面/前面的一张。
        锚在 startFocus → 已经靠位移翻过去的不会被重复计数。 */
     const from = Math.round(startFocus)
@@ -358,10 +429,23 @@ function settleFocus(vFocus, startFocus) {
   /* 先夹到合法区间再落定 —— 自省口报的必须是【真实决策】，而不是夹取前的中间值
      （反向上甩贴着 0 号卡时中间值会是 -1，探针会据此误判成越界）。 */
   idx = Math.max(0, Math.min(last, idx))
-  focusToIndex(idx, {
-    initialVelocity: vFocus,
-    velocityLimit: FLICK_V_LIMIT
-  })
+  focusToIndex(
+    idx,
+    isFlick
+      ? /* 快甩：把松手速度注入 ios-deck（ζ=0.65）—— 卡片加速冲出去、到位时带一次过冲。
+           这是【动量】，不是多余回弹：参考视频 V4 快甩实测回退 254/229px，
+           第十一轮探针亦量到快甩过冲 12.6px / 占行程 13.6%（慢滑只有 5~6.5px）。 */
+        { initialVelocity: vFocus, velocityLimit: FLICK_V_LIMIT }
+      : /* 慢滑 / 停住再松手（第十一轮需求：「慢滑滑动卡卡片多了一个不必要的回弹」）：
+          ① 换 ios-deck-settle（同 ω_n、ζ=1.0 临界阻尼）⇒ 没有阶跃过冲；
+          ② 【不注入速度】—— 临界阻尼下只要 v0 > ω_n·d 仍会过冲，
+             而「贴近目标才松手」（d 很小）恰恰是慢滑的常态，此时 ω_n·d 很小、
+             残余速度一注入就又把卡片顶过终点。纯阶跃（v0 = 0）+ 临界阻尼
+             ⇒ 数学上严格单调，这就是「不再多弹一下」的全部保证。
+             代价（松手瞬间速度从手指速度归零）实测不可见：临界阻尼下卡片在 ~70ms 内
+             就自加速到 ω_n·d/e ≈ 手指速度的量级（0.45 层行程 ⇒ 541px/s），不会「顿一下」。 */
+        { preset: 'ios-deck-settle' }
+  )
   /* 松手判定的自省口（与 main.js 暴露 window.__system 同性质）：
      回归探针拿它当 oracle —— 断言「给定 (cur, vFocus, startFocus) 的判定必须满足
      本文档的规则」，而不是把某个索引写死（写死必然与「最后 100ms 窗口速度」的实际值对不上）。 */
@@ -369,7 +453,7 @@ function settleFocus(vFocus, startFocus) {
     cur: +cur.toFixed(4),
     from: +startFocus.toFixed(4),
     vFocus: +vFocus.toFixed(3),
-    isFlick: Math.abs(vFocus) >= FLICK_V_MIN,
+    isFlick,
     idx
   }
 }
@@ -412,7 +496,15 @@ let clearTimer = null
 
 function markEntrance() {
   clearTimeout(settleTimer)
-  settleTimer = setTimeout(() => { entranceDone.value = true }, apps.value.length * 60 + 320)
+  /* 收尾时刻 = 最后一张的 delay（(n−1)×stagger）+ 过渡时长 + 一点余量。
+     必须【不早于】过渡终点：entranceDone 一旦提前翻真，stackStyle 的 transitionDelay
+     会从 i×60ms 跳回 0ms，浏览器按新的 delay 重算正在跑的过渡 ⇒ 卡片中途一顿。
+     （第十轮·需求①：旧式 `n×60 + 320` 是配 0.32s 过渡写的，过渡拉长后必须同步。） */
+  const last = Math.max(0, apps.value.length - 1)
+  settleTimer = setTimeout(
+    () => { entranceDone.value = true },
+    last * NEIGHBOR_ENTER_STAGGER_MS + NEIGHBOR_ENTER_MS + 60
+  )
 }
 
 watch(
@@ -556,14 +648,34 @@ function poseOf(i) {
   return deckPose(i - poseFocus.value, metrics.value, xFrac.value)
 }
 
+/* 深侧剔除的【磁吸】判据（第十一轮）——
+   deckVisible 的深侧边界是硬整数（a ≤ MAX_DEPTH），而 focus 吸附到整卡是【渐近】的：
+   临界阻尼下 focus 只会从下方无限趋近 1.0，a 也就永远差一点点到 2 ⇒ 第 4 张卡一直不渲染，
+   直到 springSettled 把 x 直接置成整卡（探针实测 +714ms）—— 而牌堆在 +360ms 就已视觉到位，
+   读起来是「停稳之后又闪出一张」。
+   （改前更糟：ζ=0.65 的过冲让 focus 在整卡边界上来回穿两次 ⇒ 第 4 张卡「出现→消失→再现」。）
+   改法：焦点进入整卡附近的磁吸窗口时，**只把剔除判据**换成目标整卡；
+   几何仍用真实 poseFocus（卡的落点不受影响），且深侧本来就被 deckPose 钳在 MAX_DEPTH 上，
+   所以它出现时已经坐在自己的槽位里（不会「飞进来」）。窗口 0.06 层 ≈ 14.7px ⇒
+   出现在运动末段（临界阻尼下 ≈ +270ms），一次性、不闪。
+   只对深侧有实际影响：离场侧的剔除门槛 −1.46 落在「整数 + 0.46」上，永远落不进
+   0.06 的磁吸窗口 ⇒ 负半区行为逐位不变。 */
+const DEEP_SNAP_FOCUS = 0.06
+const cullFocus = computed(() => {
+  const f = poseFocus.value
+  const r = Math.round(f)
+  return Math.abs(f - r) < DEEP_SNAP_FOCUS ? r : f
+})
+
 /* 需要渲染的卡片：离焦点太远的直接剔除（规则⑤ 最多三层）。
    正在移除 / 正在展开的必须保留，否则动画会闪断。
    第八轮（需求⑦）：判据必须用 poseFocus —— 用原始 focus 的话，左滑越界 0.6 层时
-   最深层的 a 会算成 2.6 > MAX_DEPTH ⇒ 被判不可见 ⇒ 最底部卡片「直接消失」。 */
+   最深层的 a 会算成 2.6 > MAX_DEPTH ⇒ 被判不可见 ⇒ 最底部卡片「直接消失」。
+   第十一轮：改喂 cullFocus（见上），让深侧的出现时刻不依赖弹簧的渐近尾巴。 */
 const renderedCards = computed(() =>
   apps.value
     .map((id, i) => ({ id, i }))
-    .filter(({ id, i }) => id === dismissing.value || id === expanding.value || deckVisible(i - poseFocus.value))
+    .filter(({ id, i }) => id === dismissing.value || id === expanding.value || deckVisible(i - cullFocus.value))
 )
 
 /* 标签只跟「离焦点最近的那张」走，避免两张卡同时出现标签 */
@@ -591,11 +703,36 @@ function bodyOpacityOf(i) {
   return i === frontIndex.value && hasFollow.value && !settledOne.value ? 0 : 1
 }
 
+/* ── 卡片投影（第十轮·需求②）──────────────────────────────────────────────
+   Ricky 原话：「现在卡片间的阴影过重」。
+
+   成因：`.switcher-card-body` 上是一条常量投影片 `0 14px 36px rgba(0,0,0,0.42)`，
+   而堆叠几何让前卡的右半边【压在后卡的露出条上】⇒ 42% 的黑 + 36px 模糊的水平外溢
+   全部落在邻居卡那一条 23~52px 宽的可见条上，两条卡的交界被糊成一道黑沟。
+
+   改法（两个方向同时收，而不是只调一个数）：
+     ① 全局减重：焦点层 0.42 → 0.28、模糊 36 → 26、下移 14 → 12；
+     ② 按层深递减：越深的卡（越靠后、越小、已被 brightness 压暗）投影再各降一档，
+        到 depth ≥1 时稳定在 0.18 / 18px。深层卡本来就在暗遮罩上，重投影没有信息量，
+        只会把遮罩也压黑。
+   注意：投影挂在卡【内部】节点上，会跟着卡一起缩放 ⇒ 深层卡的投影本就等比更小，
+   这里再减一档是「观感口径」而不是「几何补偿」。 */
+function cardShadowOf(a) {
+  const d = Math.min(1, Math.abs(a))
+  const yOff = 12 - 4 * d
+  const blur = 26 - 8 * d
+  const alpha = 0.28 - 0.1 * d
+  return `0 ${yOff.toFixed(1)}px ${blur.toFixed(1)}px rgba(0, 0, 0, ${alpha.toFixed(3)})`
+}
+
 /* 堆叠渲染态：统一的「藏 → 进场」编排，CSS transition 负责丝滑。 */
 function stackStyle(i) {
   const p = deckPose(i - poseFocus.value, metrics.value, xFrac.value)
   let x = p.x
   let y = p.y
+  /* 第十轮·需求①：scale 从「deckPose 的唯一输出」变成「可被入场态再乘一次」——
+     入场时整卡在层缩放之上再乘 0.94（origin 0 0 ⇒ 右缘左收、左缘不动，与 deck 几何同构）。 */
+  let scale = p.scale
   let opacity = 1
   let delay = '0ms'
   if (i === frontIndex.value && hasFollow.value) {
@@ -624,10 +761,20 @@ function stackStyle(i) {
          第八轮入场改成横向后必须同步改这里，否则「取消」会变成卡片往屏幕外坠。 */
     opacity = 0
     if (deskPath.value) x += deckEnterDx(screenW.value)
-    /* 应用内停驻预提交的「待进场」态：自左侧 36px 处滑入（需求⑫「左侧卡片进场」）。
-       只在 preCommit 这一条路径上偏移 —— 其余路径的入场姿态各有各的语义，不能串味。 */
-    else if (preCommit.value) x -= NEIGHBOR_ENTER_DX
-    delay = entranceDone.value ? '0ms' : `${i * 60}ms`
+    /* 应用内停驻预提交的「待进场」态（第十轮·需求① 重写）：
+       自左侧 neighborEnterDx(i) 处滑入 + 起点略小（落位时「撑开」）。
+       行程随层深递增 ⇒ 越深的卡从越远处来，读起来是逐张涌出而不是整块平移。
+       ⚠️ 只在 preCommit 这一条路径上偏移 —— 桌面路径的「刚性平移进场」与
+       「手势取消后原路退回」各有各的语义，串味会同时毁掉三条链路。 */
+    else if (preCommit.value) {
+      x -= neighborEnterDx(i)
+      scale *= NEIGHBOR_ENTER_SCALE_FROM
+      /* 垂直中心补偿：deckPose 的 y = cardCy − cardH·scale/2 是按【层缩放】算的，
+         再乘一次入场缩放会把中心抬高 cardH·scale·(1−f)/2（≈5.5px）。
+         补回去 ⇒「所有层的垂直中心恒等于 cardCy」这条不变量在入场全程也成立。 */
+      y += (cardH.value * p.scale * (1 - NEIGHBOR_ENTER_SCALE_FROM)) / 2
+    }
+    delay = entranceDone.value ? '0ms' : `${i * NEIGHBOR_ENTER_STAGGER_MS}ms`
   }
 
   /* 上滑移除跟手（第七轮·批次 2，需求⑧）——
@@ -651,12 +798,39 @@ function stackStyle(i) {
   return {
     width: cardW.value + 'px',
     height: cardH.value + 'px',
-    transform: `translate3d(${x}px, ${y}px, 0) scale(${p.scale})`,
+    transform: `translate3d(${x}px, ${y}px, 0) scale(${scale})`,
     filter: `brightness(${p.bright})`,
     zIndex: deckZ(i),
     borderRadius: RADIUS.value + 'px',
     opacity,
-    transitionDelay: delay
+    transitionDelay: delay,
+    /* 需求②：阴影按层深给值（详见 cardShadowOf）—— 走 CSS 变量而不是写死，
+       因为卡体在子节点（.switcher-card-body），它才是真正投阴影的那一层。 */
+    '--card-shadow': cardShadowOf(i - poseFocus.value),
+    /* 需求①：入场窗口内【内联】覆盖过渡时长/曲线。
+       为什么不另写一条 CSS 规则：通用那条
+         `.app-switcher:not(.is-dragging):not(.is-focus-moving):not(.is-home-entrance)
+          .switcher-card:not(.is-follow)`
+       的特异性是 6（4 个 :not 各计 1），任何合理的入场规则（4~5）都压不住它，
+       除非把同样的 :not 链再抄一遍 —— 那种重复早晚会脱钩。内联样式天然最高优先级。
+       排除条件在 JS 里原样复刻通用规则那三条，避免在拖拽 / 吸附弹簧 / 桌面跟手期
+       把它们的 transition:none 顶掉（这三态与 preCommit 本就互斥，这里是防御性写法）。
+       ⚠️ 条件必须是 `!entranceDone`（不能是 `neighborsIn === false`）：
+       transition 取的是【变更之后】那份计算样式，而 neighborsIn 翻真的同一帧
+       —— 也就是唯一需要这条过渡的那一帧 —— 入场标记已经不再处于「未进场」了。 */
+    ...(preCommit.value &&
+    !entranceDone.value &&
+    !drag.value &&
+    !focusMoving.value &&
+    !homeEntranceFollowing.value
+      ? {
+          /* 透明度必须比位移【快】得多（0.16s vs 0.48s）：
+             缓起曲线的前 20% 只走 13% 行程，卡片这时还在很左边；
+             若沿用默认的 0.22~0.3s 淡入，等它变实的时候已经快到位了 ——
+             「滑进来」这段就白做了。0.16s 让它在起步阶段就是实体，位移全程可见。 */
+          transition: `transform ${NEIGHBOR_ENTER_MS}ms ${NEIGHBOR_ENTER_EASE}, opacity 0.16s ease-out, filter 0.28s ease`
+        }
+      : {})
   }
 }
 
@@ -834,7 +1008,10 @@ function vtVelocity(now = performance.now()) {
 /* ---- 第八轮新增、第九轮改口径的两条状态机收放口 ----
    dragSqueeze：手势期把挤压进度【直写】到位（不挂过渡 → 严格跟手）；
    releaseSqueeze：松手后交给弹簧 —— 挤压用 ios-squish 弹回 0（过冲到负 = 整组向右回弹一点，
-     就是需求③「回弹」要的往复振荡），跟手偏移用 ios-snappy 快速归零。
+     就是需求③「回弹」要的往复振荡；⚠️ 只在左滑越界 k≠0 时有量），
+     跟手偏移用 ios-snappy 快速归零。
+     ⚠️ 焦点（翻卡）走的是另一条路：settleFocus → focusToIndex，第十一轮起慢滑用
+        ios-deck-settle（ζ=1.0、零过冲）—— 不要把两者的「回弹」口径混在一起。
    ⚠️ releaseSqueeze 现在【也由 appSwitcherOpen 的 watch 调用】—— 应用内上滑那条路径的
      松手发生在 HomeIndicator 上，本组件的 onPointerUp 不会执行（见该 watch 的注释）。 */
 function dragSqueeze() {
@@ -1066,14 +1243,16 @@ function onWheel(e) {
   wheelIdleTimer = setTimeout(endWheel, WHEEL_IDLE)
 }
 
-/** 触控板手势流结束 → 吸附到最近整卡（不加投影：动量的账已经由系统记过了） */
+/** 触控板手势流结束 → 吸附到最近整卡（不加投影：动量的账已经由系统记过了）。
+ *  第十一轮：吸附预设改用 ios-deck-settle —— 触控板横滑是【零动量】的余量吸附，
+ *  与慢滑同语义；用 ios-deck（ζ=0.65）会「到位后再弹回来一下」（同样的多余回弹）。 */
 function endWheel() {
   if (wheelAcc.value == null) return
   const cur = wheelAcc.value
   wheelAcc.value = null
   const last = Math.max(0, apps.value.length - 1)
   releaseSqueeze()
-  focusToIndex(Math.max(0, Math.min(last, Math.round(cur))))
+  focusToIndex(Math.max(0, Math.min(last, Math.round(cur))), { preset: 'ios-deck-settle' })
 }
 
 /** 指针/程序化操作接管时，必须把触控板的未决吸附撤掉（否则它会在拖动中途改焦点） */
@@ -1253,17 +1432,23 @@ function exitWithAnimation() {
   }, DECK.EXIT_SLIDE_MS + 20)
 }
 
-/* ---- 卡片组的容器变换（第九轮重做，需求③）----
- *   常态：整组【向左平移】shift = −0.18 屏宽 × k（k = 挤压进度，见 deckSqueeze）；
+/* ---- 卡片组的容器变换（第十轮·需求③）----
+ *   常态：整组【向左平移】shift = −(screenW − cardW·g)/2（g = 等比缩小系数，见
+ *         deckSqueezeShift）—— 位移不再是写死的屏宽分数，而是与缩放一起解出来的，
+ *         语义是「前卡的左缘正好落到屏幕左缘」；
  *   退场：平移到左侧 0.78 屏宽 —— 第八轮需求④的滑出。
  * 两者互斥（退场时 k 已被 sqSnap(0) 归零）。
  *
- * ⚠️ 旧版这里是 `scaleX(q)` —— 那是 Ricky 说的「卡片被压扁了」：scaleX 作用在【整组】上，
- *    卡里的应用预览会跟着横向压扁变形，而参考视频逐帧实测卡的宽度恒定 302px、内容零形变。
- *    改成 translate3d 之后卡的形状与内容都不动，只是整组位置左移，观感即「向左整体挤压」。 */
+ * ⚠️ 等比缩小【不在这里】做，而是逐卡在 deckPose 里乘（m.sq ⇒ scale *= g）：
+ *    容器级 scale 会连带把「前卡左缘落到 0」这个推导出来的位移前提打破
+ *    （容器缩放的原点是屏幕中心，逐卡缩放的原点是卡自己）。两者混用会互相抵消，
+ *    观感变成「卡片在屏幕上缩放但间距不变」—— 那正是本轮要修的东西的反面。
+ *
+ * 历史：第八轮这里是 scaleX(挤压比) ⇒ 把卡「压扁」；第九轮只有 translate ⇒ 少了缩放。
+ * 本轮 = 位移 + 逐卡等比缩小 + 阶梯收紧，三者同相位。 */
 const trackStyle = computed(() => {
   if (closing.value) return { transform: `translate3d(${deckEnterDx(screenW.value)}px, 0, 0)` }
-  const shift = deckSqueezeShift(screenW.value, sq.value)
+  const shift = deckSqueezeShift(screenW.value, cardW.value, sq.value)
   if (Math.abs(shift) < 0.05) return { transform: 'none' }
   return { transform: `translate3d(${shift}px, 0, 0)` }
 })
@@ -1527,7 +1712,12 @@ onBeforeUnmount(() => {
   border-radius: inherit;
   overflow: hidden;
   background: #0a0a0c;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42);
+  /* 需求②：投影按层深由 stackStyle 内联给值（--card-shadow，见 cardShadowOf）。
+     这里的兜底值 = 焦点层那一档，供【不经过 stackStyle】的两张卡使用：
+     跟手缩放卡（.is-follow）与点卡恢复时的放大卡。
+     旧值是常量 `0 14px 36px rgba(0,0,0,0.42)` —— Ricky 反馈「卡片间的阴影过重」，
+     42% 的黑配 36px 模糊，水平外溢全糊在邻居卡那一条 23~52px 的露出条上。 */
+  box-shadow: var(--card-shadow, 0 12px 26px rgba(0, 0, 0, 0.28));
 }
 
 .switcher-card-content {

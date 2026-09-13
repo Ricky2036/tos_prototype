@@ -974,7 +974,9 @@ await page.waitForTimeout(1000)
    守两条可回归的行为不变量：
      ① 无硬跳变 —— 任意相邻帧、任意相邻两层，间距变化 < 10px
         （旧实现松手瞬间把牵连量硬置零、同时关掉 CSS transition → 一帧 30px+ 的突变）；
-     ② 轻微过冲 —— 快甩后新焦点卡越过终点再回落（旧版 ios-deck 是 ζ=1.0 临界阻尼、无弹性）。 */
+     ② 轻微过冲 —— 快甩后新焦点卡越过终点再回落（旧版 ios-deck 是 ζ=1.0 临界阻尼、无弹性）。
+   ⚠️ 第十一轮改口径：② 现在只对【快甩】成立。慢滑（|v| < FLICK_V_MIN）第十一轮起
+      改走 ios-deck-settle 且不注入速度 ⇒ 位移段严格单调、不得有过冲（见下方第十一轮块）。 */
 {
   const startX = 110
   const slowPx = Math.round(SPAN * 0.42) // 明显不足半层 → 松手必回原位
@@ -1109,12 +1111,199 @@ await page.waitForTimeout(1000)
     const iPeak = ft.indexOf(peak)
     const finalX = ft[ft.length - 1]
     check(
-      '修正 D②：松手吸附带轻微过冲回弹（ζ=0.65，不是临界阻尼的死板收尾）',
+      '修正 D②（第十一轮收窄到快甩）：快甩松手吸附带轻微过冲回弹（ζ=0.65，不是临界阻尼的死板收尾）',
       peak > finalX + 3 && iPeak < ft.length - 3,
       `终点 x=${finalX} 峰值 x=${peak} 过冲=${(peak - finalX).toFixed(1)}px（峰值在第 ${iPeak}/${ft.length} 帧）`
     )
   } else {
-    check('修正 D②：松手吸附带轻微过冲回弹（ζ=0.65，不是临界阻尼的死板收尾）', false, `采样不足 ${ft.length}`)
+    check(
+      '修正 D②（第十一轮收窄到快甩）：快甩松手吸附带轻微过冲回弹（ζ=0.65，不是临界阻尼的死板收尾）',
+      false,
+      `采样不足 ${ft.length}`
+    )
+  }
+}
+
+/* ---- 第十一轮（2026-09-13）：慢滑松手【不得有多余回弹】----
+   Ricky 原话：「慢滑滑动卡卡片多了一个不必要的回弹」。
+
+   取证（/tmp/vwork/r11/probe-slow.mjs，改前逐帧）：
+     · 慢滑翻一张（0.65 层，停住再松手、零动量） 过冲 +5.0px（占行程 5.8%）
+     · 慢滑翻一张（0.55 层，松手时仍在动）       过冲 +6.5px
+     · 慢滑连翻两张（1.55 层，仍在动）           过冲 +6.5px
+     · 慢滑不翻卡（0.35 层）                     0.00px ← 目标 = 0 是下界，poseFocus = max(0, focus) 钳掉了
+     · 快甩（0.62 层 / 6 步，v = 5.6 层/s）      过冲 +12.6px ← 动量，必须保留
+     更阴的副作用：ζ=0.65 会来回穿过整卡边界 ⇒ 第 4 张卡被 deckVisible 剔除又加回
+     （实测「卡3×2段」/「卡4×2段」），观感上就是「多闪了一下」。
+   根因：settleFocus 的【非快甩分支】也用了 ios-deck（ζ=0.65 ⇒ 阶跃过冲 6.7%），
+        还把慢速松手的残余速度注入弹簧。
+   改法：非快甩 → ios-deck-settle（同 ω_n = 14、ζ = 1.0 临界阻尼）+ 不注入速度
+        ⇒ v0 = 0 的临界阻尼在数学上严格单调（也不会再有零穿越导致的 DOM 闪断）。
+
+   两条契约用【同一把尺】量同一件事（松手后吸附段的过冲），期望值相反：
+     ① 慢滑翻一张 → 过冲 ≤ 1.5px、符号反转 ≤ 1 次；
+     ② 快甩翻一张 → 过冲 > 3px。
+   判据定义（与探针 overshoot2.mjs 同源）：
+     过冲 = max over 吸附段采样 of (x − 终值) × 运动方向；终值 = 末 12% 采样的均值。
+   ⚠️ 终值一定要取末段均值，不能取 max：x 在收尾还有 0.1~0.3px 的爬行（浮点/取整），
+      用 max 当终值会把那点爬行算成「反向过冲」。 */
+{
+  const traceSettle = async (sel, drag) => {
+    await page.evaluate((s) => {
+      window.__r11 = []
+      window.__r11Stop = false
+      window.__r11T0 = performance.now()
+      const tick = () => {
+        if (window.__r11Stop) return
+        const t = +(performance.now() - window.__r11T0).toFixed(0)
+        const c = document.querySelector(s)
+        if (c) {
+          window.__r11.push({ t, x: +new DOMMatrixReadOnly(getComputedStyle(c).transform).e.toFixed(2) })
+        }
+        // 同时记「在场卡列表」—— 抓第 4 张卡的 DOM 闪现 / 出现时刻
+        window.__r11p.push({
+          t,
+          p: [...document.querySelectorAll('.switcher-card.is-deck')].map((e) => +e.dataset.index).sort()
+        })
+        requestAnimationFrame(tick)
+      }
+      window.__r11p = []
+      tick()
+    }, sel)
+    await drag()
+    const relAt = await page.evaluate(() => +(performance.now() - window.__r11T0).toFixed(0))
+    const info = await page.evaluate(() => window.__switcherSettle || null)
+    await page.waitForTimeout(1300)
+    const out = await page.evaluate(() => {
+      window.__r11Stop = true
+      return { rows: window.__r11, pres: window.__r11p }
+    })
+    return { rows: out.rows, pres: out.pres, relAt, info }
+  }
+  /** 某张卡在【松手之后】出现过几段、首次出现距松手多少 ms */
+  const presenceStats = ({ pres, relAt }, idx) => {
+    const seq = pres.filter((r) => r.t >= relAt)
+    let segs = 0
+    let first = null
+    let was = false
+    for (const r of seq) {
+      const on = r.p.includes(idx)
+      if (on && !was) { segs++; if (first == null) first = r.t - relAt }
+      was = on
+    }
+    return { segs, first }
+  }
+  const settleStats = ({ rows, relAt }) => {
+    const seq = rows.filter((r) => r.t >= relAt)
+    if (seq.length < 6) return null
+    const tn = Math.max(3, Math.round(seq.length * 0.12))
+    const fin = seq.slice(-tn).reduce((a, b) => a + b.x, 0) / tn
+    const ds = Math.sign(fin - seq[0].x) || 1
+    const travel = Math.abs(fin - seq[0].x)
+    const over = Math.max(...seq.map((p) => (p.x - fin) * ds))
+    let revs = 0
+    let lastD = 0
+    for (let i = 1; i < seq.length; i++) {
+      const d = seq[i].x - seq[i - 1].x
+      if (Math.abs(d) < 0.05) continue
+      const sg = Math.sign(d)
+      if (lastD !== 0 && sg !== lastD) revs++
+      lastD = sg
+    }
+    return { fin, travel, over, revs, n: seq.length }
+  }
+  /* 每个场景都从 focus = 0 起手：上一个用例（修正 D②）把焦点留在了 1，
+     不重置的话要采样的那张卡已经在屏幕右侧、滑一格就被剔除（采样恒 0 帧）。 */
+  const resetToFocus0 = async () => {
+    await page.evaluate(() => window.__system.exitSwitcherToHome())
+    await page.waitForTimeout(420)
+    await page.mouse.move(215, 925)
+    await page.mouse.down()
+    for (let i = 1; i <= 20; i++) { await page.mouse.move(215, 925 - i * 9, { steps: 1 }); await page.waitForTimeout(11) }
+    await page.waitForTimeout(520)
+    await page.mouse.up()
+    await page.waitForTimeout(700)
+  }
+  const slowDrag = (px, steps, ms) => async () => {
+    await page.mouse.move(110, 500)
+    await page.mouse.down()
+    for (let i = 1; i <= steps; i++) {
+      await page.mouse.move(110 + (px * i) / steps, 500, { steps: 1 })
+      await page.waitForTimeout(ms)
+    }
+    await page.mouse.up()
+  }
+
+  // ---- ① 慢滑翻一张（0.55 层、松手时仍在动 = Ricky 说的「慢滑」）----
+  await resetToFocus0()
+  const slow = await traceSettle(
+    '.switcher-card.is-deck[data-index="0"]',
+    slowDrag(Math.round(SPAN * 0.55), 13, 22)
+  )
+  const st = settleStats(slow)
+  const ps = presenceStats(slow, 3)
+  if (st && slow.info) {
+    check(
+      '第十一轮·需求①：慢滑翻一张后【无过冲】（改前 +6.5px，慢滑不再多弹一下）',
+      slow.info.isFlick === false && st.travel > 100 && st.over <= 1.5 && st.revs <= 1,
+      `vFocus=${slow.info.vFocus} 层/s（isFlick=${slow.info.isFlick}）· idx ${slow.info.cur}→${slow.info.idx} · ` +
+        `行程 ${st.travel.toFixed(1)}px · 过冲 ${st.over.toFixed(2)}px · 符号反转 ${st.revs} 次 · ${st.n} 帧`
+    )
+    /* 深侧第 4 张卡（data-index 3）的出现必须【一次性 + 在运动里】：
+       改前 ζ=0.65 来回穿过整卡边界 ⇒ 2 段（出现→消失→再现）；
+       若直接用 poseFocus 剔除（不做磁吸），它会等到弹簧完全收敛（实测 +714ms）才出现。 */
+    check(
+      '第十一轮·需求①附带：深侧第 4 张卡【一次性出现】且在运动末段（不含 DOM 闪现）',
+      ps.segs === 1 && ps.first != null && ps.first <= 450,
+      `出现 ${ps.segs} 段 · 首次在松手后 ${ps.first}ms（改前 2 段；改前首次 236ms 但会闪断）`
+    )
+  } else {
+    check('第十一轮·需求①：慢滑翻一张后【无过冲】（改前 +6.5px，慢滑不再多弹一下）', false,
+      `采样不足（rows=${slow.rows.length} rel=${slow.relAt}）`)
+    check('第十一轮·需求①附带：深侧第 4 张卡【一次性出现】且在运动末段（不含 DOM 闪现）', false, '采样不足')
+  }
+
+  // ---- ② 快甩翻一张（同一把尺：这里必须仍有过冲，证明 ① 不是把弹簧一起改死了）----
+  await resetToFocus0()
+  const flick = await traceSettle(
+    '.switcher-card.is-deck[data-index="0"]',
+    slowDrag(Math.round(SPAN * 0.62), 6, 6)
+  )
+  const st2 = settleStats(flick)
+  if (st2 && flick.info) {
+    check(
+      '第十一轮·需求②：快甩仍保留过冲（动量的正常表现，参考视频 V4 回退 254/229px）',
+      flick.info.isFlick === true && st2.over > 3,
+      `vFocus=${flick.info.vFocus} 层/s（isFlick=${flick.info.isFlick}）· ` +
+        `行程 ${st2.travel.toFixed(1)}px · 过冲 ${st2.over.toFixed(2)}px · ${st2.n} 帧`
+    )
+  } else {
+    check('第十一轮·需求②：快甩仍保留过冲（动量的正常表现，参考视频 V4 回退 254/229px）', false,
+      `采样不足（rows=${flick.rows.length} rel=${flick.relAt}）`)
+  }
+
+  // ---- ③ 慢滑不足半张（0.42 层、停住 150ms 再松手）→ 回到原卡，同样不得过冲 ----
+  await resetToFocus0()
+  const back = await traceSettle('.switcher-card.is-deck[data-index="0"]', async () => {
+    await page.mouse.move(110, 500)
+    await page.mouse.down()
+    for (let i = 1; i <= 13; i++) {
+      await page.mouse.move(110 + (SPAN * 0.42 * i) / 13, 500, { steps: 1 })
+      await page.waitForTimeout(22)
+    }
+    await page.waitForTimeout(150)
+    await page.mouse.up()
+  })
+  const st3 = settleStats(back)
+  if (st3 && back.info) {
+    check(
+      '第十一轮·需求③：慢滑不足半张（停住再松手）回原卡 —— 同样单调无过冲',
+      back.info.isFlick === false && back.info.idx === 0 && st3.travel > 60 && st3.over <= 1.5,
+      `idx ${back.info.cur}→${back.info.idx} · 行程 ${st3.travel.toFixed(1)}px · 过冲 ${st3.over.toFixed(2)}px（改前 0.00，本就不成立）`
+    )
+  } else {
+    check('第十一轮·需求③：慢滑不足半张（停住再松手）回原卡 —— 同样单调无过冲', false,
+      `采样不足（rows=${back.rows.length} rel=${back.relAt}）`)
   }
 }
 
@@ -1929,7 +2118,13 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
         `SQUASH_MAX=${DECK.SQUASH_MAX}；反向帧 ${noInverse ? 0 : '有'}）`)
   }
 
-  // ---- 需求③（第九轮重做）：左滑 = 整组左移 + 无变形 + 最底部卡片不消失 + 弹性回弹 ----
+  // ---- 需求③（第十轮重做）：左滑挤压 = 位移 + 等比缩小 + 阶梯收紧（三分量共用一个 k）----
+  /* 第九轮的契约是「整组刚性左移、卡片宽度恒定」，第十轮被 Ricky 推翻：
+       「默认位置左滑挤压动画不对，需要同时做横向挤压和缩放（缩小底层卡片大小以及漏出的多少）」
+     第九轮为什么量错：它只在【单行】扫竖边，而最深帧前卡左缘已经跑到屏外 −26，
+     左缘配对被吸附到相邻卡的特征上 ⇒ 得出「宽恒 302」。第十轮改量纵向剖面
+     （/tmp/vwork/r10/v10col.py）：前卡上缘 131→147、下缘 785→769 ⇒ 高 654→622 = 0.951。
+     所以现在的判据必须同时盯住三个分量，缺一个就退化成第八轮的「压扁」或第九轮的「只平移」。 */
   {
     await resetFocus0()
     const domBefore = await page.evaluate(() => {
@@ -1944,16 +2139,26 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
         const track = document.querySelector('.switcher-track')
         const cs = [...document.querySelectorAll('.switcher-card.is-deck')]
         const m = track ? new DOMMatrixReadOnly(getComputedStyle(track).transform) : null
-        /* 同时记「卡的实测宽度」—— 它是「无变形」的直接证据：
-           旧的 scaleX 实现在这里会把 275 压到 ~231。 */
-        const w = cs.length ? cs.map((c) => c.getBoundingClientRect().width) : []
+        /* 逐卡记 left/top/宽/高：
+           · 前卡（data-index 0，层深 0）的 宽/高 之比恒定的同时两者一起缩 ⇒ 等比缩放；
+             若只有宽缩 ⇒ scaleX 压扁（第八轮的错）。
+           · 邻居卡（data-index 1，层深 1）与前卡的【左缘差】= 露出条宽度 ⇒ 阶梯收紧。 */
+        const byIdx = {}
+        for (const c of cs) {
+          const r = c.getBoundingClientRect()
+          byIdx[+c.dataset.index] = {
+            x: +r.left.toFixed(2),
+            w: +r.width.toFixed(2),
+            h: +r.height.toFixed(2)
+          }
+        }
         window.__sq.push({
           sx: m ? +m.a.toFixed(4) : null,
           tx: m ? +m.e.toFixed(1) : null,
-          cw: w.length ? +Math.min(...w).toFixed(2) : null,
-          cwMax: w.length ? +Math.max(...w).toFixed(2) : null,
           n: cs.length,
-          deep: cs.length ? Math.max(...cs.map((c) => +c.dataset.index)) : -1
+          deep: cs.length ? Math.max(...cs.map((c) => +c.dataset.index)) : -1,
+          f: byIdx[0] || null,
+          b: byIdx[1] || null
         })
         requestAnimationFrame(tick)
       }
@@ -1974,37 +2179,91 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
     await page.evaluate(() => { window.__sqStop = true })
     const sqTL = await page.evaluate(() => window.__sq)
     const during = sqTL.slice(0, dragging)
-    /* ① 必须是位移，不是压缩：整组 tx 吃满 −0.18 屏宽（第九轮实测参考视频 0.2275 屏宽，
-       本项目取 0.18 让前卡左缘落在屏左缘；旧的 scaleX 版这里 tx ≈ −6px）。 */
+    const fs = sqTL.filter((r) => r.f).map((r) => r.f)
+    const bs = sqTL.filter((r) => r.b).map((r) => r.b)
+
+    /* ① 位移分量：整组 tx 吃满 −frontX（= −(screenW − cardW)/2 = −77.5px）。
+       第九轮用的是写死的 0.18 屏宽 = 77.4px（数值巧合地几乎一样，但口径不同）；
+       第十轮改成由几何推导 ⇒ 这个数在换机型时自动跟着 cardW 走。 */
     const minTx = Math.min(...during.map((r) => r.tx))
-    const wantTx = -Math.round(screenBox.width * DECK.SQUEEZE_SHIFT_FRAC)
-    check(`需求③：左滑挤压 = 整组左移 ${wantTx}px（= ${DECK.SQUEEZE_SHIFT_FRAC} 屏宽；旧版是 scaleX 压扁）`,
-      minTx >= wantTx - 1.5 && minTx <= wantTx + 1.5,
-      `拖动期最小 tx=${minTx}px（目标 ${wantTx}px）；` +
-        `SQUEEZE_SHIFT_FRAC=${DECK.SQUEEZE_SHIFT_FRAC}`)
-    /* ② 全程绝不允许横向压缩（scaleX 恒 1） */
+    const wantTx = -frontX
+    check(`需求③：位移分量 = −frontX = ${wantTx.toFixed(1)}px（前卡视觉左缘落到屏幕左缘）`,
+      minTx >= wantTx - 2 && minTx <= wantTx + 2,
+      `拖动期最小 tx=${minTx}px（目标 ${wantTx.toFixed(2)}px；` +
+        `旧口径 SQUEEZE_SHIFT_FRAC=${DECK.SQUEEZE_SHIFT_FRAC} 已被删除）`)
+
+    /* ② 绝不允许【只有】横向压缩：track 的 scaleX 恒 1。
+       第八轮就是在这里把卡压扁到 0.84（Ricky 原话「被压扁」）—— 这条守住。 */
     const sxSet = [...new Set(during.map((r) => r.sx))]
-    check('需求③：整组平移期间 scaleX 恒 1（旧版把卡「压扁」到 0.84 —— Ricky 原话）',
+    check('需求③：挤压【不再靠 track 横向压缩】（scaleX 恒 1 —— 第八轮 0.84 压扁已废）',
       sxSet.length === 1 && sxSet[0] === 1,
       `拖动期 scaleX 取值集合={${sxSet.join(',')}}（期望恒 {1}）`)
-    /* ③ 卡的实测宽度全程不变（内容零形变的直接证据） */
-    const wSet = [...new Set(during.map((r) => r.cwMax))]
-    check('需求③：拖动全程卡片实测宽度不变（内容零形变；参考视频实测宽恒 302px）',
-      wSet.length === 1 && Math.abs(wSet[0] - cardW) < 0.6,
-      `拖动期卡宽取值集合={${wSet.join(',')}}（期望 ${cardW}）`)
+
+    /* ③ 等比缩小分量：前卡 宽与高【同比例】缩到 0.951（实测前卡高 654→622）。
+       判等比而不是判「宽度恒定」—— 后者正是第九轮量错留下来的假不变量。
+       ⚠️ 静止值必须取【拖动前的首帧】，不能用 max()：
+         松手回弹会把 k 过冲到负值 ⇒ 卡片短暂胀到 1.009 倍，max() 取到的是那个峰值
+         （实测 277.46 而不是 275），于是 gW 变成 0.9426 而不是 0.951 —— 差一点点就漏过去了。 */
+    const f0 = fs[0]
+    const restW = f0.w
+    const restH = f0.h
+    const minW = Math.min(...fs.map((o) => o.w))
+    const minH = fs.find((o) => o.w === minW).h
+    const gW = minW / restW
+    const gH = minH / restH
+    check('需求③：压缩前的前卡尺寸 = 契约卡宽（防止「静止值」被回弹峰值污染）',
+      Math.abs(restW - cardW) < 0.6,
+      `拖动前首帧 宽=${restW}（契约 ${cardW}）`)
+    check('需求③：等比缩小分量 —— 前卡 宽/高 同比例缩到 0.951（实测 622/654）',
+      Math.abs(gW - 0.951) < 0.008 && Math.abs(gH - 0.951) < 0.008,
+      `静止 ${restW.toFixed(1)}×${restH.toFixed(1)} → 最深 ${minW.toFixed(1)}×${minH.toFixed(1)}；` +
+        `gW=${gW.toFixed(4)} gH=${gH.toFixed(4)}（SQUEEZE_SCALE_MAX=${DECK.SQUEEZE_SCALE_MAX}）`)
+    const ratioSet = [...new Set(fs.map((o) => +(o.w / o.h).toFixed(3)))]
+    check('需求③：缩小时【宽高比恒定】（等比缩放，不是 scaleX 压扁 —— 内容零形变）',
+      ratioSet.length === 1,
+      `前卡 宽/高 取值集合={${ratioSet.join(',')}}（期望恒 1 个值）`)
+
+    /* ④ 阶梯收紧分量：邻居卡的「露出条」（前卡左缘 − 邻居卡左缘）从 52.25 收到 ≈23.5。
+       这是原话里「漏出的多少」的直接量化 —— 第九轮这一项完全没变（恒 52.25）。 */
+    const gaps = during.filter((r) => r.f && r.b).map((r) => +(r.f.x - r.b.x).toFixed(2))
+    const gapRest = Math.max(...gaps)
+    const gapMin = Math.min(...gaps)
+    check(`需求③：阶梯收紧分量 —— 邻居卡露出条 ${gapRest.toFixed(1)}px → ${gapMin.toFixed(1)}px（×${(1 - DECK.SQUEEZE_TIGHTEN).toFixed(2)}）`,
+      gapMin < gapRest - 10 && Math.abs(gapMin / gapRest - (1 - DECK.SQUEEZE_TIGHTEN)) < 0.06,
+      `露出条 min=${gapMin}px / rest=${gapRest}px = ${(gapMin / gapRest).toFixed(4)}` +
+        `（期望 ${(1 - DECK.SQUEEZE_TIGHTEN).toFixed(2)}；第九轮此处恒 1.0）`)
+    /* 邻居卡也一起缩 ⇒ 露出条的【高度】同步变矮（这是「底层卡片变小」在背景层唯一可见的表现） */
+    const bRestH = bs.reduce((a, o) => Math.max(a, o.h), 0)
+    const bMinH = bs.reduce((a, o) => Math.min(a, o.h), Infinity)
+    check('需求③：邻居卡（露出条）高度同步变矮 4.9% —— 「缩小底层卡片大小」在背景层的可见表现',
+      Math.abs(bMinH / bRestH - 0.951) < 0.015,
+      `邻居卡高 ${bRestH.toFixed(1)} → ${bMinH.toFixed(1)}（比 ${(bMinH / bRestH).toFixed(4)}）`)
+
+    /* ⑤ 三分量叠加的最终结果：前卡视觉左缘落到屏幕左缘（与位移分量互为印证） */
+    const minLeft = Math.min(...fs.map((o) => o.x))
+    check('需求③：满挤压时前卡视觉左缘 = 屏幕左缘（三分量叠加后的落点）',
+      Math.abs(minLeft - screenBox.x) < 2.5,
+      `前卡左缘 min=${minLeft}px，屏幕左缘=${screenBox.x}px`)
+
     const minN = Math.min(...during.map((r) => r.n))
     const deepSet = new Set(during.map((r) => r.deep))
     check('需求③：左滑全程【最底部卡片始终在场】（旧实现把越界灌进 focus ⇒ 层深 2.42 > MAX_DEPTH 被收掉 DOM）',
       during.length >= 10 && minN === domBefore.n && deepSet.size === 1 && domBefore.deep === DECK.MAX_DEPTH,
       `拖动期卡数 min=${minN}（静止态 ${domBefore.n}），最深层 index 集合={${[...deepSet].join(',')}}（期望恒 {${domBefore.deep}}）`)
-    /* ④ 松手：ios-squish（ζ≈0.46）把进度弹回 0 并【过冲】⇒ 整组向右回弹一点
-       （过冲 → k<0 → shift>0）。旧的 scaleX 版过冲是「胀宽 3%」，读起来像橡皮被拉。 */
+
+    /* ⑥ 松手：ios-squish（ζ≈0.46）把进度弹回 0 并【过冲】⇒ 三分量一起反向
+       （过冲 → k<0 → shift>0 向右弹回 + 卡片短暂胀回 1.7%）。
+       第九轮的旧实现只让位移过冲 —— 现在缩放/收紧/位移同相位，必须一起回弹。 */
     const maxTx = Math.max(...sqTL.map((r) => r.tx))
     const settled = sqTL.slice(-6).map((r) => r.tx)
     check('需求③：松手后整组弹性回弹并过冲（向右弹回 >0），最终归位 0',
       maxTx > 3 && settled.every((v) => Math.abs(v) < 0.3),
-      `峰值 tx=${maxTx}px（>0 = 向右回弹；理论 ≈0.18×430×0.20 = 15.5px）；` +
+      `峰值 tx=${maxTx}px（>0 = 向右回弹；理论 ≈frontX×0.20 = ${(frontX * 0.2).toFixed(1)}px）；` +
         `末 6 帧=${settled.map((v) => v.toFixed(2)).join('/')}（期望恒 0）`)
+    const fLast = fs[fs.length - 1]
+    check('需求③：松手归位后卡片尺寸严格复原（等比缩放回 1，不留残余）',
+      Math.abs(fLast.w - restW) < 0.6 && Math.abs(fLast.h - restH) < 0.6,
+      `末帧前卡 ${fLast.w}×${fLast.h}（拖动前 ${restW}×${restH}）`)
   }
 
   // ---- 需求②（第九轮）：垃圾桶「松手后再出现」+ 点空白退场「立即消失」 ----
@@ -2289,6 +2548,154 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
     check('需求⑧：切换器垃圾桶 = 通知中心同一份 trash-2（含两根竖线，旧版「中间是空的」）',
       !!live && !!ncSvg && lines === 2 && sig(live) === sig(ncSvg),
       `竖线数=${lines}（期望 2）；与通知中心源码比对=${sig(live) === sig(ncSvg) ? '一致' : '不一致'}｜${sig(live).slice(0, 110)}`)
+  }
+
+  // ---- 需求①（第十轮）：应用内停驻时邻居卡「左侧优雅入场」 ----
+  /* 「没有动画」是观感判断，必须先证伪再做契约：
+     探针（/tmp/vwork/r10/probe-neighbor-enter.mjs）实测第九轮那套【确实在跑】
+     （16~17 个 x 取值），所以问题不是「有没有」而是「看不看得见」——
+     行程 36px（其中一半在屏外）、两层同一拍到达、而且这张卡大半被跟手卡盖住。
+     第十轮的判据因此盯三件事：①行程量级 ②时间分布（不能「甩」进去）③淡入不晚于位移。 */
+  {
+    /* 先构造出邻居卡：renderedCards 用【绝对列表索引】过滤，只有一个应用时没有邻居卡 */
+    await page.evaluate(() => window.__system.exitSwitcherToHome())
+    await page.waitForTimeout(400)
+    for (const id of ['camera', 'phone', 'clock']) {
+      await page.evaluate((i) => window.__system.openApp(i), id)
+      await page.waitForTimeout(120)
+      await page.evaluate(() => window.__system.exitSwitcherToHome())
+      await page.waitForTimeout(160)
+    }
+    await page.evaluate(() => window.__system.openApp('calculator'))
+    await page.waitForTimeout(400)
+
+    await page.evaluate(() => {
+      window.__nb = []
+      window.__nbStop = false
+      const t0 = performance.now()
+      const tick = () => {
+        if (window.__nbStop) return
+        const row = { t: +(performance.now() - t0).toFixed(0) }
+        for (const c of document.querySelectorAll('.switcher-card.is-deck')) {
+          const r = c.getBoundingClientRect()
+          row[c.dataset.index] = {
+            x: +r.left.toFixed(2),
+            w: +r.width.toFixed(2),
+            h: +r.height.toFixed(2),
+            op: +getComputedStyle(c).opacity
+          }
+        }
+        window.__nb.push(row)
+        requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    })
+
+    /* 慢速上滑 180px 后【停住 900ms】—— 停驻触发 preCommit，入场全程被采样 */
+    const cx = 215, startY = 925
+    await page.mouse.move(cx, startY)
+    await page.mouse.down()
+    for (let i = 1; i <= 20; i++) { await page.mouse.move(cx, startY - i * 9, { steps: 1 }); await page.waitForTimeout(11) }
+    await page.waitForTimeout(900)
+    await page.mouse.up()
+    await page.waitForTimeout(1100)
+    await page.evaluate(() => { window.__nbStop = true })
+    const nbTL = await page.evaluate(() => window.__nb)
+    /* ⚠️ t 在【外层行】上，不在卡对象里 —— 必须显式并进来再展平。
+       （踩过一次：`.map(r => r['1'])` 之后 `.t` 全是 undefined ⇒ 时长 NaN，
+        而行程断言照常通过，很容易误判成「曲线坏了」。） */
+    const nb1 = nbTL.filter((r) => r['1']).map((r) => ({ t: r.t, ...r['1'] }))
+    const nb2 = nbTL.filter((r) => r['2']).map((r) => ({ t: r.t, ...r['2'] }))
+
+    /* ⚠️ 与需求③ 同一个坑：落位值必须取【末帧】而不是 max()——
+       末段有 0.2% 的过冲（cubic-bezier 的 y2 = 1.06），用 max() 当落位值会永远找不到终点。
+       终点帧改用「最后一帧仍在动的下一帧」（帧间差 < 0.05 视为已停）。 */
+    const startX = nb1[0].x
+    const settledX = nb1[nb1.length - 1].x
+    let iEnd = nb1.length - 1
+    while (iEnd > 0 && Math.abs(nb1[iEnd].x - nb1[iEnd - 1].x) < 0.05) iEnd--
+    const iStart = 0
+    const dur = nb1[iEnd].t - nb1[iStart].t
+    const travel = settledX - startX
+    const uniq = new Set(nb1.map((o) => o.x)).size
+    const wantTravel = cardW * (0.42 + 0.16) // neighborEnterDx(1)：首层 0.42 + 每深 0.16 卡宽
+
+    check('需求①：邻居卡入场【必须真的在动】且行程量级足够（第九轮 36px ⇒ 读作「没动画」）',
+      nb1.length >= 20 && uniq >= 20 && travel > wantTravel * 0.85,
+      `采样帧 ${nb1.length}，x 取值数=${uniq}（60fps），行程=${travel.toFixed(1)}px` +
+        `（契约 ${(wantTravel * 0.85).toFixed(1)}~${(wantTravel * 1.15).toFixed(1)}px；第九轮固定 36px）`)
+
+    /* 时间分布 —— 本轮返工的核心判据。
+       第一版曲线 cubic-bezier(0.22,1.12,0.36,1)（从吸附过渡抄来的）实测：
+         「47% 行程挤在开头 49ms、总时长 316ms」⇒ 卡片是【甩】进去的，
+         把时长拉到 460ms 也没用（前段斜率决定观感）。
+       所以判据不是「有没有走完」，而是【中段有没有抢跑】：
+         t50 / dur ≥ 0.22 —— 一半行程必须花掉至少 22% 的时长。
+       实测：第一版 0.16（FAIL）｜现用 0.42,0,0.2,1.06 → 0.38（PASS）。 */
+    const at = (frac) => {
+      const target = startX + travel * frac
+      const hit = nb1.findIndex((o) => o.x >= target)
+      return hit < 0 ? dur : nb1[hit].t - nb1[iStart].t
+    }
+    const t25 = at(0.25), t50 = at(0.5), t75 = at(0.75)
+    const seg = [t25 / dur, (t50 - t25) / dur, (t75 - t50) / dur, (dur - t75) / dur]
+    check('需求①：入场【不是「甩」进去的】—— 50% 行程必须用掉 ≥22% 的时长',
+      dur >= 380 && t50 / dur >= 0.22 && (dur - t75) / dur <= 0.6,
+      `总时长=${dur}ms（契约 ≥380）；25/50/75% 行程分别用 ${t25}/${t50}/${t75}ms` +
+        ` ⇒ t50 占比 ${(t50 / dur * 100).toFixed(0)}%（契约 ≥22%；第一版 16%）；` +
+        `四段占比=${seg.map((v) => (v * 100).toFixed(0) + '%').join('/')}`)
+
+    /* 淡入必须【早于】位移结束：缓起曲线的前 20% 只走 13% 行程，
+       若沿用 0.22~0.3s 的默认淡入，卡片变实的时候已经快到位了 ——「滑进来」这段白做。 */
+    const iQuarter = nb1.findIndex((o, i) => i >= iStart && o.x >= nb1[iStart].x + travel * 0.35)
+    const opAtQuarter = iQuarter < 0 ? 0 : nb1[iQuarter].op
+    check('需求①：卡片的淡入【不晚于】位移（走到 35% 行程时已基本实体，否则滑入过程看不见）',
+      opAtQuarter >= 0.85,
+      `35% 行程处 opacity=${opAtQuarter}（期望 ≥0.85；位移 0.48s / 淡入 0.16s）`)
+
+    /* 起点略小 + 落位撑开：与 deck 的垂直中心不变量一起构成「有质感的入场」 */
+    const wMin = Math.min(...nb1.map((o) => o.w))
+    const wEnd = Math.max(...nb1.map((o) => o.w))
+    check('需求①：邻居卡自 0.93 倍「撑开」落位（起点略小，落位时长大）',
+      Math.abs(wMin / wEnd - 0.93) < 0.01,
+      `宽 ${wMin.toFixed(1)} → ${wEnd.toFixed(1)}（比 ${(wMin / wEnd).toFixed(4)}，期望 0.93）`)
+
+    check('需求①：越深的卡行程越长（逐层递增 ⇒ 读起来是「逐张涌出」而不是整块平移）',
+      nb2.length > 0 &&
+        Math.max(...nb2.map((o) => o.x)) - Math.min(...nb2.map((o) => o.x)) > travel + 20,
+      `层深 1 行程=${travel.toFixed(1)}px，层深 2 行程=` +
+        `${(Math.max(...nb2.map((o) => o.x)) - Math.min(...nb2.map((o) => o.x))).toFixed(1)}px`)
+  }
+
+  // ---- 需求②（第十轮）：卡片投影减重 ----
+  {
+    await resetFocus0()
+    const sh = await page.evaluate(() => {
+      const parse = (s) => {
+        const a = /rgba?\(\s*0,\s*0,\s*0,\s*([0-9.]+)\s*\)/.exec(s)
+        const nums = [...s.matchAll(/(-?[0-9.]+)px/g)].map((x) => parseFloat(x[1]))
+        return { a: a ? +a[1] : null, y: nums[0], blur: nums[1] }
+      }
+      const out = {}
+      for (const c of document.querySelectorAll('.switcher-card.is-deck')) {
+        out[c.dataset.index] = parse(getComputedStyle(c.querySelector('.switcher-card-body')).boxShadow)
+      }
+      const f = document.querySelector('.switcher-card.is-follow .switcher-card-body')
+      if (f) out.follow = parse(getComputedStyle(f).boxShadow)
+      return out
+    })
+    const s0 = sh[0]
+    const s1 = sh[1]
+    check('需求②：卡片投影不再过重（旧值 0.42 alpha / 36px 模糊 / 下移 14px）',
+      !!s0 && s0.a !== null && s0.a <= 0.3 && s0.blur <= 28 && s0.y <= 13,
+      `焦点层 = rgba(0,0,0,${s0?.a}) ${s0?.y}px ${s0?.blur}px（期望 ≤0.30 / ≤13px / ≤28px）`)
+    check('需求②：越深的卡投影越轻（背景卡本就在暗遮罩上，重投影只会把遮罩也压黑）',
+      !!s1 && s1.a !== null && s1.a < s0.a && s1.blur < s0.blur,
+      `层深 1 = rgba(0,0,0,${s1?.a}) ${s1?.y}px ${s1?.blur}px < 层深 0 = rgba(0,0,0,${s0?.a})`)
+    const bad = Object.entries(sh).filter(([, v]) => !v || v.a === null || v.a > 0.31 || v.blur > 28)
+    check('需求②：没有任何一张卡（含跟手卡）还在用旧的 0.42 / 36px 投影',
+      bad.length === 0,
+      `各卡投影：${Object.entries(sh).map(([k, v]) => `${k}=${v?.a}/${v?.blur}px`).join('  ')}`)
   }
 }
 

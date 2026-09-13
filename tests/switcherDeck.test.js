@@ -10,7 +10,9 @@ import {
   deckPhase,
   deckPose,
   deckSqueeze,
+  deckSqueezeScale,
   deckSqueezeShift,
+  deckSqueezeTighten,
   deckStair,
   deckVisible,
   deckZ
@@ -134,6 +136,11 @@ test('规则⑤ 最多三层：3 个槽位 + 正在离场的卡，第 4 层起�
   assert.ok(deckVisible(-1.46 + 1e-9), '刚好卡在剔除界上仍要渲染（左缘 ≈435 已出屏，但边界要保守）')
   assert.ok(!deckVisible(-1.46), '越过界限才剔除')
   assert.ok(!deckVisible(-2), '再往外一层必须剔除')
+  /* ⚠️ 调用点（AppSwitcher 的 renderedCards）第十一轮起喂的不是裸 poseFocus，
+     而是 cullFocus —— 焦点落进整卡附近 0.06 层的磁吸窗口时改用【目标整卡】：
+     focus 吸附到整卡是渐近的（临界阻尼永不穿过），裸用它的话第 4 张卡会等到
+     springSettled 把 x 置成整卡（实测 +714ms）才出现 = 「停稳后又闪出一张」。
+     本文件的契约仍按裸 deckVisible 写（磁吸只改调用点，不改阈值本身）。 */
 })
 
 test('规则② 下层缩小后藏在上层下方（左边缘钉住 + 居中缩放 + 变暗）', () => {
@@ -418,18 +425,31 @@ test('卡宽为 0（未测量）时不抛异常', () => {
 
 /* ══════════════════ 第八轮（Ricky 2026-09-13）新增契约 ══════════════════ */
 
-test('第九轮·需求③：左滑挤压 = 整组左移（不是横向压缩），行程对齐参考视频', () => {
-  /* 参考视频 53416f88…mp4 逐帧重测（第九轮，/tmp/vwork/r9/v3edge.py 列梯度 + v3track.py）：
-       静止 前卡左缘 75 / 右缘 377 ⇒ 宽 302
-       最深 前卡左缘 −26 / 右缘 276 ⇒ 宽 302     ← 宽恒 302、左右等量左移 101px
-     ⇒ 是【整组刚性左移】，不是压缩。旧契约（scaleX 0.837）就是 Ricky 说的「被压扁」。
-     左移量全帧曲线：0→25→62→81→94→101 饱和 ⇒ 满行程 101/444 = 0.2275 屏宽；
-     本项目取 0.18（= frontX/screenW，让前卡左缘正好落到屏左缘，图标不至于出屏）。 */
-  assert.equal(DECK.SQUEEZE_SHIFT_FRAC, 0.18)
+test('第十轮·需求③：左滑挤压 = 位移 + 等比缩小 + 阶梯收紧（三分量共用一个 k）', () => {
+  /* 第九轮的契约是「只有整组左移、宽度恒定」，第十轮被 Ricky 推翻：
+       「默认位置左滑挤压动画不对，需要同时做横向挤压和缩放（缩小底层卡片大小以及漏出的多少）」
+
+     第九轮为什么量错（方法错，不是数值错）：
+       v3edge.py 只在【单行】扫竖边、且把左缘当成「最左的那条边」——
+       最深帧前卡左缘已经跑到屏外 −26，配对被吸附到了相邻卡的特征上，
+       于是量出「宽恒 302」，据此判定为刚性平移。
+     第十轮改量【纵向剖面】（/tmp/vwork/r10/v10col.py，逐行 run-length）：
+       参考视频 53416f88…mp4 前卡 上缘 131→147、下缘 785→769（上下等量内缩 16px）
+       ⇒ 高 654 → 622 = **0.951**，即前卡在缩小，而不是刚性平移。
+     右缘 376→275（−101）在「左缘钉住 + 缩 0.951」下自洽：
+       纯位移 −86.2，缩 302×0.049 ≈ 14.8 ⇒ 右缘 = 377 − 86.2 − 14.8 = 276 ✓
+
+     于是三个分量（都由同一个 k 驱动，见 deckPose）：
+       ① 位移 deckSqueezeShift → 前卡左缘落到屏幕左缘
+       ② 等比缩小 deckSqueezeScale → 0.951（前卡 + 背景卡露出条的高）
+       ③ 阶梯收紧 deckSqueezeTighten → 槽距 52:17:5 → 23:8:2（「漏出的多少」） */
+  assert.equal(DECK.SQUEEZE_SPAN, 0.35, '满挤压所需的越界层数')
+  assert.equal(DECK.SQUEEZE_SHIFT_FRAC, undefined, '第九轮的写死屏宽分数必须已被删除')
+
+  /* —— k 本身：形状与第九轮一致（这一层契约没变） —— */
   assert.equal(deckSqueeze(0), 0, '未越界时挤压进度 = 0')
   assert.equal(deckSqueeze(DECK.SQUEEZE_SPAN), 1, '满挤压进度 = 1')
   assert.equal(deckSqueeze(0.6), 1, '越界更深也封顶在 1（不许无限挤）')
-  /* 单调：越界越深 → 进度越大（且严格不减，无振荡 —— 弹簧只在松手后才介入） */
   let prev = -0.001
   for (let o = 0; o <= 0.6; o += 0.02) {
     const k = deckSqueeze(o)
@@ -437,25 +457,82 @@ test('第九轮·需求③：左滑挤压 = 整组左移（不是横向压缩）
     assert.ok(k <= 1 + 1e-12, `挤过头了：${k}`)
     prev = k
   }
-  /* 位移量：0 → −0.18 屏宽，方向必须向左 */
-  assert.equal(deckSqueezeShift(430, 0), 0)
-  assert.equal(deckSqueezeShift(430, 1), -430 * 0.18)
-  assert.ok(deckSqueezeShift(430, 1) < 0, '方向必须向左')
-  /* 满行程 ≡ frontX：前卡左缘（frontX）被推到 0 = 屏幕左缘。
-     ⚠️ 这是本项目对本轮行程的【唯一取舍】：参考实测 0.2275 会把前卡左缘推到屏外 −26px，
-        参考实现靠「图标最小 16px 屏边距」兜住标签；本轮需求①要求「图标与卡片作为一个整体
-        位移」，所以少走 20% 行程，保证图标与卡一起留在屏内。 */
+
+  /* —— ① 位移：0 → −(screenW − cardW)/2 = −frontX —— */
   const m = deckMetrics(430, 932)
-  assert.ok(Math.abs(m.frontX + deckSqueezeShift(430, 1)) < 1,
-    `满挤压应把前卡左缘推到屏幕左缘（允差 1px：0.18×430 = 77.4 vs frontX 77.5）：` +
-      `frontX=${m.frontX}，shift=${deckSqueezeShift(430, 1)}`)
-  assert.ok(Math.abs(-deckSqueezeShift(430, 1) / 430 - 0.2275) < 0.06,
-    '本项目行程 0.18 与参考实测 0.2275 的偏离必须 < 0.06 屏宽')
-  /* 回弹过冲（负数）是允许的：ios-squish ζ≈0.46 ⇒ k 短暂 ≈ −0.20 ⇒ 整组向右弹回 ≈15px */
-  assert.ok(deckSqueezeShift(430, -0.2) > 0, '过冲（k<0）时整组必须向右弹回')
-  /* 越界钳制：防止弹簧被高速注入时把整组甩出屏外 */
-  assert.equal(deckSqueezeShift(430, 99), deckSqueezeShift(430, 1.35))
-  assert.equal(deckSqueezeShift(430, -99), deckSqueezeShift(430, -0.35))
+  assert.equal(deckSqueezeShift(430, m.cardW, 0), 0)
+  assert.ok(Object.is(deckSqueezeShift(430, m.cardW, 0), 0), '不能用 −0（CSS 与 Object.is 都会露馅）')
+  assert.equal(deckSqueezeShift(430, m.cardW, 1), -(430 - m.cardW) / 2)
+  assert.ok(deckSqueezeShift(430, m.cardW, 1) < 0, '方向必须向左')
+  assert.equal(-deckSqueezeShift(430, m.cardW, 1), m.frontX,
+    '满行程必须恰好 = frontX ⇒ 前卡视觉左缘落到屏幕左缘（0）')
+  /* ⚠️ 位移【不】与等比缩小系数 g 耦合：堆叠卡是 transform-origin: 0 0（左缘钉住），
+     frontX 与 g 无关。写成 −(screenW − cardW·g)/2 会多推 cardW·0.049/2 ≈ 6.75px。 */
+  assert.equal(deckSqueezeShift(430, m.cardW, 1), -m.frontX,
+    '位移量必须与 g 无关（第九/十轮交界处写错过一次）')
+  /* 回弹过冲（k<0）不封顶：整组向右弹回去 */
+  assert.ok(deckSqueezeShift(430, m.cardW, -0.2) > 0, '过冲（k<0）时整组必须向右弹回')
+  /* 上过冲封顶：左缘贴住屏左缘已是行程上限，再往左就是白送出屏 */
+  assert.equal(deckSqueezeShift(430, m.cardW, 99), deckSqueezeShift(430, m.cardW, 1))
+  assert.equal(deckSqueezeShift(430, m.cardW, -99), deckSqueezeShift(430, m.cardW, -0.35))
+
+  /* —— ② 等比缩小：0.951（实测 622/654） —— */
+  assert.equal(DECK.SQUEEZE_SCALE_MAX, 0.049)
+  assert.equal(deckSqueezeScale(0), 1, '不挤压时系数必须严格 = 1（否则静止态就会缩）')
+  assert.ok(Math.abs(deckSqueezeScale(1) - 0.951) < 1e-9, '满挤压 = 0.951')
+  let pg = Infinity
+  for (let k = -0.35; k <= 1.35; k += 0.05) {
+    const g = deckSqueezeScale(k)
+    assert.ok(g <= pg + 1e-12, `缩小系数必须随 k 单调不增：k=${k.toFixed(2)} ${pg} → ${g}`)
+    pg = g
+  }
+  assert.equal(deckSqueezeScale(99), deckSqueezeScale(1.35), 'k 上钳到 1.35（不许把卡缩没）')
+  assert.equal(deckSqueezeScale(-99), deckSqueezeScale(-0.35), 'k 下钳到 −0.35（回弹有限）')
+
+  /* —— ③ 阶梯收紧：槽距 52:17:5 → 23:8:2 —— */
+  assert.equal(DECK.SQUEEZE_TIGHTEN, 0.55)
+  assert.equal(deckSqueezeTighten(0), 1, '不挤压时槽距必须严格不变')
+  assert.ok(Math.abs(deckSqueezeTighten(1) - 0.45) < 1e-9, '满挤压 = 0.45')
+  /* deckStair 给的是【相对 frontX 的累计偏移】（52.25 / 68.97 / 74.32），不是逐层间距
+     ⇒ 相邻差才是「露出多少」：52.25 / 16.72 / 5.35（第四轮实测的 52 : 17 : 5）。 */
+  const gaps = (f) => {
+    const s = [1, 2, 3].map((d) => deckStair(d, m.cardW) * f)
+    return [s[0], s[1] - s[0], s[2] - s[1]]
+  }
+  const g1 = gaps(1)
+  assert.deepEqual(g1.map((v) => Math.round(v)), [52, 17, 5], '静止槽距必须复现第四轮实测')
+  const gf = gaps(deckSqueezeTighten(1))
+  assert.deepEqual(gf.map((v) => Math.round(v)), [24, 8, 2], '满挤压槽距 ⇒「漏出的多少」变小')
+  /* 收紧是【等比】的，不是只收首层：三层间距必须同乘 0.45 */
+  g1.forEach((v, idx) =>
+    assert.ok(Math.abs(gf[idx] / v - 0.45) < 1e-9, `第 ${idx + 1} 层间距没等比收紧`))
+  assert.ok(gf[0] < g1[0], '挤压后首层露出条必须变窄')
+
+  /* —— 三分量在 deckPose 里的接线：同一个 m.sq 驱动，且前卡左缘不动 —— */
+  const ms = { ...m, sq: 0 }
+  const mf = { ...m, sq: 1 }
+  const rest = deckPose(0, ms, 0)
+  const full = deckPose(0, mf, 0)
+  assert.equal(rest.x, full.x, 'deckPose 不管整组位移（那是 trackStyle 的事）⇒ 前卡 x 不变')
+  assert.ok(full.scale < rest.scale, '前卡必须一起缩小')
+  assert.ok(Math.abs(full.scale / rest.scale - 0.951) < 1e-9, '前卡的缩放比 = 0.951')
+  /* 背景卡：左缘由 stair·tight 定位 ⇒ 挤压后必然向右（往中间）拢 */
+  for (const d of [1, 2, 3]) {
+    assert.ok(deckPose(d, mf, 0).x > deckPose(d, ms, 0).x,
+      `层深 ${d} 的卡片在挤压时必须往中间拢`)
+    assert.ok(deckPose(d, mf, 0).scale / deckPose(d, ms, 0).scale < 1,
+      `层深 ${d} 的卡片在挤压时必须一起缩小`)
+  }
+  /* 垂直中心不变量（第十轮新守）：deckPose 的 y 必须让每层垂直中心恒等于 cardCy ——
+     上下缘对称内缩（实测 131→147 / 785→769）全靠这一条。 */
+  for (const d of [0, 1, 2]) {
+    for (const sq of [0, 1]) {
+      const p = deckPose(d, { ...m, sq }, 0)
+      const cy = p.y + (m.cardH * p.scale) / 2
+      assert.ok(Math.abs(cy - m.cardCy) < 1e-6,
+        `层深 ${d} / sq ${sq} 的垂直中心偏离 cardCy：${cy} vs ${m.cardCy}`)
+    }
+  }
 })
 
 test('第八轮·需求⑦：左滑越界不再产生「最底部卡片消失」（层深恒 ≤ MAX_DEPTH）', () => {
