@@ -316,4 +316,16 @@ test('homeStore auto-dissolves single-app folders on removeAppFromFolder and ign
   assert.match(storeSource, /folder\.appIds\.length\s*<=\s*1\s*\)\s*this\.removeFolder\(folderId,\s*true\)/)
 })
 
+test('folders animate into desktop when unlocking with staggered enter delay', async () => {
+  const [folder, grid] = await Promise.all([
+    read('../src/components/home/HomeFolder.vue'),
+    read('../src/components/system/AppGrid.vue')
+  ])
+  assert.match(grid, /<HomeFolder[^>]*:enter-delay="120 \+ index \* 28"/)
+  assert.match(folder, /--enter-delay/)
+  assert.match(folder, /just-unlocked.*\.home-folder/)
+  assert.match(folder, /folder-enter/)
+})
+
+
 
