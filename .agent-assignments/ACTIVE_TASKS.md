@@ -81,6 +81,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Workbuddy | Polish iOS app switcher: chain reaction drag, continuous scaling, and gesture physics | `workbuddy/lane` | None (locks released) | `0dc5cac` | `a6c0f0b` |
 | Merged | Antigravity | Desktop enhancements: Phase 1 & 2 layout, iOS cross-screen icon drag, folder hero anchor, and single-app auto-dissolution with seamless zoom | `antigravity/lane` | None (desktop file locks released) | `a94248e` | `e3932d3` |
 | Merged | Antigravity | Restore and preserve folder background blur and frosted glass across opening, open, and closing states | `antigravity/lane` | None (locks released) | `8f94698` | `c330e51` |
-| Active | Antigravity | Fix folder collapse animation anchor coordinates and eliminate top-left jitter | `antigravity/lane` | `src/components/system/HomeScreen.vue`; `src/components/system/AppGrid.vue`; `src/components/home/HomeFolderOverlay.vue`; `src/components/home/HomeFolder.vue` | `80bda5b` | |
+| Merged | Antigravity | Fix folder collapse animation anchor coordinates and eliminate top-left jitter | `antigravity/lane` | None (locks released) | `80bda5b` | `49e322f` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
