@@ -134,6 +134,54 @@ export const useHomeStore = defineStore('home', {
       })
       this.reflow(); this.currentPage = Math.min(targetPage, this.pages.length - 1); this.persist(); return true
     },
+    moveItemsToPage(itemIds, targetPage) {
+      const validIds = [...new Set(itemIds || [])].filter((id) => this.items[id])
+      if (!validIds.length) return false
+      for (const id of validIds) {
+        const item = this.items[id]
+        if (item?.type === 'app') {
+          this.hiddenDesktopAppIds = this.hiddenDesktopAppIds.filter((appId) => appId !== item.appId)
+        }
+      }
+      const pageIndex = Math.max(0, Number(targetPage) || 0)
+      this.order = this.order.filter((id) => !validIds.includes(id))
+      this.reflow()
+      if (pageIndex >= this.pages.length) {
+        this.order.push(`page-break:${Date.now()}`, ...validIds)
+      } else {
+        const existingPageItems = this.pages[pageIndex] || []
+        if (existingPageItems.length > 0) {
+          const lastItem = existingPageItems[existingPageItems.length - 1]
+          const idx = this.order.indexOf(lastItem)
+          if (idx !== -1) {
+            this.order.splice(idx + 1, 0, ...validIds)
+          } else {
+            this.order.push(...validIds)
+          }
+        } else if (pageIndex === 0) {
+          this.order.unshift(...validIds)
+        } else {
+          const prevPageItems = this.pages[pageIndex - 1] || []
+          const prevLast = prevPageItems[prevPageItems.length - 1]
+          const prevIdx = prevLast ? this.order.indexOf(prevLast) : -1
+          if (prevIdx !== -1) {
+            this.order.splice(prevIdx + 1, 0, `page-break:${Date.now()}`, ...validIds)
+          } else {
+            this.order.push(...validIds)
+          }
+        }
+      }
+      this.order = this.order.filter((id, idx, arr) => {
+        if (typeof id !== 'string' || !id.startsWith('page-break:')) return true
+        const next = arr[idx + 1]
+        return next && (typeof next !== 'string' || !next.startsWith('page-break:'))
+      })
+      this.selectedItemIds = []
+      this.reflow()
+      this.currentPage = Math.min(pageIndex, this.pages.length - 1)
+      this.persist()
+      return true
+    },
     createFolder(ids, page = this.currentPage, index = 0) {
       const apps = unique(ids).map((id) => this.items[id]).filter((item) => item?.type === 'app'); if (apps.length < 2) return null
       const rank = this.rankAt(page, index), folderId = `home-folder-${Date.now()}-${folderSequence += 1}`, id = folderItemId(folderId)
