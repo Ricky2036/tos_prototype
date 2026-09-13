@@ -151,11 +151,15 @@ function prepareMotion() {
   const openAnim = panelRef.value?.animate([
     {
       transform: `translate3d(${dx}px, ${dy}px, 0) scale(${sx}, ${sy})`,
-      borderRadius: `${startRadius}px`
+      borderRadius: `${startRadius}px`,
+      boxShadow: '0 0 0 rgba(0, 0, 0, 0)',
+      borderColor: 'rgba(255, 255, 255, 0)'
     },
     {
       transform: 'translate3d(0, 0, 0) scale(1, 1)',
-      borderRadius: '36px'
+      borderRadius: '36px',
+      boxShadow: '0 24px 60px rgba(0, 0, 0, 0.25)',
+      borderColor: 'rgba(255, 255, 255, 0.32)'
     }
   ], {
     duration: dur,
@@ -187,13 +191,15 @@ function close() {
   const prefersReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
   const dur = prefersReduced ? 1 : 260
   const easeClose = 'cubic-bezier(0.25, 1, 0.5, 1)'
+  const easeBackdropClose = 'cubic-bezier(0.33, 0, 0.67, 1)'
 
+  if (backdropRef.value) backdropRef.value.style.opacity = ''
   backdropRef.value?.animate([
     { opacity: 1 },
     { opacity: 0 }
   ], {
     duration: dur,
-    easing: easeClose,
+    easing: easeBackdropClose,
     fill: 'forwards'
   })
 
@@ -234,11 +240,15 @@ function close() {
   const closeAnim = panelRef.value?.animate([
     {
       transform: 'translate3d(0, 0, 0) scale(1, 1)',
-      borderRadius: '36px'
+      borderRadius: '36px',
+      boxShadow: '0 24px 60px rgba(0, 0, 0, 0.25)',
+      borderColor: 'rgba(255, 255, 255, 0.32)'
     },
     {
       transform: `translate3d(${panelMotion.dx}px, ${panelMotion.dy}px, 0) scale(${panelMotion.sx}, ${panelMotion.sy})`,
-      borderRadius: `${panelMotion.startRadius}px`
+      borderRadius: `${panelMotion.startRadius}px`,
+      boxShadow: '0 0 0 rgba(0, 0, 0, 0)',
+      borderColor: 'rgba(255, 255, 255, 0)'
     }
   ], {
     duration: dur,
@@ -329,8 +339,6 @@ onBeforeUnmount(() => {
   pointer-events: none;
   opacity: 0;
   will-change: opacity;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 .phase-open .folder-backdrop {
   opacity: 1;
@@ -350,8 +358,6 @@ onBeforeUnmount(() => {
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
   transform-origin: 0 0;
   will-change: transform, border-radius;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 .folder-title {
   display: block;
