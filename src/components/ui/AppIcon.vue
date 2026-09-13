@@ -42,8 +42,12 @@ const weekday = computed(() => {
 
 const badge = computed(() => notifications.countByApp[props.app.id] || 0)
 
-/** hero 动画期间隐藏图标本体防重影 */
-const hidden = computed(() => !props.ignoreHidden && home.hiddenIconId === props.app.id)
+/** hero 动画期间隐藏图标本体防重影（仅当存在活跃应用时生效） */
+const hidden = computed(() => {
+  if (props.ignoreHidden) return false
+  if (!system.activeAppId) return false
+  return home.hiddenIconId === props.app.id
+})
 
 const entering = computed(() => system.unlockProgress === 0 && system.baseLayer === 'lock')
 
