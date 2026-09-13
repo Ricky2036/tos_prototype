@@ -92,6 +92,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Fix screen-off edge wallpaper leak by hiding underlying layers and suppressing wallpaper visibility | `antigravity/lane` | None (locks released) | `fdb1967` | `437d496` |
 | Merged | Antigravity | Fix dock/desktop app icon disappearing after entering multitasking and returning to desktop | `antigravity/lane` | None (locks released) | `125bd2c` | `c4def14` |
 | Merged | Antigravity | Enable single-finger horizontal swipe desktop page switching on mobile Chrome and touch screens | `antigravity/lane` | None (locks released) | `4466c9e` | `16e4122` |
+| Merged | Antigravity | LockScreen notification stack top card 90% opacity and 2-card pill expand fix | `antigravity/lane` | None (locks released) | `aa8a310` | `0b2f0db` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
