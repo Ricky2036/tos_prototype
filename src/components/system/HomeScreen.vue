@@ -738,14 +738,32 @@ function onHomeKeydown(event) {
 }
 function showFolder(folderId, element) {
   folderOperation.value = null
-  const copyRect = (rect) => rect ? ({ left:rect.left,top:rect.top,width:rect.width,height:rect.height,right:rect.right,bottom:rect.bottom }) : null
-  const el = element || rootRef.value?.querySelector?.(`[data-home-item="folder:${folderId}"]`)
+  const screen = rootRef.value?.closest('.screen-view') || document.querySelector('.screen-view')
+  const toLocalRect = (node) => (node && screen) ? rectRelativeToScreen(node, screen) : (node?.getBoundingClientRect() ? {
+    left: node.getBoundingClientRect().left,
+    top: node.getBoundingClientRect().top,
+    width: node.getBoundingClientRect().width,
+    height: node.getBoundingClientRect().height,
+    right: node.getBoundingClientRect().right,
+    bottom: node.getBoundingClientRect().bottom
+  } : null)
+
+  const el = element
+    || rootRef.value?.querySelector?.(`[data-home-item="folder:${folderId}"]`)
+    || (home.folders[folderId] && rootRef.value?.querySelector?.(`[data-home-item="${Object.entries(home.items).find(([_, it]) => it?.type === 'folder' && it.folderId === folderId)?.[0]}"]`))
   const shell = el?.querySelector?.('[data-folder-shell]') || rootRef.value?.querySelector?.(`[data-home-item="folder:${folderId}"] [data-folder-shell]`)
   const title = el?.querySelector?.('[data-folder-title]') || rootRef.value?.querySelector?.(`[data-home-item="folder:${folderId}"] [data-folder-title]`)
   const iconRects = {}
   const appNodes = el?.querySelectorAll?.('[data-folder-app]') || rootRef.value?.querySelectorAll?.(`[data-home-item="folder:${folderId}"] [data-folder-app]`)
-  appNodes?.forEach?.((node) => { iconRects[node.dataset.folderApp] = copyRect(node.getBoundingClientRect()) })
-  folderOrigin.value = { shellRect:copyRect(shell?.getBoundingClientRect()),titleRect:copyRect(title?.getBoundingClientRect()),iconRects }
+  appNodes?.forEach?.((node) => {
+    const r = toLocalRect(node)
+    if (r) iconRects[node.dataset.folderApp] = r
+  })
+  folderOrigin.value = {
+    shellRect: toLocalRect(shell),
+    titleRect: toLocalRect(title),
+    iconRects
+  }
   openFolderId.value = folderId
 }
 function launchFolderApp(appId, anchor) {
