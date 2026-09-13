@@ -27,7 +27,20 @@ export const useSystemStore = defineStore('system', {
     recentApps: [],
     appSwitcherOpen: false,
     switcherProgress: 0,
-    switcherDwell: false // 手势悬停已达成（5%+ 停 0.2s），邻居可以进场
+    switcherDwell: false, // 手势悬停已达成（5%+ 停 0.2s），邻居可以进场
+    /* ---- 第八轮（Ricky 2026-09-13）----
+     * switcherDragX / switcherDragY：应用内上滑手势的【原始位移】（px，右/下为正）。
+     *   需求⑥「只有 Y 轴跟手，需要 X、Y 轴共同跟手位移」—— 旧实现只把纵向位移
+     *   折算成 switcherProgress，横向位移被丢弃（cx 恒等于屏中心），所以卡片横向纹丝不动。
+     *   参考视频 4c4231b0…mp4 实测：手指上滑期间窗口中心 x 从 225 走到 326（+101px）。
+     * switcherDragV：手指瞬时速度（px/s，取绝对值）—— 弹性挤压拉伸（scaleX/scaleY 反向）
+     *   由「越过满量程 + 瞬时速度」共同驱动（实测起手一瞬宽高比 −6%）。
+     * switcherClosing：点空白退出的动画窗口（需求④）。置真期间卡片组滑出左侧、
+     *   遮罩淡出，动画播完才真正 exitSwitcherToHome()。 */
+    switcherDragX: 0,
+    switcherDragY: 0,
+    switcherDragV: 0,
+    switcherClosing: false
   }),
 
   getters: {
@@ -113,6 +126,11 @@ export const useSystemStore = defineStore('system', {
     openSwitcher() {
       if (this.recentApps.length === 0) return
       this.appSwitcherOpen = true
+      /* 第八轮：清掉上一次「点空白退出」遗留的动画窗口。
+         注意【不能】在这里 resetSwitcherDrag() —— 应用内上滑那条路径松手后，
+         跟手卡还要靠 switcherDragX/Y 做「偏移平滑归零」（followFree 弹簧），
+         一清就变成硬跳。位移的去重由 HomeIndicator 的 onStart 与 closeSwitcher 负责。 */
+      this.switcherClosing = false
     },
 
     /** 关闭切换器，回到 baseLayer（home 或 app） */
@@ -120,6 +138,9 @@ export const useSystemStore = defineStore('system', {
       this.appSwitcherOpen = false
       this.switcherProgress = 0
       this.switcherDwell = false
+      /* 第八轮：退出动画窗口与跟手位移一并复位（两者都只服务于「上一次打开」） */
+      this.switcherClosing = false
+      this.resetSwitcherDrag()
     },
 
     /** 手势跟手进度：0 = 未进入，1 = 完全进入。
@@ -128,6 +149,30 @@ export const useSystemStore = defineStore('system', {
      *  松手后弹簧回到 1（固定终点）。 */
     setSwitcherProgress(p) {
       this.switcherProgress = Math.max(0, Math.min(1.6, p))
+    },
+
+    /** 应用内上滑手势的原始位移与瞬时速度（需求⑥）。
+     *  x/y = 手指相对按下点的位移（px，右/下为正）；v = 瞬时速度绝对值（px/s）。
+     *  只由 HomeIndicator 在跟手期写；松手时把 v 清零（速度项不再参与形变），
+     *  x/y 保留到卡片落位（AppSwitcher 的 followFree 弹簧负责把偏移平滑归零）。 */
+    setSwitcherDrag(x, y, v) {
+      this.switcherDragX = x || 0
+      this.switcherDragY = y || 0
+      this.switcherDragV = v || 0
+    },
+
+    /** 清空跟手位移（手势开始 / 切换器关闭时） */
+    resetSwitcherDrag() {
+      this.switcherDragX = 0
+      this.switcherDragY = 0
+      this.switcherDragV = 0
+    },
+
+    /** 点空白退出的动画窗口（需求④）：置真 → 播滑出动画；播完由组件调 exitSwitcherToHome() */
+    beginSwitcherClose() {
+      if (this.switcherClosing) return false
+      this.switcherClosing = true
+      return true
     },
 
     /** 切换器里上滑移除某个应用卡片 */
@@ -144,6 +189,15 @@ export const useSystemStore = defineStore('system', {
     /** 底部垃圾桶：清空全部最近任务，回桌面 */
     dismissAll() {
       this.recentApps = []
+      this.activeAppId = null
+      this.baseLayer = 'home'
+      this.closeSwitcher()
+    },
+
+    /** 切换器里点空白：关掉切换器并【回桌面】（需求⑪）。
+     *  与 dismissAll 的关键区别：**不清空 recentApps**（点空白不是「清理后台」）。
+     *  也与 closeSwitcher 不同：closeSwitcher 只回到 baseLayer，从应用内进来时会退回那个应用。 */
+    exitSwitcherToHome() {
       this.activeAppId = null
       this.baseLayer = 'home'
       this.closeSwitcher()

@@ -3,12 +3,38 @@
 
 html, body, #app { height: 100%; }
 
+/* ── 第八轮（Ricky 2026-09-13 需求③）────────────────────────────────────
+ * 原话：「在浏览器里面双指横滑会触发 Chrome 浏览器的全局上/下一页，尝试屏蔽」。
+ *
+ * 这不是页面滚动的副作用，而是 Chrome 的【overscroll 手势导航】：
+ *   macOS / Windows 触控板上双指横向滑动 → 当横向滚动已经顶到根滚动容器的边缘时，
+ *   Chrome 把这段「越界（overscroll）」翻译成 history.back() / forward()。
+ *   原型里切换器的横滑恰恰是「横向滚到边」的手势，于是每次横滑翻卡都可能把页面翻走。
+ *
+ * 屏蔽必须落在【根滚动容器】（html）上，且要分轴写：
+ *   · overscroll-behavior-x: none —— 关掉横向越界的链式传递，
+ *     Chrome 的横滑前进/后退就此失效（这是官方推荐的关法，也是最干净的一种）；
+ *   · overscroll-behavior-y: none —— 顺带关掉纵向的「下拉刷新 / 整页橡皮筋」，
+ *     否则在 iOS Safari 上从顶部下拉会出现整页回弹。
+ * 兜底（两行都写）：部分老版本 Chrome 只认简写，所以先写简写再写分轴。
+ * 注意：这里【不】动 touch-action —— 全站 touch-action:none 会把页面的正常滚动
+ * （设置页那种长列表）一起杀掉；真正需要独占手势的容器（.app-switcher 等）
+ * 各自声明了 touch-action:none。 */
+html {
+  overscroll-behavior: none;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
+}
+
 body {
   font-family: var(--font-stack);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   overflow: hidden;
+  /* body 也补一份：Chrome 判定越界时看的是实际滚动的那个盒子 */
+  overscroll-behavior: none;
+  overscroll-behavior-x: none;
 }
 
 button {

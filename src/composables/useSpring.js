@@ -38,6 +38,7 @@ export function useSpring(initial = 0, preset = 'ios-gentle') {
   /**
    * @param to 目标值
    * @param opts.initialVelocity 注入初速度（与数值同单位/秒）
+   * @param opts.velocityLimit 注入速度的绝对值上限（默认 6）
    * @param opts.preset 切换预设
    * @param opts.onDone 到位回调（仅成功完成时触发）
    */
@@ -47,8 +48,11 @@ export function useSpring(initial = 0, preset = 'ios-gentle') {
     target = to
     onDone = opts.onDone || null
     if (typeof opts.initialVelocity === 'number') {
-      // 限制注入速度，防过冲过头（单位与数值同单位/秒）
-      state.v = Math.max(-6, Math.min(6, opts.initialVelocity))
+      /* 限制注入速度，防过冲过头（单位与数值同单位/秒）。
+         velocityLimit 可放宽 —— 多任务切换器的快甩初速度会明显超过 6 层/秒，
+         这里若死守 6，弹簧起步会被「掐掉」半截，快甩看着像先顿一下再走。 */
+      const lim = typeof opts.velocityLimit === 'number' ? opts.velocityLimit : 6
+      state.v = Math.max(-lim, Math.min(lim, opts.initialVelocity))
     }
     if (raf == null) {
       lastTime = performance.now()
