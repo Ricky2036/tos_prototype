@@ -738,13 +738,15 @@ function onHomeKeydown(event) {
 }
 function showFolder(folderId, element) {
   folderOperation.value = null
-  openFolderId.value = folderId
   const copyRect = (rect) => rect ? ({ left:rect.left,top:rect.top,width:rect.width,height:rect.height,right:rect.right,bottom:rect.bottom }) : null
-  const shell = element?.querySelector?.('[data-folder-shell]')
-  const title = element?.querySelector?.('[data-folder-title]')
+  const el = element || rootRef.value?.querySelector?.(`[data-home-item="folder:${folderId}"]`)
+  const shell = el?.querySelector?.('[data-folder-shell]') || rootRef.value?.querySelector?.(`[data-home-item="folder:${folderId}"] [data-folder-shell]`)
+  const title = el?.querySelector?.('[data-folder-title]') || rootRef.value?.querySelector?.(`[data-home-item="folder:${folderId}"] [data-folder-title]`)
   const iconRects = {}
-  element?.querySelectorAll?.('[data-folder-app]').forEach((node) => { iconRects[node.dataset.folderApp] = copyRect(node.getBoundingClientRect()) })
+  const appNodes = el?.querySelectorAll?.('[data-folder-app]') || rootRef.value?.querySelectorAll?.(`[data-home-item="folder:${folderId}"] [data-folder-app]`)
+  appNodes?.forEach?.((node) => { iconRects[node.dataset.folderApp] = copyRect(node.getBoundingClientRect()) })
   folderOrigin.value = { shellRect:copyRect(shell?.getBoundingClientRect()),titleRect:copyRect(title?.getBoundingClientRect()),iconRects }
+  openFolderId.value = folderId
 }
 function launchFolderApp(appId, anchor) {
   folderOperation.value = null
