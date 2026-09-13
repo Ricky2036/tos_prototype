@@ -102,7 +102,7 @@ const LOCK_STACK_BOTTOM_INSET = 110
 const LOCK_STACK_MAX_VISUAL_OFFSET = 36
 const LOCK_CARD_HEIGHT = 90
 const LOCK_CARD_BASE_ALPHA = 0.7
-const LOCK_STACK_FRONT_ALPHA = 0.98
+const LOCK_STACK_FRONT_ALPHA = 0.90
 const LOCK_STACK_BACK_ALPHA = 0.54
 const LOCK_STACK_DEPTH_ALPHA = 0.4
 const LOCK_STACK_ALPHA_OVERLAP = 48
@@ -653,7 +653,7 @@ function handleClipWheel(e) {
   if (isCollapsed.value) {
     // 折叠状态下：必须向上滚轮/滑动手势（deltaY > 15）才反向展开，决不可用 deltaY < 0 同向触发展开
     if (e.deltaY > 15) {
-      handleExpand()
+      handlePillExpand()
     }
     return
   }
@@ -671,7 +671,22 @@ function onPillPointerUp(e) {
   const dy = e.clientY - pillPointerStartY
   // 点击或向上滑动均触发展开通知
   if (dy <= 10) {
-    handleExpand()
+    handlePillExpand()
+  }
+}
+
+function handlePillExpand() {
+  const now = Date.now()
+  cancelMomentum()
+  if (isCollapsed.value) {
+    if (now - lastStateChangeTime < STATE_TRANSITION_MS) return
+    lastStateChangeTime = now
+    triggerStateTransition()
+    isCollapsed.value = false
+    scrollY.value = 0
+    if (listRef.value) {
+      listRef.value.scrollTop = 0
+    }
   }
 }
 
@@ -1074,6 +1089,23 @@ const lockNotificationsLayout = computed(() => {
       opacity = Math.min(opacity, emergeProgress)
     }
 
+    // 堆叠默认态（未向上滚动）时，至多呈现两张堆叠卡片（顶层卡 + 底层露出卡），多余深层卡完全隐藏
+    if (i >= 2 && !isCollapsed.value) {
+      if (scrollY.value <= 0) {
+        opacity = 0
+      } else {
+        opacity = Math.min(opacity, clamp(scrollY.value / 24, 0, 1))
+      }
+    }
+
+    // 计算被前序卡片覆盖时的内容透明度（防止底层卡片文字透出到半透明顶层毛玻璃卡片上）
+    let contentOpacity = 1
+    if (i > 0 && !isCollapsed.value) {
+      const prevGeo = geometries[i - 1]
+      const separation = geo.visualY - prevGeo.visualBottom
+      contentOpacity = clamp((separation + 10) / 20, 0, 1)
+    }
+
     if (opacity > 0.02 && !isCollapsed.value) {
       maxCoveringBottom = Math.max(maxCoveringBottom, geo.visualBottom)
     }
@@ -1082,6 +1114,7 @@ const lockNotificationsLayout = computed(() => {
       yPos,
       scale,
       opacity,
+      contentOpacity,
       backgroundAlpha,
       interactive: opacity > 0 && geo.layout.interactive,
       isCompletelyCovered
@@ -1106,7 +1139,8 @@ function notifStyle(i) {
     zIndex: 100 - i,
     transition: transitionStyle.value,
     pointerEvents: itemLayout.interactive ? 'auto' : 'none',
-    '--ls-card-bg-alpha': itemLayout.backgroundAlpha.toFixed(3)
+    '--ls-card-bg-alpha': itemLayout.backgroundAlpha.toFixed(3),
+    '--ls-card-content-opacity': itemLayout.contentOpacity.toFixed(3)
   }
 }
 </script>
@@ -1472,7 +1506,7 @@ function notifStyle(i) {
           :aria-label="notifCountLabel"
           @pointerdown="onPillPointerDown"
           @pointerup="onPillPointerUp"
-          @click="handleExpand"
+          @click="handlePillExpand"
         >
           <div class="lp-bell-wrap">
             <LIcon name="bell" :size="16" />
@@ -1719,6 +1753,10 @@ function notifStyle(i) {
   user-select: none;
   touch-action: none;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.18s linear;
+}
+.ls-card-front > * {
+  opacity: var(--ls-card-content-opacity, 1);
+  transition: opacity 0.2s ease-out;
 }
 .ls-card-front.is-swiping,
 .ls-activity-card.is-swiping {
