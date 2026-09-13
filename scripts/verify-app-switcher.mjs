@@ -1168,6 +1168,292 @@ await page.waitForTimeout(1000)
   }
 }
 
+/* ══════════ 第七轮 · 批次 3：松手吸附的「惯性加速 / 慢滑一次一张」+ 触控板双指横滑 ══════════
+   Ricky 原话：
+     ④「需要支持快滑的惯性加速移动（参考视频 95f4eead…mp4）」
+     ⑤「慢滑时每次切换一张卡片，注意卡片的位移速度和停留位置（参考视频 d0ee37dc…mp4）」
+     ①「多任务横滑不支持 Mac 触控板双指横滑手势」
+
+   为什么这里要【合成】指针/滚轮事件，而不是用 page.mouse：
+     · page.mouse 的速度是 CDP 往返抖动的副产品 —— 「快甩 100px」到底多快不可控
+       （旧探针为此一直测不出快甩：实测只有 347px/s，根本没快起来）；
+     · 合成事件下时长由 setTimeout 精确控制，「速度」成了可控自变量。
+     代价：合成 pointerdown 下 setPointerCapture 抛 InvalidPointerId → 先在原型上打桩。
+
+   ⚠️ wheel 的宿主元素必须选 .app-switcher 根，不能选 elementFromPoint 的结果：
+     前卡会因为 renderedCards（|a| > 1.56 剔除）在 focus 增大时被移出 DOM，
+     再往那个【游离节点】dispatchEvent 不会冒泡到 window → 后半串事件全部丢失
+     （踩过一次：「连拨 1000px 只走 2 张」，不是实现的问题）。 */
+console.log('\n───── 批次 3：松手吸附（需求④⑤）与触控板双指横滑（需求①）─────')
+{
+  const origCapture = await page.evaluate(() => {
+    const saved = Element.prototype.setPointerCapture
+    Element.prototype.setPointerCapture = function () {}
+    Element.prototype.releasePointerCapture = function () {}
+    Element.prototype.hasPointerCapture = function () { return false }
+    return true
+  })
+  check('批次 3 前置：合成事件下 setPointerCapture 已打桩', origCapture === true)
+
+  /* 合成一次横拖。
+     segments = [{ dx, vPx, from? }, ...]：按顺序走的若干段（都相对同一次按下的起点）。
+     存在的理由：组件的焦点是 `startFocus + dx/span`，基准在 pointerdown 那一刻钉死 ——
+     所以「先把焦点拖到第 2 张、再反向拖 0.6 层」必须写成**一条连续的路径**
+     （手指的绝对位置编码焦点），不能拆成两次独立拖动（拆开第二段会从 0 起算）。
+     踩过这个坑：拆开时 cur 报的是 -0.21（= 0 + (−140)/233.75 的橡皮筋值），
+     看起来像「反向不生效」，其实是用例自己不成立。 */
+  const synthDrag = (segments, { pause = 0 } = {}) =>
+    page.evaluate(
+      async ({ segments, pause }) => {
+        const root = document.querySelector('.app-switcher')
+        if (!root) return { error: 'no .app-switcher' }
+        const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+        const mk = (t, x) =>
+          new PointerEvent(t, {
+            bubbles: true, cancelable: true, composed: true, pointerId: 1,
+            pointerType: 'mouse', isPrimary: true,
+            buttons: t === 'pointerup' ? 0 : 1, clientX: x, clientY: 500
+          })
+        const x0 = 110
+        window.__switcherSettle = null
+        root.dispatchEvent(mk('pointerdown', x0))
+        for (const seg of segments) {
+          const n = Math.max(2, Math.round(Math.abs(seg.dx) / (seg.vPx * 16)))
+          const dur = Math.abs(seg.dx) / seg.vPx
+          const from = seg.from || 0
+          for (let i = 1; i <= n; i++) {
+            root.dispatchEvent(mk('pointermove', x0 + from + (seg.dx * i) / n))
+            await sleep(dur / n)
+          }
+        }
+        if (pause) await sleep(pause)
+        const last = segments[segments.length - 1]
+        root.dispatchEvent(mk('pointerup', x0 + (last.from || 0) + last.dx))
+        await sleep(900)
+        const c = document.querySelector('.switcher-card.is-deck')
+        return {
+          settle: window.__switcherSettle,
+          focus: c ? +(+c.dataset.index - +c.dataset.depth).toFixed(3) : null
+        }
+      },
+      { segments, pause }
+    )
+
+  /* 合成一串 wheel（模拟触控板：n 个事件、总位移 totalDx、间隔 stepMs） */
+  const synthWheel = (totalDx, n, { stepMs = 16 } = {}) =>
+    page.evaluate(
+      async ({ totalDx, n, stepMs }) => {
+        const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+        const target = document.querySelector('.app-switcher') || document.body
+        for (let i = 0; i < n; i++) {
+          target.dispatchEvent(new WheelEvent('wheel', {
+            bubbles: true, cancelable: true, composed: true,
+            deltaX: totalDx / n, deltaY: 0, deltaMode: 0, clientX: 215, clientY: 500
+          }))
+          await sleep(stepMs)
+        }
+        await sleep(900)
+        const c = document.querySelector('.switcher-card.is-deck')
+        return { focus: c ? +(+c.dataset.index - +c.dataset.depth).toFixed(3) : null }
+      },
+      { totalDx, n, stepMs }
+    )
+
+  /* 回到「焦点 0、切换器打开」的干净起点（用程序化关闭 → 桌面路径重开，与既有用例一致） */
+  const resetFocus0 = async () => {
+    await page.evaluate(() => window.__system.exitSwitcherToHome())
+    await page.waitForTimeout(450)
+    await fastPauseSwipe()
+    await page.waitForTimeout(250)
+    return page.evaluate(() => window.__system.appSwitcherOpen)
+  }
+
+  check('批次 3 复位：回到「切换器打开、焦点 0」', (await resetFocus0()) === true)
+
+  // ---- ⑤ 慢滑：位移过半才翻一张（V5：每段 226~288px ≈ 一张卡的手指行程）----
+  {
+    const slow = []
+    let r = await synthDrag([{ dx: SPAN * 0.42, vPx: 0.4 }], { pause: 150 })
+    slow.push({ label: '0.42 层', idx: r.settle?.idx, exp: 0, v: r.settle?.vFocus })
+    await resetFocus0()
+    r = await synthDrag([{ dx: SPAN * 0.6, vPx: 0.4 }], { pause: 150 })
+    slow.push({ label: '0.60 层', idx: r.settle?.idx, exp: 1, v: r.settle?.vFocus })
+    await resetFocus0()
+    r = await synthDrag([{ dx: SPAN * 0.98, vPx: 0.4 }], { pause: 150 })
+    slow.push({ label: '0.98 层', idx: r.settle?.idx, exp: 1, v: r.settle?.vFocus })
+    check(
+      '需求⑤：慢滑「位移过半才翻一张」（0.42→0 / 0.60→1 / 0.98→1）',
+      slow.every((s) => s.idx === s.exp && Math.abs(s.v) < 2.6),
+      slow.map((s) => `${s.label}:${s.idx}(期望${s.exp},v=${s.v})`).join(' ')
+    )
+  }
+  await resetFocus0()
+  {
+    /* 拖到 1.6 层（≥1.5）→ 翻两张：慢滑的翻张数只由【位移】决定 */
+    const r = await synthDrag([{ dx: SPAN * 1.6, vPx: 0.5 }], { pause: 150 })
+    check('需求⑤：慢滑 1.60 层 → 翻两张（张数只由位移决定）', r.settle?.idx === 2 && r.focus === 2,
+      `判定=${r.settle?.idx} 落点=${r.focus}`)
+  }
+  await resetFocus0()
+  {
+    /* 停住再松手 = 零动量：不能用最后一次 pointermove 的陈旧速度继续翻页 */
+    const r = await synthDrag([{ dx: SPAN * 0.42, vPx: 2.0 }], { pause: 300 })
+    check('需求⑤：快速拖到 0.42 层后【停住 300ms】再松手 → 零动量，回弹不翻页',
+      r.settle?.idx === 0 && Math.abs(r.settle?.vFocus) < 0.001,
+      `判定=${r.settle?.idx} 松手速度=${r.settle?.vFocus}层/s`)
+  }
+
+  // ---- ④ 快滑：小位移也必须翻一张（旧实现：bias 上限 ±0.4 层 → 位移不足半层就完全不翻）----
+  {
+    const fast = []
+    for (const [label, frac] of [['0.05 层', 0.05], ['0.10 层', 0.10], ['0.42 层', 0.42]]) {
+      await resetFocus0()
+      const r = await synthDrag([{ dx: SPAN * frac, vPx: 2.0 }])
+      fast.push({ label, idx: r.settle?.idx, exp: 1, v: r.settle?.vFocus, focus: r.focus })
+    }
+    check(
+      '需求④：快甩 0.05 / 0.10 / 0.42 层（旧实现全部不翻）→ 各翻一张',
+      fast.every((f) => f.idx === 1 && f.focus === 1 && f.v >= 2.6),
+      fast.map((f) => `${f.label}:判定${f.idx}/落点${f.focus}(v=${f.v})`).join(' ')
+    )
+  }
+  await resetFocus0()
+  {
+    /* 上界不变量：极快甩也不会凭速度多翻 —— V4 三个运动段净位移 311/200/229px 都是「≈一张」 */
+    const r = await synthDrag([{ dx: SPAN * 0.10, vPx: 4.0 }])
+    check('需求④：极快甩（v≈16层/s）翻的张数仍与位移一致（不凭速度凭空多翻）',
+      r.settle?.idx === 1 && Math.abs(r.settle?.vFocus) >= 2.6,
+      `判定=${r.settle?.idx}（位移 0.10 层 → 上界 round(0.10)+1 = 1）v=${r.settle?.vFocus}层/s`)
+  }
+  await resetFocus0()
+  {
+    /* 反向（手往左拖 = 往更新的卡翻）。
+       必须写成【一条连续路径】：先向右走 2 层把焦点推到第 2 张，再往回走 0.6 层 ——
+       手指的绝对位置编码焦点。拆成两次独立拖动会从 0 重新起算（见 synthDrag 的注释）。 */
+    const r = await synthDrag(
+      [
+        { dx: SPAN * 2, vPx: 0.5 },
+        { from: SPAN * 2, dx: -SPAN * 0.6, vPx: 0.4 }
+      ],
+      { pause: 150 }
+    )
+    check('需求⑤：反向（手往左）慢滑 0.60 层 → 从第 2 张回退到第 1 张',
+      r.settle?.idx === 1 && r.focus === 1,
+      `松开位置=${r.settle?.cur} 判定=${r.settle?.idx} 落点=${r.focus}`)
+  }
+  await resetFocus0()
+  {
+    const r = await synthDrag([{ dx: -SPAN * 0.3, vPx: 4.0 }])
+    check('需求⑤：焦点已在 0 时反向极快甩 → 夹在 0（橡皮筋，不越界）',
+      r.settle?.idx === 0 && r.focus === 0, `判定=${r.settle?.idx} 落点=${r.focus}`)
+  }
+
+  // ---- ① 触控板双指横滑 ----
+  await resetFocus0()
+  {
+    const r = await synthWheel(-200, 8)
+    check('需求①：双指往右（deltaX<0，内容跟手往右）拨 200px → 焦点增大并落 1',
+      Math.round(r.focus) === 1, `focus=${r.focus}（200/233.75 = 0.86 层）`)
+  }
+  await resetFocus0()
+  {
+    const r = await synthWheel(-90, 6)
+    check('需求①：轻拨 90px（0.38 层，不足半张）→ 弹回原卡（与慢滑同一套过半判据）',
+      Math.round(r.focus) === 0, `focus=${r.focus}`)
+  }
+  await resetFocus0()
+  {
+    /* 动量由系统提供（macOS 会继续吐递减的 wheel），所以触控板路径【不叠加投影】：
+       连拨 1000px = 4.28 层 → 直接落到 4.28 最近的第 4 张，而不是被投影推到更远。 */
+    const r = await synthWheel(-1000, 14)
+    check('需求①：连拨 1000px（4.28 层）→ 落第 4 张（不做二次投影，动量不重复计账）',
+      Math.round(r.focus) === 4, `focus=${r.focus}`)
+  }
+  await resetFocus0()
+  {
+    /* 纵向滚轮（deltaX=0 / 横向不占优）必须原样放行，不响应也不拦 */
+    const before = await page.evaluate(() => {
+      const c = document.querySelector('.switcher-card.is-deck')
+      return c ? +c.dataset.index - +c.dataset.depth : null
+    })
+    const r = await page.evaluate(async () => {
+      const root = document.querySelector('.app-switcher')
+      let prevented = 0
+      for (let i = 0; i < 6; i++) {
+        const e = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaX: 0, deltaY: -120, deltaMode: 0 })
+        root.dispatchEvent(e)
+        if (e.defaultPrevented) prevented++
+        await new Promise((r) => setTimeout(r, 16))
+      }
+      await new Promise((r) => setTimeout(r, 600))
+      const c = document.querySelector('.switcher-card.is-deck')
+      return { prevented, focus: c ? +c.dataset.index - +c.dataset.depth : null }
+    })
+    check('需求①：纯纵向滚轮不误伤（焦点不动、也不 preventDefault）',
+      r.prevented === 0 && r.focus === before, `拦截 ${r.prevented}/6 次，焦点 ${before} → ${r.focus}`)
+  }
+  await resetFocus0()
+  {
+    /* 底部 ~30px 的手势条（HomeIndicator，z=96）在 .app-switcher 之外 ——
+       监听器挂 window 才兜得住那一条，这条用例就是那个盲区的守卫。
+       位移取 2×120px = 240px ≈ 1.03 层：离 1.5 的取整边界有 0.47 层余量，
+       Chrome 对 wheel 增量做归一化缩放也不会踩线（曾用 2×170 = 1.45 层 → 踩线判 2）。 */
+    const before = await page.evaluate(() => {
+      const r = document.elementFromPoint(215, 918)
+      return { tag: r?.className?.toString?.().slice(0, 30) || '' }
+    })
+    await page.mouse.move(215, 918)
+    await page.mouse.wheel(-120, 0)
+    await page.waitForTimeout(180)
+    await page.mouse.wheel(-120, 0)
+    await page.waitForTimeout(900)
+    const f = await page.evaluate(() => {
+      const c = document.querySelector('.switcher-card.is-deck')
+      return c ? +c.dataset.index - +c.dataset.depth : null
+    })
+    check('需求①：指针停在底部手势条上横滑 → 切换器照常翻页（window 监听兜住盲区）',
+      Math.round(f) === 1, `focus=${f}（该处命中元素=${before.tag}）`)
+  }
+  await resetFocus0()
+  {
+    /* 横向 wheel 必须被拦住：卡片里是真实应用预览，设置页等自带可滚列表，
+       不拦的话横滑会把那张缩小卡里的列表滚起来，切换器反而不动。 */
+    const guard = await page.evaluate(async () => {
+      const root = document.querySelector('.app-switcher')
+      const e = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaX: -60, deltaY: 0, deltaMode: 0 })
+      root.dispatchEvent(e)
+      const horiz = e.defaultPrevented
+      const e2 = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaX: 10, deltaY: -60, deltaMode: 0 })
+      root.dispatchEvent(e2)
+      await new Promise((r) => setTimeout(r, 400))
+      return { horiz, diag: e2.defaultPrevented }
+    })
+    check('需求①：横向 wheel 被 preventDefault；斜向（纵向占优）放行',
+      guard.horiz === true && guard.diag === false, `横向 prevented=${guard.horiz} 斜向 prevented=${guard.diag}`)
+  }
+  await resetFocus0()
+  {
+    /* 桌面自己的双指分页必须在切换器打开时让位 —— 否则同一次横滑被两处各处理一遍，
+       关掉切换器后会发现桌面莫名换了一页。
+       观测量取 .home-page-strip 的 transform：它内联了 -currentPage × 100%
+       （见 HomeScreen 的 stripStyle），所以「翻页了没有」在这个值上是一目了然的。 */
+    const home = await page.evaluate(async () => {
+      const m = () =>
+        new DOMMatrixReadOnly(getComputedStyle(document.querySelector('.home-page-strip')).transform).e
+      const before = m()
+      const root = document.querySelector('.app-switcher')
+      for (let i = 0; i < 6; i++) {
+        root.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaX: -90, deltaY: 0, deltaMode: 0 }))
+        await new Promise((r) => setTimeout(r, 40))
+      }
+      await new Promise((r) => setTimeout(r, 600))
+      return { before, after: m() }
+    })
+    check('需求①：切换器打开时桌面分页让位（不会在底下偷偷翻页）',
+      Math.abs(home.before - home.after) < 1, `桌面 strip x: ${home.before} → ${home.after}`)
+  }
+}
+
 check('无控制台报错', errs.length === 0, errs.slice(0, 3).join(' | '))
 
 await page.screenshot({ path: 'shots/app-switcher.png' })

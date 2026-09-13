@@ -236,6 +236,79 @@ function focusToIndex(idx, opts = {}) {
   focusTo(idx, { preset: 'ios-deck', ...opts, onDone: () => { focusMoving.value = false } })
 }
 
+/* ---- 松手吸附（第七轮·批次 3）----
+   Ricky 原话：
+     ④「需要支持快滑的惯性加速移动（参考视频 95f4eead…mp4）」
+     ⑤「慢滑时每次切换一张卡片，注意卡片的位移速度和停留位置（参考视频 d0ee37dc…mp4）」
+
+   逐帧量测 V4（快滑，444×960 / 24fps / 157 帧；/tmp/vwork/track-v4.txt）：
+     · 三个运动段，峰值速度都 = 1680 px/s（≈1.68 px/ms ≈ 7.2 层/秒）
+     · 净位移分别 311 / 200 / **229** px = 1.33 / 0.86 / 0.98 层
+       ⇒ **一次快甩 ≈ 一张卡**。V4 里【没有任何一次多张连翻】的证据。
+   逐帧量测 V5（慢滑，193 帧；/tmp/vwork/track-v5.txt）：
+     · 四段净位移 226 / 288 / 168 / 117 px，每段 ≈ 一张卡的手指行程 ⇒「慢滑一次一张」
+
+   旧实现的缺口（探针 probe-flick3.mjs 实测）：
+     `idx = base + (frac > 0.5 − bias ? 1 : 0)`，bias = clamp(vFocus × 0.1, ±0.4)
+     ⇒ 位移不足半层的快甩永远翻不动（快甩 0.05/0.10 层 → 停在原卡）。
+     但 iPhone 上「快速轻甩」必定翻一张，这就是需求④。
+
+   新模型 = 位移为主 + 快甩的方向保底（**不做速度投影**）：
+     · 非快甩（|v| < FLICK_V_MIN，含慢滑、含「拖到一半停住再松手」）
+         → idx = round(cur)：严格等价于旧行为「位移过半才翻一张」⇒ 需求⑤原样守住；
+     · 快甩（|v| ≥ FLICK_V_MIN）
+         → idx 取「距离最近的整卡」与「手势起点 ± 1 张」中【更远的那一侧】。
+           所以「一次快甩至少翻过一张」，但【不会凭速度凭空多翻】。
+
+   为什么不做速度投影（初版做过，已否）：
+     投影 = cur + v × T 在鼠标上会失控 —— e2e 用 `mouse.move(steps:3)` 一击甩出
+     165px（0.71 层），实测速度 ≈ 23px/ms ≈ 100 层/秒，投影直接越过第 2 张。
+     而 V4 的参考峰值只有 7.2 层/秒，一次手势就是一张卡。
+     保底锚在【手势开始时】那张卡（startFocus）而不是 floor(cur)：
+     否则「已经拖过 2 张再快甩」会被再加一张（0.9 层快甩→2 张这种跳跃就是这么来的）。
+
+   于是行为非常可预测：**翻 n 张 ⟺ 位移超过 n−0.5 张；快甩额外保证至少 1 张。**
+   速度的作用落在「弹簧初速度」上（见 FLICK_V_LIMIT）—— 卡片是【加速冲出去】的，
+   而不是靠多翻张数体现速度。 */
+const FLICK_V_MIN = 2.6 // 层/秒 —— 超过它才算「快甩」（≈608px/s，V4 峰值 7.2 远高于此）
+/* 注入弹簧的初速度上限（层/秒）。V4 峰值 7.2 层/秒；12 ≈ 2800px/s，
+   再快也就是这个手感了（再高只会在到位时过冲得更明显）。 */
+const FLICK_V_LIMIT = 12
+
+/** 松手吸附。
+ *  @param vFocus     松手瞬时速度（层/秒，向右为正）
+ *  @param startFocus 手势按下时的焦点（快甩保底的锚点） */
+function settleFocus(vFocus, startFocus) {
+  const cur = focus.value
+  const last = Math.max(0, apps.value.length - 1)
+  let idx = Math.round(cur)
+
+  if (Math.abs(vFocus) >= FLICK_V_MIN) {
+    /* 方向保底：快甩至少要翻过「起点那张」后面/前面的一张。
+       锚在 startFocus → 已经靠位移翻过去的不会被重复计数。 */
+    const from = Math.round(startFocus)
+    idx = vFocus > 0 ? Math.max(idx, from + 1) : Math.min(idx, from - 1)
+  }
+
+  /* 先夹到合法区间再落定 —— 自省口报的必须是【真实决策】，而不是夹取前的中间值
+     （反向上甩贴着 0 号卡时中间值会是 -1，探针会据此误判成越界）。 */
+  idx = Math.max(0, Math.min(last, idx))
+  focusToIndex(idx, {
+    initialVelocity: vFocus,
+    velocityLimit: FLICK_V_LIMIT
+  })
+  /* 松手判定的自省口（与 main.js 暴露 window.__system 同性质）：
+     回归探针拿它当 oracle —— 断言「给定 (cur, vFocus, startFocus) 的判定必须满足
+     本文档的规则」，而不是把某个索引写死（写死必然与「最后 100ms 窗口速度」的实际值对不上）。 */
+  window.__switcherSettle = {
+    cur: +cur.toFixed(4),
+    from: +startFocus.toFixed(4),
+    vFocus: +vFocus.toFixed(3),
+    isFlick: Math.abs(vFocus) >= FLICK_V_MIN,
+    idx
+  }
+}
+
 /* 邻居进场编排：
    - 手势路径：开关打开瞬间即「已在槽位」（藏在前卡后面，前卡缩小自然露出），无滑入；
    - 桌面路径：下一帧起自下方上浮，逐张 60ms 错峰（参考视频入场）。 */
@@ -245,6 +318,11 @@ const homePath = ref(false)
 const hasFollow = ref(false)
 let dwellTimer = null
 let settleTimer = null
+/* 触控板横滑的状态（需求①）—— 必须声明在 appSwitcherOpen 的 watch【之前】：
+   那个 watch 带 immediate，setup 期间就会跑；状态若声明在后面，
+   watcher 里的 cancelWheel() 会踩到 TDZ。 */
+const wheelAcc = ref(null)
+let wheelIdleTimer = null
 
 function markEntrance() {
   clearTimeout(settleTimer)
@@ -269,6 +347,11 @@ watch(
       homePath.value = false
       hasFollow.value = false
       preCommit.value = false
+      /* 触控板的未决吸附必须一并撤掉 + 放开过渡：
+         否则关闭瞬间若还压着 endWheel 的定时器，它会在下一次打开时改焦点；
+         而 focusMoving 挂着会把「关闭」那一段的卡片过渡全关掉（卡片瞬移）。 */
+      cancelWheel()
+      focusMoving.value = false
       return
     }
     /* 同步编排（不放到 nextTick）：邻居卡要和开关置位在同一帧就带上目标样式，
@@ -561,6 +644,8 @@ function onPointerDown(e) {
   vLetGo.value = null
   vt.length = 0
   vtPush(e.clientX, performance.now())
+  /* 指针接管：把触控板那条还没落定的手势收掉（否则它的 endWheel 会在拖动中途改焦点） */
+  cancelWheel()
   drag.value = {
     startX: e.clientX,
     startY: e.clientY,
@@ -620,17 +705,11 @@ function onPointerUp(e) {
   const vFocus = (vtVelocity(tNow) * 1000) / metrics.value.span // 层/秒
 
   if (d.mode === 'h') {
-    /* 松手吸附（参考 StackSwipe：projected = pos + vIndex × 提前量 → 四舍五入）：
-       位移过半才翻页；速度只用来「补足」尚未过半的位移 —— 快甩即使只走了 1/3 张也翻页，
-       而已经走满一整张的快滑不会额外多翻一张（否则 span=0.85 卡宽的快滑会一次跳两层）。
-       提前量偏置钳制在 ±0.4 层，避免高速把判定推得离谱。 */
-    const cur = focus.value
-    const base = Math.floor(cur)
-    const frac = cur - base
-    const bias = Math.max(-0.4, Math.min(0.4, vFocus * 0.1))
-    const idx0 = base + (frac > 0.5 - bias ? 1 : 0)
-    const idx = Math.max(0, Math.min(apps.value.length - 1, idx0))
-    focusToIndex(idx, { initialVelocity: Math.max(-6, Math.min(6, vFocus)) })
+    /* 用【松手这一刻重算的】层速度，而不是 d.vPx（最后一次 pointermove 的陈旧值）：
+       vtVelocity 会剔除 >100ms 的旧样本，手指停住再松手自然得 0；
+       若沿用 d.vPx，停住 300ms 再松手会带着停顿前的旧速度继续翻页（需求⑤的反例）。
+       第二个参数是快甩保底的锚点（手势按下时的焦点）。 */
+    settleFocus(vFocus, d.startFocus)
     return
   }
   if (d.mode === 'v') {
@@ -681,6 +760,74 @@ function hitCardId(e) {
   const el = document.elementFromPoint(e.clientX, e.clientY)
   const card = el?.closest?.('.switcher-card')
   return card?.dataset?.appId || null
+}
+
+/* ---- 触控板双指横滑（第七轮·批次 3，需求①）----
+   Ricky 原话：「多任务横滑不支持 Mac 触控板双指横滑手势」。
+   根因：组件此前只接 pointer 事件，**一个 wheel 都没接** —— 双指横滑产生的 wheel
+   被浏览器当成页面滚动吞掉，切换器全程纹丝不动。
+
+   方向：DOM 规范里 deltaX > 0 =「向右滚动」= 内容左移；自然滚动下
+   「双指往右 → 内容往右 → deltaX < 0」。而本组件的直接操作语义是
+   「手指往右 → focus 增大 → 卡片往右」，所以 focus += −deltaX / span，
+   与 pointer 路径的 focus += dx / span 同构（换一种输入设备，不是换一套方向）。
+
+   ⚠️ 与指针路径最重要的差别：**触控板自带动量相**。一次双指快拨之后 macOS 会继续吐
+   一串递减的 wheel（动量），所以这里【绝不叠加投影】—— 惯性已经由系统喂进来了，
+   再投影一次就是双重计账（猛拨会飞过头）。做法：
+     · 逐事件把 wheel 增量累加进独立累加器 wheelAcc（不是 focus.value ——
+       焦点会被 spring 拖着滞后，拿它当累加基准每帧都会丢掉一点位移）；
+     · 手全程 focusSnap 逐帧直写（零过渡 → 与触控板 1:1 跟手）；
+     · 手势流停下（WHEEL_IDLE 内无新事件）→ 吸附到最近整卡。
+   于是：轻拨（累计 < 半张）弹回原卡；拨过半张翻一张（与需求⑤一致）；
+   猛拨被动量喂过 1.5 张 → 落点就是第 2 张（触控板上的「惯性加速」）。 */
+const WHEEL_LINE_PX = 16 // deltaMode=1（按行）折算像素
+const WHEEL_PAGE_PX = 400 // deltaMode=2（按页）
+/* 手势结束判定（ms）。取 140 与 HomeScreen 的 wheelResetTimer 同值 —— 同一种输入设备
+   在同一个原型里有且只有一套「拨完了」的门槛。
+   系统动量相的事件间隔常态 < 40ms（尾部也极少超过 100ms），140ms 足够；
+   判早了会把动量尾巴切掉 —— 那正是「惯性」的来源，宁可多等一拍。 */
+const WHEEL_IDLE = 140
+
+function onWheel(e) {
+  if (!system.appSwitcherOpen || drag.value || dismissing.value || expanding.value) return
+  /* deltaMode 归一：部分设备/浏览器给「行」或「页」，要折成像素才与 span 同量纲 */
+  const k = e.deltaMode === 1 ? WHEEL_LINE_PX : e.deltaMode === 2 ? WHEEL_PAGE_PX : 1
+  const px = e.deltaX * k
+  /* 判据与 HomeScreen.onWheel 完全一致：横向必须【压过纵向】且不小于 2px 才算横滑意图。
+     这样「纯纵向滚轮 / 斜着滚」都不会被我们拦住（切换器里也没有可滚内容）。 */
+  if (!px || Math.abs(px) <= Math.abs(e.deltaY) || Math.abs(px) < 2) return
+  /* 拦掉默认滚动。必要性：卡片里是真实的应用预览，其中设置页等自带可滚列表 ——
+     不拦的话横滑会把那张缩小卡里的列表横向滚起来，切换器反而不动。
+     监听器注册在 window 且显式 passive:false（见 onMounted）—— 因为底部 ~30px 的
+     手势条（HomeIndicator，z=96）在 .app-switcher 之外，只挂根元素会漏掉那一条。 */
+  e.preventDefault()
+  measure()
+  if (wheelAcc.value == null) {
+    /* 手势起点：可能正压着一个没跑完的吸附弹簧 → 从当前位置接管（focusSnap 即 stop+set） */
+    wheelAcc.value = focus.value
+    focusMoving.value = true
+  }
+  wheelAcc.value = deckClampFocus(wheelAcc.value - px / metrics.value.span, apps.value.length)
+  focusSnap(wheelAcc.value)
+  clearTimeout(wheelIdleTimer)
+  wheelIdleTimer = setTimeout(endWheel, WHEEL_IDLE)
+}
+
+/** 触控板手势流结束 → 吸附到最近整卡（不加投影：动量的账已经由系统记过了） */
+function endWheel() {
+  if (wheelAcc.value == null) return
+  const cur = wheelAcc.value
+  wheelAcc.value = null
+  const last = Math.max(0, apps.value.length - 1)
+  focusToIndex(Math.max(0, Math.min(last, Math.round(cur))))
+}
+
+/** 指针/程序化操作接管时，必须把触控板的未决吸附撤掉（否则它会在拖动中途改焦点） */
+function cancelWheel() {
+  clearTimeout(wheelIdleTimer)
+  wheelIdleTimer = null
+  wheelAcc.value = null
 }
 
 /* 上滑移除：飞出 + 其余卡片弹簧重排 */
@@ -764,12 +911,22 @@ onMounted(() => {
     ro = new ResizeObserver(measure)
     ro.observe(screenRef.el)
   }
+  /* 触控板双指横滑（需求①）：挂在 window 上，并且【显式 passive:false】——
+     ① 底部 ~30px 的手势条（HomeIndicator，z=96）不在 .app-switcher 内，
+        只挂根元素会漏掉那一条；
+     ② 必须能 preventDefault（见 onWheel 里的注释：卡片内含真实应用预览，
+        设置页那种自带可滚列表会被横滑滚起来）。
+     代价是 DevTools 可能提示「非 passive 的 wheel 监听」——那是开发期提示，
+     与正确性无关；轮询事件里我们先判 deltaX 再拦，纯纵向滚轮原样放行。 */
+  window.addEventListener('wheel', onWheel, { passive: false })
 })
 watch(rootRef, (el) => { if (el) measure() })
 onBeforeUnmount(() => {
   if (ro) { ro.disconnect(); ro = null }
   clearTimeout(dwellTimer)
   clearTimeout(settleTimer)
+  cancelWheel()
+  window.removeEventListener('wheel', onWheel)
 })
 </script>
 

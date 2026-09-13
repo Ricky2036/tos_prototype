@@ -134,6 +134,11 @@ function onWheel(event) {
     if (pinchWheelDelta >= 24) { pinchWheelDelta = 0; home.setEditing(true) }
     return
   }
+  /* 切换器打开时，横向手势归切换器（AppSwitcher.onWheel）—— 桌面在底下偷偷翻页
+     只会让「关掉切换器后莫名换了一页」，且同一次双指横滑会被两处各处理一遍。
+     注意这里必须放在 preventDefault 之前：让桌面这一次【完全退出】，
+     而不是拦掉之后又不做事。 */
+  if (system.appSwitcherOpen) return
   if (home.editing || openFolderId.value || Math.abs(event.deltaX) <= Math.abs(event.deltaY) || Math.abs(event.deltaX) < 2) return
   folderOperation.value = null
   event.preventDefault()
