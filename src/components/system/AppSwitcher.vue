@@ -700,7 +700,9 @@ const labelIndex = computed(() => {
  *      参考视频 981c9428…mp4 的停驻段（f100 / f104）C 位标签是全程在的。
  * 其余路径（桌面入场上浮、上滑移除淡出）的透明度仍挂在卡根 —— 那些场景需要【连标签一起】淡。 */
 function bodyOpacityOf(i) {
-  return i === frontIndex.value && hasFollow.value && !settledOne.value ? 0 : 1
+  /* followYields（第十二轮）：上滑删卡 / 前卡飞出期间跟手卡让位 ⇒ 卡体必须还给堆叠卡，
+     否则「跟手卡不跟手 + 堆叠卡卡体透明」= 整段手势看不见任何东西。 */
+  return i === frontIndex.value && hasFollow.value && !settledOne.value && !followYields.value ? 0 : 1
 }
 
 /* ── 卡片投影（第十轮·需求②）──────────────────────────────────────────────
@@ -781,7 +783,12 @@ function stackStyle(i) {
      Ricky 原话：「上滑删除卡片时，卡片未跟手上滑移动」。
      旧实现在 onPointerMove 里对 v 模式直接 return，整段手势卡片零位移，
      只有松手越过 110px 才「啪」地飞出去；现在被按住的那张卡实时跟随手指的纵向位移，
-     并随高度线性变淡（上滑越远越淡），松手时：过阈值 → 从当前位置直接飞出；
+     ⚠️ 第十二轮（需求②）：跟手期【只位移、不变淡】。Ricky 原话「上滑多任务卡片的时候
+     还是会有一个透明的渐变，取消上滑过程中卡片的透明度变化」—— 旧实现在这里叠了一条
+     `opacity = min(opacity, 1 + ddy/320)`（上滑越远越线性变淡，滑满 320px 全透明）。
+     与第九轮入场那条「opacity 恒 1」是同一个道理：卡片的可见性由【位移】表达就够了，
+     再叠淡出就成了「忽明忽暗」，而且上滑 110px 就要判定飞出，淡到 0.66 更像卡坏了。
+     松手时：过阈值 → 从当前位置直接飞出（飞出段的淡出见 dismissingStyle）；
      未过阈值 → 靠 CSS 过渡弹回原位（drag 置空即恢复过渡，见 .is-dragging 规则）。
 
      vLetGo 是「松手后仍沿用一帧拖动态位姿」的接力棒：`.is-dragging` 摘掉的那一帧
@@ -791,7 +798,9 @@ function stackStyle(i) {
   if (vOff && vOff.cardId === apps.value[i]) {
     const ddy = Math.min(0, vOff.dy)
     y += ddy
-    opacity = Math.min(opacity, Math.max(0, 1 + ddy / 320))
+    /* 第十二轮（需求②）：这里【不再】改 opacity —— 跟手期卡片只位移、不变淡。
+       被删掉的那行是 `opacity = Math.min(opacity, Math.max(0, 1 + ddy / 320))`（上滑越远越淡）。
+       反例护栏见 e2e「上滑跟手期 opacity 恒 1」。 */
     delay = '0ms'
   }
 
@@ -879,6 +888,29 @@ const settledOne = computed(
     system.switcherProgress <= 1.001
 )
 
+/* 跟手卡【让位】判据（第十二轮，需求②的连带修正）。
+   跟手卡（.is-follow，z=12000）只在「进场交接」期间顶替堆叠前卡 ——
+   一旦用户对前卡发起【上滑删卡】(v 模式) 或那张卡正在飞出，它必须让位给堆叠卡本身。
+
+   为什么必须让（探针实测 /tmp/vwork/r12/probe-see.mjs + probe-shots.mjs）：
+     · 跟手卡不消费 drag 的纵向位移（它的 cx/cy 只跟 switcherProgress 走），
+       跟手上移 / 飞出全发生在【它下面那张堆叠卡】上 ——
+       而那张卡的卡体被 bodyOpacityOf 藏成 0（hasFollow && !settledOne），
+       卡根又被跟手卡压在下面 ⇒ 整段手势【零视觉反馈】：
+       实测上滑 168px 后的截图与静止态逐字节一致（差异只有状态栏时钟）。
+     · 这同时也解释了第七轮需求⑧「跟手上移」为什么体感没做成 ——
+       e2e 量的是 `.is-deck[data-depth=0]` 的几何（确实动了），但它当时不可见。
+     · 桌面路径（activeAppId = null ⇒ 模板不渲染跟手卡）一直是对的：
+       那张卡可见、跟手、且【真的会随高度变淡】—— Ricky「上滑多任务卡片的时候
+       还是有一个透明的渐变」看到的正是这条路径（第十二轮已删掉那条 opacity）。
+   让位条件只覆盖「前卡」这一张：拖别的卡（i ≠ frontIndex）时它的卡体本来就是 1，
+   本来就看得见跟手与飞出，不需要（也不应该）动跟手卡。 */
+const followYields = computed(
+  () =>
+    !!system.activeAppId &&
+    (drag.value?.mode === 'v' || !!vLetGo.value || dismissing.value === system.activeAppId)
+)
+
 /* ---- 跟手缩放（Ricky 2026-09-12 纠正）----
    ① 锚点 = 落点 = 【屏幕中心】：卡片原地缩小，全程不左右漂；
    ② 缩放严格跟随手指的上滑位移做【无极】变化 —— 上滑越远缩得越小，
@@ -894,7 +926,8 @@ const followDriftW = computed(() => 1 - Math.min(1, Math.max(0, followFree.value
 
 const followStyle = computed(() => {
   const p = system.switcherProgress
-  if (p <= 0 || settledOne.value) return null
+  /* followYields：上滑删卡期间跟手卡让位 —— 见该 computed 的注释（第十二轮） */
+  if (p <= 0 || settledOne.value || followYields.value) return null
   const idx = frontIndex.value
   const slot = poseOf(idx)
   const slotCx = slot.x + cardW.value / 2
@@ -1022,6 +1055,62 @@ function releaseSqueeze() {
   followFreeTo(1)
 }
 
+/* ---- 手势模式判定（第十二轮重写）----
+   Ricky 原话：「移动端通过安卓的 Chrome 浏览器打开，上滑删除多任务卡片的时候，
+   总是变成误触成左右滑动，帮我查一查是什么原因？」
+
+   根因（不是猜的，是探针实测 —— /tmp/vwork/r12/probe-touch.mjs，
+   用 CDP Input.dispatchTouchEvent 注入**真实触摸**，Chrome 合成 pointerType='touch' 的指针事件；
+   仓库里的 e2e 用 page.mouse 驱动，坐标精确、无接触面抖动，所以桌面端永远点不出这个毛病）：
+
+   · 旧判定 = `Math.abs(dy) > Math.abs(dx) * 1.4`，且【第一帧满足 |dx|≥6 或 |dy|≥6 就一帧定终身】。
+     等价于「首个 pointermove 的仰角 ≤ 54.5° 就判成横滑」。
+   · 而触摸屏派发的第一个 pointermove 恰恰是最不可靠的一帧：
+       - 手指接触面是个椭圆，按下瞬间质心还在【滚动】，天然带几个像素的横向位移；
+       - 单手持机时拇指绕关节转，起手那几毫米走的是【切向】（比整条轨迹平得多）；
+       - Chrome 的触摸 slop 决定了第一帧的事件要等累计走够 ~8~12px 才派发，
+         报出来的坐标是「走够 slop 那一刻」的位置 —— 方向已经定型，但没有第二次机会。
+   · 实测击穿点（探针 9 个场景，全程 pointercancel = 0 —— 浏览器没夺走指针，
+     `touch-action: none` 是生效的，「多点了一下」之类猜测可以排除）：
+       T3 首帧 (7,-7)、后续 21 帧全是纯纵向  → 旧规则锁 'h'
+       T5 首帧 (8,-7)、后续 20 帧全是纯纵向  → 旧规则锁 'h'
+       T7 首帧 (6,+2)（拇指横滚）、之后 290px 纯纵向上滑 → 旧规则锁 'h'，
+          于是【这 290px 里的 60px 横向漂移全部被当成翻卡量】：卡片横向实走 31.6px、
+          __switcherSettle.cur = 0.28 层 —— 这就是用户看到的「变成左右滑动」。
+          横漂再大一点就会真的翻到下一张卡。
+   · 蒙特卡洛（/tmp/vwork/r12/mc.mjs，20 万样本）：起手仰角 62°（单手持机拇指的典型起手角）
+     时旧规则 29.3% 判成横滑、仰角 54.5° 时 48.2%；即便【完全竖直】上滑，
+     仅 3px 的接触面抖动也能让旧规则 3.6% 误判成横滑。
+
+   新判定（三条）：
+     ① 【攒够再判】优势轴自己要走够 MODE_LOCK_PX 才成立 —— 不再拿「两轴都只有几像素」
+        的噪声帧当依据；
+     ② 【优势轴须压过另一轴 MODE_AXIS_RATIO 倍】（沿用旧的 1.4 口径）——
+        两轴都不占优时继续 pending，不锁死；
+     ③ 【允许改判，直到效果可见】—— 这是关键：单靠 ①② 只是把击穿门槛从 6px 抬到 10px，
+        横向滚够 11px 依然会锁错。所以未 commit 之前每帧重新判，
+        从 'h' 改判走时把横向焦点归位（归位量 ≤ MODE_COMMIT_PX/span ≈ 0.11 层，肉眼看不出，
+        而这段位移本来就该由纵向解释）。commit = 本方向已走出 MODE_COMMIT_PX 的可见行程，此后冻结。
+     ④ 死区兜底：仰角落在 35°~55° 之间时两轴都不占优，攒到 MODE_GIVEUP_PX 按较大的轴定夺
+        —— 不然真·斜滑会变成「什么都不发生」。
+
+   探针预演（同一批场景喂新规则）：T3/T5/T7 由 'h' 全部转正为 'v'；
+   T8 真实横滑（dx 主导、220px 行程）仍锁 'h' 并正常翻到第 2 张 —— 横滑没被判丢。 */
+const MODE_LOCK_PX = 10 // 优势轴至少要走出这么多才认方向（触摸 slop 量级 ≈ 8~12px）
+const MODE_AXIS_RATIO = 1.4 // 优势轴须压过另一轴的倍数（沿用旧口径）
+const MODE_COMMIT_PX = 22 // 本方向走出这么多 ⇒ 效果已可见 ⇒ 冻结模式、不再改判
+const MODE_GIVEUP_PX = 28 // 两轴都不占优（35°~55° 死区）时的兜底门槛
+
+/** 按【累计位移】给出模式建议；'pending' = 还没看出来，继续观察。 */
+function pickMode(dx, dy, maxMove) {
+  const ax = Math.abs(dx)
+  const ay = Math.abs(dy)
+  if (ay >= MODE_LOCK_PX && ay > ax * MODE_AXIS_RATIO) return dy < 0 ? 'v' : 'down'
+  if (ax >= MODE_LOCK_PX && ax > ay * MODE_AXIS_RATIO) return 'h'
+  if (maxMove >= MODE_GIVEUP_PX) return ay >= ax ? (dy < 0 ? 'v' : 'down') : 'h'
+  return 'pending'
+}
+
 function onPointerDown(e) {
   if (dismissing.value || clearing.value || system.switcherClosing) return
   measure()
@@ -1040,6 +1129,12 @@ function onPointerDown(e) {
     startFocus: focus.value,
     startT: performance.now(),
     mode: 'pending',
+    /* 第十二轮：模式「冻结」位。pickMode 在产生可见效果之前允许改判（见上方长注释），
+       一旦本方向走出 MODE_COMMIT_PX 的行程就置 true，此后模式不再变。 */
+    modeFrozen: false,
+    /* 第十二轮：模式改判轨迹（探针/e2e 的 oracle —— 断言「首帧横向抖动 7px 之后
+       必须仍然落在 v」靠它，而不是靠肉眼看卡片有没有横走）。 */
+    modeTrace: [],
     dx: 0,
     dy: 0,
     cardId: null,
@@ -1060,13 +1155,33 @@ function onPointerMove(e) {
   const dx = e.clientX - d.startX
   const dy = e.clientY - d.startY
   d.maxMove = Math.max(d.maxMove, Math.hypot(dx, dy))
-  if (d.mode === 'pending') {
-    if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return
-    d.mode = Math.abs(dy) > Math.abs(dx) * 1.4 ? (dy < 0 ? 'v' : 'down') : 'h'
-    /* 上滑移除：在【模式锁定这一刻】就把拖动对象钉死（用按下点取命中卡）。
-       不能等松手再 elementFromPoint —— 拖动期间卡片跟着手指上移、手指也可能滑出卡片
-       范围，松手时命中判定会失手（拿到卡片外面的遮罩 → 整次上滑删不掉）。 */
-    if (d.mode === 'v') d.cardId = hitCardId({ clientX: d.startX, clientY: d.startY })
+  /* 模式判定（第十二轮重写 —— 见 pickMode 上方的长注释，含探针实测数据）。
+     与旧实现的三点差别：
+       ① 判据从「任一轴 6px + 单帧采样」改为「优势轴 10px + 累计位移」；
+       ② 未 commit 之前允许改判（旧实现一帧定终身）；
+       ③ 从 'h' 改判走时把横向焦点归位 —— 这段位移转由纵向解释。 */
+  if (!d.modeFrozen) {
+    const m = pickMode(dx, dy, d.maxMove)
+    if (m !== 'pending' && m !== d.mode) {
+      /* ⚠️ 顺序要紧：先归位焦点（此时 d.mode 还是旧值 'h'），再改 d.mode。
+         归位量 ≤ MODE_COMMIT_PX / span ≈ 0.11 层（≈22px），且只发生在跟手头几帧，
+         肉眼不可辨；不归位的话这段横向位移会「赖」在焦点上，纵向一跟手就跳一下。 */
+      if (d.mode === 'h') focusSnap(d.startFocus)
+      const wasV = d.mode === 'v' || d.mode === 'down'
+      d.modeTrace.push({ at: +d.maxMove.toFixed(1), from: d.mode, to: m })
+      d.mode = m
+      if (m === 'v') {
+        /* 上滑移除：在【模式锁定这一刻】就把拖动对象钉死（用按下点取命中卡）。
+           不能等松手再 elementFromPoint —— 拖动期间卡片跟着手指上移、手指也可能滑出卡片
+           范围，松手时命中判定会失手（拿到卡片外面的遮罩 → 整次上滑删不掉）。 */
+        d.cardId = hitCardId({ clientX: d.startX, clientY: d.startY })
+        d.dy = dy
+      } else if (m === 'h' && wasV) {
+        d.dy = 0 // 改判成横滑 → 纵向跟手量清零，否则卡片会「半抬着」横向走
+      }
+    }
+    if (d.mode === 'h' && Math.abs(dx) >= MODE_COMMIT_PX) d.modeFrozen = true
+    if ((d.mode === 'v' || d.mode === 'down') && Math.abs(dy) >= MODE_COMMIT_PX) d.modeFrozen = true
   }
   if (d.mode === 'v') {
     /* 上滑移除【跟手】（第七轮·批次 2，需求⑧）：旧代码在这一行直接 return，
@@ -1127,6 +1242,19 @@ function onPointerUp(e) {
     Math.abs(vFocus) < FLICK_V_MIN &&
     tNow - d.startT < TAP_MS_MAX
 
+  /* 模式判定的自省口（第十二轮，与 __switcherSettle 同性质）：
+     安卓 Chrome 触摸下「首帧横向抖动」会不会把上滑判成横滑，只能靠它做 oracle ——
+     断言「最终 mode === 'v'」而不是看卡片有没有横走（横走多少要读十几帧 transform）。 */
+  window.__switcherMode = {
+    mode: d.mode,
+    frozen: d.modeFrozen,
+    cardId: d.cardId,
+    dx: +dx.toFixed(2),
+    dy: +dy.toFixed(2),
+    maxMove: +d.maxMove.toFixed(2),
+    trace: d.modeTrace
+  }
+
   /* 松手就把「挤压」和「跟手偏移」交给弹簧 —— 无论走哪条分支都要收，
      否则卡片会带着形变/偏移僵在原地（需求⑦「弹性不足」的反面）。 */
   releaseSqueeze()
@@ -1183,10 +1311,30 @@ function onPointerUp(e) {
   }
 }
 
+/* 取指针下的那张卡（返回 appId）。
+   ⚠️ 第十二轮修掉一个【只在真机/触摸路径上稳定复现】的失效 ——
+   旧实现 = `elementFromPoint(...)?.closest('.switcher-card')` 取【最上层】那张，
+   而跟手卡（.is-follow）会在 onPointerDown（followFreeSnap(0) ⇒ settledOne 失效）
+   之后由 Vue 立刻挂出来、【盖在顶层卡正上方】：它有 .switcher-card 但【没有 data-app-id】，
+   于是 closest 拿到它 → appId undefined → 返回 null。后果：
+     · mode='v' 的上滑删卡：cardId 恒 null ⇒ willDismiss 恒 false ⇒ 手机端上滑【永远删不掉】；
+     · 点顶层卡恢复：cardId 恒 null ⇒ 落到 else 分支 exitWithAnimation() ⇒ 点卡片【反而回桌面】。
+   为什么桌面 e2e 一直没抓到：这是竞态 —— 桌面鼠标路径「按下 → 第一帧 pointermove」之间
+   Vue 往往还没来得及补丁 DOM，closest 仍命中下面的堆叠卡；而触摸路径下手指按下与第一个
+   pointermove 之间至少隔一帧（还要走 Chrome 的 touch slop），DOM 必然已补丁 ⇒ 100% 命中跟手卡。
+   探针实测（/tmp/vwork/r12/probe-hit2.mjs，430×932 鼠标复刻 e2e 那一步）：按下 60ms 后
+   命中 "switcher-card is-follow | app=none"，松手后 recent 不变、baseLayer 仍为 'app'
+   —— 也就是说 e2e 里「上滑移除当前应用」那条断言在改前是 false。
+   新实现：沿层叠顺序（elementsFromPoint）往下找【第一张带 appId 的卡】，
+   跟手卡只是「同 app 的替身」，被跳过之后就落到它下面那张真卡上（两者本来就是同一个 app）。
+   同时给跟手卡也标上 data-app-id（见模板）—— 双保险，且语义正确：手指压着的就是它。 */
 function hitCardId(e) {
-  const el = document.elementFromPoint(e.clientX, e.clientY)
-  const card = el?.closest?.('.switcher-card')
-  return card?.dataset?.appId || null
+  const els = document.elementsFromPoint(e.clientX, e.clientY)
+  for (const el of els) {
+    const id = el?.closest?.('.switcher-card')?.dataset?.appId
+    if (id) return id
+  }
+  return null
 }
 
 /* ---- 触控板双指横滑（第七轮·批次 3，需求①）----
@@ -1279,7 +1427,12 @@ function dismissingStyle(i) {
     width: cardW.value + 'px',
     height: cardH.value + 'px',
     transform: `translate3d(${p.x}px, ${p.y - screenH.value * 1.1}px, 0) scale(${p.scale})`,
-    opacity: 0,
+    /* 第十二轮（需求②口径延伸到飞出段）：纯位移飞出，不淡出。
+       旧值 opacity: 0 会与 `opacity 0.22s ease` 那条过渡合起来把卡「边飞边化掉」；
+       而 Ricky 的诉求是「取消上滑过程中的透明度变化」，上滑跟手 + 松手飞出是同一个
+       连续动作，只改跟手段会留半截。同为离场语义的 clearingStyle（一键清理）
+       第九轮就已经定成 `opacity: 1`（参考视频末帧残余卡条仍纯白）—— 两条统一。 */
+    opacity: 1,
     zIndex: deckZ(i),
     borderRadius: RADIUS.value + 'px'
   }
@@ -1507,6 +1660,7 @@ onBeforeUnmount(() => {
       <div
         v-if="followStyle && system.activeAppId"
         class="switcher-card is-follow"
+        :data-app-id="system.activeAppId"
         :style="followStyle"
       >
         <!-- 标签锚点：origin 0 0 落在卡左上角，scale(1/previewScale) 把坐标换算回卡的尺寸体系

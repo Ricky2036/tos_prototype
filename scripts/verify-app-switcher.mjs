@@ -845,12 +845,29 @@ await page.waitForTimeout(500)
   for (let i = 1; i <= 8; i++) { await page.mouse.move(cx, cy - i * 13, { steps: 1 }); await page.waitForTimeout(16) }
   const mid = await page.evaluate(() => {
     const c = document.querySelector('.switcher-card.is-deck[data-depth="0"]')
-    return { y: +c.getBoundingClientRect().y.toFixed(1), op: +getComputedStyle(c).opacity }
+    const body = c.querySelector('.switcher-card-body')
+    return {
+      y: +c.getBoundingClientRect().y.toFixed(1),
+      op: +getComputedStyle(c).opacity,
+      bop: body ? +getComputedStyle(body).opacity : null
+    }
   })
+  /* ⚠️ 第十二轮（需求②）改口径：跟手期【只位移、不变淡】。
+     旧断言是 `mid.op < 0.9` —— 它量的正是 stackStyle 里那条
+     `opacity = min(opacity, 1 + ddy/320)`，Ricky 本轮明确要求取消。
+     改前这里的 op ≈ 0.675；改后恒 1。 */
   check(
-    '需求⑧：上滑 104px 时被拖的卡片【跟手上移】（Δy ≈ 104px）且随高度变淡',
-    Math.abs(mid.y - (box.y - 104)) <= 3 && mid.op < 0.9,
-    `起点 y=${box.y.toFixed(1)} → 拖动中 y=${mid.y}（期望 ≈ ${(box.y - 104).toFixed(1)}）op=${mid.op.toFixed(2)}`
+    '需求⑧：上滑 104px 时被拖的卡片【跟手上移】（Δy ≈ 104px）；第十二轮（需求②）起不再随高度变淡',
+    Math.abs(mid.y - (box.y - 104)) <= 3 && mid.op > 0.99,
+    `起点 y=${box.y.toFixed(1)} → 拖动中 y=${mid.y}（期望 ≈ ${(box.y - 104).toFixed(1)}）op=${mid.op.toFixed(2)}（第十二轮起恒 1）`
+  )
+  /* 第十二轮（需求②的连带修正）：跟手卡必须在【上滑删卡】期间让位给堆叠卡，
+     否则可见的跟手卡冻在槽位、真正跟手上移的堆叠卡卡体又是 opacity 0 ⇒ 整段手势零视觉反馈。
+     旧实现在这里量到的 bop = 0（不可见）。 */
+  check(
+    '需求⑧（第十二轮补）：上滑删卡期间【跟手卡让位】且堆叠前卡卡体可见（bop 恒 1）',
+    mid.bop === 1,
+    `堆叠前卡卡体 opacity = ${mid.bop}（期望 1；旧实现被跟手卡顶替成 0 ⇒ 拖动全程看不见）`
   )
   // 未过阈值 → 回弹归位
   await page.mouse.up()
@@ -2696,6 +2713,248 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
     check('需求②：没有任何一张卡（含跟手卡）还在用旧的 0.42 / 36px 投影',
       bad.length === 0,
       `各卡投影：${Object.entries(sh).map(([k, v]) => `${k}=${v?.a}/${v?.blur}px`).join('  ')}`)
+  }
+}
+
+/* ================== 第十二轮（2026-09-13）==================
+   Ricky 原话：
+     ①「移动端通过安卓的 Chrome 浏览器打开，上滑删除多任务卡片的时候，
+        总是变成误触成左右滑动，帮我查一查是什么原因？」
+     ②「另外上滑多任务卡片的时候还是会有一个透明的渐变，取消上滑过程中卡片的透明度变化」
+
+   ⚠️ 为什么本轮的护栏必须用【真实触摸】驱动，不能再用 page.mouse：
+     本文件其余用例全走 page.mouse ⇒ pointerType='mouse'：坐标精确、无接触面抖动、
+     不过 Chrome 的触摸 slop。而本轮两个缺陷都【只在触摸时序下稳定复现】：
+
+     ① 模式判定「一帧定终身」（旧实现 onPointerMove：第一帧 |dx|≥6 或 |dy|≥6 就定模式，
+        且 |dy| > 1.4|dx| 才算上滑）⇒ 等价于「首个 pointermove 仰角 ≤ 54.5° 就判成横滑」。
+        而触摸屏的第一个 pointermove 恰恰最不可靠：接触面是椭圆、按下瞬间质心还在滚动、
+        单手持机时拇指起手走的是【切向】（比整条轨迹平得多）、且 Chrome 要等累计走够
+        8~12px 才派发第一帧 —— 方向当场定型，没有第二次机会。
+        探针实测（/tmp/vwork/r12/probe-touch.mjs，9 个场景，pointercancel 全程 0）：
+          首帧 (7,-7) 之后 21 帧纯纵向 → 旧规则锁 'h'
+          首帧 (6,+2)（拇指横滚）之后 290px 纯纵向 → 旧规则锁 'h'，
+            这 290px 里的 60px 横向漂移【全部被当成翻卡量】→ 卡片横向实走 31.6px、
+            __switcherSettle.cur = 0.28 层 —— 就是用户看到的「变成左右滑动」。
+        蒙特卡洛（/tmp/vwork/r12/mc.mjs，20 万样本）：起手仰角 62° 时旧规则 29.3% 判成横滑；
+        即便完全竖直，仅 3px 接触面抖动也能让旧规则 3.6% 误判。
+
+     ② hitCardId 取【最上层】.switcher-card ⇒ 命中跟手卡（.is-follow，无 data-app-id）
+        返回 null。跟手卡在 onPointerDown（followFreeSnap(0) ⇒ settledOne 失效）之后由
+        Vue 立刻挂出来盖在顶层卡正上方。触摸时序下「按下 → 第一帧 pointermove」至少隔一帧
+        （还要走 Chrome 的 touch slop），DOM 必然已补丁 ⇒ 100% 复现；鼠标时序偶尔抢在
+        补丁之前 ⇒ 竞态漏网（这也是它能在 e2e 里活过 5 轮的原因）。
+        后果有两个：上滑删卡恒删不掉；点顶层卡恒落到 exitWithAnimation() ⇒ 点卡片反而回桌面。
+
+   触摸注入方式：CDP `Input.dispatchTouchEvent` —— Chrome 据此合成
+   pointerType='touch' 的【真实】指针事件（isTrusted = true），走的就是安卓 Chrome 那条路径。 */
+{
+  const cdp = await ctx.newCDPSession(page)
+  const APP5 = ['settings', 'clock', 'phone', 'camera', 'calculator']
+  const tp = (x, y) => [{ x, y, id: 1, force: 1, radiusX: 12, radiusY: 12 }]
+
+  async function seedApps() {
+    await page.evaluate(() => {
+      window.__system.closeSwitcher?.()
+      window.__system.exitSwitcherToHome?.()
+    })
+    await page.waitForTimeout(420)
+    for (const id of APP5) {
+      await page.evaluate((a) => window.__system.openApp(a), id)
+      await page.waitForTimeout(230)
+    }
+  }
+
+  /** 真实触摸上滑 + 停驻 320ms → 进切换器（dwell 门槛 120ms） */
+  async function touchEnterSwitcher() {
+    const box = await page.evaluate(() => {
+      const r = (document.querySelector('.home-indicator') || document.querySelector('.screen')).getBoundingClientRect()
+      const sc = document.querySelector('.screen').getBoundingClientRect()
+      return { x: r.x + r.width / 2, y: r.y + r.height - 3, screenY: sc.y }
+    })
+    const travel = Math.min(320, box.y - box.screenY - 40)
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: tp(box.x, box.y) })
+    for (let i = 1; i <= 26; i++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: tp(box.x, box.y - (travel * i) / 26) })
+      await page.waitForTimeout(12)
+    }
+    await page.waitForTimeout(320)
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    await page.waitForTimeout(1000)
+    return page.evaluate(() => window.__system.appSwitcherOpen)
+  }
+
+  /** 在【顶卡中心】起手，按 offsets（相对位移序列）做一次真实触摸手势。
+   *  逐帧记录：被移位卡的 opacity / 卡体 opacity / 卡片 x（用来判「有没有变成横滑」）。 */
+  async function touchDragTopCard(offsets, { release = true } = {}) {
+    const pt = await page.evaluate(() => {
+      const c = [...document.querySelectorAll('.switcher-card')].find((x) => x.dataset.appId)
+      const r = c.getBoundingClientRect()
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2, app: c.dataset.appId }
+    })
+    await page.evaluate(() => {
+      window.__switcherMode = null
+      window.__switcherSettle = null
+    })
+    const frames = []
+    const sample = () =>
+      page.evaluate((app) => {
+        const c = [...document.querySelectorAll('.switcher-card')].find((x) => x.dataset.appId === app)
+        const body = c?.querySelector('.switcher-card-body')
+        return {
+          op: c ? +getComputedStyle(c).opacity : null,
+          bop: body ? +getComputedStyle(body).opacity : null,
+          x: c ? Math.round(c.getBoundingClientRect().x) : null,
+          y: c ? Math.round(c.getBoundingClientRect().y) : null,
+          follow: !!document.querySelector('.switcher-card.is-follow')
+        }
+      }, pt.app)
+    const start = await sample()
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: tp(pt.x, pt.y) })
+    for (const [dx, dy] of offsets) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: tp(pt.x + dx, pt.y + dy) })
+      await page.waitForTimeout(14)
+      frames.push(await sample())
+    }
+    if (release) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+      for (let k = 0; k < 8; k++) {
+        await page.waitForTimeout(30)
+        frames.push(await sample())
+      }
+      await page.waitForTimeout(600)
+    }
+    const state = await page.evaluate(() => ({
+      mode: window.__switcherMode || null,
+      settle: window.__switcherSettle || null,
+      recent: [...window.__system.recentApps],
+      base: window.__system.baseLayer,
+      activeAppId: window.__system.activeAppId,
+      open: window.__system.appSwitcherOpen
+    }))
+    const alive = frames.filter((f) => f.op !== null)
+    return {
+      app: pt.app,
+      state,
+      frames,
+      xDrift: alive.length ? Math.max(...alive.map((f) => Math.abs(f.x - start.x))) : 0,
+      opMin: alive.length ? Math.min(...alive.map((f) => f.op)) : null,
+      bopMin: alive.length ? Math.min(...alive.filter((f) => f.bop !== null).map((f) => f.bop)) : null,
+      followEver: frames.some((f) => f.follow)
+    }
+  }
+
+  // ---- ①-a 首帧横向抖 7px（触摸屏最典型），之后 21 帧纯纵向 ----
+  await seedApps()
+  await touchEnterSwitcher()
+  {
+    const off = [[7, -7], [5, -19]]
+    for (let k = 3; k <= 22; k++) off.push([2, -k * 12])
+    const r = await touchDragTopCard(off)
+    const m = r.state.mode
+    check(
+      '第十二轮·需求①-a：触摸·首帧横向抖 7px 后 21 帧纯纵向 → 模式必须判成「上滑」而不是横滑',
+      !!m && m.mode === 'v',
+      `__switcherMode.mode = ${m?.mode}（改前 = 'h'）轨迹 = ${JSON.stringify(m?.trace || [])}`
+    )
+    check(
+      '第十二轮·需求①-a：同一手势里卡片【没有任何横向位移】（改前横走 7px 并落到 h 分支）',
+      r.xDrift <= 2,
+      `最大横向漂移 = ${r.xDrift}px（期望 ≤2；改前该手势被判 h）`
+    )
+    check(
+      '第十二轮·需求①-a：该上滑【真的删掉了卡片】（命中判定必须拿到 appId，不能是跟手卡）',
+      !!m && m.cardId === r.app && r.state.recent.length === 4 && !r.state.recent.includes(r.app),
+      `cardId=${m?.cardId} app=${r.app} 剩余 = ${r.state.recent.join('/')}`
+    )
+  }
+
+  // ---- ①-b 首帧 (6,+2) 拇指横滚 + 后续 60px 横向漂移 ----
+  await seedApps()
+  await touchEnterSwitcher()
+  {
+    const off = [[6, 2], [9, -16]]
+    for (let k = 3; k <= 26; k++) {
+      const t = (k - 3) / 23
+      off.push([9 + 51 * t, -16 - 274 * t])
+    }
+    const r = await touchDragTopCard(off)
+    const m = r.state.mode
+    check(
+      '第十二轮·需求①-b：触摸·首帧 (6,+2) 拇指横滚 + 拇指弧线横漂 60px → 仍须判成「上滑」',
+      !!m && m.mode === 'v',
+      `__switcherMode.mode = ${m?.mode}（改前 = 'h'：那 60px 横漂会被当成 0.31 层翻卡量）`
+    )
+    check(
+      '第十二轮·需求①-b：60px 横漂【没有】被当成横向翻卡（焦点不得被推动）',
+      r.xDrift <= 2 && r.state.recent.length === 4,
+      `最大横向漂移 = ${r.xDrift}px；剩余 = ${r.state.recent.join('/')}`
+    )
+  }
+
+  // ---- ①-c 回归护栏：真的横滑仍然要判成 h 并翻一张 ----
+  await seedApps()
+  await touchEnterSwitcher()
+  {
+    const off = []
+    for (let k = 1; k <= 20; k++) off.push([k * 11, -(8 * k) / 20])
+    const r = await touchDragTopCard(off)
+    const m = r.state.mode
+    check(
+      '第十二轮·需求①-c（回归）：触摸·真实横滑（|dx| 主导、纵向仅漂 8px）仍判 h 并翻到第 2 张',
+      !!m && m.mode === 'h' && !!r.state.settle && r.state.settle.idx === 1,
+      `mode=${m?.mode} settle.idx=${r.state.settle?.idx} cur=${r.state.settle?.cur} 横向漂移 = ${r.xDrift}px`
+    )
+  }
+
+  // ---- ①-d 触摸 tap 顶卡必须【恢复该应用】（改前落到「点空白回桌面」分支） ----
+  await seedApps()
+  await touchEnterSwitcher()
+  {
+    const pt = await page.evaluate(() => {
+      const c = [...document.querySelectorAll('.switcher-card')].find((x) => x.dataset.appId)
+      const r = c.getBoundingClientRect()
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2, app: c.dataset.appId }
+    })
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: tp(pt.x, pt.y) })
+    await page.waitForTimeout(60)
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    await page.waitForTimeout(900)
+    const after = await page.evaluate(() => ({ base: window.__system.baseLayer, app: window.__system.activeAppId }))
+    check(
+      '第十二轮·需求①-d：触摸·点顶层卡 → 恢复该应用（改前 hitCardId=null ⇒ 反而回桌面）',
+      after.base === 'app' && after.app === pt.app,
+      `baseLayer=${after.base} activeAppId=${after.app}（期望 app / ${pt.app}）`
+    )
+  }
+
+  // ---- ② 上滑跟手期 + 飞出期：opacity 恒 1，且跟手卡让位、堆叠卡卡体可见 ----
+  await seedApps()
+  await touchEnterSwitcher()
+  {
+    const off = []
+    for (let k = 1; k <= 14; k++) off.push([2, -k * 13])
+    const r = await touchDragTopCard(off, { release: true })
+    check(
+      '第十二轮·需求②：上滑跟手 + 飞出全程卡片 opacity 恒 1（取消透明度变化）',
+      r.opMin !== null && r.opMin > 0.99,
+      `逐帧最小 opacity = ${r.opMin}（改前跟手期随高度线性降到 ≈${(1 - 182 / 320).toFixed(2)}，飞出段直接 0）`
+    )
+    check(
+      '第十二轮·需求②连带：上滑删卡期间【跟手卡让位】、堆叠前卡卡体可见（bop 恒 1）',
+      r.bopMin !== null && r.bopMin > 0.99,
+      `逐帧最小卡体 opacity = ${r.bopMin}（改前 = 0：可见的跟手卡冻在槽位、跟手上移的卡不可见）`
+    )
+    check(
+      '第十二轮·需求②连带：手势期间不再渲染跟手卡（杜绝它压在顶层卡上抢走命中）',
+      !r.followEver,
+      `逐帧是否出现过 .is-follow = ${r.followEver}`
+    )
+    check(
+      '第十二轮·需求②：上滑超过阈值 → 正常删卡（跟手/飞出两条链路都通）',
+      r.state.recent.length === 4 && !r.state.recent.includes(r.app),
+      `剩余 = ${r.state.recent.join('/')}`
+    )
   }
 }
 
