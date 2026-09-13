@@ -60,7 +60,7 @@ function activate(event, id, item) {
     if (isLarge && isFolderApp) {
       return
     }
-    event.preventDefault(); event.stopPropagation(); emit('open-folder', item.folderId, event.currentTarget)
+    event.preventDefault(); event.stopPropagation(); emit('open-folder', item.folderId, event.currentTarget || itemRefs.get(id))
   }
 }
 </script>
@@ -76,7 +76,7 @@ function activate(event, id, item) {
       <SmartSuggestionWidget v-else-if="items[id]?.type === 'widget'" />
       <AppIcon v-else-if="appFor(items[id])" :app="appFor(items[id])" :size="profile.iconSize * profile.compactScale" :enter-delay="120 + index * 28" home-anchor />
       <HomeFolder v-else-if="folderFor(items[id])" :folder="folderFor(items[id])" :editing="editing" :operation-active="folderOperationId === items[id].folderId" :merging="mergingFolderItemId === id"
-        @open="emit('open-folder',items[id].folderId,$event)" @resize-pointerdown="emit('folder-resize-pointerdown',$event,id,items[id].folderId)"
+        @open="emit('open-folder',items[id].folderId, $event || itemRefs.get(id))" @resize-pointerdown="emit('folder-resize-pointerdown',$event,id,items[id].folderId)"
         @launch-app="(appId, anchor) => emit('launch-app', appId, anchor)" />
       <span v-if="editing" class="selection-mark" aria-hidden="true">{{ selected.has(id) ? '✓' : '' }}</span>
     </div>

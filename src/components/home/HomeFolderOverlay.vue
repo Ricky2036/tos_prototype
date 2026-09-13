@@ -1,6 +1,7 @@
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { getApp } from '../../config/apps'
+import { rectRelativeToScreen } from '../../utils/dom.js'
 import AppIcon from '../ui/AppIcon.vue'
 
 const props = defineProps({
@@ -28,17 +29,26 @@ const rectTransform = (from, to) => (!from || !to?.width || !to?.height)
   : { x: from.left - to.left, y: from.top - to.top, sx: from.width / to.width, sy: from.height / to.height }
 
 function getShellFallback() {
-  const vpw = typeof window !== 'undefined' ? window.innerWidth : 390
-  const vph = typeof window !== 'undefined' ? window.innerHeight : 844
-  return { left: vpw / 2 - 30, top: vph / 2 - 30, width: 60, height: 60 }
+  const screen = panelRef.value?.closest('.screen-view') || document.querySelector('.screen-view')
+  const desktopFolder = screen?.querySelector?.(`[data-home-item="folder:${props.folder.id}"] [data-folder-shell]`)
+    || screen?.querySelector?.(`[data-folder-id="${props.folder.id}"] [data-folder-shell]`)
+    || screen?.querySelector?.('.home-folder [data-folder-shell]')
+  if (desktopFolder && screen) {
+    const r = rectRelativeToScreen(desktopFolder, screen)
+    if (r && r.width > 0 && r.height > 0) return r
+  }
+  const sw = screen?.offsetWidth || (typeof window !== 'undefined' ? window.innerWidth : 390)
+  const sh = screen?.offsetHeight || (typeof window !== 'undefined' ? window.innerHeight : 844)
+  return { left: sw / 2 - 30, top: sh / 2 - 30, width: 60, height: 60, x: sw / 2 - 30, y: sh / 2 - 30 }
 }
 
 function prepareMotion() {
   if (!panelRef.value) return
+  const screen = panelRef.value.closest('.screen-view') || document.querySelector('.screen-view')
   const fallback = props.origin?.shellRect || getShellFallback()
-  const from = props.origin?.shellRect || fallback
-  const to = panelRef.value.getBoundingClientRect()
-  if (!to.width || !to.height) return
+  const from = (props.origin?.shellRect && props.origin.shellRect.width > 0) ? props.origin.shellRect : fallback
+  const to = screen ? rectRelativeToScreen(panelRef.value, screen) : panelRef.value.getBoundingClientRect()
+  if (!to || !to.width || !to.height) return
 
   const sx = from.width / to.width
   const sy = from.height / to.height
@@ -57,8 +67,8 @@ function prepareMotion() {
     if (!iconEl) continue
     const _t = rectTransform(props.origin?.iconRects?.[appId] || fallback, iconEl.getBoundingClientRect())
     const tileEl = iconEl.querySelector('.app-icon-anchor') || iconEl
-    const tileRect = tileEl.getBoundingClientRect()
-    const iconElRect = iconEl.getBoundingClientRect()
+    const tileRect = screen ? rectRelativeToScreen(tileEl, screen) : tileEl.getBoundingClientRect()
+    const iconElRect = screen ? rectRelativeToScreen(iconEl, screen) : iconEl.getBoundingClientRect()
     const miniRect = props.origin?.iconRects?.[appId]
 
     let cx = 0
@@ -169,6 +179,9 @@ function prepareMotion() {
 
 function close() {
   if (phase.value === 'closing' || phase.value === 'launching') return
+  if (!panelMotion.dx && !panelMotion.dy && (!panelMotion.sx || panelMotion.sx === 1 || panelMotion.sx === 0.2)) {
+    prepareMotion()
+  }
   phase.value = 'closing'
   clearTimeout(closeTimer)
   if (backdropRef.value) backdropRef.value.style.opacity = '0'
