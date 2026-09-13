@@ -82,6 +82,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Desktop enhancements: Phase 1 & 2 layout, iOS cross-screen icon drag, folder hero anchor, and single-app auto-dissolution with seamless zoom | `antigravity/lane` | None (desktop file locks released) | `a94248e` | `e3932d3` |
 | Merged | Antigravity | Restore and preserve folder background blur and frosted glass across opening, open, and closing states | `antigravity/lane` | None (locks released) | `8f94698` | `c330e51` |
 | Merged | Antigravity | Eliminate folder background flicker and redesign desktop edit mode to match reference layout | `antigravity/lane` | None (locks released) | `8a9c013` | `32a1e55` |
+| Merged | Antigravity | Implement folder unlock entrance animation on desktop matching surrounding app icons | `antigravity/lane` | None (locks released) | `f039ecd` | `e020efb` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
