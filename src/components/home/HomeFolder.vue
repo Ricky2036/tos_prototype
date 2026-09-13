@@ -3,7 +3,13 @@ import { computed } from 'vue'
 import { getApp } from '../../config/apps'
 import AppIcon from '../ui/AppIcon.vue'
 
-const props = defineProps({ folder: { type:Object, required:true }, editing:{ type:Boolean, default:false }, operationActive:{type:Boolean,default:false}, merging:{type:Boolean,default:false} })
+const props = defineProps({
+  folder: { type: Object, required: true },
+  editing: { type: Boolean, default: false },
+  operationActive: { type: Boolean, default: false },
+  merging: { type: Boolean, default: false },
+  enterDelay: { type: Number, default: 0 }
+})
 const emit = defineEmits(['open','resize-pointerdown','launch-app'])
 const capacity = computed(() => props.folder.width === 2 && props.folder.height === 2 ? 9 :
   (props.folder.width > 1 || props.folder.height > 1 ? 6 : 9))
@@ -19,7 +25,7 @@ function onAppClick(appId, event) {
 </script>
 
 <template>
-  <div class="home-folder" :class="{ large, 'is-merging':merging }">
+  <div class="home-folder" :class="{ large, 'is-merging':merging }" :style="{ '--enter-delay': enterDelay + 'ms' }">
     <div class="folder-surface" role="button" tabindex="0" @click="emit('open')" @keydown.enter="emit('open')">
       <span class="folder-apps" :class="`size-${folder.width}-${folder.height}`" data-folder-shell>
         <span v-for="appId in folder.appIds.slice(0, visibleCapacity)" :key="appId" class="folder-app" :data-folder-app="appId" @click="onAppClick(appId, $event)">
@@ -38,4 +44,25 @@ function onAppClick(appId, event) {
 .home-folder:not(.large) .folder-app :deep(.app-icon){pointer-events:none}
 .folder-resize-handle{position:absolute;right:-9px;bottom:13px;width:36px;height:36px;z-index:8;touch-action:none}.folder-resize-handle i{position:absolute;right:7px;bottom:7px;width:15px;height:15px;border-right:4px solid rgba(255,255,255,.96);border-bottom:4px solid rgba(255,255,255,.96);border-radius:0 0 7px 0;filter:drop-shadow(0 2px 4px rgba(0,0,0,.28))}.home-folder{position:relative}
 .home-folder.is-merging .folder-app{opacity:0}.folder-app{transition:opacity 120ms ease}
+
+/* 解锁进入桌面动效：整体缩放弹入，与周边 AppIcon 节奏一致 */
+.just-unlocked .home-folder {
+  animation: folder-enter 0.5s cubic-bezier(0.25, 0.9, 0.3, 1.2) backwards;
+  animation-delay: var(--enter-delay, 0ms);
+}
+.just-unlocked .home-folder.large {
+  animation-name: folder-enter-large;
+}
+@keyframes folder-enter {
+  from { opacity: 0; transform: scale(1.35); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes folder-enter-large {
+  from { opacity: 0; transform: scale(1.25); }
+  to { opacity: 1; transform: scale(1); }
+}
+/* 禁用文件夹内部小图标的独立解锁动画，防止重复双重缩放 */
+.home-folder .folder-app :deep(.app-icon) {
+  animation: none !important;
+}
 </style>
