@@ -86,7 +86,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Stop edit mode icon wiggle, fix multi-select & prevent click enlarge, implement page thumbnail deck with extra blank page and frosted glass | `antigravity/lane` | None (locks released) | `b000e30` | `9e558a6` |
 | Merged | Antigravity | Fix edit dashboard button deformation, cut-off layout, and refine thumbnail cards frosted glass styling | `antigravity/lane` | None (locks released) | `73b3e79` | `84be4fd` |
 | Merged | Antigravity | Multi-select drag to bottom thumbnail cards drop placement, edit icon refinement, and fix extra blank page | `antigravity/lane` | None (locks released) | `62a064f` | `9f31e70` |
-| Active | Antigravity | Replace desktop edit wallpaper icon with settings wallpaper icon | `antigravity/lane` | `src/components/system/HomeScreen.vue` | `134061b` | Pending |
+| Merged | Antigravity | Replace desktop edit wallpaper icon with settings wallpaper icon | `antigravity/lane` | None (locks released) | `134061b` | `aee15d9` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
