@@ -545,8 +545,19 @@ function onPointerMove(event) {
   pointer.lastX = event.clientX; pointer.lastY = event.clientY
   const dx = event.clientX - pointer.startX, dy = event.clientY - pointer.startY
   if (pointer.mode === 'folder-resize') { event.preventDefault(); updateFolderResize(event.clientX,event.clientY); return }
-  if (pointer.mode === 'folder-press' && Math.hypot(dx,dy) > 9) { clearTimeout(pressTimer); cleanup(false); return }
-  if (pointer.mode === 'item-press' && Math.hypot(dx,dy) > 9) { clearTimeout(pressTimer); cleanup(false); return }
+  if (pointer.mode === 'folder-press' || pointer.mode === 'item-press') {
+    if (Math.hypot(dx, dy) > 7) {
+      if (Math.abs(dy) > Math.abs(dx) * 1.2) {
+        clearTimeout(pressTimer)
+        cleanup(false)
+        return
+      }
+      clearTimeout(pressTimer)
+      pressTimer = null
+      suppressClick(pointer.itemId)
+      pointer.mode = 'page'
+    }
+  }
   if (pointer.mode === 'item-ready' && Math.hypot(dx,dy) > 5) startItemDrag(event.clientX,event.clientY)
   if (pointer.mode === 'folder-app-ready' && Math.hypot(dx,dy) > 5) {
     pointer.mode = 'folder-app-drag'
@@ -753,7 +764,10 @@ function cleanup(cancelled) {
     folderResize.value = null
   }
   if (pointer.mode === 'folder-app-drag') finishFolderApp(cancelled)
-  if (pointer.mode === 'page') finishPage(cancelled)
+  if (pointer.mode === 'page') {
+    if (pointer.itemId) suppressClick(pointer.itemId)
+    finishPage(cancelled)
+  }
   try { pointer.captureEl?.releasePointerCapture?.(pointer.id) } catch {}
   pointer = null; unbindWindow()
 }
@@ -935,6 +949,7 @@ function measureViewport() {
   })
 }
 onMounted(() => {
+  window.__home = home
   window.addEventListener('keydown',onHomeKeydown)
   measureViewport()
   resizeObserver = new ResizeObserver(() => {
