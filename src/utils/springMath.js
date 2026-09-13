@@ -11,7 +11,13 @@ export const SPRING_PRESETS = {
      随后有轻微过冲回弹（74→67→36→49→57→66→70→74）。
      → ω_n = 1/(ζ·τ) = 14 rad/s（stiffness = 196），取 ζ = 0.65（过冲 ≈ 6.7%）
        → damping = 2ζω_n = 18.2。既有 iOS 的「弹」，又不是弹床。 */
-  'ios-deck': { stiffness: 196, damping: 18.2, mass: 1 }
+  'ios-deck': { stiffness: 196, damping: 18.2, mass: 1 },
+  /* 左滑挤压的回弹（第八轮，需求⑦「弹性不足」）。
+     ω_n = √300 ≈ 17.3 rad/s、ζ = 16 / (2×17.3) ≈ **0.46** ⇒ 过冲 ≈ **20%**。
+     配合 SQUEEZE_MAX = 0.16：回弹瞬间会「胀」到 1 + 0.16×0.20 ≈ 1.032，
+     即卡片组先略微弹宽一下再收回 —— 参考视频 53416f88…mp4 的往复振荡就是这个手感。
+     比 ios-bouncy（ζ=0.78，过冲 1.7%）明显得多，又不会变成弹床。 */
+  'ios-squish': { stiffness: 300, damping: 16, mass: 1 }
 }
 
 /**

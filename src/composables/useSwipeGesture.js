@@ -11,7 +11,10 @@ import { clamp, rubberBand, createVelocityTracker } from '../utils/math'
  *   span: 848,            // 进度满量程（px）
  *   canStart: () => true, // 前置条件
  *   onStart,              // 手势捕获成功
- *   onProgress(p, deltaPx),   // 拖拽中：p 为 0..1 进度
+ *   onProgress(p, deltaPx, otherPx),   // 拖拽中：p 为 0..1 进度；
+ *                                      //   deltaPx = 主轴位移（带橡皮筋）；
+ *                                      //   otherPx = 【副轴】原始位移（第八轮新增，
+ *                                      //   需求⑥「X、Y 轴共同跟手」要用它做横向跟随）
  *   onRelease(p, velocity) => target // 松手：返回 0|1 作为弹簧落点；velocity 单位 progress/s
  * })
  *
@@ -110,7 +113,9 @@ export function useSwipeGesture(elRef, options) {
     lastDelta = d
     tracker.add(d)
     const p = clamp(d / span, -0.2, 1.2)
-    onProgress && onProgress(clamp(p, 0, 1), d)
+    /* 第三个参数 = 副轴位移（第八轮新增）。它【不】参与方向锁定与进度计算，
+       只是原样交给调用方 —— HomeIndicator 用它驱动卡片的横向跟手（需求⑥）。 */
+    onProgress && onProgress(clamp(p, 0, 1), d, otherDelta)
     // 捕获期间抑制事件继续传播（防文本选中/点击穿透等默认行为）
     e.preventDefault?.()
   }

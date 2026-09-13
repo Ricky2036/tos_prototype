@@ -3,11 +3,14 @@ import test from 'node:test'
 import {
   DECK,
   deckClampFocus,
+  deckEnterDx,
   deckExposure,
   deckMetrics,
   deckMinLeftEdge,
   deckPhase,
   deckPose,
+  deckSqueeze,
+  deckSqueezeGive,
   deckStair,
   deckVisible,
   deckZ
@@ -15,7 +18,7 @@ import {
 
 // 430 × 932（本项目基准机型）
 const m = deckMetrics(430, 932)
-/** 离场卡左缘越过屏宽所需进度 ≈ 1.28（第七轮·批次 4：右侧槽距改成一张卡宽） */
+/** 离场卡左缘越过屏宽所需进度（第八轮：右侧槽距 = 0.89 卡宽 ≈ 245px） */
 const U_OFF = (m.screenW - m.frontX) / m.exit
 
 test('几何度量：卡宽 275、焦点层水平居中', () => {
@@ -23,14 +26,26 @@ test('几何度量：卡宽 275、焦点层水平居中', () => {
   assert.equal(m.cardH, 596)
   assert.equal(m.frontX, 77.5)
   assert.equal(m.radius, 29)
-  assert.equal(m.exit, 275) // = 卡宽（第七轮·批次 4：EXIT_FRAC = CARD_W_FRAC）
+  /* 第八轮（需求②）：EXIT_FRAC 是【屏宽】分数 0.57 ⇒ exit = round(430×0.57) = 245px
+     = 0.891 卡宽（实测参考图 1080×2363：离场位移 616px / 卡宽 691px = 0.891）。
+     注意别把 0.57 和「卡宽分数」混起来 —— 第七轮的 0.64 恰好两套刻度重合（CARD_W_FRAC=0.64），
+     本轮起两者必须分开读。 */
+  assert.equal(m.exit, 245)
   assert.equal(m.span, 233.75) // = 卡宽 × 0.85（对齐参考视频实测 0.87 卡宽/张）
-  /* 第七轮·批次 4 核心契约（需求②）：离场槽距 ≡ **一张卡宽** ⇒ 静止态离场卡左缘
-     = frontX + cardW = 352.5px ≡ 居中卡右缘 —— **刚好贴住、零重叠零空隙**。
-     改前（第六轮 233.92 = 手指行程）会停在 311.4px，与底卡重叠 41px。 */
-  assert.ok(Math.abs(m.exit - m.cardW) < 1e-9, `exit=${m.exit} cardW=${m.cardW}`)
-  assert.ok(Math.abs(m.frontX + m.exit - (m.frontX + m.cardW)) < 1e-9)
+  /* 第八轮·需求②核心契约：「慢滑时顶部卡片停留位置改为**遮挡 C 位约 10%**」。
+     静止态离场卡左缘 = frontX + exit = 322.5px < 居中卡右缘 352.5px
+     ⇒ 重叠 30px = **10.91% 卡宽**（参考图逐像素实测 75px / 691px = 10.85%）。
+     被本契约取代的第七轮旧值：exit = 275（刚好贴住、零重叠）。 */
+  assert.equal(m.frontX + m.exit, 322.5)
   assert.equal(m.frontX + m.cardW, 352.5)
+  const overlap = m.frontX + m.cardW - (m.frontX + m.exit)
+  assert.equal(overlap, 30)
+  assert.ok(
+    Math.abs(overlap / m.cardW - 0.1091) < 0.003,
+    `遮挡比例 ${((overlap / m.cardW) * 100).toFixed(2)}%（参考实测 10.85%）`
+  )
+  /* 位移比 exit : 手指行程 = 245 : 233.75 = 1.048（参考实测 272:255 ≈ 1.07） */
+  assert.ok(Math.abs(m.exit / m.span - 1.048) < 0.01, `位移比 ${(m.exit / m.span).toFixed(3)}`)
 })
 
 test('修正 A：卡片整体在删除按钮上方居中（图标行 + 卡片作为整体）', () => {
@@ -110,13 +125,14 @@ test('规则⑤ 最多三层：3 个槽位 + 正在离场的卡，第 4 层起�
   assert.ok(deckVisible(2), '第 3 层（最深槽位）必须渲染')
   assert.ok(!deckVisible(2.01), '超过第 3 个槽位即剔除')
   assert.ok(!deckVisible(3), '第 4 张在层深 3 处必须剔除')
-  /* 第七轮·批次 4：离场卡到 a ≈ -1.28125 才越过右屏边（frontX + 275×1.28125 ≈ 430），
-     剔除界从 -1.56 收到 -1.30（= DECK.EXIT_CULL）——
-     因为 deckVisible 用的是【严格大于】，门槛必须 ≥ 1.28125 才不会剔掉还露着的卡。 */
-  assert.ok(deckVisible(-1), '刚换出去的那张要留在屏内露出 = 352.5px 左缘（露出 77.5px）')
-  assert.ok(deckVisible(-1.2812), '还剩 0.14px 在屏内时绝不能提前剔除（闪断高危区）')
-  assert.ok(deckVisible(-1.3 + 1e-9), '刚好卡在剔除界上仍要渲染（左缘 435 已出屏，但边界要保守）')
-  assert.ok(!deckVisible(-1.3), '越过界限才剔除')
+  /* 第八轮（需求②）：exit = 245（= 0.89 卡宽）后，离场卡走到
+     a ≈ -(430 − 77.5)/245 = **-1.4388** 才越过右屏边，
+     剔除界同步从 -1.30 放到 **-1.46**（= DECK.EXIT_CULL）——
+     deckVisible 用的是【严格大于】，门槛必须 ≥ 1.4388 才不会剔掉还露着的卡。 */
+  assert.ok(deckVisible(-1), '刚换出去的那张要留在屏内（左缘 322.5，露出 107.5px）')
+  assert.ok(deckVisible(-1.4387), '还剩一点点在屏内时绝不能提前剔除（闪断高危区）')
+  assert.ok(deckVisible(-1.46 + 1e-9), '刚好卡在剔除界上仍要渲染（左缘 ≈435 已出屏，但边界要保守）')
+  assert.ok(!deckVisible(-1.46), '越过界限才剔除')
   assert.ok(!deckVisible(-2), '再往外一层必须剔除')
 })
 
@@ -183,13 +199,17 @@ test('第六轮·连锁：整条链从第一帧起与手指同速推进（u = x�
     const bgProgress = moved / deckExposure(1, m.cardW)
     assert.ok(bgProgress <= x + 1e-9, `x=${x} 背景层抢跑：${(bgProgress * 100).toFixed(1)}% > ${(x * 100).toFixed(0)}%`)
   }
-  /* 第七轮·批次 4 改写的契约：离场卡一整层的位移 = **一张卡宽**（275px），
-     而一次换卡的手指行程 = 233.75px ⇒ 位移比 1 : 0.85 = **1.176**，略快于手指。
-     这不是拍脑袋 —— 第六轮逐帧实测参考视频本身就是 272 : 255 ≈ 1.07（同方向）；
-     旧值 1.0（严格 1:1）反而偏慢，正是需求②「顶卡跟底卡永远分不开」的成因。
-     换成 1.176 之后，离场卡停下的位置正好是居中卡右缘 ⇒ 刚好贴住不重叠。 */
+  /* 第八轮（需求②）改写的契约：离场卡一整层的位移 = **245px = 0.89 卡宽**，
+     而一次换卡的手指行程 = 233.75px ⇒ 位移比 245 : 233.75 = **1.048**，
+     略快于手指、与参考实测的 272 : 255 ≈ 1.07 同量级。
+     停下的位置 = frontX + 245 = 322.5px < 居中卡右缘 352.5 ⇒ **遮挡约 10.9% 卡宽**。
+     （第七轮是 275 = 一张卡宽 = 刚好贴住；本轮按 Ricky 需求②有意改为遮挡。） */
   const exitTravel = deckPose(-(1 - 1e-9), m, 1 - 1e-9).x - m.frontX
-  assert.ok(Math.abs(exitTravel - m.cardW) < 0.5, `离场位移 ${exitTravel.toFixed(2)} ≟ 一张卡宽 ${m.cardW}`)
+  assert.ok(Math.abs(exitTravel - 245) < 0.5, `离场位移 ${exitTravel.toFixed(2)}（期望 245 = 0.89 卡宽）`)
+  assert.ok(
+    Math.abs(exitTravel / m.cardW - 0.891) < 0.005,
+    `离场位移/卡宽 = ${(exitTravel / m.cardW).toFixed(3)}（参考实测 0.891）`
+  )
   const travelRatio = exitTravel / m.span
   assert.ok(travelRatio > 1 && travelRatio < 1.25, `离场位移/手指行程 = ${travelRatio.toFixed(3)}（参考实测 1.07）`)
 
@@ -242,41 +262,46 @@ test('第五轮·定律三 不得回退：整段拖动（含顶卡出屏之后�
   assert.ok(deckPose(-2, m, 0).x >= m.screenW, `换两张后仍未出屏：${deckPose(-2, m, 0).x.toFixed(1)}`)
 })
 
-test('第七轮·批次 4：整段拖动里两卡【永不重叠】，松手静止时刚好贴住（需求②）', () => {
-  /* 改前（第六轮 exit = 233.9）：离场卡停下的位置 = frontX + exit = 311.4px，
-     而居中底卡右缘 = frontX + cardW = 352.5px ⇒ **恒重叠 41px**。
-     这正是 Ricky 的原话「顶层卡片右滑最多滑到跟底层卡片刚好完全分离再锁死」——
-     他要的是「滑到底就刚好分开」，而旧实现是「无论怎么滑都糊在一起」。
-     （第六轮那条「整段拖动里两卡始终重叠」的旧断言在本轮被【方向性推翻】：
-       它守护的「粘连被拉走」观感由「两卡位移比 5.3 : 1」承担，不再靠重叠。）
+test('第八轮·需求②：静止态离场卡遮挡 C 位约 10%（参考图逐像素实测 10.85%）', () => {
+  /* 需求②原话：「慢滑时顶部卡片停留位置改为**遮挡 C 位约 10%**（附图 1080×2363）」。
+     参考图逐像素量测（/tmp/vwork/r8/edges.py，多行中位数梯度）：
+       C 卡 [171, 862] 宽 691；离场卡左缘 787 ⇒ 重叠 75px = 10.85%，位移 616px = 0.891 卡宽。
+     本项目取值 exit = 245px（0.891 卡宽）⇒ 重叠 30px / 275 = **10.91%**。
 
-     改后（exit = cardW = 275）：间隙从 x=0 的 206px 单调收缩到 x=1 的 **0px** ——
-     拖动全程 ≥ 0（永不互相盖住），终点恰好相切（既不分离出缝、也不压在一起）。 */
+     被本契约取代的第七轮旧断言（方向性反转）：
+       ✗ 「静止时两卡刚好贴住（间隙 0）」 → ✓ 「静止时离场卡压住 C 位右缘 ≈11%」
+     仍然不变的：拖动全程两卡【永不分离开缝】（overlap 恒 ≥ 0），且单调收缩。 */
   const right = (p) => p.x + m.cardW * p.scale
-  let minGap = Infinity
-  let maxGap = -Infinity
+  let minOverlap = Infinity
+  let maxOverlap = -Infinity
   const tail = []
   for (let i = 0; i <= 500; i++) {
     const x = i / 500
     const top = deckPose(-x, m, x) // 正在离场的那张（原 C 位）
     const below = deckPose(1 - x, m, x) // 顶上来的那张
-    const gap = right(below) - top.x
-    minGap = Math.min(minGap, gap)
-    maxGap = Math.max(maxGap, gap)
-    if (i >= 490) tail.push(gap)
+    const overlap = right(below) - top.x
+    minOverlap = Math.min(minOverlap, overlap)
+    maxOverlap = Math.max(maxOverlap, overlap)
+    if (i >= 490) tail.push(overlap)
   }
-  assert.ok(minGap >= -1e-6, `拖动中两卡重叠了 ${(-minGap).toFixed(2)}px（需求②要求永不重叠）`)
-  assert.ok(Math.abs(tail[tail.length - 1]) < 0.5, `静止时间隙 ${tail[tail.length - 1].toFixed(2)}px（应为 0 = 刚好贴住）`)
-  assert.ok(maxGap < m.cardW, `起始间隙超过一张卡宽 ${maxGap.toFixed(1)}px → 布局异常`)
+  assert.ok(minOverlap >= -1e-6, `拖动中两卡分开了 ${(-minOverlap).toFixed(2)}px（应始终粘连）`)
+  assert.ok(maxOverlap < m.cardW, `起始重叠超过一张卡宽 ${maxOverlap.toFixed(1)}px → 布局异常`)
+  /* 末尾 2% 行程内重叠量已经收敛到稳态附近（x=1 处精确为 30） */
+  for (const v of tail) {
+    assert.ok(v >= 30 - 1e-9 && v <= 36, `静止前重叠 ${v.toFixed(2)}px（应收敛到 30）`)
+  }
   /* 单调收缩：不允许「先分开再合上」那种反直觉的往复 */
   for (let k = 1; k < tail.length; k++) {
-    assert.ok(tail[k] <= tail[k - 1] + 1e-9, `末尾间隙非单调：${tail[k - 1].toFixed(2)} → ${tail[k].toFixed(2)}`)
+    assert.ok(tail[k] <= tail[k - 1] + 1e-9, `末尾重叠非单调：${tail[k - 1].toFixed(2)} → ${tail[k].toFixed(2)}`)
   }
-  /* 静止态离场卡仍在屏内（左缘 352.5 < 430），露出 = frontX = 77.5px */
+  /* 静止态离场卡仍在屏内（左缘 322.5 < 430），露出 = 430 − 322.5 = 107.5px */
   const parked = deckPose(-1, m, 0)
   assert.ok(parked.x < m.screenW, `静止态离场卡左缘 ${parked.x.toFixed(1)} 已出屏`)
-  assert.ok(Math.abs(parked.x - (m.frontX + m.cardW)) < 1e-9, '静止态左缘 ≠ 居中卡右缘')
-  assert.ok(Math.abs(m.screenW - parked.x - m.frontX) < 1e-9, `露出应为 frontX=${m.frontX}px，实为 ${(m.screenW - parked.x).toFixed(1)}`)
+  assert.ok(Math.abs(parked.x - (m.frontX + m.exit)) < 1e-9, '静止态左缘 ≠ frontX + exit')
+  assert.ok(
+    Math.abs(m.screenW - parked.x - 107.5) < 1e-9,
+    `露出应为 107.5px，实为 ${(m.screenW - parked.x).toFixed(1)}`
+  )
 })
 
 test('第五轮：位移与放大「同时」发生（同相位，不是先位移后放大）', () => {
@@ -389,4 +414,76 @@ test('卡宽为 0（未测量）时不抛异常', () => {
   const p = deckPose(1, z, 0)
   assert.equal(Number.isFinite(p.x), true)
   assert.equal(deckStair(2, 0), 0)
+})
+
+/* ══════════════════ 第八轮（Ricky 2026-09-13）新增契约 ══════════════════ */
+
+test('第八轮·需求⑦：左滑挤压 = 横向压缩（不是位移），振幅对齐参考视频 0.837', () => {
+  /* 参考视频 53416f88…mp4 逐帧量测（/tmp/vwork/r8/rowrun.py，y=170 近白连续段）：
+       静止 [19, 375] 宽 356、中心 197
+       挤压 [49, 347] 宽 298、中心 198   ← 中心不动 ⇒ 是压缩不是位移
+     压缩比 = 298/356 = 0.837 ⇒ SQUEEZE_MAX = 0.163（本项目取 0.16）。 */
+  assert.equal(DECK.SQUEEZE_MAX, 0.16)
+  assert.equal(deckSqueeze(0), 1, '未越界时不压缩')
+  assert.ok(Math.abs(deckSqueeze(DECK.SQUEEZE_SPAN) - 0.84) < 1e-9, '满挤压 = 0.84')
+  assert.ok(Math.abs(deckSqueeze(0.6) - 0.84) < 1e-9, '越界更深也封顶在 0.84（不许无限压）')
+  /* 单调：越界越深 → 压得越扁（且严格递减，无振荡） */
+  let prev = 1.0001
+  for (let o = 0; o <= 0.6; o += 0.02) {
+    const q = deckSqueeze(o)
+    assert.ok(q <= prev + 1e-12, `挤压非单调：o=${o.toFixed(2)} ${prev} → ${q}`)
+    assert.ok(q >= 0.84 - 1e-12, `压过头了：${q}`)
+    prev = q
+  }
+  /* 参考视频实测压缩幅度 = 16%（356 → 298），本项目 1 − 0.84 = 16% */
+  assert.ok(Math.abs((1 - deckSqueeze(DECK.SQUEEZE_SPAN)) - 0.163) < 0.005)
+  /* 位移反馈极小：实测中心只动了 1px，所以 give 必须 ≪ 一卡宽 */
+  assert.equal(Math.abs(deckSqueezeGive(430, 0)), 0)
+  assert.ok(Math.abs(deckSqueezeGive(430, 0.35)) < 8, '左滑位移反馈必须很小（否则会变成「整组滑走」）')
+  assert.ok(deckSqueezeGive(430, 0.35) < 0, '方向必须向左')
+})
+
+test('第八轮·需求⑦：左滑越界不再产生「最底部卡片消失」（层深恒 ≤ MAX_DEPTH）', () => {
+  /* 根因（代码级）：旧实现把越界量灌进 focus（deckClampFocus 允许到 −0.6），
+     而 renderedCards 用 deckVisible(i − focus) 过滤 —— focus = −0.6 时最深层
+     i=2 的层深 = 2.6 > MAX_DEPTH(2) ⇒ 直接判为不可见、收掉 DOM。
+     修法：位姿焦点冻结在 max(0, focus)，越界量转成横向压缩。
+     本测试守的就是「冻结后，最深层在任何越界量下都 still visible」。 */
+  for (const raw of [-0.1, -0.35, -0.6, -99]) {
+    const focus = deckClampFocus(raw, 5) // 与 AppSwitcher 同一条夹取
+    const poseFocus = Math.max(0, focus)
+    for (let i = 0; i < DECK.MAX_DEPTH + 1; i++) {
+      const a = i - poseFocus
+      assert.ok(deckVisible(a), `raw=${raw} ⇒ focus=${focus}，第 ${i} 层（a=${a}）被剔除了`)
+    }
+  }
+})
+
+test('第八轮·需求⑤：卡片组横向滑入/滑出的位移 = 0.78 屏宽（参考视频实测 345/444）', () => {
+  /* 参考视频 52b4f2fa…mp4 逐帧量测（/tmp/vwork/r8/vedge.py）：
+     C 卡右缘 30 → 375（位移 345px），左邻卡边缘与之严格同步（间距恒 113px）
+     ⇒ 整组刚性平移；345 / 444 = 0.777。 */
+  assert.equal(DECK.EXIT_SLIDE_FRAC, 0.78)
+  assert.equal(deckEnterDx(430), -335)
+  assert.equal(deckEnterDx(444), -346)
+  assert.ok(Math.abs(-deckEnterDx(444) / 444 - 0.779) < 0.003, '参考实测 0.777')
+  /* 方向：藏在【左侧】（负值）—— 入场自左滑入、退场向左滑出，同一条轨迹 */
+  assert.ok(deckEnterDx(430) < 0)
+  assert.ok(Math.abs(deckEnterDx(430)) < 430, '不能藏得太远（否则入场时前段完全看不见）')
+})
+
+test('第八轮·需求⑥：跟手 XY 双轴 + 弹性挤压的参数边界', () => {
+  /* 参考视频 4c4231b0…mp4 实测：窗口中心 x 225 → 326（+101px 横向跟随）、
+     宽高比 0.477 → 0.447（−6% 纵向拉伸）→ 0.479（回弹）。 */
+  assert.ok(DECK.FOLLOW_X > 0, 'X 轴必须跟手（旧实现恒为 0）')
+  assert.ok(DECK.FOLLOW_X <= 0.6, '跟随比例过大 → 卡片会被手指甩出槽位太多')
+  assert.ok(DECK.SQUASH_MAX >= 0.06 && DECK.SQUASH_MAX <= 0.14, `形变 ${DECK.SQUASH_MAX} 应覆盖实测 6% 并留余量`)
+  assert.ok(DECK.OVER_RISE_FRAC > 0, '越过满量程后必须继续上移（旧实现冻在槽位中心）')
+  /* 形变必须【非等比且反向】—— 否则不是挤压拉伸，只是又缩了一次 */
+  const s = 0.64
+  const def = DECK.SQUASH_MAX
+  const sx = s * (1 - def)
+  const sy = s * (1 + def)
+  assert.ok(sx < s && sy > s, '必须一轴压一轴伸')
+  assert.ok(Math.abs(sx * sy - s * s * (1 - def * def)) < 1e-9, '近似面积守恒')
 })
