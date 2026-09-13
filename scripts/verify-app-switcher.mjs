@@ -843,12 +843,18 @@ await page.waitForTimeout(500)
 s = await S()
 check('批次 2 用例复位：回桌面（后续桌面路径用例的前置条件）', s.base === 'home' && s.switcher === false, JSON.stringify(s))
 
-/* ---- 第五轮·问题②：桌面上滑期必须有【可见反馈】（跟手升起）----
+/* ---- 第五轮·问题②：桌面上滑期必须有【可见反馈】（跟手横移）
    Ricky 第五轮原话：「先从桌面上滑的手感非常差，很难激活多任务。」
    根因 A：deck 被 `v-if="system.appSwitcherOpen"` 门控，而桌面路径没有跟手卡
    → 上滑全程屏幕上一张卡都没有，只剩一层黑遮罩 = 盲滑（修复前实测 p≈0.58 时 deckCount=0）。
    现在手势期间就渲染 deck，入场进度直接跟随 switcherProgress。
-   判据：上滑过程中卡片必须在屏上，且随进度【单调升起 + 单调变亮】。 */
+
+   第八轮（需求⑤）把入场方向从「自下方 30% 上浮」改成「自左侧横向平移」——
+   参考视频 52b4f2fa…mp4 逐帧：整组卡片刚性平移（C 卡右缘 30 → 375 = 345px = 0.777 屏宽，
+   左邻卡边缘与之严格同步、间距恒 113px）⇒ 是整体平移，不是逐卡缩放。
+   ⚠️ 旧断言写的是「随上滑【单调升起】（y 递减）」，改向之后 y 恒为 155 ⇒ **恒真的假通过**，
+      必须改成断言 x（单调右移 + 起点 = frontX − 0.78 屏宽）。
+   判据：上滑过程中卡片必须在屏上，且随进度【单调右移 + 单调变亮】。 */
 {
   const trace = []
   await page.mouse.move(215, 925)
@@ -858,23 +864,28 @@ check('批次 2 用例复位：回桌面（后续桌面路径用例的前置条�
     await page.waitForTimeout(45)
     trace.push(
       await page.evaluate(() => {
-        const cards = [...document.querySelectorAll('.switcher-card.is-deck')].map((c) => ({
-          i: +c.dataset.index,
-          y: +c.getBoundingClientRect().y.toFixed(1),
-          op: +getComputedStyle(c).opacity
-        }))
+        const cards = [...document.querySelectorAll('.switcher-card.is-deck')].map((c) => {
+          const m = new DOMMatrixReadOnly(getComputedStyle(c).transform)
+          return {
+            i: +c.dataset.index,
+            x: +m.e.toFixed(1),
+            y: +c.getBoundingClientRect().y.toFixed(1),
+            op: +getComputedStyle(c).opacity
+          }
+        })
         const dim = document.querySelector('.switcher-dim')
         return {
           p: +window.__system.switcherProgress.toFixed(3),
           n: cards.length,
           c0: cards.find((c) => c.i === 0) || null,
+          c1: cards.find((c) => c.i === 1) || null,
           dim: dim ? +getComputedStyle(dim).opacity : null
         }
       })
     )
   }
   const seen = trace.filter((t) => t.n > 0 && t.c0)
-  const rises = seen.every((t, k) => k === 0 || t.c0.y <= seen[k - 1].c0.y + 1)
+  const moves = seen.every((t, k) => k === 0 || t.c0.x >= seen[k - 1].c0.x - 0.6)
   const brightens = seen.every((t, k) => k === 0 || t.c0.op >= seen[k - 1].c0.op - 0.02)
   const dimSync = seen.every((t) => Math.abs(t.dim - t.p) < 0.02)
   const mid = trace[Math.floor(trace.length / 2)]
@@ -884,11 +895,22 @@ check('批次 2 用例复位：回桌面（后续桌面路径用例的前置条�
     `${trace.length} 个采样点全部有卡；中途卡数=${mid.n}；进度 ${trace[0].p} → ${trace[trace.length - 1].p}`
   )
   check(
-    '第五轮·问题②：卡片随上滑【单调升起 + 单调变亮】，遮罩同步（跟手）',
-    seen.length >= 8 && rises && brightens && dimSync,
-    `y: ${seen[0]?.c0?.y} → ${seen[seen.length - 1]?.c0?.y}；` +
+    '第五轮·问题②：卡片随上滑【单调右移 + 单调变亮】，遮罩同步（跟手）',
+    seen.length >= 8 && moves && brightens && dimSync,
+    `x: ${seen[0]?.c0?.x} → ${seen[seen.length - 1]?.c0?.x}；` +
       `opacity: ${seen[0]?.c0?.op} → ${seen[seen.length - 1]?.c0?.op}；遮罩与进度同步=${dimSync}`
   )
+  /* 需求⑤：入场是【整组刚性平移】—— 起点在左侧 0.78 屏宽处（每张卡同一条轨迹），
+     且相邻两卡的间距（属于静态槽位几何）在整段入场里恒定不变。 */
+  const enterDx = Math.round(screenBox.width * DECK.EXIT_SLIDE_FRAC)
+  const first = seen.find((t) => t.c0 && t.c1 && t.p > 0 && t.p < 0.35)
+  const gaps = seen.filter((t) => t.c0 && t.c1).map((t) => +(t.c1.x - t.c0.x).toFixed(1))
+  const gapSpread = gaps.length ? Math.max(...gaps) - Math.min(...gaps) : 999
+  const c0Min = Math.min(...seen.map((t) => t.c0.x))
+  check(`需求⑤：桌面入场是【自左侧 ${enterDx}px 处横向滑入】（旧版是自下方 30% 上浮）`,
+    !!first && c0Min <= -enterDx * 0.45 && gapSpread <= 1.5,
+    `入场 x 最小 ${c0Min}（槽位 77.5 − ${enterDx}×(1−e)）；` +
+      `相邻卡间距全程波动 ${gapSpread.toFixed(1)}px（≤1.5 ⇒ 刚性平移而非逐卡缩放）`)
   await page.mouse.up()
   await page.waitForTimeout(700)
   await page.evaluate(() => {

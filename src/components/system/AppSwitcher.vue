@@ -186,13 +186,14 @@ watch(
    问题：桌面（无前台应用）上滑时，deck 只在 appSwitcherOpen 之后才渲染，而桌面又没有
    跟手卡 → 屏幕上【一张卡都没有】，只剩一层黑遮罩。Ricky 的原话是「手感非常差」。
    修法：手势期间就把 deck 渲染出来，入场进度直接跟随 switcherProgress ——
-   上滑多少、卡片就升多少（自下方 30% 处上浮 + 淡入）。 */
+   上滑多少、卡片就横移多少（第八轮·需求⑤改成【自左侧横向平移】进场 + 淡入，
+   旧版是自下方 30% 上浮；参考视频 52b4f2fa…mp4 实测整组位移 0.78 屏宽）。 */
 const homeEntranceP = computed(() =>
   system.activeAppId ? 0 : Math.min(1, system.switcherProgress)
 )
-/** 桌面路径 = 没有前台应用。入场自下方上浮、取消时原路下沉（方向必须一致，
- *  否则「取消」会变成卡片往上被吸走）。注意它不依赖 appSwitcherOpen ——
- *  手势进行中的那一段也必须是真值，退场才沉得下去。 */
+/** 桌面路径 = 没有前台应用。入场自左侧横移进来、取消时原路向左滑出（方向必须一致，
+ *  否则「取消」会变成卡片坠到屏幕下方）。注意它不依赖 appSwitcherOpen ——
+ *  手势进行中的那一段也必须是真值，退场才滑得回去。 */
 const deskPath = computed(() => !system.activeAppId)
 /** 桌面手势进行中（此时背景卡需要逐帧跟手，必须关掉 CSS 过渡） */
 const homeEntranceFollowing = computed(
@@ -457,8 +458,8 @@ watch(
    「邻居卡什么时候进场」会变成两套阈值，早晚不一致。
 
    只在【应用内上滑】这条路径 + 切换器尚未打开时生效：
-     · 桌面路径本来就在手势期渲染 deck（homeEntranceFollowing 自下方上浮），
-       再叠一层「预提交」会和跟手上浮打架；
+     · 桌面路径本来就在手势期渲染 deck（homeEntranceFollowing 自左侧横移入场），
+       再叠一层「预提交」会和跟手横移打架；
      · 切换器已打开时邻居卡早已就位，重复置位会打断交接的错峰编排。 */
 watch(
   () => system.switcherDwell,
