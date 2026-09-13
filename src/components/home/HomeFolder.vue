@@ -4,19 +4,26 @@ import { getApp } from '../../config/apps'
 import AppIcon from '../ui/AppIcon.vue'
 
 const props = defineProps({ folder: { type:Object, required:true }, editing:{ type:Boolean, default:false }, operationActive:{type:Boolean,default:false}, merging:{type:Boolean,default:false} })
-const emit = defineEmits(['open','resize-pointerdown'])
+const emit = defineEmits(['open','resize-pointerdown','launch-app'])
 const capacity = computed(() => props.folder.width === 2 && props.folder.height === 2 ? 9 :
   (props.folder.width > 1 || props.folder.height > 1 ? 6 : 9))
 const visibleCapacity = computed(() => props.folder.appIds.length > capacity.value ? capacity.value - 1 : capacity.value)
 const large = computed(() => props.folder.width > 1 || props.folder.height > 1)
+
+function onAppClick(appId, event) {
+  if (!large.value || props.editing) return
+  event.stopPropagation()
+  const anchor = event.currentTarget.querySelector('.app-icon-anchor') || event.currentTarget
+  emit('launch-app', appId, anchor)
+}
 </script>
 
 <template>
   <div class="home-folder" :class="{ large, 'is-merging':merging }">
     <div class="folder-surface" role="button" tabindex="0" @click="emit('open')" @keydown.enter="emit('open')">
       <span class="folder-apps" :class="`size-${folder.width}-${folder.height}`" data-folder-shell>
-        <span v-for="appId in folder.appIds.slice(0, visibleCapacity)" :key="appId" class="folder-app" :data-folder-app="appId">
-          <AppIcon :app="getApp(appId)" :size="large ? (folder.height === 2 ? 48 : 40) : 12" :show-label="false" @click.stop />
+        <span v-for="appId in folder.appIds.slice(0, visibleCapacity)" :key="appId" class="folder-app" :data-folder-app="appId" @click="onAppClick(appId, $event)">
+          <AppIcon :app="getApp(appId)" :size="large ? (folder.height === 2 ? 48 : 40) : 12" :show-label="false" :launch-on-click="false" />
         </span>
         <span v-if="folder.appIds.length > capacity" class="folder-more">+{{ folder.appIds.length - visibleCapacity }}</span>
       </span>

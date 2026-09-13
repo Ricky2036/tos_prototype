@@ -228,3 +228,40 @@ test('desktop application labels use the corrected Chinese names', async () => {
     assert.match(source, /calculator:\s*'计算器'|id: 'calculator',[\s\S]*?name: '计算器'/)
   }
 })
+
+test('desktop edit mode includes safe layout transform, done capsule button, and status bar dimming', async () => {
+  const [home, grid] = await Promise.all([
+    read('../src/components/system/HomeScreen.vue'),
+    read('../src/components/system/AppGrid.vue')
+  ])
+  assert.match(home, /class="done-pill" @click="home\.setEditing\(false\)">完成<\/button>/)
+  assert.match(home, /class="action-icon"/)
+  assert.match(home, /:global\(\.screen-view:has\(\.home-screen\.is-editing\)\s*\.status-bar\)/)
+  assert.match(grid, /\.app-grid\.is-editing\s*\{\s*transform:translate3d\(0,-22px,0\) scale\(\.74\)/)
+})
+
+test('2x2 large folders launch apps directly with hero transition and keep overlay for title/blank taps', async () => {
+  const [folder, grid, home] = await Promise.all([
+    read('../src/components/home/HomeFolder.vue'),
+    read('../src/components/system/AppGrid.vue'),
+    read('../src/components/system/HomeScreen.vue')
+  ])
+  assert.match(folder, /defineEmits\(\[['"]open['"],\s*['"]resize-pointerdown['"],\s*['"]launch-app['"]\]\)/)
+  assert.match(folder, /emit\('launch-app',\s*appId,\s*anchor\)/)
+  assert.match(folder, /@click="onAppClick\(appId,\s*\$event\)"/)
+  assert.match(grid, /isLarge\s*&&\s*isFolderApp/)
+  assert.match(grid, /@launch-app="\(appId,\s*anchor\)\s*=>\s*emit\('launch-app',\s*appId,\s*anchor\)"/)
+  assert.match(home, /@launch-app="launchFolderApp"/)
+  assert.match(home, /function launchFolderApp\(appId,\s*anchor\)/)
+})
+
+test('smart suggestion widget supports vertical swipe gestures with tap separation', async () => {
+  const widget = await read('../src/components/widgets/SmartSuggestionWidget.vue')
+  assert.match(widget, /@pointerdown="onStackPointerDown"/)
+  assert.match(widget, /@pointermove="onStackPointerMove"/)
+  assert.match(widget, /@pointerup="onStackPointerUp"/)
+  assert.match(widget, /@click\.capture="onStackClickCapture"/)
+  assert.match(widget, /Math\.abs\(dy\)\s*>\s*Math\.abs\(dx\)\s*\*\s*1\.2/)
+  assert.match(widget, /toggleMode\(\)/)
+})
+

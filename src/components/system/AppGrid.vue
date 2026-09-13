@@ -15,7 +15,7 @@ const props = defineProps({
   folderTargetId: { type: String, default: null }, folderCandidateId:{type:String,default:null}, folderCandidateArmed:{type:Boolean,default:false}, mergingFolderItemId:{type:String,default:null}, removingIds: { type: Array, default: () => [] },
   suppressClickId: { type: String, default: null }, openFolderId: { type: String, default: null }, folderOperationId: { type: String, default: null }
 })
-const emit = defineEmits(['item-pointerdown', 'folder-resize-pointerdown', 'toggle-select', 'open-folder', 'request-remove'])
+const emit = defineEmits(['item-pointerdown', 'folder-resize-pointerdown', 'toggle-select', 'open-folder', 'request-remove', 'launch-app'])
 const selected = computed(() => new Set(props.selectedIds))
 const removing = computed(() => new Set(props.removingIds))
 const itemElements = new Map()
@@ -51,7 +51,15 @@ function activate(event, id, item) {
   }
   if (props.editing) {
     event.preventDefault(); event.stopPropagation(); emit('toggle-select', id)
-  } else if (item.type === 'folder') {
+    return
+  }
+  if (item.type === 'folder') {
+    const isFolderApp = event.target.closest?.('.folder-app')
+    const folder = props.folders[item.folderId]
+    const isLarge = folder && (folder.width > 1 || folder.height > 1)
+    if (isLarge && isFolderApp) {
+      return
+    }
     event.preventDefault(); event.stopPropagation(); emit('open-folder', item.folderId, event.currentTarget)
   }
 }
@@ -68,7 +76,8 @@ function activate(event, id, item) {
       <SmartSuggestionWidget v-else-if="items[id]?.type === 'widget'" />
       <AppIcon v-else-if="appFor(items[id])" :app="appFor(items[id])" :size="profile.iconSize * profile.compactScale" :enter-delay="120 + index * 28" home-anchor />
       <HomeFolder v-else-if="folderFor(items[id])" :folder="folderFor(items[id])" :editing="editing" :operation-active="folderOperationId === items[id].folderId" :merging="mergingFolderItemId === id"
-        @open="emit('open-folder',items[id].folderId,$event)" @resize-pointerdown="emit('folder-resize-pointerdown',$event,id,items[id].folderId)" />
+        @open="emit('open-folder',items[id].folderId,$event)" @resize-pointerdown="emit('folder-resize-pointerdown',$event,id,items[id].folderId)"
+        @launch-app="(appId, anchor) => emit('launch-app', appId, anchor)" />
       <span v-if="editing" class="selection-mark" aria-hidden="true">{{ selected.has(id) ? '✓' : '' }}</span>
     </div>
   </div>
@@ -76,7 +85,7 @@ function activate(event, id, item) {
 
 <style scoped>
 .app-grid { position:relative;width:100%;height:100%;box-sizing:border-box; }
-.app-grid.is-editing { transform:translate3d(0,32px,0) scale(.76); transform-origin:50% 50%; transition:transform 320ms cubic-bezier(.22,.8,.26,1); }
+.app-grid.is-editing { transform:translate3d(0,-22px,0) scale(.74); transform-origin:50% 50%; transition:transform 320ms cubic-bezier(.22,.8,.26,1); }
 .home-item { position:absolute;left:0;top:0;min-width:0;display:flex;align-items:flex-start;justify-content:center;transition:width 240ms cubic-bezier(.22,.8,.24,1),height 240ms cubic-bezier(.22,.8,.24,1),opacity 160ms ease;touch-action:none;will-change:transform; }
 .home-item.is-widget { min-height:0;aspect-ratio:1/1; }
 .home-item.is-widget :deep(.widget),

@@ -644,22 +644,26 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
       <section v-for="(page,pageIndex) in displayPages" :key="pageIndex" class="home-page">
         <AppGrid :page-index="pageIndex" :item-ids="page" :items="home.items" :positions="displayPositions[pageIndex]" :profile="home.profile"
           :folders="displayFolders" :editing="home.editing" :selected-ids="home.selectedItemIds" :dragging-id="dragging?.id" :folder-target-id="folderTargetId" :folder-candidate-id="folderMergeCandidate?.id" :folder-candidate-armed="folderMergeCandidate?.armed" :merging-folder-item-id="folderMergeAnimation" :removing-ids="removingIds" :suppress-click-id="suppressedClickId" :open-folder-id="openFolderId" :folder-operation-id="folderOperation?.folderId"
-          @item-pointerdown="onItemPointerDown" @folder-resize-pointerdown="onFolderResizePointerDown" @toggle-select="home.toggleSelected" @open-folder="showFolder" @request-remove="requestRemove" />
+          @item-pointerdown="onItemPointerDown" @folder-resize-pointerdown="onFolderResizePointerDown" @toggle-select="home.toggleSelected" @open-folder="showFolder" @request-remove="requestRemove"
+          @launch-app="launchFolderApp" />
       </section>
     </div>
     <div v-if="home.editing" class="edit-actions home-editor">
-      <button type="button" :disabled="!canGroupSelection" @click="createSelectedFolder">
-        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3.5 9.5h10l2.2 2.5h12.8v14.5a2 2 0 0 1-2 2h-23a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2Z"/><path d="M16 15v9M11.5 19.5h9"/></svg>
-        <span>成组</span>
-      </button>
-      <button type="button" :disabled="!hasSelection" @click="removeSelectedFromDesktop">
-        <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12"/><path d="M10 16h12"/></svg>
-        <span>移除</span>
-      </button>
-      <button type="button" :disabled="!canUninstallSelection" @click="requestSelectedRemoval">
-        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 10h14l-1.1 17H10.1L9 10Z"/><path d="M12 10V6.5h8V10M6.5 10h19M13.5 14v9M18.5 14v9"/></svg>
-        <span>卸载</span>
-      </button>
+      <div class="edit-action-items">
+        <button type="button" :disabled="!canGroupSelection" @click="createSelectedFolder">
+          <span class="action-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3.5 9.5h10l2.2 2.5h12.8v14.5a2 2 0 0 1-2 2h-23a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2Z"/><path d="M16 15v9M11.5 19.5h9"/></svg></span>
+          <span>成组</span>
+        </button>
+        <button type="button" :disabled="!hasSelection" @click="removeSelectedFromDesktop">
+          <span class="action-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12"/><path d="M10 16h12"/></svg></span>
+          <span>移除</span>
+        </button>
+        <button type="button" :disabled="!canUninstallSelection" @click="requestSelectedRemoval">
+          <span class="action-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 10h14l-1.1 17H10.1L9 10Z"/><path d="M12 10V6.5h8V10M6.5 10h19M13.5 14v9M18.5 14v9"/></svg></span>
+          <span>卸载</span>
+        </button>
+      </div>
+      <button type="button" class="done-pill" @click="home.setEditing(false)">完成</button>
     </div>
     <div class="indicator-wrap" :style="indicatorStyle"><PageIndicator :count="displayPages.length" :current="home.currentPage" :show-pages="home.editing || showPageDots" @search="emit('open-library')" /></div>
     <DockBar v-if="!home.editing" :profile="home.profile" :dragging-id="dragging?.id" :dock-target-index="dockTargetIndex" :removing-ids="removingIds" :suppress-click-id="suppressedClickId" @item-pointerdown="onDockPointerDown"
@@ -693,6 +697,10 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
 </template>
 
 <style scoped>
+:global(.screen-view:has(.home-screen.is-editing) .status-bar) {
+  opacity: 0.4;
+  transition: opacity 280ms cubic-bezier(.22,.8,.26,1);
+}
 .home-screen{position:absolute;inset:0;z-index:var(--z-home);overflow:hidden;touch-action:none}
 .home-page-strip{position:absolute;inset:0;display:flex;will-change:transform}
 .home-page{flex:0 0 100%;width:100%;height:100%}
@@ -700,12 +708,16 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
 .is-editing .indicator-wrap{bottom:194px}
 .drag-ghost{position:absolute;left:0;top:0;z-index:999;pointer-events:none;filter:drop-shadow(0 12px 18px rgba(0,0,0,.35));transform-origin:center;will-change:transform}
 .drag-ghost>*{transform:scale(1.08)!important;transform-origin:center!important}
-.edit-actions{position:absolute;left:38px;right:38px;top:calc(var(--safe-top,54px) + 8px);z-index:22;display:flex;align-items:flex-start;justify-content:space-between}
-.edit-actions button{width:62px;display:flex;flex-direction:column;align-items:center;gap:4px;color:#fff;font:600 13px/1.2 var(--font-stack);text-shadow:0 1px 4px rgba(0,0,0,.3);transition:opacity 160ms ease,transform 160ms ease}
-.edit-actions button:active:not(:disabled){transform:scale(.92)}
-.edit-actions button:disabled{opacity:.28}
-.edit-actions svg{width:27px;height:27px;fill:rgba(255,255,255,.96);stroke:rgba(255,255,255,.96);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
-.edit-actions button:first-child svg{fill:rgba(255,255,255,.9);stroke:#536079;stroke-width:1.7}
+.edit-actions{position:absolute;left:24px;right:24px;top:calc(var(--safe-top,54px) + 8px);z-index:22;display:flex;align-items:center;justify-content:space-between}
+.edit-action-items{display:flex;align-items:center;gap:14px}
+.edit-action-items button{display:flex;flex-direction:column;align-items:center;gap:3px;color:#fff;font:600 12px/1.2 var(--font-stack);text-shadow:0 1px 3px rgba(0,0,0,.45);background:transparent;border:none;cursor:pointer;padding:0;transition:opacity 160ms ease,transform 160ms ease}
+.edit-action-items button:active:not(:disabled){transform:scale(.92)}
+.edit-action-items button:disabled{opacity:.28}
+.edit-action-items .action-icon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:rgba(30,35,48,.5);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);border:.5px solid rgba(255,255,255,.24);box-shadow:0 4px 12px rgba(0,0,0,.2),inset 0 1px 1px rgba(255,255,255,.28);transition:background 160ms ease,border-color 160ms ease}
+.edit-action-items svg{width:24px;height:24px;fill:rgba(255,255,255,.96);stroke:rgba(255,255,255,.96);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.edit-action-items button:first-child svg{fill:rgba(255,255,255,.9);stroke:#536079;stroke-width:1.7}
+.done-pill{height:38px;padding:0 20px;border-radius:19px;display:inline-flex;align-items:center;justify-content:center;font:600 14px/1 var(--font-stack);color:#fff;background:rgba(255,255,255,.28);border:1px solid rgba(255,255,255,.45);box-shadow:0 4px 14px rgba(0,0,0,.22),inset 0 1px 1px rgba(255,255,255,.42);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);cursor:pointer;transition:transform 160ms ease,background 160ms ease;user-select:none}
+.done-pill:active{transform:scale(.93);background:rgba(255,255,255,.42)}
 .edit-dashboard{position:absolute;left:26px;right:26px;bottom:26px;height:154px;z-index:22;display:grid;grid-template-columns:1.35fr 1fr;gap:9px}
 .depth-card,.edit-tool-grid button,.layout-option{border:.5px solid rgba(255,255,255,.18);background:linear-gradient(145deg,rgba(91,98,116,.94),rgba(48,54,70,.94));box-shadow:inset 0 1px 1px rgba(255,255,255,.2),0 8px 20px rgba(5,10,28,.2);backdrop-filter:blur(24px) saturate(120%);color:#fff}
 .depth-card{border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px}
