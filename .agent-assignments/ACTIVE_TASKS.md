@@ -79,5 +79,18 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Trigger mobile FAB gear spin on returning to desktop & change phone border to blue | `antigravity/lane` | None (locks released) | `0be1bcb` | `d17b18a` |
 | Merged | Antigravity | Apply DevConsole palette to mini-phone FAB, equalize border thickness, and moderate corner radius | `antigravity/lane` | None (locks released) | `884e66c` | `9fe9a79` |
 | Merged | Workbuddy | Polish iOS app switcher: chain reaction drag, continuous scaling, and gesture physics | `workbuddy/lane` | None (locks released) | `0dc5cac` | `a6c0f0b` |
+| Merged | Antigravity | Desktop enhancements: Phase 1 & 2 layout, iOS cross-screen icon drag, folder hero anchor, and single-app auto-dissolution with seamless zoom | `antigravity/lane` | None (desktop file locks released) | `a94248e` | `e3932d3` |
+| Merged | Antigravity | Restore and preserve folder background blur and frosted glass across opening, open, and closing states | `antigravity/lane` | None (locks released) | `8f94698` | `c330e51` |
+| Merged | Antigravity | Eliminate folder background flicker and redesign desktop edit mode to match reference layout | `antigravity/lane` | None (locks released) | `8a9c013` | `32a1e55` |
+| Merged | Antigravity | Implement folder unlock entrance animation on desktop matching surrounding app icons | `antigravity/lane` | None (locks released) | `f039ecd` | `e020efb` |
+| Merged | Antigravity | Stop edit mode icon wiggle, fix multi-select & prevent click enlarge, implement page thumbnail deck with extra blank page and frosted glass | `antigravity/lane` | None (locks released) | `b000e30` | `9e558a6` |
+| Merged | Antigravity | Fix edit dashboard button deformation, cut-off layout, and refine thumbnail cards frosted glass styling | `antigravity/lane` | None (locks released) | `73b3e79` | `84be4fd` |
+| Merged | Antigravity | Multi-select drag to bottom thumbnail cards drop placement, edit icon refinement, and fix extra blank page | `antigravity/lane` | None (locks released) | `62a064f` | `9f31e70` |
+| Merged | Antigravity | Replace desktop edit wallpaper icon with settings wallpaper icon | `antigravity/lane` | None (locks released) | `134061b` | `aee15d9` |
+| Merged | Antigravity | Replace desktop edit delete icon with notification center trash SVG | `antigravity/lane` | None (locks released) | `c122c3b` | `52f3576` |
+| Merged | Workbuddy | App Switcher rounds 7-11: gesture follow, inertia snapping, card exit animations, left-slide group motion | `workbuddy/lane` | None (locks released) | `a6c0f0b` | `9377307` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
+
+
+

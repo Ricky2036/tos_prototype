@@ -228,3 +228,122 @@ test('desktop application labels use the corrected Chinese names', async () => {
     assert.match(source, /calculator:\s*'计算器'|id: 'calculator',[\s\S]*?name: '计算器'/)
   }
 })
+
+test('desktop edit mode includes safe layout transform, done capsule button, and status bar dimming', async () => {
+  const [home, grid] = await Promise.all([
+    read('../src/components/system/HomeScreen.vue'),
+    read('../src/components/system/AppGrid.vue')
+  ])
+  assert.match(home, /class="done-pill" @click="home\.setEditing\(false\)">完成<\/button>/)
+  assert.match(home, /class="action-icon"/)
+  assert.match(home, /:global\(\.screen-view:has\(\.home-screen\.is-editing\)\s*\.status-bar\)/)
+  assert.match(grid, /\.app-grid\.is-editing\s*\{\s*transform:translate3d\(0,20px,0\) scale\(\.85\)/)
+})
+
+test('2x2 large folders launch apps directly with hero transition and keep overlay for title/blank taps', async () => {
+  const [folder, grid, home] = await Promise.all([
+    read('../src/components/home/HomeFolder.vue'),
+    read('../src/components/system/AppGrid.vue'),
+    read('../src/components/system/HomeScreen.vue')
+  ])
+  assert.match(folder, /defineEmits\(\[['"]open['"],\s*['"]resize-pointerdown['"],\s*['"]launch-app['"]\]\)/)
+  assert.match(folder, /emit\('launch-app',\s*appId,\s*anchor\)/)
+  assert.match(folder, /@click="onAppClick\(appId,\s*\$event\)"/)
+  assert.match(grid, /isLarge\s*&&\s*isFolderApp/)
+  assert.match(grid, /@launch-app="\(appId,\s*anchor\)\s*=>\s*emit\('launch-app',\s*appId,\s*anchor\)"/)
+  assert.match(home, /@launch-app="launchFolderApp"/)
+  assert.match(home, /function launchFolderApp\(appId,\s*anchor\)/)
+})
+
+test('smart suggestion widget supports vertical swipe gestures with tap separation', async () => {
+  const widget = await read('../src/components/widgets/SmartSuggestionWidget.vue')
+  assert.match(widget, /@pointerdown="onStackPointerDown"/)
+  assert.match(widget, /@pointermove="onStackPointerMove"/)
+  assert.match(widget, /@pointerup="onStackPointerUp"/)
+  assert.match(widget, /@click\.capture="onStackClickCapture"/)
+  assert.match(widget, /Math\.abs\(dy\)\s*>\s*Math\.abs\(dx\)\s*\*\s*1\.2/)
+  assert.match(widget, /toggleMode\(\)/)
+})
+
+test('cross-screen icon drag implements iOS-style spring edge dwell, peek offset and haptic pulse', async () => {
+  const source = await read('../src/components/system/HomeScreen.vue')
+  assert.match(source, /edgePeekOffset/)
+  assert.match(source, /edgeThreshold = 38/)
+  assert.match(source, /edgePeekOffset\.value = direction === 1 \? -12 : 12/)
+  assert.match(source, /transform 440ms cubic-bezier\(.22, 1, .36, 1\)/)
+  assert.match(source, /triggerEdgePageFlip/)
+  assert.match(source, /600/)
+  assert.match(source, /isPageFlipping/)
+  assert.match(source, /\.drag-ghost\.is-page-flipping/)
+  assert.match(source, /\[\.\.\.basePages, \[\]\]/)
+})
+
+test('folder app launch computes unscaled anchor, resets openFolderId, and provides seamless dissolution animation', async () => {
+  const [home, anchors, store] = await Promise.all([
+    read('../src/components/system/HomeScreen.vue'),
+    read('../src/utils/appIconAnchors.js'),
+    read('../src/stores/homeStore.js')
+  ])
+
+  assert.match(home, /rectRelativeToScreen\(anchor,\s*screen\)/)
+  assert.match(home, /openFolderId\.value\s*=\s*null/)
+  assert.match(home, /finishFolderApp/)
+  assert.match(home, /animateFolderDissolve/)
+  assert.match(home, /shellClone\.animate/)
+
+  assert.match(anchors, /Number\.isFinite\(rect\.x\)\s*\?\s*rect\.x\s*:\s*\(Number\.isFinite\(rect\.left\)/)
+  assert.match(anchors, /data-folder-app/)
+
+  assert.match(store, /folder\.appIds\.length\s*<=\s*1\s*\)\s*this\.removeFolder\(folderId,\s*true\)/)
+  assert.match(store, /cleanupDissolvedFolders/)
+})
+
+test('normalizeHomeAnchorRect safely derives x/y from left/top without producing NaN', async () => {
+  const { normalizeHomeAnchorRect } = await import('../src/utils/appIconAnchors.js')
+  const legacyRect = { left: 120.25, top: 340.5, width: 60, height: 60 }
+  const normalized = normalizeHomeAnchorRect(legacyRect)
+  assert.equal(normalized.x, 120.25)
+  assert.equal(normalized.y, 340.5)
+  assert.equal(Number.isNaN(normalized.x), false)
+  assert.equal(Number.isNaN(normalized.y), false)
+  assert.equal(normalized.cx, 150.25)
+  assert.equal(normalized.cy, 370.5)
+})
+
+test('homeStore auto-dissolves single-app folders on removeAppFromFolder and ignores <=1 app folders in reconcile', async () => {
+  const storeSource = await read('../src/stores/homeStore.js')
+  assert.match(storeSource, /appIds\.length\s*>\s*1/)
+  assert.match(storeSource, /folder\.appIds\.length\s*<=\s*1\s*\)\s*this\.removeFolder\(folderId,\s*true\)/)
+})
+
+test('folders animate into desktop when unlocking with staggered enter delay', async () => {
+  const [folder, grid] = await Promise.all([
+    read('../src/components/home/HomeFolder.vue'),
+    read('../src/components/system/AppGrid.vue')
+  ])
+  assert.match(grid, /<HomeFolder[^>]*:enter-delay="120 \+ index \* 28"/)
+  assert.match(folder, /--enter-delay/)
+  assert.match(folder, /just-unlocked.*\.home-folder/)
+  assert.match(folder, /folder-enter/)
+})
+
+test('folder collapse preserves smooth background backdrop blur and seamless desktop recovery without opacity transition delay', async () => {
+  const [grid, overlay, folder] = await Promise.all([
+    read('../src/components/system/AppGrid.vue'),
+    read('../src/components/home/HomeFolderOverlay.vue'),
+    read('../src/components/home/HomeFolder.vue')
+  ])
+  // Base home-item must not transition opacity to avoid 160ms recovery blink
+  assert.doesNotMatch(grid, /\.home-item\s*\{[^}]*opacity\s+160ms/)
+  assert.match(grid, /\.home-item\.is-dragging-source\s*\{[^}]*transition:\s*opacity 160ms ease/)
+  // Folder overlay uses smooth backdrop curve and box-shadow dissipation
+  assert.match(overlay, /easeBackdropClose\s*=\s*'cubic-bezier\(0\.33,\s*0,\s*0\.67,\s*1\)'/)
+  assert.match(overlay, /boxShadow:\s*'0 0 0 rgba\(0, 0, 0, 0\)'/)
+  assert.match(overlay, /borderColor:\s*'rgba\(255, 255, 255, 0\)'/)
+  assert.doesNotMatch(overlay, /\.folder-backdrop\s*\{[^}]*transform:\s*translateZ\(0\)/)
+  // Desktop folder does not transition background color
+  assert.doesNotMatch(folder, /\.folder-apps\{[^}]*background 180ms ease/)
+})
+
+
+

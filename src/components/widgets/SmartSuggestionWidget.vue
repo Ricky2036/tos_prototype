@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { usePrayerStore } from '../../stores/prayerStore'
 import WeatherWidget from './WeatherWidget.vue'
 import PhotoWidget from './PhotoWidget.vue'
@@ -7,27 +7,100 @@ import PhotoWidget from './PhotoWidget.vue'
 const prayerStore = usePrayerStore()
 const currentMode = computed(() => prayerStore.userMode)
 
-/* 支持在桌面上点击/轻触直接翻转体验 */
+let pointerStartX = 0
+let pointerStartY = 0
+let isTracking = false
+let didSwipe = false
+let swipeResetTimer = null
+
+/* 支持在桌面上点击/轻触/滑动手势直接翻转体验 */
 function toggleMode() {
   prayerStore.setUserMode(currentMode.value === 'muslim' ? 'normal' : 'muslim')
+}
+
+function onStackPointerDown(event) {
+  if (event.button != null && event.button !== 0) return
+  isTracking = true
+  didSwipe = false
+  pointerStartX = event.clientX
+  pointerStartY = event.clientY
+  try {
+    event.currentTarget.setPointerCapture(event.pointerId)
+  } catch {}
+}
+
+function onStackPointerMove(event) {
+  if (!isTracking) return
+  const dx = event.clientX - pointerStartX
+  const dy = event.clientY - pointerStartY
+  if (Math.abs(dy) > 16 && Math.abs(dy) > Math.abs(dx) * 1.2) {
+    didSwipe = true
+  }
+}
+
+function onStackPointerUp(event) {
+  if (!isTracking) return
+  isTracking = false
+  try {
+    event.currentTarget.releasePointerCapture(event.pointerId)
+  } catch {}
+  const dx = event.clientX - pointerStartX
+  const dy = event.clientY - pointerStartY
+  if (Math.abs(dy) >= 20 && Math.abs(dy) > Math.abs(dx) * 1.2) {
+    didSwipe = true
+    toggleMode()
+    clearTimeout(swipeResetTimer)
+    swipeResetTimer = setTimeout(() => { didSwipe = false }, 240)
+  }
+}
+
+function onStackPointerCancel(event) {
+  isTracking = false
+  try {
+    event.currentTarget.releasePointerCapture(event.pointerId)
+  } catch {}
+}
+
+function onWeatherClick(event) {
+  if (didSwipe) {
+    event.preventDefault()
+    event.stopPropagation()
+    return
+  }
+  toggleMode()
+}
+
+function onStackClickCapture(event) {
+  if (didSwipe) {
+    event.preventDefault()
+    event.stopPropagation()
+    event.stopImmediatePropagation?.()
+  }
 }
 </script>
 
 <template>
-  <div class="smart-suggestion-stack">
+  <div
+    class="smart-suggestion-stack"
+    @pointerdown="onStackPointerDown"
+    @pointermove="onStackPointerMove"
+    @pointerup="onStackPointerUp"
+    @pointercancel="onStackPointerCancel"
+    @click.capture="onStackClickCapture"
+  >
     <!-- 1. 翻转动效过程中的浅色半透明磨砂底板（参考 111.mp4） -->
     <div class="stack-tray-backplate"></div>
 
-    <!-- 2. 普通用户：天气卡片 (默认，点击翻转至穆斯林模式) -->
+    <!-- 2. 普通用户：天气卡片 (默认，点击或上下轻扫翻转至穆斯林模式) -->
     <div
       class="stack-card weather-card"
       :class="{ active: currentMode === 'normal', exited: currentMode === 'muslim' }"
-      @click="toggleMode"
+      @click="onWeatherClick"
     >
       <WeatherWidget />
     </div>
 
-    <!-- 3. 穆斯林用户：朝拜时段卡片 (点击进入设置-礼拜模式) -->
+    <!-- 3. 穆斯林用户：朝拜时段卡片 (上下轻扫翻转至天气模式，点击进入设置-礼拜模式) -->
     <div
       class="stack-card prayer-card"
       :class="{ active: currentMode === 'muslim', exited: currentMode === 'normal' }"

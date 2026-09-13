@@ -14,13 +14,20 @@ export function rectRelativeToScreen(el, screenEl) {
   const scaleX = layoutWidth ? s.width / layoutWidth : 1
   const scaleY = layoutHeight ? s.height / layoutHeight : scaleX
 
+  const left = (r.left - s.left) / scaleX
+  const top = (r.top - s.top) / scaleY
+  const width = el.offsetWidth || r.width / scaleX
+  const height = el.offsetHeight || r.height / scaleY
+
   return {
-    x: (r.left - s.left) / scaleX,
-    y: (r.top - s.top) / scaleY,
-    // 稳定锚点没有自身 transform，布局尺寸应直接读取 offset 尺寸。若反推
-    // 已缩放 DOMRect，60px 可能成为 59.99997px 并在 Blink 中向下量化 1/64px。
-    width: el.offsetWidth || r.width / scaleX,
-    height: el.offsetHeight || r.height / scaleY,
+    x: left,
+    y: top,
+    left,
+    top,
+    right: left + width,
+    bottom: top + height,
+    width,
+    height,
     get cx() { return this.x + this.width / 2 },
     get cy() { return this.y + this.height / 2 }
   }

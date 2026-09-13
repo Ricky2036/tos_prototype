@@ -112,20 +112,21 @@ const heroFillStyle = computed(() => ({
   background: app.value?.heroBackground || '#f2f2f7',
   opacity: frame.value?.heroFillOpacity ?? 0
 }))
-const mirrorIconSize = computed(() => frame.value?.windowRect.width || 60)
+const launchAnchor = ref(null)
+const nativeIconSize = computed(() => launchAnchor.value?.width || 60)
 const iconWrapperStyle = computed(() => {
   const current = frame.value
-  if (!current) return { opacity: 0 }
+  if (!current || current.iconOpacity <= 0) return { opacity: 0, pointerEvents: 'none' }
+  const baseSize = nativeIconSize.value
+  const scale = current.iconScale || (current.windowRect ? current.windowRect.width / baseSize : 1)
   return {
-    width: `${mirrorIconSize.value}px`,
-    height: `${mirrorIconSize.value}px`,
+    width: `${baseSize}px`,
+    height: `${baseSize}px`,
     opacity: current.iconOpacity,
-    // 直接以当帧真实尺寸栅格化，避免 scale(1.x) → none 时产生锐度跳变。
-    transform: 'none'
+    transformOrigin: 'top left',
+    transform: `scale(${scale})`
   }
 })
-
-let launchAnchor = null
 
 function closeToLiveAnchor() {
   if (['closing', 'handoff', 'closed'].includes(phase.value)) return
@@ -133,7 +134,7 @@ function closeToLiveAnchor() {
   const viewport = readViewport()
   let anchor = getAnchorRect(props.appId, screen)
   if (!anchor || !anchor.width) {
-    anchor = launchAnchor
+    anchor = launchAnchor.value
   }
   if (!viewport || !anchor || !anchor.width) {
     home.showIcon()
@@ -169,7 +170,7 @@ onMounted(() => {
     return
   }
 
-  launchAnchor = launchRect
+  launchAnchor.value = launchRect
   home.hideIcon(props.appId)
   hero.beginOpen({
     viewportRect: viewport,
@@ -234,7 +235,7 @@ onBeforeUnmount(() => {
       <AppIcon
         v-if="app"
         :app="app"
-        :size="mirrorIconSize"
+        :size="nativeIconSize"
         :show-label="false"
         :home-anchor="false"
         ignore-hidden

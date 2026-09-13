@@ -27,7 +27,12 @@ function deriveLayout(state) {
 export function createDefaultHomeState() {
   const state = {
     version: HOME_LAYOUT_VERSION, currentPage: 0,
-    order: ['widget:clock', 'widget:smart', ...gridApps.map((app) => appItemId(app.id))],
+    order: [
+      'widget:clock', 'widget:smart',
+      ...gridApps.slice(0, 8).map((app) => appItemId(app.id)),
+      'page-break:default',
+      ...gridApps.slice(8).map((app) => appItemId(app.id))
+    ],
     pages: [[]], positions: {}, profile: createHomeGridProfile(), items: defaultItems(), folders: {},
     dock: dockApps.map((app) => appItemId(app.id)).slice(0, 4),
     uninstalledAppIds: [], hiddenDesktopAppIds: [], removedWidgetIds: [], hiddenIconId: null,
@@ -57,13 +62,13 @@ function reconcile(raw) {
   const folders = {}
   for (const [id, folder] of Object.entries(raw.folders || {})) {
     const appIds = unique(folder.appIds).filter((appId) => knownApps.has(appId) && !uninstalled.has(appId) && !hidden.has(appId))
-    if (items[folderItemId(id)] && appIds.length) folders[id] = { id, name: String(folder.name || '文件夹').slice(0, 24), appIds, width: Math.max(1, Math.min(2, Number(folder.width) || 1)), height: Math.max(1, Math.min(2, Number(folder.height) || 1)) }
+    if (items[folderItemId(id)] && appIds.length > 1) folders[id] = { id, name: String(folder.name || '文件夹').slice(0, 24), appIds, width: Math.max(1, Math.min(2, Number(folder.width) || 1)), height: Math.max(1, Math.min(2, Number(folder.height) || 1)) }
   }
   for (const [id, item] of Object.entries(items)) if (item.type === 'folder' && !folders[item.folderId]) delete items[id]
   const dock = unique(raw.dock).filter((id) => items[id]?.type === 'app' && !hidden.has(items[id].appId)).slice(0, 4)
   const nested = new Set(Object.values(folders).flatMap((folder) => folder.appIds.map(appItemId)))
   const sourceOrder = raw.version === 2 ? raw.order : raw.pages.flat()
-  const order = unique(sourceOrder).filter((id) => items[id] && !dock.includes(id) && !nested.has(id) && !hidden.has(items[id]?.appId))
+  const order = unique(sourceOrder).filter((id) => (items[id] || (typeof id === 'string' && id.startsWith('page-break:'))) && !dock.includes(id) && !nested.has(id) && !hidden.has(items[id]?.appId))
   const located = new Set([...order, ...dock, ...nested, ...[...hidden].map(appItemId)])
   for (const [id, item] of Object.entries(defaults.items)) {
     if (item.type === 'widget') {
@@ -115,7 +120,67 @@ export const useHomeStore = defineStore('home', {
     moveItem(itemId, page, index) {
       const item = this.items[itemId]; if (!item) return false
       if (item.type === 'app') this.hiddenDesktopAppIds = this.hiddenDesktopAppIds.filter((id) => id !== item.appId)
-      this.insertAt(itemId, page, index); this.reflow(); this.currentPage = Math.min(page, this.pages.length - 1); this.persist(); return true
+      const targetPage = Math.max(0, Number(page) || 0)
+      if (targetPage >= this.pages.length) {
+        this.order = this.order.filter((id) => id !== itemId)
+        this.order.push(`page-break:${Date.now()}`, itemId)
+      } else {
+        this.insertAt(itemId, targetPage, index)
+      }
+      this.order = this.order.filter((id, idx, arr) => {
+        if (typeof id !== 'string' || !id.startsWith('page-break:')) return true
+        const next = arr[idx + 1]
+        return next && (typeof next !== 'string' || !next.startsWith('page-break:'))
+      })
+      this.reflow(); this.currentPage = Math.min(targetPage, this.pages.length - 1); this.persist(); return true
+    },
+    moveItemsToPage(itemIds, targetPage) {
+      const validIds = [...new Set(itemIds || [])].filter((id) => this.items[id])
+      if (!validIds.length) return false
+      for (const id of validIds) {
+        const item = this.items[id]
+        if (item?.type === 'app') {
+          this.hiddenDesktopAppIds = this.hiddenDesktopAppIds.filter((appId) => appId !== item.appId)
+        }
+      }
+      const pageIndex = Math.max(0, Number(targetPage) || 0)
+      this.order = this.order.filter((id) => !validIds.includes(id))
+      this.reflow()
+      if (pageIndex >= this.pages.length) {
+        this.order.push(`page-break:${Date.now()}`, ...validIds)
+      } else {
+        const existingPageItems = this.pages[pageIndex] || []
+        if (existingPageItems.length > 0) {
+          const lastItem = existingPageItems[existingPageItems.length - 1]
+          const idx = this.order.indexOf(lastItem)
+          if (idx !== -1) {
+            this.order.splice(idx + 1, 0, ...validIds)
+          } else {
+            this.order.push(...validIds)
+          }
+        } else if (pageIndex === 0) {
+          this.order.unshift(...validIds)
+        } else {
+          const prevPageItems = this.pages[pageIndex - 1] || []
+          const prevLast = prevPageItems[prevPageItems.length - 1]
+          const prevIdx = prevLast ? this.order.indexOf(prevLast) : -1
+          if (prevIdx !== -1) {
+            this.order.splice(prevIdx + 1, 0, `page-break:${Date.now()}`, ...validIds)
+          } else {
+            this.order.push(...validIds)
+          }
+        }
+      }
+      this.order = this.order.filter((id, idx, arr) => {
+        if (typeof id !== 'string' || !id.startsWith('page-break:')) return true
+        const next = arr[idx + 1]
+        return next && (typeof next !== 'string' || !next.startsWith('page-break:'))
+      })
+      this.selectedItemIds = []
+      this.reflow()
+      this.currentPage = Math.min(pageIndex, this.pages.length - 1)
+      this.persist()
+      return true
     },
     createFolder(ids, page = this.currentPage, index = 0) {
       const apps = unique(ids).map((id) => this.items[id]).filter((item) => item?.type === 'app'); if (apps.length < 2) return null
@@ -133,28 +198,34 @@ export const useHomeStore = defineStore('home', {
     removeAppFromFolder(appId, folderId, page = this.currentPage, index = 0) {
       const folder = this.folders[folderId], id = appItemId(appId); if (!folder?.appIds.includes(appId) || !this.items[id]) return false
       folder.appIds = folder.appIds.filter((value) => value !== appId); this.hiddenDesktopAppIds = this.hiddenDesktopAppIds.filter((value) => value !== appId); this.insertAt(id, page, index)
-      if (!folder.appIds.length) this.removeFolder(folderId, false); else this.reflow(); this.persist(); return true
+      if (folder.appIds.length <= 1) this.removeFolder(folderId, true); else { this.reflow(); this.persist(); } return true
+    },
+    cleanupDissolvedFolders() {
+      for (const [folderId, folder] of Object.entries(this.folders)) {
+        if (folder.appIds.length <= 1) this.removeFolder(folderId, true)
+      }
     },
     resizeFolder(id, width, height) { const folder = this.folders[id]; if (!folder) return false; folder.width = Math.max(1, Math.min(2, Number(width) || 1)); folder.height = Math.max(1, Math.min(2, Number(height) || 1)); this.reflow(); this.persist(); return true },
     renameFolder(id, name) { const folder = this.folders[id]; if (!folder) return false; folder.name = String(name || '文件夹').trim().slice(0, 24) || '文件夹'; this.persist(); return true },
     removeFolder(folderId, releaseApps = true) {
       const folder = this.folders[folderId], id = folderItemId(folderId); if (!folder) return false
       const rank = Math.max(0, this.order.indexOf(id)); this.order = this.order.filter((value) => value !== id); delete this.items[id]; delete this.folders[folderId]
-      if (releaseApps) this.order.splice(rank, 0, ...folder.appIds.map(appItemId).filter((itemId) => this.items[itemId])); this.reflow(); this.persist(); return true
+      if (releaseApps && folder.appIds.length > 0) this.order.splice(rank, 0, ...folder.appIds.map(appItemId).filter((itemId) => this.items[itemId])); this.reflow(); this.persist(); return true
     },
     moveToDock(itemId, targetIndex = this.dock.length) {
       const item = this.items[itemId]; if (!item || item.type !== 'app') return false
       this.hiddenDesktopAppIds = this.hiddenDesktopAppIds.filter((id) => id !== item.appId); this.order = this.order.filter((id) => id !== itemId); for (const folder of Object.values(this.folders)) folder.appIds = folder.appIds.filter((id) => id !== item.appId)
+      this.cleanupDissolvedFolders()
       this.dock = this.dock.filter((id) => id !== itemId); const index = Math.max(0, Math.min(Number(targetIndex) || 0, this.dock.length)); let displaced = null
       if (this.dock.length >= 4) displaced = this.dock.splice(Math.min(index, 3), 1)[0]
       this.dock.splice(Math.min(index, 3), 0, itemId); if (displaced) this.insertAt(displaced, this.currentPage, 0); this.reflow(); this.persist(); return displaced
     },
     moveFromDock(itemId, page = this.currentPage, index = 0) { if (!this.dock.includes(itemId)) return false; const item = this.items[itemId]; if (item?.type === 'app') this.hiddenDesktopAppIds = this.hiddenDesktopAppIds.filter((id) => id !== item.appId); this.dock = this.dock.filter((id) => id !== itemId); this.insertAt(itemId, page, index); this.reflow(); this.persist(); return true },
-    removeFromDesktop(itemId) { const item = this.items[itemId]; if (!item || item.type !== 'app') return false; this.order = this.order.filter((id) => id !== itemId); this.dock = this.dock.filter((id) => id !== itemId); for (const folder of Object.values(this.folders)) folder.appIds = folder.appIds.filter((id) => id !== item.appId); if (!this.hiddenDesktopAppIds.includes(item.appId)) this.hiddenDesktopAppIds.push(item.appId); this.selectedItemIds = this.selectedItemIds.filter((id) => id !== itemId); this.reflow(); this.persist(); return true },
+    removeFromDesktop(itemId) { const item = this.items[itemId]; if (!item || item.type !== 'app') return false; this.order = this.order.filter((id) => id !== itemId); this.dock = this.dock.filter((id) => id !== itemId); for (const folder of Object.values(this.folders)) folder.appIds = folder.appIds.filter((id) => id !== item.appId); if (!this.hiddenDesktopAppIds.includes(item.appId)) this.hiddenDesktopAppIds.push(item.appId); this.selectedItemIds = this.selectedItemIds.filter((id) => id !== itemId); this.cleanupDissolvedFolders(); this.reflow(); this.persist(); return true },
     uninstallApp(appId) {
       if (!this.canUninstall(appId)) return false
       const itemId = appItemId(appId); this.order = this.order.filter((id) => id !== itemId); this.dock = this.dock.filter((id) => id !== itemId); for (const folder of Object.values(this.folders)) folder.appIds = folder.appIds.filter((id) => id !== appId)
-      for (const [folderId, folder] of Object.entries(this.folders)) if (!folder.appIds.length) this.removeFolder(folderId, false)
+      this.cleanupDissolvedFolders()
       delete this.items[itemId]; this.hiddenDesktopAppIds = this.hiddenDesktopAppIds.filter((id) => id !== appId); if (!this.uninstalledAppIds.includes(appId)) this.uninstalledAppIds.push(appId); this.selectedItemIds = this.selectedItemIds.filter((id) => id !== itemId); this.reflow(); this.persist(); return true
     },
     removeWidget(widgetId) { const itemId = `widget:${widgetId}`; if (!this.items[itemId]) return false; this.order = this.order.filter((id) => id !== itemId); delete this.items[itemId]; if (!this.removedWidgetIds.includes(widgetId)) this.removedWidgetIds.push(widgetId); this.reflow(); this.persist(); return true },

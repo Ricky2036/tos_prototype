@@ -1,7 +1,7 @@
 import { rectRelativeToScreen } from './dom.js'
 
-const homeAnchors = new Map()
-const lastValidAnchors = new Map()
+const homeAnchors = globalThis.__TOS_HOME_ANCHORS__ || (globalThis.__TOS_HOME_ANCHORS__ = new Map())
+const lastValidAnchors = globalThis.__TOS_LAST_VALID_ANCHORS__ || (globalThis.__TOS_LAST_VALID_ANCHORS__ = new Map())
 let pendingLaunch = null
 const HOME_LAYOUT_SUBPIXELS = 8
 
@@ -12,10 +12,22 @@ const HOME_LAYOUT_SUBPIXELS = 8
  */
 export function normalizeHomeAnchorRect(rect) {
   if (!rect) return null
+  const rawX = Number.isFinite(rect.x) ? rect.x : (Number.isFinite(rect.left) ? rect.left : 0)
+  const rawY = Number.isFinite(rect.y) ? rect.y : (Number.isFinite(rect.top) ? rect.top : 0)
+  const width = Number.isFinite(rect.width) ? rect.width : (Number.isFinite(rect.w) ? rect.w : 60)
+  const height = Number.isFinite(rect.height) ? rect.height : (Number.isFinite(rect.h) ? rect.h : 60)
+  const x = Math.round(rawX * HOME_LAYOUT_SUBPIXELS) / HOME_LAYOUT_SUBPIXELS
+  const y = Math.round(rawY * HOME_LAYOUT_SUBPIXELS) / HOME_LAYOUT_SUBPIXELS
   const normalized = {
     ...rect,
-    x: Math.round(rect.x * HOME_LAYOUT_SUBPIXELS) / HOME_LAYOUT_SUBPIXELS,
-    y: Math.round(rect.y * HOME_LAYOUT_SUBPIXELS) / HOME_LAYOUT_SUBPIXELS
+    x,
+    y,
+    left: x,
+    top: y,
+    width,
+    height,
+    right: x + width,
+    bottom: y + height
   }
   Object.defineProperties(normalized, {
     cx: { enumerable: true, get() { return this.x + this.width / 2 } },
@@ -42,13 +54,32 @@ export function getAnchorRect(appId, viewport) {
       return normalized
     }
   }
+  if (viewport) {
+    // 降级兜底：按优先级检查文件夹内图标、桌面网格图标、Dock 图标或全局挂载的应用图标节点
+    const candidate = viewport.querySelector?.(`[data-folder-app="${appId}"] .app-icon-anchor`)
+      || viewport.querySelector?.(`[data-folder-app="${appId}"]`)
+      || viewport.querySelector?.(`[data-home-item="app:${appId}"] .app-icon-anchor`)
+      || viewport.querySelector?.(`[data-dock-item="app:${appId}"] .app-icon-anchor`)
+      || viewport.querySelector?.(`[data-app-id="${appId}"] .app-icon-anchor`)
+      || viewport.querySelector?.(`[data-app-id="${appId}"]`)
+
+    if (candidate?.isConnected) {
+      const raw = rectRelativeToScreen(candidate, viewport)
+      if (raw && raw.width > 0 && raw.height > 0) {
+        const normalized = normalizeHomeAnchorRect(raw)
+        lastValidAnchors.set(appId, normalized)
+        return normalized
+      }
+    }
+  }
   return lastValidAnchors.get(appId) || null
 }
 
 export function setLaunchRect(appId, rect) {
-  pendingLaunch = rect ? { appId, rect: { ...rect } } : null
-  if (rect && rect.width > 0 && rect.height > 0) {
-    lastValidAnchors.set(appId, normalizeHomeAnchorRect(rect))
+  const normalized = normalizeHomeAnchorRect(rect)
+  pendingLaunch = normalized ? { appId, rect: normalized } : null
+  if (normalized && normalized.width > 0 && normalized.height > 0) {
+    lastValidAnchors.set(appId, normalized)
   }
 }
 

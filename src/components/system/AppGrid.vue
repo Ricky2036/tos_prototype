@@ -15,7 +15,7 @@ const props = defineProps({
   folderTargetId: { type: String, default: null }, folderCandidateId:{type:String,default:null}, folderCandidateArmed:{type:Boolean,default:false}, mergingFolderItemId:{type:String,default:null}, removingIds: { type: Array, default: () => [] },
   suppressClickId: { type: String, default: null }, openFolderId: { type: String, default: null }, folderOperationId: { type: String, default: null }
 })
-const emit = defineEmits(['item-pointerdown', 'folder-resize-pointerdown', 'toggle-select', 'open-folder', 'request-remove'])
+const emit = defineEmits(['item-pointerdown', 'folder-resize-pointerdown', 'toggle-select', 'open-folder', 'request-remove', 'launch-app'])
 const selected = computed(() => new Set(props.selectedIds))
 const removing = computed(() => new Set(props.removingIds))
 const itemElements = new Map()
@@ -51,8 +51,16 @@ function activate(event, id, item) {
   }
   if (props.editing) {
     event.preventDefault(); event.stopPropagation(); emit('toggle-select', id)
-  } else if (item.type === 'folder') {
-    event.preventDefault(); event.stopPropagation(); emit('open-folder', item.folderId, event.currentTarget)
+    return
+  }
+  if (item.type === 'folder') {
+    const isFolderApp = event.target.closest?.('.folder-app')
+    const folder = props.folders[item.folderId]
+    const isLarge = folder && (folder.width > 1 || folder.height > 1)
+    if (isLarge && isFolderApp) {
+      return
+    }
+    event.preventDefault(); event.stopPropagation(); emit('open-folder', item.folderId, event.currentTarget || itemRefs.get(id))
   }
 }
 </script>
@@ -67,8 +75,9 @@ function activate(event, id, item) {
       <ClockWidget v-if="items[id]?.type === 'widget' && items[id].widgetId === 'clock'" />
       <SmartSuggestionWidget v-else-if="items[id]?.type === 'widget'" />
       <AppIcon v-else-if="appFor(items[id])" :app="appFor(items[id])" :size="profile.iconSize * profile.compactScale" :enter-delay="120 + index * 28" home-anchor />
-      <HomeFolder v-else-if="folderFor(items[id])" :folder="folderFor(items[id])" :editing="editing" :operation-active="folderOperationId === items[id].folderId" :merging="mergingFolderItemId === id"
-        @open="emit('open-folder',items[id].folderId,$event)" @resize-pointerdown="emit('folder-resize-pointerdown',$event,id,items[id].folderId)" />
+      <HomeFolder v-else-if="folderFor(items[id])" :folder="folderFor(items[id])" :editing="editing" :operation-active="folderOperationId === items[id].folderId" :merging="mergingFolderItemId === id" :enter-delay="120 + index * 28"
+        @open="emit('open-folder',items[id].folderId, $event || itemRefs.get(id))" @resize-pointerdown="emit('folder-resize-pointerdown',$event,id,items[id].folderId)"
+        @launch-app="(appId, anchor) => emit('launch-app', appId, anchor)" />
       <span v-if="editing" class="selection-mark" aria-hidden="true">{{ selected.has(id) ? '✓' : '' }}</span>
     </div>
   </div>
@@ -76,21 +85,18 @@ function activate(event, id, item) {
 
 <style scoped>
 .app-grid { position:relative;width:100%;height:100%;box-sizing:border-box; }
-.app-grid.is-editing { transform:translate3d(0,32px,0) scale(.76); transform-origin:50% 50%; transition:transform 320ms cubic-bezier(.22,.8,.26,1); }
-.home-item { position:absolute;left:0;top:0;min-width:0;display:flex;align-items:flex-start;justify-content:center;transition:width 240ms cubic-bezier(.22,.8,.24,1),height 240ms cubic-bezier(.22,.8,.24,1),opacity 160ms ease;touch-action:none;will-change:transform; }
+.app-grid.is-editing { transform:translate3d(0,20px,0) scale(.85); transform-origin:50% 36%; transition:transform 320ms cubic-bezier(.22,.8,.26,1); }
+.home-item { position:absolute;left:0;top:0;min-width:0;display:flex;align-items:flex-start;justify-content:center;transition:width 240ms cubic-bezier(.22,.8,.24,1),height 240ms cubic-bezier(.22,.8,.24,1);touch-action:none;will-change:transform; }
 .home-item.is-widget { min-height:0;aspect-ratio:1/1; }
 .home-item.is-widget :deep(.widget),
 .home-item.is-widget :deep(.smart-suggestion-stack) { width:100%; height:auto; aspect-ratio:1/1; flex:none; }
-.home-item.is-dragging-source { opacity:.16; }
-.home-item.is-folder-open { opacity:0; }
+.home-item.is-dragging-source { opacity:.16; transition:opacity 160ms ease; }
+.home-item.is-folder-open { opacity:0 !important; transition:none !important; }
 .home-item.is-folder-target > :not(.selection-mark) { transform:scale(1.1);filter:drop-shadow(0 0 14px rgba(255,255,255,.6)); }
 .home-item.is-folder-candidate{z-index:3}.home-item.is-folder-candidate::before{content:"";position:absolute;z-index:0;top:-4px;left:50%;width:calc(var(--icon-size) * 1.14);height:calc(var(--icon-size) * 1.14);border-radius:calc(var(--icon-size) * .31);background:rgba(255,255,255,.28);border:1px solid rgba(255,255,255,.34);backdrop-filter:blur(18px) saturate(170%);opacity:1;transform:translateX(-50%) scale(1);animation:folder-candidate-in 140ms cubic-bezier(.22,.8,.24,1) both;box-shadow:inset 0 1px 1px rgba(255,255,255,.34)}.home-item.is-folder-candidate> :not(.selection-mark){position:relative;z-index:1;transition:transform 280ms cubic-bezier(.22,.8,.24,1)}.home-item.is-folder-armed> :not(.selection-mark){transform:scale(.94);filter:drop-shadow(0 0 12px rgba(255,255,255,.58))}@keyframes folder-candidate-in{from{opacity:0;transform:translateX(-50%) scale(.88)}to{opacity:1;transform:translateX(-50%) scale(1)}}
 .home-item.is-removing{opacity:0;transition:opacity 180ms ease}
 .home-item.is-removing > :not(.selection-mark){transform:scale(.2);transition:transform 180ms ease}
-.home-item.is-editing:not(.is-dragging-source) > :not(.selection-mark) { animation:home-wiggle 170ms ease-in-out infinite alternate; }
-.home-item:nth-child(even).is-editing > :not(.selection-mark) { animation-delay:-85ms; }
-.selection-mark { position:absolute; top:-8px; right:-6px; width:25px; height:25px; display:grid; place-items:center; box-sizing:border-box; border-radius:50%; color:transparent; background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(240,245,255,.8)); border:1px solid rgba(255,255,255,.98); box-shadow:inset 0 1px 2px rgba(255,255,255,1),0 2px 7px rgba(15,26,62,.22); backdrop-filter:blur(12px) saturate(180%); font:700 14px/1 var(--font-stack); z-index:4; }
-.is-selected .selection-mark { color:#fff; background:linear-gradient(145deg,#47a7ff,#0878f9); border-color:rgba(255,255,255,.88); box-shadow:inset 0 1px 1px rgba(255,255,255,.7),0 3px 9px rgba(0,91,230,.42); }
-@keyframes home-wiggle { from{transform:rotate(-1deg)} to{transform:rotate(1deg)} }
-@media (prefers-reduced-motion:reduce) { .app-grid.is-editing,.home-item,.home-item.is-editing{animation:none;transition-duration:1ms} }
+.selection-mark { position:absolute; top:-3px; right:-3px; width:20px; height:20px; display:grid; place-items:center; box-sizing:border-box; border-radius:50%; color:transparent; background:rgba(255,255,255,.78); border:1.2px solid rgba(255,255,255,.95); box-shadow:0 2px 6px rgba(0,0,0,.22); backdrop-filter:blur(12px) saturate(180%); -webkit-backdrop-filter:blur(12px) saturate(180%); font:700 11px/1 var(--font-stack); z-index:4; transition:background 160ms ease,border-color 160ms ease; pointer-events:none; }
+.is-selected .selection-mark { color:#fff; background:#007aff; border-color:#fff; box-shadow:0 2px 8px rgba(0,122,255,.45); }
+@media (prefers-reduced-motion:reduce) { .app-grid.is-editing,.home-item,.home-item.is-editing{transition-duration:1ms} }
 </style>
