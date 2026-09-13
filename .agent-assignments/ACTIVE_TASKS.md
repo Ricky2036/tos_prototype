@@ -83,7 +83,8 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Restore and preserve folder background blur and frosted glass across opening, open, and closing states | `antigravity/lane` | None (locks released) | `8f94698` | `c330e51` |
 | Merged | Antigravity | Eliminate folder background flicker and redesign desktop edit mode to match reference layout | `antigravity/lane` | None (locks released) | `8a9c013` | `32a1e55` |
 | Merged | Antigravity | Implement folder unlock entrance animation on desktop matching surrounding app icons | `antigravity/lane` | None (locks released) | `f039ecd` | `e020efb` |
-| Merged | Antigravity | Fix folder collapse background flash by eliminating desktop item opacity transition and smoothing backdrop curve | `antigravity/lane` | None (locks released) | `4e5da0f` | `639778a` |
+| Merged | Antigravity | Stop edit mode icon wiggle, fix multi-select & prevent click enlarge, implement page thumbnail deck with extra blank page and frosted glass | `antigravity/lane` | None (locks released) | `b000e30` | `9e558a6` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
+
 
