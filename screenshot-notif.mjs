@@ -5,6 +5,11 @@ import { dirname, join } from 'path'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const outDir = join(__dirname, 'screenshots')
 
+/* 端口从命令行取，默认 5555 —— 与 vite.config.js 的 server.port（strictPort）和
+   verify-app-switcher.mjs 的默认值保持一致。这里曾写死 5175（某次手动
+   `npx vite --port 5175` 起的实例），导致「脚本能跑 ≠ 项目配置的端口是对的」。 */
+const PORT = process.argv[2] || '5555'
+
 const browser = await chromium.launch()
 const context = await browser.newContext({
   viewport: { width: 393, height: 852 },
@@ -14,7 +19,7 @@ const context = await browser.newContext({
 })
 const page = await context.newPage()
 
-await page.goto('http://127.0.0.1:5175/')
+await page.goto(`http://127.0.0.1:${PORT}/`)
 await page.waitForTimeout(1200)
 
 // 锁屏上滑解锁（从底部非交互区向上滑）

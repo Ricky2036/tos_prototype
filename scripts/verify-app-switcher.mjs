@@ -1003,9 +1003,16 @@ await page.waitForTimeout(1000)
       worstStep = step
     }
   }
+  /* 阈值 20% → 40%（2026-09-13）。
+     这条判据的本意是抓「松手时包络被硬置零」——那种硬跳变【一帧吃掉整段位移】，
+     share ≈ 100%。但它对采样帧率敏感：同一份代码、同一次拖动，
+     74 帧的轨迹里最大单帧占 11%，48 帧的轨迹里占 22%（实测两个 dev server 端口上
+     逐条对比），只因为每帧摊到的位移不同。20% 会因此假失败。
+     40% 仍与「硬跳变 ≈100%」留出 2.5 倍余量，不会再误报。
+     （尺度无关的写法见 skill 4.9；这里保留比值判据、只放宽阈值，避免再引入一条曲线拟合。） */
   check(
-    '修正 D① / 第五轮：松手无硬跳变（位移连续，单帧最多占整段位移的 20%）',
-    worstCard >= 0 && worstShare < 0.2,
+    '修正 D① / 第五轮：松手无硬跳变（位移连续，单帧最多占整段位移的 40%）',
+    worstCard >= 0 && worstShare < 0.4,
     `最大单帧位移占比=${(worstShare * 100).toFixed(0)}%（卡 ${worstCard}，单帧 ${worstStep.toFixed(1)}px）` +
       ` · 层间距最大单帧变化=${maxJump.toFixed(1)}px（第 ${jumpAt}/${trace.length} 帧，属弹簧加速段）` +
       ` · 拖动中最大层间距=${peakGap != null ? peakGap.toFixed(1) : '?'}px`
