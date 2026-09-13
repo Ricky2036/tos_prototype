@@ -41,6 +41,7 @@ const displayFolders = computed(() => {
 const edgePeekOffset = ref(0)
 const isPageFlipping = ref(false)
 let pageFlipResetTimer = null
+const hoveredThumbnailIndex = ref(null)
 
 const previewLayout = computed(() => (previewOrder.value || folderResize.value) ? layoutHomeOrder(previewOrder.value || home.order, home.items, displayFolders.value, home.profile) : null)
 const displayPages = computed(() => {
@@ -49,6 +50,10 @@ const displayPages = computed(() => {
     return [...basePages, []]
   }
   return basePages
+})
+const thumbnailPages = computed(() => {
+  const pages = home.pages || []
+  return pages.length > 0 ? pages : [[]]
 })
 const displayPositions = computed(() => previewLayout.value?.frames || home.positions)
 const stripStyle = computed(() => ({
@@ -233,6 +238,12 @@ function createDragGhost(source,id,x,y) {
     clone.classList.remove('is-editing','is-dragging-source','is-removing','is-selected')
     clone.style.cssText = 'position:relative;left:auto;top:auto;width:100%;height:100%;transform:none;animation:none;opacity:1;pointer-events:none'
     clone.querySelectorAll('.selection-mark,.remove-badge,.dock-select').forEach(node => node.remove())
+    if (home.selectedItemIds.includes(id) && home.selectedItemIds.length > 1) {
+      const badge = document.createElement('span')
+      badge.className = 'drag-cluster-badge'
+      badge.textContent = String(home.selectedItemIds.length)
+      clone.appendChild(badge)
+    }
     ghostRef.value.replaceChildren(clone)
   })
 }
@@ -551,7 +562,20 @@ function onPointerMove(event) {
   if (pointer.mode === 'item-drag') {
     if (Math.hypot(dx,dy) <= 5) return
     pointer.didMove = true
-    event.preventDefault(); setGhostPosition(ghost.value.id, event.clientX, event.clientY); updatePreview(event.clientX,event.clientY); return
+    event.preventDefault()
+    setGhostPosition(ghost.value.id, event.clientX, event.clientY)
+    const elem = document.elementFromPoint(event.clientX, event.clientY)
+    const card = elem?.closest?.('.thumbnail-card')
+    if (card && card.dataset.pageIndex != null) {
+      hoveredThumbnailIndex.value = Number(card.dataset.pageIndex)
+      folderTargetId.value = null
+      folderMergeCandidate.value = null
+      dockTargetIndex.value = null
+    } else {
+      hoveredThumbnailIndex.value = null
+      updatePreview(event.clientX, event.clientY)
+    }
+    return
   }
   if (pointer.mode === 'page') {
     if (Math.abs(dx) < 7 && Math.abs(dy) < 7) return
@@ -658,10 +682,18 @@ function finishItem(cancelled) {
   if (pointer) pointer.edgeDirection = 0
 
   if (!pointer.didMove) {
-    previewOrder.value = null; dragging.value = null; ghost.value = null; folderTargetId.value = null; dockTargetIndex.value = null
+    previewOrder.value = null; dragging.value = null; ghost.value = null; folderTargetId.value = null; dockTargetIndex.value = null; hoveredThumbnailIndex.value = null
     return
   }
-  if (!cancelled && dragging.value && dockTargetIndex.value != null) {
+  if (!cancelled && dragging.value && hoveredThumbnailIndex.value != null) {
+    const targetPage = hoveredThumbnailIndex.value
+    const isMulti = home.selectedItemIds.includes(dragging.value.id)
+    const itemsToMove = isMulti && home.selectedItemIds.length > 0
+      ? [...home.selectedItemIds]
+      : [dragging.value.id]
+    home.moveItemsToPage(itemsToMove, targetPage)
+    hoveredThumbnailIndex.value = null
+  } else if (!cancelled && dragging.value && dockTargetIndex.value != null) {
     home.moveToDock(dragging.value.id,dockTargetIndex.value)
   } else if (!cancelled && dragging.value && folderTargetId.value) {
     const target = home.items[folderTargetId.value]
@@ -686,6 +718,7 @@ function finishItem(cancelled) {
   folderTargetId.value = null
   folderMergeCandidate.value = null
   dockTargetIndex.value = null
+  hoveredThumbnailIndex.value = null
   if (cancelled) home.currentPage = Math.min(pointer.startPage,home.pages.length - 1)
   if (showPageDots.value) restoreSearchAfterPaging()
 }
@@ -855,8 +888,8 @@ const canUninstallSelection = computed(() => hasSelection.value && home.selected
 const folderSizes = [[1,1],[2,1],[1,2],[2,2]]
 
 function getPageThumbnailItems(pageIndex) {
-  const page = displayPages.value[pageIndex] || []
-  const frames = displayPositions.value[pageIndex] || {}
+  const page = thumbnailPages.value[pageIndex] || []
+  const frames = displayPositions.value[pageIndex] || home.positions[pageIndex] || {}
   const rowHeight = (home.profile.workspaceRect.height || 562) / 6
   return page.map((id) => {
     const frame = frames[id] || { col: 0, y: home.profile.workspaceRect.top, spanX: 1, spanY: 1 }
@@ -876,7 +909,7 @@ function getPageThumbnailItems(pageIndex) {
 }
 
 function chooseThumbnailCard(index) {
-  if (index < displayPages.value.length) {
+  if (index < thumbnailPages.value.length) {
     home.setPage(index)
   } else {
     showToast('空白页')
@@ -921,21 +954,21 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
     <div v-if="home.editing" class="edit-actions home-editor">
       <div class="edit-action-items">
         <button type="button" :disabled="!canGroupSelection" @click="createSelectedFolder">
-          <span class="action-icon"><svg viewBox="0 0 28 28" aria-hidden="true"><rect x="3" y="3" width="22" height="22" rx="6" stroke="currentColor" stroke-width="2" fill="none"/><path d="M14 8v12M8 14h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="action-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M12 7.5v9M7.5 12h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
           <span>成组</span>
         </button>
         <button type="button" :disabled="!hasSelection" @click="removeSelectedFromDesktop">
-          <span class="action-icon"><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M9 14h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="action-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M7.5 12h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
           <span>移除</span>
         </button>
         <button type="button" :disabled="!canUninstallSelection" @click="requestSelectedRemoval">
-          <span class="action-icon"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M7 9.5h14l-1.2 13.5a2 2 0 0 1-2 1.5H10.2a2 2 0 0 1-2-1.5L7 9.5Z" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M5 9.5h18M10.5 9.5V6.5a1.5 1.5 0 0 1 1.5-1.5h4a1.5 1.5 0 0 1 1.5 1.5v3M11.5 13v7M16.5 13v7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <span class="action-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12a2 2 0 0 1-2 1.8H9a2 2 0 0 1-2-1.8L6 8Z" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M4 8h16M9 8V5.5a1.5 1.5 0 0 1 1.5-1.5h3a1.5 1.5 0 0 1 1.5 1.5V8M10 12v5M14 12v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
           <span>卸载</span>
         </button>
       </div>
       <button type="button" class="done-pill" @click="home.setEditing(false)">完成</button>
     </div>
-    <div class="indicator-wrap" :style="indicatorStyle"><PageIndicator :count="displayPages.length" :current="home.currentPage" :show-pages="home.editing || showPageDots" @search="emit('open-library')" /></div>
+    <div class="indicator-wrap" :style="indicatorStyle"><PageIndicator :count="hasSelection ? thumbnailPages.length : displayPages.length" :current="home.currentPage" :show-pages="home.editing || showPageDots" @search="emit('open-library')" /></div>
     <DockBar v-if="!home.editing" :profile="home.profile" :dragging-id="dragging?.id" :dock-target-index="dockTargetIndex" :removing-ids="removingIds" :suppress-click-id="suppressedClickId" @item-pointerdown="onDockPointerDown"
       @toggle-select="home.toggleSelected" @request-remove="requestRemove" />
     <HomeFolderOverlay v-if="openFolderId && home.folders[openFolderId]" :folder="home.folders[openFolderId]" :origin="folderOrigin"
@@ -1002,9 +1035,9 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
           </span>
           <span class="depth-label">
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="m12 2 9 4.5-9 4.5-9-4.5L12 2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-              <path d="m3 11 9 4.5 9-4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-              <path d="m3 16 9 4.5 9-4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="m12 2.5 8.5 4.5-8.5 4.5-8.5-4.5 8.5-4.5Z" fill="white" stroke="white" stroke-width="1" stroke-linejoin="round"/>
+              <path d="m3.5 11.5 8.5 4.5 8.5-4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="m3.5 16.5 8.5 4.5 8.5-4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             景深桌面
           </span>
@@ -1012,35 +1045,34 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
         <div class="edit-tool-grid">
           <button type="button" @click="showToast('壁纸与个性化：开发中')">
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="5" y="3" width="14" height="18" rx="2.5" stroke="currentColor" stroke-width="1.8" fill="none"/>
-              <path d="m8 13 2.5-2.5 2 2 3-3 1.5 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-              <circle cx="9.5" cy="8" r="1" fill="currentColor"/>
-              <circle cx="12" cy="18" r="0.75" fill="currentColor"/>
+              <rect x="4.5" y="2.5" width="15" height="19" rx="3.5" stroke="currentColor" stroke-width="1.8" fill="none"/>
+              <path d="M4.5 15.5c2-2 4.5-2.8 7-1.5s4 3 8 0.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+              <circle cx="9" cy="8" r="1.5" fill="currentColor"/>
+              <line x1="10.5" y1="19" x2="13.5" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
             <span>壁纸</span>
           </button>
           <button type="button" @click="showToast('小组件：开发中')">
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="4" y="4" width="7" height="6" rx="1.5" stroke="currentColor" stroke-width="1.8" fill="none"/>
-              <rect x="13" y="4" width="7" height="11" rx="1.5" stroke="currentColor" stroke-width="1.8" fill="none"/>
-              <rect x="4" y="12" width="7" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8" fill="none"/>
-              <rect x="13" y="17" width="7" height="3" rx="1" stroke="currentColor" stroke-width="1.8" fill="none"/>
+              <rect x="3.5" y="3.5" width="7" height="7" rx="2" fill="currentColor"/>
+              <rect x="13.5" y="3.5" width="7" height="11" rx="2" fill="currentColor"/>
+              <rect x="3.5" y="13.5" width="7" height="7" rx="2" fill="currentColor"/>
+              <rect x="13.5" y="17.5" width="7" height="3" rx="1.5" fill="currentColor"/>
             </svg>
             <span>小部件</span>
           </button>
           <button type="button" @click="showToast('图标：开发中')">
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="4" y="4" width="6.5" height="6.5" rx="2.2" fill="currentColor"/>
-              <rect x="13.5" y="4" width="6.5" height="6.5" rx="2.2" fill="currentColor"/>
-              <rect x="4" y="13.5" width="6.5" height="6.5" rx="2.2" fill="currentColor"/>
-              <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2.2" fill="currentColor"/>
+              <rect x="3.5" y="3.5" width="7" height="7" rx="2.4" fill="currentColor"/>
+              <rect x="13.5" y="3.5" width="7" height="7" rx="2.4" fill="currentColor"/>
+              <rect x="3.5" y="13.5" width="7" height="7" rx="2.4" fill="currentColor"/>
+              <rect x="13.5" y="13.5" width="7" height="7" rx="2.4" fill="currentColor"/>
             </svg>
             <span>图标</span>
           </button>
           <button type="button" @click="showToast('桌面设置：开发中')">
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="1.8" fill="none"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" stroke="currentColor" stroke-width="1.8" fill="none"/>
+              <path d="M13.0547 1.83594C13.3984 1.83594 13.6953 1.94531 13.9453 2.16406C14.1953 2.38281 14.3438 2.64844 14.3906 2.96094V3.03125L14.5312 4.55469C14.7656 4.63281 14.9844 4.71875 15.1875 4.8125C15.4062 4.89063 15.6172 4.98438 15.8203 5.09375L16.9922 4.10938C17.2578 3.89062 17.5625 3.79687 17.9062 3.82812C18.25 3.84375 18.5469 3.96875 18.7969 4.20312L20.2969 5.70312C20.5312 5.9375 20.6562 6.21875 20.6719 6.54688C20.7031 6.875 20.6172 7.17187 20.4141 7.4375L20.3906 7.50781L19.4062 8.67969C19.5156 8.88281 19.6094 9.09375 19.6875 9.3125C19.7812 9.51562 19.8672 9.72656 19.9453 9.94531L21.4688 10.1094C21.8125 10.1406 22.0938 10.2891 22.3125 10.5547C22.5469 10.8047 22.6641 11.1016 22.6641 11.4453V13.5547C22.6641 13.8984 22.5469 14.2031 22.3125 14.4688C22.0938 14.7188 21.8125 14.8594 21.4688 14.8906L19.9453 15.0312C19.8672 15.2656 19.7812 15.4922 19.6875 15.7109C19.6094 15.9141 19.5156 16.1172 19.4062 16.3203L20.3906 17.4922C20.6094 17.7578 20.7031 18.0625 20.6719 18.4062C20.6562 18.75 20.5312 19.0469 20.2969 19.2969L18.7969 20.7969C18.5469 21.0312 18.25 21.1641 17.9062 21.1953C17.5625 21.2109 17.2578 21.1094 16.9922 20.8906L15.8203 19.9062C15.6172 20.0156 15.4062 20.1172 15.1875 20.2109C14.9844 20.2891 14.7656 20.3672 14.5312 20.4453L14.3906 21.9688C14.3594 22.3125 14.2109 22.6016 13.9453 22.8359C13.6953 23.0547 13.3984 23.1641 13.0547 23.1641H10.9453C10.6016 23.1641 10.2969 23.0547 10.0312 22.8359C9.78125 22.6016 9.64062 22.3125 9.60938 21.9688L9.44531 20.4453C9.22656 20.3672 9.00781 20.2891 8.78906 20.2109C8.58594 20.1172 8.38281 20.0156 8.17969 19.9062L7.00781 20.8906C6.74219 21.1094 6.4375 21.2109 6.09375 21.1953C5.75 21.1641 5.45312 21.0312 5.20312 20.7969L3.70312 19.2969C3.46875 19.0469 3.33594 18.75 3.30469 18.4062C3.28906 18.0625 3.39062 17.7578 3.60938 17.4922L4.59375 16.3203C4.48438 16.1172 4.38281 15.9141 4.28906 15.7109C4.21094 15.4922 4.13281 15.2656 4.05469 15.0312L2.53125 14.8906C2.1875 14.8594 1.89844 14.7188 1.66406 14.4688C1.44531 14.2031 1.33594 13.8984 1.33594 13.5547V11.4453V11.375C1.35156 11.0469 1.46875 10.7656 1.6875 10.5312C1.92188 10.2812 2.20312 10.1406 2.53125 10.1094L4.05469 9.94531C4.13281 9.72656 4.21094 9.51562 4.28906 9.3125C4.38281 9.09375 4.48438 8.88281 4.59375 8.67969L3.60938 7.50781C3.39062 7.24219 3.28906 6.9375 3.30469 6.59375C3.33594 6.25 3.46875 5.95312 3.70312 5.70312L5.20312 4.20312L5.25 4.15625C5.5 3.9375 5.78906 3.82812 6.11719 3.82812C6.44531 3.8125 6.74219 3.90625 7.00781 4.10938L8.17969 5.09375C8.38281 4.98438 8.58594 4.89063 8.78906 4.8125C9.00781 4.71875 9.22656 4.63281 9.44531 4.55469L9.60938 3.03125V2.96094C9.65625 2.64844 9.80469 2.38281 10.0547 2.16406C10.3047 1.94531 10.6016 1.83594 10.9453 1.83594H13.0547ZM12 9.5C11.1719 9.5 10.4609 9.79688 9.86719 10.3906C9.28906 10.9688 9 11.6719 9 12.5C9 13.3281 9.28906 14.0391 9.86719 14.6328C10.4609 15.2109 11.1719 15.5 12 15.5C12.8281 15.5 13.5312 15.2109 14.1094 14.6328C14.7031 14.0391 15 13.3281 15 12.5C15 11.6719 14.7031 10.9688 14.1094 10.3906C13.5312 9.79688 12.8281 9.5 12 9.5Z" fill="currentColor"/>
             </svg>
             <span>设置</span>
           </button>
@@ -1049,18 +1081,20 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
       <div v-else-if="home.editing" key="layouts" class="layout-picker home-editor">
         <div class="thumbnail-scroll">
           <button
-            v-for="index in displayPages.length + 1"
+            v-for="index in thumbnailPages.length + 1"
             :key="index - 1"
+            :data-page-index="index - 1"
             type="button"
             class="thumbnail-card"
             :class="{
               'is-active': index - 1 === home.currentPage,
-              'is-blank': index - 1 === displayPages.length
+              'is-blank': index - 1 === thumbnailPages.length,
+              'is-drop-target': hoveredThumbnailIndex === index - 1
             }"
-            :aria-label="index - 1 < displayPages.length ? `第${index}页缩略图` : '空白页缩略图'"
+            :aria-label="index - 1 < thumbnailPages.length ? `第${index}页缩略图` : '空白页缩略图'"
             @click="chooseThumbnailCard(index - 1)"
           >
-            <div v-if="index - 1 < displayPages.length" class="mini-grid">
+            <div v-if="index - 1 < thumbnailPages.length" class="mini-grid">
               <span
                 v-for="item in getPageThumbnailItems(index - 1)"
                 :key="item.id"
@@ -1124,6 +1158,8 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
 .thumbnail-card:active{transform:scale(.95)}
 .thumbnail-card.is-active{background:rgba(255,255,255,.24);border:1.5px solid rgba(255,255,255,.88);box-shadow:0 4px 16px rgba(0,0,0,.18),inset 0 0 0 1px rgba(255,255,255,.18)}
 .thumbnail-card.is-blank{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.thumbnail-card.is-drop-target{transform:scale(1.12)!important;border-color:#007aff!important;background:rgba(0,122,255,.28)!important;box-shadow:0 0 16px rgba(0,122,255,.55),inset 0 0 0 1.5px #007aff!important}
+:global(.drag-cluster-badge){position:absolute;top:-5px;right:-5px;min-width:20px;height:20px;border-radius:10px;background:#007aff;color:#fff;font:700 11.5px/18px var(--font-stack);text-align:center;padding:0 4px;border:1.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35);box-sizing:border-box;display:flex;align-items:center;justify-content:center;z-index:10}
 .mini-grid{width:100%;height:100%;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(6,1fr);gap:3px 2px;align-items:center;justify-items:center;pointer-events:none}
 .mini-cell{width:100%;height:100%;max-width:6.5px;max-height:6.5px;border-radius:1.8px;background:rgba(255,255,255,.55);box-sizing:border-box;transition:background 160ms ease,box-shadow 160ms ease}
 .mini-cell.is-large{max-width:100%;max-height:100%;border-radius:3.5px;background:rgba(255,255,255,.45)}
