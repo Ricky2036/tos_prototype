@@ -84,7 +84,9 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Eliminate folder background flicker and redesign desktop edit mode to match reference layout | `antigravity/lane` | None (locks released) | `8a9c013` | `32a1e55` |
 | Merged | Antigravity | Implement folder unlock entrance animation on desktop matching surrounding app icons | `antigravity/lane` | None (locks released) | `f039ecd` | `e020efb` |
 | Merged | Antigravity | Stop edit mode icon wiggle, fix multi-select & prevent click enlarge, implement page thumbnail deck with extra blank page and frosted glass | `antigravity/lane` | None (locks released) | `b000e30` | `9e558a6` |
+| Active | Antigravity | Fix edit dashboard button deformation, cut-off layout, and refine thumbnail cards frosted glass styling | `antigravity/lane` | `src/components/system/HomeScreen.vue` | `73b3e79` | Pending |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
+
 
 
