@@ -80,6 +80,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Apply DevConsole palette to mini-phone FAB, equalize border thickness, and moderate corner radius | `antigravity/lane` | None (locks released) | `884e66c` | `9fe9a79` |
 | Merged | Workbuddy | Polish iOS app switcher: chain reaction drag, continuous scaling, and gesture physics | `workbuddy/lane` | None (locks released) | `0dc5cac` | `a6c0f0b` |
 | Merged | Antigravity | Desktop enhancements: Phase 1 & 2 layout, iOS cross-screen icon drag, folder hero anchor, and single-app auto-dissolution with seamless zoom | `antigravity/lane` | None (desktop file locks released) | `a94248e` | `e3932d3` |
-| Merged | Antigravity | Hero animation performance: fix initial tick stall, eliminate AppIcon per-frame layout reflow, GPU-accelerate backdrop-filter, and robust anchor fallback | `antigravity/lane` | None (locks released) | `7fb2534` | `11a2a13` |
+| Merged | Antigravity | Optimize folder open/close animations: seamless plate FLIP expansion, eliminate plate flicker, and smooth icon/title zoom | `antigravity/lane` | None (locks released) | `512a5b4` | `95da1e9` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
+
