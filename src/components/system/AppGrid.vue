@@ -100,8 +100,8 @@ function activate(event, id, item) {
 .home-item { position:absolute;left:0;top:0;min-width:0;display:flex;align-items:flex-start;justify-content:center;transition:width 240ms cubic-bezier(.22,.8,.24,1),height 240ms cubic-bezier(.22,.8,.24,1);touch-action:none;will-change:transform; }
 .home-item.is-widget { min-height:0; aspect-ratio:1/1; }
 .home-item.is-widget :deep(.widget),
-.home-item.is-widget :deep(.smart-suggestion-stack) { width:100%; height:var(--card-height, 100%); aspect-ratio:1/1; flex:none; }
-.widget-surface { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:4px; }
+.home-item.is-widget :deep(.smart-suggestion-stack) { width:var(--card-width, 100%); height:var(--card-height, 100%); aspect-ratio:1/1; flex:none; }
+.widget-surface { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:6px; }
 .widget-name { font:var(--text-caption); color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.45); max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:none; line-height:1.2; }
 .home-item.is-dragging-source { opacity:.16; transition:opacity 160ms ease; }
 .home-item.is-folder-open { opacity:0 !important; transition:none !important; }
