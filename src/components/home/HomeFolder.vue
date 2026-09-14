@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { getApp } from '../../config/apps'
 import AppIcon from '../ui/AppIcon.vue'
 
@@ -11,6 +11,8 @@ const props = defineProps({
   enterDelay: { type: Number, default: 0 }
 })
 const emit = defineEmits(['open', 'resize-pointerdown', 'launch-app'])
+
+const folderShellRef = ref(null)
 
 const is2x2 = computed(() => props.folder.width === 2 && props.folder.height === 2)
 const is2x1 = computed(() => props.folder.width === 2 && props.folder.height === 1)
@@ -37,6 +39,173 @@ const clusterAppIds = computed(() => {
 const hasCluster = computed(() => clusterAppIds.value.length > 0)
 const clusterIconSize = computed(() => is2x2.value ? 15 : 15)
 
+function getFolderIconPositions(width, height, appIds) {
+  const is22 = width === 2 && height === 2
+  const is21 = width === 2 && height === 1
+  const is12 = width === 1 && height === 2
+  const isLg = width > 1 || height > 1
+  const cap = is22 ? 9 : (isLg ? 3 : 9)
+  const hasClust = isLg && appIds.length > cap
+  const visCount = isLg ? (hasClust ? cap - 1 : cap) : 9
+
+  const positions = new Map()
+
+  if (is22) {
+    const pad = 11, gap = 10, cell = 36.33, iconSize = 35
+    for (let i = 0; i < Math.min(appIds.length, visCount); i++) {
+      const col = i % 3, row = Math.floor(i / 3)
+      const x = pad + col * (cell + gap) + (cell - iconSize) / 2
+      const y = pad + row * (cell + gap) + (cell - iconSize) / 2
+      positions.set(appIds[i], { x, y, size: iconSize, isCluster: false })
+    }
+    if (hasClust) {
+      const cx = pad + 2 * (cell + gap)
+      const cy = pad + 2 * (cell + gap)
+      const clusterApps = appIds.slice(visCount, visCount + 4)
+      for (let k = 0; k < clusterApps.length; k++) {
+        const mcol = k % 2, mrow = Math.floor(k / 2)
+        const x = cx + 1.5 + mcol * 17
+        const y = cy + 1.5 + mrow * 17
+        positions.set(clusterApps[k], { x, y, size: 15, isCluster: true })
+      }
+    }
+  } else if (is21) {
+    const padX = 10, padY = 8, gap = 8, cellX = 38.33, cellY = 44, iconSize = 35
+    for (let i = 0; i < Math.min(appIds.length, visCount); i++) {
+      const x = padX + i * (cellX + gap) + (cellX - iconSize) / 2
+      const y = padY + (cellY - iconSize) / 2
+      positions.set(appIds[i], { x, y, size: iconSize, isCluster: false })
+    }
+    if (hasClust) {
+      const cx = padX + 2 * (cellX + gap)
+      const cy = padY + (cellY - 35) / 2
+      const clusterApps = appIds.slice(visCount, visCount + 4)
+      for (let k = 0; k < clusterApps.length; k++) {
+        const mcol = k % 2, mrow = Math.floor(k / 2)
+        const x = cx + 1 + mcol * 17
+        const y = cy + 1 + mrow * 17
+        positions.set(clusterApps[k], { x, y, size: 15, isCluster: true })
+      }
+    }
+  } else if (is12) {
+    const padX = 8, padY = 10, gap = 8, cellX = 44, cellY = 38.33, iconSize = 35
+    for (let i = 0; i < Math.min(appIds.length, visCount); i++) {
+      const x = padX + (cellX - iconSize) / 2
+      const y = padY + i * (cellY + gap) + (cellY - iconSize) / 2
+      positions.set(appIds[i], { x, y, size: iconSize, isCluster: false })
+    }
+    if (hasClust) {
+      const cx = padX + (cellX - 35) / 2
+      const cy = padY + 2 * (cellY + gap)
+      const clusterApps = appIds.slice(visCount, visCount + 4)
+      for (let k = 0; k < clusterApps.length; k++) {
+        const mcol = k % 2, mrow = Math.floor(k / 2)
+        const x = cx + 1 + mcol * 17
+        const y = cy + 1 + mrow * 17
+        positions.set(clusterApps[k], { x, y, size: 15, isCluster: true })
+      }
+    }
+  } else {
+    const pad = 7, gap = 3, cell = 13.33, iconSize = 12
+    for (let i = 0; i < Math.min(appIds.length, 9); i++) {
+      const col = i % 3, row = Math.floor(i / 3)
+      const x = pad + col * (cell + gap)
+      const y = pad + row * (cell + gap)
+      positions.set(appIds[i], { x, y, size: iconSize, isCluster: false })
+    }
+  }
+
+  return positions
+}
+
+let lastWidth = props.folder.width
+let lastHeight = props.folder.height
+
+watch([() => props.folder.width, () => props.folder.height], async ([newW, newH], [oldW, oldH]) => {
+  if (newW === oldW && newH === oldH) return
+  const fromW = oldW || lastWidth
+  const fromH = oldH || lastHeight
+  lastWidth = newW
+  lastHeight = newH
+
+  const oldPositions = getFolderIconPositions(fromW, fromH, props.folder.appIds)
+  const newPositions = getFolderIconPositions(newW, newH, props.folder.appIds)
+
+  await nextTick()
+
+  if (!folderShellRef.value) return
+  const shell = folderShellRef.value
+  const activeAppIds = new Set(newPositions.keys())
+  const iconElements = shell.querySelectorAll('[data-folder-app]')
+
+  for (const el of iconElements) {
+    const id = el.getAttribute('data-folder-app')
+    if (!id || !newPositions.has(id)) continue
+    const target = newPositions.get(id)
+    const prev = oldPositions.get(id)
+
+    if (!prev) {
+      el.animate([
+        { opacity: 0, transform: 'scale(0.5)' },
+        { opacity: 1, transform: 'scale(1)' }
+      ], {
+        duration: 240,
+        easing: 'cubic-bezier(0.22, 0.8, 0.24, 1)'
+      })
+      continue
+    }
+
+    const dx = prev.x - target.x
+    const dy = prev.y - target.y
+    const ds = prev.size / target.size
+
+    if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5 || Math.abs(ds - 1) > 0.02) {
+      el.style.zIndex = '5'
+      const anim = el.animate([
+        {
+          transform: `translate3d(${dx}px, ${dy}px, 0) scale(${ds})`,
+          transformOrigin: 'center center'
+        },
+        {
+          transform: 'translate3d(0, 0, 0) scale(1)',
+          transformOrigin: 'center center'
+        }
+      ], {
+        duration: 260,
+        easing: 'cubic-bezier(0.22, 0.8, 0.24, 1)',
+        fill: 'none'
+      })
+      anim.onfinish = () => {
+        el.style.zIndex = ''
+      }
+    }
+  }
+
+  // Disappearing icons: temporary ghost that fades out from old position
+  for (const [id, prev] of oldPositions) {
+    if (!activeAppIds.has(id)) {
+      const app = getApp(id)
+      if (!app) continue
+      const ghost = document.createElement('span')
+      ghost.className = 'folder-app-ghost'
+      ghost.style.cssText = `position:absolute;left:${prev.x}px;top:${prev.y}px;width:${prev.size}px;height:${prev.size}px;z-index:3;pointer-events:none;display:grid;place-items:center;`
+      const img = document.createElement('img')
+      img.src = app.image || ''
+      img.style.cssText = `width:100%;height:100%;border-radius:${prev.size > 20 ? 9 : 4}px;object-fit:cover;`
+      ghost.appendChild(img)
+      shell.appendChild(ghost)
+      const a = ghost.animate([
+        { opacity: 0.9, transform: 'scale(1)' },
+        { opacity: 0, transform: 'scale(0.4)' }
+      ], {
+        duration: 200,
+        easing: 'cubic-bezier(0.22, 0.8, 0.24, 1)'
+      })
+      a.onfinish = () => ghost.remove()
+    }
+  }
+})
+
 function onAppClick(appId, event) {
   if (!large.value || props.editing) return
   event.stopPropagation()
@@ -58,7 +227,7 @@ function onSurfaceClick(event) {
 <template>
   <div class="home-folder" :class="{ large, 'is-merging': merging }" :style="{ '--enter-delay': enterDelay + 'ms' }">
     <div class="folder-surface" role="button" tabindex="0" @click="onSurfaceClick" @keydown.enter="emit('open')">
-      <span class="folder-apps" :class="`size-${folder.width}-${folder.height}`" data-folder-shell>
+      <span ref="folderShellRef" class="folder-apps" :class="`size-${folder.width}-${folder.height}`" data-folder-shell>
         <span
           v-for="appId in visibleAppIds"
           :key="appId"
@@ -183,7 +352,7 @@ function onSurfaceClick(event) {
   height: 100%;
   align-self: center;
   justify-self: center;
-  transition: opacity 120ms ease, transform 180ms ease;
+  transition: opacity 120ms ease;
 }
 .folder-app img {
   width: 100%;
@@ -245,6 +414,11 @@ function onSurfaceClick(event) {
   width: auto !important;
   height: auto !important;
   gap: 0 !important;
+}
+
+.home-folder .folder-app :deep(.icon-tile),
+.home-folder .cluster-icon :deep(.icon-tile) {
+  aspect-ratio: 1 !important;
 }
 
 .home-folder .folder-app :deep(.icon-badge) {

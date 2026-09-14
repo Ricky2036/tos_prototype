@@ -42,6 +42,31 @@ function getShellFallback() {
   return { left: sw / 2 - 30, top: sh / 2 - 30, width: 60, height: 60, x: sw / 2 - 30, y: sh / 2 - 30 }
 }
 
+function getIconKeyframes(motion, isClosing) {
+  const { cx, cy, targetScale, hasMini } = motion
+  const steps = 16
+  const keyframes = []
+  const sx = panelMotion.sx
+  const sy = panelMotion.sy
+
+  for (let i = 0; i <= steps; i++) {
+    const p = isClosing ? (i / steps) : (1 - i / steps)
+    const px = 1 + (sx - 1) * p
+    const py = 1 + (sy - 1) * p
+    const totScale = 1 + (targetScale - 1) * p
+    const csx = px > 0.001 ? (totScale / px) : 1
+    const csy = py > 0.001 ? (totScale / py) : 1
+    const stepX = cx * p
+    const stepY = cy * p
+    const opacity = hasMini ? 1 : (isClosing ? Math.max(0, 1 - p * 1.5) : Math.min(1, (1 - p) * 1.5))
+    keyframes.push({
+      transform: `translate3d(${stepX}px, ${stepY}px, 0) scale(${csx}, ${csy})`,
+      opacity
+    })
+  }
+  return keyframes
+}
+
 function prepareMotion() {
   if (!panelRef.value) return
   const screen = panelRef.value.closest('.screen-view') || document.querySelector('.screen-view')
@@ -73,7 +98,7 @@ function prepareMotion() {
 
     let cx = 0
     let cy = 0
-    let cs = 0.2
+    let targetScale = 0.2
 
     const openCenterX = tileRect.left + tileRect.width / 2
     const openCenterY = tileRect.top + tileRect.height / 2
@@ -83,18 +108,18 @@ function prepareMotion() {
       const miniCenterY = miniRect.top + miniRect.height / 2
       cx = (miniCenterX - from.left) / sx - (openCenterX - to.left)
       cy = (miniCenterY - from.top) / sy - (openCenterY - to.top)
-      cs = miniRect.width / (tileRect.width * sx)
+      targetScale = miniRect.width / tileRect.width
     } else {
       cx = (from.width * 0.5) / sx - (openCenterX - to.left)
       cy = (from.height * 0.5) / sy - (openCenterY - to.top)
-      cs = 0.2
+      targetScale = 0.2
     }
 
     const originX = Math.round(tileRect.left - iconElRect.left + tileRect.width / 2)
     const originY = Math.round(tileRect.top - iconElRect.top + tileRect.height / 2)
     iconEl.style.transformOrigin = `${originX}px ${originY}px`
 
-    iconMotions.set(appId, { cx, cy, cs, hasMini: Boolean(miniRect) })
+    iconMotions.set(appId, { cx, cy, targetScale, hasMini: Boolean(miniRect) })
   }
 
   phase.value = 'opening'
@@ -125,12 +150,8 @@ function prepareMotion() {
   for (const [appId, iconEl] of iconRefs) {
     const motion = iconMotions.get(appId)
     if (!motion || !iconEl) continue
-    const { cx, cy, cs, hasMini } = motion
 
-    iconEl.animate([
-      { transform: `translate3d(${cx}px, ${cy}px, 0) scale(${cs})`, opacity: hasMini ? 1 : 0 },
-      { transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1 }
-    ], {
+    iconEl.animate(getIconKeyframes(motion, false), {
       duration: dur,
       easing: easeOpen,
       fill: 'forwards'
@@ -215,12 +236,8 @@ function close() {
   for (const [appId, iconEl] of iconRefs) {
     const motion = iconMotions.get(appId)
     if (!motion || !iconEl) continue
-    const { cx, cy, cs, hasMini } = motion
 
-    iconEl.animate([
-      { transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1 },
-      { transform: `translate3d(${cx}px, ${cy}px, 0) scale(${cs})`, opacity: hasMini ? 1 : 0 }
-    ], {
+    iconEl.animate(getIconKeyframes(motion, true), {
       duration: dur,
       easing: easeClose,
       fill: 'forwards'
@@ -385,6 +402,14 @@ onBeforeUnmount(() => {
 .folder-panel-app {
   touch-action: none;
   will-change: transform, opacity;
+}
+.folder-panel-app :deep(.app-icon) {
+  aspect-ratio: 1 !important;
+}
+.folder-panel-app :deep(.icon-tile),
+.folder-panel-app :deep(.app-icon-anchor) {
+  aspect-ratio: 1 !important;
+  flex: none !important;
 }
 .folder-panel-app :deep(.icon-label) {
   will-change: opacity;
