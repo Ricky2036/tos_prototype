@@ -36,3 +36,23 @@ test('HomeFolder has comfortable icon sizing, 18px corner radius, and clean badg
   assert.match(source, /\.cluster-icon :deep\(\.icon-badge\) \{[\s\S]*display:\s*none !important;/)
 })
 
+test('HomeFolderOverlay maintains strict 1:1 square icon aspect ratio during collapse', async () => {
+  const overlaySource = await readFile(new URL('../src/components/home/HomeFolderOverlay.vue', import.meta.url), 'utf8')
+  assert.match(overlaySource, /function getIconKeyframes\(/)
+  assert.match(overlaySource, /const csx = px > 0\.001 \? \(totScale \/ px\) : 1/)
+  assert.match(overlaySource, /const csy = py > 0\.001 \? \(totScale \/ py\) : 1/)
+  assert.match(overlaySource, /scale\(\$\{csx\},\s*\$\{csy\}\)/)
+  assert.match(overlaySource, /\.folder-panel-app :deep\(\.icon-tile\)/)
+})
+
+test('HomeFolder implements seamless FLIP displacement animations across 2x2, 2x1, and 1x2', async () => {
+  const folderSource = await readFile(new URL('../src/components/home/HomeFolder.vue', import.meta.url), 'utf8')
+  assert.match(folderSource, /function getFolderIconPositions\(/)
+  assert.match(folderSource, /watch\(\[\(\) => props\.folder\.width,\s*\(\) => props\.folder\.height\]/)
+  assert.match(folderSource, /const dx = prev\.x - target\.x/)
+  assert.match(folderSource, /const dy = prev\.y - target\.y/)
+  assert.match(folderSource, /const ds = prev\.size \/ target\.size/)
+  assert.match(folderSource, /el\.animate\(/)
+  assert.match(folderSource, /folder-app-ghost/)
+})
+
