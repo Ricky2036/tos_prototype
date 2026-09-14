@@ -286,17 +286,18 @@ function onSurfaceClick(event) {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
   gap: 4px;
   color: #fff;
   font: var(--text-caption);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 .folder-apps {
-  width: 60px;
-  height: 60px;
+  width: var(--icon-size, 56px);
+  height: var(--icon-size, 56px);
   padding: 7px;
   box-sizing: border-box;
-  border-radius: 17px;
+  border-radius: var(--radius-icon, 13px);
   background: rgba(255, 255, 255, 0.24);
   backdrop-filter: blur(18px) saturate(150%);
   display: grid;
@@ -311,7 +312,7 @@ function onSurfaceClick(event) {
 }
 .large .folder-apps {
   width: 100%;
-  height: auto;
+  height: var(--card-height, auto);
   aspect-ratio: 1 / 1;
   flex: none;
   padding: 10px;
@@ -330,6 +331,7 @@ function onSurfaceClick(event) {
   justify-items: center;
   gap: 8px;
   aspect-ratio: 1 / 1;
+  height: var(--card-height, 140px);
 }
 .size-2-1 {
   grid-template-columns: repeat(3, 1fr);
@@ -338,7 +340,8 @@ function onSurfaceClick(event) {
   justify-items: center;
   padding: 8px 10px;
   gap: 8px;
-  aspect-ratio: 2 / 1;
+  aspect-ratio: auto;
+  height: var(--icon-size, 56px);
 }
 .size-1-2 {
   grid-template-columns: 1fr;
@@ -347,7 +350,8 @@ function onSurfaceClick(event) {
   justify-items: center;
   padding: 10px 8px;
   gap: 8px;
-  aspect-ratio: 1 / 2;
+  aspect-ratio: auto;
+  height: var(--card-height, 140px);
 }
 .folder-app {
   display: grid;
