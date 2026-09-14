@@ -273,6 +273,9 @@ function onEmptyPointerDown(event) {
 function onItemPointerDown(event, id, page, index) {
   if (event.button != null && event.button !== 0) return
   event.stopPropagation()
+  if (folderOperation.value && folderOperation.value.itemId !== id) {
+    folderOperation.value = null
+  }
   const isFolder = home.items[id]?.type === 'folder'
   const readyToMove = home.editing || folderOperation.value?.itemId === id
   pointer = { id:event.pointerId, mode:readyToMove ? 'item-ready' : (isFolder ? 'folder-press' : 'item-press'), itemId:id, page, index,
@@ -762,6 +765,10 @@ function cleanup(cancelled) {
   if (pointer.mode === 'folder-resize') {
     if (!cancelled && folderResize.value) home.resizeFolder(pointer.folderId,folderResize.value.width,folderResize.value.height)
     folderResize.value = null
+    if (pointer.itemId) suppressClick(pointer.itemId)
+  }
+  if (pointer.mode === 'item-ready') {
+    if (pointer.itemId) suppressClick(pointer.itemId)
   }
   if (pointer.mode === 'folder-app-drag') finishFolderApp(cancelled)
   if (pointer.mode === 'page') {

@@ -54,6 +54,9 @@ function activate(event, id, item) {
     return
   }
   if (item.type === 'folder') {
+    if (props.folderOperationId === item.folderId) {
+      event.preventDefault(); event.stopPropagation(); return
+    }
     const isFolderApp = event.target.closest?.('.folder-app')
     const folder = props.folders[item.folderId]
     const isLarge = folder && (folder.width > 1 || folder.height > 1)
