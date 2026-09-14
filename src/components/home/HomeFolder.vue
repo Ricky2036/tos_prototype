@@ -258,7 +258,7 @@ function onSurfaceClick(event) {
           </span>
         </span>
       </span>
-      <span v-if="!large" class="folder-name" data-folder-title>{{ folder.name }}</span>
+      <span class="folder-name" data-folder-title>{{ folder.name }}</span>
       <button
         v-if="operationActive"
         class="folder-resize-handle"
@@ -311,7 +311,9 @@ function onSurfaceClick(event) {
 }
 .large .folder-apps {
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  flex: none;
   padding: 11px;
   border-radius: var(--radius-widget, 22px);
   background: rgba(255, 255, 255, 0.20);
@@ -336,6 +338,7 @@ function onSurfaceClick(event) {
   justify-items: center;
   padding: 8px 10px;
   gap: 8px;
+  aspect-ratio: 2 / 1;
 }
 .size-1-2 {
   grid-template-columns: 1fr;
@@ -344,6 +347,7 @@ function onSurfaceClick(event) {
   justify-items: center;
   padding: 10px 8px;
   gap: 8px;
+  aspect-ratio: 1 / 2;
 }
 .folder-app {
   display: grid;
@@ -370,6 +374,8 @@ function onSurfaceClick(event) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: none;
+  line-height: 1.2;
 }
 
 /* 第 9 槽位（或 2x1/1x2 第 3 槽位）的 2x2 微型簇 */

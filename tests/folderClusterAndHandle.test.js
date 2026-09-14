@@ -34,8 +34,24 @@ test('HomeFolder has comfortable icon sizing, widget corner radius, and clean ba
   assert.match(source, /clusterIconSize = computed\(\(\) => is2x2\.value \? 15 : 15\)/)
   assert.match(source, /border-radius:\s*var\(--radius-widget,\s*22px\);/)
   assert.match(source, /\.cluster-icon :deep\(\.icon-badge\) \{[\s\S]*display:\s*none !important;/)
-  assert.match(source, /<span v-if="!large" class="folder-name"/)
+  assert.match(source, /<span class="folder-name" data-folder-title>{{ folder\.name }}<\/span>/)
+  assert.doesNotMatch(source, /v-if="!large"[^>]*class="folder-name"/)
   assert.match(source, /\.large \.folder-resize-handle\s*\{[\s\S]*bottom:\s*-3px;/)
+})
+
+test('AppGrid renders titles for home screen widgets matching app and folder labels', async () => {
+  const gridSource = await readFile(new URL('../src/components/system/AppGrid.vue', import.meta.url), 'utf8')
+  assert.match(gridSource, /class="widget-name"/)
+  assert.match(gridSource, /data-widget-title/)
+  assert.match(gridSource, /\.widget-name\s*\{[\s\S]*font:\s*var\(--text-caption\);/)
+})
+
+test('HomeFolderOverlay computes elliptical border-radius and prevents keyframe pxpx syntax bug', async () => {
+  const overlaySource = await readFile(new URL('../src/components/home/HomeFolderOverlay.vue', import.meta.url), 'utf8')
+  assert.match(overlaySource, /startRadiusX/)
+  assert.match(overlaySource, /startRadiusY/)
+  assert.match(overlaySource, /\$\{startRadiusX\}px \/ \$\{startRadiusY\}px/)
+  assert.doesNotMatch(overlaySource, /\$\{panelMotion\.startRadius\}px/)
 })
 
 test('homeItemMetrics ensures 2x2 folder has identical dimensions and aspect ratio to 2x2 widget', async () => {
