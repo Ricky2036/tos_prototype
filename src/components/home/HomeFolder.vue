@@ -227,50 +227,52 @@ function onSurfaceClick(event) {
 <template>
   <div class="home-folder" :class="{ large, 'is-merging': merging }" :style="{ '--enter-delay': enterDelay + 'ms' }">
     <div class="folder-surface" role="button" tabindex="0" @click="onSurfaceClick" @keydown.enter="emit('open')">
-      <span ref="folderShellRef" class="folder-apps" :class="`size-${folder.width}-${folder.height}`" data-folder-shell>
-        <span
-          v-for="appId in visibleAppIds"
-          :key="appId"
-          class="folder-app"
-          :data-folder-app="appId"
-          @click="onAppClick(appId, $event)"
-        >
-          <AppIcon :app="getApp(appId)" :size="large ? (is2x2 ? 35 : 36) : 12" :show-label="false" :launch-on-click="false" />
-        </span>
-        <span
-          v-if="hasCluster"
-          class="folder-mini-cluster"
-          data-folder-cluster
-          @click="onClusterClick($event)"
-        >
+      <div class="folder-card-wrapper">
+        <span ref="folderShellRef" class="folder-apps" :class="`size-${folder.width}-${folder.height}`" data-folder-shell>
           <span
-            v-for="clusterId in clusterAppIds"
-            :key="clusterId"
-            class="cluster-icon"
-            :data-folder-app="clusterId"
+            v-for="appId in visibleAppIds"
+            :key="appId"
+            class="folder-app"
+            :data-folder-app="appId"
+            @click="onAppClick(appId, $event)"
           >
-            <AppIcon
-              :app="getApp(clusterId)"
-              :size="clusterIconSize"
-              :show-label="false"
-              :launch-on-click="false"
-            />
+            <AppIcon :app="getApp(appId)" :size="large ? (is2x2 ? 35 : 36) : 12" :show-label="false" :launch-on-click="false" />
+          </span>
+          <span
+            v-if="hasCluster"
+            class="folder-mini-cluster"
+            data-folder-cluster
+            @click="onClusterClick($event)"
+          >
+            <span
+              v-for="clusterId in clusterAppIds"
+              :key="clusterId"
+              class="cluster-icon"
+              :data-folder-app="clusterId"
+            >
+              <AppIcon
+                :app="getApp(clusterId)"
+                :size="clusterIconSize"
+                :show-label="false"
+                :launch-on-click="false"
+              />
+            </span>
           </span>
         </span>
-      </span>
+        <button
+          v-if="operationActive"
+          class="folder-resize-handle"
+          type="button"
+          aria-label="调整文件夹大小"
+          @pointerdown.stop="emit('resize-pointerdown', $event)"
+          @click.stop
+        >
+          <svg viewBox="0 0 24 24" class="handle-arc" aria-hidden="true">
+            <path d="M 4 20 A 16 16 0 0 0 20 4" fill="none" stroke="#ffffff" stroke-width="5.2" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
       <span class="folder-name" data-folder-title>{{ folder.name }}</span>
-      <button
-        v-if="operationActive"
-        class="folder-resize-handle"
-        type="button"
-        aria-label="调整文件夹大小"
-        @pointerdown.stop="emit('resize-pointerdown', $event)"
-        @click.stop
-      >
-        <svg viewBox="0 0 24 24" class="handle-arc" aria-hidden="true">
-          <path d="M 4 20 A 16 16 0 0 0 20 4" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
-        </svg>
-      </button>
     </div>
   </div>
 </template>
@@ -449,11 +451,19 @@ function onSurfaceClick(event) {
   display: none !important;
 }
 
+.folder-card-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
 /* 调整大小把手：高质感白色平滑圆弧，贴合文件夹右下圆角曲率 */
 .folder-resize-handle {
   position: absolute;
-  right: -3px;
-  bottom: 17px;
+  right: 1px;
+  bottom: 1px;
   width:36px;height:36px;
   z-index: 10;
   touch-action: none;
@@ -466,11 +476,12 @@ function onSurfaceClick(event) {
   justify-content: flex-end;
 }
 .large .folder-resize-handle {
-  bottom: -3px;
+  right: 1px;
+  bottom: 1px;
 }
 .folder-resize-handle .handle-arc {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
   pointer-events: none;
 }
