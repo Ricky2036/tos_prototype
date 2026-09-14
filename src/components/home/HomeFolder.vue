@@ -51,11 +51,11 @@ function getFolderIconPositions(width, height, appIds) {
   const positions = new Map()
 
   if (is22) {
-    const pad = 10, gap = 8, cell = 34.67, iconSize = 35
+    const pad = 10, gap = 10, cell = 35, iconSize = 35
     for (let i = 0; i < Math.min(appIds.length, visCount); i++) {
       const col = i % 3, row = Math.floor(i / 3)
-      const x = pad + col * (cell + gap) + (cell - iconSize) / 2
-      const y = pad + row * (cell + gap) + (cell - iconSize) / 2
+      const x = pad + col * (cell + gap)
+      const y = pad + row * (cell + gap)
       positions.set(appIds[i], { x, y, size: iconSize, isCluster: false })
     }
     if (hasClust) {
@@ -64,8 +64,8 @@ function getFolderIconPositions(width, height, appIds) {
       const clusterApps = appIds.slice(visCount, visCount + 4)
       for (let k = 0; k < clusterApps.length; k++) {
         const mcol = k % 2, mrow = Math.floor(k / 2)
-        const x = cx + 1.5 + mcol * 17
-        const y = cy + 1.5 + mrow * 17
+        const x = cx + 1 + mcol * 18
+        const y = cy + 1 + mrow * 18
         positions.set(clusterApps[k], { x, y, size: 15, isCluster: true })
       }
     }
@@ -287,14 +287,14 @@ function onSurfaceClick(event) {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 4px;
+  gap: 6px;
   color: #fff;
   font: var(--text-caption);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 .folder-apps {
-  width: var(--icon-size, 56px);
-  height: var(--icon-size, 56px);
+  width: var(--icon-size, 55px);
+  height: var(--icon-size, 55px);
   padding: 7px;
   box-sizing: border-box;
   border-radius: var(--radius-icon, 13px);
@@ -311,7 +311,7 @@ function onSurfaceClick(event) {
   transition: transform 180ms ease, width 240ms cubic-bezier(0.22, 0.8, 0.24, 1), height 240ms cubic-bezier(0.22, 0.8, 0.24, 1);
 }
 .large .folder-apps {
-  width: 100%;
+  width: var(--card-width, 100%);
   height: var(--card-height, auto);
   aspect-ratio: 1 / 1;
   flex: none;
@@ -321,7 +321,7 @@ function onSurfaceClick(event) {
   backdrop-filter: blur(25px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.24);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  gap: 8px;
+  gap: 10px;
 }
 /* 2x2 固定 3x3 比例，无论图标多少个，从左上角顺次排列，行高不变，空槽自然留白 */
 .size-2-2 {
@@ -329,9 +329,10 @@ function onSurfaceClick(event) {
   grid-template-rows: repeat(3, 1fr);
   align-items: center;
   justify-items: center;
-  gap: 8px;
+  gap: 10px;
   aspect-ratio: 1 / 1;
-  height: var(--card-height, 140px);
+  width: var(--card-width, 145px);
+  height: var(--card-height, 145px);
 }
 .size-2-1 {
   grid-template-columns: repeat(3, 1fr);
