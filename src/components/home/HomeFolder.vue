@@ -35,7 +35,7 @@ const clusterAppIds = computed(() => {
 })
 
 const hasCluster = computed(() => clusterAppIds.value.length > 0)
-const clusterIconSize = computed(() => is2x2.value ? 18 : 17)
+const clusterIconSize = computed(() => is2x2.value ? 15 : 15)
 
 function onAppClick(appId, event) {
   if (!large.value || props.editing) return
@@ -66,7 +66,7 @@ function onSurfaceClick(event) {
           :data-folder-app="appId"
           @click="onAppClick(appId, $event)"
         >
-          <AppIcon :app="getApp(appId)" :size="large ? (folder.height === 2 ? 44 : 40) : 12" :show-label="false" :launch-on-click="false" />
+          <AppIcon :app="getApp(appId)" :size="large ? (is2x2 ? 35 : 36) : 12" :show-label="false" :launch-on-click="false" />
         </span>
         <span
           v-if="hasCluster"
@@ -98,8 +98,8 @@ function onSurfaceClick(event) {
         @pointerdown.stop="emit('resize-pointerdown', $event)"
         @click.stop
       >
-        <svg viewBox="0 0 32 32" class="handle-arc" aria-hidden="true">
-          <path d="M 6 24 A 18 18 0 0 0 24 6" fill="none" stroke="#ffffff" stroke-width="4.8" stroke-linecap="round" />
+        <svg viewBox="0 0 24 24" class="handle-arc" aria-hidden="true">
+          <path d="M 4 20 A 16 16 0 0 0 20 4" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
         </svg>
       </button>
     </div>
@@ -143,13 +143,13 @@ function onSurfaceClick(event) {
 .large .folder-apps {
   width: 100%;
   height: calc(100% - 20px);
-  padding: 10px;
-  border-radius: 28px;
+  padding: 11px;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.20);
   backdrop-filter: blur(25px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.24);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  gap: 8px;
+  gap: 10px;
 }
 /* 2x2 固定 3x3 比例，无论图标多少个，从左上角顺次排列，行高不变，空槽自然留白 */
 .size-2-2 {
@@ -157,20 +157,23 @@ function onSurfaceClick(event) {
   grid-template-rows: repeat(3, 1fr);
   align-items: center;
   justify-items: center;
+  gap: 10px;
 }
 .size-2-1 {
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: 1fr;
   align-items: center;
   justify-items: center;
-  padding: 8px 12px;
+  padding: 8px 10px;
+  gap: 8px;
 }
 .size-1-2 {
   grid-template-columns: 1fr;
   grid-template-rows: repeat(3, 1fr);
   align-items: center;
   justify-items: center;
-  padding: 12px 8px;
+  padding: 10px 8px;
+  gap: 8px;
 }
 .folder-app {
   display: grid;
@@ -189,8 +192,8 @@ function onSurfaceClick(event) {
   object-fit: cover;
 }
 .large .folder-app > img {
-  width: 44px;
-  border-radius: 12px;
+  width: 35px;
+  border-radius: 9px;
 }
 .folder-name {
   max-width: 100%;
@@ -204,11 +207,11 @@ function onSurfaceClick(event) {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
-  gap: 3px;
+  gap: 2px;
   width: 100%;
   aspect-ratio: 1;
-  max-width: 44px;
-  max-height: 44px;
+  max-width: 35px;
+  max-height: 35px;
   align-self: center;
   justify-self: center;
   place-items: center;
@@ -230,18 +233,41 @@ function onSurfaceClick(event) {
   pointer-events: none;
 }
 .cluster-icon :deep(.icon-tile) {
-  border-radius: 5px !important;
+  border-radius: 4px !important;
 }
 
 .home-folder:not(.large) .folder-app :deep(.app-icon) {
   pointer-events: none;
 }
 
+.home-folder .folder-app :deep(.app-icon),
+.home-folder .cluster-icon :deep(.app-icon) {
+  width: auto !important;
+  height: auto !important;
+  gap: 0 !important;
+}
+
+.home-folder .folder-app :deep(.icon-badge) {
+  top: -2px;
+  left: auto;
+  right: -3px;
+  min-width: 14px;
+  height: 14px;
+  font-size: 9px;
+  line-height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+}
+
+.home-folder .cluster-icon :deep(.icon-badge) {
+  display: none !important;
+}
+
 /* 调整大小把手：高质感白色平滑圆弧，贴合文件夹右下圆角曲率 */
 .folder-resize-handle {
   position: absolute;
-  right: -8px;
-  bottom: 12px;
+  right: -3px;
+  bottom: 17px;
   width:36px;height:36px;
   z-index: 10;
   touch-action: none;
@@ -254,9 +280,9 @@ function onSurfaceClick(event) {
   justify-content: flex-end;
 }
 .folder-resize-handle .handle-arc {
-  width: 22px;
-  height: 22px;
-  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.42));
+  width: 20px;
+  height: 20px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
   pointer-events: none;
 }
 .home-folder {

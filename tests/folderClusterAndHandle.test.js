@@ -27,3 +27,12 @@ test('HomeScreen and AppGrid prevent handle disappearance on touch release and c
   assert.match(homeSource, /if\s*\(pointer\.mode === 'folder-resize'\)\s*\{[^}]*suppressClick\(pointer\.itemId\)/)
   assert.match(homeSource, /if\s*\(folderOperation\.value && folderOperation\.value\.itemId !== id\)\s*\{[^}]*folderOperation\.value = null/)
 })
+
+test('HomeFolder has comfortable icon sizing, 18px corner radius, and clean badge styling', async () => {
+  const source = await readFile(new URL('../src/components/home/HomeFolder.vue', import.meta.url), 'utf8')
+  assert.match(source, /:size="large \? \(is2x2 \? 35 : 36\) : 12"/)
+  assert.match(source, /clusterIconSize = computed\(\(\) => is2x2\.value \? 15 : 15\)/)
+  assert.match(source, /border-radius:\s*18px;/)
+  assert.match(source, /\.cluster-icon :deep\(\.icon-badge\) \{[\s\S]*display:\s*none !important;/)
+})
+
