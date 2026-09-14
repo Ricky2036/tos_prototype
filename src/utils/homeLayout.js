@@ -13,12 +13,13 @@ export function createHomeGridProfile({ width = 360, height = 788, safeTop = 54,
   const viewportWidth = Math.max(240, Number(width) || 360)
   const viewportHeight = Math.max(420, Number(height) || 788)
   const iconSize = clamp(48, Math.round(viewportWidth * 0.155), 60)
-  const idealInset = clamp(18, Math.round(viewportWidth * 0.075), 32)
+  const idealInset = clamp(18, Math.round(viewportWidth * 0.072), 32)
   const remaining = viewportWidth - idealInset * 2 - iconSize * HOME_COLUMNS
-  const gapX = clamp(14, remaining / 3, 32)
+  const gapX = clamp(14, Math.round(remaining / 3), 32)
   const workspaceWidth = iconSize * HOME_COLUMNS + gapX * 3
   const insetX = (viewportWidth - workspaceWidth) / 2
-  const gapY = clamp(14, 14 + ((viewportHeight - 568) / 220) * 4, 18)
+  const labelHeight = 14
+  const gapY = clamp(14, gapX - labelHeight, 20)
   const dockHeight = iconSize + 32
   const dockBottom = Math.max(20, (Number(safeBottom) || 34) - 6)
   const dockTop = viewportHeight - dockBottom - dockHeight
@@ -36,6 +37,7 @@ export function createHomeGridProfile({ width = 360, height = 788, safeTop = 54,
     gapX,
     gapY,
     insetX,
+    labelHeight,
     compactScale,
     workspaceRect: { left: insetX, top: workspaceTop, right: insetX + workspaceWidth, bottom: workspaceBottom, width: workspaceWidth, height: workspaceHeight },
     dockRect: { left: 14, top: dockTop, right: viewportWidth - 14, bottom: viewportHeight - dockBottom, height: dockHeight },
@@ -49,30 +51,14 @@ export function homeItemMetrics(item, folders = {}, profile = createHomeGridProf
   const unit = profile.iconSize * scale
   const gapX = profile.gapX * scale
   const gapY = profile.gapY * scale
-  const width = span.w * unit + (span.w - 1) * gapX
-  const labelHeight = 20 * scale
+  const labelHeight = (profile.labelHeight || 14) * scale
   const appHeight = unit + labelHeight
-  const widgetHeight2x2 = 2 * unit + gapX
-  let height = appHeight
-  if (item?.type === 'widget') {
-    height = width + labelHeight
-  } else if (item?.type === 'folder') {
-    const isLarge = span.w > 1 || span.h > 1
-    if (isLarge) {
-      if (span.w === 2 && span.h === 2) {
-        height = widgetHeight2x2 + labelHeight
-      } else if (span.w === 2 && span.h === 1) {
-        height = (widgetHeight2x2 - gapY) / 2 + labelHeight
-      } else if (span.w === 1 && span.h === 2) {
-        height = widgetHeight2x2 + labelHeight
-      } else {
-        height = span.h * appHeight + (span.h - 1) * gapY
-      }
-    } else {
-      height = appHeight
-    }
-  }
-  return { spanX: span.w, spanY: span.h, width, height, unit, gapX, gapY }
+  const rowStride = appHeight + gapY
+  const width = span.w * unit + (span.w - 1) * gapX
+  const height = (span.h - 1) * rowStride + appHeight
+  const cardWidth = width
+  const cardHeight = span.h === 1 ? unit : ((span.h - 1) * rowStride + unit)
+  return { spanX: span.w, spanY: span.h, width, height, unit, gapX, gapY, cardWidth, cardHeight, rowStride, labelHeight }
 }
 
 function findSkylinePosition(bottoms, metrics, profile) {
@@ -120,7 +106,9 @@ export function layoutHomeOrder(order, items, folders = {}, profile = createHome
         spanX: metrics.spanX,
         spanY: metrics.spanY,
         w: metrics.spanX,
-        h: metrics.spanY
+        h: metrics.spanY,
+        cardWidth: metrics.cardWidth,
+        cardHeight: metrics.cardHeight
       }
       page.push(id)
       pageFrames[id] = frame

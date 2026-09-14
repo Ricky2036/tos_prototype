@@ -143,7 +143,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   width: 64px;
 }
 .app-icon-anchor {

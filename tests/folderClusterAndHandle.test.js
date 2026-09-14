@@ -61,7 +61,7 @@ test('homeItemMetrics ensures 2x2 folder has identical dimensions and aspect rat
   const folderMetrics = homeItemMetrics({ type: 'folder', folderId: 'f1', w: 2, h: 2 }, { f1: { width: 2, height: 2 } }, profile)
   assert.equal(folderMetrics.width, widgetMetrics.width)
   assert.equal(folderMetrics.height, widgetMetrics.height)
-  assert.equal(folderMetrics.height, folderMetrics.width + 20 * profile.compactScale)
+  assert.equal(folderMetrics.height, folderMetrics.width + (profile.labelHeight || 14) * profile.compactScale)
 })
 
 test('edit mode multi-select activates directly on tap without suppression', async () => {

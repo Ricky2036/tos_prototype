@@ -48,7 +48,7 @@ const widgetTitle = (item) => {
 }
 function itemStyle(id) {
   const p = props.positions[id] || { x: 0, y: 0, width: props.profile.iconSize, height: props.profile.iconSize }
-  return { width: `${p.width}px`, height: `${p.height}px`, '--icon-size':`${props.profile.iconSize*props.profile.compactScale}px`, transform: `translate3d(${p.x}px,${p.y}px,0)` }
+  return { width: `${p.width}px`, height: `${p.height}px`, '--icon-size':`${props.profile.iconSize*props.profile.compactScale}px`, '--card-width':`${p.cardWidth || p.width}px`, '--card-height':`${p.cardHeight || p.width}px`, transform: `translate3d(${p.x}px,${p.y}px,0)` }
 }
 function activate(event, id, item) {
   if (props.editing) {
@@ -98,10 +98,10 @@ function activate(event, id, item) {
 .app-grid { position:relative;width:100%;height:100%;box-sizing:border-box; }
 .app-grid.is-editing { transform:translate3d(0,20px,0) scale(.85); transform-origin:50% 36%; transition:transform 320ms cubic-bezier(.22,.8,.26,1); }
 .home-item { position:absolute;left:0;top:0;min-width:0;display:flex;align-items:flex-start;justify-content:center;transition:width 240ms cubic-bezier(.22,.8,.24,1),height 240ms cubic-bezier(.22,.8,.24,1);touch-action:none;will-change:transform; }
-.home-item.is-widget { min-height:0;aspect-ratio:1/1; }
+.home-item.is-widget { min-height:0; aspect-ratio:1/1; }
 .home-item.is-widget :deep(.widget),
-.home-item.is-widget :deep(.smart-suggestion-stack) { width:100%; height:auto; aspect-ratio:1/1; flex:none; }
-.widget-surface { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.home-item.is-widget :deep(.smart-suggestion-stack) { width:100%; height:var(--card-height, 100%); aspect-ratio:1/1; flex:none; }
+.widget-surface { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:4px; }
 .widget-name { font:var(--text-caption); color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.45); max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:none; line-height:1.2; }
 .home-item.is-dragging-source { opacity:.16; transition:opacity 160ms ease; }
 .home-item.is-folder-open { opacity:0 !important; transition:none !important; }
