@@ -103,6 +103,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Optimize desktop grid, icon sizing, and row/column gaps matching reference screenshot 2 | `antigravity/lane` | None (locks released) | `45bcf49` | `4870b22` |
 | Merged | Antigravity | Desktop icon vertical breathing room and grid fine-tuning strictly matching reference screenshot | `antigravity/lane` | None (locks released) | `7bcce83` | `0169337` |
 | Merged | Antigravity | Fix Widget/Folder/App drag ghost deformation and preserve square card aspect ratio | `antigravity/lane` | None (locks released) | `182e3d9` | `0fe79bd` |
+| Merged | Antigravity | Adjust LockScreen notification stack top card opacity to 95% | `antigravity/lane` | None (locks released) | `9ab1855` | `709abdb` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
