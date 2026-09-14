@@ -768,7 +768,7 @@ function cleanup(cancelled) {
     if (pointer.itemId) suppressClick(pointer.itemId)
   }
   if (pointer.mode === 'item-ready') {
-    if (pointer.itemId) suppressClick(pointer.itemId)
+    if (!home.editing && pointer.itemId) suppressClick(pointer.itemId)
   }
   if (pointer.mode === 'folder-app-drag') finishFolderApp(cancelled)
   if (pointer.mode === 'page') {

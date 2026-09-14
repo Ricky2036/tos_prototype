@@ -50,20 +50,21 @@ export function homeItemMetrics(item, folders = {}, profile = createHomeGridProf
   const gapX = profile.gapX * scale
   const gapY = profile.gapY * scale
   const width = span.w * unit + (span.w - 1) * gapX
-  const appHeight = unit + 21 * scale
+  const labelHeight = 21 * scale
+  const appHeight = unit + labelHeight
   const widgetHeight2x2 = 2 * unit + gapX
   let height = appHeight
   if (item?.type === 'widget') {
-    height = width
+    height = width + labelHeight
   } else if (item?.type === 'folder') {
     const isLarge = span.w > 1 || span.h > 1
     if (isLarge) {
       if (span.w === 2 && span.h === 2) {
-        height = widgetHeight2x2
+        height = widgetHeight2x2 + labelHeight
       } else if (span.w === 2 && span.h === 1) {
-        height = (widgetHeight2x2 - gapY) / 2
+        height = (widgetHeight2x2 - gapY) / 2 + labelHeight
       } else if (span.w === 1 && span.h === 2) {
-        height = widgetHeight2x2
+        height = widgetHeight2x2 + labelHeight
       } else {
         height = span.h * appHeight + (span.h - 1) * gapY
       }
