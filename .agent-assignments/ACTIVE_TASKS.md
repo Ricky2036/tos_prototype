@@ -96,6 +96,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Screenshot filename prefix, desktop big folder 3x3 layout & mini-cluster, and handle persistence | `antigravity/lane` | None (locks released) | `2d0a345` | `0648016` |
 | Merged | Antigravity | Optimize big folder icon spacing, sizing, breathing room, and corner radius | `antigravity/lane` | None (locks released) | `acb5d31` | `89dcfb7` |
 | Merged | Antigravity | Disable horizontal scroll and swipe on mobile dev console modal | `antigravity/lane` | None (locks released) | `6dc5c0b` | `1f8eb4a` |
+| Merged | Antigravity | Make folder size, 1:1 aspect ratio, and radius completely consistent with Widget | `antigravity/lane` | None (locks released) | `d4b4e5a` | `78e984e` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
