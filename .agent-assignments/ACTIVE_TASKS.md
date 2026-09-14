@@ -93,6 +93,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Fix dock/desktop app icon disappearing after entering multitasking and returning to desktop | `antigravity/lane` | None (locks released) | `125bd2c` | `c4def14` |
 | Merged | Antigravity | Enable single-finger horizontal swipe desktop page switching on mobile Chrome and touch screens | `antigravity/lane` | None (locks released) | `4466c9e` | `16e4122` |
 | Merged | Antigravity | LockScreen notification stack top card 90% opacity and 2-card pill expand fix | `antigravity/lane` | None (locks released) | `aa8a310` | `0b2f0db` |
+| Merged | Antigravity | Restore LockScreen bottom card text, fix Prayer widget jump to Settings, and add Adhan reminder toggle | `antigravity/lane` | None (locks released) | `83b9622` | `d942d64` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
