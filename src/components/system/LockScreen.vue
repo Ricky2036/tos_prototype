@@ -1098,14 +1098,6 @@ const lockNotificationsLayout = computed(() => {
       }
     }
 
-    // 计算被前序卡片覆盖时的内容透明度（防止底层卡片文字透出到半透明顶层毛玻璃卡片上）
-    let contentOpacity = 1
-    if (i > 0 && !isCollapsed.value) {
-      const prevGeo = geometries[i - 1]
-      const separation = geo.visualY - prevGeo.visualBottom
-      contentOpacity = clamp((separation + 10) / 20, 0, 1)
-    }
-
     if (opacity > 0.02 && !isCollapsed.value) {
       maxCoveringBottom = Math.max(maxCoveringBottom, geo.visualBottom)
     }
@@ -1114,7 +1106,6 @@ const lockNotificationsLayout = computed(() => {
       yPos,
       scale,
       opacity,
-      contentOpacity,
       backgroundAlpha,
       interactive: opacity > 0 && geo.layout.interactive,
       isCompletelyCovered
@@ -1139,8 +1130,7 @@ function notifStyle(i) {
     zIndex: 100 - i,
     transition: transitionStyle.value,
     pointerEvents: itemLayout.interactive ? 'auto' : 'none',
-    '--ls-card-bg-alpha': itemLayout.backgroundAlpha.toFixed(3),
-    '--ls-card-content-opacity': itemLayout.contentOpacity.toFixed(3)
+    '--ls-card-bg-alpha': itemLayout.backgroundAlpha.toFixed(3)
   }
 }
 </script>
@@ -1753,10 +1743,6 @@ function notifStyle(i) {
   user-select: none;
   touch-action: none;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.18s linear;
-}
-.ls-card-front > * {
-  opacity: var(--ls-card-content-opacity, 1);
-  transition: opacity 0.2s ease-out;
 }
 .ls-card-front.is-swiping,
 .ls-activity-card.is-swiping {

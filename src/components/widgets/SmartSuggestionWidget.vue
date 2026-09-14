@@ -1,16 +1,19 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { usePrayerStore } from '../../stores/prayerStore'
+import { useSystemStore } from '../../stores/systemStore'
 import WeatherWidget from './WeatherWidget.vue'
 import PhotoWidget from './PhotoWidget.vue'
 
 const prayerStore = usePrayerStore()
+const system = useSystemStore()
 const currentMode = computed(() => prayerStore.userMode)
 
 let pointerStartX = 0
 let pointerStartY = 0
 let isTracking = false
 let didSwipe = false
+let isPointerCaptured = false
 let swipeResetTimer = null
 
 /* 支持在桌面上点击/轻触/滑动手势直接翻转体验 */
@@ -22,28 +25,35 @@ function onStackPointerDown(event) {
   if (event.button != null && event.button !== 0) return
   isTracking = true
   didSwipe = false
+  isPointerCaptured = false
   pointerStartX = event.clientX
   pointerStartY = event.clientY
-  try {
-    event.currentTarget.setPointerCapture(event.pointerId)
-  } catch {}
 }
 
 function onStackPointerMove(event) {
   if (!isTracking) return
   const dx = event.clientX - pointerStartX
   const dy = event.clientY - pointerStartY
-  if (Math.abs(dy) > 16 && Math.abs(dy) > Math.abs(dx) * 1.2) {
+  if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx) * 1.2) {
     didSwipe = true
+    if (!isPointerCaptured && event.currentTarget?.setPointerCapture) {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId)
+        isPointerCaptured = true
+      } catch {}
+    }
   }
 }
 
 function onStackPointerUp(event) {
   if (!isTracking) return
   isTracking = false
-  try {
-    event.currentTarget.releasePointerCapture(event.pointerId)
-  } catch {}
+  if (isPointerCaptured && event.currentTarget?.releasePointerCapture) {
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    } catch {}
+  }
+  isPointerCaptured = false
   const dx = event.clientX - pointerStartX
   const dy = event.clientY - pointerStartY
   if (Math.abs(dy) >= 20 && Math.abs(dy) > Math.abs(dx) * 1.2) {
@@ -51,14 +61,19 @@ function onStackPointerUp(event) {
     toggleMode()
     clearTimeout(swipeResetTimer)
     swipeResetTimer = setTimeout(() => { didSwipe = false }, 240)
+  } else {
+    didSwipe = false
   }
 }
 
 function onStackPointerCancel(event) {
   isTracking = false
-  try {
-    event.currentTarget.releasePointerCapture(event.pointerId)
-  } catch {}
+  if (isPointerCaptured && event.currentTarget?.releasePointerCapture) {
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    } catch {}
+  }
+  isPointerCaptured = false
 }
 
 function onWeatherClick(event) {
@@ -68,6 +83,16 @@ function onWeatherClick(event) {
     return
   }
   toggleMode()
+}
+
+function onPrayerClick(event) {
+  if (didSwipe) {
+    event.preventDefault()
+    event.stopPropagation()
+    return
+  }
+  prayerStore.setTargetView('prayer')
+  system.openApp('settings')
 }
 
 function onStackClickCapture(event) {
@@ -104,6 +129,7 @@ function onStackClickCapture(event) {
     <div
       class="stack-card prayer-card"
       :class="{ active: currentMode === 'muslim', exited: currentMode === 'normal' }"
+      @click="onPrayerClick"
     >
       <PhotoWidget />
     </div>
