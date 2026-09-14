@@ -99,6 +99,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Make folder size, 1:1 aspect ratio, and radius completely consistent with Widget | `antigravity/lane` | None (locks released) | `d4b4e5a` | `78e984e` |
 | Merged | Antigravity | Fix HomeFolderOverlay dy undefined error and ensure smooth folder expansion | `antigravity/lane` | None (locks released) | `19d16e9` | `382ba09` |
 | Merged | Antigravity | Restore folder title, add title to Widgets, and fix folder collapse corner radius flicker | `antigravity/lane` | None (locks released) | `50406fa` | `ad650ab` |
+| Merged | Antigravity | Add safe vertical distance below widgets and restore edit mode multi-select | `antigravity/lane` | None (locks released) | `c502ca9` | `6cab8df` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
