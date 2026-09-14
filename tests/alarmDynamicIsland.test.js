@@ -506,3 +506,15 @@ test('DevConsole record button defaults to unhighlighted secondary style and dis
   )
 })
 
+test('DevConsole mobile modal console disables horizontal scroll, swipe, and overscroll', () => {
+  const devPath = path.resolve(__dirname, '../src/components/dev/DevConsole.vue')
+  const devContent = fs.readFileSync(devPath, 'utf8')
+
+  assert.match(devContent, /\.modal-console\s*\{[^}]*overflow-x:\s*hidden\s*!important;/s)
+  assert.match(devContent, /\.modal-console\s*\{[^}]*touch-action:\s*pan-y;/s)
+  assert.match(devContent, /\.modal-console\s*\{[^}]*overscroll-behavior-x:\s*none;/s)
+  assert.match(devContent, /\.modal-console::-webkit-scrollbar:horizontal\s*\{[^}]*display:\s*none\s*!important;/s)
+  assert.doesNotMatch(devContent, /right:\s*-80px;/, 'pc-glow must not overflow outside container with negative right offset')
+})
+
+
