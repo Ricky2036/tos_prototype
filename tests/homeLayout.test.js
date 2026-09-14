@@ -78,7 +78,7 @@ test('adaptive skyline keeps mixed visual frames in bounds without overlap', () 
     const layout = layoutHomeOrder(Object.keys(items),items,folders,profile)
     assertFramesValid(layout,profile)
     const widget = layout.frames[0].widget
-    assert.equal(Math.round(widget.width),Math.round(widget.height))
+    assert.equal(Math.round(widget.height), Math.round(widget.width + 21 * profile.compactScale))
   }
 })
 

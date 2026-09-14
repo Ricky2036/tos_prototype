@@ -54,14 +54,23 @@ test('HomeFolderOverlay computes elliptical border-radius and prevents keyframe 
   assert.doesNotMatch(overlaySource, /\$\{panelMotion\.startRadius\}px/)
 })
 
-test('homeItemMetrics ensures 2x2 folder has identical dimensions and aspect ratio to 2x2 widget', async () => {
+test('homeItemMetrics ensures 2x2 folder has identical dimensions and aspect ratio to 2x2 widget with label headroom', async () => {
   const { homeItemMetrics, createHomeGridProfile } = await import('../src/utils/homeLayout.js')
   const profile = createHomeGridProfile()
   const widgetMetrics = homeItemMetrics({ type: 'widget', w: 2, h: 2 }, {}, profile)
   const folderMetrics = homeItemMetrics({ type: 'folder', folderId: 'f1', w: 2, h: 2 }, { f1: { width: 2, height: 2 } }, profile)
   assert.equal(folderMetrics.width, widgetMetrics.width)
   assert.equal(folderMetrics.height, widgetMetrics.height)
-  assert.equal(folderMetrics.width, folderMetrics.height)
+  assert.equal(folderMetrics.height, folderMetrics.width + 21 * profile.compactScale)
+})
+
+test('edit mode multi-select activates directly on tap without suppression', async () => {
+  const gridSource = await readFile(new URL('../src/components/system/AppGrid.vue', import.meta.url), 'utf8')
+  const homeScreenSource = await readFile(new URL('../src/components/system/HomeScreen.vue', import.meta.url), 'utf8')
+  const editIndex = gridSource.indexOf("if (props.editing)")
+  const suppressIndex = gridSource.indexOf("if (props.suppressClickId === id)")
+  assert.ok(editIndex !== -1 && suppressIndex !== -1 && editIndex < suppressIndex)
+  assert.match(homeScreenSource, /if \(!home\.editing && pointer\.itemId\) suppressClick\(pointer\.itemId\)/)
 })
 
 test('HomeFolderOverlay maintains strict 1:1 square icon aspect ratio during collapse and defines valid motion coordinates', async () => {
