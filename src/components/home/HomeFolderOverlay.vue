@@ -78,8 +78,9 @@ function prepareMotion() {
   const sx = from.width / to.width
   const sy = from.height / to.height
   const dx = from.left - to.left
-  const dy = from.top - to.top
-  const startRadius = Math.round(17 / Math.min(sx, sy))
+  const isLarge = (props.origin?.width || 0) > 80 || (props.origin?.height || 0) > 80
+  const baseRadius = isLarge ? 22 : 17
+  const startRadius = Math.round(baseRadius / Math.min(sx, sy))
 
   panelMotion.dx = dx
   panelMotion.dy = dy
