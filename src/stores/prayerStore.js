@@ -111,6 +111,7 @@ export const usePrayerStore = defineStore('prayer', {
       selectedContactIds: ['c1', 'c2', 'c3'], // 默认选择：老婆、老板、妈妈 (3人)
 
       /* ---- 闹钟与唤礼提醒联动 ---- */
+      adhanReminderEnabled: false, // 唤礼提醒开关（控制台可控，默认关闭，关闭后礼拜设置页隐藏唤礼提醒卡片）
       alarmLinkageEnabled: false, // 默认不提醒
       alarmAdvanceMinutes: -1,     // 提醒时间 (分钟：-1=不提醒, 5=提前5分钟, 10=提前10分钟, 15=提前15分钟)
       alarmRingtone: '麦加唤礼声', // 默认唤礼铃声
@@ -267,6 +268,10 @@ export const usePrayerStore = defineStore('prayer', {
     },
 
     /* ---- 闹钟与唤礼提醒联动 ---- */
+    setAdhanReminderEnabled(enabled) {
+      this.adhanReminderEnabled = Boolean(enabled)
+    },
+
     setAlarmReminder(mins) {
       if (mins === -1 || mins === 'none') {
         this.alarmLinkageEnabled = false
@@ -298,6 +303,7 @@ export const usePrayerStore = defineStore('prayer', {
     resetDefaults() {
       this.prayers = JSON.parse(JSON.stringify(DEFAULT_PRAYERS))
       this.masterEnabled = true
+      this.adhanReminderEnabled = false
       this.alarmLinkageEnabled = false
       this.alarmAdvanceMinutes = -1
       this.alarmRingtone = '麦加唤礼声'

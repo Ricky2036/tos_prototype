@@ -238,5 +238,49 @@ test('DevConsole Muslim alarm card uses toggle switch and removes obsolete actio
   assert.doesNotMatch(content, /计算:\s*\{\{\s*clockStore\.settings\.calcMethod\s*\}\}/, 'Footer text must be removed')
 })
 
+test('prayerStore adhanReminderEnabled defaults to false, mutates, and resets', () => {
+  setActivePinia(createPinia())
+  const prayerStore = usePrayerStore()
+
+  assert.equal(prayerStore.adhanReminderEnabled, false, 'Default adhanReminderEnabled must be false')
+  prayerStore.setAdhanReminderEnabled(true)
+  assert.equal(prayerStore.adhanReminderEnabled, true, 'setAdhanReminderEnabled(true) must set state to true')
+  prayerStore.setAdhanReminderEnabled(false)
+  assert.equal(prayerStore.adhanReminderEnabled, false, 'setAdhanReminderEnabled(false) must set state to false')
+
+  prayerStore.setAdhanReminderEnabled(true)
+  prayerStore.resetDefaults()
+  assert.equal(prayerStore.adhanReminderEnabled, false, 'resetDefaults() must reset adhanReminderEnabled to false')
+})
+
+test('SettingsPrayer conditionally hides Adhan reminder section based on adhanReminderEnabled', () => {
+  const componentPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsPrayer.vue')
+  const content = fs.readFileSync(componentPath, 'utf-8')
+
+  assert.ok(
+    content.includes('v-if="prayerStore.adhanReminderEnabled"'),
+    'SettingsPrayer must guard Adhan reminder section with v-if="prayerStore.adhanReminderEnabled"'
+  )
+})
+
+test('DevConsole has 唤礼提醒 toggle switch in both desktop and mobile drawer sections', () => {
+  const devConsolePath = path.resolve(__dirname, '../src/components/dev/DevConsole.vue')
+  const content = fs.readFileSync(devConsolePath, 'utf8')
+
+  const matches = content.match(/prayerStore\.adhanReminderEnabled/g)
+  assert.ok(matches && matches.length >= 2, 'DevConsole must have at least 2 bindings for prayerStore.adhanReminderEnabled (desktop + mobile)')
+  assert.ok(content.includes('prayerStore.setAdhanReminderEnabled'), 'DevConsole must call setAdhanReminderEnabled')
+})
+
+test('SmartSuggestionWidget has click handling for prayer card to jump to settings', () => {
+  const widgetPath = path.resolve(__dirname, '../src/components/widgets/SmartSuggestionWidget.vue')
+  const content = fs.readFileSync(widgetPath, 'utf8')
+
+  assert.ok(content.includes('@click="onPrayerClick"'), 'prayer-card must bind @click="onPrayerClick"')
+  assert.ok(content.includes("prayerStore.setTargetView('prayer')"), 'Must set targetView to prayer on click')
+  assert.ok(content.includes("system.openApp('settings')"), 'Must open settings on click')
+})
+
+
 
 
