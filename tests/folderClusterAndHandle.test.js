@@ -48,8 +48,10 @@ test('homeItemMetrics ensures 2x2 folder has identical dimensions and aspect rat
   assert.equal(folderMetrics.width, folderMetrics.height)
 })
 
-test('HomeFolderOverlay maintains strict 1:1 square icon aspect ratio during collapse', async () => {
+test('HomeFolderOverlay maintains strict 1:1 square icon aspect ratio during collapse and defines valid motion coordinates', async () => {
   const overlaySource = await readFile(new URL('../src/components/home/HomeFolderOverlay.vue', import.meta.url), 'utf8')
+  assert.match(overlaySource, /const dx = from\.left - to\.left/)
+  assert.match(overlaySource, /const dy = from\.top - to\.top/)
   assert.match(overlaySource, /function getIconKeyframes\(/)
   assert.match(overlaySource, /const csx = px > 0\.001 \? \(totScale \/ px\) : 1/)
   assert.match(overlaySource, /const csy = py > 0\.001 \? \(totScale \/ py\) : 1/)
