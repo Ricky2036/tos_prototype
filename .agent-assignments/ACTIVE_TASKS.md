@@ -98,6 +98,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Disable horizontal scroll and swipe on mobile dev console modal | `antigravity/lane` | None (locks released) | `6dc5c0b` | `1f8eb4a` |
 | Merged | Antigravity | Make folder size, 1:1 aspect ratio, and radius completely consistent with Widget | `antigravity/lane` | None (locks released) | `d4b4e5a` | `78e984e` |
 | Merged | Antigravity | Fix HomeFolderOverlay dy undefined error and ensure smooth folder expansion | `antigravity/lane` | None (locks released) | `19d16e9` | `382ba09` |
+| Merged | Antigravity | Restore folder title, add title to Widgets, and fix folder collapse corner radius flicker | `antigravity/lane` | None (locks released) | `50406fa` | `ad650ab` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
