@@ -28,12 +28,24 @@ test('HomeScreen and AppGrid prevent handle disappearance on touch release and c
   assert.match(homeSource, /if\s*\(folderOperation\.value && folderOperation\.value\.itemId !== id\)\s*\{[^}]*folderOperation\.value = null/)
 })
 
-test('HomeFolder has comfortable icon sizing, 18px corner radius, and clean badge styling', async () => {
+test('HomeFolder has comfortable icon sizing, widget corner radius, and clean badge styling', async () => {
   const source = await readFile(new URL('../src/components/home/HomeFolder.vue', import.meta.url), 'utf8')
   assert.match(source, /:size="large \? \(is2x2 \? 35 : 36\) : 12"/)
   assert.match(source, /clusterIconSize = computed\(\(\) => is2x2\.value \? 15 : 15\)/)
-  assert.match(source, /border-radius:\s*18px;/)
+  assert.match(source, /border-radius:\s*var\(--radius-widget,\s*22px\);/)
   assert.match(source, /\.cluster-icon :deep\(\.icon-badge\) \{[\s\S]*display:\s*none !important;/)
+  assert.match(source, /<span v-if="!large" class="folder-name"/)
+  assert.match(source, /\.large \.folder-resize-handle\s*\{[\s\S]*bottom:\s*-3px;/)
+})
+
+test('homeItemMetrics ensures 2x2 folder has identical dimensions and aspect ratio to 2x2 widget', async () => {
+  const { homeItemMetrics, createHomeGridProfile } = await import('../src/utils/homeLayout.js')
+  const profile = createHomeGridProfile()
+  const widgetMetrics = homeItemMetrics({ type: 'widget', w: 2, h: 2 }, {}, profile)
+  const folderMetrics = homeItemMetrics({ type: 'folder', folderId: 'f1', w: 2, h: 2 }, { f1: { width: 2, height: 2 } }, profile)
+  assert.equal(folderMetrics.width, widgetMetrics.width)
+  assert.equal(folderMetrics.height, widgetMetrics.height)
+  assert.equal(folderMetrics.width, folderMetrics.height)
 })
 
 test('HomeFolderOverlay maintains strict 1:1 square icon aspect ratio during collapse', async () => {

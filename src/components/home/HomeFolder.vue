@@ -258,7 +258,7 @@ function onSurfaceClick(event) {
           </span>
         </span>
       </span>
-      <span class="folder-name" data-folder-title>{{ folder.name }}</span>
+      <span v-if="!large" class="folder-name" data-folder-title>{{ folder.name }}</span>
       <button
         v-if="operationActive"
         class="folder-resize-handle"
@@ -311,9 +311,9 @@ function onSurfaceClick(event) {
 }
 .large .folder-apps {
   width: 100%;
-  height: calc(100% - 20px);
+  height: 100%;
   padding: 11px;
-  border-radius: 18px;
+  border-radius: var(--radius-widget, 22px);
   background: rgba(255, 255, 255, 0.20);
   backdrop-filter: blur(25px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.24);
@@ -327,6 +327,7 @@ function onSurfaceClick(event) {
   align-items: center;
   justify-items: center;
   gap: 10px;
+  aspect-ratio: 1 / 1;
 }
 .size-2-1 {
   grid-template-columns: repeat(3, 1fr);
@@ -452,6 +453,9 @@ function onSurfaceClick(event) {
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
+}
+.large .folder-resize-handle {
+  bottom: -3px;
 }
 .folder-resize-handle .handle-arc {
   width: 20px;
