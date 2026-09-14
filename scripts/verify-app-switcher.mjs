@@ -608,7 +608,9 @@ let during = await holdDrag(140, 370)
 }
 await page.mouse.up()
 await page.waitForTimeout(900)
-check('右滑吸附后居中卡 = camera（第 2 张）', (await centeredId()) === 'camera', `centered=${await centeredId()}`)
+check('右滑吸附后居中卡 = camera（第 2 张）', (await centeredId()) === 'camera',
+  `centered=${await centeredId()} · mode=${JSON.stringify(await page.evaluate(() => window.__switcherMode))}` +
+  ` · settle=${JSON.stringify(await page.evaluate(() => window.__switcherSettle))}`)
 
 // ② 旧焦点卡（calculator）不再「一张就飞出屏」，而是停在右屏边内侧露出
 //    （此处是 0.98 层的拖动中途态，只断言「没被甩出屏」这个不变量；
@@ -2954,6 +2956,271 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
       '第十二轮·需求②：上滑超过阈值 → 正常删卡（跟手/飞出两条链路都通）',
       r.state.recent.length === 4 && !r.state.recent.includes(r.app),
       `剩余 = ${r.state.recent.join('/')}`
+    )
+  }
+}
+
+/* ══════════ 第十四轮 · 回归护栏（2026-09-14，Ricky 报的三条缺陷）══════════
+   Ricky 原话：
+     ①「点击多任务卡片进入全屏时会卡和闪一下，而且很高的概率会出现点击卡片
+        仍然退出多任务回到桌面的问题」
+     ②「从应用进入到多任务界面时，全屏应用缩放为卡片的过程动画一抖一抖的，
+        感觉长宽比例在不停的随机变化」
+     ③「位于顶部的卡片无法通过鼠标上滑关闭，点击还会左右抖动」
+
+   本段用的是**鼠标路径**（Ricky 报的三条都是鼠标复现的；触摸路径由第十二轮那段
+   CDP 用例守着）。逐帧数据与根因见 /tmp/vwork/r14/：
+     probe-label.mjs  标签行命中 / 点击漂移 / 入场残留
+     probe-handoff.mjs 交接段（放大卡 → AppWindow）逐帧几何
+     probe-p3.mjs     三条缺陷的最终验收
+     probe-enter.mjs  入场缩放逐帧宽高比（缺陷②）
+   静态断言的期望值全部来自这些探针，不是估的。 */
+{
+  const APP5 = ['settings', 'clock', 'phone', 'camera', 'calculator']
+  const seedApps = async () => {
+    await page.evaluate(() => {
+      window.__system.exitSwitcherToHome()
+      window.__system.appSwitcherOpen = false
+    })
+    await page.waitForTimeout(160)
+    for (const id of APP5) {
+      await page.evaluate((a) => window.__system.openApp(a), id)
+      await page.waitForTimeout(150)
+    }
+  }
+  /** 鼠标上滑进切换器（与 Ricky 的复现路径一致）。lateral = 上滑时的横向漂移总量 */
+  const mouseEnter = async ({ lateral = 0 } = {}) => {
+    const y0 = 925
+    await page.mouse.move(215, y0)
+    await page.mouse.down()
+    for (let i = 1; i <= 20; i++) {
+      await page.mouse.move(215 + (lateral * i) / 20, y0 - i * 20, { steps: 1 })
+      await page.waitForTimeout(12)
+    }
+    await page.waitForTimeout(300)
+    await page.mouse.up()
+    await page.waitForTimeout(700)
+  }
+  const st = () => page.evaluate(() => ({
+    base: window.__system.baseLayer,
+    app: window.__system.activeAppId,
+    open: window.__system.appSwitcherOpen,
+    recent: [...window.__system.recentApps],
+    dragX: +window.__system.switcherDragX.toFixed(1)
+  }))
+  /** 三态判据 —— 注意从应用内上滑进来时 baseLayer 本来就是 'app'，
+      只看 base 会把「什么都没发生（切换器还开着）」误判成「已恢复」。 */
+  const verdict = (a) => (!a.open && a.base === 'app' && a.app ? 'RESUME'
+    : a.base === 'home' ? 'HOME' : a.open ? 'STAY' : '???')
+  const geom = () => page.evaluate(() => {
+    const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return [+b.x.toFixed(1), +b.y.toFixed(1), +b.width.toFixed(1), +b.height.toFixed(1)] }
+    return {
+      card: r(document.querySelector('.switcher-card.is-deck[data-index="0"]')),
+      label: r(document.querySelector('.switcher-card-label')),
+      mode: window.__switcherMode || null
+    }
+  })
+
+  // ---- 缺陷③前半：标签行不算「这张卡」⇒ 点它回桌面、从它上滑删不掉 ----
+  await seedApps()
+  await mouseEnter()
+  {
+    const g = await geom()
+    const top = g.card?.[1] // 卡顶 y（实测 155）
+    const labelY = g.label?.[1] // 标签行顶（实测 119）
+    check(
+      '第十四轮·几何前置：标签行位于卡顶上方 LABEL_ROW_H+LABEL_GAP=36px 处',
+      top === 155 && labelY === 119,
+      `卡顶 y=${top} 标签行 y=${labelY}（期望 155 / 119）`
+    )
+
+    const hits = []
+    for (const y of [122, 138, 152]) {
+      await seedApps()
+      await mouseEnter()
+      await page.mouse.move(215, y)
+      await page.waitForTimeout(25)
+      await page.mouse.down()
+      await page.waitForTimeout(70)
+      await page.mouse.up()
+      await page.waitForTimeout(1100)
+      hits.push(`y=${y}:${verdict(await st())}`)
+    }
+    check(
+      '第十四轮·需求③-a：点标签行（图标+应用名）必须恢复那张卡 —— 改前 elementFromPoint 落到 .switcher-track ⇒ hitCardId=null ⇒ exitWithAnimation ⇒ 回桌面',
+      hits.every((h) => h.endsWith('RESUME')),
+      hits.join(' / ')
+    )
+
+    /* ⚠️ 上滑必须在【视口内】完成：从标签行（卡顶上方 36px，屏内最高的一行）起手，
+       只要行程够 110px 就必然把指针拖到 y<0 的视口外，而 Chrome 在视口外松手时
+       偶发不派发 pointerup（首跑实测：__switcherMode = undefined ⇒ onPointerUp 根本没跑，
+       recent 5→5）。所以行程取 135px（> 110px 判定阈值），落点 y=15/17 仍在屏内。
+       192px 那条极值路径由 /tmp/vwork/r14/probe-p3b.mjs 单独守。 */
+    const swipes = []
+    for (const y of [150, 152]) {
+      await seedApps()
+      await mouseEnter()
+      const before = await st()
+      const geo0 = await geom()
+      await page.evaluate(() => {
+        window.__switcherMode = null
+        window.__pev = 0
+        document.addEventListener('pointerup', () => { window.__pev++ }, { capture: true, once: true })
+      })
+      await page.mouse.move(215, y)
+      await page.waitForTimeout(25)
+      await page.mouse.down()
+      for (let i = 1; i <= 9; i++) {
+        await page.mouse.move(215, y - i * 15, { steps: 2 })
+        await page.waitForTimeout(10)
+      }
+      await page.mouse.up()
+      await page.waitForTimeout(900)
+      const after = await st()
+      const m = await page.evaluate(() => window.__switcherMode)
+      const ev = await page.evaluate(() => window.__pev)
+      swipes.push(`y=${y}:${before.recent.length}→${after.recent.length}(mode=${m?.mode},cardId=${m?.cardId},dy=${m?.dy},base=${after.base},pointerup=${ev},卡顶=${geo0.card?.[1]})`)
+    }
+    check(
+      '第十四轮·需求③-b：从标签行上滑 135px → 必须删掉那张卡 —— 改前 cardId 恒 null ⇒ willDismiss 恒 false ⇒ 卡片纹丝不动',
+      swipes.every((s) => /→4\(/.test(s)),
+      `${swipes.join(' / ')}（期望 5→4）`
+    )
+  }
+
+  // ---- 缺陷③后半：点击带横向漂移 → 改前「卡片晃一下 + 整段静默」 ----
+  {
+    const rows = []
+    for (const dx of [12, 16]) {
+      await seedApps()
+      await mouseEnter()
+      const c = await page.evaluate(() => {
+        const el = document.querySelector('.switcher-card.is-deck[data-index="0"]')
+        const b = el.getBoundingClientRect()
+        return [b.x + b.width / 2, b.y + b.height / 2]
+      })
+      await page.mouse.move(c[0], c[1])
+      await page.waitForTimeout(30)
+      await page.mouse.down()
+      for (let i = 1; i <= 4; i++) {
+        await page.mouse.move(c[0] + (dx * i) / 4, c[1], { steps: 1 })
+        await page.waitForTimeout(10)
+      }
+      await page.waitForTimeout(50)
+      await page.mouse.up()
+      await page.waitForTimeout(1100)
+      const a = await st()
+      const g = await geom()
+      rows.push(`${dx}px→${verdict(a)}(tapIntent=${g.mode?.tapIntent},frozen=${g.mode?.frozen},dx=${g.mode?.dx})`)
+    }
+    check(
+      '第十四轮·需求③-c：点击带 12/16px 横向漂移仍须恢复 —— 改前被 pickMode 锁成 h（MODE_LOCK_PX=10）而走不到 MODE_COMMIT_PX=22 ⇒ settleFocus 弹回、整段静默',
+      rows.every((r) => r.includes('RESUME')),
+      rows.join(' / ')
+    )
+  }
+
+  // ---- 缺陷③后半（根因二）：入场横向残留不得被「按下」复活 ----
+  {
+    await seedApps()
+    await mouseEnter({ lateral: 90 })
+    const st0 = await st()
+    const x0 = await page.evaluate(() => +document.querySelector('.switcher-card.is-deck[data-index="0"]').getBoundingClientRect().x.toFixed(1))
+    await page.mouse.move(215, 450)
+    await page.waitForTimeout(30)
+    await page.mouse.down()
+    await page.waitForTimeout(120)
+    const x1 = await page.evaluate(() => +document.querySelector('.switcher-card.is-deck[data-index="0"]').getBoundingClientRect().x.toFixed(1))
+    await page.mouse.up()
+    await page.waitForTimeout(1100)
+    check(
+      '第十四轮·需求③-d：入场带 90px 横向残留时，在卡片上按下【不得】横移 —— 改前 onPointerDown 的 followFreeSnap(0) 把已衰减的残留复活成 90×0.42 ≈ 37.8px 的一次横跳',
+      Math.abs(x1 - x0) <= 1,
+      `残留 dragX=${st0.dragX} → 按下 120ms 后卡 x ${x0} → ${x1}（Δ=${(x1 - x0).toFixed(1)}px，期望 ≤1px）`
+    )
+  }
+
+  // ---- 缺陷①：点卡进全屏的「闪」与「回到桌面」 ----
+  for (const [tag, px, py, label, expApp] of [
+    ['same-app', 215, 450, '点前卡（= 当前应用 calculator，AppWindow 不重挂）', 'calculator'],
+    ['swap-app', 66, 450, '点左侧邻居条的 camera 卡（不同应用 ⇒ AppWindow 重挂）', 'camera'],
+  ]) {
+    await seedApps()
+    await mouseEnter()
+    await page.evaluate(() => {
+      window.__hx = []
+      window.__hxStop = false
+      const t0 = performance.now()
+      const area = (r) => Math.max(0, r.width) * Math.max(0, r.height)
+      const tick = () => {
+        if (window.__hxStop) return
+        const rec = { t: +(performance.now() - t0).toFixed(1) }
+        rec.sw = !!document.querySelector('.app-switcher')
+        const win = document.querySelector('.app-window')
+        if (win) {
+          const r = win.getBoundingClientRect()
+          const cs = getComputedStyle(win)
+          rec.win = [+r.x.toFixed(1), +r.y.toFixed(1), +r.width.toFixed(1), +r.height.toFixed(1)]
+          rec.phase = win.dataset.phase
+          rec.hidden = cs.display === 'none' || cs.visibility === 'hidden'
+        } else { rec.win = null; rec.phase = null; rec.hidden = null }
+        let best = null
+        for (const el of document.querySelectorAll('.switcher-card')) {
+          const r = el.getBoundingClientRect()
+          if (!best || area(r) > area(best.r)) best = { r }
+        }
+        rec.card = best ? [+best.r.x.toFixed(1), +best.r.y.toFixed(1), +best.r.width.toFixed(1), +best.r.height.toFixed(1)] : null
+        window.__hx.push(rec)
+        setTimeout(tick, 10)
+      }
+      tick()
+    })
+    await page.mouse.move(px, py)
+    await page.waitForTimeout(30)
+    await page.mouse.down()
+    await page.waitForTimeout(70)
+    await page.mouse.up()
+    await page.waitForTimeout(1400)
+    await page.evaluate(() => { window.__hxStop = true })
+    const rows = await page.evaluate(() => window.__hx)
+    const a = await st()
+
+    const idx = rows.findIndex((r) => !r.sw)
+    const prev = idx > 0 ? rows[idx - 1] : null
+    const cur = idx >= 0 ? rows[idx] : null
+    const jump = prev?.card && cur?.win
+      ? Math.max(...[0, 1, 2, 3].map((k) => Math.abs(prev.card[k] - cur.win[k])))
+      : null
+    /* 「回到桌面」的可观测形状 = 某一帧里 .app-window 是一个面积不足半屏的小窗口。
+       判据必须再剔除【被放大卡完全盖住】的那些帧 —— 交接保持窗口内底下那个 AppWindow
+       正在从桌面图标放大（那是它自己的 hero 开场），它全程被铺满全屏的放大卡压着，
+       眼睛看不到；只有「没被盖住的小窗口」才是用户读到的「退出多任务回到桌面」。 */
+    const covering = (r) => !!r.card && r.card[0] <= 1 && r.card[1] <= 1 && r.card[2] >= 429 && r.card[3] >= 931
+    const small = rows.filter((r) => r.win && !r.hidden && r.win[2] * r.win[3] > 0 && r.win[2] * r.win[3] < 430 * 932 * 0.5)
+    const visibleSmall = small.filter((r) => !covering(r))
+
+    check(
+      `第十四轮·需求①-a（${tag}）：${label} —— 交接帧底下必须是「全屏 + phase=open」的 AppWindow`,
+      !!cur && cur.phase === 'open' && cur.win[2] === 430 && cur.win[3] === 932,
+      `交接帧 t=${cur?.t}ms phase=${cur?.phase} win=${JSON.stringify(cur?.win)}`
+    )
+    check(
+      `第十四轮·需求①-b（${tag}）：交接前后【单帧几何跳变 = 0px】（改前全程可见 725px 的「整屏落在卡位」+ 交接处突变为桌面图标矩形）`,
+      jump !== null && jump <= 1,
+      `交接前一帧放大卡=${JSON.stringify(prev?.card)} → 该帧 win=${JSON.stringify(cur?.win)} 跳变=${jump === null ? 'null' : jump.toFixed(1) + 'px'}`
+    )
+    check(
+      `第十四轮·需求①-c（${tag}）：全程不存在【可见的（未被放大卡盖住的）小窗口帧】= 用户读到的「退出多任务回到桌面」`,
+      visibleSmall.length === 0,
+      visibleSmall.length
+        ? visibleSmall.slice(0, 4).map((r) => `t${r.t}=${r.win[2]}x${r.win[3]} 卡=${JSON.stringify(r.card)}`).join(' ')
+        : `零帧（被盖住的小窗口帧 ${small.length} 帧，全部由放大卡 430×932 完全遮挡）`
+    )
+    check(
+      `第十四轮·需求①-d（${tag}）：最终恢复的目标应用正确`,
+      !a.open && a.base === 'app' && a.app === expApp,
+      `open=${a.open} base=${a.base} activeAppId=${a.app}（期望 app/${expApp}）`
     )
   }
 }
