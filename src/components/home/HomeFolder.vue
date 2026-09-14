@@ -51,7 +51,7 @@ function getFolderIconPositions(width, height, appIds) {
   const positions = new Map()
 
   if (is22) {
-    const pad = 11, gap = 10, cell = 36.33, iconSize = 35
+    const pad = 10, gap = 8, cell = 34.67, iconSize = 35
     for (let i = 0; i < Math.min(appIds.length, visCount); i++) {
       const col = i % 3, row = Math.floor(i / 3)
       const x = pad + col * (cell + gap) + (cell - iconSize) / 2
@@ -314,13 +314,13 @@ function onSurfaceClick(event) {
   height: auto;
   aspect-ratio: 1 / 1;
   flex: none;
-  padding: 11px;
+  padding: 10px;
   border-radius: var(--radius-widget, 22px);
   background: rgba(255, 255, 255, 0.20);
   backdrop-filter: blur(25px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.24);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  gap: 10px;
+  gap: 8px;
 }
 /* 2x2 固定 3x3 比例，无论图标多少个，从左上角顺次排列，行高不变，空槽自然留白 */
 .size-2-2 {
@@ -328,7 +328,7 @@ function onSurfaceClick(event) {
   grid-template-rows: repeat(3, 1fr);
   align-items: center;
   justify-items: center;
-  gap: 10px;
+  gap: 8px;
   aspect-ratio: 1 / 1;
 }
 .size-2-1 {

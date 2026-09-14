@@ -12,18 +12,18 @@ const clamp = (min, value, max) => Math.max(min, Math.min(max, value))
 export function createHomeGridProfile({ width = 360, height = 788, safeTop = 54, safeBottom = 34 } = {}) {
   const viewportWidth = Math.max(240, Number(width) || 360)
   const viewportHeight = Math.max(420, Number(height) || 788)
-  const minimumInset = 16
-  const minimumGap = 12
-  const iconSize = clamp(48, (viewportWidth - minimumInset * 2 - minimumGap * 3) / HOME_COLUMNS, 60)
-  const gapX = clamp(minimumGap, (viewportWidth - minimumInset * 2 - iconSize * HOME_COLUMNS) / 3, 32)
+  const iconSize = clamp(48, Math.round(viewportWidth * 0.155), 60)
+  const idealInset = clamp(18, Math.round(viewportWidth * 0.075), 32)
+  const remaining = viewportWidth - idealInset * 2 - iconSize * HOME_COLUMNS
+  const gapX = clamp(14, remaining / 3, 32)
   const workspaceWidth = iconSize * HOME_COLUMNS + gapX * 3
   const insetX = (viewportWidth - workspaceWidth) / 2
-  const gapY = clamp(14, 14 + ((viewportHeight - 568) / 220) * 6, 20)
+  const gapY = clamp(14, 14 + ((viewportHeight - 568) / 220) * 4, 18)
   const dockHeight = iconSize + 32
   const dockBottom = Math.max(20, (Number(safeBottom) || 34) - 6)
   const dockTop = viewportHeight - dockBottom - dockHeight
   const workspaceTop = (Number(safeTop) || 54) + 12
-  const workspaceBottom = Math.max(workspaceTop + 150, dockTop - 40)
+  const workspaceBottom = Math.max(workspaceTop + 150, dockTop - 48)
   const workspaceHeight = workspaceBottom - workspaceTop
   const largestDefaultItem = iconSize * 2 + gapX
   const compactScale = clamp(.8, workspaceHeight / largestDefaultItem, 1)
@@ -50,7 +50,7 @@ export function homeItemMetrics(item, folders = {}, profile = createHomeGridProf
   const gapX = profile.gapX * scale
   const gapY = profile.gapY * scale
   const width = span.w * unit + (span.w - 1) * gapX
-  const labelHeight = 21 * scale
+  const labelHeight = 20 * scale
   const appHeight = unit + labelHeight
   const widgetHeight2x2 = 2 * unit + gapX
   let height = appHeight
