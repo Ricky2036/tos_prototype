@@ -78,7 +78,8 @@ function prepareMotion() {
   const sx = from.width / to.width
   const sy = from.height / to.height
   const dx = from.left - to.left
-  const isLarge = (props.origin?.width || 0) > 80 || (props.origin?.height || 0) > 80
+  const dy = from.top - to.top
+  const isLarge = (props.folder?.width > 1 || props.folder?.height > 1) || (from?.width || 0) > 80
   const baseRadius = isLarge ? 22 : 17
   const startRadius = Math.round(baseRadius / Math.min(sx, sy))
 
