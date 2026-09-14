@@ -100,6 +100,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Fix HomeFolderOverlay dy undefined error and ensure smooth folder expansion | `antigravity/lane` | None (locks released) | `19d16e9` | `382ba09` |
 | Merged | Antigravity | Restore folder title, add title to Widgets, and fix folder collapse corner radius flicker | `antigravity/lane` | None (locks released) | `50406fa` | `ad650ab` |
 | Merged | Antigravity | Add safe vertical distance below widgets and restore edit mode multi-select | `antigravity/lane` | None (locks released) | `c502ca9` | `6cab8df` |
+| Merged | Antigravity | Optimize desktop grid, icon sizing, and row/column gaps matching reference screenshot 2 | `antigravity/lane` | None (locks released) | `45bcf49` | `4870b22` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
