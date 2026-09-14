@@ -172,6 +172,118 @@ const apps = computed(() => system.recentApps)
 const { value: sq, animateTo: sqTo, snapTo: sqSnap } = useSpring(0, 'ios-squish')
 const { value: followFree, animateTo: followFreeTo, snapTo: followFreeSnap } = useSpring(0, 'ios-snappy')
 
+/* ---- 第十七轮（Ricky 2026-09-14）新增：挤压进度的【逐帧限速】----
+ *
+ * Ricky 原话：「横滑切换疯狂抖动。。。」（附 7.2s 录屏 tOS_Prototype_20260914_194725.mp4）
+ *
+ * 【症状】贴着第一张卡左右快搓 / 横滑到位后继续怼，整块卡片组在 12~30ms 内反复反号
+ *   抽动 48~144 CSS px（离线逐帧互相关量出的刚体位移；三条取样带的位移序列完全一致
+ *   ⇒ 是「整组刚体」在动，不是卡内元素各自抖）。同一段里前卡视觉宽 275→263
+ *   ⇒ 抖动期间挤压态一直在咬合/释放。
+ *
+ * 【复现】/tmp/vwork/r17/probe-zig.mjs 模式 z2（x=420 按下 → 拖到 x=20 → 拉回 x=80，
+ *   来回 8 次）：改前 trackStyle 的 translateX 范围 −77.5 ~ +14.5，
+ *   **单帧最大跳变 77.50px** —— 与录屏里量到的 162 视频 px 逐字节对上。
+ *
+ * 【根因】挤压是一条【事件驱动 + 零过渡直写】的通道，而且它的增益是组件里最高的一条：
+ *   ① 增益链：手指位移 × RUBBER(0.35) ÷ span(233.75) = 越界层数；
+ *      越界层数 ÷ SQUEEZE_SPAN(0.35) = 进度 k；k × frontX(77.5) = 整组位移。
+ *      ⇒ **14px 的手指抖动 → 8.8px 的整组位移**，即 221px 位移 / 层越界。
+ *   ② 旧调用点写的是 `sqSnap(deckSqueeze(overScroll.value))` —— sqSnap 是**零过渡直写**，
+ *      于是这个增益被 1:1 变成瞬移：pointermove 之间隔 12~30ms，每来一个事件整组就跳一次，
+ *      方向跟着手抖反号 ⇒ 「疯狂抖动」。
+ *   ③ 而越界期卡片位姿被 poseFocus = max(0, focus) 钉死在 0 ⇒ 屏幕上【只有整组在动】
+ *      ⇒ 读起来是「卡片冻住，然后整块啪地跳一下」。
+ *
+ * 【修法】两条都不能省（缺一条就漏一半）：
+ *   ① 曲线侧（已在 switcherDeck.deckSqueeze 落地）：加死区 + smoothstep，消掉 over=0
+ *      处的导数拐点 —— 否则「刚越界一点点」也会立刻拿到 2.86/层的斜率。
+ *   ② 时间域（就在这里）：给进口加限速 —— sq 每帧最多向目标推进 SQ_MAX_STEP。
+ *      单靠 ① 挡不住满量程那次 0→1 的整段跳（77.5px 照旧）；
+ *      单靠 ② 小幅度抖动仍会被 221px/层 如实放大（只是被摊到几帧）。
+ *
+ * ⚠️ 为什么是「限速」而不是「换成弹簧」：e2e 需求③ 用 240ms 慢拖测量挤压稳态位移，
+ *    必须落在 −frontX ± 2px（scripts/verify-app-switcher.mjs 的 during 段断言）。
+ *    弹簧的过冲/滞后会让稳态值在到达前就被采样 ⇒ 失约；限速是【单调】的，
+ *    稳态值严格等于 deckSqueeze 的输出 ⇒ 既有契约一条不动。
+ * ⚠️ 为什么需要独立的 rAF（而不是在 dragSqueeze 里就地限速）：手势停住时不再有
+ *    pointermove，目标不再更新、也没人推进 sq ⇒ 挤压会【定格在中间值】追不上目标。
+ *    常驻追踪器同时天然成为一阶低通：目标连续变化时，输出是它的滞后平滑版。
+ * ⚠️ 接管点（关闭复位 / 退场）一律走 sqReset()：先停追踪器再对齐零点，
+ *    否则下一帧追踪器会把 sq 又拉回旧目标。
+ */
+const SQ_MAX_STEP = 0.09 // 每 16.7ms 最多推进的挤压进度（满量程 ≈ 12 帧 ≈ 200ms）
+/* dt 归一的【上限】取 20ms（1.2×）而不是 useSpring 那样的 50ms。
+ * 原因：dt 归一是为了「掉帧时速度不塌」，但它会把单帧步长也放大 —— 50ms 上限意味着
+ * 一帧就能走 0.27 进度 = 21px 的整组瞬移，等于把刚修掉的东西从另一头放回来。
+ * 20ms 上限下单帧步长封顶 0.09×1.2 = 0.108 ⇒ 8.4px，仍满足「单帧 ≤ 8~9px」的口径。
+ * ⚠️ 这个上限不能再往下压：e2e 需求③ 的 20 步慢拖要在 ~280ms 内把进度推满 1.0
+ *    （需求速率 ≈ 3.6/s）。0.09/帧 @20ms = 4.5/s（余量 26%）、@16.7ms = 5.4/s（余量 51%）；
+ *    若压到 25ms 上限则只有 3.6/s = 零余量，慢拖会保险丝上跳舞。 */
+const SQ_DT_MAX_MS = 20
+let sqTarget = 0
+let sqTrackRaf = null
+let sqTrackT = 0
+
+function sqTrackStop() {
+  if (sqTrackRaf != null) cancelAnimationFrame(sqTrackRaf)
+  sqTrackRaf = null
+  sqTrackT = 0
+}
+
+function sqTrackTick(now) {
+  sqTrackRaf = null
+  /* dt 归一：掉帧时允许一步走更多，否则重载下挤压会明显「跟不上手」。上限见上。 */
+  const dt = sqTrackT ? Math.min(SQ_DT_MAX_MS, now - sqTrackT) : 16.7
+  sqTrackT = now
+  const step = SQ_MAX_STEP * (dt / 16.7)
+  const d = sqTarget - sq.value
+  if (Math.abs(d) <= step) {
+    sqSnap(sqTarget) // 收敛：严格落到目标（稳态值 = deckSqueeze 的输出，契约不破）
+    sqTrackT = 0
+  } else {
+    sqSnap(sq.value + Math.sign(d) * step)
+    sqTrackRaf = requestAnimationFrame(sqTrackTick)
+  }
+  /* 自省口（与 __switcherMode / __switcherSettle 同性质）：探针据此断言「单帧跳变」，
+     不必再从 transform 反解 —— 反解只能拿到位移，拿不到「有没有被限速」。 */
+  window.__switcherSqueeze = {
+    cur: +sq.value.toFixed(4),
+    target: +sqTarget.toFixed(4),
+    running: sqTrackRaf != null
+  }
+}
+
+/** 手势期写挤压目标：限速逼近（第十七轮起取代旧的 sqSnap 直写）。
+ *  ⚠️ releaseSqueeze 现在【也由 appSwitcherOpen 的 watch 调用】—— 应用内上滑那条路径的
+ *     松手发生在 HomeIndicator 上，本组件的 onPointerUp 不会执行（见该 watch 的注释）。 */
+function dragSqueeze() {
+  sqTarget = deckSqueeze(overScroll.value)
+  if (sqTrackRaf == null) {
+    sqTrackT = 0
+    sqTrackRaf = requestAnimationFrame(sqTrackTick)
+  }
+}
+
+/** 松手后交给弹簧 —— 挤压用 ios-squish 弹回 0（过冲到负 = 整组向右回弹一点，
+ *  就是需求③「回弹」要的往复振荡；⚠️ 只在左滑越界 k≠0 时有量），
+ *  跟手偏移用 ios-snappy 快速归零。
+ *  ⚠️ 焦点（翻卡）走的是另一条路：settleFocus → focusToIndex，第十一轮起慢滑用
+ *     ios-deck-settle（ζ=1.0、零过冲）—— 不要把两者的「回弹」口径混在一起。 */
+function releaseSqueeze() {
+  sqTrackStop()
+  sqTarget = 0
+  sqTo(0)
+  followFreeTo(1)
+}
+
+/** 挤压复位到 0 并停掉追踪器（接管点专用：关闭复位 / 退场）。 */
+function sqReset() {
+  sqTrackStop()
+  sqTarget = 0
+  sqSnap(0)
+}
+
 /** 位姿用的焦点：第八轮起【冻结在 0 以上】。
  *  左滑越界（focus < 0）不再推送卡片位置，而是转成【整组左移】（见 deckSqueeze 的注释）——
  *  这同时修掉了第八轮需求⑦的「最底部卡片会直接消失」：层深 a = i − poseFocus 恒 ≤ MAX_DEPTH，
@@ -577,7 +689,7 @@ watch(
          上一轮的挤压量/跟手偏移出生）。第九轮：sq 的零点从 1 改成 0（口径变更）。 */
       clearTimeout(closeTimer)
       closeTimer = null
-      sqSnap(0)
+      sqReset()
       followFreeSnap(0)
       drag.value = null
       vLetGo.value = null
@@ -1036,10 +1148,21 @@ watch(
   }
 )
 
-const followStyle = computed(() => {
+/* ── 跟手卡的【几何量】唯一出口（第十六轮抽出）────────────────────────────
+ * 为什么不直接在 followStyle 里算、再让 deckGroupStyle 从 style 字符串里反解：
+ *   deckGroupStyle（第十六轮）必须拿到与跟手卡 transform 【逐位相同】的 cx/cy/sx——
+ *   两者哪怕差 0.1px，也会在交接那一帧被眼睛读成「跳一下」。
+ *   共用一个纯计算 ⇒ 结构上不可能漂移。
+ * 返回 null = 跟手卡不在场（未开始 / 已交接 / 已让位），此时群组变换必须退化为单位阵。 */
+const followGeom = computed(() => {
   const p = system.switcherProgress
   /* followYields：上滑删卡期间跟手卡让位 —— 见该 computed 的注释（第十二轮） */
   if (p <= 0 || settledOne.value || followYields.value) return null
+  /* ⚠️ 桌面路径（activeAppId 为空）根本没有跟手卡（模板那条 v-if 也要求 activeAppId）——
+     必须在这里一并短路，否则 frontIndex 会落到 apps.indexOf(null) = −1 → 0，
+     凭空给出一份「以第 0 张卡为前卡」的几何，让 deckGroupStyle 在桌面入场上误作用一次。
+     （模板靠 `followStyle && system.activeAppId` 挡住了跟手卡本身，但挡不住 deckGroupStyle。） */
+  if (!system.activeAppId) return null
   const idx = frontIndex.value
   const slot = poseOf(idx)
   const slotCx = slot.x + cardW.value / 2
@@ -1081,6 +1204,14 @@ const followStyle = computed(() => {
   const sx = s * (1 - def)
   const sy = s * (1 + def)
 
+  return { p, cx, cy, s, def, sx, sy, w }
+})
+
+/* 跟手卡的渲染样式（几何量全部来自 followGeom，见上）。 */
+const followStyle = computed(() => {
+  const g = followGeom.value
+  if (!g) return null
+  const { p, cx, cy, sx, sy } = g
   return {
     width: screenW.value + 'px',
     height: screenH.value + 'px',
@@ -1154,22 +1285,8 @@ function vtVelocity(now = performance.now()) {
   return dt > 0 ? (b.x - a.x) / dt : 0 // px/ms，向右为正
 }
 
-/* ---- 第八轮新增、第九轮改口径的两条状态机收放口 ----
-   dragSqueeze：手势期把挤压进度【直写】到位（不挂过渡 → 严格跟手）；
-   releaseSqueeze：松手后交给弹簧 —— 挤压用 ios-squish 弹回 0（过冲到负 = 整组向右回弹一点，
-     就是需求③「回弹」要的往复振荡；⚠️ 只在左滑越界 k≠0 时有量），
-     跟手偏移用 ios-snappy 快速归零。
-     ⚠️ 焦点（翻卡）走的是另一条路：settleFocus → focusToIndex，第十一轮起慢滑用
-        ios-deck-settle（ζ=1.0、零过冲）—— 不要把两者的「回弹」口径混在一起。
-   ⚠️ releaseSqueeze 现在【也由 appSwitcherOpen 的 watch 调用】—— 应用内上滑那条路径的
-     松手发生在 HomeIndicator 上，本组件的 onPointerUp 不会执行（见该 watch 的注释）。 */
-function dragSqueeze() {
-  sqSnap(deckSqueeze(overScroll.value))
-}
-function releaseSqueeze() {
-  sqTo(0)
-  followFreeTo(1)
-}
+/* dragSqueeze / releaseSqueeze / sqReset 三兄弟的定义已上移到 sq 弹簧声明之后
+   （第十七轮：随「挤压逐帧限速」一起搬过去，见那边的长注释）。 */
 
 /* ---- 手势模式判定（第十二轮重写）----
    Ricky 原话：「移动端通过安卓的 Chrome 浏览器打开，上滑删除多任务卡片的时候，
@@ -1850,7 +1967,9 @@ function exitWithAnimation() {
        引发的「卡片弹回居中」中间态【一帧都不会上屏】。否则就是实测到的：
        track 从 −335 弹回 0、卡片在屏幕正中闪现一帧，然后再左滑淡出一次（动画播两遍）。 */
     exitedHome.value = true
-    sqSnap(0)
+    /* 第十七轮：走 sqReset() 而不是裸 sqSnap(0) —— 必须先停掉挤压追踪器，
+       否则它会带着退场前的目标在下一帧把 sq 又拉回去（退场途中的整组位移会抽一下）。 */
+    sqReset()
     followFreeSnap(0)
     exitSwitcherToHome()
   }, DECK.EXIT_SLIDE_MS + 20)
@@ -1861,7 +1980,7 @@ function exitWithAnimation() {
  *         deckSqueezeShift）—— 位移不再是写死的屏宽分数，而是与缩放一起解出来的，
  *         语义是「前卡的左缘正好落到屏幕左缘」；
  *   退场：平移到左侧 0.78 屏宽 —— 第八轮需求④的滑出。
- * 两者互斥（退场时 k 已被 sqSnap(0) 归零）。
+ * 两者互斥（退场时 k 已被 sqReset() 归零）。
  *
  * ⚠️ 等比缩小【不在这里】做，而是逐卡在 deckPose 里乘（m.sq ⇒ scale *= g）：
  *    容器级 scale 会连带把「前卡左缘落到 0」这个推导出来的位移前提打破
@@ -1875,6 +1994,72 @@ const trackStyle = computed(() => {
   const shift = deckSqueezeShift(screenW.value, cardW.value, sq.value)
   if (Math.abs(shift) < 0.05) return { transform: 'none' }
   return { transform: `translate3d(${shift}px, 0, 0)` }
+})
+
+/* ---- 堆叠卡组的【群组变换】（第十六轮·需求①）----------------------------
+ *
+ * Ricky 原话：「应用内进入多任务，底部卡片出现时应该与被拖拽的卡片同步进行缩放移动。」
+ *
+ * 症状（探针 /tmp/vwork/r16/probe-enter-neighbor.mjs；应用内上滑 200px 后按住不动）：
+ *   被拖拽的跟手卡（照片）视觉宽 299.8、下方邻居卡（演示）静止后 258.5 ⇒ 比值 0.863，
+ *   而「邻居 = 0.94 × 前卡」是这个 deck 的几何契约（SCALE_DECAY = 0.94）。
+ *   入场全程该比值从 0.802 单调漂到 0.863 —— 一直追不上，且两条运动【相位脱钩】：
+ *   停驻期间跟手卡完全冻结（sx 恒 0.6972），邻居卡却自己在跑一条固定 480ms 的 CSS 过渡。
+ *   视觉上就是 Ricky 截图里的：底部那张卡「几乎和手里的卡一样大、还更靠下」。
+ *
+ * 根因：邻居卡的入场目标是 `deckPose(a = 1)` 的【绝对终位】—— 那个位姿是相对
+ *   「已经落位的前卡」（275 宽、中心 cardCy）定义的；而此刻前卡还被跟手卡顶替着，
+ *   实际尺寸 299.8（大了 9%）、中心也在别处。按落位后的尺寸去画邻居 ⇒ 必然偏小偏下。
+ *
+ * 修法：给整组堆叠卡加一个【相似变换 G】，把「跟手卡当前的位姿」映射到「卡位」——
+ *   整组随跟手卡同步缩放、同步位移；p → 1 时 G 退化为单位阵 ⇒ 交接帧不需要任何补偿。
+ *
+ * 推导（原点 O = 屏幕中心 (Cx, Cy)，因为 group 是 inset:0 且 transform-origin: center center）：
+ *   前卡 = poseOf(frontIndex)，矩形 (x, y, cardW·k0, cardH·k0)
+ *   k  = 跟手卡视觉宽 / 前卡视觉宽 = (screenW · sx) / (cardW · k0)
+ *   dx = (cx − Cx) − k·(Fcx − Cx)
+ *   dy = (cy − Cy) − k·(Fcy − Cy)
+ *   两条不变量让式子塌下来（所以下面直接写开形式，别再引入分支）：
+ *     · Fcy ≡ cardCy —— deckPose 的 y = cardCy − cardH·scale/2 对每层恒成立；
+ *     · Fcx = frontX + cardW·k0/2 —— 前卡的 a = 0 ⇒ stair(0) = 0 ⇒ restX = frontX。
+ *
+ * ⚠️ 为什么必须新包一层 .switcher-deck-group，而不是把 G 加在 .switcher-track 上：
+ *    跟手卡【也是】track 的子节点（`v-if="followStyle"` 那一张）
+ *    ⇒ 在 track 上 scale 会把跟手卡自己再缩一次（双重缩放）。
+ *    包一层只圈住堆叠卡、与 track 同坐标系 ⇒ 上面的推导逐字成立，对跟手卡零影响。
+ *
+ * ⚠️ 只在【跟手卡在场】时给值（followGeom 非空），其余时刻返回 null（= transform: none）：
+ *    deck 模式下左滑挤压（sq）、焦点吸附、退场滑出全都已经有自己的逐帧直写或 CSS 过渡，
+ *    再叠一层会二次变换。而「跟手卡在场」这一个判据本身就覆盖了 deck 模式 ——
+ *    落位完成后 settledOne 成立（openP / followFree / switcherProgress 三者都在 1 附近），
+ *    followGeom 返回 null，群组变换自动退化为单位阵。
+ *    ⚠️ 不要在这里加 `p >= 1` 之类的截断（第一版加过，被探针否掉）：
+ *    p ∈ (1, 1.2] 是一个【真实且能停驻】的状态（上滑滑过满量程后按住）——
+ *    跟手卡继续缩小（0.55^(p−1)）并上移（OVER_RISE_FRAC），邻居卡若被钉回绝对槽位，
+ *    就会变成比手里的卡【更大、更靠下】（探针 /tmp/vwork/r16/probe-overtravel.mjs 实测
+ *    p = 1.17 时邻居/follow = 1.068、中心低 22.2px）—— 正是本轮要修的东西的镜像版。
+ *    p → 1 时 k ≡ 1、dx = dy ≡ 0，本来就等价于 none，无需额外短路。
+ *    deck 模式的泄漏反证：/tmp/vwork/r16/probe-deckleak.mjs 实测空闲/按下/横拖/松手
+ *    全程都是 matrix(1,0,0,1,0,0)，偏差 0.0000。
+ * ⚠️ 与 trackStyle 的挤压位移【不冲突】：挤压只发生在落位后（此时 G ≡ 单位阵），
+ *    且 track 的 translate 在 group 的 scale 之外 ⇒ 一旦两者同时非平凡，位移仍在屏幕空间。 */
+const deckGroupStyle = computed(() => {
+  const g = followGeom.value
+  if (!g) return null
+  const Cx = screenW.value / 2
+  const Cy = screenH.value / 2
+  const front = poseOf(frontIndex.value)
+  const frontW = cardW.value * front.scale
+  if (!(frontW > 0)) return null
+  const k = (screenW.value * g.sx) / frontW
+  if (!Number.isFinite(k) || k <= 0) return null
+  const Fcx = front.x + frontW / 2
+  const Fcy = front.y + (cardH.value * front.scale) / 2
+  const dx = g.cx - Cx - k * (Fcx - Cx)
+  const dy = g.cy - Cy - k * (Fcy - Cy)
+  return {
+    transform: `translate3d(${dx.toFixed(3)}px, ${dy.toFixed(3)}px, 0) scale(${k.toFixed(5)})`
+  }
 })
 
 /** 遮罩不透明度：退场时归零（桌面立刻现形），其余跟随手势进度 */
@@ -1962,8 +2147,11 @@ onBeforeUnmount(() => {
       <!-- 堆叠卡片组：切换器打开后渲染；桌面路径在【手势进行中】就要渲染，
            否则上滑期间屏幕上一张卡都没有（只剩黑遮罩）= 盲滑，手感极差。
            前卡在进场进度 <1 时由跟手卡顶替（同位姿无缝交接），其余卡片按进度淡入。
-           层级由 deckZ(i) = 10000 - i 决定 —— 顶卡一直到最后飞出屏幕都在最上层。 -->
-      <template v-if="renderDeck">
+           层级由 deckZ(i) = 10000 - i 决定 —— 顶卡一直到最后飞出屏幕都在最上层。
+           ⚠️ 第十六轮：整组外面包一层 .switcher-deck-group，承载「随跟手卡同步缩放/位移」
+           的群组变换（见 deckGroupStyle）。**不能**把这层变换加在 .switcher-track 上 ——
+           跟手卡也是 track 的子节点，会被一并缩放（双重缩放）。 -->
+      <div v-if="renderDeck" class="switcher-deck-group" :style="deckGroupStyle">
         <div
           v-for="c in renderedCards"
           :key="c.id"
@@ -2002,7 +2190,7 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </div>
-      </template>
+      </div>
     </div>
 
     <!-- 底部：清空后台（与通知中心同款磨砂圆钮；进度到位后淡入） -->
@@ -2074,6 +2262,17 @@ onBeforeUnmount(() => {
    它的淡入过渡写在 .switcher-dock 基础规则里（松手后才出现那一段需要淡入）。 */
 .app-switcher.is-closing .switcher-dock {
   transition: none;
+}
+
+/* 堆叠卡组的群组变换容器（第十六轮）——
+   与 .switcher-track 同坐标系（inset:0）但与跟手卡【平级、不嵌套】：群组变换只作用于堆叠卡。
+   ⚠️ 不给它挂任何 transition：变换由 switcherProgress 逐帧直写（跟手），
+      挂过渡会被二次低通成滞后 —— 与 .is-follow 排除过渡是同一个道理。 */
+.switcher-deck-group {
+  position: absolute;
+  inset: 0;
+  transform-origin: center center;
+  will-change: transform;
 }
 
 .switcher-card {
