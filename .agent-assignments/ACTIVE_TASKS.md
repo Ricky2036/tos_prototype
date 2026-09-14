@@ -95,6 +95,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | LockScreen notification stack top card 90% opacity and 2-card pill expand fix | `antigravity/lane` | None (locks released) | `aa8a310` | `0b2f0db` |
 | Merged | Antigravity | Screenshot filename prefix, desktop big folder 3x3 layout & mini-cluster, and handle persistence | `antigravity/lane` | None (locks released) | `2d0a345` | `0648016` |
 | Merged | Antigravity | Optimize big folder icon spacing, sizing, breathing room, and corner radius | `antigravity/lane` | None (locks released) | `acb5d31` | `89dcfb7` |
+| Merged | Antigravity | Fix folder close icon deformation and add seamless FLIP displacement animation during resize | `antigravity/lane` | None (locks released) | `2c31c68` | `fa5d1df` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
