@@ -3225,6 +3225,253 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
   }
 }
 
+/* ══════════ 第十五轮 · 回归护栏（2026-09-14，Ricky：删卡回桌面后桌面图标消失）══════════
+   Ricky 原话：「点击打开应用后，进入多任务，上滑删除任务回到桌面后，桌面图标消失了」
+   截图特征：**文字还在、只有那一格的图形是空的**。
+
+   根因（探针 /tmp/vwork/r15/probe-icon.mjs 实测，改前）：
+     AppWindow 打开时把「桌面图标隐藏态」写进 homeStore.hiddenIconId（单槽），
+     而归还动作只挂在 hero 收回的收尾钩子上（AppWindow 的 onHandoff → home.showIcon()）。
+     切换器里上滑删卡走 systemStore.dismissApp()：它**硬切** activeAppId=null + baseLayer='home'，
+     AppWindow 被直接卸载 ⇒ 收尾钩子永不执行 ⇒ hiddenIconId 永久停在那个 appId。
+     `.is-hidden` 只藏 .icon-tile（与角标）、不藏 .icon-label ⇒ 名字还在、图标没了。
+
+   本段 6 条：
+     ① 前置：打开应用后图标确实进入隐藏态（否则后面几条都是假通过）
+     ② 需求①主诉：真实 UI 点桌面图标 → 上滑进多任务 → 卡上滑删卡 → 图标必须恢复
+     ③ 第二道防线：绕过切换器直接 dismissApp（隐藏态没被清）时图标也必须可见
+     ④ 同类硬切路径「点空白回桌面」也必须恢复
+     ⑤ 同类硬切路径「垃圾桶一键清理」也必须恢复
+     ⑥ 回归护栏：删【后台卡】不得让仍在全屏的前台应用图标提前露出来（防 hero 重影）
+   改前对照值全部来自 r15 探针，不是估的。 */
+{
+  /** 桌面网格里某应用的 AppIcon 可见性（以 .icon-tile 为准 = 用户看到的「图形」） */
+  const homeIcon = (appId) =>
+    page.evaluate((id) => {
+      const el = document.querySelector(`[data-home-item="app:${id}"] .app-icon`)
+      if (!el) return null
+      const tile = el.querySelector('.icon-tile')
+      const r = el.getBoundingClientRect()
+      return {
+        isHidden: el.classList.contains('is-hidden'),
+        tile: tile ? getComputedStyle(tile).visibility : null,
+        label: el.querySelector('.icon-label')?.textContent?.trim() ?? null,
+        size: `${+r.width.toFixed(1)}x${+r.height.toFixed(1)}`
+      }
+    }, appId)
+  /** homeStore 的隐藏态单槽。
+   *  ⚠️ 返回的是**字符串形式**（`String(null)` ⇒ `"null"`），不能直接和 `null` 比：
+   *     本段首跑就是栽在这里 —— 三条断言的值全对，却因为 `"null" !== null` 报 FAIL。
+   *     为什么不用 `?? '默认值'` 兜：`null` 正是「已归还」的正确值，会被 ?? 吞成默认值，
+   *     读起来像是读不到。统一用下面的 NULL_ID 比，别改回 null。 */
+  const NULL_ID = 'null'
+  const hiddenId = () =>
+    page.evaluate(() => {
+      const p = document.querySelector('#app')?.__vue_app__?.config?.globalProperties?.$pinia
+      const h = p?.state?.value?.home
+      return h && 'hiddenIconId' in h ? String(h.hiddenIconId) : '(home 读不到)'
+    })
+  const sysState = () =>
+    page.evaluate(() => ({
+      base: window.__system.baseLayer,
+      app: window.__system.activeAppId,
+      recent: [...window.__system.recentApps]
+    }))
+  const fmtHome = (v) =>
+    v ? `is-hidden=${v.isHidden} tile=${v.tile} 文字=${v.label} ${v.size}` : '(无该桌面图标)'
+  /** 每个用例的统一起点：清空最近任务 + 回桌面 */
+  const resetHome = async () => {
+    await page.evaluate(() => window.__system.dismissAll())
+    await page.waitForTimeout(420)
+  }
+  /** 鼠标上滑进切换器（与 Ricky 的复现路径一致） */
+  const mouseEnterSwitcher = async () => {
+    const y0 = 925
+    await page.mouse.move(215, y0)
+    await page.mouse.down()
+    for (let i = 1; i <= 20; i++) {
+      await page.mouse.move(215, y0 - i * 20, { steps: 1 })
+      await page.waitForTimeout(12)
+    }
+    await page.waitForTimeout(300)
+    await page.mouse.up()
+    await page.waitForTimeout(800)
+  }
+  /** 卡上滑删卡。⚠️ 松手点必须留在视口内：起手 620 → 上行 220 → 落在 400，
+      否则 Chrome 偶发不派发 pointerup（第十四轮踩过）。 */
+  const swipeUpCard = async ({ y0 = 620, travel = 220 } = {}) => {
+    await page.mouse.move(215, y0)
+    await page.waitForTimeout(30)
+    await page.mouse.down()
+    const steps = Math.round(travel / 20)
+    for (let i = 1; i <= steps; i++) {
+      await page.mouse.move(215, y0 - i * 20, { steps: 1 })
+      await page.waitForTimeout(12)
+    }
+    await page.mouse.up()
+    await page.waitForTimeout(900)
+  }
+  /** 「空白」落点：既不在卡片上、也不在垃圾桶上（点空白 = 回桌面） */
+  const blankPoint = () =>
+    page.evaluate(() => {
+      const safe = (x, y) => {
+        const el = document.elementFromPoint(x, y)
+        return !!el && !el.closest('.switcher-card') && !el.closest('.switcher-trash')
+      }
+      for (const [x, y] of [[215, 800], [30, 800], [400, 800], [215, 95], [30, 450], [400, 450]]) {
+        if (safe(x, y)) return [x, y]
+      }
+      return null
+    })
+  const trashPoint = () =>
+    page.evaluate(() => {
+      const el = document.querySelector('.switcher-trash')
+      if (!el) return null
+      const r = el.getBoundingClientRect()
+      return [r.x + r.width / 2, r.y + r.height / 2]
+    })
+  /** 点桌面「文件」图标开应用（真实入口，不是 store 直连） */
+  const clickDeskIcon = async (appId, ms = 800) => {
+    await page.locator(`[data-home-item="app:${appId}"] .app-icon`).first().click()
+    await page.waitForTimeout(ms)
+  }
+
+  // ---- ① 前置：打开应用后图标确实进入隐藏态（只藏图形、不藏文字）----
+  await resetHome()
+  await clickDeskIcon('files')
+  const preId = await hiddenId()
+  const preIcon = await homeIcon('files')
+  check(
+    '第十五轮·前置：打开应用后桌面图标必须进入隐藏态，且【只藏图形、不藏文字】（= Ricky 截图的形状）',
+    preId === 'files' && preIcon?.isHidden === true && preIcon?.tile === 'hidden' && preIcon?.label === '文件',
+    `hiddenIconId=${preId} · 图标[${fmtHome(preIcon)}]（期望 files / is-hidden=true / tile=hidden / 文字=文件）`
+  )
+
+  // ---- ② 需求①主诉：真实 UI 上滑删卡 → 回桌面后图标必须恢复 ----
+  await mouseEnterSwitcher()
+  await swipeUpCard()
+  const a1 = await sysState()
+  const afterId = await hiddenId()
+  const afterIcon = await homeIcon('files')
+  check(
+    '第十五轮·需求①：进入多任务→上滑删卡→回到桌面后，桌面图标【必须恢复】' +
+      '（改前 hiddenIconId 永久停在 files ⇒ tile=hidden、只剩文字）',
+    afterId === NULL_ID && afterIcon?.isHidden === false && afterIcon?.tile === 'visible' && a1.base === 'home',
+    `hiddenIconId=${afterId} base=${a1.base} activeAppId=${a1.app} · 图标[${fmtHome(afterIcon)}]（期望 hiddenIconId=null / tile=visible）`
+  )
+
+  // ---- ③ 第二道防线：绕过切换器直接 dismissApp（隐藏态没被清）时图标也必须可见 ----
+  await resetHome()
+  await page.evaluate(() => window.__system.openApp('notes'))
+  await page.waitForTimeout(800)
+  const rawId = await hiddenId()
+  await page.evaluate(() => window.__system.dismissApp('notes'))
+  await page.waitForTimeout(500)
+  const staleId = await hiddenId()
+  const staleIcon = await homeIcon('notes')
+  check(
+    '第十五轮·需求①第二道防线：绕过切换器直接 dismissApp（store 的隐藏态仍是那个 appId）时，' +
+      '图标也必须可见 —— AppIcon 的「前台判据」自愈（改前 tile=hidden）',
+    rawId === 'notes' && staleId === 'notes' && staleIcon?.isHidden === false && staleIcon?.tile === 'visible',
+    `打开后 hiddenIconId=${rawId} → 硬切后仍是 ${staleId}（符合预期）· 图标[${fmtHome(staleIcon)}] ← 期望 tile=visible`
+  )
+
+  // ---- ④ 同类硬切路径：点空白回桌面 ----
+  await resetHome()
+  await clickDeskIcon('notes')
+  await mouseEnterSwitcher()
+  const bp = await blankPoint()
+  if (bp) {
+    await page.mouse.click(bp[0], bp[1])
+    await page.waitForTimeout(1000)
+  }
+  const a4 = await sysState()
+  const id4 = await hiddenId()
+  const icon4 = await homeIcon('notes')
+  check(
+    '第十五轮·同类路径：多任务里【点空白回桌面】后，桌面图标也必须恢复（同样拿不到 hero 收尾钩子）',
+    !!bp && id4 === NULL_ID && icon4?.isHidden === false && icon4?.tile === 'visible' && a4.base === 'home',
+    `落点=${JSON.stringify(bp)} hiddenIconId=${id4} base=${a4.base} · 图标[${fmtHome(icon4)}]`
+  )
+
+  // ---- ⑤ 同类硬切路径：垃圾桶一键清理 ----
+  await resetHome()
+  await clickDeskIcon('notes')
+  await mouseEnterSwitcher()
+  const tp = await trashPoint()
+  if (tp) {
+    await page.mouse.click(tp[0], tp[1])
+    await page.waitForTimeout(1800)
+  }
+  const a5 = await sysState()
+  const id5 = await hiddenId()
+  const icon5 = await homeIcon('notes')
+  check(
+    '第十五轮·同类路径：多任务里【垃圾桶一键清理】后，桌面图标也必须恢复',
+    !!tp && id5 === NULL_ID && icon5?.isHidden === false && icon5?.tile === 'visible' && a5.recent.length === 0,
+    `垃圾桶=${JSON.stringify(tp)} hiddenIconId=${id5} recent=${JSON.stringify(a5.recent)} · 图标[${fmtHome(icon5)}]`
+  )
+
+  // ---- ⑥ 回归护栏：删后台卡不得让仍在全屏的前台应用图标提前露出来 ----
+  await resetHome()
+  await page.evaluate(() => window.__system.openApp('notes'))
+  await page.waitForTimeout(500)
+  await page.evaluate(() => window.__system.openApp('files'))
+  await page.waitForTimeout(800)
+  await mouseEnterSwitcher()
+  /* 后台卡被前台卡压住 ⇒ 必须取它【未被遮挡的左缘条带】。
+     ⚠️ 不能用邻居卡中心：实测在 (154.5,453) 命中的是前台卡，删掉的是前台应用。 */
+  const bg = await page.evaluate(() => {
+    const cards = [...document.querySelectorAll('.switcher-card[data-app-id]')]
+    const front = cards.find((c) => c.dataset.appId === window.__system.activeAppId && !c.classList.contains('is-follow'))
+    const el = cards.find((c) => c.dataset.appId !== window.__system.activeAppId && !c.classList.contains('is-follow'))
+    if (!el || !front) return null
+    const r = el.getBoundingClientRect()
+    const fr = front.getBoundingClientRect()
+    const strip = fr.x - r.x
+    if (strip < 20) return null
+    return { appId: el.dataset.appId, cx: r.x + strip / 2, cy: r.y + r.height / 2, strip: +strip.toFixed(1) }
+  })
+  if (bg) {
+    const hit = await page.evaluate(([x, y]) => {
+      for (const el of document.elementsFromPoint(x, y)) {
+        const id = el?.closest?.('.switcher-card')?.dataset?.appId
+        if (id) return id
+      }
+      return null
+    }, [bg.cx, bg.cy])
+    await page.mouse.move(bg.cx, bg.cy)
+    await page.waitForTimeout(30)
+    await page.mouse.down()
+    for (let i = 1; i <= 10; i++) {
+      await page.mouse.move(bg.cx, bg.cy - i * 20, { steps: 1 })
+      await page.waitForTimeout(12)
+    }
+    await page.mouse.up()
+    await page.waitForTimeout(900)
+    const a6 = await sysState()
+    const id6 = await hiddenId()
+    const frontIcon = await homeIcon('files')
+    const bgIcon = await homeIcon(bg.appId)
+    check(
+      '第十五轮·回归护栏：删除【后台卡】不得让仍在全屏的前台应用图标提前露出来' +
+        '（否则 hero 收回时真图标与镜像会重影）',
+      hit === bg.appId && a6.app === 'files' && id6 === 'files' &&
+        frontIcon?.isHidden === true && frontIcon?.tile === 'hidden' &&
+        bgIcon?.isHidden === false && bgIcon?.tile === 'visible',
+      `落点命中=${hit}（期望 ${bg.appId}）· 删后 activeAppId=${a6.app} hiddenIconId=${id6} · ` +
+        `前台 files 图标[${fmtHome(frontIcon)}]（期望 tile=hidden）· 后台 ${bg.appId} 图标[${fmtHome(bgIcon)}]（期望 tile=visible）`
+    )
+  } else {
+    check(
+      '第十五轮·回归护栏：删除【后台卡】不得让仍在全屏的前台应用图标提前露出来',
+      false,
+      '后台卡可见条带不足 20px，用例未能建立（检查卡片几何是否被改动）'
+    )
+  }
+  await resetHome()
+}
+
 check('无控制台报错', errs.length === 0, errs.slice(0, 3).join(' | '))
 
 await page.screenshot({ path: 'shots/app-switcher.png' })

@@ -6,6 +6,7 @@ import PlaceholderApp from '../apps/PlaceholderApp.vue'
 import AppIcon from '../ui/AppIcon.vue'
 import GlassCircleButton from '../ui/GlassCircleButton.vue'
 import { useSystemStore } from '../../stores/systemStore'
+import { useHomeStore } from '../../stores/homeStore'
 import { useI18nStore } from '../../stores/i18nStore'
 import { useSpring } from '../../composables/useSpring'
 import { screenRef } from '../../utils/screenRef'
@@ -69,6 +70,7 @@ import { HERO_OPEN_DURATION } from '../../utils/heroGeometry'
  */
 
 const system = useSystemStore()
+const home = useHomeStore()
 const i18n = useI18nStore()
 provide('appPreview', true)
 
@@ -1592,10 +1594,38 @@ function cancelWheel() {
   wheelAcc.value = null
 }
 
+/* ---- 桌面图标的隐藏态归还（第十五轮）----
+ *
+ * Ricky 原话：「点击打开应用后，进入多任务，上滑删除任务回到桌面后，桌面图标消失了」
+ * （截图特征：文字还在、只有那一格的图形是空的）。
+ *
+ * 根因在 `systemStore.dismissApp()`：它是**硬切** ——
+ *   `recentApps` 摘掉 → 若删的是当前应用则直接 `activeAppId = null; baseLayer = 'home'`。
+ * AppWindow 因此被直接卸载，而它**唯一**的「归还桌面图标」动作挂在 hero 收回的收尾钩子上
+ * （`AppWindow.vue` 的 `onHandoff: () => home.showIcon()`）⇒ 钩子永不触发
+ * ⇒ `home.hiddenIconId` 永久停在那个 appId ⇒ 桌面那一格只剩文字。
+ * 探针 /tmp/vwork/r15/probe-icon.mjs 实测（改前）：
+ *   · store 直连 openApp('files') → dismissApp('files')：hiddenIconId 仍 = 'files'
+ *   · 真实 UI（点桌面图标 → 上滑进多任务 → 卡上滑删卡）：同样停在 'files'，tile=hidden
+ *   · 对照组「应用内上滑回桌面」（走 hero 收尾）：tile=visible —— 唯独删卡路径漏了
+ *
+ * 本函数只负责【在窗口确实要消失时】把隐藏态让出来，是语义上的显式归还；
+ * AppIcon 里「隐藏只在应用真的是前台时生效」的前台判据是同一件事的第二道防线。
+ * 两者互为冗余、谁也不依赖谁 —— 即使将来有人再往切换器里加一条硬切路径，
+ * 那道判据也会兜住。
+ *
+ * ⚠️ 必须限定「删的就是当前应用」：删后台卡时前台应用仍在全屏，
+ *    此时清掉隐藏态会让它的桌面图标提前露出来（hero 收回时就会与镜像重影）。 */
+function releaseHiddenIcon(appId) {
+  if (appId && system.activeAppId === appId) home.showIcon()
+}
+
 /* 上滑移除：飞出 + 其余卡片弹簧重排 */
 function dismissWithAnimation(appId) {
   dismissing.value = appId
   setTimeout(() => {
+    /* 必须先于 dismissApp：后者会把 activeAppId 置空，之后再判断就查不到了。 */
+    releaseHiddenIcon(appId)
     system.dismissApp(appId)
     dismissing.value = null
     const idx = Math.max(0, Math.min(apps.value.length - 1, Math.round(focus.value)))
@@ -1761,6 +1791,9 @@ function clearAll() {
   if (clearing.value || dismissing.value || expanding.value) return
   const n = renderedCards.value.length
   if (!n) {
+    /* 第十五轮：dismissAll 同样是硬切（activeAppId 置空 + baseLayer='home'），
+       被它带走的那个前台应用的桌面图标必须在这里归还。 */
+    releaseHiddenIcon(system.activeAppId)
     system.dismissAll()
     return
   }
@@ -1776,13 +1809,19 @@ function clearAll() {
     clearTimer = null
     clearing.value = false
     clearGo.value = false
+    /* 第十五轮：与上面 if (!n) 分支同因 —— dismissAll 硬切，先把隐藏态归还。 */
+    releaseHiddenIcon(system.activeAppId)
     system.dismissAll()
   }, CLEAR_MS + last * CLEAR_STAGGER + CLEAR_TAIL)
 }
 
 /** 点空白：关掉切换器并【回桌面】（需求⑪）。
- *  与 dismissAll 的区别 —— 这里【不清】最近任务，只是离开切换器回桌面。 */
+ *  与 dismissAll 的区别 —— 这里【不清】最近任务，只是离开切换器回桌面。
+ *  第十五轮：这条路径也是硬切（system.exitSwitcherToHome 直接置 activeAppId=null），
+ *  同样拿不到 AppWindow 的 hero 收尾钩子 ⇒ 必须在切状态【之前】归还桌面图标隐藏态。
+ *  本函数是「点空白」的唯一漏斗（退场动画播完由它落定终态）。 */
 function exitSwitcherToHome() {
+  releaseHiddenIcon(system.activeAppId)
   system.exitSwitcherToHome()
 }
 
