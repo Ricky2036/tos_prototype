@@ -36,7 +36,7 @@ test('HomeFolder has comfortable icon sizing, widget corner radius, and clean ba
   assert.match(source, /\.cluster-icon :deep\(\.icon-badge\) \{[\s\S]*display:\s*none !important;/)
   assert.match(source, /<span class="folder-name" data-folder-title>{{ folder\.name }}<\/span>/)
   assert.doesNotMatch(source, /v-if="!large"[^>]*class="folder-name"/)
-  assert.match(source, /\.large \.folder-resize-handle\s*\{[\s\S]*bottom:\s*-3px;/)
+  assert.match(source, /\.large \.folder-resize-handle\s*\{[\s\S]*bottom:\s*1px;/)
 })
 
 test('AppGrid renders titles for home screen widgets matching app and folder labels', async () => {
