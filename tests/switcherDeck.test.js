@@ -15,7 +15,11 @@ import {
   deckSqueezeTighten,
   deckStair,
   deckVisible,
-  deckZ
+  deckZ,
+  TOUCH_STEP_JUMP_PX,
+  TOUCH_STEP_RATIO,
+  TOUCH_STEP_WARMUP,
+  touchStepIsTeleport
 } from '../src/utils/switcherDeck.js'
 
 // 430 × 932（本项目基准机型）
@@ -578,4 +582,31 @@ test('第八轮·需求⑥：跟手 XY 双轴 + 弹性挤压的参数边界', ()
   const sy = s * (1 + def)
   assert.ok(sx < s && sy > s, '必须一轴压一轴伸')
   assert.ok(Math.abs(sx * sy - s * s * (1 - def * def)) < 1e-9, '近似面积守恒')
+})
+
+test('第二十一轮·需求：坐标连续性判据（touchStepIsTeleport）', () => {
+  /* 复现形状（/tmp/vwork/r21/probe-sameid.mjs）：两指相距 120px、单指 12~13px/帧。
+     前 3 笔是真实手指步长，第 4 笔坐标无 pointerdown 直接瞬移 120px。 */
+  const warm = [12, 13, 12]
+  assert.equal(touchStepIsTeleport(120, warm), true, '3 笔正常步长之后的 120px 瞬移必须判出')
+  assert.equal(touchStepIsTeleport(-120, warm), true, '方向无关')
+  assert.equal(touchStepIsTeleport(120, []), true, '巨步兜底：≥112px 热身期也判（一帧 6720px/s 物理不可能）')
+  /* 两指来回抽动：被吸收的那一笔记 0 ⇒ 参考量仍停在真实手速上，第二笔也认得出 */
+  assert.equal(touchStepIsTeleport(-120, [12, 13, 12, 0]), true, '抽动的第二笔同样要判出')
+  /* 真实手指不会被误判 */
+  assert.equal(touchStepIsTeleport(13, [12, 13, 12]), false, '正常步长')
+  assert.equal(touchStepIsTeleport(56 - 0.01, [12, 13, 12]), false, '不足绝对下限')
+  assert.equal(touchStepIsTeleport(60, [12, 13]), false, '热身期只有 2 笔 ⇒ 不判（触摸 slop 释放帧）')
+  assert.equal(touchStepIsTeleport(60, [12, 13, 12, 14]), true, '3 笔之后 60px = 真实步长的 4 倍 ⇒ 判出')
+  /* 渐进加速：参考量（取 max）跟着抬 ⇒ 真实加速不触发 */
+  assert.equal(touchStepIsTeleport(60, [13, 25, 40]), false, '13→25→40 之后再来 60 只是 1.5 倍')
+  assert.equal(touchStepIsTeleport(90, [13, 25, 40]), false, '90 也不到 3×40')
+  assert.equal(touchStepIsTeleport(130, [13, 25, 40]), true, '130 ≥ 3×40 ⇒ 才判')
+  /* 常量自洽 */
+  assert.equal(TOUCH_STEP_RATIO, 3)
+  assert.equal(TOUCH_STEP_WARMUP, 3)
+  assert.ok(TOUCH_STEP_JUMP_PX >= 44 && TOUCH_STEP_JUMP_PX <= 64, '绝对下限须高于单指实测步长、远低于指距')
+  /* 半窗口（60fps 一帧 = 16.7ms）下的物理自洽：下限 56px ⇔ 3360px/s，
+     指距 120px ⇔ 7200px/s —— 后者超出指尖极限，前者仍在人手可及范围内。 */
+  assert.ok(TOUCH_STEP_JUMP_PX / 16.7 < 4, '下限对应的速度不能低于真实快滑（否则会误判真手指）')
 })

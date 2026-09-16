@@ -20,7 +20,9 @@ import {
   deckSqueeze,
   deckSqueezeShift,
   deckZ,
-  deckVisible
+  deckVisible,
+  TOUCH_STEP_KEEP,
+  touchStepIsTeleport
 } from '../../utils/switcherDeck'
 /* 第十四轮·需求①：交接保持窗口的时长必须与 hero 开场动画同源（只读引用，不改该文件）。 */
 import { HERO_OPEN_DURATION } from '../../utils/heroGeometry'
@@ -1406,6 +1408,10 @@ function onPointerDown(e) {
     pointerId: e.pointerId,
     startX: e.clientX,
     startY: e.clientY,
+    /* 第二十一轮：按下点的【不可变】副本。坐标连续性守卫会把 startX 搬到新基线上（见
+       onPointerMove），而「按下时手指落在哪张卡上」这件事必须永远只认最初那一点
+       （下面对 v 模式的 hitCardId 用的是它）—— 否则两指合并时命中判定会跟着瞬移漂走。 */
+    downX: e.clientX,
     startFocus: focus.value,
     startT: performance.now(),
     mode: 'pending',
@@ -1424,7 +1430,14 @@ function onPointerDown(e) {
        手指点一下的天然微漂（尤其纵向）一旦 ≥8px，就会被判成拖动 ——
        mode='v' 时整段直接 return（什么都不发生）、mode='down' 时 dy≤80 也什么都不发生，
        于是「点空白没反应」。用 maxMove 判 tap 才能覆盖「抖出去了又回来」。 */
-    maxMove: 0
+    maxMove: 0,
+    /* 第二十一轮：坐标连续性守卫的现场（见 onPointerMove 顶部的长注释）。
+       lastX    = 上一笔【已接受】事件的 clientX（不是 startX —— startX 会被守卫平移）
+       steps    = 最近 TOUCH_STEP_KEEP 笔【已应用】位移（被守卫吸收的那笔记 0）
+       teleports= 本段手势被判为「坐标不连续」的次数（自省口 / e2e 的 oracle） */
+    lastX: e.clientX,
+    steps: [],
+    teleports: 0
   }
   e.currentTarget.setPointerCapture(e.pointerId)
 }
@@ -1434,6 +1447,60 @@ function onPointerMove(e) {
   if (!d) return
   /* 第二十轮·需求（双指横滑抖动）：非所有者的指针事件一律不参与本段手势（见 onPointerDown）。 */
   if (e.pointerId !== d.pointerId) return
+
+  /* ---- 第二十一轮：手势输入的【坐标连续性守卫】（Ricky 2026-09-16）----
+   *
+   * Ricky 原话：「左滑了，右滑还是没好，甚至抖动幅度更大了，但是概率低了一点」。
+   *
+   * 第二十轮的 owner 守卫（上面那两行）挡的是「**两根手指各报一份坐标**」——
+   *   前提是浏览器给了两个 pointerId，守卫才认得出「这不是所有者」。
+   *
+   * 但还有第二类失效：**两个触摸点被合并成一条坐标流**（或指针被重定向到另一根手指）——
+   *   页面侧只剩【一个】pointer，于是 pointerId / isPrimary / touches.length 三个判据
+   *   全部恒等于「单指」的形状，owner 守卫结构上无法覆盖。
+   *   实测（/tmp/vwork/r21/probe-sameid.mjs，CDP 注入两个同 id 的触点，两指相距 120px）：
+   *     · 事件流：`pointerdown 计数 = 1`、`出现的 pointerId = [4]`、
+   *       `touchstart 的 touches = [{id:21,x:90}]`（只有 1 个触点，第二指完全不可见）；
+   *     · 坐标：90 → 210 → 223 → 236 …（**没有任何 pointerdown 就直接瞬移 120px**，
+   *       然后一路跟着第二根手指走）；
+   *     · 结果：**单帧最大 Δfocus = 0.565 层 = 119.9px**（单指对照 12.9px）。
+   *   为什么「左滑好了、右滑没好」（这是用户反馈形状与代码结构的交叉验证）：
+   *     · dx 进的是两条通道。左滑（focus<0）走【挤压通道】（overScroll → deckSqueezeShift），
+   *       第十七轮已给它加了逐帧限速（SQ_MAX_STEP 0.09/帧 ≈ 8.4px/帧）⇒ 120px 的瞬移
+   *       被摊成 ~14 帧的小台阶，看起来「好了」（探针 T3：sq 只爬到 0.011/0.047…）；
+   *     · 右滑（focus>0）走【位移通道】（focusSnap 零过渡直写、增益 275px/层 = 1.30px/px）
+   *       ⇒ 瞬移 1:1 全额可见 ⇒「幅度更大了」。
+   *     · 「概率低了一点」= 第二十轮已经消灭了其中【id 分得开】的那一半，剩下这一半
+   *       仍然存在（它本来就不是靠 id 发生的）。
+   *
+   * 修法：把「一笔事件里坐标跳得物理上不可能」判成**坐标不连续**，而不是手指运动：
+   *   · 只把基线 startX 平移到新坐标（这一段位移【不进入焦点】）⇒ 焦点不跳，
+   *     手势继续跟着新的那根手指走（两指本来同向，后面照旧跟手，手感无损）；
+   *   · 同时清空速度采样（vt），否则松手会凭这次瞬移算出一个虚假的快甩速度。
+   *   · 判据本体在 utils/switcherDeck.touchStepIsTeleport（纯函数，单测覆盖）。
+   *   ⇒ 稳态映射一个字都没改：**连续输入（dx 每笔都在物理范围内）走的还是
+   *     `focusSnap(startFocus + dx/span)` 的 1:1 直写**，所以所有几何断言（
+   *     「手指走满一整层 ⟺ 一张卡宽位移」）与 e2e 全部不受影响。
+   * ⚠️ 只在 pointerType === 'touch' 上判：鼠标没有「另一根手指」这个失效模式，
+   *    而 e2e 的 `mouse.move(steps:3)` 会一击甩出 165px（≈23px/ms）—— 那是【真实位移】，
+   *    必须原样应用（第十一轮的注释已经把它写进设计里了）。
+   * ⚠️ 不要改成「给焦点加限速弹簧」：位移通道的契约是严格 1:1（第十二轮的几何断言 +
+   *    e2e 的 `mouse.move(steps:3)` 同 tick 连发三笔），限速会同时改掉这两件事；
+   *    而挤压通道当初能限速，是因为它驱动的是「整组位移」这个无几何契约的量。
+   * ⚠️ 不要用「坐标落在另一根手指附近」当判据：合并时页面根本看不到另一根手指
+   *    （见上面 touches 的实测），这条判据永远不会成立。 */
+  const jump = e.clientX - d.lastX
+  let applied = jump
+  if (e.pointerType === 'touch' && touchStepIsTeleport(jump, d.steps)) {
+    d.startX += jump // 基线跟着瞬移搬走 ⇒ 本笔的 dx 保持不变，焦点不动
+    d.teleports += 1
+    applied = 0
+    vt.length = 0 // 位置采样作废：下面 h 分支的 vtPush 会用新坐标重新起算
+  }
+  d.lastX = e.clientX
+  d.steps.push(applied)
+  if (d.steps.length > TOUCH_STEP_KEEP) d.steps.shift()
+
   const dx = e.clientX - d.startX
   const dy = e.clientY - d.startY
   d.maxMove = Math.max(d.maxMove, Math.hypot(dx, dy))
@@ -1456,7 +1523,7 @@ function onPointerMove(e) {
         /* 上滑移除：在【模式锁定这一刻】就把拖动对象钉死（用按下点取命中卡）。
            不能等松手再 elementFromPoint —— 拖动期间卡片跟着手指上移、手指也可能滑出卡片
            范围，松手时命中判定会失手（拿到卡片外面的遮罩 → 整次上滑删不掉）。 */
-        d.cardId = hitCardId({ clientX: d.startX, clientY: d.startY })
+        d.cardId = hitCardId({ clientX: d.downX, clientY: d.startY })
         d.dy = dy
       } else if (m === 'h' && wasV) {
         d.dy = 0 // 改判成横滑 → 纵向跟手量清零，否则卡片会「半抬着」横向走
@@ -1547,11 +1614,17 @@ function onPointerUp(e) {
      而它自己的 pointermove 又不会再被接受 ⇒ 一次横滑被结算两次。 */
   if (e.pointerId !== d.pointerId) return
   drag.value = null
-  const dx = e.clientX - d.startX
+  /* 第二十一轮：松手这一笔同样过【坐标连续性守卫】——
+     否则一次坐标瞬移会被 vtVelocity 读成「手指正在飞速滑动」，settleFocus 据此判成
+     快甩（|vFocus| ≥ FLICK_V_MIN 2.6 层/秒）并注入一个凭空的初速度（见 onPointerMove 的注释）。
+     命中的落点仍用 e.clientX（那才是浏览器认为指针所在的位置）。 */
+  const upJump = e.clientX - d.lastX
+  const px = e.pointerType === 'touch' && touchStepIsTeleport(upJump, d.steps) ? d.lastX : e.clientX
+  const dx = px - d.startX
   const dy = e.clientY - d.startY
   // 松手这一刻也采一个速度样本（并剔除 >100ms 的旧样本）→ 停住再松手 = 0 动量
   const tNow = performance.now()
-  vtPush(e.clientX, tNow)
+  vtPush(px, tNow)
   const vFocus = (vtVelocity(tNow) * 1000) / metrics.value.span // 层/秒
   const isTap =
     Math.abs(dx) < TAP_SLOP_X &&
@@ -1586,7 +1659,10 @@ function onPointerUp(e) {
     maxMove: +d.maxMove.toFixed(2),
     tap: isTap,
     tapIntent,
-    trace: d.modeTrace
+    trace: d.modeTrace,
+    /* 第二十一轮：本段手势被【坐标连续性守卫】吸收掉的瞬移次数（见 onPointerMove 的注释）。
+       e2e 用它当 oracle —— 断言「两指合并时守卫确实生效」，而不是只看焦点有没有跳。 */
+    teleports: d.teleports || 0
   }
 
   /* 松手就把「挤压」和「跟手偏移」交给弹簧 —— 无论走哪条分支都要收，

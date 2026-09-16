@@ -615,6 +615,48 @@ export function deckMinLeftEdge(m) {
   return m.frontX - deckStair(DECK.MAX_DEPTH, m.cardW)
 }
 
+/* ── 第二十一轮：手势输入的【坐标连续性】判据（纯函数，AppSwitcher 与单测共用）────────
+ *
+ * 用途：多任务页横滑时，owner 指针的 clientX 有可能在**没有任何 pointerdown** 的情况下
+ *   跳到另一根手指的坐标上（两个触摸点被合并成一条坐标流，或指针被重定向到另一指）。
+ *   实测（/tmp/vwork/r21/probe-sameid.mjs，CDP 注入两个同 id 的触点）：
+ *     T2/T2b/T3 三条场景 **单帧最大 Δfocus = 0.565 层 = 119.9px**，而事件流里
+ *     `pointerdown 计数 = 1`、`出现的 pointerId = [4]`、`touchstart` 的 touches 只有 1 个
+ *     ⇒ 页面侧**完全看不见第二根手指**，任何基于 pointerId / isPrimary / touches.length
+ *     的守卫都不可能覆盖（第二十轮的 owner 守卫就是这一类，所以它挡不住）。
+ *
+ * 判据（只用「已应用位移」的历史做参考，因此与事件频率无关）：
+ *   ① 本笔的坐标跳变 ≥ TOUCH_STEP_JUMP_PX（56px —— 单帧手指数值上几乎到不了）；
+ *   ② 且 ≥ TOUCH_STEP_RATIO 倍于【最近若干笔已应用位移的最大值】。
+ * 两条同时成立 ⇒ 判定为「坐标不连续」，调用方应当只把基线平移到新坐标、不让这段位移进焦点。
+ *
+ * 为什么用 max 而不是中位数：手指【渐进加速】时（13 → 25 → 40 → 60px/帧）参考量会跟着抬，
+ *   于是真实的加速永远不触发；只有「在一串小步之后突然出现 3 倍以上的巨步」才触发
+ *   —— 那正是换指/合并的形状（13,13,13,+120），也是物理上手指做不到的形状。
+ * ⚠️ 参考量必须喂「已应用位移」（被守卫吸收的那一笔记 0），否则连续抽动会把参考量抬高，
+ *    第二笔就再也认不出来了（两指来回抽动的形状 = +120, −120, +120…）。
+ * ⚠️ 前 TOUCH_STEP_WARMUP 笔不判（比例判据）：① 参考量还没有意义；② 触摸 slop 释放的第一帧
+ *    本身就可能有 8~12px 的位移（见 MODE_LOCK_PX 的注释），不该被卷入判定。
+ *    热身期只有「巨步兜底」这一条兜着（见实现）。 */
+export const TOUCH_STEP_JUMP_PX = 56
+export const TOUCH_STEP_RATIO = 3
+export const TOUCH_STEP_WARMUP = 3
+/** 参考量的取样窗口（最近多少笔【已应用】位移）—— 5 笔 ≈ 80ms @60Hz，够反映当前手速 */
+export const TOUCH_STEP_KEEP = 5
+
+export function touchStepIsTeleport(jump, applied) {
+  const j = Math.abs(jump)
+  if (!(j >= TOUCH_STEP_JUMP_PX)) return false
+  /* 巨步兜底（≥ 2×56px = 112px）：热身期也判。
+     一帧 112px @60Hz = 6720px/s，指尖要在一帧内从 0 加速到 6720px/s（≈43g）——
+     物理上做不到，所以这一档不必再看参考量；它同时覆盖「两指落下后第一帧就被合并」的时序。 */
+  if (j >= TOUCH_STEP_JUMP_PX * 2) return true
+  if (!applied || applied.length < TOUCH_STEP_WARMUP) return false
+  let ref = 0
+  for (const s of applied) ref = Math.max(ref, Math.abs(s))
+  return j >= ref * TOUCH_STEP_RATIO
+}
+
 /** 焦点层与第 k 层的露出宽度（用于「露出越来越少」断言） */
 export function deckExposure(k, cardW) {
   return deckStair(k, cardW) - deckStair(k - 1, cardW)

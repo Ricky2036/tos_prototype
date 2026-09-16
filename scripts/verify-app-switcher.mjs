@@ -1839,20 +1839,27 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
         const A0 = 110
         const B0 = A0 + spread
         /* 用 rAF 采样「实际渲染出来的焦点」：瞬写发生在两次采样之间，
-           所以采样到的跳变就是观众看到的那一跳（探针与本用例同一个 oracle）。 */
+           所以采样到的跳变就是观众看到的那一跳（探针与本用例同一个 oracle）。
+           ⚠️ 第二十一轮把样本带上【相位】：单帧跳变指标只在 ph === 'drag' 的窗口里取。
+           不隔离相位的代价（实测）：松手后 900ms 的吸附/回弹也进 `maxStep`，
+           而它由弹簧逐帧推进 ⇒ 把两种完全不同的运动混成一个数 ⇒ 判据在临界值上来回翻
+           （同一份代码两次跑分别量到 0.018 / 0.036 层，而真缺陷是 0.565 层）。
+           这正是「统计窗口必须与被测通道对齐」那一条。 */
         const rec = []
         let run = true
+        let ph = 'idle'
         const sample = () => {
           if (!run) return
           const cs = [...document.querySelectorAll('.switcher-card.is-deck')]
           if (cs.length) {
             const pairs = cs.map((c) => [+c.dataset.index, +c.dataset.depth])
             const best = pairs.reduce((a, b) => (Math.abs(b[1]) < Math.abs(a[1]) ? b : a))
-            rec.push(+(best[0] - best[1]).toFixed(3))
+            rec.push({ v: +(best[0] - best[1]).toFixed(3), ph })
           }
           requestAnimationFrame(sample)
         }
         requestAnimationFrame(sample)
+        ph = 'drag'
         root.dispatchEvent(mk('pointerdown', A0, 11, true))
         if (fingers === 2) {
           await sleep(30)
@@ -1868,31 +1875,41 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
         }
         root.dispatchEvent(mk('pointerup', A0 - px * n, 11, true))
         if (fingers === 2) root.dispatchEvent(mk('pointerup', B0 - px * n, 12, false))
+        ph = 'after'
         await sleep(900)
         run = false
+        const all = rec.map((r) => r.v)
+        const drag = rec.filter((r) => r.ph === 'drag').map((r) => r.v)
         let maxStep = 0
-        for (let i = 1; i < rec.length; i++) maxStep = Math.max(maxStep, Math.abs(rec[i] - rec[i - 1]))
+        for (let i = 1; i < drag.length; i++) maxStep = Math.max(maxStep, Math.abs(drag[i] - drag[i - 1]))
         return {
           maxStep: +maxStep.toFixed(3),
           samples: rec.length,
-          min: rec.length ? +Math.min(...rec).toFixed(3) : null,
-          end: rec.length ? rec[rec.length - 1] : null
+          dragSamples: drag.length,
+          min: all.length ? +Math.min(...all).toFixed(3) : null,
+          end: all.length ? all[all.length - 1] : null
         }
       },
       { fingers, spread, n, stepMs, px }
     )
   await resetFocus0()
   {
-    const one = await synthMulti(1, 0, 10)
+    const one = await synthMulti(1, 0, 10, { stepMs: 24 })
     await resetFocus0()
-    const two = await synthMulti(2, 120, 10)
+    const two = await synthMulti(2, 120, 10, { stepMs: 24 })
     /* 判据用【单指对照】归一（不是拍脑袋的绝对阈值）：
        ① 双指的单帧跳变必须回到单指量级（改前 0.217 层 = 50.7px，是单指 0.021 的 10 倍）；
        ② 双指的焦点轨迹必须与单指【同一条】—— 改前第二指把自己那 120px 指距的偏移
-          叠加了进去（min 从 −0.237 变 −0.564）。 */
+          叠加了进去（min 从 −0.237 变 −0.564）。
+       ⚠️ 阈值口径（第二十一轮修订）：stepMs 取 24ms（> 一帧 16.7ms）⇒ 一个 rAF 窗口最多
+       落进 1 笔输入；但客户端合并采样时仍可能落进 2 笔 ⇒ **必须容许一个采样粒度**，
+       故绝对上限 0.12 层（= 2×12px/233.92 + 余量）、相对上限 3× 单指。
+       同时加 `one.maxStep > 0` —— 防「什么都没动」也判过（第二十一轮踩过：一个吃掉
+       全部输入的守卫会让指标恒 0，那是越完美越可疑的数字）。 */
     check('第二十轮·需求：双指单次横滑的单帧跳变回到单指量级（改前放大 10 倍）',
-      one.maxStep < 0.1 && two.maxStep < 0.1 && two.maxStep <= one.maxStep * 1.6 + 0.005,
-      `单指单帧最大 ${one.maxStep} 层 · 双指 ${two.maxStep} 层（阈值 0.10；改前 0.217）`)
+      one.maxStep > 0 && one.maxStep < 0.12 && two.maxStep < 0.12 &&
+        two.maxStep <= one.maxStep * 3 + 0.01,
+      `单指单帧最大 ${one.maxStep} 层 · 双指 ${two.maxStep} 层（阈值 0.12 = 一个采样粒度；改前 0.217）`)
     check('第二十轮·需求：双指的焦点轨迹 = 单指轨迹（第二指的指距偏移不再叠加）',
       one.min != null && two.min != null && Math.abs(two.min - one.min) < 0.05,
       `单指最深 ${one.min} · 双指最深 ${two.min}（改前 −0.564 vs −0.237）`)
@@ -1959,6 +1976,107 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
     check('第二十轮·需求（曲线）：慢滑吸附单调、到位不过冲（参考视频 24 帧内反号 0 次 · p_max=1.0000）',
       settle.n > 8 && settle.min > -0.03 && settle.rev === 0 && Math.abs(settle.end) < 0.02,
       `吸附段 ${settle.n} 帧 · 最深 depth=${settle.min}（须 > −0.03 ⇒ 过冲 < 3%）· 反号 ${settle.rev} 次 · 终位 ${settle.end}`)
+  }
+
+  /* ---- 第二十一轮·需求：两指被合并成【同一条坐标流】时的右滑瞬移（Ricky 复测「右滑还是没好」）----
+     第二十轮的 owner 守卫只有在浏览器给出【两个不同 pointerId】时才成立。还有第二类形状：
+     两个触摸点被合并成一条坐标流（CDP 传两个【同 id】触点即可复现）——
+       · /tmp/vwork/r21/probe-touchdump.mjs 场景 B 实测：`touchstart.touches` 只有 1 个触点、
+         `pointerdown` 计数 = 1、页面侧只有 1 个 pointerId ⇒ pointerId / isPrimary / touches.length
+         三个判据全部恒等于「单指」的形状，owner 守卫【结构上】看不见第二根手指；
+       · /tmp/vwork/r21/probe-sameid.mjs T2 实测（两指相距 120px）：坐标在【没有任何 pointerdown】
+         的情况下瞬移 120px（90 → 210 → 221 → …），`focus` 单帧跳 0.565 层 = 119.9px；
+         单指对照只有 0.061 层 = 12.9px。
+     方向不对称（与 Ricky「左滑好了、右滑没好」对上）：左滑落【挤压】通道（第十七轮已限速
+     0.09/帧 ≈ 8.4px/帧）⇒ 大跳被摊成小台阶；右滑落【位移】通道（focusSnap 零过渡 1:1 直写，
+     1.30px/px）⇒ 瞬移全额可见。
+
+     本用例合成【同一个 pointerId、且第二指落下时没有 pointerdown】的坐标流，两个子形状：
+       · 首笔瞬移：down 落在第一指位置，第一笔 move 直接跳到第二指位置（跳量 = 指距）；
+       · 手势中途瞬移：先走 3 笔真实步长（把参考量立起来），第 4 笔再切到第二指轨迹。
+     判据沿用第二十轮的【单指对照归一】（不拍绝对阈值）⇒ 两条断言都是「与单指同形」。 */
+  const synthMerged = (n, { stepMs = 16, px = 12, spread = 120, warm = 0 } = {}) =>
+    page.evaluate(
+      async ({ n, stepMs, px, spread, warm }) => {
+        const root = document.querySelector('.app-switcher')
+        if (!root) return { error: 'no .app-switcher' }
+        const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+        const ID = 7
+        const mk = (t, x) =>
+          new PointerEvent(t, {
+            bubbles: true, cancelable: true, composed: true,
+            pointerId: ID, pointerType: 'touch', isPrimary: true,
+            buttons: t === 'pointerup' ? 0 : 1, clientX: x, clientY: 500
+          })
+        const A0 = 110
+        const B0 = A0 + spread
+        const rec = []
+        let run = true
+        /* ph = 相位（第二十一轮）：单帧跳变只在 'drag' 窗口里取 —— 理由见 synthMulti 里的注释。 */
+        let ph = 'idle'
+        const sample = () => {
+          if (!run) return
+          const cs = [...document.querySelectorAll('.switcher-card.is-deck')]
+          if (cs.length) {
+            const pairs = cs.map((c) => [+c.dataset.index, +c.dataset.depth])
+            const best = pairs.reduce((a, b) => (Math.abs(b[1]) < Math.abs(a[1]) ? b : a))
+            rec.push({ v: +(best[0] - best[1]).toFixed(3), ph })
+          }
+          requestAnimationFrame(sample)
+        }
+        requestAnimationFrame(sample)
+        ph = 'drag'
+        root.dispatchEvent(mk('pointerdown', A0))
+        /* 第二指【不派发 pointerdown】—— 这正是 owner 守卫看不见它的原因 */
+        for (let i = 1; i <= n; i++) {
+          const onB = i > warm
+          /* 切到第二指轨迹的那一笔：第二指比第一指晚落一帧，此刻它自己只走了 i−1 步
+             （实测 CDP 坐标流 90 → 210 → 221 → …，首笔跳量恰好等于指距）。 */
+          const x = onB ? B0 - px * Math.max(0, i - 1) : A0 - px * i
+          root.dispatchEvent(mk('pointermove', x))
+          await sleep(stepMs)
+        }
+        root.dispatchEvent(mk('pointerup', warm < n ? B0 - px * Math.max(0, n - 1) : A0 - px * n))
+        ph = 'after'
+        await sleep(900)
+        run = false
+        const all = rec.map((r) => r.v)
+        const drag = rec.filter((r) => r.ph === 'drag').map((r) => r.v)
+        let maxStep = 0
+        for (let i = 1; i < drag.length; i++) maxStep = Math.max(maxStep, Math.abs(drag[i] - drag[i - 1]))
+        return {
+          maxStep: +maxStep.toFixed(3),
+          samples: rec.length,
+          dragSamples: drag.length,
+          min: all.length ? +Math.min(...all).toFixed(3) : null,
+          teleports: (window.__switcherMode && window.__switcherMode.teleports) || 0
+        }
+      },
+      { n, stepMs, px, spread, warm }
+    )
+  await resetFocus0()
+  {
+    const one = await synthMulti(1, 0, 10, { stepMs: 24 })
+    await resetFocus0()
+    const first = await synthMerged(10, { warm: 0, stepMs: 24 })
+    await resetFocus0()
+    const mid = await synthMerged(10, { warm: 3, stepMs: 24 })
+    /* ① 单帧跳变回到单指量级（改前 0.565 层 = 119.9px，是单指 0.061 的 9 倍）；
+       ② 焦点轨迹仍与单指同形 ⇒ 那 120px 指距【没有】被叠加进焦点；
+       ③ 守卫生效的 oracle（改前恒为 0 —— 这正是它看不见第二根手指的证据）；
+       ④ 手势没被判死 ⇒ 卡片照旧跟着手指走。
+       阈值口径同第二十轮（0.12 / 3× 单指 / 单指必须 > 0）。 */
+    check('第二十一轮·需求：两指【合并成一条坐标流】时单帧跳变回到单指量级（改前放大 9 倍）',
+      one.maxStep > 0 && one.maxStep < 0.12 && first.maxStep < 0.12 && mid.maxStep < 0.12 &&
+        first.maxStep <= one.maxStep * 3 + 0.01 && mid.maxStep <= one.maxStep * 3 + 0.01,
+      `单指 ${one.maxStep} 层 · 首笔瞬移 ${first.maxStep} · 中途瞬移 ${mid.maxStep} 层（阈值 0.12；改前 0.565）`)
+    check('第二十一轮·需求：合并坐标流下的焦点轨迹 = 单指轨迹（120px 指距不再叠进焦点）',
+      one.min != null && first.min != null && mid.min != null &&
+        Math.abs(first.min - one.min) < 0.05 && Math.abs(mid.min - one.min) < 0.05,
+      `单指最深 ${one.min} · 首笔瞬移 ${first.min} · 中途瞬移 ${mid.min}（改前 −0.564 vs −0.237）`)
+    check('第二十一轮·需求：坐标连续性守卫确实命中（owner 守卫覆盖不到的那一半）',
+      first.teleports >= 1 && mid.teleports >= 1,
+      `__switcherMode.teleports = 首笔瞬移 ${first.teleports} / 中途瞬移 ${mid.teleports}（期望 ≥1；改前恒 0）`)
   }
 
   /* ══════════ 第七轮 · 批次 4 ══════════
@@ -2563,11 +2681,20 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
     })
     const cdpT = await ctx.newCDPSession(page)
     const tpT = (x, y) => [{ x, y, radiusX: 12, radiusY: 12, force: 1, id: 1 }]
+    /* ⚠️ 第二十一轮修正【输入形状】：旧写法是「touchStart 420 → touchMove 20 → touchMove 80 …」
+       的两点硬跳 —— 首笔就是单帧 −400px（= 24000px/s，指尖不可能）。第二十一轮加的
+       【坐标连续性守卫】会（正确地）把它判成非物理瞬移并吸收掉，而吸收的语义是「基线跟着瞬移
+       搬走」⇒ startX 被搬到 20，之后 x=80 变成 dx=+60（**向右**）⇒ 挤压通道（只在 focus<0 有量）
+       整个不再被触发 ⇒ 本用例量到的 tx 恒 0（改后假 FAIL，实际行为没坏）。
+       改成【真实步长】的斜坡：同一段行程（420 → 20）分 18 步走完，再在原位 ±6px 微抖。
+       轨迹形状与四条断言一字未改（单调爬到 −frontX、单帧跳变 ≤ 8px、反转 0 次、帧数 ≥ 20），
+       只是去掉了「手指一步 400px」这个不可能的前提。 */
+    const ttTrail = []
+    for (let i = 1; i <= 18; i++) ttTrail.push(420 - (400 * i) / 18)
+    for (let k = 0; k < 3; k++) ttTrail.push(20 + (k % 2 ? -6 : 6))
     await cdpT.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: tpT(420, 453) })
-    for (let i = 0; i < 8; i++) {
-      await cdpT.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: tpT(20, 453) })
-      await page.waitForTimeout(45)
-      await cdpT.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: tpT(80, 453) })
+    for (const x of ttTrail) {
+      await cdpT.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: tpT(x, 453) })
       await page.waitForTimeout(45)
     }
     await page.waitForTimeout(120)
