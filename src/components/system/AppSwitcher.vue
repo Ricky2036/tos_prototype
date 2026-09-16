@@ -257,7 +257,24 @@ const apps = computed(() => system.recentApps)
  *    本组件的 onPointerUp 根本不会跑 ⇒ releaseSqueeze() 从未被调用。
  *    修法三件套：① appSwitcherOpen 置真（= 松手）时释放；② 交接判定并入 followFree；
  *              ③ 预设换成 'ios-snappy'（settle ≈160ms，确定早于 openP 的 ios-gentle ≈250ms）。 */
-const { value: sq, animateTo: sqTo, snapTo: sqSnap } = useSpring(0, 'ios-squish')
+/* ⚠️ 第二十五轮：这里【故意】不解构 animateTo —— 与 focus 的「三出口」纪律同构。
+ *
+ * sq 只有一个连续写者：sqTrackTick（限速一阶推进器，第 312 行）。入口同样只有三个：
+ *   dragSqueeze()   —— 跟手期写目标（位置 = 目标 = deckSqueeze(overScroll)）
+ *   releaseSqueeze()—— 松手期【只把目标置 0】，由推进器落地
+ *   sqReset()       —— 语义瞬移（关闭复位 / 退场）
+ *
+ * 旧代码在 releaseSqueeze 里写的是 `sqTo(0)`，而 'ios-squish' = {300,16} ⇒
+ * ζ = 16 / (2·√300) ≈ 0.462（欠阻尼）⇒ 松手后 sq 穿过 0 来回振 3 次、历时 670ms。
+ * 实测（/tmp/vwork/r26/probe-all.mjs，左滑越右边界后松手）：
+ *      sq      0.2814 → 0 → −0.0523(峰) → 0 → +0.0096(峰) → 0 → −0.0018 → 0
+ *      tr.e    −21.81 → … → +4.052(峰) → −0.741(峰) → +0.136 → 0
+ * sq 经 deckSqueezeShift 放大成【整组】位移：+4.05px 的右摆 → 左摆 −0.74 → 右摆 +0.14。
+ * 这就是 Ricky 20:51 录屏里那条「2~6 物理px、幅度递减、持续 ~0.6s」的水平抖动
+ * （同一把尺量到的残摆 7.35 视频px ÷ 1.674 = 4.4 CSS px，与 4.05px 同量级）。
+ * 把 animateTo 从解构里拿掉，是为了让「第四条出路」在类型上就不存在 ——
+ * 不是「约定不要调」，而是「没有这个函数可调」。 */
+const { value: sq, snapTo: sqSnap } = useSpring(0, 'ios-squish')
 const { value: followFree, animateTo: followFreeTo, snapTo: followFreeSnap } = useSpring(0, 'ios-snappy')
 
 /* ---- 第十七轮（Ricky 2026-09-14）新增：挤压进度的【逐帧限速】----
@@ -353,16 +370,39 @@ function dragSqueeze() {
   }
 }
 
-/** 松手后交给弹簧 —— 挤压用 ios-squish 弹回 0（过冲到负 = 整组向右回弹一点，
- *  就是需求③「回弹」要的往复振荡；⚠️ 只在左滑越界 k≠0 时有量），
- *  跟手偏移用 ios-snappy 快速归零。
+/** 松手后把挤压交给【同一个】限速推进器：只把目标置 0，落地由 sqTrackTick 单调完成。
+ *
+ *  ⚠️ 第二十五轮：这里原来是 `sqTrackStop(); sqTo(0)`（'ios-squish' = {300,16} ⇒
+ *     ζ = 16 / (2·√300) ≈ 0.462 欠阻尼）。欠阻尼 = 恒过冲 = 恒振荡：
+ *     逐帧实测（/tmp/vwork/r26/probe-all.mjs，左滑越右边界后松手）
+ *        sq     0.2814 → 0 → −0.0523(峰) → 0 → +0.0096(峰) → 0 → −0.0018 → 0
+ *        tr.e  −21.81  → … → +4.052(峰) → −0.741(峰) → +0.136 → 0
+ *     sq 的增益是全组件最高的一条（deckSqueezeShift 把它放大成 0 → −frontX(77.5px)），
+ *     于是那次 −0.0523 的过冲就是整组【+4.05px】的右摆，随后 −0.74 / +0.14 来回摆动
+ *     —— 幅度递减、方向反复、历时 670ms，肉眼就是 Ricky 说的「卡片不停颤抖」。
+ *     同一把尺在 20:51 录屏上量到 7.35 视频px ÷ 1.674 = 4.4 CSS px 的残摆，量级吻合。
+ *
+ *     需求③「回弹」本身【不需要过冲】：整组从 −77.5px 单调滑回 0 就是回弹；
+ *     欠阻尼多出来的那几次穿零，全部是缺陷，不是手感。
+ *
+ *  ⚠️ 松手不切换动力学（不改步长、不换模型）—— 与跟手期共用同一个限速一阶推进器，
+ *     只是目标从 deckSqueeze(overScroll) 变成 0。切换定律会在松手那一刻引入速度跳变，
+ *     那正是历轮「越改越抖」的来源之一。
+ *  ⚠️ 推进器已在跑时不要重置 sqTrackT：让它带着自己的时间基准继续走，
+ *     否则会把 dt 归一到 16.7ms，最坏情况下让落地多花一帧。
  *  ⚠️ 焦点（翻卡）走的是另一条路：settleFocus → settleTo，第二十四轮起统一为一阶推进器
- *     （速度 = 剩余距离/时间常数 + VMAX，数学上不过冲）—— 不要把两者的口径混在一起。 */
+ *     （速度 = 剩余距离/时间常数 + VMAX，数学上不过冲）。两条通道现在【同一个模型】。 */
 function releaseSqueeze() {
-  sqTrackStop()
   sqTarget = 0
-  sqTo(0)
   followFreeTo(1)
+  if (sq.value === 0) {
+    sqTrackStop()
+    return
+  }
+  if (sqTrackRaf == null) {
+    sqTrackT = 0
+    sqTrackRaf = requestAnimationFrame(sqTrackTick)
+  }
 }
 
 /** 挤压复位到 0 并停掉追踪器（接管点专用：关闭复位 / 退场）。 */

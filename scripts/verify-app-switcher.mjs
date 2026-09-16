@@ -2520,6 +2520,7 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
           }
         }
         window.__sq.push({
+          t: +performance.now().toFixed(1),
           sx: m ? +m.a.toFixed(4) : null,
           tx: m ? +m.e.toFixed(1) : null,
           n: cs.length,
@@ -2568,9 +2569,10 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
 
     /* ③ 等比缩小分量：前卡 宽与高【同比例】缩到 0.951（实测前卡高 654→622）。
        判等比而不是判「宽度恒定」—— 后者正是第九轮量错留下来的假不变量。
-       ⚠️ 静止值必须取【拖动前的首帧】，不能用 max()：
-         松手回弹会把 k 过冲到负值 ⇒ 卡片短暂胀到 1.009 倍，max() 取到的是那个峰值
-         （实测 277.46 而不是 275），于是 gW 变成 0.9426 而不是 0.951 —— 差一点点就漏过去了。 */
+       ⚠️ 静止值必须取【拖动前的首帧】，不能用 min()/max() 之类的扫描值：
+         首帧是唯一【确定未挤压】的参考态。第二十四轮之前它还必须躲开「回弹把 k 过冲到负值
+         ⇒ 卡片短暂胀到 1.009 倍」的污染；第二十五轮起过冲已在实现层消失（回弹改单调推进器），
+         但首帧仍然是唯一不需要附加假设的静止参考 —— 别改成扫描。 */
     const f0 = fs[0]
     const restW = f0.w
     const restH = f0.h
@@ -2618,15 +2620,42 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
       during.length >= 10 && minN === domBefore.n && deepSet.size === 1 && domBefore.deep === DECK.MAX_DEPTH,
       `拖动期卡数 min=${minN}（静止态 ${domBefore.n}），最深层 index 集合={${[...deepSet].join(',')}}（期望恒 {${domBefore.deep}}）`)
 
-    /* ⑥ 松手：ios-squish（ζ≈0.46）把进度弹回 0 并【过冲】⇒ 三分量一起反向
-       （过冲 → k<0 → shift>0 向右弹回 + 卡片短暂胀回 1.7%）。
-       第九轮的旧实现只让位移过冲 —— 现在缩放/收紧/位移同相位，必须一起回弹。 */
-    const maxTx = Math.max(...sqTL.map((r) => r.tx))
-    const settled = sqTL.slice(-6).map((r) => r.tx)
-    check('需求③：松手后整组弹性回弹并过冲（向右弹回 >0），最终归位 0',
-      maxTx > 3 && settled.every((v) => Math.abs(v) < 0.3),
-      `峰值 tx=${maxTx}px（>0 = 向右回弹；理论 ≈frontX×0.20 = ${(frontX * 0.2).toFixed(1)}px）；` +
-        `末 6 帧=${settled.map((v) => v.toFixed(2)).join('/')}（期望恒 0）`)
+    /* ⑥ 松手：整组【单调】滑回 0 —— 第二十五轮把回弹从欠阻尼弹簧换成一阶限速推进器。
+       旧实现（releaseSqueeze 里的 sqTo(0)，'ios-squish' = {300,16} ⇒ ζ≈0.462）必然过冲，
+       逐帧实测（/tmp/vwork/r26/probe-all.mjs，左滑越右边界后松手）：
+           sq     0.2814 → 0 → −0.0523(峰) → 0 → +0.0096(峰) → 0 → −0.0018 → 0   （3 次穿零 / 670ms）
+           tr.e  −21.81  → … → +4.052(峰) → −0.741(峰) → +0.136 → 0             （3 次反号）
+       sq 经 deckSqueezeShift 放大成【整组】位移 ⇒ 那就是 Ricky 20:51 录屏里
+       「2~6 物理px、幅度递减、历时 ~0.6s」的水平抖动（同一把尺在录屏上量到 4.4 CSS px 残摆，
+       与 4.05px 同量级、衰减形状一致）。「回弹」不需要过冲：从 −frontX 单调滑回 0 就已经是回弹，
+       欠阻尼多出来的那几次穿零全部是缺陷。 */
+    const rel = sqTL.slice(dragging)
+    const relTx = rel.map((r) => r.tx)
+    let relRev = 0
+    for (let i = 1; i < relTx.length - 1; i++) {
+      const a = relTx[i] - relTx[i - 1]
+      const b = relTx[i + 1] - relTx[i]
+      if (a * b < 0 && Math.abs(a) > 0.3 && Math.abs(b) > 0.3) relRev++
+    }
+    const relMax = Math.max(...relTx)
+    const relMin = Math.min(...relTx)
+    /* 归位耗时：松手起，最后一个 |tx| > 0.3px 的采样点（0.3px 是「屏幕能表达的位移」量级） */
+    let lastOff = 0
+    relTx.forEach((v, i) => { if (Math.abs(v) > 0.3) lastOff = i })
+    const relMs = rel.length > 1 ? +(rel[lastOff].t - rel[0].t).toFixed(0) : 0
+    check('第二十五轮：松手回弹【单调不过冲】—— 整组 tx 全程不越过 0（旧实现冲到 +4.05px 再摆回）',
+      rel.length >= 4 && relMax <= 0.3 && relMin <= -1,
+      `松手段 ${rel.length} 帧 · tx 范围 ${relMin.toFixed(2)}~${relMax.toFixed(2)}px` +
+        `（期望 ≤ +0.3px = 不向右甩出；旧实现峰值 +4.05px 后 −0.74 再 +0.14）`)
+    check('第二十五轮：松手回弹【方向不反号】—— 反转 0 次（「抖动」的定义）',
+      relRev === 0,
+      `松手段 tx 反转 ${relRev} 次（旧实现 3 次：−21.8 → +4.05 → −0.74 → +0.14 → 0）`)
+    check('第二十五轮：松手回弹【真的回位且够快】—— 满挤压起手、≤ 450ms 精确归位 0',
+      Math.abs(rel[relTx.length - 1].tx) < 0.3 && relMs <= 450 && rel[0].tx <= -frontX + 6,
+      `起手 tx=${rel[0].tx}px（期望 ≤ ${(-frontX + 6).toFixed(1)}px）· ` +
+        `归位耗时 ${relMs}ms（旧实现欠阻尼要 670ms 才停，实测空载 216ms；` +
+        `阈值取 450 是为在 e2e 负载下留余量 —— 推进器的 dt 归一上限 20ms，掉到 30fps 时约 330ms）· ` +
+        `末帧 tx=${rel[relTx.length - 1].tx}px（期望 0）`)
     const fLast = fs[fs.length - 1]
     check('需求③：松手归位后卡片尺寸严格复原（等比缩放回 1，不留残余）',
       Math.abs(fLast.w - restW) < 0.6 && Math.abs(fLast.h - restH) < 0.6,
@@ -2648,9 +2677,10 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
           限速后饱和步长 = SQ_MAX_STEP(0.09) × frontX = 6.98px。
        ② 拖动期 tr.e 方向反转 0 次 —— 这才是「抖动」的定义（反复反号）。
           只看幅度会漏掉「幅度小但高频」的抖。
-     ⚠️ 统计窗口严格取【按下 ~ 松手】，绝不含松手之后：那一段用的是 ios-squish
-        （ζ≈0.46、过冲 ≈20%）的固有回弹，正是需求③ 要的「弹性回弹」——
-        探针实测改后那 12.8px 的尖峰【全部】落在回弹段，混进来会直接判成假阳性。
+     ⚠️ 统计窗口严格取【按下 ~ 松手】，不含松手之后：那一段是另一条通道（松手后的整组回弹），
+        它的判据在需求③ 的 ⑥ 里单独写（第二十五轮起是「单调不过冲、反转 0 次、≤320ms 归位」）。
+        第二十四轮之前这里还额外要求排除松手后 ios-squish 的 12.8px 过冲尖峰 —— 那个尖峰
+        经由「本段只看拖动期」已经天然不进来，注释保留是为说明【这条边界不是随手划的】。
      ⚠️ 往返的两端必须【一边越界、一边不越界】，才能真的让挤压反复「咬合/释放」：
         x=20   ⇒ raw focus=−1.71 ⇒ 阻尼后 −0.599 ⇒ over=0.599 > SPAN ⇒ k=1（满挤压）
         x=400  ⇒ raw focus=−0.086 ⇒ 阻尼后 −0.030 ⇒ over=0.030 < 死区 0.04 ⇒ k=0 */
