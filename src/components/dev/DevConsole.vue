@@ -526,20 +526,27 @@ function onToggleFineTune(enabled) {
           <span>{{ isFullscreen ? '退出全屏' : '全屏' }}</span>
         </button>
 
-        <!-- 亮灭屏动作按钮 -->
+        <!-- 灭屏/锁屏/亮屏三态动作按钮 -->
         <button
           class="pc-btn pc-btn-secondary"
-          @click="system.screenOn ? system.powerOff() : system.powerOn()"
-          :title="system.screenOn ? '灭屏' : '亮屏'"
-          aria-label="系统亮灭屏"
+          @click="system.togglePower()"
+          :title="system.powerButtonText"
+          :aria-label="'系统' + system.powerButtonText"
         >
-          <svg v-if="system.screenOn" class="pc-btn-icon pc-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- 1. 处于桌面或应用内：点击锁屏 -->
+          <svg v-if="system.powerButtonAction === 'lock'" class="pc-btn-icon pc-icon-lock" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <!-- 2. 处于锁屏界面：点击灭屏 -->
+          <svg v-else-if="system.powerButtonAction === 'powerOff'" class="pc-btn-icon pc-icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <!-- 3. 处于灭屏黑幕：点击亮屏 -->
+          <svg v-else class="pc-btn-icon pc-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
           </svg>
-          <svg v-else class="pc-btn-icon pc-icon-power" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
-          </svg>
-          <span>{{ system.screenOn ? '灭屏' : '亮屏' }}</span>
+          <span>{{ system.powerButtonText }}</span>
         </button>
       </div>
     </div>
@@ -1094,20 +1101,27 @@ function onToggleFineTune(enabled) {
                   <span>{{ isFullscreen ? '退出全屏' : '全屏' }}</span>
                 </button>
 
-                <!-- 亮灭屏动作按钮 -->
+                <!-- 灭屏/锁屏/亮屏三态动作按钮 -->
                 <button
                   class="pc-btn pc-btn-secondary"
-                  @click="system.screenOn ? system.powerOff() : system.powerOn()"
-                  :title="system.screenOn ? '灭屏' : '亮屏'"
-                  aria-label="系统亮灭屏"
+                  @click="system.togglePower()"
+                  :title="system.powerButtonText"
+                  :aria-label="'系统' + system.powerButtonText"
                 >
-                  <svg v-if="system.screenOn" class="pc-btn-icon pc-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <!-- 1. 处于桌面或应用内：点击锁屏 -->
+                  <svg v-if="system.powerButtonAction === 'lock'" class="pc-btn-icon pc-icon-lock" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                  <!-- 2. 处于锁屏界面：点击灭屏 -->
+                  <svg v-else-if="system.powerButtonAction === 'powerOff'" class="pc-btn-icon pc-icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                  </svg>
+                  <!-- 3. 处于灭屏黑幕：点击亮屏 -->
+                  <svg v-else class="pc-btn-icon pc-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
                   </svg>
-                  <svg v-else class="pc-btn-icon pc-icon-power" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
-                  </svg>
-                  <span>{{ system.screenOn ? '灭屏' : '亮屏' }}</span>
+                  <span>{{ system.powerButtonText }}</span>
                 </button>
               </div>
             </div>
@@ -1653,6 +1667,14 @@ function onToggleFineTune(enabled) {
 
 .pc-icon-power {
   color: #ef4444;
+}
+
+.pc-icon-lock {
+  color: #38bdf8;
+}
+
+.pc-icon-moon {
+  color: #a78bfa;
 }
 
 /* ================= 截屏录屏两列操作按钮 ================= */
