@@ -444,6 +444,11 @@ function handleClearAll() {
     clearingDelays.value = {}
     clearTimer = null
 
+    // 清空后自动平滑收起通知中心回到桌面/应用
+    setTimeout(() => {
+      system.requestCloseOverlay('notificationCenter')
+    }, 100)
+
     // 3. FLIP (Last, Invert, Play): 在 DOM 重新渲染后计算位移并平滑位移过渡
     nextTick(() => {
       if (!container) return
