@@ -42,12 +42,49 @@ const weekday = computed(() => {
 
 const badge = computed(() => notifications.countByApp[props.app.id] || 0)
 
-/** hero 动画期间隐藏图标本体防重影（仅当存在活跃应用时生效） */
-const hidden = computed(() => {
-  if (props.ignoreHidden) return false
-  if (!system.activeAppId) return false
-  return home.hiddenIconId === props.app.id
-})
+/** hero 动画期间隐藏图标本体防重影。
+ *
+ * ⚠️ 第十五轮（Ricky 2026-09-14：「点击打开应用后，进入多任务，上滑删除任务回到桌面后，
+ *    桌面图标消失了」）—— 截图特征：**文字还在、只有那一格的图形是空的**。
+ *
+ * 根因：`home.hiddenIconId` 是【单槽】。AppWindow 在开场时写它（hideIcon），
+ * 只靠【hero 收回的收尾钩子】清它（AppWindow 的 `onHandoff: () => home.showIcon()`）。
+ * 而切换器里上滑删卡走的是 `systemStore.dismissApp()`：那条路径**硬切**
+ * `activeAppId = null` + `baseLayer = 'home'`，AppWindow 被直接卸载
+ * ⇒ beginClose 从未执行 ⇒ onHandoff 从不触发 ⇒ `hiddenIconId` 永久停在那个 appId。
+ * `.is-hidden` 只藏 `.icon-tile`（和角标）、不藏 `.icon-label`，
+ * 所以肉眼看到的就是「名字还在、图标没了」。
+ * 探针实测（/tmp/vwork/r15/probe-icon.mjs）：
+ *   · store 直连 openApp→dismissApp：删卡后 hiddenIconId 仍是 'files'；
+ *   · 真实 UI（点桌面图标 → 上滑进多任务 → 卡上滑删卡）：同样停在 'files'、图标 tile=hidden；
+ *   · 对照（应用内上滑回桌面，即 hero 收尾那条正常路径）：tile=visible —— 唯独删卡路径漏了。
+ *
+ * 修法：判据补上「该应用此刻真的是前台」—— 图标只允许在它自己的窗口存在期间被隐藏。
+ * 这是一个**只会让图标更可见、绝不会让它更隐蔽**的收敛条件：
+ *   · 隐藏态照旧生效 —— 开场入场与 hero 收回途中 `activeAppId` 都还是这个 app；
+ *   · 任何「窗口已经没了、却漏清隐藏态」的路径都会被这一条自动治愈
+ *     （删卡 / 垃圾桶一键清理 / 点空白回桌面 / 锁屏 等所有硬切路径）。
+ * 它不引入新的隐藏条件，所以不存在「本该显示的图标反而被藏起来」的反向风险。
+ *
+ * ⚠️ 别删这个判据、也别把它改回只看 hiddenIconId：
+ *   所有过渡用的镜像都靠 `ignore-hidden` 显式豁免（AppWindow 的 hero 图标、
+ *   AppSwitcher 的卡片标签图标），不依赖这里的语义。
+ *
+ * 🔀 合并说明（workbuddy/lane ← origin/main，2026-09-16）：
+ *   main 上有一条独立修法，判据写作「仅当存在活跃应用时生效」
+ *   （`if (props.ignoreHidden) return false; if (!system.activeAppId) return false; ...`）。
+ *   它确实挡住了「窗口已经没了却漏清隐藏态」这一大类，但粒度不够：
+ *   只要有**任何一个**前台应用在跑，单槽的 `hiddenIconId` 若指向别的 app，
+ *   那一格仍会被误藏。本条把判据收紧成「activeAppId 必须就是自己」，
+ *   **严格包含** main 那版的全部生效场景（`activeAppId === app.id` ⇒ `activeAppId` 非空）
+ *   ⇒ 采用本条，main 的语义被吸收，行为只会更可见、不会更隐蔽。
+ *   ⚠️ 反向不成立：不要再退回「只判 !activeAppId」。 */
+const hidden = computed(
+  () =>
+    !props.ignoreHidden &&
+    home.hiddenIconId === props.app.id &&
+    system.activeAppId === props.app.id
+)
 
 const entering = computed(() => system.unlockProgress === 0 && system.baseLayer === 'lock')
 

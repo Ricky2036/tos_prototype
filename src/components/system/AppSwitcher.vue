@@ -6,6 +6,7 @@ import PlaceholderApp from '../apps/PlaceholderApp.vue'
 import AppIcon from '../ui/AppIcon.vue'
 import GlassCircleButton from '../ui/GlassCircleButton.vue'
 import { useSystemStore } from '../../stores/systemStore'
+import { useHomeStore } from '../../stores/homeStore'
 import { useI18nStore } from '../../stores/i18nStore'
 import { useSpring } from '../../composables/useSpring'
 import { screenRef } from '../../utils/screenRef'
@@ -19,8 +20,21 @@ import {
   deckSqueeze,
   deckSqueezeShift,
   deckZ,
-  deckVisible
+  deckVisible,
+  TOUCH_STEP_KEEP,
+  touchStepIsTeleport
 } from '../../utils/switcherDeck'
+/* 第二十四轮：位置推进器（单一写者模型）。为什么替换掉原来的 useSpring ——
+   见 switcherMotion.js 顶部「9 个写者」的根因说明与 AppSwitcher 里 focus 的定义处。 */
+import {
+  MOTION,
+  createMotion,
+  stepMotion,
+  createAccumulator,
+  accumulate
+} from '../../utils/switcherMotion'
+/* 第十四轮·需求①：交接保持窗口的时长必须与 hero 开场动画同源（只读引用，不改该文件）。 */
+import { HERO_OPEN_DURATION } from '../../utils/heroGeometry'
 
 /**
  * 最近任务切换器（App Switcher / Recent）—— 固定层级堆叠（不是 Coverflow）。
@@ -67,6 +81,7 @@ import {
  */
 
 const system = useSystemStore()
+const home = useHomeStore()
 const i18n = useI18nStore()
 provide('appPreview', true)
 
@@ -135,7 +150,84 @@ const Z_EXPAND = 13000 // 点卡片恢复的放大卡
 const Z_CHROME = 14000 // 底部垃圾桶
 
 /* ---- 焦点（小数，单位=张），spring 驱动 —— 丝滑的来源 ---- */
-const { value: focus, animateTo: focusTo, snapTo: focusSnap } = useSpring(0, 'ios-gentle')
+/* ── 位置量 focus：单一写者（第二十四轮·架构重做）──────────────────────────────
+ * 这一行原来是 `useSpring(0, 'ios-gentle')`，被替换掉。
+ *
+ * 为什么：位置量原来有【9 个写者】—— 这条弹簧每帧写 + 5 处 `focusSnap`（零过渡直写）
+ *   + 3 处 `focusToIndex`（启动弹簧），彼此之间没有任何仲裁。`snapTo` 会掐掉正在跑的
+ *   弹簧却【不重置它的 target】⇒ 弹簧朝老目标推、输入又逐笔覆盖回来 ⇒ 交替 = 抖。
+ *   19~23 轮加的 owner 守卫 / 坐标连续性守卫 / 死区 / 越界判据，全是给这个模型贴的创可贴。
+ *
+ * 现在：位置只有【两个出口】，都在这几行下面：
+ *   · setInput(t)  跟手期（输入的唯一出口）—— 位置与目标同步落位，零延迟 1:1；
+ *   · settleTo(t)  收尾期 —— 交给 rAF 推进器（一阶 + VMAX，数学上不过冲）追整卡；
+ *   · focusSnap(v) 语义性瞬移（打开切换器归位 / 模式改判），绝不用于输入路径。
+ *   物理 = Ricky 的描述「力固定、随距离衰减、最终停下；到终点像绳子绷直立即停」，
+ *   判据本体在 utils/switcherMotion.js（纯函数、单测覆盖）。
+ *   两条输入通道（pointer / wheel）因此自动统一 —— 「改目标」天然可叠加，
+ *   不需要 owner 交接，也不需要判定「现在谁在驱动」。 */
+const focus = ref(0)
+/* ⚠️ 声明位置：必须早于 motionTick / setInput / settleTo / focusSnap。
+   它们都是函数声明（会被提升），但一旦执行就要读这个 ref —— 提前声明才能
+   彻底排除 TDZ（本文件已有一次同类前科：wheelInput 必须早于开关 watcher）。 */
+const focusMoving = ref(false)
+const motion = createMotion(0)
+let motionRaf = null
+let motionLast = 0
+
+function motionTick(now) {
+  const settled = stepMotion(motion, now - motionLast)
+  motionLast = now
+  focus.value = motion.x
+  if (settled) {
+    motionRaf = null
+    focusMoving.value = false
+    return
+  }
+  motionRaf = requestAnimationFrame(motionTick)
+}
+/** 起【收尾段】的 rAF 心跳（已在跑就不重开，避免把 dt 重置成 0） */
+function motionRun() {
+  if (motionRaf == null) {
+    motionLast = performance.now()
+    motionRaf = requestAnimationFrame(motionTick)
+  }
+}
+/** 【跟手期 · 输入的唯一出口】位置与目标【同步落位】（零延迟、1:1）。
+ *  为什么不做成一阶跟随：输入是外部时钟（手指 / 触控板事件），比 rAF 更早到达；
+ *  实测（/tmp/vwork/r24/probe-lag.mjs）若走「rAF 才落位」，快速划动时 VMAX 会把位置
+ *  压在 8 层/秒以下（手指 17 层/秒 ⇒ 位置落后 0.3 层 ≈ 70px），且 rAF 与输入的相位差
+ *  给中段几何量带来 0~20ms 的随机滞后（≈13px）—— 对「跟手」和可回归性都是净损失。
+ *  一并停掉可能还在跑的收尾心跳：输入接管时钟，收尾段的 target 已被覆盖。 */
+function setInput(t) {
+  if (motionRaf != null) {
+    cancelAnimationFrame(motionRaf)
+    motionRaf = null
+  }
+  motion.target = t
+  motion.x = t
+  motion.v = 0
+  focus.value = t
+  focusMoving.value = true
+}
+/** 【收尾期】松手 / 触控板流结束 / 删卡重排：位置留在原处，让推进器追到整卡。
+ *  必须是「只改 target」—— 位置从这里开始才由 rAF 一个写者推进。 */
+function settleTo(t) {
+  motion.target = t
+  focusMoving.value = true
+  motionRun()
+}
+/** 硬切：立即跳到某处并停。只用于【语义性瞬移】（打开切换器归位、模式改判归位），
+ *  绝不用于输入路径 —— 输入一律走 setInput。 */
+function focusSnap(v) {
+  if (motionRaf != null) cancelAnimationFrame(motionRaf)
+  motionRaf = null
+  motion.x = v
+  motion.target = v
+  motion.v = 0
+  focus.value = v
+  focusMoving.value = false
+}
 /* 进场进度弹簧：手势交接的 switcherProgress（~0.8）连续推到 1 */
 const { value: openP, animateTo: openTo, snapTo: openSnap, stop: openStop } = useSpring(1, 'ios-gentle')
 watch(openP, (v) => system.setSwitcherProgress(v))
@@ -165,8 +257,160 @@ const apps = computed(() => system.recentApps)
  *    本组件的 onPointerUp 根本不会跑 ⇒ releaseSqueeze() 从未被调用。
  *    修法三件套：① appSwitcherOpen 置真（= 松手）时释放；② 交接判定并入 followFree；
  *              ③ 预设换成 'ios-snappy'（settle ≈160ms，确定早于 openP 的 ios-gentle ≈250ms）。 */
-const { value: sq, animateTo: sqTo, snapTo: sqSnap } = useSpring(0, 'ios-squish')
+/* ⚠️ 第二十五轮：这里【故意】不解构 animateTo —— 与 focus 的「三出口」纪律同构。
+ *
+ * sq 只有一个连续写者：sqTrackTick（限速一阶推进器，第 312 行）。入口同样只有三个：
+ *   dragSqueeze()   —— 跟手期写目标（位置 = 目标 = deckSqueeze(overScroll)）
+ *   releaseSqueeze()—— 松手期【只把目标置 0】，由推进器落地
+ *   sqReset()       —— 语义瞬移（关闭复位 / 退场）
+ *
+ * 旧代码在 releaseSqueeze 里写的是 `sqTo(0)`，而 'ios-squish' = {300,16} ⇒
+ * ζ = 16 / (2·√300) ≈ 0.462（欠阻尼）⇒ 松手后 sq 穿过 0 来回振 3 次、历时 670ms。
+ * 实测（/tmp/vwork/r26/probe-all.mjs，左滑越右边界后松手）：
+ *      sq      0.2814 → 0 → −0.0523(峰) → 0 → +0.0096(峰) → 0 → −0.0018 → 0
+ *      tr.e    −21.81 → … → +4.052(峰) → −0.741(峰) → +0.136 → 0
+ * sq 经 deckSqueezeShift 放大成【整组】位移：+4.05px 的右摆 → 左摆 −0.74 → 右摆 +0.14。
+ * 这就是 Ricky 20:51 录屏里那条「2~6 物理px、幅度递减、持续 ~0.6s」的水平抖动
+ * （同一把尺量到的残摆 7.35 视频px ÷ 1.674 = 4.4 CSS px，与 4.05px 同量级）。
+ * 把 animateTo 从解构里拿掉，是为了让「第四条出路」在类型上就不存在 ——
+ * 不是「约定不要调」，而是「没有这个函数可调」。 */
+const { value: sq, snapTo: sqSnap } = useSpring(0, 'ios-squish')
 const { value: followFree, animateTo: followFreeTo, snapTo: followFreeSnap } = useSpring(0, 'ios-snappy')
+
+/* ---- 第十七轮（Ricky 2026-09-14）新增：挤压进度的【逐帧限速】----
+ *
+ * Ricky 原话：「横滑切换疯狂抖动。。。」（附 7.2s 录屏 tOS_Prototype_20260914_194725.mp4）
+ *
+ * 【症状】贴着第一张卡左右快搓 / 横滑到位后继续怼，整块卡片组在 12~30ms 内反复反号
+ *   抽动 48~144 CSS px（离线逐帧互相关量出的刚体位移；三条取样带的位移序列完全一致
+ *   ⇒ 是「整组刚体」在动，不是卡内元素各自抖）。同一段里前卡视觉宽 275→263
+ *   ⇒ 抖动期间挤压态一直在咬合/释放。
+ *
+ * 【复现】/tmp/vwork/r17/probe-zig.mjs 模式 z2（x=420 按下 → 拖到 x=20 → 拉回 x=80，
+ *   来回 8 次）：改前 trackStyle 的 translateX 范围 −77.5 ~ +14.5，
+ *   **单帧最大跳变 77.50px** —— 与录屏里量到的 162 视频 px 逐字节对上。
+ *
+ * 【根因】挤压是一条【事件驱动 + 零过渡直写】的通道，而且它的增益是组件里最高的一条：
+ *   ① 增益链：手指位移 × RUBBER(0.35) ÷ span(233.75) = 越界层数；
+ *      越界层数 ÷ SQUEEZE_SPAN(0.35) = 进度 k；k × frontX(77.5) = 整组位移。
+ *      ⇒ **14px 的手指抖动 → 8.8px 的整组位移**，即 221px 位移 / 层越界。
+ *   ② 旧调用点写的是 `sqSnap(deckSqueeze(overScroll.value))` —— sqSnap 是**零过渡直写**，
+ *      于是这个增益被 1:1 变成瞬移：pointermove 之间隔 12~30ms，每来一个事件整组就跳一次，
+ *      方向跟着手抖反号 ⇒ 「疯狂抖动」。
+ *   ③ 而越界期卡片位姿被 poseFocus = max(0, focus) 钉死在 0 ⇒ 屏幕上【只有整组在动】
+ *      ⇒ 读起来是「卡片冻住，然后整块啪地跳一下」。
+ *
+ * 【修法】两条都不能省（缺一条就漏一半）：
+ *   ① 曲线侧（已在 switcherDeck.deckSqueeze 落地）：加死区 + smoothstep，消掉 over=0
+ *      处的导数拐点 —— 否则「刚越界一点点」也会立刻拿到 2.86/层的斜率。
+ *   ② 时间域（就在这里）：给进口加限速 —— sq 每帧最多向目标推进 SQ_MAX_STEP。
+ *      单靠 ① 挡不住满量程那次 0→1 的整段跳（77.5px 照旧）；
+ *      单靠 ② 小幅度抖动仍会被 221px/层 如实放大（只是被摊到几帧）。
+ *
+ * ⚠️ 为什么是「限速」而不是「换成弹簧」：e2e 需求③ 用 240ms 慢拖测量挤压稳态位移，
+ *    必须落在 −frontX ± 2px（scripts/verify-app-switcher.mjs 的 during 段断言）。
+ *    弹簧的过冲/滞后会让稳态值在到达前就被采样 ⇒ 失约；限速是【单调】的，
+ *    稳态值严格等于 deckSqueeze 的输出 ⇒ 既有契约一条不动。
+ * ⚠️ 为什么需要独立的 rAF（而不是在 dragSqueeze 里就地限速）：手势停住时不再有
+ *    pointermove，目标不再更新、也没人推进 sq ⇒ 挤压会【定格在中间值】追不上目标。
+ *    常驻追踪器同时天然成为一阶低通：目标连续变化时，输出是它的滞后平滑版。
+ * ⚠️ 接管点（关闭复位 / 退场）一律走 sqReset()：先停追踪器再对齐零点，
+ *    否则下一帧追踪器会把 sq 又拉回旧目标。
+ */
+const SQ_MAX_STEP = 0.09 // 每 16.7ms 最多推进的挤压进度（满量程 ≈ 12 帧 ≈ 200ms）
+/* dt 归一的【上限】取 20ms（1.2×）而不是 useSpring 那样的 50ms。
+ * 原因：dt 归一是为了「掉帧时速度不塌」，但它会把单帧步长也放大 —— 50ms 上限意味着
+ * 一帧就能走 0.27 进度 = 21px 的整组瞬移，等于把刚修掉的东西从另一头放回来。
+ * 20ms 上限下单帧步长封顶 0.09×1.2 = 0.108 ⇒ 8.4px，仍满足「单帧 ≤ 8~9px」的口径。
+ * ⚠️ 这个上限不能再往下压：e2e 需求③ 的 20 步慢拖要在 ~280ms 内把进度推满 1.0
+ *    （需求速率 ≈ 3.6/s）。0.09/帧 @20ms = 4.5/s（余量 26%）、@16.7ms = 5.4/s（余量 51%）；
+ *    若压到 25ms 上限则只有 3.6/s = 零余量，慢拖会保险丝上跳舞。 */
+const SQ_DT_MAX_MS = 20
+let sqTarget = 0
+let sqTrackRaf = null
+let sqTrackT = 0
+
+function sqTrackStop() {
+  if (sqTrackRaf != null) cancelAnimationFrame(sqTrackRaf)
+  sqTrackRaf = null
+  sqTrackT = 0
+}
+
+function sqTrackTick(now) {
+  sqTrackRaf = null
+  /* dt 归一：掉帧时允许一步走更多，否则重载下挤压会明显「跟不上手」。上限见上。 */
+  const dt = sqTrackT ? Math.min(SQ_DT_MAX_MS, now - sqTrackT) : 16.7
+  sqTrackT = now
+  const step = SQ_MAX_STEP * (dt / 16.7)
+  const d = sqTarget - sq.value
+  if (Math.abs(d) <= step) {
+    sqSnap(sqTarget) // 收敛：严格落到目标（稳态值 = deckSqueeze 的输出，契约不破）
+    sqTrackT = 0
+  } else {
+    sqSnap(sq.value + Math.sign(d) * step)
+    sqTrackRaf = requestAnimationFrame(sqTrackTick)
+  }
+  /* 自省口（与 __switcherMode / __switcherSettle 同性质）：探针据此断言「单帧跳变」，
+     不必再从 transform 反解 —— 反解只能拿到位移，拿不到「有没有被限速」。 */
+  window.__switcherSqueeze = {
+    cur: +sq.value.toFixed(4),
+    target: +sqTarget.toFixed(4),
+    running: sqTrackRaf != null
+  }
+}
+
+/** 手势期写挤压目标：限速逼近（第十七轮起取代旧的 sqSnap 直写）。
+ *  ⚠️ releaseSqueeze 现在【也由 appSwitcherOpen 的 watch 调用】—— 应用内上滑那条路径的
+ *     松手发生在 HomeIndicator 上，本组件的 onPointerUp 不会执行（见该 watch 的注释）。 */
+function dragSqueeze() {
+  sqTarget = deckSqueeze(overScroll.value)
+  if (sqTrackRaf == null) {
+    sqTrackT = 0
+    sqTrackRaf = requestAnimationFrame(sqTrackTick)
+  }
+}
+
+/** 松手后把挤压交给【同一个】限速推进器：只把目标置 0，落地由 sqTrackTick 单调完成。
+ *
+ *  ⚠️ 第二十五轮：这里原来是 `sqTrackStop(); sqTo(0)`（'ios-squish' = {300,16} ⇒
+ *     ζ = 16 / (2·√300) ≈ 0.462 欠阻尼）。欠阻尼 = 恒过冲 = 恒振荡：
+ *     逐帧实测（/tmp/vwork/r26/probe-all.mjs，左滑越右边界后松手）
+ *        sq     0.2814 → 0 → −0.0523(峰) → 0 → +0.0096(峰) → 0 → −0.0018 → 0
+ *        tr.e  −21.81  → … → +4.052(峰) → −0.741(峰) → +0.136 → 0
+ *     sq 的增益是全组件最高的一条（deckSqueezeShift 把它放大成 0 → −frontX(77.5px)），
+ *     于是那次 −0.0523 的过冲就是整组【+4.05px】的右摆，随后 −0.74 / +0.14 来回摆动
+ *     —— 幅度递减、方向反复、历时 670ms，肉眼就是 Ricky 说的「卡片不停颤抖」。
+ *     同一把尺在 20:51 录屏上量到 7.35 视频px ÷ 1.674 = 4.4 CSS px 的残摆，量级吻合。
+ *
+ *     需求③「回弹」本身【不需要过冲】：整组从 −77.5px 单调滑回 0 就是回弹；
+ *     欠阻尼多出来的那几次穿零，全部是缺陷，不是手感。
+ *
+ *  ⚠️ 松手不切换动力学（不改步长、不换模型）—— 与跟手期共用同一个限速一阶推进器，
+ *     只是目标从 deckSqueeze(overScroll) 变成 0。切换定律会在松手那一刻引入速度跳变，
+ *     那正是历轮「越改越抖」的来源之一。
+ *  ⚠️ 推进器已在跑时不要重置 sqTrackT：让它带着自己的时间基准继续走，
+ *     否则会把 dt 归一到 16.7ms，最坏情况下让落地多花一帧。
+ *  ⚠️ 焦点（翻卡）走的是另一条路：settleFocus → settleTo，第二十四轮起统一为一阶推进器
+ *     （速度 = 剩余距离/时间常数 + VMAX，数学上不过冲）。两条通道现在【同一个模型】。 */
+function releaseSqueeze() {
+  sqTarget = 0
+  followFreeTo(1)
+  if (sq.value === 0) {
+    sqTrackStop()
+    return
+  }
+  if (sqTrackRaf == null) {
+    sqTrackT = 0
+    sqTrackRaf = requestAnimationFrame(sqTrackTick)
+  }
+}
+
+/** 挤压复位到 0 并停掉追踪器（接管点专用：关闭复位 / 退场）。 */
+function sqReset() {
+  sqTrackStop()
+  sqTarget = 0
+  sqSnap(0)
+}
 
 /** 位姿用的焦点：第八轮起【冻结在 0 以上】。
  *  左滑越界（focus < 0）不再推送卡片位置，而是转成【整组左移】（见 deckSqueeze 的注释）——
@@ -204,8 +448,36 @@ const frontIndex = computed(() => {
 const linger = ref(false)
 let lingerTimer = null
 const exitedHome = ref(false)
+
+/* ---- 点卡恢复的「交接保持」窗口（第十四轮·需求①）----
+ *
+ * Ricky 原话：「点击多任务卡片进入全屏时会卡和闪一下，而且很高的概率会出现
+ * 点击卡片仍然**退出多任务回到桌面**的问题」。
+ *
+ * 第二半句的第二个成因（第一个是命中失败，见 hitCardId 的注释）在这里：
+ * 点【别的应用】的卡片时 `system.resumeApp(appId)` 会让那个 AppWindow **重新挂载**
+ * （ScreenView 里 `:key="system.activeAppId"`），而它的 onMounted 会播 420ms 的
+ * hero 开场动画 —— 起点是【桌面上的那个应用图标】（探针 /tmp/vwork/r14/probe-resume.mjs
+ * 实测：resume 之后 518.8ms 那一刻窗口矩形 = [258,649,140,249]，正是相机图标的桌面矩形）。
+ * 而切换器在同一帧就被卸载（appSwitcherOpen=false + progress=0 ⇒ visible=false）。
+ * ⇒ 用户看到的是「满屏卡 → 桌面 + 一个从图标长出来的小窗口」，读起来就是「回到了桌面」。
+ *
+ * 修法：交接之后本组件【多活一段】，让已经铺满全屏的放大卡继续盖在上面，
+ * 等底下的 AppWindow 把开场动画跑完再撤。撤掉的那一帧，底下已经是「全屏 + 内容全亮」
+ * 的稳定态 ⇒ 零跳变、零闪。
+ *   · 点别的应用：等满 HERO_OPEN_DURATION（+ 一点合成余量）；
+ *   · 点当前应用：AppWindow 不重挂、没有 hero，只要撑过一两帧的合成延迟。
+ *
+ * 为什么这个窗口必须并入 visible / renderDeck：
+ *   resumeApp 会把 appSwitcherOpen 置假、progress 归零，而此刻 activeAppId 已经是新应用
+ *   （deskPath=false）⇒ 两个表达式同时变假 ⇒ 根节点与放大卡在同一个 patch 里被拆掉，
+ *   根本来不及盖住 hero。 */
+const expandHold = ref(false)
+let expandHoldTimer = null
 const visible = computed(
-  () => (system.appSwitcherOpen || system.switcherProgress > 0 || linger.value) && !exitedHome.value
+  () =>
+    (system.appSwitcherOpen || system.switcherProgress > 0 || linger.value || expandHold.value) &&
+    !exitedHome.value
 )
 
 watch(
@@ -326,7 +598,13 @@ function neighborEnterDx(i) {
 }
 
 const renderDeck = computed(
-  () => system.appSwitcherOpen || preCommit.value || (deskPath.value && visible.value)
+  () =>
+    system.appSwitcherOpen ||
+    preCommit.value ||
+    /* 第十四轮·需求①：交接保持窗口内必须继续渲染放大卡 ——
+       此刻 appSwitcherOpen 已假、deskPath 也假，不并入这一项就会整组卸载。 */
+    expandHold.value ||
+    (deskPath.value && visible.value)
 )
 /** 桌面路径的【退场窗口】：进度已归零、靠 linger 撑着的那 340ms。
  *  只在这个窗口里给遮罩开透明度过渡 —— 跟手期绝不能开（逐帧直写会被二次低通成滞后），
@@ -351,13 +629,10 @@ const homeRetreat = computed(
 const phase = computed(() => deckPhase(poseFocus.value))
 const xFrac = computed(() => phase.value.x)
 
-/* 焦点弹簧动画期间关闭 CSS transition —— 否则逐帧推进的 spring 会被 0.24s 过渡
-   二次低通，松手后的吸附变成「慢慢飘过去」，没有弹簧的干脆手感。 */
-const focusMoving = ref(false)
-function focusToIndex(idx, opts = {}) {
-  focusMoving.value = true
-  focusTo(idx, { preset: 'ios-deck', ...opts, onDone: () => { focusMoving.value = false } })
-}
+/* 焦点推进期间关闭 CSS transition —— 否则逐帧推进的位置会被 0.24s 过渡二次低通，
+   松手后的吸附变成「慢慢飘过去」，没有干脆手感。
+   （`focusMoving` 的声明已上提到位置量定义处，见上方「位置量 focus：单一写者」段；
+     第二十四轮起收尾统一走 settleTo —— 原来的 focusToIndex 只是它的一个预设包装。） */
 
 /* ---- 松手吸附（第七轮·批次 3）----
    Ricky 原话：
@@ -391,8 +666,8 @@ function focusToIndex(idx, opts = {}) {
      否则「已经拖过 2 张再快甩」会被再加一张（0.9 层快甩→2 张这种跳跃就是这么来的）。
 
    于是行为非常可预测：**翻 n 张 ⟺ 位移超过 n−0.5 张；快甩额外保证至少 1 张。**
-   速度的作用落在「弹簧初速度」上（见 FLICK_V_LIMIT）—— 卡片是【加速冲出去】的，
-   而不是靠多翻张数体现速度。
+   速度的作用落在【推进器的 VMAX】上（第二十四轮：原来是「注入弹簧初速度」的
+   FLICK_V_LIMIT）—— 卡片是加速冲出去的，而不是靠多翻张数体现速度。
 
    ── 第十一轮：速度还有第二个作用域 ——【要不要弹性】────────────────────
    Ricky 原话：「慢滑滑动卡卡片多了一个不必要的回弹」。
@@ -406,15 +681,16 @@ function focusToIndex(idx, opts = {}) {
    改法见 settleFocus：慢滑走 ios-deck-settle（ζ=1.0）且不注入速度 ⇒ 位移段严格单调。
    ⚠️ 别顺手把 ios-deck 全局改掉 —— 快甩、退场重排（dismissWithAnimation）都还在用它。 */
 const FLICK_V_MIN = 2.6 // 层/秒 —— 超过它才算「快甩」（≈608px/s，V4 峰值 7.2 远高于此）
-/* 注入弹簧的初速度上限（层/秒）。V4 峰值 7.2 层/秒；12 ≈ 2800px/s，
-   再快也就是这个手感了（再高只会在到位时过冲得更明显）。 */
-const FLICK_V_LIMIT = 12
+/* 第二十四轮删除了 FLICK_V_LIMIT（「注入弹簧的初速度上限」）—— 一阶模型里没有
+   「注入初速度」这个动作了，快甩的冲程由 MOTION.VMAX 承担（见 switcherMotion.js）。 */
 
 /** 松手吸附。
  *  @param vFocus     松手瞬时速度（层/秒，向右为正）
  *  @param startFocus 手势按下时的焦点（快甩保底的锚点） */
 function settleFocus(vFocus, startFocus) {
-  const cur = focus.value
+  /* 落点判定锚在【目标】而不是视觉位置 focus.value：一阶模型下 x 可能滞后不足一帧，
+     而「用户把卡片拖到哪了」的唯一权威是 target（输入累积出来的意图）。 */
+  const cur = motion.target
   const last = Math.max(0, apps.value.length - 1)
   const isFlick = Math.abs(vFocus) >= FLICK_V_MIN
   let idx = Math.round(cur)
@@ -429,23 +705,18 @@ function settleFocus(vFocus, startFocus) {
   /* 先夹到合法区间再落定 —— 自省口报的必须是【真实决策】，而不是夹取前的中间值
      （反向上甩贴着 0 号卡时中间值会是 -1，探针会据此误判成越界）。 */
   idx = Math.max(0, Math.min(last, idx))
-  focusToIndex(
-    idx,
-    isFlick
-      ? /* 快甩：把松手速度注入 ios-deck（ζ=0.65）—— 卡片加速冲出去、到位时带一次过冲。
-           这是【动量】，不是多余回弹：参考视频 V4 快甩实测回退 254/229px，
-           第十一轮探针亦量到快甩过冲 12.6px / 占行程 13.6%（慢滑只有 5~6.5px）。 */
-        { initialVelocity: vFocus, velocityLimit: FLICK_V_LIMIT }
-      : /* 慢滑 / 停住再松手（第十一轮需求：「慢滑滑动卡卡片多了一个不必要的回弹」）：
-          ① 换 ios-deck-settle（同 ω_n、ζ=1.0 临界阻尼）⇒ 没有阶跃过冲；
-          ② 【不注入速度】—— 临界阻尼下只要 v0 > ω_n·d 仍会过冲，
-             而「贴近目标才松手」（d 很小）恰恰是慢滑的常态，此时 ω_n·d 很小、
-             残余速度一注入就又把卡片顶过终点。纯阶跃（v0 = 0）+ 临界阻尼
-             ⇒ 数学上严格单调，这就是「不再多弹一下」的全部保证。
-             代价（松手瞬间速度从手指速度归零）实测不可见：临界阻尼下卡片在 ~70ms 内
-             就自加速到 ω_n·d/e ≈ 手指速度的量级（0.45 层行程 ⇒ 541px/s），不会「顿一下」。 */
-        { preset: 'ios-deck-settle' }
-  )
+  /* ── 第二十四轮：收尾只剩一条路 ──────────────────────────────────────────────
+   * 这里原来分叉成两条：快甩（且非越界外甩）注入初速度走欠阻尼 ios-deck（ζ=0.65、
+   * 阶跃过冲 6.7%），其余走临界阻尼 ios-deck-settle + 显式 v0 = 0；第二十二轮还为
+   * 「越界外甩」补了 deckFlingOutward 判据。三样东西的存在理由都是同一个：
+   * 要在「注入的动量」与「位置被逐笔直写」之间找平衡。
+   *
+   * 现在位置只有一个写者、模型是一阶的（速度 = 剩余距离 / 时间常数，且有 VMAX 上限）
+   * ⇒ 【过冲在数学上不存在】，越界判据随之失去意义：到边界时 target 被 clampTarget
+   * 夹住 ⇒ d 归零 ⇒ 立即停 —— 就是 Ricky 要的「绳子绷直了应该立即停止」。
+   * 快甩的手感不再靠「注入初速度」制造，而是模型自带：远距离时速度顶到 VMAX（力固定）
+   * ⇒ 冲出去；距离变小时速度按 d 收缩 ⇒ 减速停下（对齐参考视频 V4 的观感）。 */
+  settleTo(idx)
   /* 松手判定的自省口（与 main.js 暴露 window.__system 同性质）：
      回归探针拿它当 oracle —— 断言「给定 (cur, vFocus, startFocus) 的判定必须满足
      本文档的规则」，而不是把某个索引写死（写死必然与「最后 100ms 窗口速度」的实际值对不上）。 */
@@ -471,6 +742,13 @@ let settleTimer = null
    那个 watch 带 immediate，setup 期间就会跑；状态若声明在后面，
    watcher 里的 cancelWheel() 会踩到 TDZ。 */
 const wheelAcc = ref(null)
+/* 第二十四轮：触控板输入的累积器。判据在 utils/switcherMotion.accumulate ——
+   以「1 CSS 像素是屏幕能表达的最小位移」为界：反向要先吃掉 1px 才提交，
+   所以 ±2.5px 的反号噪声被压成亚像素残摆，而真实反调只滞后 1px。
+   它替代了第二十三轮的 7px 反向死区 —— 那一版把「抖」换成了可感知的黏滞
+   （Ricky 原话「越改越差了」），因为 7px 已经大于真实微调的幅度。
+   与 wheelAcc 同生命周期：手势起点新建、endWheel / cancelWheel 清掉。 */
+let wheelInput = null
 let wheelIdleTimer = null
 /* 点空白退出的动画定时器（第八轮，需求④）—— 同一个理由必须声明在这里：
    appSwitcherOpen 的 watch（immediate）在关闭分支里 clearTimeout(closeTimer)，
@@ -539,7 +817,7 @@ watch(
          上一轮的挤压量/跟手偏移出生）。第九轮：sq 的零点从 1 改成 0（口径变更）。 */
       clearTimeout(closeTimer)
       closeTimer = null
-      sqSnap(0)
+      sqReset()
       followFreeSnap(0)
       drag.value = null
       vLetGo.value = null
@@ -700,7 +978,9 @@ const labelIndex = computed(() => {
  *      参考视频 981c9428…mp4 的停驻段（f100 / f104）C 位标签是全程在的。
  * 其余路径（桌面入场上浮、上滑移除淡出）的透明度仍挂在卡根 —— 那些场景需要【连标签一起】淡。 */
 function bodyOpacityOf(i) {
-  return i === frontIndex.value && hasFollow.value && !settledOne.value ? 0 : 1
+  /* followYields（第十二轮）：上滑删卡 / 前卡飞出期间跟手卡让位 ⇒ 卡体必须还给堆叠卡，
+     否则「跟手卡不跟手 + 堆叠卡卡体透明」= 整段手势看不见任何东西。 */
+  return i === frontIndex.value && hasFollow.value && !settledOne.value && !followYields.value ? 0 : 1
 }
 
 /* ── 卡片投影（第十轮·需求②）──────────────────────────────────────────────
@@ -781,7 +1061,12 @@ function stackStyle(i) {
      Ricky 原话：「上滑删除卡片时，卡片未跟手上滑移动」。
      旧实现在 onPointerMove 里对 v 模式直接 return，整段手势卡片零位移，
      只有松手越过 110px 才「啪」地飞出去；现在被按住的那张卡实时跟随手指的纵向位移，
-     并随高度线性变淡（上滑越远越淡），松手时：过阈值 → 从当前位置直接飞出；
+     ⚠️ 第十二轮（需求②）：跟手期【只位移、不变淡】。Ricky 原话「上滑多任务卡片的时候
+     还是会有一个透明的渐变，取消上滑过程中卡片的透明度变化」—— 旧实现在这里叠了一条
+     `opacity = min(opacity, 1 + ddy/320)`（上滑越远越线性变淡，滑满 320px 全透明）。
+     与第九轮入场那条「opacity 恒 1」是同一个道理：卡片的可见性由【位移】表达就够了，
+     再叠淡出就成了「忽明忽暗」，而且上滑 110px 就要判定飞出，淡到 0.66 更像卡坏了。
+     松手时：过阈值 → 从当前位置直接飞出（飞出段的淡出见 dismissingStyle）；
      未过阈值 → 靠 CSS 过渡弹回原位（drag 置空即恢复过渡，见 .is-dragging 规则）。
 
      vLetGo 是「松手后仍沿用一帧拖动态位姿」的接力棒：`.is-dragging` 摘掉的那一帧
@@ -791,7 +1076,9 @@ function stackStyle(i) {
   if (vOff && vOff.cardId === apps.value[i]) {
     const ddy = Math.min(0, vOff.dy)
     y += ddy
-    opacity = Math.min(opacity, Math.max(0, 1 + ddy / 320))
+    /* 第十二轮（需求②）：这里【不再】改 opacity —— 跟手期卡片只位移、不变淡。
+       被删掉的那行是 `opacity = Math.min(opacity, Math.max(0, 1 + ddy / 320))`（上滑越远越淡）。
+       反例护栏见 e2e「上滑跟手期 opacity 恒 1」。 */
     delay = '0ms'
   }
 
@@ -879,6 +1166,36 @@ const settledOne = computed(
     system.switcherProgress <= 1.001
 )
 
+/* 跟手卡【让位】判据（第十二轮，需求②的连带修正）。
+   跟手卡（.is-follow，z=12000）只在「进场交接」期间顶替堆叠前卡 ——
+   一旦用户对前卡发起【上滑删卡】(v 模式) 或那张卡正在飞出，它必须让位给堆叠卡本身。
+
+   为什么必须让（探针实测 /tmp/vwork/r12/probe-see.mjs + probe-shots.mjs）：
+     · 跟手卡不消费 drag 的纵向位移（它的 cx/cy 只跟 switcherProgress 走），
+       跟手上移 / 飞出全发生在【它下面那张堆叠卡】上 ——
+       而那张卡的卡体被 bodyOpacityOf 藏成 0（hasFollow && !settledOne），
+       卡根又被跟手卡压在下面 ⇒ 整段手势【零视觉反馈】：
+       实测上滑 168px 后的截图与静止态逐字节一致（差异只有状态栏时钟）。
+     · 这同时也解释了第七轮需求⑧「跟手上移」为什么体感没做成 ——
+       e2e 量的是 `.is-deck[data-depth=0]` 的几何（确实动了），但它当时不可见。
+     · 桌面路径（activeAppId = null ⇒ 模板不渲染跟手卡）一直是对的：
+       那张卡可见、跟手、且【真的会随高度变淡】—— Ricky「上滑多任务卡片的时候
+       还是有一个透明的渐变」看到的正是这条路径（第十二轮已删掉那条 opacity）。
+   让位条件只覆盖「前卡」这一张：拖别的卡（i ≠ frontIndex）时它的卡体本来就是 1，
+   本来就看得见跟手与飞出，不需要（也不应该）动跟手卡。 */
+const followYields = computed(
+  () =>
+    !!system.activeAppId &&
+    (drag.value?.mode === 'v' ||
+      !!vLetGo.value ||
+      /* 第十四轮（需求①）：点卡恢复的放大卡【也是】堆叠前卡本身（同一张卡换了位姿），
+         bodyOpacityOf 若继续把它藏成 0，整段放大动画就完全看不见 —— 屏幕上只有一张
+         停在卡位不动的跟手卡，直到交接那一帧才「啪」地变满屏，Ricky 原话
+         「点击多任务卡片进入全屏时会卡和闪一下」。让位条件必须覆盖它。 */
+      !!expanding.value ||
+      dismissing.value === system.activeAppId)
+)
+
 /* ---- 跟手缩放（Ricky 2026-09-12 纠正）----
    ① 锚点 = 落点 = 【屏幕中心】：卡片原地缩小，全程不左右漂；
    ② 缩放严格跟随手指的上滑位移做【无极】变化 —— 上滑越远缩得越小，
@@ -892,9 +1209,88 @@ const MIN_FOLLOW_SCALE = 0.3
    否则与堆叠前卡硬切时会跳一下（需求③的老问题）。 */
 const followDriftW = computed(() => 1 - Math.min(1, Math.max(0, followFree.value)))
 
-const followStyle = computed(() => {
+/* ---- 入场手势的横向残留（第十四轮·需求③）----
+ *
+ * Ricky 原话：「（在卡片上）点击还会左右抖动」。
+ *
+ * 根因：`system.switcherDragX` 是【进入手势】留下的横向位移（手指上滑时的副轴漂移，
+ * 单手拇指起手必然带一点）。它只该在入场那一段被消费 —— 卡片落位时 followFree 弹簧
+ * 把权重 w 推到 0，偏移自然归零。问题出在 onPointerDown 里的 `followFreeSnap(0)`：
+ * 它把 w 重新拉回 1 ⇒ **已经衰减掉的残留被复活**。
+ *
+ * 探针实测（/tmp/vwork/r14/probe-label.mjs，真实路径：入场时横漂 0/30/60/90px）：
+ *   入场残留 dragX = 30 / 60 / 90 ⇒ 之后每次在卡片上按下，可见的跟手卡【瞬间】
+ *   横移到 x = 90.1 / 102.7 / 115.3（槽位是 77.5）= 残留 × FOLLOW_X(0.42)，
+ *   再用 ~160ms 弹回槽位。也就是说「点一下」= 卡片先跳 12.6~37.8px 再弹回来。
+ *
+ * 修法：只在【没有切换器内部交互】时才注入这段残留。入场手势全程 drag 恒为 null
+ * （拖动发生在 HomeIndicator 上），所以入场期的 X 轴跟手、落位期的偏移回收都不受影响；
+ * 一旦是「在卡片上按下 / 跟手删卡 / 放大恢复 / 飞出 / 一键清理」，残留一律不再注入。 */
+const internalActing = computed(
+  () => !!drag.value || !!vLetGo.value || !!expanding.value || !!dismissing.value || clearing.value
+)
+
+/* ---- 手指速度低通（第十四轮·需求②）----
+ *
+ * Ricky 原话：「从应用进入到多任务界面时，全屏应用缩放为卡片的过程动画一抖一抖的，
+ * 感觉长宽比例在不停的随机变化」。
+ *
+ * 根因：弹性挤压的形变量 def（见下方 followStyle ③）由 `system.switcherDragV`
+ * ——HomeIndicator 逐帧算的【瞬时速度】Δraw/dt——直接驱动。而 dt 与 Δraw 都不可靠：
+ *   · Chrome 会把同一帧内的多个 pointermove 合并派发，相邻两次采样 dt 可差 3 倍；
+ *   · 主线程抖动 / 重绘会让 dt 在 6~26ms 之间跳。
+ * ⇒ 同一段匀速滑动里速度会在 280 ↔ 534 px/s 之间乱跳，def 跟着跳 ⇒ sx/sy 一帧一个值。
+ *   探针实测（/tmp/vwork/r14/probe-enter.mjs，30 步 × 10px 上滑）：
+ *     宽高比极差 0.4236 ~ 0.4614（9% 的摆动）；单帧最大跳变 2.19%，
+ *     是逐帧中位跳变（0.17%）的 13 倍 —— 这正是肉眼看到的「一抖一抖」。
+ *
+ * 修法：把「上一帧的瞬时速度」换成「最近约 110ms 的平均速度」（一阶低通 / EMA）。
+ *   这是物理上更该被消费的量（手指近期走得多快），且对采样抖动不敏感。
+ *   低通是线性时不变的：起手快甩的形变脉冲被完整保留（上升沿从 1 帧摊到约 3 帧），
+ *   峰值不变 ⇒ e2e 的「非等比形变」契约（max(sy−sx) > 0.02）仍然成立。
+ *
+ * 为什么放在消费端而不是 HomeIndicator：switcherDragV 在 store 里的语义就是
+ * 「瞬时速度」（见 systemStore.js 的注释，且该文件在 AGENTS.md 的共享锁清单里），
+ * 低通是【读它的人】的口径选择，不该改变对外语义。
+ *
+ * 用 watch 而不是写在 computed 里：watch 默认 flush='pre'，同一帧内多次采样会合并成
+ * 一次 → 恰好等于「每帧只推进一次 EMA」，而 computed 可能被重算多次（副作用不可控）。 */
+const SQUASH_V_TAU_MS = 110
+const dragVSmooth = ref(0)
+let vSmoothT = 0
+watch(
+  () => system.switcherDragV,
+  (raw) => {
+    const now = performance.now()
+    const dt = vSmoothT ? Math.min(64, Math.max(1, now - vSmoothT)) : 16
+    vSmoothT = now
+    if (!raw) {
+      /* 松手 / 手势复位时 HomeIndicator 写 0 ⇒ 没有新的手指速度：立刻归零。
+         形变归零本来就由 followFree 那条弹簧负责（落位那一刻必须严格等于槽位几何）。 */
+      dragVSmooth.value = 0
+      vSmoothT = 0
+      return
+    }
+    const a = 1 - Math.exp(-dt / SQUASH_V_TAU_MS)
+    dragVSmooth.value += (raw - dragVSmooth.value) * a
+  }
+)
+
+/* ── 跟手卡的【几何量】唯一出口（第十六轮抽出）────────────────────────────
+ * 为什么不直接在 followStyle 里算、再让 deckGroupStyle 从 style 字符串里反解：
+ *   deckGroupStyle（第十六轮）必须拿到与跟手卡 transform 【逐位相同】的 cx/cy/sx——
+ *   两者哪怕差 0.1px，也会在交接那一帧被眼睛读成「跳一下」。
+ *   共用一个纯计算 ⇒ 结构上不可能漂移。
+ * 返回 null = 跟手卡不在场（未开始 / 已交接 / 已让位），此时群组变换必须退化为单位阵。 */
+const followGeom = computed(() => {
   const p = system.switcherProgress
-  if (p <= 0 || settledOne.value) return null
+  /* followYields：上滑删卡期间跟手卡让位 —— 见该 computed 的注释（第十二轮） */
+  if (p <= 0 || settledOne.value || followYields.value) return null
+  /* ⚠️ 桌面路径（activeAppId 为空）根本没有跟手卡（模板那条 v-if 也要求 activeAppId）——
+     必须在这里一并短路，否则 frontIndex 会落到 apps.indexOf(null) = −1 → 0，
+     凭空给出一份「以第 0 张卡为前卡」的几何，让 deckGroupStyle 在桌面入场上误作用一次。
+     （模板靠 `followStyle && system.activeAppId` 挡住了跟手卡本身，但挡不住 deckGroupStyle。） */
+  if (!system.activeAppId) return null
   const idx = frontIndex.value
   const slot = poseOf(idx)
   const slotCx = slot.x + cardW.value / 2
@@ -912,8 +1308,10 @@ const followStyle = computed(() => {
      旧实现 cx 的横向项 (slotCx − screenW/2) 恒为 0（槽位本来就水平居中），
      所以手指横向怎么动卡片都纹丝不动 —— Ricky 原话「只有 Y 轴跟手」。
      参考视频 4c4231b0…mp4 实测：上滑期间窗口中心 x 从 225 走到 326（+101px）。
-     这里把 HomeIndicator 采到的副轴位移按 FOLLOW_X 注入；乘 w 保证松手后归零。 */
-  cx += system.switcherDragX * DECK.FOLLOW_X * w
+     这里把 HomeIndicator 采到的副轴位移按 FOLLOW_X 注入；乘 w 保证松手后归零。
+     ⚠️ 第十四轮（需求③）：仅在没有切换器内部交互时注入 —— 否则按下瞬间
+     followFreeSnap(0) 会把【上一轮入场手势的残留】复活成一次横向跳动。见 internalActing。 */
+  cx += (internalActing.value ? 0 : system.switcherDragX) * DECK.FOLLOW_X * w
 
   /* ② 越过满量程后继续上移。
      旧实现 p > 1 时 cy 冻结在槽位中心，而参考视频里卡片被继续拉高
@@ -924,14 +1322,24 @@ const followStyle = computed(() => {
      参考视频实测宽高比 0.477 → 0.447（−6%）→ 0.479：起手一瞬被纵向拉伸、
      横向收窄，随后回弹。两个驱动量：
        · 越过满量程的量（被拉得越远，形变越大）；
-       · 手指瞬时速度（快甩时形变最猛 —— 橡皮筋的物理直觉）。
+       · 手指速度（快甩时形变最猛 —— 橡皮筋的物理直觉）。
+     ⚠️ 第十四轮（需求②）：速度项必须吃【低通后】的 dragVSmooth，不能吃原始瞬时速度 ——
+     原始值逐帧乱跳会让宽高比「随机变化」（探针实测单帧跳变 2.19%）。见该 watch 的注释。
      两者取大者，再乘释放权重 w（松手 → 形变归零 → 与槽位几何严格一致）。 */
   const over = Math.max(0, p - 1)
-  const vel = Math.min(1, Math.abs(system.switcherDragV) / DECK.SQUASH_V_REF)
+  const vel = Math.min(1, Math.abs(dragVSmooth.value) / DECK.SQUASH_V_REF)
   const def = Math.max(DECK.SQUASH_MAX * Math.min(1, over / 0.6), DECK.SQUASH_MAX * vel) * w
   const sx = s * (1 - def)
   const sy = s * (1 + def)
 
+  return { p, cx, cy, s, def, sx, sy, w }
+})
+
+/* 跟手卡的渲染样式（几何量全部来自 followGeom，见上）。 */
+const followStyle = computed(() => {
+  const g = followGeom.value
+  if (!g) return null
+  const { p, cx, cy, sx, sy } = g
   return {
     width: screenW.value + 'px',
     height: screenH.value + 'px',
@@ -1005,25 +1413,111 @@ function vtVelocity(now = performance.now()) {
   return dt > 0 ? (b.x - a.x) / dt : 0 // px/ms，向右为正
 }
 
-/* ---- 第八轮新增、第九轮改口径的两条状态机收放口 ----
-   dragSqueeze：手势期把挤压进度【直写】到位（不挂过渡 → 严格跟手）；
-   releaseSqueeze：松手后交给弹簧 —— 挤压用 ios-squish 弹回 0（过冲到负 = 整组向右回弹一点，
-     就是需求③「回弹」要的往复振荡；⚠️ 只在左滑越界 k≠0 时有量），
-     跟手偏移用 ios-snappy 快速归零。
-     ⚠️ 焦点（翻卡）走的是另一条路：settleFocus → focusToIndex，第十一轮起慢滑用
-        ios-deck-settle（ζ=1.0、零过冲）—— 不要把两者的「回弹」口径混在一起。
-   ⚠️ releaseSqueeze 现在【也由 appSwitcherOpen 的 watch 调用】—— 应用内上滑那条路径的
-     松手发生在 HomeIndicator 上，本组件的 onPointerUp 不会执行（见该 watch 的注释）。 */
-function dragSqueeze() {
-  sqSnap(deckSqueeze(overScroll.value))
-}
-function releaseSqueeze() {
-  sqTo(0)
-  followFreeTo(1)
+/* dragSqueeze / releaseSqueeze / sqReset 三兄弟的定义已上移到 sq 弹簧声明之后
+   （第十七轮：随「挤压逐帧限速」一起搬过去，见那边的长注释）。 */
+
+/* ---- 手势模式判定（第十二轮重写）----
+   Ricky 原话：「移动端通过安卓的 Chrome 浏览器打开，上滑删除多任务卡片的时候，
+   总是变成误触成左右滑动，帮我查一查是什么原因？」
+
+   根因（不是猜的，是探针实测 —— /tmp/vwork/r12/probe-touch.mjs，
+   用 CDP Input.dispatchTouchEvent 注入**真实触摸**，Chrome 合成 pointerType='touch' 的指针事件；
+   仓库里的 e2e 用 page.mouse 驱动，坐标精确、无接触面抖动，所以桌面端永远点不出这个毛病）：
+
+   · 旧判定 = `Math.abs(dy) > Math.abs(dx) * 1.4`，且【第一帧满足 |dx|≥6 或 |dy|≥6 就一帧定终身】。
+     等价于「首个 pointermove 的仰角 ≤ 54.5° 就判成横滑」。
+   · 而触摸屏派发的第一个 pointermove 恰恰是最不可靠的一帧：
+       - 手指接触面是个椭圆，按下瞬间质心还在【滚动】，天然带几个像素的横向位移；
+       - 单手持机时拇指绕关节转，起手那几毫米走的是【切向】（比整条轨迹平得多）；
+       - Chrome 的触摸 slop 决定了第一帧的事件要等累计走够 ~8~12px 才派发，
+         报出来的坐标是「走够 slop 那一刻」的位置 —— 方向已经定型，但没有第二次机会。
+   · 实测击穿点（探针 9 个场景，全程 pointercancel = 0 —— 浏览器没夺走指针，
+     `touch-action: none` 是生效的，「多点了一下」之类猜测可以排除）：
+       T3 首帧 (7,-7)、后续 21 帧全是纯纵向  → 旧规则锁 'h'
+       T5 首帧 (8,-7)、后续 20 帧全是纯纵向  → 旧规则锁 'h'
+       T7 首帧 (6,+2)（拇指横滚）、之后 290px 纯纵向上滑 → 旧规则锁 'h'，
+          于是【这 290px 里的 60px 横向漂移全部被当成翻卡量】：卡片横向实走 31.6px、
+          __switcherSettle.cur = 0.28 层 —— 这就是用户看到的「变成左右滑动」。
+          横漂再大一点就会真的翻到下一张卡。
+   · 蒙特卡洛（/tmp/vwork/r12/mc.mjs，20 万样本）：起手仰角 62°（单手持机拇指的典型起手角）
+     时旧规则 29.3% 判成横滑、仰角 54.5° 时 48.2%；即便【完全竖直】上滑，
+     仅 3px 的接触面抖动也能让旧规则 3.6% 误判成横滑。
+
+   新判定（三条）：
+     ① 【攒够再判】优势轴自己要走够 MODE_LOCK_PX 才成立 —— 不再拿「两轴都只有几像素」
+        的噪声帧当依据；
+     ② 【优势轴须压过另一轴 MODE_AXIS_RATIO 倍】（沿用旧的 1.4 口径）——
+        两轴都不占优时继续 pending，不锁死；
+     ③ 【允许改判，直到效果可见】—— 这是关键：单靠 ①② 只是把击穿门槛从 6px 抬到 10px，
+        横向滚够 11px 依然会锁错。所以未 commit 之前每帧重新判，
+        从 'h' 改判走时把横向焦点归位（归位量 ≤ MODE_COMMIT_PX/span ≈ 0.11 层，肉眼看不出，
+        而这段位移本来就该由纵向解释）。commit = 本方向已走出 MODE_COMMIT_PX 的可见行程，此后冻结。
+     ④ 死区兜底：仰角落在 35°~55° 之间时两轴都不占优，攒到 MODE_GIVEUP_PX 按较大的轴定夺
+        —— 不然真·斜滑会变成「什么都不发生」。
+
+   探针预演（同一批场景喂新规则）：T3/T5/T7 由 'h' 全部转正为 'v'；
+   T8 真实横滑（dx 主导、220px 行程）仍锁 'h' 并正常翻到第 2 张 —— 横滑没被判丢。 */
+const MODE_LOCK_PX = 10 // 优势轴至少要走出这么多才认方向（触摸 slop 量级 ≈ 8~12px）
+const MODE_AXIS_RATIO = 1.4 // 优势轴须压过另一轴的倍数（沿用旧口径）
+const MODE_COMMIT_PX = 22 // 本方向走出这么多 ⇒ 效果已可见 ⇒ 冻结模式、不再改判
+const MODE_GIVEUP_PX = 28 // 两轴都不占优（35°~55° 死区）时的兜底门槛
+
+/** 按【累计位移】给出模式建议；'pending' = 还没看出来，继续观察。 */
+function pickMode(dx, dy, maxMove) {
+  const ax = Math.abs(dx)
+  const ay = Math.abs(dy)
+  if (ay >= MODE_LOCK_PX && ay > ax * MODE_AXIS_RATIO) return dy < 0 ? 'v' : 'down'
+  if (ax >= MODE_LOCK_PX && ax > ay * MODE_AXIS_RATIO) return 'h'
+  if (maxMove >= MODE_GIVEUP_PX) return ay >= ax ? (dy < 0 ? 'v' : 'down') : 'h'
+  return 'pending'
 }
 
 function onPointerDown(e) {
   if (dismissing.value || clearing.value || system.switcherClosing) return
+  /* ---- 第二十轮：手势的【指针所有者】（Ricky 2026-09-16）----
+   *
+   * 原话：「多任务页面双指单次横滑触摸版，老是疯狂抖动」。
+   *
+   * 症状（录屏 tOS_Prototype_20260916_105155.mp4 逐帧，720×1576 / 58.8fps）：
+   *   卡片组以帧率为周期【反号抽动】—— 亮度质心在 15 视频帧内反号 5 次
+   *   （−26.4 / −55.6 / −10.8 / −19.9 / +9.9 / −6.8 / +18.6 / −5.7 / +10.4 视频 px），
+   *   折算 10Hz 量级，**远高于本工程任何弹簧**（最硬的 ios-snappy ω_n = 22.4 rad/s = 3.6Hz）
+   *   ⇒ 这不是动画，是【离散瞬写】——每个事件把焦点硬写一次。
+   *
+   * 根因：本组件的手势没有「指针所有者」概念。
+   *   · drag.value 里没有 pointerId（只有 startX/startY/startFocus/...）；
+   *   · 本函数无条件覆盖 drag.value；
+   *   · onPointerMove / onPointerUp 也不校验 e.pointerId。
+   *   ⇒ 第二根手指落下时把 startX 换成【它自己的坐标】、startFocus 换成当时的焦点；
+   *     此后两根手指的 pointermove 都拿【同一个 startX】算 dx = e.clientX − startX，
+   *     而两指的绝对坐标天然差一个「指距」⇒ 目标焦点在两指距之间来回，幅度 = 指距 / span。
+   *   而 h 分支是 `focusSnap(startFocus + dx/span)`（零过渡直写、1:1 跟手，这条
+   *   不变量不能动）⇒ 每次事件都是一次瞬写，两根手指的上报顺序一抖就反号。
+   *
+   * 探针实测（/tmp/vwork/r20/probe-2finger.mjs，CDP Input.dispatchTouchEvent 注入
+   * **真实触摸**，Chrome 合成 pointerType='touch'；指距 120px / span 233.75）：
+   *     单指横滑          单帧最大 5.1 px   pointerdown 计数 = 1   ← 对照
+   *     双指同步          单帧最大 50.7 px  pointerdown 计数 = 2
+   *     双指错时(晚3帧)   单帧最大 41.8 px  pointerdown 计数 = 2
+   *     双指非平行        单帧最大 37.6 px  pointerdown 计数 = 2
+   *   ⇒ 双指把单帧跳变放大 10 倍，且 event 流里能直接看到 id=3 / id=4 交替、
+   *     两者都用 startX=第二指的 x（见探针输出的「指针事件流」）。
+   *   ⚠️ 仓库 e2e 用 page.mouse / 单指针合成事件驱动，**结构上点不出这个毛病** ——
+   *      只有真触摸（或多指针合成）才覆盖得到，所以下面的 e2e 用例也用 CDP 注入。
+   *
+   * 修法 = 给拖动加「指针所有者」：
+   *   · 已有一个指针在拖动时，其它指针的 down/move/up/cancel 一律不参与手势；
+   *   · 例外：**主指针**（e.isPrimary —— 触摸序列的第一根手指）重新按下 ⇒ 说明上一段的
+   *     所有者已经不在了（pointerup / pointercancel 丢失，例如被系统手势抢占），
+   *     此时接管，否则会「drag 卡死、之后所有触点都被永久忽略」。
+   *   ⇒ 非主指针永远不接管 ⇒ 两指横滑的可见结果与单指逐字节相同。
+   * ⚠️ 不要写成「drag.value 存在就 return」的粗暴版：那正是上面那条死锁。
+   * ⚠️ 也不要在 owner 不匹配时「先结束旧 drag 再新建」：每根手指各接管一次 = 每帧一次
+   *    瞬写，那就是抖动本身。 */
+  if (drag.value && drag.value.pointerId !== e.pointerId) {
+    if (!e.isPrimary) return
+    drag.value = null
+  }
   measure()
   vLetGo.value = null
   vt.length = 0
@@ -1035,11 +1529,24 @@ function onPointerDown(e) {
   followFreeSnap(0)
   dragSqueeze()
   drag.value = {
+    /* 第二十轮：本段手势的【所有者】。onPointerMove / onPointerUp 靠它把额外手指挡在门外，
+       否则两指的 dx 会共用同一个 startX（见 onPointerDown 顶部的长注释）。 */
+    pointerId: e.pointerId,
     startX: e.clientX,
     startY: e.clientY,
+    /* 第二十一轮：按下点的【不可变】副本。坐标连续性守卫会把 startX 搬到新基线上（见
+       onPointerMove），而「按下时手指落在哪张卡上」这件事必须永远只认最初那一点
+       （下面对 v 模式的 hitCardId 用的是它）—— 否则两指合并时命中判定会跟着瞬移漂走。 */
+    downX: e.clientX,
     startFocus: focus.value,
     startT: performance.now(),
     mode: 'pending',
+    /* 第十二轮：模式「冻结」位。pickMode 在产生可见效果之前允许改判（见上方长注释），
+       一旦本方向走出 MODE_COMMIT_PX 的行程就置 true，此后模式不再变。 */
+    modeFrozen: false,
+    /* 第十二轮：模式改判轨迹（探针/e2e 的 oracle —— 断言「首帧横向抖动 7px 之后
+       必须仍然落在 v」靠它，而不是靠肉眼看卡片有没有横走）。 */
+    modeTrace: [],
     dx: 0,
     dy: 0,
     cardId: null,
@@ -1049,7 +1556,14 @@ function onPointerDown(e) {
        手指点一下的天然微漂（尤其纵向）一旦 ≥8px，就会被判成拖动 ——
        mode='v' 时整段直接 return（什么都不发生）、mode='down' 时 dy≤80 也什么都不发生，
        于是「点空白没反应」。用 maxMove 判 tap 才能覆盖「抖出去了又回来」。 */
-    maxMove: 0
+    maxMove: 0,
+    /* 第二十一轮：坐标连续性守卫的现场（见 onPointerMove 顶部的长注释）。
+       lastX    = 上一笔【已接受】事件的 clientX（不是 startX —— startX 会被守卫平移）
+       steps    = 最近 TOUCH_STEP_KEEP 笔【已应用】位移（被守卫吸收的那笔记 0）
+       teleports= 本段手势被判为「坐标不连续」的次数（自省口 / e2e 的 oracle） */
+    lastX: e.clientX,
+    steps: [],
+    teleports: 0
   }
   e.currentTarget.setPointerCapture(e.pointerId)
 }
@@ -1057,16 +1571,92 @@ function onPointerDown(e) {
 function onPointerMove(e) {
   const d = drag.value
   if (!d) return
+  /* 第二十轮·需求（双指横滑抖动）：非所有者的指针事件一律不参与本段手势（见 onPointerDown）。 */
+  if (e.pointerId !== d.pointerId) return
+
+  /* ---- 第二十一轮：手势输入的【坐标连续性守卫】（Ricky 2026-09-16）----
+   *
+   * Ricky 原话：「左滑了，右滑还是没好，甚至抖动幅度更大了，但是概率低了一点」。
+   *
+   * 第二十轮的 owner 守卫（上面那两行）挡的是「**两根手指各报一份坐标**」——
+   *   前提是浏览器给了两个 pointerId，守卫才认得出「这不是所有者」。
+   *
+   * 但还有第二类失效：**两个触摸点被合并成一条坐标流**（或指针被重定向到另一根手指）——
+   *   页面侧只剩【一个】pointer，于是 pointerId / isPrimary / touches.length 三个判据
+   *   全部恒等于「单指」的形状，owner 守卫结构上无法覆盖。
+   *   实测（/tmp/vwork/r21/probe-sameid.mjs，CDP 注入两个同 id 的触点，两指相距 120px）：
+   *     · 事件流：`pointerdown 计数 = 1`、`出现的 pointerId = [4]`、
+   *       `touchstart 的 touches = [{id:21,x:90}]`（只有 1 个触点，第二指完全不可见）；
+   *     · 坐标：90 → 210 → 223 → 236 …（**没有任何 pointerdown 就直接瞬移 120px**，
+   *       然后一路跟着第二根手指走）；
+   *     · 结果：**单帧最大 Δfocus = 0.565 层 = 119.9px**（单指对照 12.9px）。
+   *   为什么「左滑好了、右滑没好」（这是用户反馈形状与代码结构的交叉验证）：
+   *     · dx 进的是两条通道。左滑（focus<0）走【挤压通道】（overScroll → deckSqueezeShift），
+   *       第十七轮已给它加了逐帧限速（SQ_MAX_STEP 0.09/帧 ≈ 8.4px/帧）⇒ 120px 的瞬移
+   *       被摊成 ~14 帧的小台阶，看起来「好了」（探针 T3：sq 只爬到 0.011/0.047…）；
+   *     · 右滑（focus>0）走【位移通道】（focusSnap 零过渡直写、增益 275px/层 = 1.30px/px）
+   *       ⇒ 瞬移 1:1 全额可见 ⇒「幅度更大了」。
+   *     · 「概率低了一点」= 第二十轮已经消灭了其中【id 分得开】的那一半，剩下这一半
+   *       仍然存在（它本来就不是靠 id 发生的）。
+   *
+   * 修法：把「一笔事件里坐标跳得物理上不可能」判成**坐标不连续**，而不是手指运动：
+   *   · 只把基线 startX 平移到新坐标（这一段位移【不进入焦点】）⇒ 焦点不跳，
+   *     手势继续跟着新的那根手指走（两指本来同向，后面照旧跟手，手感无损）；
+   *   · 同时清空速度采样（vt），否则松手会凭这次瞬移算出一个虚假的快甩速度。
+   *   · 判据本体在 utils/switcherDeck.touchStepIsTeleport（纯函数，单测覆盖）。
+   *   ⇒ 稳态映射一个字都没改：**连续输入（dx 每笔都在物理范围内）走的还是
+   *     `focusSnap(startFocus + dx/span)` 的 1:1 直写**，所以所有几何断言（
+   *     「手指走满一整层 ⟺ 一张卡宽位移」）与 e2e 全部不受影响。
+   * ⚠️ 只在 pointerType === 'touch' 上判：鼠标没有「另一根手指」这个失效模式，
+   *    而 e2e 的 `mouse.move(steps:3)` 会一击甩出 165px（≈23px/ms）—— 那是【真实位移】，
+   *    必须原样应用（第十一轮的注释已经把它写进设计里了）。
+   * ⚠️ 不要改成「给焦点加限速弹簧」：位移通道的契约是严格 1:1（第十二轮的几何断言 +
+   *    e2e 的 `mouse.move(steps:3)` 同 tick 连发三笔），限速会同时改掉这两件事；
+   *    而挤压通道当初能限速，是因为它驱动的是「整组位移」这个无几何契约的量。
+   * ⚠️ 不要用「坐标落在另一根手指附近」当判据：合并时页面根本看不到另一根手指
+   *    （见上面 touches 的实测），这条判据永远不会成立。 */
+  const jump = e.clientX - d.lastX
+  let applied = jump
+  if (e.pointerType === 'touch' && touchStepIsTeleport(jump, d.steps)) {
+    d.startX += jump // 基线跟着瞬移搬走 ⇒ 本笔的 dx 保持不变，焦点不动
+    d.teleports += 1
+    applied = 0
+    vt.length = 0 // 位置采样作废：下面 h 分支的 vtPush 会用新坐标重新起算
+  }
+  d.lastX = e.clientX
+  d.steps.push(applied)
+  if (d.steps.length > TOUCH_STEP_KEEP) d.steps.shift()
+
   const dx = e.clientX - d.startX
   const dy = e.clientY - d.startY
   d.maxMove = Math.max(d.maxMove, Math.hypot(dx, dy))
-  if (d.mode === 'pending') {
-    if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return
-    d.mode = Math.abs(dy) > Math.abs(dx) * 1.4 ? (dy < 0 ? 'v' : 'down') : 'h'
-    /* 上滑移除：在【模式锁定这一刻】就把拖动对象钉死（用按下点取命中卡）。
-       不能等松手再 elementFromPoint —— 拖动期间卡片跟着手指上移、手指也可能滑出卡片
-       范围，松手时命中判定会失手（拿到卡片外面的遮罩 → 整次上滑删不掉）。 */
-    if (d.mode === 'v') d.cardId = hitCardId({ clientX: d.startX, clientY: d.startY })
+  /* 模式判定（第十二轮重写 —— 见 pickMode 上方的长注释，含探针实测数据）。
+     与旧实现的三点差别：
+       ① 判据从「任一轴 6px + 单帧采样」改为「优势轴 10px + 累计位移」；
+       ② 未 commit 之前允许改判（旧实现一帧定终身）；
+       ③ 从 'h' 改判走时把横向焦点归位 —— 这段位移转由纵向解释。 */
+  if (!d.modeFrozen) {
+    const m = pickMode(dx, dy, d.maxMove)
+    if (m !== 'pending' && m !== d.mode) {
+      /* ⚠️ 顺序要紧：先归位焦点（此时 d.mode 还是旧值 'h'），再改 d.mode。
+         归位量 ≤ MODE_COMMIT_PX / span ≈ 0.11 层（≈22px），且只发生在跟手头几帧，
+         肉眼不可辨；不归位的话这段横向位移会「赖」在焦点上，纵向一跟手就跳一下。 */
+      if (d.mode === 'h') focusSnap(d.startFocus)
+      const wasV = d.mode === 'v' || d.mode === 'down'
+      d.modeTrace.push({ at: +d.maxMove.toFixed(1), from: d.mode, to: m })
+      d.mode = m
+      if (m === 'v') {
+        /* 上滑移除：在【模式锁定这一刻】就把拖动对象钉死（用按下点取命中卡）。
+           不能等松手再 elementFromPoint —— 拖动期间卡片跟着手指上移、手指也可能滑出卡片
+           范围，松手时命中判定会失手（拿到卡片外面的遮罩 → 整次上滑删不掉）。 */
+        d.cardId = hitCardId({ clientX: d.downX, clientY: d.startY })
+        d.dy = dy
+      } else if (m === 'h' && wasV) {
+        d.dy = 0 // 改判成横滑 → 纵向跟手量清零，否则卡片会「半抬着」横向走
+      }
+    }
+    if (d.mode === 'h' && Math.abs(dx) >= MODE_COMMIT_PX) d.modeFrozen = true
+    if ((d.mode === 'v' || d.mode === 'down') && Math.abs(dy) >= MODE_COMMIT_PX) d.modeFrozen = true
   }
   if (d.mode === 'v') {
     /* 上滑移除【跟手】（第七轮·批次 2，需求⑧）：旧代码在这一行直接 return，
@@ -1086,7 +1676,10 @@ function onPointerMove(e) {
   d.dx = dx
   vtPush(e.clientX, performance.now())
   d.vPx = vtVelocity()
-  focusSnap(deckClampFocus(d.startFocus + dx / metrics.value.span, apps.value.length))
+  /* 第二十四轮：输入只走【唯一出口】setInput（原来这里是 `focusSnap` 逐帧零过渡直写）。
+     跟手期位置与目标同步落位 ⇒ 仍然严格 1:1、零延迟；区别在于「谁写位置」变成了
+     一个明确的出口，而不再是若干条通道各自直写（那是抖动的根因，见文件头）。 */
+  setInput(deckClampFocus(d.startFocus + dx / metrics.value.span, apps.value.length))
   /* 第八轮（需求⑦）：往左拖到第一张卡之后，越界量转成横向挤压 —— 逐帧直写、严格跟手。 */
   dragSqueeze()
 }
@@ -1099,26 +1692,68 @@ function onPointerMove(e) {
    ⇒ 这就是「点卡片左右可以（横向漂移小）、上下大块空白不行（纵向漂移大）」的成因。
 
    新判据 = 净位移分轴容差 + 速度门槛 + 时长门槛 + 路径总长上限：
-     · X 容差仍 8px（点击时横向漂移天然小；放宽会误伤「小位移横滑」）；
+     · X 容差（第十四轮：8 → 12px）—— 鼠标点一下天然带 3~12px 横向漂移，
+       旧值 8px 让这类点按被踢进「横滑」分支（settleFocus 把焦点弹回去、
+       整段手势静默）。放宽到 12px 先救掉其中最典型的一批；
+       ⚠️ 12px 并不足以覆盖全部点按 —— 13~23px 那一段由 tapIntent 兜（见下一条注释）。
      · Y 容差 16px（点击时纵向漂移最大，正是要救的那一路）；
      · 速度 < FLICK_V_MIN —— 否则「11px 的快甩」会被当成 tap，
        而需求④明确要求「快甩务必翻一张」（e2e：快甩 0.05 层必须翻 1 张）；
      · 时长 < 500ms —— 长按不当作 tap；
-     · maxMove < 24px —— 抖出去又回来的仍算 tap，但整段路径很长的不算。 */
-const TAP_SLOP_X = 8
+     · maxMove < 24px —— 抖出去又回来的仍算 tap，但整段路径很长的不算。
+   ⚠️ 第十四轮（需求③「点击还会左右抖动」）：最终生效的判据是 `tapIntent = isTap || 未提交`，
+      见下一条注释 —— isTap 只是其中的严格档。 */
+const TAP_SLOP_X = 12
 const TAP_SLOP_Y = 16
 const TAP_PATH_MAX = 24
 const TAP_MS_MAX = 500
 
+/* 「未提交的拖动 = 点按」（第十四轮·需求③）。
+ *
+ * 为什么仅靠 TAP_SLOP_X 不够：横滑的位移映射是 `focus = startFocus + dx / span`
+ * （span ≈ 234px），**从第 1 个像素起就 1:1 跟手**（这条不变量被一堆几何断言守着，
+ * 不能加死区）。而 `pickMode` 在 |dx| ≥ MODE_LOCK_PX(10) 就把模式锁成 'h'。
+ * 两者合起来 ⇒ 一次「带 13~16px 横向漂移的点按」会走完这条链：
+ *   跟手横移 13~16px（探针 /tmp/vwork/r14/probe-p3.mjs 实测卡 e 从 77.5 → 90.1）
+ *   → 松手 → `mode='h' && !isTap` → settleFocus 把焦点弹回原位 → **什么都没发生**。
+ * 读起来就是 Ricky 说的「点击还会左右抖动」（晃一下 + 无响应）。
+ *
+ * 修法不碰几何，只补一条语义：**整段手势没有 commit 过任何方向 ⇒ 它没产生任何可见结果
+ * ⇒ 只能是一次点按**。判据必须同时锚在【松手那一刻的净位移】上，不能只看
+ * `d.modeFrozen` / `d.maxMove` —— 那两个量是【从观测到的 pointermove 累加】出来的：
+ * Chrome 会把同一帧内的多个 pointermove 合并派发，主线程繁忙时相邻两次采样可能隔很远，
+ * 于是一次真实的 192px 上滑也可能「只被看见十几像素」，maxMove 与 frozen 全都偏小。
+ * e2e 实测（scripts/verify-app-switcher.mjs 第十四轮·需求③-b 首跑）就踩到了这个：
+ *   12 步 × 16px 的上滑被采样成小位移 ⇒ tapIntent 误判成点按 ⇒ 走 hitCardId(松手点
+ *   已经在屏幕外) ⇒ null ⇒ exitWithAnimation ⇒ 卡片没删、还退回了桌面。
+ * 所以四个条件缺一不可：
+ *   · |dx| 与 |dy| 都 < MODE_COMMIT_PX(22) —— **松手净位移**（唯一可靠的量，直接来自 up 事件）
+ *     小到没有任何方向 commit 过；横滑在 |dx| ≥ 22 冻结、纵向在 |dy| ≥ 22 冻结；
+ *   · !d.modeFrozen —— 排除「手指出去又回来」（净位移小，但中途真的推动过卡片）；
+ *   · maxMove < TAP_PATH_MAX(24) —— 抖出去又回来的仍算点按，整段路径很长的不算；
+ *   · 速度与时长的门槛与 isTap 同源（快甩必须留给翻卡，长按不是点按）。
+ * 于是 13~23px 的漂移全部落回点按（探针实测 12/16px 两条从 STAY 变 RESUME），
+ * 而真正的横滑、上滑删卡与快甩完全不受影响。 */
+
 function onPointerUp(e) {
   const d = drag.value
   if (!d) return
+  /* 第二十轮·需求（双指横滑抖动）：只有所有者抬起才算松手 ——
+     否则第二根手指的 pointerup 会把还在走的手势提前「结算」（焦点弹回、挤压释放），
+     而它自己的 pointermove 又不会再被接受 ⇒ 一次横滑被结算两次。 */
+  if (e.pointerId !== d.pointerId) return
   drag.value = null
-  const dx = e.clientX - d.startX
+  /* 第二十一轮：松手这一笔同样过【坐标连续性守卫】——
+     否则一次坐标瞬移会被 vtVelocity 读成「手指正在飞速滑动」，settleFocus 据此判成
+     快甩（|vFocus| ≥ FLICK_V_MIN 2.6 层/秒）并注入一个凭空的初速度（见 onPointerMove 的注释）。
+     命中的落点仍用 e.clientX（那才是浏览器认为指针所在的位置）。 */
+  const upJump = e.clientX - d.lastX
+  const px = e.pointerType === 'touch' && touchStepIsTeleport(upJump, d.steps) ? d.lastX : e.clientX
+  const dx = px - d.startX
   const dy = e.clientY - d.startY
   // 松手这一刻也采一个速度样本（并剔除 >100ms 的旧样本）→ 停住再松手 = 0 动量
   const tNow = performance.now()
-  vtPush(e.clientX, tNow)
+  vtPush(px, tNow)
   const vFocus = (vtVelocity(tNow) * 1000) / metrics.value.span // 层/秒
   const isTap =
     Math.abs(dx) < TAP_SLOP_X &&
@@ -1127,11 +1762,43 @@ function onPointerUp(e) {
     Math.abs(vFocus) < FLICK_V_MIN &&
     tNow - d.startT < TAP_MS_MAX
 
+  /* 点按意图 = 严格容差命中（isTap）或「整段手势一次都没 commit 过」（见 TAP_SLOP_X 上方
+     的长注释）。后者是第十四轮为「点击还会左右抖动」补的第二道判据：13~16px 的横向漂移
+     会把 mode 锁成 'h' 但走不到 MODE_COMMIT_PX(22) ⇒ 没产生任何可见结果 ⇒ 它只能是点按。
+     ⚠️ 必须带上松手净位移（|dx|/|dy| < MODE_COMMIT_PX）—— 只靠 modeFrozen/maxMove 会在
+     pointermove 被合并采样时把一次真实上滑误判成点按（e2e 第十四轮·需求③-b 首跑实测）。 */
+  const tapIntent =
+    isTap ||
+    (!d.modeFrozen &&
+      Math.abs(dx) < MODE_COMMIT_PX &&
+      Math.abs(dy) < MODE_COMMIT_PX &&
+      d.maxMove < TAP_PATH_MAX &&
+      Math.abs(vFocus) < FLICK_V_MIN &&
+      tNow - d.startT < TAP_MS_MAX)
+
+  /* 模式判定的自省口（第十二轮，与 __switcherSettle 同性质）：
+     安卓 Chrome 触摸下「首帧横向抖动」会不会把上滑判成横滑，只能靠它做 oracle ——
+     断言「最终 mode === 'v'」而不是看卡片有没有横走（横走多少要读十几帧 transform）。 */
+  window.__switcherMode = {
+    mode: d.mode,
+    frozen: d.modeFrozen,
+    cardId: d.cardId,
+    dx: +dx.toFixed(2),
+    dy: +dy.toFixed(2),
+    maxMove: +d.maxMove.toFixed(2),
+    tap: isTap,
+    tapIntent,
+    trace: d.modeTrace,
+    /* 第二十一轮：本段手势被【坐标连续性守卫】吸收掉的瞬移次数（见 onPointerMove 的注释）。
+       e2e 用它当 oracle —— 断言「两指合并时守卫确实生效」，而不是只看焦点有没有跳。 */
+    teleports: d.teleports || 0
+  }
+
   /* 松手就把「挤压」和「跟手偏移」交给弹簧 —— 无论走哪条分支都要收，
      否则卡片会带着形变/偏移僵在原地（需求⑦「弹性不足」的反面）。 */
   releaseSqueeze()
 
-  if (d.mode === 'h' && !isTap) {
+  if (d.mode === 'h' && !tapIntent) {
     /* 用【松手这一刻重算的】层速度，而不是 d.vPx（最后一次 pointermove 的陈旧值）：
        vtVelocity 会剔除 >100ms 的旧样本，手指停住再松手自然得 0；
        若沿用 d.vPx，停住 300ms 再松手会带着停顿前的旧速度继续翻页（需求⑤的反例）。
@@ -1139,7 +1806,7 @@ function onPointerUp(e) {
     settleFocus(vFocus, d.startFocus)
     return
   }
-  if (d.mode === 'v' && !isTap) {
+  if (d.mode === 'v' && !tapIntent) {
     /* 上滑移除判定：位移过半即飞出（阈值 110px 与旧的松手判据保持一致），
        拖动对象优先取模式锁定时钉下的卡片，取不到再退回松手点的命中判定。
 
@@ -1155,12 +1822,12 @@ function onPointerUp(e) {
     })
     return
   }
-  if (d.mode === 'down' && !isTap && dy > 80) {
+  if (d.mode === 'down' && !tapIntent && dy > 80) {
     system.closeSwitcher()
     return
   }
   // 点按：点卡片恢复，点空白关闭
-  if (isTap) {
+  if (tapIntent) {
     /* 底部工具条【只认按钮本体】（第八轮修正，需求①）。
        历史 bug：`.switcher-dock` 是个 position:absolute; left:0; right:0 的 flex 容器，
        整条 430×52 的横带都算「命中 dock 容器」，于是
@@ -1183,10 +1850,50 @@ function onPointerUp(e) {
   }
 }
 
+/* 取指针下的那张卡（返回 appId）。
+   ⚠️ 第十二轮修掉一个【只在真机/触摸路径上稳定复现】的失效 ——
+   旧实现 = `elementFromPoint(...)?.closest('.switcher-card')` 取【最上层】那张，
+   而跟手卡（.is-follow）会在 onPointerDown（followFreeSnap(0) ⇒ settledOne 失效）
+   之后由 Vue 立刻挂出来、【盖在顶层卡正上方】：它有 .switcher-card 但【没有 data-app-id】，
+   于是 closest 拿到它 → appId undefined → 返回 null。后果：
+     · mode='v' 的上滑删卡：cardId 恒 null ⇒ willDismiss 恒 false ⇒ 手机端上滑【永远删不掉】；
+     · 点顶层卡恢复：cardId 恒 null ⇒ 落到 else 分支 exitWithAnimation() ⇒ 点卡片【反而回桌面】。
+   为什么桌面 e2e 一直没抓到：这是竞态 —— 桌面鼠标路径「按下 → 第一帧 pointermove」之间
+   Vue 往往还没来得及补丁 DOM，closest 仍命中下面的堆叠卡；而触摸路径下手指按下与第一个
+   pointermove 之间至少隔一帧（还要走 Chrome 的 touch slop），DOM 必然已补丁 ⇒ 100% 命中跟手卡。
+   探针实测（/tmp/vwork/r12/probe-hit2.mjs，430×932 鼠标复刻 e2e 那一步）：按下 60ms 后
+   命中 "switcher-card is-follow | app=none"，松手后 recent 不变、baseLayer 仍为 'app'
+   —— 也就是说 e2e 里「上滑移除当前应用」那条断言在改前是 false。
+   新实现：沿层叠顺序（elementsFromPoint）往下找【第一张带 appId 的卡】，
+   跟手卡只是「同 app 的替身」，被跳过之后就落到它下面那张真卡上（两者本来就是同一个 app）。
+   同时给跟手卡也标上 data-app-id（见模板）—— 双保险，且语义正确：手指压着的就是它。
+
+   ⚠️ 第十四轮（需求①的两处连带修正）：命中失败后还要再按【标题行带】兜一次。
+   Ricky 原话：「点击多任务卡片…很高的概率会出现点击卡片仍然退出多任务回到桌面」、
+   「位于顶部的卡片无法通过鼠标上滑关闭」。
+   探针实测（/tmp/vwork/r14/probe-label.mjs，430×932 真实路径）：
+     · 卡顶 y=155，而「图标 + 应用名」那一行在 y=119..143（卡顶上方 36px = LABEL_ROW_H+LABEL_GAP）；
+     · 点 y=112~150 的任意一点，elementFromPoint 落到 .switcher-track / .switcher-dim
+       ⇒ 本函数返回 null ⇒ 点按走 exitWithAnimation()（回桌面）；
+     · 从同一片区域上滑 192px ⇒ cardId 恒 null ⇒ willDismiss 恒 false ⇒ 卡片纹丝不动。
+   而视觉上这行图标/名字就是卡片的标题行，用户当然会去点它、抓它。
+   兜底口径：卡宽 × 卡顶上方 (LABEL_ROW_H + LABEL_GAP) 的横带算作「这张卡」，
+   按 renderedCards 的顺序（顶层在前）取第一个匹配 ⇒ 顶层卡优先。 */
 function hitCardId(e) {
-  const el = document.elementFromPoint(e.clientX, e.clientY)
-  const card = el?.closest?.('.switcher-card')
-  return card?.dataset?.appId || null
+  const els = document.elementsFromPoint(e.clientX, e.clientY)
+  for (const el of els) {
+    const id = el?.closest?.('.switcher-card')?.dataset?.appId
+    if (id) return id
+  }
+  const band = DECK.LABEL_ROW_H + DECK.LABEL_GAP
+  const x = e.clientX
+  const y = e.clientY
+  for (const c of renderedCards.value) {
+    const p = poseOf(c.i)
+    const w = cardW.value * p.scale
+    if (x >= p.x && x <= p.x + w && y >= p.y - band && y <= p.y) return c.id
+  }
+  return null
 }
 
 /* ---- 触控板双指横滑（第七轮·批次 3，需求①）----
@@ -1231,12 +1938,30 @@ function onWheel(e) {
   e.preventDefault()
   measure()
   if (wheelAcc.value == null) {
-    /* 手势起点：可能正压着一个没跑完的吸附弹簧 → 从当前位置接管（focusSnap 即 stop+set） */
+    /* 手势起点：可能正压着一段没跑完的收尾 → 从【当前视觉位置】接管（target 与 x 对齐） */
     wheelAcc.value = focus.value
+    wheelInput = createAccumulator(focus.value * metrics.value.span)
     focusMoving.value = true
   }
-  wheelAcc.value = deckClampFocus(wheelAcc.value - px / metrics.value.span, apps.value.length)
-  focusSnap(wheelAcc.value)
+  /* ── 第二十四轮：输入先过累积器，再由【唯一出口】落位 ──────────────────────────
+   * 这里原来是 `focusSnap(wheelAcc − px/span)` —— 每一笔 deltaX 直接写位置。
+   * 触控板自带惯性相、换向时 deltaX 的噪声最大，逐笔直写就把噪声 1:1 全幅放上屏幕
+   * （这也是它与 pointer 通道表现不一样的结构性原因）。
+   *   ① accumulate 用「1px = 屏幕能表达的最小位移」判掉物理上不存在的反向位移；
+   *   ② setInput 落位 —— 与 pointer 通道走【同一个出口】，两条通道在架构上统一。
+   * ⚠️ 别退回逐笔直写（会绕开 ①）；也别在这里赌幅度阈值（7px 死区那版的黏滞就是这么来的）。 */
+  const committed = accumulate(wheelInput, -px, MOTION.SUBMIT_PX)
+  const lay = committed / metrics.value.span
+  const layered = deckClampFocus(lay, apps.value.length)
+  if (layered !== lay) {
+    /* 撞到边界：把被夹掉的超出量写回累积器（acc 与 target 一起写，保持「滞后 ≤ 1px」的
+       不变量）。否则反向时要先「走完」这段不存在的行程 ⇒ 贴着边界反向拨不动
+       （第十七轮同类的冻结感）。 */
+    wheelInput.acc = layered * metrics.value.span
+    wheelInput.target = wheelInput.acc
+  }
+  wheelAcc.value = layered
+  setInput(layered)
   /* 第八轮（需求⑦）：触控板横滑同样吃「左滑挤压」—— 换一种输入设备，不是换一套反馈 */
   dragSqueeze()
   clearTimeout(wheelIdleTimer)
@@ -1244,32 +1969,61 @@ function onWheel(e) {
 }
 
 /** 触控板手势流结束 → 吸附到最近整卡（不加投影：动量的账已经由系统记过了）。
- *  第十一轮：吸附预设改用 ios-deck-settle —— 触控板横滑是【零动量】的余量吸附，
- *  与慢滑同语义；用 ios-deck（ζ=0.65）会「到位后再弹回来一下」（同样的多余回弹）。 */
+ *  第二十四轮：这里不再挑弹簧预设 —— 收尾统一走 settleTo（一阶 + VMAX）。 */
 function endWheel() {
   if (wheelAcc.value == null) return
   const cur = wheelAcc.value
   wheelAcc.value = null
+  wheelInput = null // 累积器与 wheelAcc 同生命周期
   const last = Math.max(0, apps.value.length - 1)
   releaseSqueeze()
-  focusToIndex(Math.max(0, Math.min(last, Math.round(cur))), { preset: 'ios-deck-settle' })
+  settleTo(Math.max(0, Math.min(last, Math.round(cur))))
 }
 
-/** 指针/程序化操作接管时，必须把触控板的未决吸附撤掉（否则它会在拖动中途改焦点） */
+/** 指针/程序化操作接管时，必须把触控板的未决收尾撤掉（否则它会在拖动中途改目标） */
 function cancelWheel() {
   clearTimeout(wheelIdleTimer)
   wheelIdleTimer = null
   wheelAcc.value = null
+  wheelInput = null
+}
+
+/* ---- 桌面图标的隐藏态归还（第十五轮）----
+ *
+ * Ricky 原话：「点击打开应用后，进入多任务，上滑删除任务回到桌面后，桌面图标消失了」
+ * （截图特征：文字还在、只有那一格的图形是空的）。
+ *
+ * 根因在 `systemStore.dismissApp()`：它是**硬切** ——
+ *   `recentApps` 摘掉 → 若删的是当前应用则直接 `activeAppId = null; baseLayer = 'home'`。
+ * AppWindow 因此被直接卸载，而它**唯一**的「归还桌面图标」动作挂在 hero 收回的收尾钩子上
+ * （`AppWindow.vue` 的 `onHandoff: () => home.showIcon()`）⇒ 钩子永不触发
+ * ⇒ `home.hiddenIconId` 永久停在那个 appId ⇒ 桌面那一格只剩文字。
+ * 探针 /tmp/vwork/r15/probe-icon.mjs 实测（改前）：
+ *   · store 直连 openApp('files') → dismissApp('files')：hiddenIconId 仍 = 'files'
+ *   · 真实 UI（点桌面图标 → 上滑进多任务 → 卡上滑删卡）：同样停在 'files'，tile=hidden
+ *   · 对照组「应用内上滑回桌面」（走 hero 收尾）：tile=visible —— 唯独删卡路径漏了
+ *
+ * 本函数只负责【在窗口确实要消失时】把隐藏态让出来，是语义上的显式归还；
+ * AppIcon 里「隐藏只在应用真的是前台时生效」的前台判据是同一件事的第二道防线。
+ * 两者互为冗余、谁也不依赖谁 —— 即使将来有人再往切换器里加一条硬切路径，
+ * 那道判据也会兜住。
+ *
+ * ⚠️ 必须限定「删的就是当前应用」：删后台卡时前台应用仍在全屏，
+ *    此时清掉隐藏态会让它的桌面图标提前露出来（hero 收回时就会与镜像重影）。 */
+function releaseHiddenIcon(appId) {
+  if (appId && system.activeAppId === appId) home.showIcon()
 }
 
 /* 上滑移除：飞出 + 其余卡片弹簧重排 */
 function dismissWithAnimation(appId) {
   dismissing.value = appId
   setTimeout(() => {
+    /* 必须先于 dismissApp：后者会把 activeAppId 置空，之后再判断就查不到了。 */
+    releaseHiddenIcon(appId)
     system.dismissApp(appId)
     dismissing.value = null
     const idx = Math.max(0, Math.min(apps.value.length - 1, Math.round(focus.value)))
-    focusToIndex(idx)
+    settleTo(idx)
   }, 240)
 }
 
@@ -1279,7 +2033,12 @@ function dismissingStyle(i) {
     width: cardW.value + 'px',
     height: cardH.value + 'px',
     transform: `translate3d(${p.x}px, ${p.y - screenH.value * 1.1}px, 0) scale(${p.scale})`,
-    opacity: 0,
+    /* 第十二轮（需求②口径延伸到飞出段）：纯位移飞出，不淡出。
+       旧值 opacity: 0 会与 `opacity 0.22s ease` 那条过渡合起来把卡「边飞边化掉」；
+       而 Ricky 的诉求是「取消上滑过程中的透明度变化」，上滑跟手 + 松手飞出是同一个
+       连续动作，只改跟手段会留半截。同为离场语义的 clearingStyle（一键清理）
+       第九轮就已经定成 `opacity: 1`（参考视频末帧残余卡条仍纯白）—— 两条统一。 */
+    opacity: 1,
     zIndex: deckZ(i),
     borderRadius: RADIUS.value + 'px'
   }
@@ -1287,35 +2046,85 @@ function dismissingStyle(i) {
 
 /* 点卡片恢复：卡位 →（围绕中心 scale 放大）→ 全屏，再正式切到 AppWindow（无缝衔接）。
    历史 bug（2026-09-12 修复）：旧实现直接改 width/height 到全屏 + transform 归位，
-   宽高没有过渡 → 卡片会「瞬间变大再滑过去」。改为与跟手卡同一套「中心锚点 scale」几何。 */
+   宽高没有过渡 → 卡片会「瞬间变大再滑过去」。改为与跟手卡同一套「中心锚点 scale」几何。
+
+   ⚠️ 第十四轮（需求①「点击多任务卡片进入全屏时会卡和闪一下」）在这里修掉三件事：
+
+   ① 起始 scale 必须取【这张卡自己的堆叠位姿缩放】，不能一律用 previewScale ——
+      点邻居卡时它的位姿本来就带 0.94^k 的层缩放，用 previewScale 会让起点比卡片
+      当前大小大一圈（先「弹大一下」再飞）。
+   ② box 从 卡宽×卡高 变成 屏宽×屏高 是【瞬变】的，而 transform 是【过渡】的：
+      浏览器插值的是矩阵 ⇒ 过渡第 1 帧的实际视觉尺寸 = 整个屏幕大小（探针实测
+      430×932 落在卡位左上角），随后才缩回卡位、再放大 —— 这就是「闪一下」的实体。
+      新口径把整条动画统一到跟手卡那套基准上：box 恒为屏宽×屏高、transform-origin
+      显式写成 center center，起点矩阵 = 堆叠位姿对应的矩形（视觉上与卡片完全重合）。
+   ③ 起始态那一帧必须 transition: none（旧实现让 0.32s 的过渡从错误起点开始跑）。
+      目标态那一帧再带上过渡：CSS 规范取【变更之后】的 transition 值，所以同帧
+      设置 transform + transition 是安全的。 */
 const expanding = ref(null)
 const expandTo = ref(false)
+let expandTimer = null
+/* 与 .switcher-card 的通用过渡（0.32s）同长；交接必须【不早于】过渡终点，
+   否则会在卡片还差 2~3px 到满屏时把它换掉（探针实测 430×930 vs 430×932）→ 又闪一下。 */
+const RESUME_MS = 320
+/* 交接保持窗口（见 expandHold 的注释）：等底下 AppWindow 的开场动画落地再撤卡。
+   MARGIN 是给「hero 最后一帧 → Vue flush → 合成器上屏」留的余量。 */
+const EXPAND_HOLD_MARGIN_MS = 56
+const EXPAND_HOLD_SAME_MS = 64
 function resumeWithExpand(appId) {
   expanding.value = appId
   expandTo.value = false
   // 先渲染「起始态」，两帧后再切目标态，浏览器才会跑过渡
   requestAnimationFrame(() => requestAnimationFrame(() => { expandTo.value = true }))
-  setTimeout(() => {
+  clearTimeout(expandTimer)
+  clearTimeout(expandHoldTimer)
+  /* 交接时刻 = 2 帧（起始态提交 ≈33ms）+ RESUME_MS + 40ms 余量。
+     旧值写死 300ms < 过渡时长 320ms，交接必然切在半途。 */
+  expandTimer = setTimeout(() => {
+    expandTimer = null
+    /* 顺序有语义：先【立住保持窗口】再切 store。两者同一个 tick 生效，
+       visible / renderDeck 在这一次 patch 里就已经为真 ⇒ 放大卡不会被拆掉。 */
+    const swap = appId !== system.activeAppId
+    expandHold.value = true
     system.resumeApp(appId)
-    expanding.value = null
-    expandTo.value = false
-  }, 300)
+    clearTimeout(expandHoldTimer)
+    expandHoldTimer = setTimeout(() => {
+      expandHoldTimer = null
+      /* 撤掉保持窗口（= 放大卡与根节点一起卸载）。这一帧底下必须是稳定态：
+         · swap 路径等满 HERO_OPEN_DURATION，AppWindow 已 phase='open'（全屏 + 内容全亮）；
+         · same 路径 AppWindow 没重挂，撑过两帧合成延迟即可。 */
+      expanding.value = null
+      expandTo.value = false
+      expandHold.value = false
+    }, swap ? HERO_OPEN_DURATION + EXPAND_HOLD_MARGIN_MS : EXPAND_HOLD_SAME_MS)
+  }, RESUME_MS + 72)
 }
 
 function expandingStyle(i) {
   const idx = apps.value.indexOf(expanding.value)
-  const slot = poseOf(idx < 0 ? i : idx)
-  const cx = expandTo.value ? screenW.value / 2 : slot.x + cardW.value / 2
-  const cy = expandTo.value ? screenH.value / 2 : slot.y + cardH.value / 2
-  const s = expandTo.value ? 1 : previewScale.value
+  const pi = idx < 0 ? i : idx
+  const slot = poseOf(pi)
+  /* 起点：堆叠位姿（含层缩放）对应的矩形中心；终点：屏幕中心。
+     注意 cx 用 cardW*slot.scale 而不是 cardW —— box 是屏宽，视觉矩形必须落在堆叠卡的
+     真实矩形上（宽 cardW×slot.scale），否则层缩放卡会错位。 */
+  const s0 = previewScale.value * slot.scale
+  const cx = expandTo.value ? screenW.value / 2 : slot.x + (cardW.value * slot.scale) / 2
+  const cy = expandTo.value ? screenH.value / 2 : slot.y + (cardH.value * slot.scale) / 2
+  const s = expandTo.value ? 1 : s0
   return {
     width: screenW.value + 'px',
     height: screenH.value + 'px',
+    /* 覆盖 .switcher-card.is-deck 的 `transform-origin: 0 0`（那是堆叠几何的原点）：
+       中心锚点缩放才与跟手卡同构。 */
+    transformOrigin: 'center center',
     transform: `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%) scale(${s})`,
     borderRadius: expandTo.value ? '0px' : RADIUS.value / Math.max(s, 0.01) + 'px',
     filter: 'brightness(1)',
     zIndex: Z_EXPAND,
-    opacity: 1
+    opacity: 1,
+    transition: expandTo.value
+      ? `transform ${RESUME_MS}ms cubic-bezier(0.32, 1, 0.6, 1), border-radius ${RESUME_MS}ms linear`
+      : 'none'
   }
 }
 
@@ -1376,6 +2185,9 @@ function clearAll() {
   if (clearing.value || dismissing.value || expanding.value) return
   const n = renderedCards.value.length
   if (!n) {
+    /* 第十五轮：dismissAll 同样是硬切（activeAppId 置空 + baseLayer='home'），
+       被它带走的那个前台应用的桌面图标必须在这里归还。 */
+    releaseHiddenIcon(system.activeAppId)
     system.dismissAll()
     return
   }
@@ -1391,13 +2203,19 @@ function clearAll() {
     clearTimer = null
     clearing.value = false
     clearGo.value = false
+    /* 第十五轮：与上面 if (!n) 分支同因 —— dismissAll 硬切，先把隐藏态归还。 */
+    releaseHiddenIcon(system.activeAppId)
     system.dismissAll()
   }, CLEAR_MS + last * CLEAR_STAGGER + CLEAR_TAIL)
 }
 
 /** 点空白：关掉切换器并【回桌面】（需求⑪）。
- *  与 dismissAll 的区别 —— 这里【不清】最近任务，只是离开切换器回桌面。 */
+ *  与 dismissAll 的区别 —— 这里【不清】最近任务，只是离开切换器回桌面。
+ *  第十五轮：这条路径也是硬切（system.exitSwitcherToHome 直接置 activeAppId=null），
+ *  同样拿不到 AppWindow 的 hero 收尾钩子 ⇒ 必须在切状态【之前】归还桌面图标隐藏态。
+ *  本函数是「点空白」的唯一漏斗（退场动画播完由它落定终态）。 */
 function exitSwitcherToHome() {
+  releaseHiddenIcon(system.activeAppId)
   system.exitSwitcherToHome()
 }
 
@@ -1426,7 +2244,9 @@ function exitWithAnimation() {
        引发的「卡片弹回居中」中间态【一帧都不会上屏】。否则就是实测到的：
        track 从 −335 弹回 0、卡片在屏幕正中闪现一帧，然后再左滑淡出一次（动画播两遍）。 */
     exitedHome.value = true
-    sqSnap(0)
+    /* 第十七轮：走 sqReset() 而不是裸 sqSnap(0) —— 必须先停掉挤压追踪器，
+       否则它会带着退场前的目标在下一帧把 sq 又拉回去（退场途中的整组位移会抽一下）。 */
+    sqReset()
     followFreeSnap(0)
     exitSwitcherToHome()
   }, DECK.EXIT_SLIDE_MS + 20)
@@ -1437,7 +2257,7 @@ function exitWithAnimation() {
  *         deckSqueezeShift）—— 位移不再是写死的屏宽分数，而是与缩放一起解出来的，
  *         语义是「前卡的左缘正好落到屏幕左缘」；
  *   退场：平移到左侧 0.78 屏宽 —— 第八轮需求④的滑出。
- * 两者互斥（退场时 k 已被 sqSnap(0) 归零）。
+ * 两者互斥（退场时 k 已被 sqReset() 归零）。
  *
  * ⚠️ 等比缩小【不在这里】做，而是逐卡在 deckPose 里乘（m.sq ⇒ scale *= g）：
  *    容器级 scale 会连带把「前卡左缘落到 0」这个推导出来的位移前提打破
@@ -1451,6 +2271,72 @@ const trackStyle = computed(() => {
   const shift = deckSqueezeShift(screenW.value, cardW.value, sq.value)
   if (Math.abs(shift) < 0.05) return { transform: 'none' }
   return { transform: `translate3d(${shift}px, 0, 0)` }
+})
+
+/* ---- 堆叠卡组的【群组变换】（第十六轮·需求①）----------------------------
+ *
+ * Ricky 原话：「应用内进入多任务，底部卡片出现时应该与被拖拽的卡片同步进行缩放移动。」
+ *
+ * 症状（探针 /tmp/vwork/r16/probe-enter-neighbor.mjs；应用内上滑 200px 后按住不动）：
+ *   被拖拽的跟手卡（照片）视觉宽 299.8、下方邻居卡（演示）静止后 258.5 ⇒ 比值 0.863，
+ *   而「邻居 = 0.94 × 前卡」是这个 deck 的几何契约（SCALE_DECAY = 0.94）。
+ *   入场全程该比值从 0.802 单调漂到 0.863 —— 一直追不上，且两条运动【相位脱钩】：
+ *   停驻期间跟手卡完全冻结（sx 恒 0.6972），邻居卡却自己在跑一条固定 480ms 的 CSS 过渡。
+ *   视觉上就是 Ricky 截图里的：底部那张卡「几乎和手里的卡一样大、还更靠下」。
+ *
+ * 根因：邻居卡的入场目标是 `deckPose(a = 1)` 的【绝对终位】—— 那个位姿是相对
+ *   「已经落位的前卡」（275 宽、中心 cardCy）定义的；而此刻前卡还被跟手卡顶替着，
+ *   实际尺寸 299.8（大了 9%）、中心也在别处。按落位后的尺寸去画邻居 ⇒ 必然偏小偏下。
+ *
+ * 修法：给整组堆叠卡加一个【相似变换 G】，把「跟手卡当前的位姿」映射到「卡位」——
+ *   整组随跟手卡同步缩放、同步位移；p → 1 时 G 退化为单位阵 ⇒ 交接帧不需要任何补偿。
+ *
+ * 推导（原点 O = 屏幕中心 (Cx, Cy)，因为 group 是 inset:0 且 transform-origin: center center）：
+ *   前卡 = poseOf(frontIndex)，矩形 (x, y, cardW·k0, cardH·k0)
+ *   k  = 跟手卡视觉宽 / 前卡视觉宽 = (screenW · sx) / (cardW · k0)
+ *   dx = (cx − Cx) − k·(Fcx − Cx)
+ *   dy = (cy − Cy) − k·(Fcy − Cy)
+ *   两条不变量让式子塌下来（所以下面直接写开形式，别再引入分支）：
+ *     · Fcy ≡ cardCy —— deckPose 的 y = cardCy − cardH·scale/2 对每层恒成立；
+ *     · Fcx = frontX + cardW·k0/2 —— 前卡的 a = 0 ⇒ stair(0) = 0 ⇒ restX = frontX。
+ *
+ * ⚠️ 为什么必须新包一层 .switcher-deck-group，而不是把 G 加在 .switcher-track 上：
+ *    跟手卡【也是】track 的子节点（`v-if="followStyle"` 那一张）
+ *    ⇒ 在 track 上 scale 会把跟手卡自己再缩一次（双重缩放）。
+ *    包一层只圈住堆叠卡、与 track 同坐标系 ⇒ 上面的推导逐字成立，对跟手卡零影响。
+ *
+ * ⚠️ 只在【跟手卡在场】时给值（followGeom 非空），其余时刻返回 null（= transform: none）：
+ *    deck 模式下左滑挤压（sq）、焦点吸附、退场滑出全都已经有自己的逐帧直写或 CSS 过渡，
+ *    再叠一层会二次变换。而「跟手卡在场」这一个判据本身就覆盖了 deck 模式 ——
+ *    落位完成后 settledOne 成立（openP / followFree / switcherProgress 三者都在 1 附近），
+ *    followGeom 返回 null，群组变换自动退化为单位阵。
+ *    ⚠️ 不要在这里加 `p >= 1` 之类的截断（第一版加过，被探针否掉）：
+ *    p ∈ (1, 1.2] 是一个【真实且能停驻】的状态（上滑滑过满量程后按住）——
+ *    跟手卡继续缩小（0.55^(p−1)）并上移（OVER_RISE_FRAC），邻居卡若被钉回绝对槽位，
+ *    就会变成比手里的卡【更大、更靠下】（探针 /tmp/vwork/r16/probe-overtravel.mjs 实测
+ *    p = 1.17 时邻居/follow = 1.068、中心低 22.2px）—— 正是本轮要修的东西的镜像版。
+ *    p → 1 时 k ≡ 1、dx = dy ≡ 0，本来就等价于 none，无需额外短路。
+ *    deck 模式的泄漏反证：/tmp/vwork/r16/probe-deckleak.mjs 实测空闲/按下/横拖/松手
+ *    全程都是 matrix(1,0,0,1,0,0)，偏差 0.0000。
+ * ⚠️ 与 trackStyle 的挤压位移【不冲突】：挤压只发生在落位后（此时 G ≡ 单位阵），
+ *    且 track 的 translate 在 group 的 scale 之外 ⇒ 一旦两者同时非平凡，位移仍在屏幕空间。 */
+const deckGroupStyle = computed(() => {
+  const g = followGeom.value
+  if (!g) return null
+  const Cx = screenW.value / 2
+  const Cy = screenH.value / 2
+  const front = poseOf(frontIndex.value)
+  const frontW = cardW.value * front.scale
+  if (!(frontW > 0)) return null
+  const k = (screenW.value * g.sx) / frontW
+  if (!Number.isFinite(k) || k <= 0) return null
+  const Fcx = front.x + frontW / 2
+  const Fcy = front.y + (cardH.value * front.scale) / 2
+  const dx = g.cx - Cx - k * (Fcx - Cx)
+  const dy = g.cy - Cy - k * (Fcy - Cy)
+  return {
+    transform: `translate3d(${dx.toFixed(3)}px, ${dy.toFixed(3)}px, 0) scale(${k.toFixed(5)})`
+  }
 })
 
 /** 遮罩不透明度：退场时归零（桌面立刻现形），其余跟随手势进度 */
@@ -1480,6 +2366,8 @@ onBeforeUnmount(() => {
   clearTimeout(settleTimer)
   clearTimeout(clearTimer)
   clearTimeout(closeTimer)
+  clearTimeout(expandTimer)
+  clearTimeout(expandHoldTimer)
   cancelWheel()
   window.removeEventListener('wheel', onWheel)
 })
@@ -1507,6 +2395,7 @@ onBeforeUnmount(() => {
       <div
         v-if="followStyle && system.activeAppId"
         class="switcher-card is-follow"
+        :data-app-id="system.activeAppId"
         :style="followStyle"
       >
         <!-- 标签锚点：origin 0 0 落在卡左上角，scale(1/previewScale) 把坐标换算回卡的尺寸体系
@@ -1535,8 +2424,11 @@ onBeforeUnmount(() => {
       <!-- 堆叠卡片组：切换器打开后渲染；桌面路径在【手势进行中】就要渲染，
            否则上滑期间屏幕上一张卡都没有（只剩黑遮罩）= 盲滑，手感极差。
            前卡在进场进度 <1 时由跟手卡顶替（同位姿无缝交接），其余卡片按进度淡入。
-           层级由 deckZ(i) = 10000 - i 决定 —— 顶卡一直到最后飞出屏幕都在最上层。 -->
-      <template v-if="renderDeck">
+           层级由 deckZ(i) = 10000 - i 决定 —— 顶卡一直到最后飞出屏幕都在最上层。
+           ⚠️ 第十六轮：整组外面包一层 .switcher-deck-group，承载「随跟手卡同步缩放/位移」
+           的群组变换（见 deckGroupStyle）。**不能**把这层变换加在 .switcher-track 上 ——
+           跟手卡也是 track 的子节点，会被一并缩放（双重缩放）。 -->
+      <div v-if="renderDeck" class="switcher-deck-group" :style="deckGroupStyle">
         <div
           v-for="c in renderedCards"
           :key="c.id"
@@ -1575,7 +2467,7 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </div>
-      </template>
+      </div>
     </div>
 
     <!-- 底部：清空后台（与通知中心同款磨砂圆钮；进度到位后淡入） -->
@@ -1647,6 +2539,17 @@ onBeforeUnmount(() => {
    它的淡入过渡写在 .switcher-dock 基础规则里（松手后才出现那一段需要淡入）。 */
 .app-switcher.is-closing .switcher-dock {
   transition: none;
+}
+
+/* 堆叠卡组的群组变换容器（第十六轮）——
+   与 .switcher-track 同坐标系（inset:0）但与跟手卡【平级、不嵌套】：群组变换只作用于堆叠卡。
+   ⚠️ 不给它挂任何 transition：变换由 switcherProgress 逐帧直写（跟手），
+      挂过渡会被二次低通成滞后 —— 与 .is-follow 排除过渡是同一个道理。 */
+.switcher-deck-group {
+  position: absolute;
+  inset: 0;
+  transform-origin: center center;
+  will-change: transform;
 }
 
 .switcher-card {
