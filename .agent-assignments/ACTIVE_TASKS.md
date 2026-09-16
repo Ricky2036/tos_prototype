@@ -110,5 +110,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Codex | Desktop multi-select drag release and drop-settle motion | `codex/lane` | None (locks released) | `5594a53` | `ad8e7c7` |
 | Merged | Codex | Fix multi-select drop final-frame flash and add velocity-direction inertia spread | `codex/lane` | None (locks released) | `5e76b94` | `a883740` |
 | Merged | Codex | Regress multi-select drag spread and drop clone scale to match reference | `codex/lane` | None (locks released) | `d71c5d3` | `62b1fec` |
+| Merged | Workbuddy | App Switcher rounds 12-25: zero-jitter first-order stepper, coordinate continuity guard, and squeeze dampening | `workbuddy/lane` | None (locks released) | `6413b0b` | `983686b` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
