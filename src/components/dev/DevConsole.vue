@@ -533,14 +533,14 @@ function onToggleFineTune(enabled) {
           :title="system.powerButtonText"
           :aria-label="'系统' + system.powerButtonText"
         >
-          <!-- 1. 处于桌面或应用内：点击锁屏 -->
+          <!-- 1. 处于桌面或应用内：点击锁屏 (自定义锁头图标) -->
           <svg v-if="system.powerButtonAction === 'lock'" class="pc-btn-icon pc-icon-lock" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            <rect x="5" y="11" width="14" height="10" rx="3"/>
+            <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
           </svg>
-          <!-- 2. 处于锁屏界面：点击灭屏 -->
-          <svg v-else-if="system.powerButtonAction === 'powerOff'" class="pc-btn-icon pc-icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          <!-- 2. 处于锁屏界面：点击灭屏 (换回原版关机图标) -->
+          <svg v-else-if="system.powerButtonAction === 'powerOff'" class="pc-btn-icon pc-icon-power" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
           </svg>
           <!-- 3. 处于灭屏黑幕：点击亮屏 -->
           <svg v-else class="pc-btn-icon pc-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1108,14 +1108,14 @@ function onToggleFineTune(enabled) {
                   :title="system.powerButtonText"
                   :aria-label="'系统' + system.powerButtonText"
                 >
-                  <!-- 1. 处于桌面或应用内：点击锁屏 -->
+                  <!-- 1. 处于桌面或应用内：点击锁屏 (自定义锁头图标) -->
                   <svg v-if="system.powerButtonAction === 'lock'" class="pc-btn-icon pc-icon-lock" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    <rect x="5" y="11" width="14" height="10" rx="3"/>
+                    <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
                   </svg>
-                  <!-- 2. 处于锁屏界面：点击灭屏 -->
-                  <svg v-else-if="system.powerButtonAction === 'powerOff'" class="pc-btn-icon pc-icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                  <!-- 2. 处于锁屏界面：点击灭屏 (换回原版关机图标) -->
+                  <svg v-else-if="system.powerButtonAction === 'powerOff'" class="pc-btn-icon pc-icon-power" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
                   </svg>
                   <!-- 3. 处于灭屏黑幕：点击亮屏 -->
                   <svg v-else class="pc-btn-icon pc-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1661,20 +1661,24 @@ function onToggleFineTune(enabled) {
   vertical-align: middle;
 }
 
-.pc-icon-sun {
-  color: #fbbf24;
-}
-
-.pc-icon-power {
-  color: #ef4444;
-}
-
+/* 电源/锁屏/亮屏动作图标：默认无需增加差异化颜色（与常规按钮统一），点击交互（:active）时再染色 */
+.pc-icon-sun,
+.pc-icon-power,
 .pc-icon-lock {
+  color: currentColor;
+  transition: color 0.12s ease;
+}
+
+.pc-btn:active .pc-icon-lock {
   color: #38bdf8;
 }
 
-.pc-icon-moon {
-  color: #a78bfa;
+.pc-btn:active .pc-icon-power {
+  color: #ef4444;
+}
+
+.pc-btn:active .pc-icon-sun {
+  color: #fbbf24;
 }
 
 /* ================= 截屏录屏两列操作按钮 ================= */

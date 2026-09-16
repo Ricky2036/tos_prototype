@@ -88,12 +88,22 @@ test('three-state power lock: template and component linkage', () => {
   const devConsolePath = path.resolve(__dirname, '../src/components/dev/DevConsole.vue')
   const devConsoleContent = fs.readFileSync(devConsolePath, 'utf8')
 
-  // DevConsole 包含 togglePower 调用以及三态文案与图标绑定
+  // DevConsole 包含 togglePower 调用以及三态文案与图标绑定 (锁屏采用专属圆角锁，灭屏采用原版关机图标)
   assert.match(devConsoleContent, /@click="system\.togglePower\(\)"/)
   assert.match(devConsoleContent, /system\.powerButtonText/)
   assert.match(devConsoleContent, /pc-icon-lock/)
-  assert.match(devConsoleContent, /pc-icon-moon/)
+  assert.match(devConsoleContent, /pc-icon-power/)
   assert.match(devConsoleContent, /pc-icon-sun/)
+  assert.match(devConsoleContent, /<rect x="5" y="11" width="14" height="10" rx="3"/)
+  assert.match(devConsoleContent, /\.pc-btn:active \.pc-icon-lock/)
+  assert.match(devConsoleContent, /\.pc-btn:active \.pc-icon-power/)
+  assert.match(devConsoleContent, /\.pc-btn:active \.pc-icon-sun/)
+
+  const homeScreenPath = path.resolve(__dirname, '../src/components/system/HomeScreen.vue')
+  const homeScreenContent = fs.readFileSync(homeScreenPath, 'utf8')
+  // 桌面编辑模式下的壁纸图标采用面性实心山峰与太阳矢量
+  assert.match(homeScreenContent, /scale\(0\.00625, -0\.00625\)/)
+  assert.match(homeScreenContent, /壁纸与个性化：开发中/)
 
   const phoneFramePath = path.resolve(__dirname, '../src/components/phone/PhoneFrame.vue')
   const phoneFrameContent = fs.readFileSync(phoneFramePath, 'utf8')
