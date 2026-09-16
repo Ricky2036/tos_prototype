@@ -105,6 +105,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Fix Widget/Folder/App drag ghost deformation and preserve square card aspect ratio | `antigravity/lane` | None (locks released) | `182e3d9` | `0fe79bd` |
 | Merged | Antigravity | Adjust LockScreen notification stack top card opacity to 95% | `antigravity/lane` | None (locks released) | `9ab1855` | `709abdb` |
 | Merged | Antigravity | Fix folder resize handle positioning and thicken arc stroke | `antigravity/lane` | None (locks released) | `811615d` | `15dcd6d` |
+| Merged | Antigravity | Three-state power lock button (lock on home/app, power-off on lockscreen, power-on on screen-off) | `antigravity/lane` | None (locks released) | `b165a10` | `65344bf` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
