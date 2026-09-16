@@ -4100,6 +4100,164 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
       `采样 ${r16b.length} 帧 / 进度>0 的 ${moved.length} 帧 · 出现群组变换的帧数=${leaked.length}（期望 0）`
   )
 
+  /* ══════════ 第二十二轮 · 快甩落到【最后一张卡】后的「不停颤抖」（Ricky 2026-09-16 复测）══════════
+   *
+   * Ricky 原话：「有改善，但是还是会出现。抖动发生在快速滑动松手后到达最后一张卡片，卡片不停颤抖」。
+   * （「有改善」= 第二十一轮的坐标连续性守卫确实修掉了「两指被合并成一条坐标流」那一半；
+   *   剩下的这一半与输入设备无关，是【越界释放】本身的力学错误。）
+   *
+   * 量测（/tmp/vwork/r22/probe-apppath.mjs，430×932 / 5 张卡 / 应用内路径）：
+   *   · 快甩落在【中间某张卡】：松手点在目标【之下】（cur = 3.6845 < 目标 4）⇒
+   *     峰值过冲 0.07 层 = 16px —— 与第十一轮量到的「快甩 +12.6px 动量」一致，是需求④要的手感；
+   *   · 快甩落在【最后一张卡】：`deckClampFocus` 的正侧橡皮筋把松手点顶到 `last` **之上**
+   *     （实测 cur = 4.2246 ~ 4.5241），而目标被 `Math.min(last, idx)` 钉回 `last`
+   *     ⇒ 注入的 vFocus 与「当前 → 目标」**反向**，settleFocus 却照旧把它注入 ios-deck
+   *     ⇒ 峰值 4.343 / 4.5759 = **0.34~0.58 层 = 80~135px 的越界冲程**，再整段拉回来。
+   *     单次快甩冲程 0.3628 层(85px)、松手后 ~600ms 才落定；
+   *     连续快甩（14 次 / 300ms）下 spring 运行 6149ms / 总时长 6299ms
+   *     —— 卡片**全程都在这 100px 量级上来回晃**，这就是「不停颤抖」。
+   *   · 左边界为什么「好了」（交叉验证）：`cur < 0` 时 `poseFocus = max(0, …)` 把卡片位置钉死，
+   *     越界量改走【已限速】的挤压通道（SQ_MAX_STEP 0.09/帧）⇒ 注入的越界速度在屏幕上
+   *     没有位移出口。右边界走位移通道、1:1 全额可见 ⇒ 只有右边界表现为「颤抖」。
+   *
+   * 修法：判据下沉为纯函数 `switcherDeck.deckFlingOutward(cur, idx, vFocus, n)`
+   *   ——「越界区 + 速度指向目标之外」⇒ 不注入动量，走 ios-deck-settle（ζ=1.0、v0 = 0）。
+   *   平面内（0 ≤ cur ≤ last）恒 false ⇒ 需求④的动量与参考视频 V4 的过冲回弹逐位不变。
+   *   自省口：`window.__switcherSettle.outward`。
+   *
+   * ⚠️ 本用例必须用【真实触摸 + 真实速度】：
+   *   · `synthDrag` 是 pointerType 'mouse'、且分步时长由 vPx 反推，构造不出「快速甩」；
+   *   · 而这条缺陷的触发条件里【速度方向】是自变量（vFocus 必须朝越界方向）——
+   *     慢放手（v≈0）走的是非快甩分支，根本不进这条路径（那正是「停住再松手不抖」的原因）。
+   *   所以先用慢速触摸走到最后一卡（每步 40ms ⇒ ≈1.9 层/秒 < FLICK_V_MIN 2.6，不构成快甩），
+   *   再在同一张卡上做一次 5 笔 × 30px / 9ms（≈3300px/s ⇒ 必判快甩）的真实触摸快甩。
+   * ⚠️ 判据用【松手那一刻的焦点】当上界（`settle.cur`），而不是拍一个绝对像素数：
+   *   冲程上界 = 手指真的把卡拖到哪儿（跟手，用户没抱怨），越界外甩只允许【不再多走】。 */
+  {
+    const openFiveAndSwitcher = async () => {
+      await page.evaluate(() => { const s = window.__system; s.exitSwitcherToHome(); s.dismissAll() })
+      await page.waitForTimeout(260)
+      for (const id of ['calculator', 'files', 'notes', 'camera', 'clock']) {
+        await page.evaluate((a) => window.__system.openApp(a), id)
+        await page.waitForTimeout(420)
+      }
+      await page.evaluate(() => window.__system.openSwitcher())
+      await page.waitForTimeout(900)
+    }
+
+    /** walkTo：先用【慢速】触摸走到第几张卡（0 = 不走，直接在 0 号卡上甩）。
+     *  之后在同一位置做一次真实快甩，并按【相位】逐帧记「渲染出来的焦点」。
+     *  相位在页面内打标 ⇒ 与 pointerup 严格同源，不像 CDP 方案那样要靠时间猜测。 */
+    const synthLastFlick = (walkTo, { steps = 5, stepMs = 9, px = 30 } = {}) =>
+      page.evaluate(
+        async ({ walkTo, steps, stepMs, px, span }) => {
+          const root = document.querySelector('.app-switcher')
+          if (!root) return { error: 'no .app-switcher' }
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+          const mk = (t, x) =>
+            new PointerEvent(t, {
+              bubbles: true, cancelable: true, composed: true, pointerId: 5,
+              pointerType: 'touch', isPrimary: true,
+              buttons: t === 'pointerup' ? 0 : 1, clientX: x, clientY: 500
+            })
+          const x0 = 70
+          const rec = []
+          let run = true
+          let ph = 'idle'
+          const sample = () => {
+            if (!run) return
+            const cs = [...document.querySelectorAll('.switcher-card.is-deck')]
+            if (cs.length) {
+              const pairs = cs.map((c) => [+c.dataset.index, +c.dataset.depth])
+              const best = pairs.reduce((a, b) => (Math.abs(b[1]) < Math.abs(a[1]) ? b : a))
+              rec.push({ v: +(best[0] - best[1]).toFixed(4), ph })
+            }
+            requestAnimationFrame(sample)
+          }
+          requestAnimationFrame(sample)
+
+          /* ── 阶段 1：慢速走到目标卡（每步 40ms、约 18px ⇒ ≈1.9 层/秒，判不出快甩）── */
+          ph = 'walk'
+          for (let g = 0; g < walkTo; g++) {
+            root.dispatchEvent(mk('pointerdown', x0))
+            await sleep(30)
+            const nSteps = 13
+            for (let i = 1; i <= nSteps; i++) {
+              root.dispatchEvent(mk('pointermove', x0 + (span * i) / nSteps))
+              await sleep(40)
+            }
+            await sleep(200) // 停住 ⇒ 松手速度 ≈ 0（非快甩分支）
+            root.dispatchEvent(mk('pointerup', x0 + span))
+            await sleep(650)
+          }
+          const walked = window.__switcherSettle ? window.__switcherSettle.idx : null
+
+          /* ── 阶段 2：同一张卡上的真实快甩（steps 笔 × px / stepMs ⇒ 远高于 FLICK_V_MIN）── */
+          window.__switcherSettle = null
+          ph = 'flick'
+          root.dispatchEvent(mk('pointerdown', x0))
+          await sleep(22)
+          for (let i = 1; i <= steps; i++) {
+            root.dispatchEvent(mk('pointermove', x0 + px * i))
+            await sleep(stepMs)
+          }
+          root.dispatchEvent(mk('pointerup', x0 + px * steps))
+          ph = 'after'
+          await sleep(1800)
+          run = false
+
+          const after = rec.filter((r) => r.ph === 'after').map((r) => r.v)
+          let rev = 0
+          let prevD = null
+          for (let i = 1; i < after.length; i++) {
+            const d = after[i] - after[i - 1]
+            if (prevD != null && d * prevD < 0 && Math.abs(d) > 0.008 && Math.abs(prevD) > 0.008) rev++
+            prevD = d
+          }
+          return {
+            walked,
+            settle: window.__switcherSettle,
+            afterMax: after.length ? +Math.max(...after).toFixed(4) : null,
+            afterMin: after.length ? +Math.min(...after).toFixed(4) : null,
+            afterEnd: after.length ? after[after.length - 1] : null,
+            rev,
+            nAfter: after.length,
+            apps: window.__system.recentApps.length
+          }
+        },
+        { walkTo, steps, stepMs, px, span: SPAN }
+      )
+
+    await openFiveAndSwitcher()
+    const lastIdx = await page.evaluate(() => Math.max(0, window.__system.recentApps.length - 1))
+    const lf = await synthLastFlick(lastIdx)
+    /* 前置：确实走完了、且最后一卡确实是最后一卡（否则整条用例测的就不是这个位置） */
+    check('第二十二轮·前置：慢速触摸走到的末卡 = recentApps 的最后一张',
+      lastIdx >= 3 && lf.walked === lastIdx && !!lf.settle && lf.settle.idx === lastIdx,
+      `recentApps=${lf.apps} 张 · 走完落点=${lf.walked} · 快甩判定 idx=${lf.settle && lf.settle.idx}`)
+    check('第二十二轮·需求：快甩落在最后一卡 ⇒ 判成「越界外甩」（不再注入动量）',
+      !!lf.settle && lf.settle.outward === true,
+      `settle=${JSON.stringify(lf.settle)}（改前无 outward 字段，且会把 vFocus 注入 ios-deck）`)
+    check('第二十二轮·需求：越界外甩不再把卡片甩出去 —— 冲程 ≤ 松手点（改前额外越界 ≈0.14 层 ≈ 33px）',
+      lf.afterMax != null && !!lf.settle && lf.afterMax - lastIdx <= lf.settle.cur - lastIdx + 0.02,
+      `松手点 ${lf.settle && lf.settle.cur} 层 · 松手后最高 ${lf.afterMax} 层 · ` +
+        `额外越界 ${lf.afterMax != null && lf.settle ? (lf.afterMax - lf.settle.cur).toFixed(4) : 'n/a'} 层（期望 ≤ 0.02）`)
+    check('第二十二轮·需求：松手后严格单调收回（临界阻尼、反号 0 次）',
+      lf.nAfter >= 60 && lf.rev === 0 && lf.afterMin != null && lf.afterMin >= lastIdx - 0.06,
+      `松手后 ${lf.nAfter} 帧 · 反号 ${lf.rev} 次 · 最低 ${lf.afterMin} 层（下界 ≈ 末卡 ${lastIdx}）`)
+    check('第二十二轮·需求：最终落定在最后一卡（不再「不停颤抖」）',
+      Math.abs(lf.afterEnd - lastIdx) < 0.02,
+      `终位 ${lf.afterEnd} 层（目标 ${lastIdx}）`)
+
+    /* 对照：同一套输入落在【中间某张卡】上必须仍走动量分支（否则就是把需求④的动量一起改死了） */
+    await openFiveAndSwitcher()
+    const ip = await synthLastFlick(0)
+    check('第二十二轮·对照：平面内的快甩仍注入动量（过冲越过了整卡边界，需求④不变）',
+      !!ip.settle && ip.settle.outward === false && ip.settle.isFlick === true &&
+        ip.afterMax != null && ip.afterMax > ip.settle.idx,
+      `settle=${JSON.stringify(ip.settle)} · 松手后最高 ${ip.afterMax} 层（须 > ${ip.settle && ip.settle.idx}）`)
+  }
+
   await resetHome()
 }
 

@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  BOUNDARY_FLING_EPS,
   DECK,
   deckClampFocus,
   deckEnterDx,
   deckExposure,
+  deckFlingOutward,
   deckMetrics,
   deckMinLeftEdge,
   deckPhase,
@@ -609,4 +611,31 @@ test('第二十一轮·需求：坐标连续性判据（touchStepIsTeleport）',
   /* 半窗口（60fps 一帧 = 16.7ms）下的物理自洽：下限 56px ⇔ 3360px/s，
      指距 120px ⇔ 7200px/s —— 后者超出指尖极限，前者仍在人手可及范围内。 */
   assert.ok(TOUCH_STEP_JUMP_PX / 16.7 < 4, '下限对应的速度不能低于真实快滑（否则会误判真手指）')
+})
+
+test('第二十二轮·需求：越界外甩的动量判据（deckFlingOutward）', () => {
+  const n = 5 // 合法区间 0..4
+  /* ① 平面内恒 false —— 需求④的动量、参考视频 V4 的过冲回弹必须逐位不变 */
+  assert.equal(deckFlingOutward(0, 0, 6, n), false, '停在 0 号卡')
+  assert.equal(deckFlingOutward(0.62, 1, 5.6, n), false, '中间卡快甩（松手点在目标之下）')
+  assert.equal(deckFlingOutward(3.3, 4, 7, n), false, '中间卡拖过头再快甩：平面内不判')
+  assert.equal(deckFlingOutward(2.0, 3, -7, n), false, '反向快甩（往左）在平面内也不判')
+  /* ② 右越界 + 速度朝外 ⇒ true（本轮的病灶：probe-apppath 实测 cur 4.2246 / 4.5241） */
+  assert.equal(deckFlingOutward(4.2246, 4, 6.068, n), true, '末卡快甩：目标在身后、速度朝右')
+  assert.equal(deckFlingOutward(4.5241, 4, 5.542, n), true, '怼到右边界后松手：同上')
+  /* ③ 右越界但速度【朝内】⇒ false（回弹的动量该保留，加速收回） */
+  assert.equal(deckFlingOutward(4.2246, 4, -6, n), false, '越界区反向甩回：速度指向目标')
+  /* ④ 左越界：与右侧同构（左边界之所以「看不出抖」是 poseFocus 把位移冻结了，不是判据不管它） */
+  assert.equal(deckFlingOutward(-0.21, 0, -5.4, n), true, '贴着 0 号卡继续往左甩')
+  assert.equal(deckFlingOutward(-0.21, 0, 5.4, n), false, '左越界区往右甩回')
+  /* ⑤ 零距离（idx === cur）：没有「指向目标」可言 ⇒ 判成外甩，走临界阻尼 */
+  assert.equal(deckFlingOutward(4.0, 4, 5, n), false, '恰在整数层上不越界')
+  assert.equal(deckFlingOutward(4.02 + BOUNDARY_FLING_EPS + 0.01, 4, 5, n), true, '越过死区 ⇒ 判越界')
+  assert.equal(deckFlingOutward(4.02, 4, 5, n), false, `死区(${BOUNDARY_FLING_EPS} 层)内不判越界，避免浮点噪声翻转决策`)
+  /* ⑥ 单卡（n = 1，合法区间只有 0）：任何方向都是越界，判据必须与 n = 5 同构 */
+  assert.equal(deckFlingOutward(0.3, 0, 6, 1), true, '只有一张卡时往右甩')
+  assert.equal(deckFlingOutward(0.3, 0, -6, 1), false, '只有一张卡时往左甩回')
+  /* ⑦ 与 deckClampFocus 的联动：越界区真的能被拖出去（否则本判据永远不会触发） */
+  assert.ok(deckClampFocus(99, n) > n - 1 + BOUNDARY_FLING_EPS, '正侧橡皮筋确实允许拖到 last 之上')
+  assert.ok(deckClampFocus(-99, n) < -BOUNDARY_FLING_EPS, '负侧橡皮筋确实允许拖到 0 之下')
 })

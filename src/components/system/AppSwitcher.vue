@@ -14,6 +14,7 @@ import {
   DECK,
   deckClampFocus,
   deckEnterDx,
+  deckFlingOutward,
   deckMetrics,
   deckPhase,
   deckPose,
@@ -581,22 +582,40 @@ function settleFocus(vFocus, startFocus) {
   /* 先夹到合法区间再落定 —— 自省口报的必须是【真实决策】，而不是夹取前的中间值
      （反向上甩贴着 0 号卡时中间值会是 -1，探针会据此误判成越界）。 */
   idx = Math.max(0, Math.min(last, idx))
+  /* ── 第二十二轮（Ricky 2026-09-16）：越界释放【不注入动量】────────────────────
+   * Ricky 原话：「有改善，但是还是会出现。抖动发生在快速滑动松手后到达最后一张卡片，
+   *   卡片不停颤抖」。
+   *
+   * 判据本体在 utils/switcherDeck.deckFlingOutward（纯函数，单测覆盖；长注释里有
+   * 逐帧量测数据）。一句话：**越界区里、速度指向目标之外时，它不是动量，是「继续越界」**。
+   * 实测（/tmp/vwork/r22/probe-apppath.mjs，5 张卡）：
+   *   · 中间卡快甩（松手点在目标之下）→ 过冲 0.07 层 = 16px（就是第十一轮的 +12.6px 动量）；
+   *   · 最后一张卡快甩（deckClampFocus 把松手点顶到 last 之上，而目标被钉回 last）
+   *     → 注入的 vFocus 与「当前 → 目标」反向 ⇒ 冲程被放大到 0.34~0.58 层 = 80~135px，
+   *       松手后 600ms 还在晃；连续快甩时 spring 几乎 100% 常驻 ⇒ 观感「不停颤抖」。
+   * 处置：判成越界外甩 ⇒ 走 ios-deck-settle（ζ=1.0 临界阻尼）+ 显式 v0 = 0，
+   *   与第十一轮的「慢滑不多弹一下」同一条路径 ⇒ 严格单调收回，零过冲。
+   * ⚠️ 平面内（0 ≤ cur ≤ last）判据恒 false ⇒ 需求④的动量、参考视频 V4 的过冲回弹、
+   *    e2e 第十一轮·需求② 的 `st2.over > 3` 全部逐位不变。别把它推广到平面内。 */
+  const outward = deckFlingOutward(cur, idx, vFocus, apps.value.length)
   focusToIndex(
     idx,
-    isFlick
-      ? /* 快甩：把松手速度注入 ios-deck（ζ=0.65）—— 卡片加速冲出去、到位时带一次过冲。
-           这是【动量】，不是多余回弹：参考视频 V4 快甩实测回退 254/229px，
+    isFlick && !outward
+      ? /* 快甩（且动量方向正确）：把松手速度注入 ios-deck（ζ=0.65）—— 卡片加速冲出去、
+           到位时带一次过冲。这是【动量】，不是多余回弹：参考视频 V4 快甩实测回退 254/229px，
            第十一轮探针亦量到快甩过冲 12.6px / 占行程 13.6%（慢滑只有 5~6.5px）。 */
         { initialVelocity: vFocus, velocityLimit: FLICK_V_LIMIT }
-      : /* 慢滑 / 停住再松手（第十一轮需求：「慢滑滑动卡卡片多了一个不必要的回弹」）：
+      : /* 慢滑 / 停住再松手（第十一轮需求：「慢滑滑动卡卡片多了一个不必要的回弹」）
+           + 越界外甩（第二十二轮）：
           ① 换 ios-deck-settle（同 ω_n、ζ=1.0 临界阻尼）⇒ 没有阶跃过冲；
-          ② 【不注入速度】—— 临界阻尼下只要 v0 > ω_n·d 仍会过冲，
+          ② 【不注入速度】（显式传 0，不依赖 snapTo 恰好把 state.v 归过零）——
+             临界阻尼下只要 v0 > ω_n·d 仍会过冲，
              而「贴近目标才松手」（d 很小）恰恰是慢滑的常态，此时 ω_n·d 很小、
              残余速度一注入就又把卡片顶过终点。纯阶跃（v0 = 0）+ 临界阻尼
              ⇒ 数学上严格单调，这就是「不再多弹一下」的全部保证。
              代价（松手瞬间速度从手指速度归零）实测不可见：临界阻尼下卡片在 ~70ms 内
              就自加速到 ω_n·d/e ≈ 手指速度的量级（0.45 层行程 ⇒ 541px/s），不会「顿一下」。 */
-        { preset: 'ios-deck-settle' }
+        { preset: 'ios-deck-settle', initialVelocity: 0 }
   )
   /* 松手判定的自省口（与 main.js 暴露 window.__system 同性质）：
      回归探针拿它当 oracle —— 断言「给定 (cur, vFocus, startFocus) 的判定必须满足
@@ -606,7 +625,10 @@ function settleFocus(vFocus, startFocus) {
     from: +startFocus.toFixed(4),
     vFocus: +vFocus.toFixed(3),
     isFlick,
-    idx
+    idx,
+    /* 第二十二轮：本次松手是否被判成「越界外甩」（⇒ 未注入动量）。
+       e2e/探针据此断言判据真的生效，而不是只看焦点有没有收敛。 */
+    outward
   }
 }
 
