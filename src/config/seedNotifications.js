@@ -9,19 +9,21 @@
 export function seedNotifications() {
   const now = Date.now()
   let id = 1
-  const make = (appId, minutesAgo, iconType) => ({
+  const make = (appId, minutesAgo, iconType, persistent = false, customData = {}) => ({
     id: id++,
     appId,
     iconType: iconType || appId,
     minutesAgo,
-    time: now - minutesAgo * 60000
+    time: now - minutesAgo * 60000,
+    persistent,
+    ...customData
   })
 
   return [
     make('whatsapp', 0),
     make('facebook', 12),
     make('tiktok', 18),
-    make('spotify', 25),
+    make('spotify', 28),
     make('gmail', 35),
     make('amazon', 42),
     make('snapchat', 55),
@@ -35,7 +37,6 @@ export function seedNotifications() {
     make('telegram', 300),
     make('youtube', 360),
     make('weather', 480),
-    make('system', 600),
     make('linkedin', 720),
     make('alipay', 1440)
   ]
