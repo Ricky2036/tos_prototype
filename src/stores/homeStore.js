@@ -182,6 +182,25 @@ export const useHomeStore = defineStore('home', {
       this.persist()
       return true
     },
+    moveItems(itemIds, page, index, preserveSelection = true) {
+      const validIds = [...new Set(itemIds || [])].filter((id) => this.items[id] && this.order.includes(id))
+      if (!validIds.length) return false
+      const orderedIds = this.order.filter((id) => validIds.includes(id))
+      const targetRank = this.rankAt(page, index)
+      const removedBefore = this.order.slice(0, targetRank).filter((id) => validIds.includes(id)).length
+      const remaining = this.order.filter((id) => !validIds.includes(id))
+      remaining.splice(Math.max(0, targetRank - removedBefore), 0, ...orderedIds)
+      this.order = remaining
+      for (const id of orderedIds) {
+        const item = this.items[id]
+        if (item?.type === 'app') this.hiddenDesktopAppIds = this.hiddenDesktopAppIds.filter((appId) => appId !== item.appId)
+      }
+      if (!preserveSelection) this.selectedItemIds = []
+      this.reflow()
+      this.currentPage = Math.min(Math.max(0, Number(page) || 0), this.pages.length - 1)
+      this.persist()
+      return true
+    },
     createFolder(ids, page = this.currentPage, index = 0) {
       const apps = unique(ids).map((id) => this.items[id]).filter((item) => item?.type === 'app'); if (apps.length < 2) return null
       const rank = this.rankAt(page, index), folderId = `home-folder-${Date.now()}-${folderSequence += 1}`, id = folderItemId(folderId)

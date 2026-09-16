@@ -1,0 +1,99 @@
+{
+  "schemaVersion": "motion-spec.v1",
+  "meta": {
+    "name": "desktop-multi-select-pickup-drop",
+    "targetPlatform": "mobile-web",
+    "framework": "Vue",
+    "viewport": { "width": 592, "height": 1280, "devicePixelRatio": 1 },
+    "reference": {
+      "kind": "video",
+      "path": "/Users/jingzhan.chen/Library/Containers/com.tencent.xinWeChat/Data/Documents/xwechat_files/oppo_cjz_b76f/temp/RWTemp/2026-09/f08a54aa5e7c9c369a432352061b94c2/17b8496a7868d8605a995bb0ae4a4906.mp4",
+      "fps": 24,
+      "durationMs": 13500
+    }
+  },
+  "context": {
+    "purpose": "Continuity",
+    "effectSummary": "Selected desktop icons gather into a counted stack, follow the pointer, then fan into their destination cells on release.",
+    "meaningSummary": "The user can track the selected set as one movable object and see every member arrive at its new position.",
+    "initialState": "desktop-edit-selection",
+    "targetState": "desktop-edit-selection-reordered"
+  },
+  "elements": [
+    {
+      "id": "selected-icons",
+      "role": "selected desktop items",
+      "locator": { "testId": "selected-home-items" },
+      "transformOrigin": [0.5, 0.5],
+      "provenance": { "kind": "observed", "confidence": 0.94, "evidenceIds": ["reference-5.00s", "reference-9.75s"] }
+    },
+    {
+      "id": "drag-stack",
+      "role": "multi-item drag representation",
+      "locator": { "testId": "multi-drag-stack" },
+      "transformOrigin": [0.5, 0.5],
+      "provenance": { "kind": "observed", "confidence": 0.92, "evidenceIds": ["reference-5.50s", "reference-9.25s"] }
+    }
+  ],
+  "tracks": [
+    {
+      "id": "pickup-gather",
+      "elementId": "selected-icons",
+      "property": "transform",
+      "unit": "ratio",
+      "from": 1,
+      "to": 0.92,
+      "timing": { "onsetMs": 0, "delayMs": 0, "durationMs": 240, "settlingMs": 280 },
+      "model": { "type": "tween", "easing": "cubic-bezier(0.22, 1, 0.36, 1)" },
+      "provenance": { "kind": "inferred", "confidence": 0.76, "reason": "The 24 fps reference shows the selected set gathering between approximately 5.00s and 5.30s." }
+    },
+    {
+      "id": "pointer-follow",
+      "elementId": "drag-stack",
+      "property": "position",
+      "unit": "px",
+      "from": 0,
+      "to": 1,
+      "timing": { "onsetMs": 0, "delayMs": 0, "durationMs": 0, "settlingMs": 0 },
+      "model": { "type": "gesture-map" },
+      "provenance": { "kind": "observed", "confidence": 0.9, "reason": "The stack stays bound to the finger throughout the move." }
+    },
+    {
+      "id": "drop-fan-out",
+      "elementId": "selected-icons",
+      "property": "transform",
+      "unit": "ratio",
+      "from": 0.92,
+      "to": 1,
+      "timing": { "onsetMs": 0, "delayMs": 0, "durationMs": 360, "settlingMs": 420 },
+      "model": { "type": "tween", "easing": "cubic-bezier(0.22, 1, 0.36, 1)" },
+      "provenance": { "kind": "inferred", "confidence": 0.8, "reason": "Icons separate immediately after release near 9.50s and visually settle by about 10.00s." }
+    }
+  ],
+  "coordination": [
+    { "type": "sequence", "trackIds": ["pickup-gather", "pointer-follow", "drop-fan-out"], "offsetMs": 0 }
+  ],
+  "interaction": {
+    "trigger": "drag selected desktop item",
+    "inputTargetElementId": "selected-icons",
+    "interruptBehavior": "cancel-and-return-to-source"
+  },
+  "accessibility": {
+    "reducedMotion": "replace-with-fade",
+    "customBehavior": "Commit the same group reorder and cross-fade the real destination items within 80ms.",
+    "informationEquivalent": true,
+    "systemPreferenceBinding": "@media (prefers-reduced-motion: reduce)"
+  },
+  "acceptance": {
+    "metrics": [
+      { "id": "group-order-committed", "level": "G0-functional", "method": "Assert every selected item moves as one ordered group.", "target": true, "tolerance": false, "hardGate": true },
+      { "id": "source-stack-destination-continuity", "level": "G1-semantic", "method": "Assert selected sources hide into one stack and every visible destination is represented by a settling clone.", "target": true, "tolerance": false, "hardGate": true },
+      { "id": "drop-settle-duration", "level": "G2-temporal", "method": "Measure release to final real-item handoff.", "target": 420, "tolerance": 80, "hardGate": false },
+      { "id": "transform-only-follow", "level": "G5-quality", "method": "Verify pointer-follow updates transform only and leaves no clones after settle or cancellation.", "target": true, "tolerance": false, "hardGate": true },
+      { "id": "reduced-motion-equivalence", "level": "G5-quality", "method": "Repeat the reorder under reduced motion and assert identical final order.", "target": true, "tolerance": false, "hardGate": true }
+    ],
+    "maxAutomaticIterations": 3,
+    "minimumImprovement": 0.01,
+    "stopOnHardGateFailure": true
+  }
+}

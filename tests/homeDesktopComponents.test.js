@@ -30,6 +30,23 @@ test('motion polish includes FLIP, removal animation and reduced-motion support'
   assert.match(dock, /is-removing/)
 })
 
+test('multi-select drag uses a gathered stack and fans every selected item into its destination', async () => {
+  const [home, grid, store] = await Promise.all([
+    read('../src/components/system/HomeScreen.vue'),
+    read('../src/components/system/AppGrid.vue'),
+    read('../src/stores/homeStore.js')
+  ])
+  assert.match(home, /drag-cluster-stack/)
+  assert.match(home, /dragging\.value = \{ id:pointer\.itemId, ids,/)
+  assert.match(home, /moveOrderGroup\(previewOrder\.value, dragging\.value\.ids/)
+  assert.match(home, /async function animateMultiDrop/)
+  assert.match(home, /duration:360 \+ Math\.min\(index,5\)\*18/)
+  assert.match(home, /settlingIds\.value = \[\.\.\.ids\]/)
+  assert.match(grid, /is-settling-destination/)
+  assert.match(grid, /draggingIds/)
+  assert.match(store, /moveItems\(itemIds, page, index, preserveSelection = true\)/)
+})
+
 test('desktop grid renders adaptive pixel frames and preserves square widgets', async () => {
   const grid = await read('../src/components/system/AppGrid.vue')
   assert.match(grid, /position:absolute/)
