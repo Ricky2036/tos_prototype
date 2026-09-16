@@ -344,6 +344,9 @@ test('folder collapse preserves smooth background backdrop blur and seamless des
   // Desktop folder does not transition background color
   assert.doesNotMatch(folder, /\.folder-apps\{[^}]*background 180ms ease/)
 })
-
-
-
+test('drag ghost preserves 1:1 card aspect ratio and dimensions for widgets and large folders', async () => {
+  const home = await read('../src/components/system/HomeScreen.vue')
+  assert.match(home, /cardEl = source\?\.querySelector\?\.?\(['"]\.widget/)
+  assert.match(home, /aspect-ratio:1\/1/)
+  assert.match(home, /--card-width:\$\{width\}px;--card-height:\$\{height\}px;/)
+})

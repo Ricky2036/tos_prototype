@@ -528,7 +528,7 @@ async function captureScreenshot(opts = {}) {
 
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
     if (!blob) throw new Error('canvas.toBlob 返回空')
-    downloadBlob(blob, `aurora-phone_${timestamp()}.png`)
+    downloadBlob(blob, `tOS_Prototype_${timestamp()}.png`)
     notify('截图已保存', 'success')
     return true
   } catch (err) {

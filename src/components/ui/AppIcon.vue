@@ -68,7 +68,17 @@ const badge = computed(() => notifications.countByApp[props.app.id] || 0)
  *
  * ⚠️ 别删这个判据、也别把它改回只看 hiddenIconId：
  *   所有过渡用的镜像都靠 `ignore-hidden` 显式豁免（AppWindow 的 hero 图标、
- *   AppSwitcher 的卡片标签图标），不依赖这里的语义。 */
+ *   AppSwitcher 的卡片标签图标），不依赖这里的语义。
+ *
+ * 🔀 合并说明（workbuddy/lane ← origin/main，2026-09-16）：
+ *   main 上有一条独立修法，判据写作「仅当存在活跃应用时生效」
+ *   （`if (props.ignoreHidden) return false; if (!system.activeAppId) return false; ...`）。
+ *   它确实挡住了「窗口已经没了却漏清隐藏态」这一大类，但粒度不够：
+ *   只要有**任何一个**前台应用在跑，单槽的 `hiddenIconId` 若指向别的 app，
+ *   那一格仍会被误藏。本条把判据收紧成「activeAppId 必须就是自己」，
+ *   **严格包含** main 那版的全部生效场景（`activeAppId === app.id` ⇒ `activeAppId` 非空）
+ *   ⇒ 采用本条，main 的语义被吸收，行为只会更可见、不会更隐蔽。
+ *   ⚠️ 反向不成立：不要再退回「只判 !activeAppId」。 */
 const hidden = computed(
   () =>
     !props.ignoreHidden &&
@@ -170,7 +180,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   width: 64px;
 }
 .app-icon-anchor {

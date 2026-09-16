@@ -951,7 +951,25 @@ function onToggleFineTune(enabled) {
             <!-- 虚线分割 -->
             <div class="pc-divider-dashed"></div>
 
-            <!-- 区域 2：穆斯林闹钟时间模式切换卡片 -->
+            <!-- 区域 2：唤礼提醒 开关卡片 -->
+            <div class="pc-section">
+              <div class="pc-card-header" style="margin-bottom: 0;">
+                <span class="pc-card-title">唤礼提醒</span>
+                <label class="pc-switch-wrap">
+                  <input
+                    type="checkbox"
+                    :checked="prayerStore.adhanReminderEnabled"
+                    @change="prayerStore.setAdhanReminderEnabled($event.target.checked)"
+                  />
+                  <div class="pc-switch"></div>
+                </label>
+              </div>
+            </div>
+
+            <!-- 虚线分割 -->
+            <div class="pc-divider-dashed"></div>
+
+            <!-- 区域 3：穆斯林闹钟时间模式切换卡片 -->
             <div class="pc-section">
               <div class="pc-card-header">
                 <span class="pc-card-title">穆斯林闹钟</span>
@@ -1501,7 +1519,25 @@ function onToggleFineTune(enabled) {
                     <!-- 虚线分割 -->
                     <div class="pc-divider-dashed"></div>
 
-                    <!-- 区域 2：穆斯林闹钟时间模式切换卡片 -->
+                    <!-- 区域 2：唤礼提醒 开关卡片 -->
+                    <div class="pc-section">
+                      <div class="pc-card-header" style="margin-bottom: 0;">
+                        <span class="pc-card-title">唤礼提醒</span>
+                        <label class="pc-switch-wrap">
+                          <input
+                            type="checkbox"
+                            :checked="prayerStore.adhanReminderEnabled"
+                            @change="prayerStore.setAdhanReminderEnabled($event.target.checked)"
+                          />
+                          <div class="pc-switch"></div>
+                        </label>
+                      </div>
+                    </div>
+
+                    <!-- 虚线分割 -->
+                    <div class="pc-divider-dashed"></div>
+
+                    <!-- 区域 3：穆斯林闹钟时间模式切换卡片 -->
                     <div class="pc-section">
                       <div class="pc-card-header">
                         <span class="pc-card-title">穆斯林闹钟</span>
@@ -1569,12 +1605,12 @@ function onToggleFineTune(enabled) {
 
 .pc-glow {
   position: absolute;
-  top: -80px;
-  right: -80px;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
-  filter: blur(40px);
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.3) 0%, transparent 60%);
+  border-radius: inherit;
   pointer-events: none;
 }
 
@@ -2269,6 +2305,9 @@ function onToggleFineTune(enabled) {
   align-items: center;
   justify-content: center;
   padding: 16px;
+  overflow: hidden;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 
 /* 移动端弹窗控制台 (尺寸布局完全同桌面版) */
@@ -2276,11 +2315,19 @@ function onToggleFineTune(enabled) {
   width: min(320px, calc(100vw - 32px));
   max-height: 90dvh;
   overflow-y: auto;
+  overflow-x: hidden !important;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
   pointer-events: auto;
   z-index: 100001;
   box-shadow:
     0 32px 80px rgba(0, 0, 0, 0.8),
     inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.modal-console::-webkit-scrollbar:horizontal {
+  display: none !important;
+  height: 0 !important;
 }
 
 .pc-close-btn {

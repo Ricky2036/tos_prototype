@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
 import { useClockStore } from '../../../stores/clockStore'
 import { useSystemStore } from '../../../stores/systemStore'
@@ -60,6 +60,15 @@ function handleReminderBack() {
   isBack.value = true
   currentView.value = 'list'
 }
+
+watch(
+  () => prayerStore?.adhanReminderEnabled,
+  (enabled) => {
+    if (!enabled && currentView.value === 'reminder') {
+      currentView.value = 'list'
+    }
+  }
+)
 
 /* 启用穆斯林闹钟弹窗状态与选择拦截 */
 const showEnableMuslimAlarmModal = ref(false)
@@ -373,20 +382,22 @@ function saveEdit() {
             </div>
           </div>
 
-          <!-- 闹钟提醒入口（小标题为唤礼提醒，标题为闹钟提醒） -->
-          <div class="group-header">{{ tr('prayerAlarmHeader', '唤礼提醒', 'ADHAN REMINDER', 'আযান স্মারক') }}</div>
-          <div class="cell-group">
-            <ListCell
-              glyph="bell"
-              icon-bg="#FF9500"
-              :title="tr('prayerAlarmLinkage', '闹钟提醒', 'Alarm Reminder', 'অ্যালার্ম স্মারক')"
-              :subtitle="tr('prayerAlarmLinkageDesc', '礼拜开始前，使用穆斯林闹钟进行提醒', 'Use Muslim alarm for reminders before prayer begins', 'নামাজ শুরুর পূর্বে মুসলিম অ্যালার্ম দিয়ে স্মারক পান')"
-              :value="currentReminderLabel"
-              chevron
-              last
-              @click="openReminderSubpage"
-            />
-          </div>
+          <!-- 闹钟提醒入口（小标题为唤礼提醒，标题为闹钟提醒，由控制台唤礼提醒开关控制显示） -->
+          <template v-if="prayerStore.adhanReminderEnabled">
+            <div class="group-header">{{ tr('prayerAlarmHeader', '唤礼提醒', 'ADHAN REMINDER', 'আযান স্মারক') }}</div>
+            <div class="cell-group">
+              <ListCell
+                glyph="bell"
+                icon-bg="#FF9500"
+                :title="tr('prayerAlarmLinkage', '闹钟提醒', 'Alarm Reminder', 'অ্যালার্ম স্মারক')"
+                :subtitle="tr('prayerAlarmLinkageDesc', '礼拜开始前，使用穆斯林闹钟进行提醒', 'Use Muslim alarm for reminders before prayer begins', 'নামাজ শুরুর পূর্বে মুসলিম অ্যালার্ম দিয়ে স্মারক পান')"
+                :value="currentReminderLabel"
+                chevron
+                last
+                @click="openReminderSubpage"
+              />
+            </div>
+          </template>
 
           <!-- 功能：AI 自动接听 -->
           <div class="group-header">{{ i18n.t('aiAnswerHeader') }}</div>

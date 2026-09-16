@@ -229,19 +229,29 @@ function suppressClick(id) {
 }
 function createDragGhost(source,id,x,y) {
   const rootRect = rootRef.value?.getBoundingClientRect()
-  const sourceRect = source?.getBoundingClientRect()
+  const cardEl = source?.querySelector?.('.widget, .smart-suggestion-stack, .large .folder-apps')
+  const targetEl = cardEl || source
+  const targetRect = targetEl?.getBoundingClientRect()
   const scaleX = rootRect?.width ? rootRef.value.offsetWidth/rootRect.width : 1
   const scaleY = rootRect?.height ? rootRef.value.offsetHeight/rootRect.height : 1
   const point = clientPointToHome(x,y)
-  const left = sourceRect && rootRect ? (sourceRect.left-rootRect.left)*scaleX : point.x-34
-  const top = sourceRect && rootRect ? (sourceRect.top-rootRect.top)*scaleY : point.y-44
-  const clone = source?.cloneNode(true)
-  ghost.value = { id,x:left,y:top,width:(sourceRect?.width || 68)*scaleX,height:(sourceRect?.height || 76)*scaleY,grabX:point.x-left,grabY:point.y-top }
+  const left = targetRect && rootRect ? (targetRect.left-rootRect.left)*scaleX : point.x-34
+  const top = targetRect && rootRect ? (targetRect.top-rootRect.top)*scaleY : point.y-44
+  const clone = cardEl ? cardEl.cloneNode(true) : source?.cloneNode(true)
+  const width = (targetRect?.width || (cardEl ? 145 : 68)) * scaleX
+  const height = (targetRect?.height || (cardEl ? 145 : 76)) * scaleY
+  ghost.value = { id,x:left,y:top,width,height,grabX:point.x-left,grabY:point.y-top }
   nextTick(() => {
     if (!ghostRef.value || !clone || ghost.value?.id !== id) return
     clone.removeAttribute('data-home-item'); clone.removeAttribute('data-dock-item')
     clone.classList.remove('is-editing','is-dragging-source','is-removing','is-selected')
-    clone.style.cssText = 'position:relative;left:auto;top:auto;width:100%;height:100%;transform:none;animation:none;opacity:1;pointer-events:none'
+    if (cardEl) {
+      const isSquare = cardEl.matches('.widget, .smart-suggestion-stack, .size-2-2') || Math.abs(width - height) < 2
+      const aspectRule = isSquare ? 'aspect-ratio:1/1;' : ''
+      clone.style.cssText = `position:relative;left:auto;top:auto;width:100%;height:100%;${aspectRule}transform:none;animation:none;opacity:1;pointer-events:none;--card-width:${width}px;--card-height:${height}px;`
+    } else {
+      clone.style.cssText = 'position:relative;left:auto;top:auto;width:100%;height:100%;transform:none;animation:none;opacity:1;pointer-events:none'
+    }
     clone.querySelectorAll('.selection-mark,.remove-badge,.dock-select').forEach(node => node.remove())
     if (home.selectedItemIds.includes(id) && home.selectedItemIds.length > 1) {
       const badge = document.createElement('span')
@@ -273,6 +283,9 @@ function onEmptyPointerDown(event) {
 function onItemPointerDown(event, id, page, index) {
   if (event.button != null && event.button !== 0) return
   event.stopPropagation()
+  if (folderOperation.value && folderOperation.value.itemId !== id) {
+    folderOperation.value = null
+  }
   const isFolder = home.items[id]?.type === 'folder'
   const readyToMove = home.editing || folderOperation.value?.itemId === id
   pointer = { id:event.pointerId, mode:readyToMove ? 'item-ready' : (isFolder ? 'folder-press' : 'item-press'), itemId:id, page, index,
@@ -545,8 +558,19 @@ function onPointerMove(event) {
   pointer.lastX = event.clientX; pointer.lastY = event.clientY
   const dx = event.clientX - pointer.startX, dy = event.clientY - pointer.startY
   if (pointer.mode === 'folder-resize') { event.preventDefault(); updateFolderResize(event.clientX,event.clientY); return }
-  if (pointer.mode === 'folder-press' && Math.hypot(dx,dy) > 9) { clearTimeout(pressTimer); cleanup(false); return }
-  if (pointer.mode === 'item-press' && Math.hypot(dx,dy) > 9) { clearTimeout(pressTimer); cleanup(false); return }
+  if (pointer.mode === 'folder-press' || pointer.mode === 'item-press') {
+    if (Math.hypot(dx, dy) > 7) {
+      if (Math.abs(dy) > Math.abs(dx) * 1.2) {
+        clearTimeout(pressTimer)
+        cleanup(false)
+        return
+      }
+      clearTimeout(pressTimer)
+      pressTimer = null
+      suppressClick(pointer.itemId)
+      pointer.mode = 'page'
+    }
+  }
   if (pointer.mode === 'item-ready' && Math.hypot(dx,dy) > 5) startItemDrag(event.clientX,event.clientY)
   if (pointer.mode === 'folder-app-ready' && Math.hypot(dx,dy) > 5) {
     pointer.mode = 'folder-app-drag'
@@ -751,9 +775,16 @@ function cleanup(cancelled) {
   if (pointer.mode === 'folder-resize') {
     if (!cancelled && folderResize.value) home.resizeFolder(pointer.folderId,folderResize.value.width,folderResize.value.height)
     folderResize.value = null
+    if (pointer.itemId) suppressClick(pointer.itemId)
+  }
+  if (pointer.mode === 'item-ready') {
+    if (!home.editing && pointer.itemId) suppressClick(pointer.itemId)
   }
   if (pointer.mode === 'folder-app-drag') finishFolderApp(cancelled)
-  if (pointer.mode === 'page') finishPage(cancelled)
+  if (pointer.mode === 'page') {
+    if (pointer.itemId) suppressClick(pointer.itemId)
+    finishPage(cancelled)
+  }
   try { pointer.captureEl?.releasePointerCapture?.(pointer.id) } catch {}
   pointer = null; unbindWindow()
 }
@@ -935,6 +966,7 @@ function measureViewport() {
   })
 }
 onMounted(() => {
+  window.__home = home
   window.addEventListener('keydown',onHomeKeydown)
   measureViewport()
   resizeObserver = new ResizeObserver(() => {

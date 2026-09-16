@@ -3521,21 +3521,37 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
     `hiddenIconId=${afterId} base=${a1.base} activeAppId=${a1.app} · 图标[${fmtHome(afterIcon)}]（期望 hiddenIconId=null / tile=visible）`
   )
 
-  // ---- ③ 第二道防线：绕过切换器直接 dismissApp（隐藏态没被清）时图标也必须可见 ----
+  // ---- ③ 第二道防线：把隐藏态【钉死】成一个「并非前台」的 appId，图标也必须可见 ----
+  /* ⚠️ 2026-09-16 合并 main 后重写本段。
+     旧版走「openApp('notes') → dismissApp('notes') → 期望 hiddenIconId 仍停在 notes」，
+     断在 `staleId === 'notes'` 这条【前提】上（详情里写着「符合预期」却判 FAIL）。
+     main 给 AppWindow 加了 `onBeforeUnmount: home.showIcon()`（7ff0bf3），
+     dismissApp 触发 AppWindow 卸载时顺手把隐藏态清了 ⇒ staleId 变 null。
+     ⚠️ 这是断言设计问题、不是代码回归：用户可见结果 tile=visible 一直是对的。
+     但直接删掉那条前提等于**不再验证第二道防线**（AppIcon 的前台判据）——
+     main 那条 unmount 钩子只是「顺手清」，谁也不能保证它覆盖全部硬切路径。
+     ⇒ 改成**绕过一切 store action 与生命周期钩子**，用 pinia 直写把隐藏态钉在 notes 上；
+       此时 activeAppId 为 null（没有任何窗口）⇒ 只可能是 AppIcon 的判据让图标可见。
+       同时仍断言 hiddenIconId 未被清 —— 否则「图标可见」可能是别的东西清的，证不到判据。 */
   await resetHome()
-  await page.evaluate(() => window.__system.openApp('notes'))
-  await page.waitForTimeout(800)
-  const rawId = await hiddenId()
-  await page.evaluate(() => window.__system.dismissApp('notes'))
-  await page.waitForTimeout(500)
-  const staleId = await hiddenId()
-  const staleIcon = await homeIcon('notes')
+  await page.evaluate(() => {
+    const p = document.querySelector('#app')?.__vue_app__?.config?.globalProperties?.$pinia
+    p.state.value.home.hiddenIconId = 'notes'
+  })
+  await page.waitForTimeout(160)
+  const pinnedId = await hiddenId()
+  const pinnedIcon = await homeIcon('notes')
   check(
-    '第十五轮·需求①第二道防线：绕过切换器直接 dismissApp（store 的隐藏态仍是那个 appId）时，' +
-      '图标也必须可见 —— AppIcon 的「前台判据」自愈（改前 tile=hidden）',
-    rawId === 'notes' && staleId === 'notes' && staleIcon?.isHidden === false && staleIcon?.tile === 'visible',
-    `打开后 hiddenIconId=${rawId} → 硬切后仍是 ${staleId}（符合预期）· 图标[${fmtHome(staleIcon)}] ← 期望 tile=visible`
+    '第十五轮·需求①第二道防线：隐藏态被钉在一个【并非前台】的 appId 上时，图标也必须可见' +
+      ' —— AppIcon 的「前台判据」自愈（改前 tile=hidden）',
+    pinnedId === 'notes' && pinnedIcon?.isHidden === false && pinnedIcon?.tile === 'visible',
+    `钉住后 hiddenIconId=${pinnedId}（须仍是 notes，证明没被任何钩子清掉）· 图标[${fmtHome(pinnedIcon)}] ← 期望 tile=visible`
   )
+  // 复位，避免污染后续用例
+  await page.evaluate(() => {
+    const p = document.querySelector('#app')?.__vue_app__?.config?.globalProperties?.$pinia
+    p.state.value.home.hiddenIconId = null
+  })
 
   // ---- ④ 同类硬切路径：点空白回桌面 ----
   await resetHome()
