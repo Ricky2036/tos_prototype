@@ -1,0 +1,18 @@
+{
+  "url": "http://127.0.0.1:8097/tests/fixtures/demo.html",
+  "outputDir": "../artifacts/capture",
+  "viewport": { "width": 393, "height": 852, "deviceScaleFactor": 1 },
+  "waitUntil": "domcontentloaded",
+  "initialWaitMs": 50,
+  "actions": [
+    { "type": "click", "selector": "[data-testid='trigger']" }
+  ],
+  "samples": [
+    { "name": "trigger", "timeMs": 0 },
+    { "name": "mid", "timeMs": 200 },
+    { "name": "settled", "timeMs": 500 }
+  ],
+  "assertions": [
+    { "selector": "[data-testid='card'].open", "state": "visible" }
+  ]
+}

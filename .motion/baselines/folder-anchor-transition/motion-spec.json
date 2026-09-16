@@ -1,0 +1,172 @@
+{
+  "schemaVersion": "motion-spec.v1",
+  "meta": {
+    "name": "tos-folder-anchor-open-close-baseline",
+    "targetPlatform": "mobile-web",
+    "framework": "Vue 3",
+    "viewport": { "width": 393, "height": 852, "devicePixelRatio": 1 },
+    "evidenceClass": "A — inspectable source and deterministic runtime",
+    "reference": {
+      "kind": "generated-ground-truth",
+      "path": "src/components/home/HomeFolderOverlay.vue",
+      "durationMs": 320
+    }
+  },
+  "context": {
+    "purpose": "Transition",
+    "effectSummary": "A compact desktop folder expands from its real shell and icon anchors into a centered glass panel, then reverses into the same anchors when dismissed.",
+    "meaningSummary": "The expanded folder remains spatially and semantically identifiable as the folder selected on the desktop.",
+    "initialState": "desktop-folder-resting",
+    "targetState": "folder-overlay-open"
+  },
+  "elements": [
+    {
+      "id": "folder-shell",
+      "role": "desktop source and expanded glass panel",
+      "locator": { "selector": "[data-home-item^='folder:'] [data-folder-shell]" },
+      "transformOrigin": [0, 0],
+      "provenance": { "kind": "observed", "confidence": 1, "evidenceIds": ["HomeFolderOverlay.prepareMotion"] }
+    },
+    {
+      "id": "folder-icons",
+      "role": "shared child application identities",
+      "locator": { "selector": ".folder-panel-app" },
+      "transformOrigin": [0.5, 0.5],
+      "provenance": { "kind": "observed", "confidence": 1, "evidenceIds": ["HomeFolderOverlay.iconMotions"] }
+    },
+    {
+      "id": "folder-title",
+      "role": "expanded folder title",
+      "locator": { "selector": ".folder-title" },
+      "provenance": { "kind": "observed", "confidence": 1, "evidenceIds": ["HomeFolderOverlay.titleRef"] }
+    },
+    {
+      "id": "folder-backdrop",
+      "role": "depth-separating blurred backdrop",
+      "locator": { "selector": ".folder-backdrop" },
+      "provenance": { "kind": "observed", "confidence": 1, "evidenceIds": ["HomeFolderOverlay.backdropRef"] }
+    }
+  ],
+  "tracks": [
+    {
+      "id": "panel-open-geometry",
+      "elementId": "folder-shell",
+      "property": "translate-scale-borderRadius",
+      "from": "measured desktop shell rect",
+      "to": "measured centered panel rect; border-radius 36px",
+      "timing": { "onsetMs": 0, "delayMs": 0, "durationMs": 320, "settlingMs": 320 },
+      "model": { "type": "tween", "easing": "cubic-bezier(0.2, 0.9, 0.25, 1)" },
+      "provenance": { "kind": "observed", "confidence": 1, "reason": "Read from the Web Animations call in prepareMotion()." }
+    },
+    {
+      "id": "icons-open-shared-anchor",
+      "elementId": "folder-icons",
+      "property": "translate-scale-opacity",
+      "from": "measured desktop preview icon rects",
+      "to": "expanded icon grid rects",
+      "timing": { "onsetMs": 0, "delayMs": 0, "durationMs": 320, "settlingMs": 320 },
+      "model": { "type": "tween", "easing": "cubic-bezier(0.2, 0.9, 0.25, 1)" },
+      "provenance": { "kind": "observed", "confidence": 1, "reason": "Each icon uses its captured mini rect and the same opening timeline." }
+    },
+    {
+      "id": "title-open",
+      "elementId": "folder-title",
+      "property": "translateY-opacity",
+      "from": { "translateY": -8, "opacity": 0 },
+      "to": { "translateY": 0, "opacity": 1 },
+      "timing": { "onsetMs": 70, "delayMs": 70, "durationMs": 220, "settlingMs": 290 },
+      "model": { "type": "tween", "easing": "cubic-bezier(0.2, 0.9, 0.25, 1)" },
+      "provenance": { "kind": "observed", "confidence": 1, "reason": "Read from titleRef.animate()." }
+    },
+    {
+      "id": "backdrop-open",
+      "elementId": "folder-backdrop",
+      "property": "opacity",
+      "from": 0,
+      "to": 1,
+      "timing": { "onsetMs": 0, "delayMs": 0, "durationMs": 320, "settlingMs": 320 },
+      "model": { "type": "tween", "easing": "cubic-bezier(0.2, 0.9, 0.25, 1)" },
+      "provenance": { "kind": "observed", "confidence": 1, "reason": "Read from backdropRef.animate()." }
+    },
+    {
+      "id": "panel-close-geometry",
+      "elementId": "folder-shell",
+      "property": "translate-scale-borderRadius",
+      "from": "expanded panel rect; border-radius 36px",
+      "to": "captured desktop shell rect",
+      "timing": { "onsetMs": 0, "delayMs": 0, "durationMs": 260, "settlingMs": 260 },
+      "model": { "type": "tween", "easing": "cubic-bezier(0.25, 1, 0.5, 1)" },
+      "provenance": { "kind": "observed", "confidence": 1, "reason": "Read from close()." }
+    }
+  ],
+  "coordination": [
+    { "type": "parallel", "trackIds": ["panel-open-geometry", "icons-open-shared-anchor", "backdrop-open"], "offsetMs": 0 },
+    { "type": "overlap", "trackIds": ["panel-open-geometry", "title-open"], "offsetMs": 70 }
+  ],
+  "interaction": {
+    "trigger": "tap",
+    "inputTargetElementId": "folder-shell",
+    "interruptBehavior": "ignored-while-running"
+  },
+  "accessibility": {
+    "reducedMotion": "shorten",
+    "customBehavior": "Geometry, icons, title and backdrop resolve in 1ms while preserving the same final state and hierarchy.",
+    "informationEquivalent": true,
+    "systemPreferenceBinding": "window.matchMedia('(prefers-reduced-motion: reduce)')"
+  },
+  "acceptance": {
+    "metrics": [
+      {
+        "id": "folder-overlay-visible",
+        "level": "G0-functional",
+        "method": "After tapping the first desktop folder, assert .folder-overlay and .folder-title are visible.",
+        "target": true,
+        "tolerance": false,
+        "hardGate": true
+      },
+      {
+        "id": "shared-folder-identity",
+        "level": "G1-semantic",
+        "method": "At trigger and settle, verify the panel and visible child apps originate from the selected folder's captured shell and icon rects.",
+        "target": true,
+        "tolerance": false,
+        "hardGate": true
+      },
+      {
+        "id": "open-duration",
+        "level": "G2-temporal",
+        "method": "Measure panel animation effect timing from Web Animations runtime.",
+        "target": 320,
+        "tolerance": 33,
+        "hardGate": false
+      },
+      {
+        "id": "close-duration",
+        "level": "G2-temporal",
+        "method": "Measure reverse panel animation effect timing from Web Animations runtime.",
+        "target": 260,
+        "tolerance": 33,
+        "hardGate": false
+      },
+      {
+        "id": "final-anchor-error",
+        "level": "G4-visual",
+        "method": "Compare the closing final panel bounds with the original desktop folder shell bounds.",
+        "target": 0,
+        "tolerance": 2,
+        "hardGate": false
+      },
+      {
+        "id": "reduced-motion-equivalence",
+        "level": "G5-quality",
+        "method": "Repeat the open assertion with reducedMotion=reduce.",
+        "target": true,
+        "tolerance": false,
+        "hardGate": true
+      }
+    ],
+    "maxAutomaticIterations": 3,
+    "minimumImprovement": 0.01,
+    "stopOnHardGateFailure": true
+  }
+}
