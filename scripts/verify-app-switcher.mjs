@@ -12,7 +12,10 @@
  */
 import { chromium } from 'playwright'
 import { readFileSync } from 'node:fs'
-import { DECK, WHEEL_REVERSE_DEAD_PX } from '../src/utils/switcherDeck.js'
+import { DECK } from '../src/utils/switcherDeck.js'
+/* 第二十四轮：位置推进改成单一写者模型（src/utils/switcherMotion.js），
+   原 `WHEEL_REVERSE_DEAD_PX` 已随反向死区一起删除。 */
+import { MOTION } from '../src/utils/switcherMotion.js'
 
 /* 层间位移的比例契约来自纯函数模块，避免脚本里再抄一份魔数（第六轮：0.32）。 */
 const STAIR_DECAY = DECK.STAIR_DECAY
@@ -1025,11 +1028,13 @@ await page.waitForTimeout(1000)
    抽帧量化参考视频得到的目标：τ ≈ 110ms 的缓出 + 到位时约 6.7% 的轻微过冲回弹。
    放在脚本最末：此处状态干净（桌面路径刚打开、焦点 = 0、4 层齐全），不影响任何后续断言。
    守两条可回归的行为不变量：
-     ① 无硬跳变 —— 任意相邻帧、任意相邻两层，间距变化 < 10px
-        （旧实现松手瞬间把牵连量硬置零、同时关掉 CSS transition → 一帧 30px+ 的突变）；
-     ② 轻微过冲 —— 快甩后新焦点卡越过终点再回落（旧版 ios-deck 是 ζ=1.0 临界阻尼、无弹性）。
-   ⚠️ 第十一轮改口径：② 现在只对【快甩】成立。慢滑（|v| < FLICK_V_MIN）第十一轮起
-      改走 ios-deck-settle 且不注入速度 ⇒ 位移段严格单调、不得有过冲（见下方第十一轮块）。 */
+     ① 无硬跳变 —— 判断式与「单帧位移 ÷ 该卡整段位移」同形（见下方判据处的注释，阈值 40%）；
+     ② 【第二十四轮改口径】松手后位移必须单调、零反弹 —— 不再是「快甩要有过冲」。
+        一阶推进器（v = 剩余距离 / τ，|v| ≤ MOTION.VMAX）在数学上不可能过冲；
+        Ricky 的原话就是「等到滑动到终点就像绳子绷直了应该立即停止」。
+   ⚠️ 历史：第十一轮把「过冲」收窄到只对快甩成立（慢滑走 ios-deck-settle、ζ=1.0）；
+      第二十四轮把「过冲」整体取消 —— 位置只由 src/utils/switcherMotion.js 的 stepMotion 一个写者推进，
+      不再有「注入初速度」这个动作，也不再需要 ios-deck / ios-deck-settle 服务焦点位置。 */
 {
   const startX = 110
   const slowPx = Math.round(SPAN * 0.42) // 明显不足半层 → 松手必回原位
@@ -1138,10 +1143,16 @@ await page.waitForTimeout(1000)
       ` · 拖动中最大层间距=${peakGap != null ? peakGap.toFixed(1) : '?'}px`
   )
 
-  // ---- ② 快甩 0.62 层 → 采样第 2 张卡的 x，看是否越过终点再回落 ----
+  /* ---- ② 快甩 0.62 层 → 采样第 2 张卡的 x ----
+     第二十四轮改口径：原判据是「越过终点再回落（ζ=0.65、过冲 > 3px）」，
+     那是一阶模型【刻意取消】的行为（Ricky：「到终点就像绳子绷直了应该立即停止」）。
+     现在守的是反过来的契约：松手后 **单调到位、零符号反转**，终值 = 前卡位（≈0）。
+     ⚠️ 必须切出【松手之后】那一段再判 —— 整条轨迹里有手指拖动段，
+        把拖动段混进来会把「拖动换向」误算成反弹。故松手后立刻打一个下标标记。 */
   await page.evaluate(() => {
     window.__d4b = []
     window.__d4bStop = false
+    window.__d4bRel = 0
     const tick = () => {
       if (window.__d4bStop) return
       const c = document.querySelector('.switcher-card.is-deck[data-index="1"]')
@@ -1157,23 +1168,48 @@ await page.waitForTimeout(1000)
     await page.waitForTimeout(6)
   }
   await page.mouse.up()
+  await page.evaluate(() => { window.__d4bRel = window.__d4b.length })
   await page.waitForTimeout(800)
-  const ft = await page.evaluate(() => { window.__d4bStop = true; return window.__d4b })
+  const ftRaw = await page.evaluate(() => {
+    window.__d4bStop = true
+    /* 落点参考 = 收尾后【前卡位】那格的 transform（depth 0 的那张）：
+       堆叠卡的 transform.e 是「相对前卡槽位的位移」，前卡自己是 frontX（≈77.5）而不是 0，
+       所以不能拿 0 当落点基准（第一版就是这么写错的）。 */
+    const front = document.querySelector('.switcher-card.is-deck[data-depth="0"]')
+    return {
+      rows: window.__d4b,
+      rel: window.__d4bRel | 0,
+      frontIdx: front ? +front.dataset.index : null,
+      frontX: front ? +new DOMMatrixReadOnly(getComputedStyle(front).transform).e.toFixed(2) : null
+    }
+  })
+  /* 松手那一帧也在动（rAF 与 pointerup 同一帧），故从 rel − 1 起算，避免把半帧误差算成反弹 */
+  const ft = ftRaw.rows.slice(Math.max(0, ftRaw.rel - 1))
+  const title24Flick =
+    '第二十四轮·取代修正 D②：快甩松手后【零反弹、单调到位】（一阶推进器的数学保证；' +
+    '原「ζ=0.65 轻微过冲回弹」= 本轮明确取消的取舍，不是放宽阈值）'
   if (ft.length > 12) {
-    const peak = Math.max(...ft)
-    const iPeak = ft.indexOf(peak)
-    const finalX = ft[ft.length - 1]
+    const tail = ft[ft.length - 1]
+    /* 向右滑 ⇒ 焦点增大 ⇒ 第 2 张卡朝前卡槽位右移（x 单调【递增】） */
+    const travel = tail - ft[0]
+    let revs = 0
+    let lastD = 0
+    for (let i = 1; i < ft.length; i++) {
+      const d = ft[i] - ft[i - 1]
+      if (Math.abs(d) < 0.05) continue
+      const sg = Math.sign(d)
+      if (lastD !== 0 && sg !== lastD) revs++
+      lastD = sg
+    }
     check(
-      '修正 D②（第十一轮收窄到快甩）：快甩松手吸附带轻微过冲回弹（ζ=0.65，不是临界阻尼的死板收尾）',
-      peak > finalX + 3 && iPeak < ft.length - 3,
-      `终点 x=${finalX} 峰值 x=${peak} 过冲=${(peak - finalX).toFixed(1)}px（峰值在第 ${iPeak}/${ft.length} 帧）`
+      title24Flick,
+      travel > 20 && revs === 0 && ftRaw.frontIdx === 1 &&
+        ftRaw.frontX != null && Math.abs(tail - ftRaw.frontX) <= 1.5,
+      `松手后行程 ${travel.toFixed(1)}px · 终值 x=${tail}（前卡槽位 ${ftRaw.frontX}）· ` +
+        `符号反转 ${revs} 次 · 落点卡 index=${ftRaw.frontIdx} · 松手后 ${ft.length}/${ftRaw.rows.length} 帧`
     )
   } else {
-    check(
-      '修正 D②（第十一轮收窄到快甩）：快甩松手吸附带轻微过冲回弹（ζ=0.65，不是临界阻尼的死板收尾）',
-      false,
-      `采样不足 ${ft.length}`
-    )
+    check(title24Flick, false, `松手后采样不足 ${ft.length} 帧（全程 ${ftRaw.rows.length} 帧）`)
   }
 }
 
@@ -1193,9 +1229,13 @@ await page.waitForTimeout(1000)
    改法：非快甩 → ios-deck-settle（同 ω_n = 14、ζ = 1.0 临界阻尼）+ 不注入速度
         ⇒ v0 = 0 的临界阻尼在数学上严格单调（也不会再有零穿越导致的 DOM 闪断）。
 
-   两条契约用【同一把尺】量同一件事（松手后吸附段的过冲），期望值相反：
+   两条契约用【同一把尺】量同一件事（松手后吸附段的过冲），第二十四轮起【期望值相同】：
      ① 慢滑翻一张 → 过冲 ≤ 1.5px、符号反转 ≤ 1 次；
-     ② 快甩翻一张 → 过冲 > 3px。
+     ② 快甩翻一张 → 同样过冲 ≤ 1.5px，差别只剩「翻过整卡」（由 MOTION.VMAX 的固定力承担）。
+   第二十四轮之前 ② 期望 over > 3px（ζ=0.65 的过冲回弹）—— 那被 Ricky 明确否掉了：
+     「滑动的力是固定的会跟随滑动距离衰减，最终停下来。等到滑动到终点就像绳子绷直了应该立即停止」。
+     一阶系统（v = 剩余距离 / τ，且 |v| ≤ VMAX）**数学上不过冲**，所以 ② 改成「翻过整卡 + 零过冲」。
+     这不是放宽阈值 —— ① 的 1.5px 一分没松，② 反而从「必须过冲」收紧到「必须不过冲」。
    判据定义（与探针 overshoot2.mjs 同源）：
      过冲 = max over 吸附段采样 of (x − 终值) × 运动方向；终值 = 末 12% 采样的均值。
    ⚠️ 终值一定要取末段均值，不能取 max：x 在收尾还有 0.1~0.3px 的爬行（浮点/取整），
@@ -1316,23 +1356,26 @@ await page.waitForTimeout(1000)
     check('第十一轮·需求①附带：深侧第 4 张卡【一次性出现】且在运动末段（不含 DOM 闪现）', false, '采样不足')
   }
 
-  // ---- ② 快甩翻一张（同一把尺：这里必须仍有过冲，证明 ① 不是把弹簧一起改死了）----
+  // ---- ② 快甩翻一张（同一把尺：这里必须仍翻过整卡，证明 ① 不是把整个推进器改死了）----
   await resetToFocus0()
   const flick = await traceSettle(
     '.switcher-card.is-deck[data-index="0"]',
     slowDrag(Math.round(SPAN * 0.62), 6, 6)
   )
   const st2 = settleStats(flick)
+  const title24Req2 =
+    '第二十四轮·取代第十一轮需求②：快甩仍【翻过整卡】（动量需求不变，改由推进器 VMAX「固定的力」承担），' +
+    '但到位即停、零过冲（原判据 over > 3px 是一阶模型刻意取消的行为）'
   if (st2 && flick.info) {
     check(
-      '第十一轮·需求②：快甩仍保留过冲（动量的正常表现，参考视频 V4 回退 254/229px）',
-      flick.info.isFlick === true && st2.over > 3,
+      title24Req2,
+      flick.info.isFlick === true && flick.info.idx === 1 && st2.travel > 60 && st2.over <= 1.5,
       `vFocus=${flick.info.vFocus} 层/s（isFlick=${flick.info.isFlick}）· ` +
-        `行程 ${st2.travel.toFixed(1)}px · 过冲 ${st2.over.toFixed(2)}px · ${st2.n} 帧`
+        `idx ${flick.info.cur}→${flick.info.idx} · 行程 ${st2.travel.toFixed(1)}px · ` +
+        `过冲 ${st2.over.toFixed(2)}px · 符号反转 ${st2.revs} 次 · ${st2.n} 帧`
     )
   } else {
-    check('第十一轮·需求②：快甩仍保留过冲（动量的正常表现，参考视频 V4 回退 254/229px）', false,
-      `采样不足（rows=${flick.rows.length} rel=${flick.relAt}）`)
+    check(title24Req2, false, `采样不足（rows=${flick.rows.length} rel=${flick.relAt}）`)
   }
 
   // ---- ③ 慢滑不足半张（0.42 层、停住 150ms 再松手）→ 回到原卡，同样不得过冲 ----
@@ -1923,12 +1966,12 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
          · 到达卡右缘归一化曲线 p(t)：0.212@42ms / 0.383@83ms / 0.527@125ms / 0.615@167ms /
            0.781@208ms / 0.895@375ms / 0.965@542ms / 0.991@667ms
          · 反号 0 次、p_max = 1.0000 ⇒ **到位后不回弹**（一阶拟合 τ ≈ 163ms；
-           若按 ζ=1 二阶拟合，ω_n 落在 11.7~13.5 rad/s 区间内 —— 本工程 ios-deck-settle
-           的 ω_n = 14 就在这个区间，故不改预设，只把「不过冲」这条锁住）
-       本工程的慢滑分支（停住再松手 ⇒ vFocus ≈ 0）走 ios-deck-settle（ζ=1.0、不注入速度），
-       数学上严格单调；这条断言就是它的守卫（第十一轮「慢滑多了一次不必要的回弹」的回归护栏）。
-       ⚠️ 只约束【非快甩】分支：快甩（|v| ≥ FLICK_V_MIN 2.6 层/秒）走 ios-deck（ζ=0.65）
-          并以 initialVelocity 注入动量，到位过冲 3.9% 层是需求④【要的动量】，不在此口径内。
+           若按 ζ=1 二阶拟合，ω_n 落在 11.7~13.5 rad/s 区间内 —— 本工程收尾段
+           SETTLE_TAU_MS = 60 与 VMAX = 8 层/秒给出 180ms 到 95%，就在这个量级，故不改参数）
+       ⚠️ 第二十四轮：收尾不再分「快甩 / 非快甩」两条分支（也不再有 initialVelocity 注入）——
+          位置只有一个写者、模型是一阶的 ⇒ 快甩与慢滑的收尾【数学上都不过冲】，这条断言
+          于是从「只约束非快甩」升级为「约束全部收尾」。快甩的动量体现在 MOTION.VMAX
+          （「固定的力」）上，而不是体现在过冲上。
        观测量取到达卡的 data-depth（= 焦点越过的层数，0 = 恰好到位；< 0 = 冲过头）。 */
     const settle = await page.evaluate(async () => {
       const root = document.querySelector('.app-switcher')
@@ -1957,7 +2000,7 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
         root.dispatchEvent(mk('pointermove', x0 + (total * i) / 12))
         await sleep(13)
       }
-      await sleep(250) // 停住再松手 ⇒ vFocus ≈ 0 ⇒ 走 ios-deck-settle（非快甩分支）
+      await sleep(250) // 停住再松手 ⇒ vFocus ≈ 0（第二十四轮起收尾只有一条路，无分支）
       root.dispatchEvent(mk('pointerup', x0 + total))
       await sleep(1000)
       run = false
@@ -1988,7 +2031,7 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
          的情况下瞬移 120px（90 → 210 → 221 → …），`focus` 单帧跳 0.565 层 = 119.9px；
          单指对照只有 0.061 层 = 12.9px。
      方向不对称（与 Ricky「左滑好了、右滑没好」对上）：左滑落【挤压】通道（第十七轮已限速
-     0.09/帧 ≈ 8.4px/帧）⇒ 大跳被摊成小台阶；右滑落【位移】通道（focusSnap 零过渡 1:1 直写，
+     0.09/帧 ≈ 8.4px/帧）⇒ 大跳被摊成小台阶；右滑落【位移】通道（跟手 1:1 直推，
      1.30px/px）⇒ 瞬移全额可见。
 
      本用例合成【同一个 pointerId、且第二指落下时没有 pointerdown】的坐标流，两个子形状：
@@ -4235,9 +4278,12 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
     check('第二十二轮·前置：慢速触摸走到的末卡 = recentApps 的最后一张',
       lastIdx >= 3 && lf.walked === lastIdx && !!lf.settle && lf.settle.idx === lastIdx,
       `recentApps=${lf.apps} 张 · 走完落点=${lf.walked} · 快甩判定 idx=${lf.settle && lf.settle.idx}`)
-    check('第二十二轮·需求：快甩落在最后一卡 ⇒ 判成「越界外甩」（不再注入动量）',
-      !!lf.settle && lf.settle.outward === true,
-      `settle=${JSON.stringify(lf.settle)}（改前无 outward 字段，且会把 vFocus 注入 ios-deck）`)
+    /* 第二十四轮：原来这里断言 `settle.outward === true`（第二十二轮的越界外甩判据）。
+       那条判据已随「注入初速度」这个动作一起删除 —— 一阶模型下松手只是把 target 钉到整卡，
+       「越界释放」没有速度可注入。核心保障改由下面两条守：不额外越界 + 严格单调收回。 */
+    check('第二十四轮·前置：末卡快甩确实被判成【快甩】且落点在末卡',
+      !!lf.settle && lf.settle.isFlick === true && lf.settle.idx === lastIdx,
+      `settle=${JSON.stringify(lf.settle)}`)
     check('第二十二轮·需求：越界外甩不再把卡片甩出去 —— 冲程 ≤ 松手点（改前额外越界 ≈0.14 层 ≈ 33px）',
       lf.afterMax != null && !!lf.settle && lf.afterMax - lastIdx <= lf.settle.cur - lastIdx + 0.02,
       `松手点 ${lf.settle && lf.settle.cur} 层 · 松手后最高 ${lf.afterMax} 层 · ` +
@@ -4249,13 +4295,16 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
       Math.abs(lf.afterEnd - lastIdx) < 0.02,
       `终位 ${lf.afterEnd} 层（目标 ${lastIdx}）`)
 
-    /* 对照：同一套输入落在【中间某张卡】上必须仍走动量分支（否则就是把需求④的动量一起改死了） */
+    /* 对照：同一套输入落在【中间某张卡】上必须仍翻过一张 ——
+       第二十四轮起「过冲」被模型整体取消（一阶系统数学上不过冲），所以这里的判据从
+       「松手后越过整卡边界」改为「确实翻过一张 + 到位即停」。这是本轮明确接受的取舍：
+       Ricky 的要求是「到终点像绳子绷直了立即停止」，而不是保留回弹。 */
     await openFiveAndSwitcher()
     const ip = await synthLastFlick(0)
-    check('第二十二轮·对照：平面内的快甩仍注入动量（过冲越过了整卡边界，需求④不变）',
-      !!ip.settle && ip.settle.outward === false && ip.settle.isFlick === true &&
-        ip.afterMax != null && ip.afterMax > ip.settle.idx,
-      `settle=${JSON.stringify(ip.settle)} · 松手后最高 ${ip.afterMax} 层（须 > ${ip.settle && ip.settle.idx}）`)
+    check('第二十四轮·对照：平面内的快甩仍翻过整卡（动量需求不变，只是到位即停、不再过冲）',
+      !!ip.settle && ip.settle.isFlick === true && ip.settle.idx >= 1 &&
+        ip.afterMax != null && ip.afterMax >= ip.settle.idx - 0.02,
+      `settle=${JSON.stringify(ip.settle)} · 松手后最高 ${ip.afterMax} 层（须 ≥ ${ip.settle && ip.settle.idx}）`)
   }
 
   /* ══════════ 第二十三轮 · 触控板 deltaX 的【反向死区】（Ricky 2026-09-16：「无论左滑右滑都开始抖」）══════════
@@ -4308,66 +4357,169 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
             bubbles: true, cancelable: true, composed: true,
             deltaX: dx, deltaY: 0, deltaMode: 0, clientX: 215, clientY: 500
           }))
-        const out = [{ dx: null, focus: S.focus }]
-        for (const dx of l) { fire(dx); out.push({ dx, focus: S.focus }) }
+        /* 第二十四轮：位置改由 rAF 推进器写 ⇒ **同一个 JS 任务里 focus 不会变**
+           （要等下一帧）。所以断言一律读 `motion.target` = 输入累积出的【指令位置】，
+           它在事件同步路径上就更新了。focus 一并读回，仅供诊断。 */
+        /* 模型级不变量诊断：|累积器目标 − 已提交位置| 必须 ≤ SUBMIT_PX。
+           wheelInput 是 script setup 里的 let 绑定（dev 模式 setupState 带 getter），
+           读得到就读、读不到给 null —— ② 把 null 当「无诊断」，不制造假 FAIL。 */
+        const gapOf = () => {
+          try {
+            const w = S.wheelInput
+            return w && w.acc != null ? w.target - w.acc : null
+          } catch { return null }
+        }
+        const out = [{ dx: null, target: S.motion.target, focus: S.focus, gap: gapOf() }]
+        for (const dx of l) {
+          fire(dx)
+          out.push({ dx, target: S.motion.target, focus: S.focus, gap: gapOf() })
+        }
         return { out }
       }, list)
 
-    /* ① 同向 1:1 契约：单笔 60px 必须精确走 60/span 层（死区只允许作用在【反向】上） */
+    /* ① 同向 1:1 契约：单笔 60px 必须精确走 60/span 层（阈值只允许作用在【反向】上） */
     await openFiveAndSwitcher()
     const A = await wheelProbe([-60])
     const Aobs = A && A.out ? A.out : null
-    check('第二十三轮·前置：干净态焦点 = 0（否则下面的位移断言没有基准）',
-      !!Aobs && Math.abs(Aobs[0].focus) < 0.02, A.error ? A.error : `focus=${Aobs && Aobs[0].focus}`)
-    check('第二十三轮·契约：同向单笔仍 1:1（60px ⇒ 60/span 层，未被死区削掉）',
-      !!Aobs && Math.abs((Aobs[1].focus - Aobs[0].focus) - 60 / SPAN) < 1e-6,
-      A.error ? A.error : `Δ=${((Aobs[1].focus - Aobs[0].focus) * SPAN).toFixed(4)}px（期望 60）`)
+    check('第二十四轮·前置：干净态焦点 = 0（否则下面的位移断言没有基准）',
+      !!Aobs && Math.abs(Aobs[0].target) < 0.02, A.error ? A.error : `target=${Aobs && Aobs[0].target}`)
+    check('第二十四轮·契约：同向单笔仍 1:1（60px ⇒ 60/span 层，未被 accumulate 削掉）',
+      !!Aobs && Math.abs((Aobs[1].target - Aobs[0].target) - 60 / SPAN) < 1e-6,
+      A.error ? A.error : `Δ=${((Aobs[1].target - Aobs[0].target) * SPAN).toFixed(4)}px（期望 60）`)
 
-    /* ② 录屏实测噪声幅度：反向 ±3px 交替 8 个来回 ⇒ 卡片必须【完全不】移动 */
+    /* ⚠️ 下面三条必须【各自从干净的累积器】起算：
+       140ms 的 WHEEL_IDLE 之后 endWheel 会把 wheelInput 置空，所以每条之前先静置 220ms。
+       否则上一条留下的 1px 滞后会污染基准 —— 实测（不静置的版本）③ 与 ④ 的读数各差 1px，
+       差值恰好就是这 1px 的账，看起来像「实现少了 1px」，其实是测量基准被带脏了。 */
+    /* 静置 400ms（原 220ms）。220ms 时上一条用例的一阶收尾还会剩 ~3.8px 未到零
+       （SETTLE_TAU_MS=60 ⇒ 3τ=180ms 到 95%，余量按 e^(−t/60) 衰减）。
+       平台的 min/max 对常量偏移免疫，所以这不是正确性前提；但让起点落到「收尾真正完成」
+       能让平台的层值落在干净的二进制小数上，读数最稳（实测 /tmp/vwork/r24/probe-plateau.mjs：
+       干净起点下平台差 = 0.004278074866 层 × 233.75 = 【严格 1.000000000000px】）。 */
+    const wheelIdleFlush = () => page.waitForTimeout(400)
+
+    /* ② 录屏实测噪声幅度：反向 ±3px 交替 8 个来回 ⇒ 残摆不得超过 SUBMIT_PX（1px）
+       ⚠️⚠️ 统计窗口【只能覆盖交替平台】，绝不能把起手那笔 −60px 算进来。
+           −60px 是「先离开边界」的一个【台阶】（一次净位移，也是整串里唯一一笔会真
+           改变卡片位置的输入），不是噪声。把它的读数放进 min/max，量到的是台阶自身的
+           落差 ⇒ 假 FAIL 恰好 2.0000px。
+           逐笔铁证 /tmp/vwork/r24/probe-plateau.mjs（干净起点、12 位小数）：
+                lead = −60px 起手 · 单笔 target 步长 = 严格 ±3.000000000px
+                gap = |target − acc| = 严格 ±1.000000000px
+                平台层值 = 0.248128342246 / 0.252406417112
+              ⇒ 残摆 = 步长 − 2×SUBMIT_PX = 3 − 2 = 【1.000000000000px】，
+                 这是模型的精确推论（不是「约等于 1」），所以窗口对齐后判据可以贴到 1px。
+           平台上的 min/max 对【任何常量偏移免疫】—— 所以上一条用例没跑完的收尾余量
+           也不会污染这个读数。
+           ⚠️ 这个窗口不属于「环境抖动」那一类：窗口对齐错了，任何合法实现都会读到 2px。 */
     {
+      await wheelIdleFlush()
       const seq = [-60]
       for (let i = 0; i < 8; i++) seq.push(3, -3)
       const B = await wheelProbe(seq)
-      const first = B.out[1].focus // -60 之后（已确立方向）
-      const last = B.out[B.out.length - 1].focus
-      check('第二十三轮·需求：反向 ±3px 交替 8 个来回不得移动卡片（录屏实测噪声 ±2.5px）',
-        Math.abs(last - first) < 1e-12, `位移 ${((last - first) * SPAN).toFixed(4)}px（期望 0）`)
+      const plat = B.out.slice(2) // 丢掉 out[0]（初始基准）与 out[1]（起手台阶）
+      let mn = plat[0].target
+      let mx = plat[0].target
+      for (const o of plat) { mn = Math.min(mn, o.target); mx = Math.max(mx, o.target) }
+      const wob = (mx - mn) * SPAN
+      /* 比残摆更根本的一条：滞后跟随器的可证不变量 |target − acc| ≤ SUBMIT_PX 恒成立
+         （残摆 ≤ 1px 只是它的推论）。读不到 wheelInput 时降级为无诊断，不算失败。
+         残摆本身留 0.05px 的浮点灰尘容差：理论的 1.000000000000px 要经过
+         ×span（层→px）与 e2e 侧 SPAN（由 .screen 实测宽度反推）两次不同来源的换算，
+         这条判据要区分的对照量级是第二十三轮前的 6px 全幅摆动 vs 死区版的 0px，
+         0.05 的余量不影响它抓住任何真实回归。 */
+      const gapMax = B.out.some((o) => o.gap == null)
+        ? null
+        : B.out.reduce((a, o) => Math.max(a, Math.abs(o.gap)), 0)
+      check(`第二十四轮·需求：反向 ±3px 交替 8 个来回的残摆 ≤ ${MOTION.SUBMIT_PX}px（录屏实测噪声 ±2.5px）`,
+        wob <= MOTION.SUBMIT_PX + 0.05 && (gapMax == null || gapMax <= MOTION.SUBMIT_PX + 1e-9),
+        `交替平台残摆 ${wob.toFixed(6)}px（期望 ${MOTION.SUBMIT_PX}，容差 0.05）· 未提交量峰值 ` +
+        `${gapMax == null ? 'n/a' : gapMax.toFixed(6) + 'px'}（≤ ${MOTION.SUBMIT_PX}）` +
+        `· 第二十三轮死区版残摆是 0，但代价是 7px 的可感知黏滞`)
     }
 
-    /* ③ 死区边界：反向恰好一个死区 ⇒ 不动；再叠 2px ⇒ 只走「超出的那一段」 */
+    /* ③ 阈值边界：滞后跟随器的可证不变量是 |累计输入 − 已提交| ≤ SUBMIT_PX
+          ⇒「反向 R 只走 R − 1」。这里量 R = 2（事件级最小可感知量）与 R = 3。
+       ⚠️ 不能像第一版那样用 R = 1px 去测「恰好阈值 ⇒ 不动」：
+          onWheel 开头有一条【事件级】门槛 `Math.abs(px) < 2 ⇒ return`（第七轮起就有），
+          1px 的 wheel 事件根本进不来（会静默丢弃）⇒ 那条断言测的是「事件被丢了」，
+          而不是「累积器判掉了一个物理上表达不出来的位移」。
+          累积器自己的 1px 边界由单测直接覆盖（tests/switcherMotion.test.js）。 */
     {
-      const C = await wheelProbe([-100, WHEEL_REVERSE_DEAD_PX, 2])
-      const base = C.out[1].focus // -100 之后
-      const afterDead = C.out[2].focus
-      const afterExcess = C.out[3].focus
-      check(`第二十三轮·需求：反向恰好一个死区（${WHEEL_REVERSE_DEAD_PX}px）⇒ 卡片不动`,
-        Math.abs(afterDead - base) < 1e-12, `位移 ${((afterDead - base) * SPAN).toFixed(4)}px（期望 0）`)
-      check('第二十三轮·需求：越过死区后【只走超出的那一段】（平滑衰减，不是整段一起走）',
-        Math.abs((base - afterExcess) - 2 / SPAN) < 1e-6,
-        `反向位移 ${((base - afterExcess) * SPAN).toFixed(4)}px（期望 2）`)
+      await wheelIdleFlush()
+      const C = await wheelProbe([-100, 2])
+      const moved2 = (C.out[1].target - C.out[2].target) * SPAN
+      await wheelIdleFlush()
+      const C3 = await wheelProbe([-100, 3])
+      const moved3 = (C3.out[1].target - C3.out[2].target) * SPAN
+      check('第二十四轮·需求：反向只滞后一个 SUBMIT_PX（2px ⇒ 走 1px · 3px ⇒ 走 2px）',
+        Math.abs(moved2 - 1) < 1e-6 && Math.abs(moved3 - 2) < 1e-6,
+        `反向 2px 走了 ${moved2.toFixed(4)}px（期望 1）· 反向 3px 走了 ${moved3.toFixed(4)}px（期望 2）`)
     }
 
-    /* ④ 死区不是「卡死」：真反转（回拨 120px）必须生效，且只滞后一个死区 */
+    /* ④ 阈值不是「卡死」：真反转（回拨 120px）必须生效，且只滞后一个 SUBMIT_PX */
     {
+      await wheelIdleFlush()
       const D = await wheelProbe([-120, 120])
-      const k0 = D.out[1].focus
-      const k1 = D.out[2].focus
-      check(`第二十三轮·需求：真反转必须生效（回拨 120px ⇒ 走 ${120 - WHEEL_REVERSE_DEAD_PX}px，只滞后一个死区）`,
-        Math.abs((k0 - k1) * SPAN - (120 - WHEEL_REVERSE_DEAD_PX)) < 1e-6,
-        `反向位移 ${((k0 - k1) * SPAN).toFixed(3)}px（期望 ${120 - WHEEL_REVERSE_DEAD_PX}）`)
+      const k0 = D.out[1].target
+      const k1 = D.out[2].target
+      check(`第二十四轮·需求：真反转必须生效（回拨 120px ⇒ 走 ${120 - MOTION.SUBMIT_PX}px，只滞后一个阈值）`,
+        Math.abs((k0 - k1) * SPAN - (120 - MOTION.SUBMIT_PX)) < 1e-6,
+        `反向位移 ${((k0 - k1) * SPAN).toFixed(3)}px（期望 ${120 - MOTION.SUBMIT_PX}）`)
     }
 
-    /* ⑤ 既有契约复述：轻拨 90px（0.385 层，不足半张）仍弹回原卡 —— 死区不得把整段同向轻拨吃掉 */
+    /* ⑤ 【本轮的核心保障】松手收尾必须是【严格单调、零过冲】——
+         这是一阶位置模型（速度 = 剩余距离/时间常数）的数学推论，
+         也是「快甩到边界不停颤抖」在结构上不可能再发生的原因。 */
+    await openFiveAndSwitcher()
+    {
+      const settle = await page.evaluate(() => new Promise((res) => {
+        const t = document.querySelector('.app-switcher')
+        const S = t.__vueParentComponent.setupState
+        t.dispatchEvent(new WheelEvent('wheel', {
+          bubbles: true, cancelable: true, composed: true,
+          deltaX: -120, deltaY: 0, deltaMode: 0, clientX: 215, clientY: 500
+        }))
+        const seq = [S.focus]
+        let prev = S.focus
+        let prevD = null
+        let rev = 0
+        const t0 = performance.now()
+        const tick = () => {
+          const x = S.focus
+          const d = x - prev
+          if (Math.abs(d) > 0.004) {
+            if (prevD != null && d * prevD < 0) rev += 1
+            prevD = d
+            seq.push(x)
+          }
+          prev = x
+          if (performance.now() - t0 < 1200) requestAnimationFrame(tick)
+          else res({ peak: Math.max(...seq), end: x, rev, n: seq.length, target: S.motion.target })
+        }
+        requestAnimationFrame(tick)
+      }))
+      const over = (settle.peak - settle.end) * SPAN
+      check('第二十四轮·需求：松手收尾严格单调、零过冲（一阶模型的数学保证）',
+        settle.rev === 0 && over <= 1.5,
+        `收尾段 ${settle.n} 帧 · 反号 ${settle.rev} 次 · 过冲 ${over.toFixed(2)}px · 终位 ${settle.end.toFixed(4)}`)
+      check('第二十四轮·需求：收尾落点 = 最近整卡（-120px ⇒ 0.513 层 ⇒ 落 1 号卡）',
+        Math.abs(settle.target - 1) < 1e-9, `target=${settle.target}（期望 1）`)
+    }
+
+    /* ⑥ 既有契约复述：轻拨 90px（0.385 层，不足半张）仍弹回原卡 */
     await openFiveAndSwitcher()
     await wheelProbe([-15, -15, -15, -15, -15, -15])
-    await page.waitForTimeout(900) // 等 endWheel 的 ios-deck-settle 吸附落定
+    await page.waitForTimeout(900)
     {
       const lite = await page.evaluate(() => {
         const r = document.querySelector('.app-switcher')
-        return +r.__vueParentComponent.setupState.focus
+        const S = r.__vueParentComponent.setupState
+        return { x: +S.focus, target: S.motion.target }
       })
-      check('第二十三轮·契约：轻拨 90px 仍弹回原卡（死区只作用于反向，同向 1:1 不变）',
-        Math.round(lite) === 0, `落点 focus=${lite}`)
+      check('第二十四轮·契约：轻拨 90px 仍弹回原卡（阈值只作用于反向，同向 1:1 不变）',
+        Math.round(lite.x) === 0 && Math.abs(lite.target) < 1e-9,
+        `落点 focus=${lite.x} target=${lite.target}`)
     }
   }
 

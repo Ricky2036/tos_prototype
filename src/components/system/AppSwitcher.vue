@@ -14,7 +14,6 @@ import {
   DECK,
   deckClampFocus,
   deckEnterDx,
-  deckFlingOutward,
   deckMetrics,
   deckPhase,
   deckPose,
@@ -23,10 +22,17 @@ import {
   deckZ,
   deckVisible,
   TOUCH_STEP_KEEP,
-  touchStepIsTeleport,
-  WHEEL_REVERSE_DEAD_PX,
-  wheelGateStep
+  touchStepIsTeleport
 } from '../../utils/switcherDeck'
+/* 第二十四轮：位置推进器（单一写者模型）。为什么替换掉原来的 useSpring ——
+   见 switcherMotion.js 顶部「9 个写者」的根因说明与 AppSwitcher 里 focus 的定义处。 */
+import {
+  MOTION,
+  createMotion,
+  stepMotion,
+  createAccumulator,
+  accumulate
+} from '../../utils/switcherMotion'
 /* 第十四轮·需求①：交接保持窗口的时长必须与 hero 开场动画同源（只读引用，不改该文件）。 */
 import { HERO_OPEN_DURATION } from '../../utils/heroGeometry'
 
@@ -144,7 +150,84 @@ const Z_EXPAND = 13000 // 点卡片恢复的放大卡
 const Z_CHROME = 14000 // 底部垃圾桶
 
 /* ---- 焦点（小数，单位=张），spring 驱动 —— 丝滑的来源 ---- */
-const { value: focus, animateTo: focusTo, snapTo: focusSnap } = useSpring(0, 'ios-gentle')
+/* ── 位置量 focus：单一写者（第二十四轮·架构重做）──────────────────────────────
+ * 这一行原来是 `useSpring(0, 'ios-gentle')`，被替换掉。
+ *
+ * 为什么：位置量原来有【9 个写者】—— 这条弹簧每帧写 + 5 处 `focusSnap`（零过渡直写）
+ *   + 3 处 `focusToIndex`（启动弹簧），彼此之间没有任何仲裁。`snapTo` 会掐掉正在跑的
+ *   弹簧却【不重置它的 target】⇒ 弹簧朝老目标推、输入又逐笔覆盖回来 ⇒ 交替 = 抖。
+ *   19~23 轮加的 owner 守卫 / 坐标连续性守卫 / 死区 / 越界判据，全是给这个模型贴的创可贴。
+ *
+ * 现在：位置只有【两个出口】，都在这几行下面：
+ *   · setInput(t)  跟手期（输入的唯一出口）—— 位置与目标同步落位，零延迟 1:1；
+ *   · settleTo(t)  收尾期 —— 交给 rAF 推进器（一阶 + VMAX，数学上不过冲）追整卡；
+ *   · focusSnap(v) 语义性瞬移（打开切换器归位 / 模式改判），绝不用于输入路径。
+ *   物理 = Ricky 的描述「力固定、随距离衰减、最终停下；到终点像绳子绷直立即停」，
+ *   判据本体在 utils/switcherMotion.js（纯函数、单测覆盖）。
+ *   两条输入通道（pointer / wheel）因此自动统一 —— 「改目标」天然可叠加，
+ *   不需要 owner 交接，也不需要判定「现在谁在驱动」。 */
+const focus = ref(0)
+/* ⚠️ 声明位置：必须早于 motionTick / setInput / settleTo / focusSnap。
+   它们都是函数声明（会被提升），但一旦执行就要读这个 ref —— 提前声明才能
+   彻底排除 TDZ（本文件已有一次同类前科：wheelInput 必须早于开关 watcher）。 */
+const focusMoving = ref(false)
+const motion = createMotion(0)
+let motionRaf = null
+let motionLast = 0
+
+function motionTick(now) {
+  const settled = stepMotion(motion, now - motionLast)
+  motionLast = now
+  focus.value = motion.x
+  if (settled) {
+    motionRaf = null
+    focusMoving.value = false
+    return
+  }
+  motionRaf = requestAnimationFrame(motionTick)
+}
+/** 起【收尾段】的 rAF 心跳（已在跑就不重开，避免把 dt 重置成 0） */
+function motionRun() {
+  if (motionRaf == null) {
+    motionLast = performance.now()
+    motionRaf = requestAnimationFrame(motionTick)
+  }
+}
+/** 【跟手期 · 输入的唯一出口】位置与目标【同步落位】（零延迟、1:1）。
+ *  为什么不做成一阶跟随：输入是外部时钟（手指 / 触控板事件），比 rAF 更早到达；
+ *  实测（/tmp/vwork/r24/probe-lag.mjs）若走「rAF 才落位」，快速划动时 VMAX 会把位置
+ *  压在 8 层/秒以下（手指 17 层/秒 ⇒ 位置落后 0.3 层 ≈ 70px），且 rAF 与输入的相位差
+ *  给中段几何量带来 0~20ms 的随机滞后（≈13px）—— 对「跟手」和可回归性都是净损失。
+ *  一并停掉可能还在跑的收尾心跳：输入接管时钟，收尾段的 target 已被覆盖。 */
+function setInput(t) {
+  if (motionRaf != null) {
+    cancelAnimationFrame(motionRaf)
+    motionRaf = null
+  }
+  motion.target = t
+  motion.x = t
+  motion.v = 0
+  focus.value = t
+  focusMoving.value = true
+}
+/** 【收尾期】松手 / 触控板流结束 / 删卡重排：位置留在原处，让推进器追到整卡。
+ *  必须是「只改 target」—— 位置从这里开始才由 rAF 一个写者推进。 */
+function settleTo(t) {
+  motion.target = t
+  focusMoving.value = true
+  motionRun()
+}
+/** 硬切：立即跳到某处并停。只用于【语义性瞬移】（打开切换器归位、模式改判归位），
+ *  绝不用于输入路径 —— 输入一律走 setInput。 */
+function focusSnap(v) {
+  if (motionRaf != null) cancelAnimationFrame(motionRaf)
+  motionRaf = null
+  motion.x = v
+  motion.target = v
+  motion.v = 0
+  focus.value = v
+  focusMoving.value = false
+}
 /* 进场进度弹簧：手势交接的 switcherProgress（~0.8）连续推到 1 */
 const { value: openP, animateTo: openTo, snapTo: openSnap, stop: openStop } = useSpring(1, 'ios-gentle')
 watch(openP, (v) => system.setSwitcherProgress(v))
@@ -273,8 +356,8 @@ function dragSqueeze() {
 /** 松手后交给弹簧 —— 挤压用 ios-squish 弹回 0（过冲到负 = 整组向右回弹一点，
  *  就是需求③「回弹」要的往复振荡；⚠️ 只在左滑越界 k≠0 时有量），
  *  跟手偏移用 ios-snappy 快速归零。
- *  ⚠️ 焦点（翻卡）走的是另一条路：settleFocus → focusToIndex，第十一轮起慢滑用
- *     ios-deck-settle（ζ=1.0、零过冲）—— 不要把两者的「回弹」口径混在一起。 */
+ *  ⚠️ 焦点（翻卡）走的是另一条路：settleFocus → settleTo，第二十四轮起统一为一阶推进器
+ *     （速度 = 剩余距离/时间常数 + VMAX，数学上不过冲）—— 不要把两者的口径混在一起。 */
 function releaseSqueeze() {
   sqTrackStop()
   sqTarget = 0
@@ -506,13 +589,10 @@ const homeRetreat = computed(
 const phase = computed(() => deckPhase(poseFocus.value))
 const xFrac = computed(() => phase.value.x)
 
-/* 焦点弹簧动画期间关闭 CSS transition —— 否则逐帧推进的 spring 会被 0.24s 过渡
-   二次低通，松手后的吸附变成「慢慢飘过去」，没有弹簧的干脆手感。 */
-const focusMoving = ref(false)
-function focusToIndex(idx, opts = {}) {
-  focusMoving.value = true
-  focusTo(idx, { preset: 'ios-deck', ...opts, onDone: () => { focusMoving.value = false } })
-}
+/* 焦点推进期间关闭 CSS transition —— 否则逐帧推进的位置会被 0.24s 过渡二次低通，
+   松手后的吸附变成「慢慢飘过去」，没有干脆手感。
+   （`focusMoving` 的声明已上提到位置量定义处，见上方「位置量 focus：单一写者」段；
+     第二十四轮起收尾统一走 settleTo —— 原来的 focusToIndex 只是它的一个预设包装。） */
 
 /* ---- 松手吸附（第七轮·批次 3）----
    Ricky 原话：
@@ -546,8 +626,8 @@ function focusToIndex(idx, opts = {}) {
      否则「已经拖过 2 张再快甩」会被再加一张（0.9 层快甩→2 张这种跳跃就是这么来的）。
 
    于是行为非常可预测：**翻 n 张 ⟺ 位移超过 n−0.5 张；快甩额外保证至少 1 张。**
-   速度的作用落在「弹簧初速度」上（见 FLICK_V_LIMIT）—— 卡片是【加速冲出去】的，
-   而不是靠多翻张数体现速度。
+   速度的作用落在【推进器的 VMAX】上（第二十四轮：原来是「注入弹簧初速度」的
+   FLICK_V_LIMIT）—— 卡片是加速冲出去的，而不是靠多翻张数体现速度。
 
    ── 第十一轮：速度还有第二个作用域 ——【要不要弹性】────────────────────
    Ricky 原话：「慢滑滑动卡卡片多了一个不必要的回弹」。
@@ -561,15 +641,16 @@ function focusToIndex(idx, opts = {}) {
    改法见 settleFocus：慢滑走 ios-deck-settle（ζ=1.0）且不注入速度 ⇒ 位移段严格单调。
    ⚠️ 别顺手把 ios-deck 全局改掉 —— 快甩、退场重排（dismissWithAnimation）都还在用它。 */
 const FLICK_V_MIN = 2.6 // 层/秒 —— 超过它才算「快甩」（≈608px/s，V4 峰值 7.2 远高于此）
-/* 注入弹簧的初速度上限（层/秒）。V4 峰值 7.2 层/秒；12 ≈ 2800px/s，
-   再快也就是这个手感了（再高只会在到位时过冲得更明显）。 */
-const FLICK_V_LIMIT = 12
+/* 第二十四轮删除了 FLICK_V_LIMIT（「注入弹簧的初速度上限」）—— 一阶模型里没有
+   「注入初速度」这个动作了，快甩的冲程由 MOTION.VMAX 承担（见 switcherMotion.js）。 */
 
 /** 松手吸附。
  *  @param vFocus     松手瞬时速度（层/秒，向右为正）
  *  @param startFocus 手势按下时的焦点（快甩保底的锚点） */
 function settleFocus(vFocus, startFocus) {
-  const cur = focus.value
+  /* 落点判定锚在【目标】而不是视觉位置 focus.value：一阶模型下 x 可能滞后不足一帧，
+     而「用户把卡片拖到哪了」的唯一权威是 target（输入累积出来的意图）。 */
+  const cur = motion.target
   const last = Math.max(0, apps.value.length - 1)
   const isFlick = Math.abs(vFocus) >= FLICK_V_MIN
   let idx = Math.round(cur)
@@ -584,41 +665,18 @@ function settleFocus(vFocus, startFocus) {
   /* 先夹到合法区间再落定 —— 自省口报的必须是【真实决策】，而不是夹取前的中间值
      （反向上甩贴着 0 号卡时中间值会是 -1，探针会据此误判成越界）。 */
   idx = Math.max(0, Math.min(last, idx))
-  /* ── 第二十二轮（Ricky 2026-09-16）：越界释放【不注入动量】────────────────────
-   * Ricky 原话：「有改善，但是还是会出现。抖动发生在快速滑动松手后到达最后一张卡片，
-   *   卡片不停颤抖」。
+  /* ── 第二十四轮：收尾只剩一条路 ──────────────────────────────────────────────
+   * 这里原来分叉成两条：快甩（且非越界外甩）注入初速度走欠阻尼 ios-deck（ζ=0.65、
+   * 阶跃过冲 6.7%），其余走临界阻尼 ios-deck-settle + 显式 v0 = 0；第二十二轮还为
+   * 「越界外甩」补了 deckFlingOutward 判据。三样东西的存在理由都是同一个：
+   * 要在「注入的动量」与「位置被逐笔直写」之间找平衡。
    *
-   * 判据本体在 utils/switcherDeck.deckFlingOutward（纯函数，单测覆盖；长注释里有
-   * 逐帧量测数据）。一句话：**越界区里、速度指向目标之外时，它不是动量，是「继续越界」**。
-   * 实测（/tmp/vwork/r22/probe-apppath.mjs，5 张卡）：
-   *   · 中间卡快甩（松手点在目标之下）→ 过冲 0.07 层 = 16px（就是第十一轮的 +12.6px 动量）；
-   *   · 最后一张卡快甩（deckClampFocus 把松手点顶到 last 之上，而目标被钉回 last）
-   *     → 注入的 vFocus 与「当前 → 目标」反向 ⇒ 冲程被放大到 0.34~0.58 层 = 80~135px，
-   *       松手后 600ms 还在晃；连续快甩时 spring 几乎 100% 常驻 ⇒ 观感「不停颤抖」。
-   * 处置：判成越界外甩 ⇒ 走 ios-deck-settle（ζ=1.0 临界阻尼）+ 显式 v0 = 0，
-   *   与第十一轮的「慢滑不多弹一下」同一条路径 ⇒ 严格单调收回，零过冲。
-   * ⚠️ 平面内（0 ≤ cur ≤ last）判据恒 false ⇒ 需求④的动量、参考视频 V4 的过冲回弹、
-   *    e2e 第十一轮·需求② 的 `st2.over > 3` 全部逐位不变。别把它推广到平面内。 */
-  const outward = deckFlingOutward(cur, idx, vFocus, apps.value.length)
-  focusToIndex(
-    idx,
-    isFlick && !outward
-      ? /* 快甩（且动量方向正确）：把松手速度注入 ios-deck（ζ=0.65）—— 卡片加速冲出去、
-           到位时带一次过冲。这是【动量】，不是多余回弹：参考视频 V4 快甩实测回退 254/229px，
-           第十一轮探针亦量到快甩过冲 12.6px / 占行程 13.6%（慢滑只有 5~6.5px）。 */
-        { initialVelocity: vFocus, velocityLimit: FLICK_V_LIMIT }
-      : /* 慢滑 / 停住再松手（第十一轮需求：「慢滑滑动卡卡片多了一个不必要的回弹」）
-           + 越界外甩（第二十二轮）：
-          ① 换 ios-deck-settle（同 ω_n、ζ=1.0 临界阻尼）⇒ 没有阶跃过冲；
-          ② 【不注入速度】（显式传 0，不依赖 snapTo 恰好把 state.v 归过零）——
-             临界阻尼下只要 v0 > ω_n·d 仍会过冲，
-             而「贴近目标才松手」（d 很小）恰恰是慢滑的常态，此时 ω_n·d 很小、
-             残余速度一注入就又把卡片顶过终点。纯阶跃（v0 = 0）+ 临界阻尼
-             ⇒ 数学上严格单调，这就是「不再多弹一下」的全部保证。
-             代价（松手瞬间速度从手指速度归零）实测不可见：临界阻尼下卡片在 ~70ms 内
-             就自加速到 ω_n·d/e ≈ 手指速度的量级（0.45 层行程 ⇒ 541px/s），不会「顿一下」。 */
-        { preset: 'ios-deck-settle', initialVelocity: 0 }
-  )
+   * 现在位置只有一个写者、模型是一阶的（速度 = 剩余距离 / 时间常数，且有 VMAX 上限）
+   * ⇒ 【过冲在数学上不存在】，越界判据随之失去意义：到边界时 target 被 clampTarget
+   * 夹住 ⇒ d 归零 ⇒ 立即停 —— 就是 Ricky 要的「绳子绷直了应该立即停止」。
+   * 快甩的手感不再靠「注入初速度」制造，而是模型自带：远距离时速度顶到 VMAX（力固定）
+   * ⇒ 冲出去；距离变小时速度按 d 收缩 ⇒ 减速停下（对齐参考视频 V4 的观感）。 */
+  settleTo(idx)
   /* 松手判定的自省口（与 main.js 暴露 window.__system 同性质）：
      回归探针拿它当 oracle —— 断言「给定 (cur, vFocus, startFocus) 的判定必须满足
      本文档的规则」，而不是把某个索引写死（写死必然与「最后 100ms 窗口速度」的实际值对不上）。 */
@@ -627,10 +685,7 @@ function settleFocus(vFocus, startFocus) {
     from: +startFocus.toFixed(4),
     vFocus: +vFocus.toFixed(3),
     isFlick,
-    idx,
-    /* 第二十二轮：本次松手是否被判成「越界外甩」（⇒ 未注入动量）。
-       e2e/探针据此断言判据真的生效，而不是只看焦点有没有收敛。 */
-    outward
+    idx
   }
 }
 
@@ -647,11 +702,13 @@ let settleTimer = null
    那个 watch 带 immediate，setup 期间就会跑；状态若声明在后面，
    watcher 里的 cancelWheel() 会踩到 TDZ。 */
 const wheelAcc = ref(null)
-/* 第二十三轮：触控板 deltaX 的【反向死区】滤波状态（判据本体在 utils/switcherDeck.wheelGateStep）。
-   与 wheelAcc 同生命周期：手势起点新建、endWheel / cancelWheel 清掉。
-   录屏实测（光标在整段拖动期恒在 (379,839)、极差 0px）⇒ 用户用的是触控板，抖动的来源就是
-   这条「零过渡 1:1 直写」的通道，而不是第二十二轮改的 settleFocus（那条路它够不着）。 */
-let wheelGate = null
+/* 第二十四轮：触控板输入的累积器。判据在 utils/switcherMotion.accumulate ——
+   以「1 CSS 像素是屏幕能表达的最小位移」为界：反向要先吃掉 1px 才提交，
+   所以 ±2.5px 的反号噪声被压成亚像素残摆，而真实反调只滞后 1px。
+   它替代了第二十三轮的 7px 反向死区 —— 那一版把「抖」换成了可感知的黏滞
+   （Ricky 原话「越改越差了」），因为 7px 已经大于真实微调的幅度。
+   与 wheelAcc 同生命周期：手势起点新建、endWheel / cancelWheel 清掉。 */
+let wheelInput = null
 let wheelIdleTimer = null
 /* 点空白退出的动画定时器（第八轮，需求④）—— 同一个理由必须声明在这里：
    appSwitcherOpen 的 watch（immediate）在关闭分支里 clearTimeout(closeTimer)，
@@ -1579,7 +1636,10 @@ function onPointerMove(e) {
   d.dx = dx
   vtPush(e.clientX, performance.now())
   d.vPx = vtVelocity()
-  focusSnap(deckClampFocus(d.startFocus + dx / metrics.value.span, apps.value.length))
+  /* 第二十四轮：输入只走【唯一出口】setInput（原来这里是 `focusSnap` 逐帧零过渡直写）。
+     跟手期位置与目标同步落位 ⇒ 仍然严格 1:1、零延迟；区别在于「谁写位置」变成了
+     一个明确的出口，而不再是若干条通道各自直写（那是抖动的根因，见文件头）。 */
+  setInput(deckClampFocus(d.startFocus + dx / metrics.value.span, apps.value.length))
   /* 第八轮（需求⑦）：往左拖到第一张卡之后，越界量转成横向挤压 —— 逐帧直写、严格跟手。 */
   dragSqueeze()
 }
@@ -1838,31 +1898,30 @@ function onWheel(e) {
   e.preventDefault()
   measure()
   if (wheelAcc.value == null) {
-    /* 手势起点：可能正压着一个没跑完的吸附弹簧 → 从当前位置接管（focusSnap 即 stop+set） */
+    /* 手势起点：可能正压着一段没跑完的收尾 → 从【当前视觉位置】接管（target 与 x 对齐） */
     wheelAcc.value = focus.value
-    wheelGate = { acc: focus.value, lastDir: 0, pending: 0 }
+    wheelInput = createAccumulator(focus.value * metrics.value.span)
     focusMoving.value = true
   }
-  /* ── 第二十三轮（Ricky 2026-09-16）：deltaX 先过【反向死区】────────────────────
-   * Ricky 原话：「改废了啊，现在无论左滑右滑都开始抖了」。
-   * 判据本体在 utils/switcherDeck.wheelGateStep（纯函数、单测覆盖，长注释里有逐帧量测）。
-   * 一句话：**同向 1:1 全额提交（跟手契约不变），反向未越过死区就先扣住不动** ——
-   * 触控板动量收尾 / 双指不平行产生的 ±2.5px deltaX 反号，就不会再被 1:1 放大成卡片来回摆。
-   * 录屏复现（/tmp/vwork/r23/probe-momentum.mjs）：交替 ±8px 的尾部 ⇒
-   *   155 155 155 | 160 160 160 | 155 155 155 | 159 … 即 ±5px、约 15Hz 的摆 —— 正是用户看到的现象。
-   * ⚠️ 别改成对 focus 做低通（破坏 1:1 跟手、拖慢 endWheel 落点）；别按「幅度」过滤
-   *    （慢拨的 deltaX 本来就只有零点几 px，会被整个吃掉）。 */
-  const dead = WHEEL_REVERSE_DEAD_PX / metrics.value.span
-  const gated = wheelGateStep(wheelGate, -px / metrics.value.span, dead)
-  const clamped = deckClampFocus(gated, apps.value.length)
-  if (clamped !== gated) {
-    /* 撞到边界：把被夹掉的超出量吸收进滤波状态。否则反向时要先「走完」这段不存在的行程
-       ⇒ 贴着边界反向拨不动（第十七轮同类的冻结感）。 */
-    wheelGate.acc = clamped
-    wheelGate.pending = 0
+  /* ── 第二十四轮：输入先过累积器，再由【唯一出口】落位 ──────────────────────────
+   * 这里原来是 `focusSnap(wheelAcc − px/span)` —— 每一笔 deltaX 直接写位置。
+   * 触控板自带惯性相、换向时 deltaX 的噪声最大，逐笔直写就把噪声 1:1 全幅放上屏幕
+   * （这也是它与 pointer 通道表现不一样的结构性原因）。
+   *   ① accumulate 用「1px = 屏幕能表达的最小位移」判掉物理上不存在的反向位移；
+   *   ② setInput 落位 —— 与 pointer 通道走【同一个出口】，两条通道在架构上统一。
+   * ⚠️ 别退回逐笔直写（会绕开 ①）；也别在这里赌幅度阈值（7px 死区那版的黏滞就是这么来的）。 */
+  const committed = accumulate(wheelInput, -px, MOTION.SUBMIT_PX)
+  const lay = committed / metrics.value.span
+  const layered = deckClampFocus(lay, apps.value.length)
+  if (layered !== lay) {
+    /* 撞到边界：把被夹掉的超出量写回累积器（acc 与 target 一起写，保持「滞后 ≤ 1px」的
+       不变量）。否则反向时要先「走完」这段不存在的行程 ⇒ 贴着边界反向拨不动
+       （第十七轮同类的冻结感）。 */
+    wheelInput.acc = layered * metrics.value.span
+    wheelInput.target = wheelInput.acc
   }
-  wheelAcc.value = clamped
-  focusSnap(wheelAcc.value)
+  wheelAcc.value = layered
+  setInput(layered)
   /* 第八轮（需求⑦）：触控板横滑同样吃「左滑挤压」—— 换一种输入设备，不是换一套反馈 */
   dragSqueeze()
   clearTimeout(wheelIdleTimer)
@@ -1870,24 +1929,23 @@ function onWheel(e) {
 }
 
 /** 触控板手势流结束 → 吸附到最近整卡（不加投影：动量的账已经由系统记过了）。
- *  第十一轮：吸附预设改用 ios-deck-settle —— 触控板横滑是【零动量】的余量吸附，
- *  与慢滑同语义；用 ios-deck（ζ=0.65）会「到位后再弹回来一下」（同样的多余回弹）。 */
+ *  第二十四轮：这里不再挑弹簧预设 —— 收尾统一走 settleTo（一阶 + VMAX）。 */
 function endWheel() {
   if (wheelAcc.value == null) return
   const cur = wheelAcc.value
   wheelAcc.value = null
-  wheelGate = null // 第二十三轮：滤波状态与 wheelAcc 同生命周期
+  wheelInput = null // 累积器与 wheelAcc 同生命周期
   const last = Math.max(0, apps.value.length - 1)
   releaseSqueeze()
-  focusToIndex(Math.max(0, Math.min(last, Math.round(cur))), { preset: 'ios-deck-settle' })
+  settleTo(Math.max(0, Math.min(last, Math.round(cur))))
 }
 
-/** 指针/程序化操作接管时，必须把触控板的未决吸附撤掉（否则它会在拖动中途改焦点） */
+/** 指针/程序化操作接管时，必须把触控板的未决收尾撤掉（否则它会在拖动中途改目标） */
 function cancelWheel() {
   clearTimeout(wheelIdleTimer)
   wheelIdleTimer = null
   wheelAcc.value = null
-  wheelGate = null // 第二十三轮：同上
+  wheelInput = null
 }
 
 /* ---- 桌面图标的隐藏态归还（第十五轮）----
@@ -1925,7 +1983,7 @@ function dismissWithAnimation(appId) {
     system.dismissApp(appId)
     dismissing.value = null
     const idx = Math.max(0, Math.min(apps.value.length - 1, Math.round(focus.value)))
-    focusToIndex(idx)
+    settleTo(idx)
   }, 240)
 }
 
