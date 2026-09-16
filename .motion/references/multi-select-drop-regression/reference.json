@@ -1,0 +1,53 @@
+{
+  "tool": "mobile-motion-builder/inspect_reference.py",
+  "source": {
+    "path": "/Users/jingzhan.chen/Downloads/tOS_Prototype_20260916_155353.mp4",
+    "width": 894,
+    "height": 1956,
+    "avgFps": 55.95612107505698,
+    "realFps": 30000.0,
+    "timeBase": "1/30000",
+    "durationMs": 5677.6,
+    "frameCount": null,
+    "pixelFormat": "yuv420p",
+    "rotation": 0,
+    "container": "mov,mp4,m4a,3gp,3g2,mj2",
+    "sizeBytes": 6116708,
+    "bitRate": 8618723
+  },
+  "analysis": {
+    "roiPx": null,
+    "motion": {
+      "threshold": 0.002,
+      "baselineMedian": 0.0,
+      "baselineMad": 0.0,
+      "onsetFrame": 107,
+      "onsetMs": 1912.213,
+      "settleFrame": 255,
+      "settleMs": 4557.142,
+      "activeFrameCount": 75,
+      "peakEnergy": 0.02720945
+    },
+    "sampleTimesMs": [
+      1912.213,
+      2242.829,
+      2573.445,
+      2904.061,
+      3234.677,
+      3565.294,
+      3895.91,
+      4226.526,
+      4557.142
+    ],
+    "limitations": [
+      "Motion onset and settle are pixel-difference estimates, not semantic event labels.",
+      "Global camera, cursor, clock, or background movement can dominate unless excluded with --roi.",
+      "Easing and spring parameters are not directly observed by this analysis."
+    ]
+  },
+  "artifacts": {
+    "energyCsv": "motion-energy.csv",
+    "contactSheet": "contact-sheet.png",
+    "motionTrail": "motion-trail.png"
+  }
+}

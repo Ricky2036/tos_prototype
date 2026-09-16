@@ -17,8 +17,8 @@
 - All selected source cells become drag sources, rather than hiding only the pressed member.
 - Pickup uses a four-layer maximum visual stack plus a badge containing the full selected count.
 - During pointer follow, a low-pass velocity sample spreads rear layers opposite the current travel vector; slowing down closes the stack again.
-- Drop uses one visual clone per selected item. Real destination cells remain hidden until their matching clone reaches the final DOM frame.
-- The final handoff deliberately overlaps both representations for two animation frames, then fades the clone for `72ms`, preventing a one-frame blank or dim source state.
+- Drop uses only the icon visual (`.app-icon-anchor`) for each selected application; labels and full grid-cell boxes never participate in the fan-out.
+- Real destination cells remain hidden until their matching clone reaches the final DOM frame. The handoff overlaps both representations for two animation frames, then fades the clone for `48ms`.
 - Pointer follow only writes the drag root transform. Drop clones only animate `transform` and `opacity`.
 - Reduced motion commits the same group order and performs an immediate visual handoff.
 
@@ -26,7 +26,7 @@
 
 - **G0 Functional:** pass in component/store regression; group reorder is committed through `home.moveItems`.
 - **G1 Semantic:** pass in source-level regression; all selected sources, stack, per-item destination clones, and destination handoff are represented.
-- **G2 Temporal:** chosen `360–450ms` staggered settle remains within the video-derived `420 ± 80ms` window.
+- **G2 Temporal:** regression footage proved the earlier `360–450ms` full-item fan-out was visibly exposed; icon-only settle is now `190–230ms`, matching the reference's change between the `9.50s` and `9.75s` samples.
 - **G3 Motion:** inferred `cubic-bezier(.22,1,.36,1)` preserves a fast release and soft settle without opacity-driven disappearance.
 - **G4 Visual:** stack depth is capped at four visible layers; count badge shows total selection.
 - **G5 Quality:** tests and production build pass; reduced-motion path and clone cleanup are explicit.

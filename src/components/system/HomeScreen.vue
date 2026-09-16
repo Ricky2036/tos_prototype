@@ -234,12 +234,14 @@ function setGhostPosition(id, clientX, clientY) {
   ghost.value = { ...ghost.value, id, x, y }
   const layers = ghostRef.value?.querySelectorAll?.('.drag-cluster-layer') || []
   const speed = Math.min(2.4,Math.hypot(ghostMotion.vx,ghostMotion.vy))
+  const directionX = speed > .025 ? ghostMotion.vx/speed : 0
+  const directionY = speed > .025 ? ghostMotion.vy/speed : 0
+  const spread = Math.min(28,8+speed*36)
   layers.forEach((layer) => {
     const depth = Number(layer.style.getPropertyValue('--stack-index')) || 0
-    const trail = 13 + speed*4
-    const layerX = depth*(5-ghostMotion.vx*trail)
-    const layerY = depth*(-4-ghostMotion.vy*trail)
-    const rotation = depth*Math.max(-7,Math.min(7,-ghostMotion.vx*3.2))
+    const layerX = depth*(5-directionX*spread)
+    const layerY = depth*(-4-directionY*spread)
+    const rotation = depth*Math.max(-9,Math.min(9,-directionX*7))
     const scale = 1.04-depth*.035-Math.min(.025,speed*.008)
     layer.style.setProperty('--cluster-x',`${layerX.toFixed(2)}px`)
     layer.style.setProperty('--cluster-y',`${layerY.toFixed(2)}px`)
@@ -748,20 +750,23 @@ async function animateMultiDrop(ids, commit) {
   const entries = ids.map((id, index) => {
     const source = rootRef.value?.querySelector(`[data-home-item="${id}"]`)
     if (!source || !ghostRect) return null
-    const rect = source.getBoundingClientRect()
-    const clone = source.cloneNode(true)
+    const visual = source.querySelector('.app-icon-anchor') || source.firstElementChild || source
+    const rect = visual.getBoundingClientRect()
+    const clone = visual.cloneNode(true)
     clone.removeAttribute('data-home-item')
     clone.classList.remove('is-editing','is-selected','is-dragging-source','is-settling-destination')
     clone.classList.add('multi-drop-clone')
     clone.querySelectorAll('.selection-mark,.remove-badge,.dock-select').forEach((node) => node.remove())
     const fan = Math.min(index, 3)
+    const startLeft = ghostRect.left+(ghostRect.width-rect.width)/2+fan*4
+    const startTop = ghostRect.top+(Math.min(ghostRect.width,ghostRect.height)-rect.height)/2-fan*3
     Object.assign(clone.style, {
-      position:'fixed', left:`${ghostRect.left + fan * 5}px`, top:`${ghostRect.top - fan * 4}px`,
+      position:'fixed', left:`${startLeft}px`, top:`${startTop}px`,
       width:`${rect.width}px`, height:`${rect.height}px`, margin:'0', zIndex:String(1300-index),
       pointerEvents:'none', opacity:'1', transform:'scale(.94)', transformOrigin:'top left', willChange:'transform,opacity'
     })
     document.body.appendChild(clone)
-    return { id, clone, start:{ left:ghostRect.left + fan*5, top:ghostRect.top-fan*4, width:rect.width, height:rect.height } }
+    return { id, clone, start:{ left:startLeft, top:startTop, width:rect.width, height:rect.height } }
   }).filter(Boolean)
   settlingIds.value = [...ids]
   commit()
@@ -778,7 +783,8 @@ async function animateMultiDrop(ids, commit) {
   }
   const animations = entries.map(({id,clone,start}, index) => {
     const destination = rootRef.value?.querySelector(`[data-home-item="${id}"]`)
-    const to = destination?.getBoundingClientRect?.()
+    const destinationVisual = destination?.querySelector?.('.app-icon-anchor') || destination?.firstElementChild || destination
+    const to = destinationVisual?.getBoundingClientRect?.()
     if (!to?.width) { clone.remove(); return Promise.resolve() }
     const scaleX = to.width / start.width
     const scaleY = to.height / start.height
@@ -786,7 +792,7 @@ async function animateMultiDrop(ids, commit) {
       { transform:'translate3d(0,0,0) scale(.94)', opacity:1, offset:0 },
       { transform:`translate3d(${(to.left-start.left)*.78}px,${(to.top-start.top)*.78}px,0) scale(${.94 + (scaleX-.94)*.78},${.94 + (scaleY-.94)*.78})`, opacity:1, offset:.68 },
       { transform:`translate3d(${to.left-start.left}px,${to.top-start.top}px,0) scale(${scaleX},${scaleY})`, opacity:1, offset:1 }
-    ], { duration:360 + Math.min(index,5)*18, easing:'cubic-bezier(.22,1,.36,1)', fill:'forwards' })
+    ], { duration:190 + Math.min(index,5)*8, easing:'cubic-bezier(.2,.82,.24,1)', fill:'forwards' })
     return animation.finished.catch(() => {})
   })
   await Promise.all(animations)
@@ -795,7 +801,7 @@ async function animateMultiDrop(ids, commit) {
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
   await Promise.all(entries.map(({clone}) => clone.animate([
     {opacity:1},{opacity:0}
-  ],{duration:72,easing:'linear',fill:'forwards'}).finished.catch(() => {}).finally(() => clone.remove())))
+  ],{duration:48,easing:'linear',fill:'forwards'}).finished.catch(() => {}).finally(() => clone.remove())))
 }
 async function finishItem(cancelled) {
   clearTimeout(edgeTimer)

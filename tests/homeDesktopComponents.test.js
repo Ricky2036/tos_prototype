@@ -40,12 +40,13 @@ test('multi-select drag uses a gathered stack and fans every selected item into 
   assert.match(home, /dragging\.value = \{ id:pointer\.itemId, ids,/)
   assert.match(home, /moveOrderGroup\(previewOrder\.value, dragging\.value\.ids/)
   assert.match(home, /async function animateMultiDrop/)
-  assert.match(home, /duration:360 \+ Math\.min\(index,5\)\*18/)
+  assert.match(home, /destination\?\.querySelector\?\.\('\.app-icon-anchor'\)/)
+  assert.match(home, /duration:190 \+ Math\.min\(index,5\)\*8/)
   assert.match(home, /settlingIds\.value = \[\.\.\.ids\]/)
   assert.match(home, /ghostMotion\.vx = ghostMotion\.vx\*\.48 \+ instantX\*\.52/)
   assert.match(home, /--cluster-x/)
   assert.match(home, /requestAnimationFrame\(\(\) => requestAnimationFrame\(resolve\)\)/)
-  assert.match(home, /duration:72,easing:'linear'/)
+  assert.match(home, /duration:48,easing:'linear'/)
   assert.match(grid, /is-settling-destination/)
   assert.match(grid, /draggingIds/)
   assert.match(store, /moveItems\(itemIds, page, index, preserveSelection = true\)/)
@@ -365,4 +366,3 @@ test('folder collapse preserves smooth background backdrop blur and seamless des
   // Desktop folder does not transition background color
   assert.doesNotMatch(folder, /\.folder-apps\{[^}]*background 180ms ease/)
 })
-
