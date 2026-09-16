@@ -1346,6 +1346,50 @@ function pickMode(dx, dy, maxMove) {
 
 function onPointerDown(e) {
   if (dismissing.value || clearing.value || system.switcherClosing) return
+  /* ---- 第二十轮：手势的【指针所有者】（Ricky 2026-09-16）----
+   *
+   * 原话：「多任务页面双指单次横滑触摸版，老是疯狂抖动」。
+   *
+   * 症状（录屏 tOS_Prototype_20260916_105155.mp4 逐帧，720×1576 / 58.8fps）：
+   *   卡片组以帧率为周期【反号抽动】—— 亮度质心在 15 视频帧内反号 5 次
+   *   （−26.4 / −55.6 / −10.8 / −19.9 / +9.9 / −6.8 / +18.6 / −5.7 / +10.4 视频 px），
+   *   折算 10Hz 量级，**远高于本工程任何弹簧**（最硬的 ios-snappy ω_n = 22.4 rad/s = 3.6Hz）
+   *   ⇒ 这不是动画，是【离散瞬写】——每个事件把焦点硬写一次。
+   *
+   * 根因：本组件的手势没有「指针所有者」概念。
+   *   · drag.value 里没有 pointerId（只有 startX/startY/startFocus/...）；
+   *   · 本函数无条件覆盖 drag.value；
+   *   · onPointerMove / onPointerUp 也不校验 e.pointerId。
+   *   ⇒ 第二根手指落下时把 startX 换成【它自己的坐标】、startFocus 换成当时的焦点；
+   *     此后两根手指的 pointermove 都拿【同一个 startX】算 dx = e.clientX − startX，
+   *     而两指的绝对坐标天然差一个「指距」⇒ 目标焦点在两指距之间来回，幅度 = 指距 / span。
+   *   而 h 分支是 `focusSnap(startFocus + dx/span)`（零过渡直写、1:1 跟手，这条
+   *   不变量不能动）⇒ 每次事件都是一次瞬写，两根手指的上报顺序一抖就反号。
+   *
+   * 探针实测（/tmp/vwork/r20/probe-2finger.mjs，CDP Input.dispatchTouchEvent 注入
+   * **真实触摸**，Chrome 合成 pointerType='touch'；指距 120px / span 233.75）：
+   *     单指横滑          单帧最大 5.1 px   pointerdown 计数 = 1   ← 对照
+   *     双指同步          单帧最大 50.7 px  pointerdown 计数 = 2
+   *     双指错时(晚3帧)   单帧最大 41.8 px  pointerdown 计数 = 2
+   *     双指非平行        单帧最大 37.6 px  pointerdown 计数 = 2
+   *   ⇒ 双指把单帧跳变放大 10 倍，且 event 流里能直接看到 id=3 / id=4 交替、
+   *     两者都用 startX=第二指的 x（见探针输出的「指针事件流」）。
+   *   ⚠️ 仓库 e2e 用 page.mouse / 单指针合成事件驱动，**结构上点不出这个毛病** ——
+   *      只有真触摸（或多指针合成）才覆盖得到，所以下面的 e2e 用例也用 CDP 注入。
+   *
+   * 修法 = 给拖动加「指针所有者」：
+   *   · 已有一个指针在拖动时，其它指针的 down/move/up/cancel 一律不参与手势；
+   *   · 例外：**主指针**（e.isPrimary —— 触摸序列的第一根手指）重新按下 ⇒ 说明上一段的
+   *     所有者已经不在了（pointerup / pointercancel 丢失，例如被系统手势抢占），
+   *     此时接管，否则会「drag 卡死、之后所有触点都被永久忽略」。
+   *   ⇒ 非主指针永远不接管 ⇒ 两指横滑的可见结果与单指逐字节相同。
+   * ⚠️ 不要写成「drag.value 存在就 return」的粗暴版：那正是上面那条死锁。
+   * ⚠️ 也不要在 owner 不匹配时「先结束旧 drag 再新建」：每根手指各接管一次 = 每帧一次
+   *    瞬写，那就是抖动本身。 */
+  if (drag.value && drag.value.pointerId !== e.pointerId) {
+    if (!e.isPrimary) return
+    drag.value = null
+  }
   measure()
   vLetGo.value = null
   vt.length = 0
@@ -1357,6 +1401,9 @@ function onPointerDown(e) {
   followFreeSnap(0)
   dragSqueeze()
   drag.value = {
+    /* 第二十轮：本段手势的【所有者】。onPointerMove / onPointerUp 靠它把额外手指挡在门外，
+       否则两指的 dx 会共用同一个 startX（见 onPointerDown 顶部的长注释）。 */
+    pointerId: e.pointerId,
     startX: e.clientX,
     startY: e.clientY,
     startFocus: focus.value,
@@ -1385,6 +1432,8 @@ function onPointerDown(e) {
 function onPointerMove(e) {
   const d = drag.value
   if (!d) return
+  /* 第二十轮·需求（双指横滑抖动）：非所有者的指针事件一律不参与本段手势（见 onPointerDown）。 */
+  if (e.pointerId !== d.pointerId) return
   const dx = e.clientX - d.startX
   const dy = e.clientY - d.startY
   d.maxMove = Math.max(d.maxMove, Math.hypot(dx, dy))
@@ -1493,6 +1542,10 @@ const TAP_MS_MAX = 500
 function onPointerUp(e) {
   const d = drag.value
   if (!d) return
+  /* 第二十轮·需求（双指横滑抖动）：只有所有者抬起才算松手 ——
+     否则第二根手指的 pointerup 会把还在走的手势提前「结算」（焦点弹回、挤压释放），
+     而它自己的 pointermove 又不会再被接受 ⇒ 一次横滑被结算两次。 */
+  if (e.pointerId !== d.pointerId) return
   drag.value = null
   const dx = e.clientX - d.startX
   const dy = e.clientY - d.startY

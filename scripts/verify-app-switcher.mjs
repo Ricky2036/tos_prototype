@@ -1808,6 +1808,159 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
       Math.abs(home.before - home.after) < 1, `桌面 strip x: ${home.before} → ${home.after}`)
   }
 
+  /* ---- 第二十轮·需求：双指单次横滑不再「疯狂抖动」（Ricky 2026-09-16）----
+     录屏 tOS_Prototype_20260916_105155.mp4 逐帧量测（720×1576 / 58.8fps）：
+       卡片组以【帧率】为周期反号抽动 —— 亮度质心在 15 视频帧内反号 5 次
+       （−26.4 / −55.6 / −10.8 / −19.9 / +9.9 / −6.8 / +18.6 / −5.7 / +10.4 视频 px），
+       单帧最大 57.5 视频 px（≈28.7 CSS px）；而同一段单指轨迹只有 5.1 CSS px。
+       反号频率 ~10Hz，远高于本工程最硬的弹簧（ios-snappy ω_n = 22.4 rad/s = 3.6Hz）
+       ⇒ 是【离散瞬写】，不是动画。
+
+     根因：手势没有「指针所有者」。第二根手指的 pointerdown 会换掉 drag 的 startX /
+       startFocus，此后两指的 pointermove 共用同一个 startX（dx = e.clientX − startX），
+       而两指绝对坐标差一个指距 ⇒ 目标焦点在两指距之间来回，每次事件硬写一次。
+
+     ⚠️ 只用【一个】指针的合成事件（page.mouse、既有 synthDrag / synthWheel）
+        结构上点不出这个毛病 —— 所以这一条显式派发两条 pointerId 不同的指针流，
+        并让两指的上报顺序【逐帧交替】（真实数字转换器的顺序就是这么抖的；
+        顺序恒定时「最后一笔」永远落在同一根手指上，反而看不出问题）。 */
+  const synthMulti = (fingers, spread, n, { stepMs = 16, px = 12 } = {}) =>
+    page.evaluate(
+      async ({ fingers, spread, n, stepMs, px }) => {
+        const root = document.querySelector('.app-switcher')
+        if (!root) return { error: 'no .app-switcher' }
+        const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+        const mk = (t, x, id, primary) =>
+          new PointerEvent(t, {
+            bubbles: true, cancelable: true, composed: true,
+            pointerId: id, pointerType: 'touch', isPrimary: primary,
+            buttons: t === 'pointerup' ? 0 : 1, clientX: x, clientY: 500
+          })
+        const A0 = 110
+        const B0 = A0 + spread
+        /* 用 rAF 采样「实际渲染出来的焦点」：瞬写发生在两次采样之间，
+           所以采样到的跳变就是观众看到的那一跳（探针与本用例同一个 oracle）。 */
+        const rec = []
+        let run = true
+        const sample = () => {
+          if (!run) return
+          const cs = [...document.querySelectorAll('.switcher-card.is-deck')]
+          if (cs.length) {
+            const pairs = cs.map((c) => [+c.dataset.index, +c.dataset.depth])
+            const best = pairs.reduce((a, b) => (Math.abs(b[1]) < Math.abs(a[1]) ? b : a))
+            rec.push(+(best[0] - best[1]).toFixed(3))
+          }
+          requestAnimationFrame(sample)
+        }
+        requestAnimationFrame(sample)
+        root.dispatchEvent(mk('pointerdown', A0, 11, true))
+        if (fingers === 2) {
+          await sleep(30)
+          root.dispatchEvent(mk('pointerdown', B0, 12, false))
+        }
+        for (let i = 1; i <= n; i++) {
+          const pa = mk('pointermove', A0 - px * i, 11, true)
+          const pb = mk('pointermove', B0 - px * i, 12, false)
+          if (fingers === 2 && i % 2) { root.dispatchEvent(pa); root.dispatchEvent(pb) }
+          else if (fingers === 2) { root.dispatchEvent(pb); root.dispatchEvent(pa) }
+          else root.dispatchEvent(pa)
+          await sleep(stepMs)
+        }
+        root.dispatchEvent(mk('pointerup', A0 - px * n, 11, true))
+        if (fingers === 2) root.dispatchEvent(mk('pointerup', B0 - px * n, 12, false))
+        await sleep(900)
+        run = false
+        let maxStep = 0
+        for (let i = 1; i < rec.length; i++) maxStep = Math.max(maxStep, Math.abs(rec[i] - rec[i - 1]))
+        return {
+          maxStep: +maxStep.toFixed(3),
+          samples: rec.length,
+          min: rec.length ? +Math.min(...rec).toFixed(3) : null,
+          end: rec.length ? rec[rec.length - 1] : null
+        }
+      },
+      { fingers, spread, n, stepMs, px }
+    )
+  await resetFocus0()
+  {
+    const one = await synthMulti(1, 0, 10)
+    await resetFocus0()
+    const two = await synthMulti(2, 120, 10)
+    /* 判据用【单指对照】归一（不是拍脑袋的绝对阈值）：
+       ① 双指的单帧跳变必须回到单指量级（改前 0.217 层 = 50.7px，是单指 0.021 的 10 倍）；
+       ② 双指的焦点轨迹必须与单指【同一条】—— 改前第二指把自己那 120px 指距的偏移
+          叠加了进去（min 从 −0.237 变 −0.564）。 */
+    check('第二十轮·需求：双指单次横滑的单帧跳变回到单指量级（改前放大 10 倍）',
+      one.maxStep < 0.1 && two.maxStep < 0.1 && two.maxStep <= one.maxStep * 1.6 + 0.005,
+      `单指单帧最大 ${one.maxStep} 层 · 双指 ${two.maxStep} 层（阈值 0.10；改前 0.217）`)
+    check('第二十轮·需求：双指的焦点轨迹 = 单指轨迹（第二指的指距偏移不再叠加）',
+      one.min != null && two.min != null && Math.abs(two.min - one.min) < 0.05,
+      `单指最深 ${one.min} · 双指最深 ${two.min}（改前 −0.564 vs −0.237）`)
+  }
+
+  await resetFocus0()
+  {
+    /* ---- 第二十轮·需求：慢滑吸附的【动画曲线】必须与参考视频同形：单调、到位不过冲 ----
+       参考视频 = 真 iPhone / iOS 原生多任务界面（444×960 / 24fps，含 iOS 状态栏与
+       「2 个应用正在运行」），逐帧量测三次换卡：
+         · 到达卡右缘归一化曲线 p(t)：0.212@42ms / 0.383@83ms / 0.527@125ms / 0.615@167ms /
+           0.781@208ms / 0.895@375ms / 0.965@542ms / 0.991@667ms
+         · 反号 0 次、p_max = 1.0000 ⇒ **到位后不回弹**（一阶拟合 τ ≈ 163ms；
+           若按 ζ=1 二阶拟合，ω_n 落在 11.7~13.5 rad/s 区间内 —— 本工程 ios-deck-settle
+           的 ω_n = 14 就在这个区间，故不改预设，只把「不过冲」这条锁住）
+       本工程的慢滑分支（停住再松手 ⇒ vFocus ≈ 0）走 ios-deck-settle（ζ=1.0、不注入速度），
+       数学上严格单调；这条断言就是它的守卫（第十一轮「慢滑多了一次不必要的回弹」的回归护栏）。
+       ⚠️ 只约束【非快甩】分支：快甩（|v| ≥ FLICK_V_MIN 2.6 层/秒）走 ios-deck（ζ=0.65）
+          并以 initialVelocity 注入动量，到位过冲 3.9% 层是需求④【要的动量】，不在此口径内。
+       观测量取到达卡的 data-depth（= 焦点越过的层数，0 = 恰好到位；< 0 = 冲过头）。 */
+    const settle = await page.evaluate(async () => {
+      const root = document.querySelector('.app-switcher')
+      if (!root) return { error: 'no .app-switcher' }
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+      const mk = (t, x) =>
+        new PointerEvent(t, {
+          bubbles: true, cancelable: true, composed: true,
+          pointerId: 1, pointerType: 'touch', isPrimary: true,
+          buttons: t === 'pointerup' ? 0 : 1, clientX: x, clientY: 500
+        })
+      const x0 = 90
+      const SPAN = 390 * 0.64 * 0.85
+      const total = SPAN * 0.85 // 0.85 层 ⇒ 过半 ⇒ 落第 2 张
+      const rec = []
+      let run = true
+      const tick = () => {
+        if (!run) return
+        const c = document.querySelector('.switcher-card.is-deck[data-index="1"]')
+        if (c) rec.push(+c.dataset.depth)
+        requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+      root.dispatchEvent(mk('pointerdown', x0))
+      for (let i = 1; i <= 12; i++) {
+        root.dispatchEvent(mk('pointermove', x0 + (total * i) / 12))
+        await sleep(13)
+      }
+      await sleep(250) // 停住再松手 ⇒ vFocus ≈ 0 ⇒ 走 ios-deck-settle（非快甩分支）
+      root.dispatchEvent(mk('pointerup', x0 + total))
+      await sleep(1000)
+      run = false
+      /* 只看「最后一次越过 0.5 层」之后的那一段 —— 前段是手指的拖动，不是吸附曲线 */
+      let cut = 0
+      for (let i = rec.length - 1; i >= 1; i--) if (Math.abs(rec[i]) < 0.5 && Math.abs(rec[i - 1]) >= 0.5) { cut = i; break }
+      const seg = rec.slice(cut)
+      let rev = 0
+      for (let i = 2; i < seg.length; i++) {
+        const a = seg[i - 1] - seg[i - 2]
+        const b = seg[i] - seg[i - 1]
+        if (Math.abs(a) > 0.02 && Math.abs(b) > 0.02 && Math.sign(a) !== Math.sign(b)) rev++
+      }
+      return { n: seg.length, min: +Math.min(...seg).toFixed(3), end: seg[seg.length - 1], rev }
+    })
+    check('第二十轮·需求（曲线）：慢滑吸附单调、到位不过冲（参考视频 24 帧内反号 0 次 · p_max=1.0000）',
+      settle.n > 8 && settle.min > -0.03 && settle.rev === 0 && Math.abs(settle.end) < 0.02,
+      `吸附段 ${settle.n} 帧 · 最深 depth=${settle.min}（须 > −0.03 ⇒ 过冲 < 3%）· 反号 ${settle.rev} 次 · 终位 ${settle.end}`)
+  }
+
   /* ══════════ 第七轮 · 批次 4 ══════════
      ⑩「点击一键清理时卡片上滑消失（参考视频 e6da8c6c…mp4）」
      ②「顶层卡片右滑要最多滑到跟底层卡片刚好完全分离再锁死」
