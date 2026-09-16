@@ -16,7 +16,9 @@
 - Dragging any selected member moves the selected IDs in their existing global order.
 - All selected source cells become drag sources, rather than hiding only the pressed member.
 - Pickup uses a four-layer maximum visual stack plus a badge containing the full selected count.
+- During pointer follow, a low-pass velocity sample spreads rear layers opposite the current travel vector; slowing down closes the stack again.
 - Drop uses one visual clone per selected item. Real destination cells remain hidden until their matching clone reaches the final DOM frame.
+- The final handoff deliberately overlaps both representations for two animation frames, then fades the clone for `72ms`, preventing a one-frame blank or dim source state.
 - Pointer follow only writes the drag root transform. Drop clones only animate `transform` and `opacity`.
 - Reduced motion commits the same group order and performs an immediate visual handoff.
 

@@ -92,6 +92,7 @@ let pressTimer = null
 let edgeTimer = null
 let folderTimer = null
 let pointer = null
+let ghostMotion = null
 const touchPoints = new Map()
 let pinch = null
 function touchDistance(a,b) { return Math.hypot(a.x-b.x,a.y-b.y) }
@@ -208,6 +209,15 @@ function clientPointToHome(x, y) {
   }
 }
 function setGhostPosition(id, clientX, clientY) {
+  const now = performance.now()
+  if (ghostMotion) {
+    const dt = Math.max(8,Math.min(40,now-ghostMotion.time))
+    const instantX = (clientX-ghostMotion.clientX)/dt
+    const instantY = (clientY-ghostMotion.clientY)/dt
+    ghostMotion.vx = ghostMotion.vx*.48 + instantX*.52
+    ghostMotion.vy = ghostMotion.vy*.48 + instantY*.52
+    ghostMotion.clientX = clientX; ghostMotion.clientY = clientY; ghostMotion.time = now
+  } else ghostMotion = { clientX,clientY,time:now,vx:0,vy:0 }
   const point = clientPointToHome(clientX, clientY)
   let x = point.x-(ghost.value?.grabX || 0), y = point.y-(ghost.value?.grabY || 0)
   if (folderMergeCandidate.value?.id && ghost.value) {
@@ -222,6 +232,20 @@ function setGhostPosition(id, clientX, clientY) {
     }
   }
   ghost.value = { ...ghost.value, id, x, y }
+  const layers = ghostRef.value?.querySelectorAll?.('.drag-cluster-layer') || []
+  const speed = Math.min(2.4,Math.hypot(ghostMotion.vx,ghostMotion.vy))
+  layers.forEach((layer) => {
+    const depth = Number(layer.style.getPropertyValue('--stack-index')) || 0
+    const trail = 13 + speed*4
+    const layerX = depth*(5-ghostMotion.vx*trail)
+    const layerY = depth*(-4-ghostMotion.vy*trail)
+    const rotation = depth*Math.max(-7,Math.min(7,-ghostMotion.vx*3.2))
+    const scale = 1.04-depth*.035-Math.min(.025,speed*.008)
+    layer.style.setProperty('--cluster-x',`${layerX.toFixed(2)}px`)
+    layer.style.setProperty('--cluster-y',`${layerY.toFixed(2)}px`)
+    layer.style.setProperty('--cluster-rotation',`${rotation.toFixed(2)}deg`)
+    layer.style.setProperty('--cluster-scale',String(scale))
+  })
 }
 function suppressClick(id) {
   suppressedClickId.value = id
@@ -241,6 +265,7 @@ function createDragGhost(source,id,x,y) {
     : [id]
   const sources = dragIds.map((itemId) => rootRef.value?.querySelector(`[data-home-item="${itemId}"]`)).filter(Boolean)
   const clone = source?.cloneNode(true)
+  ghostMotion = { clientX:x,clientY:y,time:performance.now(),vx:0,vy:0 }
   ghost.value = { id,x:left,y:top,width:(sourceRect?.width || 68)*scaleX,height:(sourceRect?.height || 76)*scaleY,grabX:point.x-left,grabY:point.y-top }
   nextTick(() => {
     if (!ghostRef.value || !clone || ghost.value?.id !== id) return
@@ -261,6 +286,10 @@ function createDragGhost(source,id,x,y) {
         layer.className = 'drag-cluster-layer'
         layer.dataset.dragItem = itemId
         layer.style.setProperty('--stack-index', String(originalIndex))
+        layer.style.setProperty('--cluster-x',`${originalIndex*5}px`)
+        layer.style.setProperty('--cluster-y',`${originalIndex*-4}px`)
+        layer.style.setProperty('--cluster-rotation',`${(originalIndex-1)*2}deg`)
+        layer.style.setProperty('--cluster-scale',String(1.04-originalIndex*.035))
         stack.appendChild(layer)
       })
       const badge = document.createElement('span')
@@ -737,6 +766,8 @@ async function animateMultiDrop(ids, commit) {
   settlingIds.value = [...ids]
   commit()
   previewOrder.value = null
+  dragging.value = null
+  ghostMotion = null
   await nextTick()
   await new Promise((resolve) => requestAnimationFrame(resolve))
   ghost.value = null
@@ -756,10 +787,15 @@ async function animateMultiDrop(ids, commit) {
       { transform:`translate3d(${(to.left-start.left)*.78}px,${(to.top-start.top)*.78}px,0) scale(${.94 + (scaleX-.94)*.78},${.94 + (scaleY-.94)*.78})`, opacity:1, offset:.68 },
       { transform:`translate3d(${to.left-start.left}px,${to.top-start.top}px,0) scale(${scaleX},${scaleY})`, opacity:1, offset:1 }
     ], { duration:360 + Math.min(index,5)*18, easing:'cubic-bezier(.22,1,.36,1)', fill:'forwards' })
-    return animation.finished.catch(() => {}).finally(() => clone.remove())
+    return animation.finished.catch(() => {})
   })
   await Promise.all(animations)
   settlingIds.value = []
+  await nextTick()
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+  await Promise.all(entries.map(({clone}) => clone.animate([
+    {opacity:1},{opacity:0}
+  ],{duration:72,easing:'linear',fill:'forwards'}).finished.catch(() => {}).finally(() => clone.remove())))
 }
 async function finishItem(cancelled) {
   clearTimeout(edgeTimer)
@@ -806,7 +842,7 @@ async function finishItem(cancelled) {
     if (ids.length > 1) await animateMultiDrop(ids, () => home.moveItems(ids,dragging.value.page,dragging.value.index,true))
     else home.moveItem(dragging.value.id, dragging.value.page, dragging.value.index)
   }
-  previewOrder.value = null; dragging.value = null; ghost.value = null
+  previewOrder.value = null; dragging.value = null; ghost.value = null; ghostMotion = null
   folderTargetId.value = null
   folderMergeCandidate.value = null
   dockTargetIndex.value = null
@@ -1220,7 +1256,7 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
 .drag-ghost.is-page-flipping>*{transform:scale(1.18)!important}
 :global(.drag-cluster-stack){position:relative;width:100%;height:100%;transform:scale(1)!important;transition:none!important}
 :global(.drag-cluster-layer){position:absolute!important;inset:0!important;width:100%!important;height:100%!important;opacity:0;pointer-events:none;transform:translate3d(calc(var(--stack-index) * -18px),calc(var(--stack-index) * 12px),0) rotate(calc((var(--stack-index) - 1) * -4deg)) scale(.86)!important;transform-origin:center!important;transition:transform 240ms cubic-bezier(.22,1,.36,1),opacity 140ms ease!important}
-:global(.drag-cluster-stack.is-gathered .drag-cluster-layer){opacity:1;transform:translate3d(calc(var(--stack-index) * 5px),calc(var(--stack-index) * -4px),0) rotate(calc((var(--stack-index) - 1) * 2deg)) scale(calc(1.04 - var(--stack-index) * .035))!important}
+:global(.drag-cluster-stack.is-gathered .drag-cluster-layer){opacity:1;transform:translate3d(var(--cluster-x),var(--cluster-y),0) rotate(var(--cluster-rotation)) scale(var(--cluster-scale))!important;transition:transform 84ms linear,opacity 140ms ease!important}
 .edit-actions{position:absolute;left:14px;right:14px;top:46px;z-index:22;display:flex;align-items:center;justify-content:space-around}
 .edit-action-items{width:100%;display:flex;align-items:center;justify-content:space-around}
 .edit-action-items button{display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(255,255,255,.9);font:500 12px/1.2 var(--font-stack);background:transparent;border:none;cursor:pointer;padding:4px 12px;transition:opacity 160ms ease,transform 160ms ease}

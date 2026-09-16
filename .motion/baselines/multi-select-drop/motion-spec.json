@@ -59,6 +59,17 @@
       "provenance": { "kind": "observed", "confidence": 0.9, "reason": "The stack stays bound to the finger throughout the move." }
     },
     {
+      "id": "velocity-trail-spread",
+      "elementId": "drag-stack",
+      "property": "transform",
+      "unit": "px",
+      "from": 0,
+      "to": 18,
+      "timing": { "onsetMs": 0, "delayMs": 0, "durationMs": 84, "settlingMs": 84 },
+      "model": { "type": "gesture-map" },
+      "provenance": { "kind": "observed", "confidence": 0.82, "reason": "Rear icons spread opposite the travel direction as velocity increases and close toward the resting stack as velocity falls." }
+    },
+    {
       "id": "drop-fan-out",
       "elementId": "selected-icons",
       "property": "transform",
@@ -71,7 +82,8 @@
     }
   ],
   "coordination": [
-    { "type": "sequence", "trackIds": ["pickup-gather", "pointer-follow", "drop-fan-out"], "offsetMs": 0 }
+    { "type": "sequence", "trackIds": ["pickup-gather", "pointer-follow", "drop-fan-out"], "offsetMs": 0 },
+    { "type": "parallel", "trackIds": ["pointer-follow", "velocity-trail-spread"], "offsetMs": 0 }
   ],
   "interaction": {
     "trigger": "drag selected desktop item",
