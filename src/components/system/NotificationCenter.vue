@@ -370,8 +370,6 @@ function handleClearAll() {
 
   const container = listRef.value
   const newDelays = {}
-  const stepMs = 70 // 每张可见卡片间隔 70ms（60Hz 约 4.2 帧，120Hz 约 8.4 帧），自下而上依次抽卡分明可见
-
   if (container) {
     const containerRect = container.getBoundingClientRect()
     const wrappers = Array.from(
@@ -386,16 +384,16 @@ function handleClearAll() {
 
     const visibleCount = visibleWrappers.length
     if (visibleCount > 0) {
-      // 视口内卡片：自下而上依次飞出
-      // 最底部的可见卡片 delay = 0ms（立即启动滑出）
-      // 往上一张 delay = 70ms
-      // 再往上一张 delay = 140ms ...
-      // 这样肉眼在屏幕上可以清晰看到底部卡片先抽走，上方的卡片依次跟进，绝不发生「所有卡片同时滑走」
+      // 动效自适应阶梯算法（受限瀑布流）：
+      // 保证总启动时间窗口紧凑（不超过 180ms），每张卡单步间隔在 22~36ms 之间自适应压缩。
+      // 既保证肉眼清晰可辨逐张抽走，又绝不因可见卡片多而线性累加导致整体拖沓慢动。
+      const maxStaggerWindow = 180
+      const step = visibleCount <= 1 ? 0 : Math.min(36, maxStaggerWindow / (visibleCount - 1))
       for (let i = 0; i < visibleCount; i++) {
         const w = visibleWrappers[i]
         const id = String(w.dataset.id)
         const reverseOrder = visibleCount - 1 - i // 最下方卡片为 0，向上递增
-        newDelays[id] = reverseOrder * stepMs
+        newDelays[id] = Math.round(reverseOrder * step)
       }
     }
 
@@ -410,20 +408,21 @@ function handleClearAll() {
     // 降级（如测试或无 DOM 环境）：按前 5 张在视口自下而上阶梯
     const count = clearable.length
     const visibleCount = Math.min(count, 5)
+    const step = visibleCount <= 1 ? 0 : Math.min(36, 180 / (visibleCount - 1))
     for (let i = 0; i < count; i++) {
       const item = clearable[i]
       const order = i < visibleCount ? (visibleCount - 1 - i) : 0
-      newDelays[String(item.id)] = order * stepMs
+      newDelays[String(item.id)] = Math.round(order * step)
     }
   }
 
   clearingDelays.value = newDelays
   isClearing.value = true
 
-  // 计算整体飞出动画时间：最大延时 + 单卡飞出 460ms + 50ms 充裕余量
+  // 计算整体飞出动画时间：最大延时 + 单卡飞出 340ms + 25ms 充裕余量（轻快利落）
   const maxDelay = Math.max(0, ...Object.values(newDelays))
-  const exitDuration = 460
-  const totalWaitTime = maxDelay + exitDuration + 50
+  const exitDuration = 340
+  const totalWaitTime = maxDelay + exitDuration + 25
 
   clearTimeout(clearTimer)
   clearTimer = setTimeout(() => {
@@ -444,10 +443,10 @@ function handleClearAll() {
     clearingDelays.value = {}
     clearTimer = null
 
-    // 清空后自动平滑收起通知中心回到桌面/应用
+    // 清空后自动平滑收起通知中心回到桌面/应用（60ms 快速衔接）
     setTimeout(() => {
       system.requestCloseOverlay('notificationCenter')
-    }, 100)
+    }, 60)
 
     // 3. FLIP (Last, Invert, Play): 在 DOM 重新渲染后计算位移并平滑位移过渡
     nextTick(() => {
@@ -1337,8 +1336,8 @@ watch(expandedId, async () => {
   opacity: 0;
   pointer-events: none;
   transition-property: transform, opacity;
-  transition-duration: 0.46s, 0.42s;
-  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1), cubic-bezier(0.55, 0, 0.85, 1);
+  transition-duration: 0.34s, 0.28s;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1), cubic-bezier(0.5, 0, 0.9, 1);
 }
 .nc-card {
   position: relative;

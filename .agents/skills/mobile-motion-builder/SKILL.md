@@ -86,7 +86,7 @@ Read [motion-model.md](references/motion-model.md) before choosing between tween
 - Separate gesture acquisition, state transition, and visual interpolation.
 - Make interruption behavior explicit. A retargetable spring should preserve velocity; a modal sequence may instead lock or cancel.
 - Use transforms and opacity for high-frequency visual motion where possible; animate layout deliberately when geometry itself is the meaning.
-- **Viewport-Relative Stagger**: Calculate cascade/stagger delays strictly from items visible in the active viewport ($\ge 40\text{--}70\text{ms}$ discernible separation). Never index offscreen items with hard caps that collapse visible item delays. Offscreen elements must transition silently (0ms).
+- **Adaptive Viewport Stagger**: Multi-item cascades must calculate delays from items visible in the active viewport using a bounded window (total stagger spread $\le 150\text{--}200\text{ms}$, compressing per-item step $\Delta t = \min(\text{baseStep}, \frac{\text{maxWindow}}{N - 1})$ to $\approx 20\text{--}35\text{ms}$). This prevents sluggish delay accumulation on dense lists while preserving distinct wave onset. Offscreen items use 0ms.
 - **Full-Lifecycle Closure**: Ensure the entire sequence completes: `Trigger Feedback -> Element Motion -> Container Settlement` (e.g. auto-collapsing an empty parent overlay or canvas settle). Never terminate midway after element exit.
 - Bind reduced-motion behavior to the platform preference and preserve information equivalence.
 
