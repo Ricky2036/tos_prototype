@@ -76,9 +76,9 @@
       "unit": "ratio",
       "from": 0.92,
       "to": 1,
-      "timing": { "onsetMs": 0, "delayMs": 0, "durationMs": 360, "settlingMs": 420 },
-      "model": { "type": "tween", "easing": "cubic-bezier(0.22, 1, 0.36, 1)" },
-      "provenance": { "kind": "inferred", "confidence": 0.8, "reason": "Icons separate immediately after release near 9.50s and visually settle by about 10.00s." }
+      "timing": { "onsetMs": 0, "delayMs": 0, "durationMs": 190, "settlingMs": 238 },
+      "model": { "type": "tween", "easing": "cubic-bezier(0.2, 0.82, 0.24, 1)" },
+      "provenance": { "kind": "inferred", "confidence": 0.84, "reason": "The reference changes from a held stack at 9.50s to normally sized destination icons by 9.75s; the regression recording showed the previous 360–450ms full-item fan-out as a conspicuous explosion." }
     }
   ],
   "coordination": [
@@ -100,7 +100,7 @@
     "metrics": [
       { "id": "group-order-committed", "level": "G0-functional", "method": "Assert every selected item moves as one ordered group.", "target": true, "tolerance": false, "hardGate": true },
       { "id": "source-stack-destination-continuity", "level": "G1-semantic", "method": "Assert selected sources hide into one stack and every visible destination is represented by a settling clone.", "target": true, "tolerance": false, "hardGate": true },
-      { "id": "drop-settle-duration", "level": "G2-temporal", "method": "Measure release to final real-item handoff.", "target": 420, "tolerance": 80, "hardGate": false },
+      { "id": "drop-settle-duration", "level": "G2-temporal", "method": "Measure release to final real-item handoff.", "target": 238, "tolerance": 50, "hardGate": false },
       { "id": "transform-only-follow", "level": "G5-quality", "method": "Verify pointer-follow updates transform only and leaves no clones after settle or cancellation.", "target": true, "tolerance": false, "hardGate": true },
       { "id": "reduced-motion-equivalence", "level": "G5-quality", "method": "Repeat the reorder under reduced motion and assert identical final order.", "target": true, "tolerance": false, "hardGate": true }
     ],
