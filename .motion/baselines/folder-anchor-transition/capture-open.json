@@ -1,0 +1,28 @@
+{
+  "url": "http://127.0.0.1:8888/",
+  "outputDir": "artifacts/open",
+  "browserExecutable": "/Users/jingzhan.chen/Library/Caches/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-mac-arm64/chrome-headless-shell",
+  "viewport": { "width": 393, "height": 852, "deviceScaleFactor": 1 },
+  "reducedMotion": "no-preference",
+  "initialWaitMs": 500,
+  "readySelector": ".screen-view",
+  "actions": [
+    { "type": "evaluate", "script": "(() => { const pinia = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia; pinia._s.get('system').unlock(); pinia._s.get('home').createFolder(['app:notes','app:calendar'],0,0); return true })()" },
+    { "type": "wait", "durationMs": 500 },
+    { "type": "waitFor", "selector": "[data-home-item^='folder:']", "state": "visible" },
+    { "type": "click", "selector": "[data-home-item^='folder:']" }
+  ],
+  "samples": [
+    { "name": "trigger", "timeMs": 0 },
+    { "name": "open-25", "timeMs": 80 },
+    { "name": "open-50", "timeMs": 160 },
+    { "name": "open-75", "timeMs": 240 },
+    { "name": "open-100", "timeMs": 320 },
+    { "name": "settled", "timeMs": 400 }
+  ],
+  "assertions": [
+    { "selector": ".folder-overlay", "state": "visible" },
+    { "selector": ".folder-title", "state": "visible" },
+    { "selector": ".folder-panel-app", "state": "visible" }
+  ]
+}
