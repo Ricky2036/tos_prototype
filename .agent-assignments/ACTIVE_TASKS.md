@@ -107,8 +107,8 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Fix folder resize handle positioning and thicken arc stroke | `antigravity/lane` | None (locks released) | `811615d` | `15dcd6d` |
 | Merged | Antigravity | Three-state power lock button (lock on home/app, power-off on lockscreen, power-on on screen-off) | `antigravity/lane` | None (locks released) | `b165a10` | `65344bf` |
 | Merged | Antigravity | Power button icon refinement (power icon for screen-off, custom lock icon, click dye) and solid wallpaper icon in HomeScreen edit mode | `antigravity/lane` | None (locks released) | `58367b1` | `a4ee037` |
+| Active | Codex | Desktop multi-select drag release and drop-settle motion | `codex/lane` | `src/components/system/HomeScreen.vue`; `src/components/system/AppGrid.vue`; `src/stores/homeStore.js`; necessary desktop motion tests; `.motion/baselines/multi-select-drop/**` | `5594a53` | — |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
-
 
 
