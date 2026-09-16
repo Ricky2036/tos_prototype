@@ -92,19 +92,24 @@ export const useNotificationsStore = defineStore('notifications', {
         }
       }
       return true
-    }
+    },
+    /** 是否存在可清理的普通通知（不含常驻通知） */
+    hasClearable: (s) => s.list.some((n) => !n.persistent),
+    /** 可清理的普通通知数量 */
+    clearableCount: (s) => s.list.filter((n) => !n.persistent).length
   },
 
   actions: {
     /** 新增一条通知 = push 一下，锁屏/通知中心/角标自动同步 */
-    push({ appId, title, body, minutesAgo = 0, iconType }) {
+    push({ appId, title, body, minutesAgo = 0, iconType, persistent = false }) {
       this.list.unshift({
         id: nextId++,
         appId,
         iconType: iconType || appId,
         title,
         body,
-        time: Date.now() - minutesAgo * 60000
+        time: Date.now() - minutesAgo * 60000,
+        persistent: Boolean(persistent)
       })
     },
 
@@ -113,7 +118,15 @@ export const useNotificationsStore = defineStore('notifications', {
       if (i !== -1) this.list.splice(i, 1)
     },
 
-    clearAll() { this.list = [] },
+    /** 一键清理：仅移除普通通知，保留常驻通知（如日志抓取、系统守护等） */
+    clearDismissible() {
+      this.list = this.list.filter((n) => n.persistent)
+    },
+
+    /** 彻底清空所有通知（包含常驻） */
+    clearAll() {
+      this.list = []
+    },
 
     setTargetView(view, subView = null, islandKey = null) {
       this.targetView = view

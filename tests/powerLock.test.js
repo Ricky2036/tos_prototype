@@ -94,7 +94,7 @@ test('three-state power lock: template and component linkage', () => {
   assert.match(devConsoleContent, /pc-icon-lock/)
   assert.match(devConsoleContent, /pc-icon-power/)
   assert.match(devConsoleContent, /pc-icon-sun/)
-  assert.match(devConsoleContent, /<rect x="5" y="11" width="14" height="10" rx="3"/)
+  assert.match(devConsoleContent, /<rect x="3" y="11" width="18" height="11" rx="2"/)
   assert.match(devConsoleContent, /\.pc-btn:active \.pc-icon-lock/)
   assert.match(devConsoleContent, /\.pc-btn:active \.pc-icon-power/)
   assert.match(devConsoleContent, /\.pc-btn:active \.pc-icon-sun/)
