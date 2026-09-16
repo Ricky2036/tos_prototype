@@ -109,5 +109,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Power button icon refinement (power icon for screen-off, custom lock icon, click dye) and solid wallpaper icon in HomeScreen edit mode | `antigravity/lane` | None (locks released) | `58367b1` | `a4ee037` |
 | Merged | Codex | Desktop multi-select drag release and drop-settle motion | `codex/lane` | None (locks released) | `5594a53` | `ad8e7c7` |
 | Merged | Codex | Fix multi-select drop final-frame flash and add velocity-direction inertia spread | `codex/lane` | None (locks released) | `5e76b94` | `a883740` |
+| Active | Codex | Regress multi-select drag spread and drop clone scale to match reference | `codex/lane` | `src/components/system/HomeScreen.vue`; necessary desktop motion tests; `.motion/baselines/multi-select-drop/**` | `d71c5d3` | — |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
