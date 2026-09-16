@@ -12,7 +12,7 @@
  */
 import { chromium } from 'playwright'
 import { readFileSync } from 'node:fs'
-import { DECK } from '../src/utils/switcherDeck.js'
+import { DECK, WHEEL_REVERSE_DEAD_PX } from '../src/utils/switcherDeck.js'
 
 /* 层间位移的比例契约来自纯函数模块，避免脚本里再抄一份魔数（第六轮：0.32）。 */
 const STAIR_DECAY = DECK.STAIR_DECAY
@@ -4256,6 +4256,119 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
       !!ip.settle && ip.settle.outward === false && ip.settle.isFlick === true &&
         ip.afterMax != null && ip.afterMax > ip.settle.idx,
       `settle=${JSON.stringify(ip.settle)} · 松手后最高 ${ip.afterMax} 层（须 > ${ip.settle && ip.settle.idx}）`)
+  }
+
+  /* ══════════ 第二十三轮 · 触控板 deltaX 的【反向死区】（Ricky 2026-09-16：「无论左滑右滑都开始抖」）══════════
+   *
+   * ## 定位（完整量测在 /tmp/vwork/r23/）
+   * 1. **先定输入设备**（这一步推翻了我上一轮的头号嫌疑）：录屏
+   *    `tOS_Prototype_20260916_162059.mp4` 里用光标模板逐帧匹配 ⇒ **光标在整段拖动期恒定在
+   *    (379,839)、极差 0px**（含卡片移动了 226px 的那 200ms）⇒ 用户用的是**触控板**。
+   *    触控板双指划**不产生任何 pointer 事件** ⇒ 该录屏里唯一能驱动卡片的是 wheel 通道。
+   *    而第二十二轮改的 `settleFocus` 只有指针路径会调（`endWheel` 走 `focusToIndex`）
+   *    ⇒ **结构上够不着它**，本轮回归与第二十二轮无关（该 commit 另已单变量证明为平面内 no-op）。
+   * 2. 抖动 signature（真实内容 30fps，已剔除 69.2% 的录屏重复帧）：卡片左缘
+   *       155 145 149 141 145 138 138 136 139 135 138 134 136
+   *    = 收敛（150→136）之上叠加 **±5 物理px(≈2.5 CSS px)、周期恰好 2 个内容帧(66ms≈15Hz)、
+   *      幅度递减**的摆动。对照实验（垃圾桶按钮 / 背景壁纸左右带 / 状态栏）位移**恒为 0** ⇒ 非录屏伪影；
+   *    多阈值(120/160/200/230)给出的边缘逐帧一致(±1px) ⇒ 卡体在动，不是阴影/模糊在抖。
+   * 3. 根因：`onWheel` 的 `focusSnap(wheelAcc − px/span)` 把 deltaX **零死区、零限速、1:1 直写**
+   *    进 focus ⇒ 触控板动量收尾 / 双指不平行产生的 deltaX 小幅反号被原样放大。
+   *
+   * ## 本区块守住两条，缺一即回归
+   *   ① 同向仍 **1:1 跟手，不许被削**（第七轮契约，也是上面三条既有 wheel 用例的前提）；
+   *   ② 反向的小幅噪声 **不许移动卡片**。
+   *
+   * ⚠️ 输入必须在【同一个 JS 任务】里派发完并读回：
+   *    跨 `page.evaluate` 会引入真实时间流逝，WHEEL_IDLE(140ms) 的吸附可能已经触发
+   *    （wheelAcc 被清空、滤波状态重建）⇒ 基准漂移 ⇒ 假 FAIL。
+   */
+  {
+    const openFiveAndSwitcher = async () => {
+      await page.waitForTimeout(240) // 等上一子用例的 140ms 吸附定时器走完，避免跨用例串味
+      await page.evaluate(() => { const s = window.__system; s.exitSwitcherToHome(); s.dismissAll() })
+      await page.waitForTimeout(260)
+      for (const id of ['calculator', 'files', 'notes', 'camera', 'clock']) {
+        await page.evaluate((a) => window.__system.openApp(a), id)
+        await page.waitForTimeout(420)
+      }
+      await page.evaluate(() => window.__system.openSwitcher())
+      await page.waitForTimeout(900)
+    }
+    /** 在**同一个 JS 任务**里派发整串 wheel，逐笔读回 focus。
+     *  返回 [{dx, focus}, ...]，第 0 项是初始值。
+     *  deltaX 符号与触控板一致（自然滚动：双指往右 ⇒ deltaX < 0 ⇒ 焦点增大）。 */
+    const wheelProbe = (list) =>
+      page.evaluate((l) => {
+        const t = document.querySelector('.app-switcher')
+        if (!t) return { error: 'no .app-switcher' }
+        const S = t.__vueParentComponent.setupState
+        const fire = (dx) =>
+          t.dispatchEvent(new WheelEvent('wheel', {
+            bubbles: true, cancelable: true, composed: true,
+            deltaX: dx, deltaY: 0, deltaMode: 0, clientX: 215, clientY: 500
+          }))
+        const out = [{ dx: null, focus: S.focus }]
+        for (const dx of l) { fire(dx); out.push({ dx, focus: S.focus }) }
+        return { out }
+      }, list)
+
+    /* ① 同向 1:1 契约：单笔 60px 必须精确走 60/span 层（死区只允许作用在【反向】上） */
+    await openFiveAndSwitcher()
+    const A = await wheelProbe([-60])
+    const Aobs = A && A.out ? A.out : null
+    check('第二十三轮·前置：干净态焦点 = 0（否则下面的位移断言没有基准）',
+      !!Aobs && Math.abs(Aobs[0].focus) < 0.02, A.error ? A.error : `focus=${Aobs && Aobs[0].focus}`)
+    check('第二十三轮·契约：同向单笔仍 1:1（60px ⇒ 60/span 层，未被死区削掉）',
+      !!Aobs && Math.abs((Aobs[1].focus - Aobs[0].focus) - 60 / SPAN) < 1e-6,
+      A.error ? A.error : `Δ=${((Aobs[1].focus - Aobs[0].focus) * SPAN).toFixed(4)}px（期望 60）`)
+
+    /* ② 录屏实测噪声幅度：反向 ±3px 交替 8 个来回 ⇒ 卡片必须【完全不】移动 */
+    {
+      const seq = [-60]
+      for (let i = 0; i < 8; i++) seq.push(3, -3)
+      const B = await wheelProbe(seq)
+      const first = B.out[1].focus // -60 之后（已确立方向）
+      const last = B.out[B.out.length - 1].focus
+      check('第二十三轮·需求：反向 ±3px 交替 8 个来回不得移动卡片（录屏实测噪声 ±2.5px）',
+        Math.abs(last - first) < 1e-12, `位移 ${((last - first) * SPAN).toFixed(4)}px（期望 0）`)
+    }
+
+    /* ③ 死区边界：反向恰好一个死区 ⇒ 不动；再叠 2px ⇒ 只走「超出的那一段」 */
+    {
+      const C = await wheelProbe([-100, WHEEL_REVERSE_DEAD_PX, 2])
+      const base = C.out[1].focus // -100 之后
+      const afterDead = C.out[2].focus
+      const afterExcess = C.out[3].focus
+      check(`第二十三轮·需求：反向恰好一个死区（${WHEEL_REVERSE_DEAD_PX}px）⇒ 卡片不动`,
+        Math.abs(afterDead - base) < 1e-12, `位移 ${((afterDead - base) * SPAN).toFixed(4)}px（期望 0）`)
+      check('第二十三轮·需求：越过死区后【只走超出的那一段】（平滑衰减，不是整段一起走）',
+        Math.abs((base - afterExcess) - 2 / SPAN) < 1e-6,
+        `反向位移 ${((base - afterExcess) * SPAN).toFixed(4)}px（期望 2）`)
+    }
+
+    /* ④ 死区不是「卡死」：真反转（回拨 120px）必须生效，且只滞后一个死区 */
+    {
+      const D = await wheelProbe([-120, 120])
+      const k0 = D.out[1].focus
+      const k1 = D.out[2].focus
+      check(`第二十三轮·需求：真反转必须生效（回拨 120px ⇒ 走 ${120 - WHEEL_REVERSE_DEAD_PX}px，只滞后一个死区）`,
+        Math.abs((k0 - k1) * SPAN - (120 - WHEEL_REVERSE_DEAD_PX)) < 1e-6,
+        `反向位移 ${((k0 - k1) * SPAN).toFixed(3)}px（期望 ${120 - WHEEL_REVERSE_DEAD_PX}）`)
+    }
+
+    /* ⑤ 既有契约复述：轻拨 90px（0.385 层，不足半张）仍弹回原卡 —— 死区不得把整段同向轻拨吃掉 */
+    await openFiveAndSwitcher()
+    await wheelProbe([-15, -15, -15, -15, -15, -15])
+    await page.waitForTimeout(900) // 等 endWheel 的 ios-deck-settle 吸附落定
+    {
+      const lite = await page.evaluate(() => {
+        const r = document.querySelector('.app-switcher')
+        return +r.__vueParentComponent.setupState.focus
+      })
+      check('第二十三轮·契约：轻拨 90px 仍弹回原卡（死区只作用于反向，同向 1:1 不变）',
+        Math.round(lite) === 0, `落点 focus=${lite}`)
+    }
   }
 
   await resetHome()

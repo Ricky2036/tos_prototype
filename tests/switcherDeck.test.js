@@ -21,7 +21,9 @@ import {
   TOUCH_STEP_JUMP_PX,
   TOUCH_STEP_RATIO,
   TOUCH_STEP_WARMUP,
-  touchStepIsTeleport
+  touchStepIsTeleport,
+  WHEEL_REVERSE_DEAD_PX,
+  wheelGateStep
 } from '../src/utils/switcherDeck.js'
 
 // 430 × 932（本项目基准机型）
@@ -638,4 +640,167 @@ test('第二十二轮·需求：越界外甩的动量判据（deckFlingOutward�
   /* ⑦ 与 deckClampFocus 的联动：越界区真的能被拖出去（否则本判据永远不会触发） */
   assert.ok(deckClampFocus(99, n) > n - 1 + BOUNDARY_FLING_EPS, '正侧橡皮筋确实允许拖到 last 之上')
   assert.ok(deckClampFocus(-99, n) < -BOUNDARY_FLING_EPS, '负侧橡皮筋确实允许拖到 0 之下')
+})
+
+/* ────────────────────────────────────────────────────────────────────────────
+   第二十三轮·需求：触控板 deltaX 的【反向死区】
+   Ricky 原话：「改废了啊，现在无论左滑右滑都开始抖了」。
+   定位见 /tmp/vwork/r23/：光标在整段拖动期恒在 (379,839)、极差 0px ⇒ 用户用触控板 ⇒
+   唯一驱动卡片的通道是 wheel；抖动的 signature 是 ±5 物理px(≈2.5 CSS px)、
+   周期 2 个内容帧(66ms≈15Hz)、幅度递减的摆动，叠加在收敛之上。
+   本判据必须同时满足两条：**同向 1:1 跟手不变** + **反向噪声不得移动卡片**。
+   ──────────────────────────────────────────────────────────────────────────── */
+test('第二十三轮·需求：触控板反向死区（wheelGateStep）', () => {
+  const SPAN = m.span // 430 基准机型 = 233.75 px/层
+  const toLayer = (v) => v / SPAN
+  const DEAD = toLayer(WHEEL_REVERSE_DEAD_PX)
+  const mk = (acc = 0, lastDir = 0) => ({ acc, lastDir, pending: 0 })
+
+  /* ① 常量本身必须落在「够用且不过分」的区间：
+        下限 = 2× 录屏实测噪声(2.5px)；上限 = span 的 5%（再大真反转会被察觉成「卡住了」）。 */
+  assert.ok(WHEEL_REVERSE_DEAD_PX >= 5, `死区 ${WHEEL_REVERSE_DEAD_PX}px 至少要有实测噪声 2.5px 的 2 倍余量`)
+  assert.ok(WHEEL_REVERSE_DEAD_PX <= SPAN * 0.05, `死区 ${WHEEL_REVERSE_DEAD_PX}px 不得大到让真反转感觉「卡住」`)
+
+  /* ② 同向连续事件 ⇒ 全额提交（1:1 跟手契约，e2e 需求① 三条依赖它） */
+  {
+    const st = mk()
+    for (let i = 0; i < 8; i++) wheelGateStep(st, toLayer(-25), DEAD)
+    assert.ok(Math.abs(st.acc - toLayer(-200)) < 1e-9, `同向 8×25px ⇒ 位移 200px（实得 ${(st.acc * SPAN).toFixed(2)}px）`)
+    assert.equal(st.pending, 0, '提交后无未决量')
+    assert.equal(st.lastDir, -1, '已确认方向为负')
+  }
+
+  /* ③ 首次事件必提交（lastDir=0）；反向恰好等于死区 ⇒ 扣住；越过死区 ⇒ 只走超出的一段 */
+  {
+    const st = mk()
+    wheelGateStep(st, toLayer(0.01), DEAD)
+    assert.ok(Math.abs(st.acc - toLayer(0.01)) < 1e-9, '首次事件 lastDir=0 必全额提交（再小也提交）')
+    const st2 = mk(0, 1)
+    const r2 = wheelGateStep(st2, toLayer(-(WHEEL_REVERSE_DEAD_PX + 1)), DEAD)
+    assert.ok(Math.abs(r2 + toLayer(1)) < 1e-9,
+      `反向 ${WHEEL_REVERSE_DEAD_PX + 1}px ⇒ 只走超出死区的 1px（实得 ${(-r2 * SPAN).toFixed(3)}px）`)
+    assert.equal(st2.lastDir, -1, '方向已翻转')
+    const st3 = mk(0, 1)
+    const before = st3.acc
+    assert.equal(wheelGateStep(st3, toLayer(-WHEEL_REVERSE_DEAD_PX), DEAD), before, '恰好等于死区 ⇒ 仍不提交')
+  }
+
+  /* ④ 【核心】录屏实测的交替噪声（±2.5 CSS px）必须让卡片**完全不动**。
+        用真实 signature 跑 70 个来回，acc 的极差必须为 0。 */
+  {
+    const st = mk()
+    wheelGateStep(st, toLayer(2.5), DEAD) // 第一个同向事件提交
+    const base = st.acc
+    let mn = base
+    let mx = base
+    for (let i = 0; i < 70; i++) {
+      const v = wheelGateStep(st, toLayer(i % 2 === 0 ? -2.5 : 2.5), DEAD)
+      mn = Math.min(mn, v)
+      mx = Math.max(mx, v)
+    }
+    assert.equal(mx - mn, 0, `±2.5px 交替 70 次不得产生任何位移（实得 ${((mx - mn) * SPAN).toFixed(3)}px）`)
+    assert.ok(Math.abs(st.acc - base) < 1e-9, 'acc 稳定在首次提交值')
+  }
+
+  /* ⑤ 噪声略小于死区（±3px / ±6px）同样零位移 */
+  for (const amp of [1, 3, 6]) {
+    const st = mk()
+    wheelGateStep(st, toLayer(amp), DEAD)
+    const base = st.acc
+    let mn = base
+    let mx = base
+    for (let i = 0; i < 40; i++) {
+      const v = wheelGateStep(st, toLayer(i % 2 === 0 ? -amp : amp), DEAD)
+      mn = Math.min(mn, v); mx = Math.max(mx, v)
+    }
+    assert.equal(mx - mn, 0, `±${amp}px（< 死区）交替不得位移`)
+    assert.ok(Math.abs(st.acc - base) < 1e-9)
+  }
+
+  /* ⑥ 噪声【大于】死区时必须【平滑衰减】而不是断崖：±A 交替的残摆 = max(0, A − D)。
+        ±8px ⇒ 只剩 1px；A ≤ D ⇒ 恒 0；且随 A 单调不减。
+        （护栏：若改回「越过死区就整体提交」，±8px 的残摆会跳回 8px —— 死区就从
+          「连续衰减器」退化成「要么全挡、要么全漏」。） */
+  {
+    const res = []
+    for (const amp of [0.5, 1, 3, 6, 7, 7.5, 8, 10, 14]) {
+      const st = mk()
+      wheelGateStep(st, toLayer(amp), DEAD)
+      let mn = st.acc
+      let mx = st.acc
+      for (let i = 0; i < 24; i++) {
+        const v = wheelGateStep(st, toLayer(i % 2 === 0 ? -amp : amp), DEAD)
+        mn = Math.min(mn, v); mx = Math.max(mx, v)
+      }
+      res.push({ amp, wob: (mx - mn) * SPAN })
+    }
+    for (const { amp, wob } of res) {
+      const want = Math.max(0, amp - WHEEL_REVERSE_DEAD_PX)
+      assert.ok(Math.abs(wob - want) < 1e-6,
+        `±${amp}px 交替的残摆应为 ${want.toFixed(2)}px（实得 ${wob.toFixed(2)}px）`)
+    }
+    assert.ok(res.every((x, i) => i === 0 || x.wob >= res[i - 1].wob - 1e-9), '残摆随噪声幅度单调不减')
+    assert.ok(res.find((x) => x.amp === 8).wob < 2.5, '±8px 的残摆必须远小于幅度本身（平滑衰减，非断崖）')
+  }
+
+  /* ⑦ 真反转（用户主动往回拨）必须能生效并重新定方向 —— 别把死区做成「卡死」。
+        代价是方向变化处滞后一个有界的 D：不累积、不漂移。 */
+  {
+    const st = mk()
+    wheelGateStep(st, toLayer(120), DEAD) // 先正向走 120px
+    const mid = st.acc
+    for (let i = 0; i < 5; i++) wheelGateStep(st, toLayer(-40), DEAD) // 反向拨 200px
+    assert.ok(st.acc < mid, '反向必须真的往回走')
+    assert.equal(st.lastDir, -1, '方向已翻转为负')
+    const lag = Math.abs((mid - toLayer(200) - st.acc) * SPAN)
+    assert.ok(Math.abs(lag - WHEEL_REVERSE_DEAD_PX) < 1e-6,
+      `方向变化只滞后一个死区 ${WHEEL_REVERSE_DEAD_PX}px（实得 ${lag.toFixed(3)}px）`)
+    const a = st.acc
+    wheelGateStep(st, toLayer(-50), DEAD)
+    assert.ok(Math.abs((st.acc - a) * SPAN + 50) < 1e-6, '方向确认后恢复 1:1，滞后不累积')
+  }
+
+  /* ⑧ 未决量被同向事件抵消 ⇒ 不产生系统性偏移 */
+  {
+    const st = mk()
+    wheelGateStep(st, toLayer(3), DEAD) // acc = 3px, lastDir = +1
+    wheelGateStep(st, toLayer(-3), DEAD) // 反向 3px < 死区 ⇒ 扣住
+    const v = wheelGateStep(st, toLayer(3), DEAD) // 同向 3px ⇒ 抵消未决量，acc 不动
+    assert.ok(Math.abs(v - toLayer(3)) < 1e-9, '净输入 +3px 时位移恰好是 +3px（无累积误差）')
+    assert.equal(st.pending, 0, '未决量被抵消清零')
+  }
+
+  /* ⑨ 反向累加越过死区 ⇒ 误差有界（不超过一个死区）且不随行程累积（无漂移） */
+  {
+    const st = mk()
+    wheelGateStep(st, toLayer(3), DEAD)
+    const base = st.acc
+    for (const _ of [1, 2, 3]) wheelGateStep(st, toLayer(-3), DEAD) // 累计 -9px，越过 7px 死区
+    const e1 = Math.abs(st.acc - (base + toLayer(-9)))
+    assert.ok(e1 * SPAN <= WHEEL_REVERSE_DEAD_PX + 1e-6, `误差 ${(e1 * SPAN).toFixed(3)}px 必须 ≤ 一个死区`)
+    assert.ok(e1 > 0, '确实是有界迟滞而不是完全无损 —— 这是死区的定义')
+    for (const _ of [1, 2, 3, 4, 5]) wheelGateStep(st, toLayer(-3), DEAD) // 同向再走 15px
+    const e2 = Math.abs(st.acc - (base + toLayer(-24)))
+    assert.ok(Math.abs(e2 - e1) * SPAN < 1e-6,
+      `同向继续走不产生新误差（${(e1 * SPAN).toFixed(3)} → ${(e2 * SPAN).toFixed(3)}px）`)
+  }
+
+  /* ⑩ 扣住期间返回值必须与 acc 严格相等 —— 调用点据此 focusSnap，等于「卡片不动」 */
+  {
+    const st = mk(1.234, 1)
+    const r = wheelGateStep(st, toLayer(-2), DEAD)
+    assert.equal(r, st.acc, '未越死区时返回原位置（引用相等）')
+    assert.equal(st.pending, toLayer(-2), '未决量被记下')
+  }
+
+  /* ⑪ 增量 0（Chrome 会把同一帧内的 wheel 合并成 deltaX=0）不得改变任何状态 */
+  {
+    const st = mk(0.5, 1)
+    const snap = JSON.stringify(st)
+    wheelGateStep(st, 0, DEAD)
+    assert.equal(JSON.stringify(st), snap, 'd=0 时状态逐字节不变')
+  }
+
+  /* ⑫ 死区必须为正值：dead=0 会退化成「无滤波」，等于把本轮的修法悄悄取消 */
+  assert.ok(DEAD > 0, '死区为 0 等于没滤波')
 })

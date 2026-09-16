@@ -23,7 +23,9 @@ import {
   deckZ,
   deckVisible,
   TOUCH_STEP_KEEP,
-  touchStepIsTeleport
+  touchStepIsTeleport,
+  WHEEL_REVERSE_DEAD_PX,
+  wheelGateStep
 } from '../../utils/switcherDeck'
 /* 第十四轮·需求①：交接保持窗口的时长必须与 hero 开场动画同源（只读引用，不改该文件）。 */
 import { HERO_OPEN_DURATION } from '../../utils/heroGeometry'
@@ -645,6 +647,11 @@ let settleTimer = null
    那个 watch 带 immediate，setup 期间就会跑；状态若声明在后面，
    watcher 里的 cancelWheel() 会踩到 TDZ。 */
 const wheelAcc = ref(null)
+/* 第二十三轮：触控板 deltaX 的【反向死区】滤波状态（判据本体在 utils/switcherDeck.wheelGateStep）。
+   与 wheelAcc 同生命周期：手势起点新建、endWheel / cancelWheel 清掉。
+   录屏实测（光标在整段拖动期恒在 (379,839)、极差 0px）⇒ 用户用的是触控板，抖动的来源就是
+   这条「零过渡 1:1 直写」的通道，而不是第二十二轮改的 settleFocus（那条路它够不着）。 */
+let wheelGate = null
 let wheelIdleTimer = null
 /* 点空白退出的动画定时器（第八轮，需求④）—— 同一个理由必须声明在这里：
    appSwitcherOpen 的 watch（immediate）在关闭分支里 clearTimeout(closeTimer)，
@@ -1833,9 +1840,28 @@ function onWheel(e) {
   if (wheelAcc.value == null) {
     /* 手势起点：可能正压着一个没跑完的吸附弹簧 → 从当前位置接管（focusSnap 即 stop+set） */
     wheelAcc.value = focus.value
+    wheelGate = { acc: focus.value, lastDir: 0, pending: 0 }
     focusMoving.value = true
   }
-  wheelAcc.value = deckClampFocus(wheelAcc.value - px / metrics.value.span, apps.value.length)
+  /* ── 第二十三轮（Ricky 2026-09-16）：deltaX 先过【反向死区】────────────────────
+   * Ricky 原话：「改废了啊，现在无论左滑右滑都开始抖了」。
+   * 判据本体在 utils/switcherDeck.wheelGateStep（纯函数、单测覆盖，长注释里有逐帧量测）。
+   * 一句话：**同向 1:1 全额提交（跟手契约不变），反向未越过死区就先扣住不动** ——
+   * 触控板动量收尾 / 双指不平行产生的 ±2.5px deltaX 反号，就不会再被 1:1 放大成卡片来回摆。
+   * 录屏复现（/tmp/vwork/r23/probe-momentum.mjs）：交替 ±8px 的尾部 ⇒
+   *   155 155 155 | 160 160 160 | 155 155 155 | 159 … 即 ±5px、约 15Hz 的摆 —— 正是用户看到的现象。
+   * ⚠️ 别改成对 focus 做低通（破坏 1:1 跟手、拖慢 endWheel 落点）；别按「幅度」过滤
+   *    （慢拨的 deltaX 本来就只有零点几 px，会被整个吃掉）。 */
+  const dead = WHEEL_REVERSE_DEAD_PX / metrics.value.span
+  const gated = wheelGateStep(wheelGate, -px / metrics.value.span, dead)
+  const clamped = deckClampFocus(gated, apps.value.length)
+  if (clamped !== gated) {
+    /* 撞到边界：把被夹掉的超出量吸收进滤波状态。否则反向时要先「走完」这段不存在的行程
+       ⇒ 贴着边界反向拨不动（第十七轮同类的冻结感）。 */
+    wheelGate.acc = clamped
+    wheelGate.pending = 0
+  }
+  wheelAcc.value = clamped
   focusSnap(wheelAcc.value)
   /* 第八轮（需求⑦）：触控板横滑同样吃「左滑挤压」—— 换一种输入设备，不是换一套反馈 */
   dragSqueeze()
@@ -1850,6 +1876,7 @@ function endWheel() {
   if (wheelAcc.value == null) return
   const cur = wheelAcc.value
   wheelAcc.value = null
+  wheelGate = null // 第二十三轮：滤波状态与 wheelAcc 同生命周期
   const last = Math.max(0, apps.value.length - 1)
   releaseSqueeze()
   focusToIndex(Math.max(0, Math.min(last, Math.round(cur))), { preset: 'ios-deck-settle' })
@@ -1860,6 +1887,7 @@ function cancelWheel() {
   clearTimeout(wheelIdleTimer)
   wheelIdleTimer = null
   wheelAcc.value = null
+  wheelGate = null // 第二十三轮：同上
 }
 
 /* ---- 桌面图标的隐藏态归还（第十五轮）----
