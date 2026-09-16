@@ -21,6 +21,7 @@ const showPageDots = ref(false)
 const dragging = ref(null)
 const ghost = ref(null)
 const ghostRef = ref(null)
+const settlingIds = ref([])
 const suppressedClickId = ref(null)
 const openFolderId = ref(null)
 const folderOrigin = ref(null)
@@ -235,20 +236,43 @@ function createDragGhost(source,id,x,y) {
   const point = clientPointToHome(x,y)
   const left = sourceRect && rootRect ? (sourceRect.left-rootRect.left)*scaleX : point.x-34
   const top = sourceRect && rootRect ? (sourceRect.top-rootRect.top)*scaleY : point.y-44
+  const dragIds = home.selectedItemIds.includes(id) && home.selectedItemIds.length > 1
+    ? home.order.filter((itemId) => home.selectedItemIds.includes(itemId))
+    : [id]
+  const sources = dragIds.map((itemId) => rootRef.value?.querySelector(`[data-home-item="${itemId}"]`)).filter(Boolean)
   const clone = source?.cloneNode(true)
   ghost.value = { id,x:left,y:top,width:(sourceRect?.width || 68)*scaleX,height:(sourceRect?.height || 76)*scaleY,grabX:point.x-left,grabY:point.y-top }
   nextTick(() => {
     if (!ghostRef.value || !clone || ghost.value?.id !== id) return
-    clone.removeAttribute('data-home-item'); clone.removeAttribute('data-dock-item')
-    clone.classList.remove('is-editing','is-dragging-source','is-removing','is-selected')
-    clone.style.cssText = 'position:relative;left:auto;top:auto;width:100%;height:100%;transform:none;animation:none;opacity:1;pointer-events:none'
-    clone.querySelectorAll('.selection-mark,.remove-badge,.dock-select').forEach(node => node.remove())
-    if (home.selectedItemIds.includes(id) && home.selectedItemIds.length > 1) {
+    const cleanClone = (node) => {
+      node.removeAttribute('data-home-item'); node.removeAttribute('data-dock-item')
+      node.classList.remove('is-editing','is-dragging-source','is-removing','is-selected')
+      node.querySelectorAll('.selection-mark,.remove-badge,.dock-select').forEach(child => child.remove())
+      return node
+    }
+    if (dragIds.length > 1) {
+      const stack = document.createElement('div')
+      stack.className = 'drag-cluster-stack'
+      const visibleSources = sources.slice(0,4).reverse()
+      visibleSources.forEach((sourceNode, reverseIndex) => {
+        const itemId = sourceNode.dataset.homeItem
+        const layer = cleanClone(sourceNode.cloneNode(true))
+        const originalIndex = visibleSources.length - 1 - reverseIndex
+        layer.className = 'drag-cluster-layer'
+        layer.dataset.dragItem = itemId
+        layer.style.setProperty('--stack-index', String(originalIndex))
+        stack.appendChild(layer)
+      })
       const badge = document.createElement('span')
       badge.className = 'drag-cluster-badge'
-      badge.textContent = String(home.selectedItemIds.length)
-      clone.appendChild(badge)
+      badge.textContent = String(dragIds.length)
+      stack.appendChild(badge)
+      ghostRef.value.replaceChildren(stack)
+      requestAnimationFrame(() => stack.classList.add('is-gathered'))
+      return
     }
+    cleanClone(clone)
+    clone.style.cssText = 'position:relative;left:auto;top:auto;width:100%;height:100%;transform:none;animation:none;opacity:1;pointer-events:none'
     ghostRef.value.replaceChildren(clone)
   })
 }
@@ -331,7 +355,10 @@ function startItemDrag(x, y) {
   pointer.mode = 'item-drag'
   suppressClick(pointer.itemId)
   previewOrder.value = [...home.order]
-  dragging.value = { id:pointer.itemId, page:pointer.page, index:pointer.index }
+  const ids = home.selectedItemIds.includes(pointer.itemId) && home.selectedItemIds.length > 1
+    ? home.order.filter((id) => home.selectedItemIds.includes(id))
+    : [pointer.itemId]
+  dragging.value = { id:pointer.itemId, ids, page:pointer.page, index:pointer.index }
   pointer.didMove = false
   const source = pointer.captureTarget?.closest?.('[data-home-item],[data-dock-item]') || pointer.captureTarget
   createDragGhost(source,pointer.itemId,x,y)
@@ -341,7 +368,7 @@ function trackFolderTarget(x, y) {
   const id = element?.dataset.homeItem
   const dragged = home.items[dragging.value?.id]
   const target = home.items[id]
-  const candidate = dragged?.type === 'app' && id !== dragging.value.id && (target?.type === 'app' || target?.type === 'folder') ? id : null
+  const candidate = (dragging.value?.ids?.length || 1) === 1 && dragged?.type === 'app' && id !== dragging.value.id && (target?.type === 'app' || target?.type === 'folder') ? id : null
   if (candidate === pointer.folderCandidate) return
   clearTimeout(folderTimer)
   pointer.folderCandidate = candidate
@@ -355,6 +382,7 @@ function trackFolderTarget(x, y) {
   }, 420)
 }
 function trackDockTarget(x, y) {
+  if ((dragging.value?.ids?.length || 1) > 1) { dockTargetIndex.value = null; return }
   const dock = rootRef.value.querySelector('.dock-bar')
   const rect = dock?.getBoundingClientRect()
   if (!rect || y < rect.top || y > rect.bottom || x < rect.left || x > rect.right) {
@@ -470,6 +498,14 @@ function targetIndexAt(x, y) {
   const localY = (y - rect.top) / scaleY
   return insertionIndexAtPoint(page, displayPositions.value[home.currentPage], localX, localY)
 }
+function moveOrderGroup(order, ids, rank) {
+  const members = order.filter((id) => ids.includes(id))
+  if (members.length < 2) return moveHomeOrderItem(order, ids[0], rank)
+  const removedBefore = order.slice(0, rank).filter((id) => ids.includes(id)).length
+  const next = order.filter((id) => !ids.includes(id))
+  next.splice(Math.max(0, rank - removedBefore), 0, ...members)
+  return next
+}
 function updatePreview(x, y) {
   if (!dragging.value || !previewOrder.value) return
   trackDockTarget(x, y)
@@ -479,7 +515,7 @@ function updatePreview(x, y) {
   if (pointer.folderCandidate) return
   const index = targetIndexAt(x, y)
   const rank = globalRankForPageIndex(displayPages.value, home.currentPage, index)
-  previewOrder.value = moveHomeOrderItem(previewOrder.value, dragging.value.id, rank)
+  previewOrder.value = moveOrderGroup(previewOrder.value, dragging.value.ids || [dragging.value.id], rank)
   dragging.value.page = home.currentPage; dragging.value.index = index
   const rect = rootRef.value.getBoundingClientRect()
   const edgeThreshold = 38
@@ -677,7 +713,55 @@ function finishFolderApp(cancelled) {
     animateFolderDissolve(dissolveInfo)
   }
 }
-function finishItem(cancelled) {
+async function animateMultiDrop(ids, commit) {
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
+  const ghostRect = ghostRef.value?.getBoundingClientRect?.()
+  const entries = ids.map((id, index) => {
+    const source = rootRef.value?.querySelector(`[data-home-item="${id}"]`)
+    if (!source || !ghostRect) return null
+    const rect = source.getBoundingClientRect()
+    const clone = source.cloneNode(true)
+    clone.removeAttribute('data-home-item')
+    clone.classList.remove('is-editing','is-selected','is-dragging-source','is-settling-destination')
+    clone.classList.add('multi-drop-clone')
+    clone.querySelectorAll('.selection-mark,.remove-badge,.dock-select').forEach((node) => node.remove())
+    const fan = Math.min(index, 3)
+    Object.assign(clone.style, {
+      position:'fixed', left:`${ghostRect.left + fan * 5}px`, top:`${ghostRect.top - fan * 4}px`,
+      width:`${rect.width}px`, height:`${rect.height}px`, margin:'0', zIndex:String(1300-index),
+      pointerEvents:'none', opacity:'1', transform:'scale(.94)', transformOrigin:'top left', willChange:'transform,opacity'
+    })
+    document.body.appendChild(clone)
+    return { id, clone, start:{ left:ghostRect.left + fan*5, top:ghostRect.top-fan*4, width:rect.width, height:rect.height } }
+  }).filter(Boolean)
+  settlingIds.value = [...ids]
+  commit()
+  previewOrder.value = null
+  await nextTick()
+  await new Promise((resolve) => requestAnimationFrame(resolve))
+  ghost.value = null
+  if (reduceMotion) {
+    entries.forEach(({clone}) => clone.remove())
+    settlingIds.value = []
+    return
+  }
+  const animations = entries.map(({id,clone,start}, index) => {
+    const destination = rootRef.value?.querySelector(`[data-home-item="${id}"]`)
+    const to = destination?.getBoundingClientRect?.()
+    if (!to?.width) { clone.remove(); return Promise.resolve() }
+    const scaleX = to.width / start.width
+    const scaleY = to.height / start.height
+    const animation = clone.animate([
+      { transform:'translate3d(0,0,0) scale(.94)', opacity:1, offset:0 },
+      { transform:`translate3d(${(to.left-start.left)*.78}px,${(to.top-start.top)*.78}px,0) scale(${.94 + (scaleX-.94)*.78},${.94 + (scaleY-.94)*.78})`, opacity:1, offset:.68 },
+      { transform:`translate3d(${to.left-start.left}px,${to.top-start.top}px,0) scale(${scaleX},${scaleY})`, opacity:1, offset:1 }
+    ], { duration:360 + Math.min(index,5)*18, easing:'cubic-bezier(.22,1,.36,1)', fill:'forwards' })
+    return animation.finished.catch(() => {}).finally(() => clone.remove())
+  })
+  await Promise.all(animations)
+  settlingIds.value = []
+}
+async function finishItem(cancelled) {
   clearTimeout(edgeTimer)
   clearTimeout(pageFlipResetTimer)
   edgeTimer = null
@@ -692,11 +776,10 @@ function finishItem(cancelled) {
   }
   if (!cancelled && dragging.value && hoveredThumbnailIndex.value != null) {
     const targetPage = hoveredThumbnailIndex.value
-    const isMulti = home.selectedItemIds.includes(dragging.value.id)
-    const itemsToMove = isMulti && home.selectedItemIds.length > 0
-      ? [...home.selectedItemIds]
-      : [dragging.value.id]
-    home.moveItemsToPage(itemsToMove, targetPage)
+    const itemsToMove = dragging.value.ids || [dragging.value.id]
+    const targetIndex = (home.pages[targetPage] || []).length
+    if (itemsToMove.length > 1) await animateMultiDrop(itemsToMove, () => home.moveItems(itemsToMove,targetPage,targetIndex,true))
+    else home.moveItemsToPage(itemsToMove, targetPage)
     hoveredThumbnailIndex.value = null
   } else if (!cancelled && dragging.value && dockTargetIndex.value != null) {
     home.moveToDock(dragging.value.id,dockTargetIndex.value)
@@ -718,7 +801,11 @@ function finishItem(cancelled) {
     }
   } else if (!cancelled && dragging.value && pointer.sourceDock) {
     home.moveFromDock(dragging.value.id,dragging.value.page,dragging.value.index)
-  } else if (!cancelled && dragging.value) home.moveItem(dragging.value.id, dragging.value.page, dragging.value.index)
+  } else if (!cancelled && dragging.value) {
+    const ids = dragging.value.ids || [dragging.value.id]
+    if (ids.length > 1) await animateMultiDrop(ids, () => home.moveItems(ids,dragging.value.page,dragging.value.index,true))
+    else home.moveItem(dragging.value.id, dragging.value.page, dragging.value.index)
+  }
   previewOrder.value = null; dragging.value = null; ghost.value = null
   folderTargetId.value = null
   folderMergeCandidate.value = null
@@ -943,7 +1030,7 @@ onMounted(() => {
   })
   resizeObserver.observe(rootRef.value)
 })
-onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resizeFrame); clearTimeout(unlockTimer); clearTimeout(pageIndicatorTimer); clearTimeout(wheelResetTimer); clearTimeout(pinchWheelTimer); clearTimeout(suppressClickTimer); clearTimers(); unbindWindow(); unbindPinchWindow(); window.removeEventListener('keydown',onHomeKeydown); document.querySelectorAll('.folder-merge-clone').forEach((node) => node.remove()) })
+onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resizeFrame); clearTimeout(unlockTimer); clearTimeout(pageIndicatorTimer); clearTimeout(wheelResetTimer); clearTimeout(pinchWheelTimer); clearTimeout(suppressClickTimer); clearTimers(); unbindWindow(); unbindPinchWindow(); window.removeEventListener('keydown',onHomeKeydown); document.querySelectorAll('.folder-merge-clone,.multi-drop-clone').forEach((node) => node.remove()) })
 </script>
 
 <template>
@@ -951,7 +1038,7 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
     <div class="home-page-strip" :style="stripStyle">
       <section v-for="(page,pageIndex) in displayPages" :key="pageIndex" class="home-page">
         <AppGrid :page-index="pageIndex" :item-ids="page" :items="home.items" :positions="displayPositions[pageIndex] || {}" :profile="home.profile"
-          :folders="displayFolders" :editing="home.editing" :selected-ids="home.selectedItemIds" :dragging-id="dragging?.id" :folder-target-id="folderTargetId" :folder-candidate-id="folderMergeCandidate?.id" :folder-candidate-armed="folderMergeCandidate?.armed" :merging-folder-item-id="folderMergeAnimation" :removing-ids="removingIds" :suppress-click-id="suppressedClickId" :open-folder-id="openFolderId" :folder-operation-id="folderOperation?.folderId"
+          :folders="displayFolders" :editing="home.editing" :selected-ids="home.selectedItemIds" :dragging-id="dragging?.id" :dragging-ids="dragging?.ids || []" :settling-ids="settlingIds" :folder-target-id="folderTargetId" :folder-candidate-id="folderMergeCandidate?.id" :folder-candidate-armed="folderMergeCandidate?.armed" :merging-folder-item-id="folderMergeAnimation" :removing-ids="removingIds" :suppress-click-id="suppressedClickId" :open-folder-id="openFolderId" :folder-operation-id="folderOperation?.folderId"
           @item-pointerdown="onItemPointerDown" @folder-resize-pointerdown="onFolderResizePointerDown" @toggle-select="home.toggleSelected" @open-folder="showFolder" @request-remove="requestRemove"
           @launch-app="launchFolderApp" />
       </section>
@@ -1131,6 +1218,9 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
 .drag-ghost{position:absolute;left:0;top:0;z-index:999;pointer-events:none;filter:drop-shadow(0 12px 18px rgba(0,0,0,.35));transform-origin:center;will-change:transform}
 .drag-ghost>*{transform:scale(1.08)!important;transform-origin:center!important;transition:transform 200ms cubic-bezier(.34,1.56,.64,1)}
 .drag-ghost.is-page-flipping>*{transform:scale(1.18)!important}
+:global(.drag-cluster-stack){position:relative;width:100%;height:100%;transform:scale(1)!important;transition:none!important}
+:global(.drag-cluster-layer){position:absolute!important;inset:0!important;width:100%!important;height:100%!important;opacity:0;pointer-events:none;transform:translate3d(calc(var(--stack-index) * -18px),calc(var(--stack-index) * 12px),0) rotate(calc((var(--stack-index) - 1) * -4deg)) scale(.86)!important;transform-origin:center!important;transition:transform 240ms cubic-bezier(.22,1,.36,1),opacity 140ms ease!important}
+:global(.drag-cluster-stack.is-gathered .drag-cluster-layer){opacity:1;transform:translate3d(calc(var(--stack-index) * 5px),calc(var(--stack-index) * -4px),0) rotate(calc((var(--stack-index) - 1) * 2deg)) scale(calc(1.04 - var(--stack-index) * .035))!important}
 .edit-actions{position:absolute;left:14px;right:14px;top:46px;z-index:22;display:flex;align-items:center;justify-content:space-around}
 .edit-action-items{width:100%;display:flex;align-items:center;justify-content:space-around}
 .edit-action-items button{display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(255,255,255,.9);font:500 12px/1.2 var(--font-stack);background:transparent;border:none;cursor:pointer;padding:4px 12px;transition:opacity 160ms ease,transform 160ms ease}

@@ -1,0 +1,53 @@
+{
+  "tool": "mobile-motion-builder/inspect_reference.py",
+  "source": {
+    "path": "/Users/jingzhan.chen/Library/Containers/com.tencent.xinWeChat/Data/Documents/xwechat_files/oppo_cjz_b76f/temp/RWTemp/2026-09/f08a54aa5e7c9c369a432352061b94c2/17b8496a7868d8605a995bb0ae4a4906.mp4",
+    "width": 592,
+    "height": 1280,
+    "avgFps": 24.0,
+    "realFps": 24.0,
+    "timeBase": "1/90000",
+    "durationMs": 13500.0,
+    "frameCount": 324,
+    "pixelFormat": "yuv420p",
+    "rotation": 0,
+    "container": "mov,mp4,m4a,3gp,3g2,mj2",
+    "sizeBytes": 515052,
+    "bitRate": 304626
+  },
+  "analysis": {
+    "roiPx": null,
+    "motion": {
+      "threshold": 0.002,
+      "baselineMedian": 4.75e-06,
+      "baselineMad": 2.76e-06,
+      "onsetFrame": 1,
+      "onsetMs": 41.667,
+      "settleFrame": 278,
+      "settleMs": 11583.333,
+      "activeFrameCount": 129,
+      "peakEnergy": 0.02150176
+    },
+    "sampleTimesMs": [
+      41.667,
+      1484.375,
+      2927.084,
+      4369.792,
+      5812.5,
+      7255.208,
+      8697.917,
+      10140.625,
+      11583.333
+    ],
+    "limitations": [
+      "Motion onset and settle are pixel-difference estimates, not semantic event labels.",
+      "Global camera, cursor, clock, or background movement can dominate unless excluded with --roi.",
+      "Easing and spring parameters are not directly observed by this analysis."
+    ]
+  },
+  "artifacts": {
+    "energyCsv": "motion-energy.csv",
+    "contactSheet": "contact-sheet.png",
+    "motionTrail": "motion-trail.png"
+  }
+}
