@@ -791,6 +791,37 @@ const drag = ref(null)
 /** 上滑移除松手后的「位姿接力」：{ cardId, dy }，只存活一帧（见 stackStyle / onPointerUp） */
 const vLetGo = ref(null)
 const dismissing = ref(null)
+/* ---- 正在播「飞出」动画的卡（第二十七轮）----
+ *
+ * Ricky 2026-09-18 16:20 报的 bug 原话：
+ *   「出了个Bug，上滑删除卡片后，继续点击鼠标上滑下一个卡片卡片直接消失」
+ *
+ * 根因（`/tmp/vwork/r29/repro-fixed.mjs` 实测，固定屏幕坐标 (215,460) 模拟真人手位）：
+ *   旧实现把「真正出列 + 重排」推迟 240ms（等飞出动画播完）——
+ *     dismissing.value = appId           ← 此刻 apps 里还有它 ⇒ 它仍占 index 0 槽位
+ *     setTimeout(() => { dismissApp(); dismissing = null }, 240)
+ *   于是这 240ms 里：
+ *     ① **顶卡槽位是空的** —— 被删卡占着 index 0（哪怕已飞到 y=−873），
+ *        下一张卡老老实实待在 index 1 = 第二层位姿（实测 notes@173 而不是 155）；
+ *     ② `dismissing` 同时充当【全局手势锁】（`onPointerDown` / `onWheel` 都在它上面 return）
+ *        ⇒ 这段时间里用户再上滑**完全没反应**（实测 gap≤140ms 时 `drag` 恒为 null）。
+ *   复现矩阵：gap 0/60/140ms ⇒ 第二次上滑被吞（只删到 1 张）；gap ≥230ms ⇒ 正常删 2 张。
+ *
+ * 修法（本数组就是那个「独立飞出节点」）：
+ *   把 `dismissApp + settleTo` **提前到删除的同一帧**（其余卡立刻补位），
+ *   飞出中的卡改为由本数组单独喂给 `renderedCards`。删除不再是「数据层的未决状态」，
+ *   于是也不需要再用它锁手势。
+ *
+ * 为什么必须是**列表**而不是单个 id：出列提前之后，「上一张还在飞、下一张又被删」
+ * 成了常态（用户连续上滑）。用单值的话第二次删除会把第一张的飞出节点直接抹掉 ——
+ * 第一张会在半空【凭空消失】，正是这个 bug 的另一种形状。
+ *
+ * 每一项冻结了删除瞬间的 `index / poseFocus / xFrac`：卡已经出列，位姿必须按
+ * 【出列前】的堆叠参数算，否则飞出半途会被重排后的组横向带走。 */
+const flying = ref([])
+/* 与 `.switcher-card` 的飞出过渡同长（见 dismissingStyle 附近的 transition）。
+   到点只撤掉飞出节点，不再动数据 —— 数据早在删除那一帧就落定了。 */
+const DISMISS_MS = 240
 /* ---- 一键清理（需求⑩）的编排态 —— 同样必须声明在 watch 之前（TDZ）----
    clearing = 已武装：卡片拿到「飞出」专用过渡，但目标值还是原位（位姿不动）；
    clearGo  = 放行：下一帧才把目标值切到屏外。分两帧是必须的，与 resumeWithExpand
@@ -979,11 +1010,28 @@ const cullFocus = computed(() => {
    第八轮（需求⑦）：判据必须用 poseFocus —— 用原始 focus 的话，左滑越界 0.6 层时
    最深层的 a 会算成 2.6 > MAX_DEPTH ⇒ 被判不可见 ⇒ 最底部卡片「直接消失」。
    第十一轮：改喂 cullFocus（见上），让深侧的出现时刻不依赖弹簧的渐近尾巴。 */
-const renderedCards = computed(() =>
-  apps.value
+const renderedCards = computed(() => {
+  const list = apps.value
     .map((id, i) => ({ id, i }))
-    .filter(({ id, i }) => id === dismissing.value || id === expanding.value || deckVisible(i - cullFocus.value))
-)
+    .filter(({ id, i }) => id === expanding.value || deckVisible(i - cullFocus.value))
+  /* 第二十七轮：飞出中的卡早已出列（不在 apps 里），但它还得把飞出动画播完 ⇒
+     用冻结的 index 把它补回渲染表。
+     ⚠️ **必须插回它出列前的 DOM 位置，不能 push 到末尾** —— 实测（/tmp/vwork/r29/shot-dismiss.mjs）
+     push 到末尾会让 Vue 把该节点 insertBefore 到最后（= detach + re-attach），
+     进行中的 CSS transition 会被取消：飞出从「240ms 平滑上移」退化成
+     「一帧跳到 −870px」的瞬移（`#13 -85 → #14 -870`）。
+     用 `c.i >= f.index` 找插入点 ⇒ 单张删除时整个列表的 DOM 顺序与删除前逐位相同（零移动），
+     飞出动画的 from-value 就还是它跟手结束时的位姿。
+     ⚠️ 连续删卡时先飞的那张仍可能被挪动一次（它已经飞了 100ms+，位移极小，可接受）；
+     要彻底解决得给飞出卡单独的渲染容器，本轮不做。 */
+  for (const f of flying.value) {
+    if (list.some((c) => c.id === f.id)) continue
+    let at = list.findIndex((c) => c.i >= f.index)
+    if (at < 0) at = list.length
+    list.splice(at, 0, { id: f.id, i: f.index, flying: true })
+  }
+  return list
+})
 
 /* 标签只跟「离焦点最近的那张」走，避免两张卡同时出现标签 */
 const labelIndex = computed(() => {
@@ -1214,15 +1262,23 @@ const settledOne = computed(
    本来就看得见跟手与飞出，不需要（也不应该）动跟手卡。 */
 const followYields = computed(
   () =>
-    !!system.activeAppId &&
-    (drag.value?.mode === 'v' ||
-      !!vLetGo.value ||
-      /* 第十四轮（需求①）：点卡恢复的放大卡【也是】堆叠前卡本身（同一张卡换了位姿），
-         bodyOpacityOf 若继续把它藏成 0，整段放大动画就完全看不见 —— 屏幕上只有一张
-         停在卡位不动的跟手卡，直到交接那一帧才「啪」地变满屏，Ricky 原话
-         「点击多任务卡片进入全屏时会卡和闪一下」。让位条件必须覆盖它。 */
-      !!expanding.value ||
-      dismissing.value === system.activeAppId)
+    /* ⚠️ 第二十七轮：`flying` 必须判在 `!!system.activeAppId` 这道守卫【之外】。
+       原因：删除前台应用时 `dismissApp` 现在【同帧】就把 activeAppId 清成 null，
+       若把 flying 圈进守卫里，整个 computed 会被短路成 false ⇒ 飞出节点的卡体被
+       `bodyOpacityOf` 藏成 0 —— 卡片框架在飞、内容却是全透明的。
+       探针实测（/tmp/vwork/r29/probe-bop.mjs）：松手后 7 帧 bop 全 0，opMin 却仍是 1。
+       旧实现之所以没暴露，纯粹是因为 `dismissApp` 被 `setTimeout` 推迟了 240ms ——
+       那段窗口里 activeAppId 还在，`dismissing === activeAppId` 恰好成立。
+       另一个消费者（followGeom 的 `return null`）同样需要它：飞行期间不渲染跟手卡。 */
+    flying.value.length > 0 ||
+    (!!system.activeAppId &&
+      (drag.value?.mode === 'v' ||
+        !!vLetGo.value ||
+        /* 第十四轮（需求①）：点卡恢复的放大卡【也是】堆叠前卡本身（同一张卡换了位姿），
+           bodyOpacityOf 若继续把它藏成 0，整段放大动画就完全看不见 —— 屏幕上只有一张
+           停在卡位不动的跟手卡，直到交接那一帧才「啪」地变满屏，Ricky 原话
+           「点击多任务卡片进入全屏时会卡和闪一下」。让位条件必须覆盖它。 */
+        !!expanding.value))
 )
 
 /* ---- 跟手缩放（Ricky 2026-09-12 纠正）----
@@ -1502,7 +1558,12 @@ function pickMode(dx, dy, maxMove) {
 }
 
 function onPointerDown(e) {
-  if (dismissing.value || clearing.value || system.switcherClosing) return
+  /* 第二十七轮：**不再**因「有卡在飞」而 return —— 这正是 Ricky 报的 bug 的成因。
+     删除早在松手那一帧就落定到数据层（见 dismissWithAnimation），飞出只是一段
+     纯视觉动画，没有任何「未决状态」需要靠它来锁手势。
+     仍然要挡的是【全局一次性动作】：一键清理（整组正在编排退场）与切换器关闭。
+     复现证据：旧实现在删卡后 ≤140ms 内的第二次上滑 `drag` 恒为 null（完全没反应）。 */
+  if (clearing.value || system.switcherClosing) return
   /* ---- 第二十轮：手势的【指针所有者】（Ricky 2026-09-16）----
    *
    * 原话：「多任务页面双指单次横滑触摸版，老是疯狂抖动」。
@@ -1909,17 +1970,31 @@ function onPointerUp(e) {
      · 从同一片区域上滑 192px ⇒ cardId 恒 null ⇒ willDismiss 恒 false ⇒ 卡片纹丝不动。
    而视觉上这行图标/名字就是卡片的标题行，用户当然会去点它、抓它。
    兜底口径：卡宽 × 卡顶上方 (LABEL_ROW_H + LABEL_GAP) 的横带算作「这张卡」，
-   按 renderedCards 的顺序（顶层在前）取第一个匹配 ⇒ 顶层卡优先。 */
+   按 renderedCards 的顺序（顶层在前）取第一个匹配 ⇒ 顶层卡优先。
+
+   ⚠️ 第二十七轮：两条路径都必须【跳过飞出中的卡】（`data-flying` / `c.flying`）。
+   本轮把删除改成「数据立即出列 + 飞出节点独立存活 DISMISS_MS」，于是 DOM 里会短暂
+   存在一个「不属于 apps、只属于动画」的卡节点。它看上去和真卡一模一样、还盖在最上层，
+   若被判定为可命中，`tapIntent` 就会拿它的 appId 去 `resumeWithExpand(已删除的 app)`
+   —— 把一个刚被关掉的应用重新拉成全屏。这就是 Ricky 那句
+   「继续点击鼠标上滑下一个卡片，卡片直接消失」的另一半成因（第一半是槽位空窗 +
+   手势锁，见 dismissWithAnimation 的注释）。
+   判据一律读 DOM/节点上的 flying 标记，不再查 `dismissing.value` —— 连着删两张时
+   后者只记得【最后】一张（同一理由见 followYields 的注释）。 */
 function hitCardId(e) {
   const els = document.elementsFromPoint(e.clientX, e.clientY)
   for (const el of els) {
-    const id = el?.closest?.('.switcher-card')?.dataset?.appId
+    const card = el?.closest?.('.switcher-card')
+    if (!card) continue
+    if (card.dataset.flying) continue // 飞出节点：数据已出列，不可命中
+    const id = card.dataset.appId
     if (id) return id
   }
   const band = DECK.LABEL_ROW_H + DECK.LABEL_GAP
   const x = e.clientX
   const y = e.clientY
   for (const c of renderedCards.value) {
+    if (c.flying) continue // 同上：飞出节点不参与横带命中
     const p = poseOf(c.i)
     const w = cardW.value * p.scale
     if (x >= p.x && x <= p.x + w && y >= p.y - band && y <= p.y) return c.id
@@ -1988,7 +2063,9 @@ const WHEEL_PAGE_PX = 400 // deltaMode=2（按页）
 const WHEEL_IDLE = 900
 
 function onWheel(e) {
-  if (!system.appSwitcherOpen || drag.value || dismissing.value || clearing.value || expanding.value) return
+  /* 第二十七轮：门槛里的 `dismissing.value` 已移除 —— 与 onPointerDown 同一个理由：
+     飞出只是一段视觉动画，不该顺手把触控板的翻页手势也锁掉 240ms。 */
+  if (!system.appSwitcherOpen || drag.value || clearing.value || expanding.value) return
   /* deltaMode 归一：部分设备/浏览器给「行」或「页」，要折成像素才与 span 同量纲 */
   const k = e.deltaMode === 1 ? WHEEL_LINE_PX : e.deltaMode === 2 ? WHEEL_PAGE_PX : 1
   const px = e.deltaX * k
@@ -2133,19 +2210,36 @@ function releaseHiddenIcon(appId) {
 
 /* 上滑移除：飞出 + 其余卡片弹簧重排 */
 function dismissWithAnimation(appId) {
+  const index = apps.value.indexOf(appId)
+  if (index < 0) return
+  /* ① 冻结出列【前】的堆叠参数 —— 见 flying 声明处的长注释 */
+  const f = { id: appId, index, poseFocus: poseFocus.value, xFrac: xFrac.value }
+  /* ② 飞出节点 + 数据出列 + 重排，全部在【同一帧】提交。
+        Vue 把这三处改动批在同一次 flush，renderedCards 只会重算一次：
+        飞出卡由 flying 补回，其余卡的 index 已经前移 ⇒ 视觉上是
+        「删掉一张、后面的立刻补位」，不会出现旧实现那种 240ms 的空窗。 */
+  flying.value = [...flying.value.filter((x) => x.id !== appId), f]
   dismissing.value = appId
+  /* ⚠️ releaseHiddenIcon 必须先于 dismissApp：后者会把 activeAppId 置空，
+     之后再判断就查不到了（第十五轮的桌面图标消失 bug）。 */
+  releaseHiddenIcon(appId)
+  system.dismissApp(appId)
+  const idx = Math.max(0, Math.min(apps.value.length - 1, Math.round(focus.value)))
+  settleTo(idx)
+  /* ③ 到点只撤飞出节点 —— 数据早在②就落定了，这里不再碰 apps / 焦点。
+       用 id 过滤而不是整表清空：连续删卡时上一张可能还在飞。 */
   setTimeout(() => {
-    /* 必须先于 dismissApp：后者会把 activeAppId 置空，之后再判断就查不到了。 */
-    releaseHiddenIcon(appId)
-    system.dismissApp(appId)
-    dismissing.value = null
-    const idx = Math.max(0, Math.min(apps.value.length - 1, Math.round(focus.value)))
-    settleTo(idx)
-  }, 240)
+    flying.value = flying.value.filter((x) => x.id !== appId)
+    if (!flying.value.length) dismissing.value = null
+  }, DISMISS_MS)
 }
 
-function dismissingStyle(i) {
-  const p = deckPose(i - poseFocus.value, metrics.value, xFrac.value)
+/** 飞出卡的位姿。
+ *  @param f flying 里的一项（含冻结的 index / poseFocus / xFrac）。
+ *  ⚠️ 第二十七轮起不再接收「列表里的 i」：卡已出列，index 会随重排前移，
+ *     若跟着实时 poseFocus 算，飞出半途会被重排后的组横向带走。 */
+function dismissingStyle(f) {
+  const p = deckPose(f.index - f.poseFocus, metrics.value, f.xFrac)
   return {
     width: cardW.value + 'px',
     height: cardH.value + 'px',
@@ -2156,7 +2250,7 @@ function dismissingStyle(i) {
        连续动作，只改跟手段会留半截。同为离场语义的 clearingStyle（一键清理）
        第九轮就已经定成 `opacity: 1`（参考视频末帧残余卡条仍纯白）—— 两条统一。 */
     opacity: 1,
-    zIndex: deckZ(i),
+    zIndex: deckZ(f.index),
     borderRadius: RADIUS.value + 'px'
   }
 }
@@ -2189,6 +2283,11 @@ const RESUME_MS = 320
 const EXPAND_HOLD_MARGIN_MS = 56
 const EXPAND_HOLD_SAME_MS = 64
 function resumeWithExpand(appId) {
+  /* 第二十七轮·防御：飞出中的卡【不允许被恢复】。
+     它的数据早已出列（apps 里没有它），这里是最后一道闸 —— 即便 upper 层有哪条路径
+     漏判了（比如未来新增手势入口），也不能让「刚删掉的 app」借由残留节点被拉回全屏。
+     正常路径下这个 early-return 永不触发（hitCardId 已在上游挡掉）。 */
+  if (flying.value.some((x) => x.id === appId)) return
   expanding.value = appId
   expandTo.value = false
   // 先渲染「起始态」，两帧后再切目标态，浏览器才会跑过渡
@@ -2248,7 +2347,10 @@ function expandingStyle(i) {
 /* 卡片样式分派 —— 锚点几何（跟手/展开）居中缩放，堆叠几何以左上角为原点 */
 function cardStyle(id, i) {
   if (clearing.value) return clearingStyle(i) // 一键清理优先（清空动作压过一切）
-  if (id === dismissing.value) return dismissingStyle(i)
+  /* 第二十七轮：飞出卡按 id 去 flying 里查（判据由 `id === dismissing.value` 换掉）——
+     连续删卡时可能有两张同时在飞，单值判据会让先飞的那张丢掉自己的位姿。 */
+  const fly = flying.value.find((x) => x.id === id)
+  if (fly) return dismissingStyle(fly)
   if (id === expanding.value) return expandingStyle(i)
   return stackStyle(i)
 }
@@ -2553,6 +2655,7 @@ onBeforeUnmount(() => {
           :data-app-id="c.id"
           :data-index="c.i"
           :data-depth="+(c.i - focus).toFixed(3)"
+          :data-flying="c.flying ? '1' : null"
           :style="cardStyle(c.id, c.i)"
         >
           <!-- 卡片上方一行：应用图标 + 名称（第七轮改）。
@@ -2564,7 +2667,7 @@ onBeforeUnmount(() => {
                （名称还在，因为名称不吃隐藏态）。这是 Ricky 截图里「设置的图标消失了」的根因。
                ⚠️ 第九轮（需求①）：前卡被跟手卡顶替时（bodyOpacityOf = 0）这一行必须【让位】——
                标签已经挂在跟手卡上，两边都画就会同时在槽位和跟手卡上出现两份图标。 -->
-          <div v-if="!dismissing && bodyOpacityOf(c.i) !== 0" class="switcher-card-label" :style="labelStyle()">
+          <div v-if="!c.flying && bodyOpacityOf(c.i) !== 0" class="switcher-card-label" :style="labelStyle()">
             <AppIcon :app="appOf(c.id)" :size="24" :show-label="false" ignore-hidden />
             <span v-if="c.i === labelIndex">{{ nameOf(c.id) }}</span>
           </div>
@@ -2695,11 +2798,25 @@ onBeforeUnmount(() => {
      手势取消后会自然退出这个类 → 过渡恢复 → 卡片顺势向左滑出淡出。
    - 曲线 0.32s / cubic-bezier(0.32, 1.16, 0.6, 1)：与 ios-deck 弹簧（τ≈110ms、
      过冲 6.7%）的收尾观感一致，末段带一点回弹余韵，不再是死板的 ease-out。 */
-.app-switcher:not(.is-dragging):not(.is-focus-moving):not(.is-home-entrance) .switcher-card:not(.is-follow) {
+.app-switcher:not(.is-dragging):not(.is-focus-moving):not(.is-home-entrance) .switcher-card:not(.is-follow):not([data-flying]) {
   transition:
     transform 0.32s cubic-bezier(0.32, 1.16, 0.6, 1),
     opacity 0.22s ease,
     filter 0.28s ease;
+}
+/* 飞出卡（第二十七轮）单独一条 —— **必须豁免上面那三条排除**。
+   理由：飞出卡的 transform 只由 `dismissingStyle` 写一次，不参与焦点推进，
+   不存在「被逐帧直写二次低通」的风险；反过来，被那三条排除会让它退化成瞬移：
+     · `is-focus-moving`：`dismissWithAnimation` 里的 `settleTo` 会在【删除那一帧】
+       点亮它，实测飞出从 240ms 平滑上移变成「一帧跳到 −870px」
+       （/tmp/vwork/r29/shot-dismiss.mjs：`#13 files@-85 → #14 files@-870`）；
+     · `is-dragging`：删除后立刻拖下一张时，前一张的飞出动画会被后一段手势掐断；
+     · `is-home-entrance`：同上，桌面进场期删卡。
+   时长与 AppSwitcher.vue 的 `DISMISS_MS`(240) 必须同源。 */
+.app-switcher .switcher-card[data-flying] {
+  transition:
+    transform 240ms cubic-bezier(0.32, 1.16, 0.6, 1),
+    opacity 0.22s ease;
 }
 
 /* 跟手卡的标签锚点（第九轮，需求①）——

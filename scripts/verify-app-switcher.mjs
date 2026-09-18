@@ -4797,11 +4797,17 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
     check('第二十六轮·需求⑤前置：触摸与鼠标两次快甩都真的被判成【快甩】（否则下面的对照不成立）',
       !!tS && !!mS && tS.isFlick === true && mS.isFlick === true,
       `触摸 v=${tS && tS.vFocus} 层/秒 · 鼠标 v=${mS && mS.vFocus} 层/秒（都须 ≥ 快甩门槛 ${INERTIA.V_MIN}）`)
-    /* ② 触摸端确实接上了投影，且追加量与纯函数逐位一致（公式本身由单测守） */
+    /* ② 触摸端确实接上了投影，且追加量与纯函数一致（公式本身由单测守）
+       ⚠️ 容差 1.5e-3 不是「放松」，是**对齐 oracle 的精度**：`__switcherSettle` 里
+       `vFocus: +vFocus.toFixed(3)`、`extra: +extra.toFixed(3)`（AppSwitcher.vue:741/746），
+       两个量各带 5e-4 的取整误差，经 `inertiaExtra` 的斜率 0.42 传播后最坏 ≈7.1e-4。
+       写成 `< 1e-6` 等于要求「浮点逐位相等」，实测 extra=1.889 vs 公式值 1.8887399999999999
+       ⇒ 恒定 FAIL（与红线 5 的「容差卡在理论值边界」同类，只是这次卡在 oracle 精度上）。
+       1.5e-3 层 = 千分之一点五张卡，对「投影到底有没有接上」这个契约毫无影响。 */
     check('第二十六轮·需求⑤：触摸快甩的追加层数 = inertiaExtra(vFocus)（投影确实接在触摸通路上）',
-      !!tS && tS.touch === true && Math.abs(tS.extra - inertiaExtra(tS.vFocus)) < 1e-6 &&
+      !!tS && tS.touch === true && Math.abs(tS.extra - inertiaExtra(tS.vFocus)) <= 1.5e-3 &&
         tS.extra > 0 && tS.extra <= INERTIA.MAX,
-      `extra=${tS && tS.extra} 层（期望 ${tS && inertiaExtra(tS.vFocus)}，上限 ${INERTIA.MAX}）`)
+      `extra=${tS && tS.extra} 层（公式值 ${tS && inertiaExtra(tS.vFocus)}，容差 1.5e-3 = oracle 取整精度，上限 ${INERTIA.MAX}）`)
     /* ③ 鼠标路径一个字都没被改到（投影不许漏到非触摸通路上） */
     check('第二十六轮·需求⑤：鼠标快甩的追加层数恒 0（投影只对触摸开放）',
       !!mS && mS.touch === false && mS.extra === 0,
@@ -4840,6 +4846,165 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
     check('第二十六轮·需求⑤回归：慢速触摸（停住再松手）追加 0 ⇒ 0.71 层仍只翻 1 张',
       !!slow && slow.extra === 0 && slow.isFlick === false && slow.idx === 1,
       `extra=${slow && slow.extra} · isFlick=${slow && slow.isFlick} · 落点=${slow && slow.idx}（期望 0 / false / 1）`)
+
+    /* ================= 第二十七轮：删卡之后的「下一张」 =================
+     *
+     * Ricky 2026-09-18 16:20 原话：
+     *   「出了个Bug，上滑删除卡片后，继续点击鼠标上滑下一个卡片卡片直接消失」
+     *
+     * 根因（/tmp/vwork/r29/repro-fixed.mjs + shot-dismiss.mjs，固定屏幕坐标模拟真人手位）：
+     * 旧实现把 `dismissApp + settleTo` 推迟 240ms（等飞出动画播完），于是这段时间里
+     *   ① 顶卡槽位是【空的】—— 被删卡仍占着 index 0（哪怕已飞到 y=−870），
+     *      下一张迟迟不补位；
+     *   ② `dismissing` 兼作【全局手势锁】（`onPointerDown` / `onWheel` 都在它上面 return）
+     *      ⇒ 用户「继续上滑下一个卡片」完全没反应（实测 `drag` 恒为 null）；
+     *   ③ 被删卡仍留在 `renderedCards` 里 ⇒ 它仍然是 hitCardId 的可命中目标：
+     *      指针落在它身上就返回【已删除的 app】，tapIntent 随即
+     *      `resumeWithExpand(已删除的 app)` → 把刚被关掉的应用拉成全屏。
+     *      实测（/tmp/vwork/r29/probe-hit-flying.mjs，自包含 A/B —— 同一次运行里同时算
+     *      「现版本 hitCardId」与「探针里复刻的旧逻辑」）：删后 0ms 采样 20 点，
+     *      旧逻辑有 6 点命中已删除的 files（y=15..135，正是那张卡还在屏内的上半身），
+     *      现版本 0 点。
+     * ①②③ 叠加起来就是 Ricky 那句「卡片直接消失」。
+     * 复现矩阵：删后 0/60/140ms 再上滑 ⇒ 只删到 1 张（第二张被吞）；≥230ms 才正常。
+     *
+     * 下面四条断言把「补位」「手势不被吞」「飞出卡不可被命中」分别钉死，
+     * 其中前三条都用【鼠标固定坐标】驱动 —— 与 Ricky 的操作同通道。
+     * ⚠️ 需求②-c 刻意走白盒（直接调 hitCardId），不用真点击：这一片区在修复后的正确语义是
+     *    「点空白 = 回桌面」，真点一下会把切换器关掉，污染它后面的断言。
+     * ⚠️ 不要再加一条「飞出动画平滑性」的断言：那属于视觉，CDP 逐帧取证的结论
+     *    （`#13 -85 → #14 -268 → -423 → -550 …`）已记录在 2026-09-18.md，
+     *    在 e2e 里复刻一遍只会引入对 transition 实现细节的耦合。 */
+    await openFiveAndSwitcher()
+    {
+      const FX = 215
+      const FY = 460
+      const topCardState = () =>
+        page.evaluate(() => {
+          const root = document.querySelector('.app-switcher')
+          if (!root) return { gone: true }
+          const S = root.__vueParentComponent?.setupState || {}
+          /* 飞出节点（data-flying）不参与「谁是顶卡」的判定 —— 它已出列、只是还在播动画 */
+          const cards = [...document.querySelectorAll('.switcher-card')].filter((c) => !c.dataset.flying)
+          const top = cards.find((c) => c.dataset.depth != null && Math.abs(+c.dataset.depth) < 0.001)
+          return {
+            n: (S.apps || []).length,
+            ids: (S.apps || []).join(','),
+            topId: top ? top.dataset.appId : null,
+            dragging: !!S.drag,
+            dragDy: S.drag ? +S.drag.dy.toFixed(1) : null,
+            flying: document.querySelectorAll('.switcher-card[data-flying]').length
+          }
+        })
+      const swipeUp = async (depth, trace) => {
+        await page.mouse.move(FX, FY)
+        await page.mouse.down()
+        for (let k = 1; k <= 5; k++) {
+          await page.mouse.move(FX, FY - (depth * k) / 5)
+          await page.waitForTimeout(14)
+          if (trace) trace.push(await topCardState())
+        }
+        await page.mouse.up()
+      }
+
+      const before = await topCardState()
+      const secondId = before.ids.split(',')[1]
+      /* 第 1 段：上滑 240px 删除顶卡（阈值 110px） */
+      await swipeUp(240, null)
+      /* ③ 就在这一帧问命中函数：指针落在【正在飞离的那张卡】身上，会被判成谁？
+         必须紧随松手采样 —— 飞出卡此时刚越过屏幕顶端、上半身还在屏内（实测 top≈−85）；
+         等 60ms 后它已飞到 y≈−550、整张卡出屏，扫描点全落在视口外 ⇒ 断言会【空过】。
+         白盒调用 hitCardId、不动任何状态：这片区域修复后的正确语义是「点空白 = 回桌面」，
+         真点一下会把切换器关掉、污染它后面的断言。
+
+         ⚠️ 扫描带用【固定屏幕坐标】而不是「跟着飞出卡的 rect 走」：
+           跟卡走的写法会随卡一起滑出屏幕，剩下的采样点全在视口外 —— 断言悄悄变成空过。
+           固定带 y ∈ [6,150] 恰好是「新顶卡上缘(~155)之上」那一条，也是改前唯一会被
+           飞出节点抢走命中的区域（实测：新顶卡此时还在从 depth1 位姿过渡过来，没盖到）。
+         非空性判据 = 飞出卡矩形至少盖住 3 个采样点，杜绝「因为采不到而通过」。 */
+      const flyScan = await page.evaluate(async () => {
+        const raf = () => new Promise((r) => requestAnimationFrame(() => r()))
+        const root = document.querySelector('.app-switcher')
+        const S = root?.__vueParentComponent?.setupState
+        if (!S?.hitCardId) return { why: 'setupState 上没有 hitCardId', covered: 0, hits: -1, legacy: -1, flyId: null }
+        /* 飞出节点是 Vue 在下一个 flush 才挂出来的：松手后立刻 evaluate 可能早于那次 patch
+           （CDP 往返 vs rAF —— 实测两边都出现过「先到/后到」）。等最多 6 帧（≈100ms），
+           此时卡顶仍在 −420 以内、固定带必然被它盖住。 */
+        let fly = null
+        for (let k = 0; k < 6 && !fly; k++) {
+          await raf()
+          fly = document.querySelector('.switcher-card[data-flying]')
+        }
+        if (!fly) return { why: '等 6 帧仍未出现 data-flying 节点', covered: 0, hits: -1, legacy: -1, flyId: null }
+        const r = fly.getBoundingClientRect()
+        const flyId = fly.dataset.appId
+        const x = Math.round(r.left + r.width / 2)
+        /* legacy = 就地复刻的【改前】逻辑（elementsFromPoint 不跳过 data-flying；
+           横带兜底不跳过 c.flying）。放进断言里，是为了让「改前确实会中」这件事
+           永远跟着这条断言走，而不是只活在 /tmp 的探针输出里。
+           ⚠️ 它刻意与 /tmp/vwork/r29/probe-hit-flying.mjs 同构 —— 改这条断言时两边一起想。 */
+        const legacyHit = (pt) => {
+          if (!S.poseOf) return -1
+          try {
+            for (const el of document.elementsFromPoint(pt.clientX, pt.clientY)) {
+              const id = el?.closest?.('.switcher-card')?.dataset?.appId
+              if (id) return id
+            }
+            const band = 24 + 12
+            for (const c of S.renderedCards || []) {
+              const p = S.poseOf(c.i)
+              const w = (S.cardW || 0) * p.scale
+              if (pt.clientX >= p.x && pt.clientX <= p.x + w && pt.clientY >= p.y - band && pt.clientY <= p.y) {
+                return c.id
+              }
+            }
+            return null
+          } catch {
+            return -1
+          }
+        }
+        let covered = 0
+        let hits = 0
+        let legacy = 0
+        for (let y = 6; y <= 150; y += 12) {
+          const pt = { clientX: x, clientY: y }
+          const onCard = y >= r.top && y <= r.top + r.height
+          if (onCard) covered++
+          if (S.hitCardId(pt) === flyId) hits++
+          if (legacyHit(pt) === flyId) legacy++
+        }
+        return { why: null, covered, hits, legacy, flyId, flyTop: Math.round(r.top) }
+      })
+      check('第二十七轮·需求②-c：飞出中的卡不可被命中（旧实现返回已删除的 app，被拉回全屏）',
+        flyScan.covered >= 3 && flyScan.hits === 0,
+        flyScan.why
+          ? `⚠️ 未采到样本（${flyScan.why}）`
+          : `飞出卡 top=${flyScan.flyTop} · 扫 13 点 / 被卡盖住 ${flyScan.covered}（要求 ≥3，防空过）· ` +
+            `命中已删除的 ${flyScan.flyId} 的点数 = ${flyScan.hits}（期望 0）· ` +
+            `同样点位下旧逻辑命中 ${flyScan.legacy} 点`)
+      /* ① 只等 60ms —— 刻意落在旧实现的 240ms 空窗【之内】 */
+      await page.waitForTimeout(60)
+      const afterDel = await topCardState()
+      check('第二十七轮·需求①：删卡后顶卡槽位立即补位（旧实现空窗 240ms）',
+        !afterDel.gone && afterDel.topId === secondId,
+        `顶卡=${afterDel.topId}（期望 ${secondId}）· n=${afterDel.n} · 飞出节点=${afterDel.flying}`)
+      check('第二十七轮·需求①-b：飞出卡作为独立节点仍在播动画（未被补位挤掉）',
+        afterDel.flying >= 1,
+        `data-flying 节点数=${afterDel.flying}（期望 ≥1）`)
+      /* ② 在这个窗口里再上滑 —— 手势必须建立并逐帧跟手 */
+      const trace = []
+      await swipeUp(240, trace)
+      const dragged = trace.filter((s) => s.dragging).length
+      const dys = trace.map((s) => s.dragDy).filter((v) => v != null)
+      check('第二十七轮·需求②：删卡后立刻上滑下一张，手势不得被吞（旧实现 drag 恒 null）',
+        trace.length > 0 && dragged === trace.length && dys.length > 1 && dys[0] > dys[dys.length - 1],
+        `跟手帧 ${dragged}/${trace.length} · dy ${dys.join(' → ')}`)
+      await page.waitForTimeout(1400)
+      const end = await topCardState()
+      check('第二十七轮·需求②-b：连续两次上滑必须真的删掉 2 张',
+        !end.gone && end.n === before.n - 2,
+        `剩余 ${end.n} 张（期望 ${before.n - 2}）· ids=${end.ids}`)
+    }
   }
 
   await resetHome()
