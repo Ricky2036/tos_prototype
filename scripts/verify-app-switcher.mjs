@@ -4868,10 +4868,13 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
      * ①②③ 叠加起来就是 Ricky 那句「卡片直接消失」。
      * 复现矩阵：删后 0/60/140ms 再上滑 ⇒ 只删到 1 张（第二张被吞）；≥230ms 才正常。
      *
-     * 下面四条断言把「补位」「手势不被吞」「飞出卡不可被命中」分别钉死，
-     * 其中前三条都用【鼠标固定坐标】驱动 —— 与 Ricky 的操作同通道。
+     * 下面五条断言把「补位」「手势不被吞」「飞出卡不可被命中」「补位必须渐变」分别钉死，
+     * 其中四条都用【鼠标固定坐标】驱动 —— 与 Ricky 的操作同通道。
      * ⚠️ 需求②-c 刻意走白盒（直接调 hitCardId），不用真点击：这一片区在修复后的正确语义是
      *    「点空白 = 回桌面」，真点一下会把切换器关掉，污染它后面的断言。
+     * ⚠️ 需求③ 是 Ricky 2026-09-18 20:52 追加报的「删除卡片以后会闪」——根因是
+     *    `settleTo` 在焦点没变时也点亮 `focusMoving`，把整组补位的 CSS 过渡关掉了一帧。
+     *    证据与基线对照见 /tmp/vwork/r30/{probe-flash.mjs,base-r26.log,fixed-r27.log}。
      * ⚠️ 不要再加一条「飞出动画平滑性」的断言：那属于视觉，CDP 逐帧取证的结论
      *    （`#13 -85 → #14 -268 → -423 → -550 …`）已记录在 2026-09-18.md，
      *    在 e2e 里复刻一遍只会引入对 transition 实现细节的耦合。 */
@@ -4994,11 +4997,48 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
       /* ② 在这个窗口里再上滑 —— 手势必须建立并逐帧跟手 */
       const trace = []
       await swipeUp(240, trace)
+      /* ③ 松手后【立刻】记 18 帧补位卡位姿。
+         为什么挂在这一次上滑：这一次同样删的是顶卡（= secondId），补位同样是 17~18px 的
+         堆叠位移；而 ②-c 那一段需要用同一段时间去扫固定带，两者抢时间，所以分开各测一次。
+         ⚠️ 必须紧跟 swipeUp 返回、不做任何等待：晚一两帧就少记一段行程（补位全程 0.32s）。 */
+      const ramp = await page.evaluate(async (goneId) => {
+        const raf = () => new Promise((r) => requestAnimationFrame(() => r()))
+        const ys = []
+        let newTop = null
+        for (let k = 0; k < 18; k++) {
+          await raf()
+          const S = document.querySelector('.app-switcher')?.__vueParentComponent?.setupState
+          const top = (S?.apps || [])[0]
+          /* 数据出列与 DOM 补位是 Vue 的同一次 patch：头一两帧 apps[0] 可能还是被删的那张 */
+          if (!top || top === goneId) continue
+          newTop = top
+          const el = [...document.querySelectorAll('.switcher-card')].find(
+            (c) => c.dataset.appId === top && !c.dataset.flying
+          )
+          if (el) ys.push(Math.round(el.getBoundingClientRect().y))
+        }
+        const steps = []
+        for (let k = 1; k < ys.length; k++) steps.push(Math.abs(ys[k] - ys[k - 1]))
+        return {
+          newTop,
+          ys,
+          maxStep: steps.length ? Math.max(...steps) : null,
+          span: ys.length ? Math.abs(ys[ys.length - 1] - ys[0]) : 0
+        }
+      }, secondId)
       const dragged = trace.filter((s) => s.dragging).length
       const dys = trace.map((s) => s.dragDy).filter((v) => v != null)
       check('第二十七轮·需求②：删卡后立刻上滑下一张，手势不得被吞（旧实现 drag 恒 null）',
         trace.length > 0 && dragged === trace.length && dys.length > 1 && dys[0] > dys[dys.length - 1],
         `跟手帧 ${dragged}/${trace.length} · dy ${dys.join(' → ')}`)
+      /* ③ 契约：**单帧步进 ≤ 总跨度的一半**。
+         瞬移必然「一帧走完全部行程」⇒ 单帧步进 = 总跨度 ⇒ 必 FAIL；
+         正常 CSS 过渡单帧只走 ~1/10 跨度 ⇒ 余量 5 倍以上。
+         非空性：至少要 6 个采样、且真的走了 ≥4px（补位全程 18px），防空过。 */
+      check('第二十七轮·需求③：删卡后补位卡必须【渐变】到位，不得整组瞬移（改前单帧跳完 17~18px）',
+        ramp.ys.length >= 6 && ramp.span >= 4 && ramp.maxStep <= Math.max(1, ramp.span / 2),
+        `新顶卡 ${ramp.newTop} y 序列 ${ramp.ys.join('→')} · 跨度 ${ramp.span}px · ` +
+          `单帧最大步进 ${ramp.maxStep}px（须 ≤ 跨度一半 ${Math.round(ramp.span / 2)}）`)
       await page.waitForTimeout(1400)
       const end = await topCardState()
       check('第二十七轮·需求②-b：连续两次上滑必须真的删掉 2 张',
