@@ -31,7 +31,11 @@ import {
   createMotion,
   stepMotion,
   createAccumulator,
-  accumulate
+  accumulate,
+  createDirVote,
+  voteDir,
+  /* 第二十六轮·需求⑤：触摸端的惯性投影（只在 pointerType === 'touch' 上生效） */
+  inertiaExtra
 } from '../../utils/switcherMotion'
 /* 第十四轮·需求①：交接保持窗口的时长必须与 hero 开场动画同源（只读引用，不改该文件）。 */
 import { HERO_OPEN_DURATION } from '../../utils/heroGeometry'
@@ -686,14 +690,25 @@ const FLICK_V_MIN = 2.6 // 层/秒 —— 超过它才算「快甩」（≈608px
 
 /** 松手吸附。
  *  @param vFocus     松手瞬时速度（层/秒，向右为正）
- *  @param startFocus 手势按下时的焦点（快甩保底的锚点） */
-function settleFocus(vFocus, startFocus) {
+ *  @param startFocus 手势按下时的焦点（快甩保底的锚点）
+ *  @param touch      本段手势是否来自【真实触摸】（pointerType === 'touch'）。
+ *                    只有它为真才叠加惯性投影 —— 判据与参数在 utils/switcherMotion.INERTIA
+ *                    （那里写了「为什么必须按输入设备分流」：鼠标合成事件的速度不是物理量）。 */
+function settleFocus(vFocus, startFocus, touch = false) {
   /* 落点判定锚在【目标】而不是视觉位置 focus.value：一阶模型下 x 可能滞后不足一帧，
      而「用户把卡片拖到哪了」的唯一权威是 target（输入累积出来的意图）。 */
   const cur = motion.target
   const last = Math.max(0, apps.value.length - 1)
   const isFlick = Math.abs(vFocus) >= FLICK_V_MIN
   let idx = Math.round(cur)
+
+  /* ── 第二十六轮·需求⑤：触摸端惯性投影 ────────────────────────────────────
+     Ricky 原话：「手机端滑动卡片不支持快速滚动，要支持根据滑动速度的惯性滑动效果。」
+     只追加【张数】，方向取松手速度的符号；跟手与收尾曲线一概不动。
+     ⚠️ 必须放在快甩保底【之前】：保底是「至少一张」，投影是「多几张」，
+        两者都在下面统一夹取 —— 贴边界时额外量被 clamp 吃掉（不越界、不过冲）。 */
+  const extra = touch ? inertiaExtra(vFocus) : 0
+  if (extra > 0) idx = Math.round(cur + Math.sign(vFocus) * extra)
 
   if (isFlick) {
     /* 方向保底：快甩至少要翻过「起点那张」后面/前面的一张。
@@ -725,6 +740,10 @@ function settleFocus(vFocus, startFocus) {
     from: +startFocus.toFixed(4),
     vFocus: +vFocus.toFixed(3),
     isFlick,
+    /* 第二十六轮：区分「位移定的张数」与「速度追加的张数」—— e2e 靠这两个字段
+       分别守「鼠标不走投影」与「触摸走投影」，不必反推。 */
+    touch: !!touch,
+    extra: +extra.toFixed(3),
     idx
   }
 }
@@ -749,6 +768,16 @@ const wheelAcc = ref(null)
    （Ricky 原话「越改越差了」），因为 7px 已经大于真实微调的幅度。
    与 wheelAcc 同生命周期：手势起点新建、endWheel / cancelWheel 清掉。 */
 let wheelInput = null
+/* 第二十六轮：本手势的【方向投票器】。逐笔比较换成滑动窗口投票 ——
+   判据本体在 utils/switcherMotion.voteDir（纯函数 + 单测覆盖）。
+   为什么必须动它：真实触控板的慢滑大量事件是 |deltaX| = 1，旧判据
+   `|deltaX| > |deltaY| 且 |deltaX| ≥ 2` 把 100 笔全丢掉（实测位移精确为 0），
+   而「被丢掉的笔不重置 idle 定时器」直接引出本轮主病灶 onWheel 的注释 ①。
+   与 wheelInput 同生命周期：手势起点新建、endWheel / cancelWheel 清掉。 */
+let wheelDirVote = null
+/* 上一笔 wheel 的时刻（e.timeStamp），只用于判「投票窗口要不要重开」——
+   与 WHEEL_IDLE 同阈值：超过它没来新事件就是新手势，上一次的票不能替这一次作决定。 */
+let wheelDirAt = 0
 let wheelIdleTimer = null
 /* 点空白退出的动画定时器（第八轮，需求④）—— 同一个理由必须声明在这里：
    appSwitcherOpen 的 watch（immediate）在关闭分支里 clearTimeout(closeTimer)，
@@ -1802,8 +1831,10 @@ function onPointerUp(e) {
     /* 用【松手这一刻重算的】层速度，而不是 d.vPx（最后一次 pointermove 的陈旧值）：
        vtVelocity 会剔除 >100ms 的旧样本，手指停住再松手自然得 0；
        若沿用 d.vPx，停住 300ms 再松手会带着停顿前的旧速度继续翻页（需求⑤的反例）。
-       第二个参数是快甩保底的锚点（手势按下时的焦点）。 */
-    settleFocus(vFocus, d.startFocus)
+       第二个参数是快甩保底的锚点（手势按下时的焦点）。
+       第三个参数（第二十六轮）是【惯性投影的开关】—— 只有真实触摸才开，
+       理由见 utils/switcherMotion.INERTIA 的注释（鼠标合成事件的速度不是物理量）。 */
+    settleFocus(vFocus, d.startFocus, e.pointerType === 'touch')
     return
   }
   if (d.mode === 'v' && !tapIntent) {
@@ -1896,7 +1927,7 @@ function hitCardId(e) {
   return null
 }
 
-/* ---- 触控板双指横滑（第七轮·批次 3，需求①）----
+/* ---- 触控板双指横滑（第七轮·批次 3，需求①；第二十六轮重写判据）----
    Ricky 原话：「多任务横滑不支持 Mac 触控板双指横滑手势」。
    根因：组件此前只接 pointer 事件，**一个 wheel 都没接** —— 双指横滑产生的 wheel
    被浏览器当成页面滚动吞掉，切换器全程纹丝不动。
@@ -1909,28 +1940,106 @@ function hitCardId(e) {
    ⚠️ 与指针路径最重要的差别：**触控板自带动量相**。一次双指快拨之后 macOS 会继续吐
    一串递减的 wheel（动量），所以这里【绝不叠加投影】—— 惯性已经由系统喂进来了，
    再投影一次就是双重计账（猛拨会飞过头）。做法：
-     · 逐事件把 wheel 增量累加进独立累加器 wheelAcc（不是 focus.value ——
-       焦点会被 spring 拖着滞后，拿它当累加基准每帧都会丢掉一点位移）；
-     · 手全程 focusSnap 逐帧直写（零过渡 → 与触控板 1:1 跟手）；
-     · 手势流停下（WHEEL_IDLE 内无新事件）→ 吸附到最近整卡。
+     · 逐事件把 wheel 增量累加进独立累积器 wheelInput（不是 focus.value ——
+       焦点会跟着输入走，拿它当累加基准每帧都会丢掉一点位移）；
+     · 输入全程走【唯一出口】setInput（零过渡 → 与触控板 1:1 跟手）；
+     · 手势流停下（WHEEL_IDLE 内无任何 wheel 事件）→ 吸附到最近整卡。
    于是：轻拨（累计 < 半张）弹回原卡；拨过半张翻一张（与需求⑤一致）；
    猛拨被动量喂过 1.5 张 → 落点就是第 2 张（触控板上的「惯性加速」）。 */
 const WHEEL_LINE_PX = 16 // deltaMode=1（按行）折算像素
 const WHEEL_PAGE_PX = 400 // deltaMode=2（按页）
-/* 手势结束判定（ms）。取 140 与 HomeScreen 的 wheelResetTimer 同值 —— 同一种输入设备
-   在同一个原型里有且只有一套「拨完了」的门槛。
-   系统动量相的事件间隔常态 < 40ms（尾部也极少超过 100ms），140ms 足够；
-   判早了会把动量尾巴切掉 —— 那正是「惯性」的来源，宁可多等一拍。 */
-const WHEEL_IDLE = 140
+/* 手势结束判定（ms）—— 「确实松手了」的时间门槛。**这是本轮唯一的自由参数。**
+   ⚠️ 第二十六轮：判据改成两条，别只改前一条 ——
+     · 时间上：这段时间里【一笔 wheel 事件都没有】（不是「没有有效笔」）。见 onWheel 注释 ①。
+     · 数值上：140 → 900。原因见下。
+
+   为什么必须从 140 提上来（第二十六轮实测）：
+   DOM 里【没有】触控板手势的 phase，所以「松手了」只能靠时间猜。140ms 猜不出「停顿」和
+   「松手」的区别 —— 而触控板上「拨一下、停下看一眼、再拨」是最自然的节奏，
+   手指停在玻璃上的停顿轻松超过 140ms。旧的 140 于是把每一次停顿都当成一次收尾：
+     endWheel() → settleTo(round(cur)) → round 把位置朝回拉【最多半张卡】。
+   逐帧取证（/tmp/vwork/r27/probe-wheel.mjs，逐次只改这一个变量）：
+     间隙 120ms（< 140）→ 净位移 1.000 张 · 前卡 tr.e 反号 0 次
+     间隙 160ms（> 140）→ 净位移 0.000 张 · 反号 7 次 · 极差 48.8px
+     间隙 200ms（> 140）→ 净位移 0.000 张 · 反号 9 次
+     实测轨迹：0.118 → 0.104 → 0.079（收尾把位置拉下去）→ 0.102 → 0.137 → 0.178
+              →（再来一次）→ 0.212 → 0.161 → 0.163 → 0.199 → 0.240 → …
+     —— 手指一直在拨，位置被锁在一个区间里以 ~3Hz 原地抽，**一张都翻不过去**。
+
+   为什么取 900 而不是「刚好比 140 大一点」（这条是推导出来的，不是拍的）：
+     判据要覆盖的是【人的有意停顿】的上界，不是动量尾流的间隔上界（旧注释按后者定的 140）。
+     实测过的停顿形状：200 / 250 / 360 / 450 / 500ms 全部必须落在门槛内；
+     450ms 那档（每簇 5×14px）在 400ms 门槛下仍有 4 次反号。
+     而「停顿期间动一下、恢复输入再弹回来」这个方案在设计上是不可救的：
+     上一轮实测 ±4px 就会被读成「颤抖」⇒ 只要收尾真的移动了位置，无论多小都算抖动。
+     ⇒ 结论：**停顿期间必须一步都不动**，所以门槛只能取「有意停顿的上界」。
+   ⚠️ 代价（明确接受）：松手后最多晚 WHEEL_IDLE 才归位。它发生在动量尾流停下之后
+      （尾流期间每一笔都在续期），此时画面本就静止，读起来是「稍等一拍再归位」。
+      若 Ricky 反馈「归位太慢」，调小这一个常量即可；若反馈「某些停顿仍在抽」，调大。
+      **不要再引入第二套判据**（第二十三轮 7px 反向死区就是这么翻车的）。
+   ⚠️ 另一个收益：连续两下拨动若间隔 < 门槛，会被当成【同一次手势】⇒ 中途不吸附、只在
+      最后一次之后归位；两下之间不再有中间吸附，比旧版更干净（翻的张数不变）。
+   ⚠️ 残留的已知边界（取舍，不是 bug）：停顿【长于】门槛仍会被当成松手 ⇒ 吸附到最近整卡，
+      进度可能回退（probe 的 500ms 档实测净位移 0、反号 7；900ms 档见 e2e 断言）。
+   ⚠️ 别再往回调：140 那版在触控板上是【必然】抖动，不是概率抖动。
+   同一个 140ms 在 HomeScreen.onWheel 里是无害的，别拿「保持两处一致」当理由：
+   那边超时后只做 `wheelDeltaX = 0`（清累加器，幂等），这边超时后做
+   `settleTo(round(cur))`（移动位置，非幂等）—— 只有后者会被重复触发放大成抽动。 */
+const WHEEL_IDLE = 900
 
 function onWheel(e) {
   if (!system.appSwitcherOpen || drag.value || dismissing.value || clearing.value || expanding.value) return
   /* deltaMode 归一：部分设备/浏览器给「行」或「页」，要折成像素才与 span 同量纲 */
   const k = e.deltaMode === 1 ? WHEEL_LINE_PX : e.deltaMode === 2 ? WHEEL_PAGE_PX : 1
   const px = e.deltaX * k
-  /* 判据与 HomeScreen.onWheel 完全一致：横向必须【压过纵向】且不小于 2px 才算横滑意图。
-     这样「纯纵向滚轮 / 斜着滚」都不会被我们拦住（切换器里也没有可滚内容）。 */
-  if (!px || Math.abs(px) <= Math.abs(e.deltaY) || Math.abs(px) < 2) return
+  const py = e.deltaY * k
+
+  /* ── ① 手势存活心跳【必须最先做，且不能被任何门槛挡住】──────────────────────────
+   * 第二十六轮主修。Ricky 原话：「电脑端使用 Mac 触控板双指横滑 / Magic Mouse 左右滑动
+   * 翻页时抖，手机浏览器用触摸屏横滑不抖」—— 触摸通路没有 idle 定时器，抬手即 pointerup；
+   * wheel 通路的「拨完了」判据是这个定时器，所以病灶只能在这里。
+   *
+   * 旧实现的顺序是：先过门槛、过了才 clearTimeout/setTimeout。于是【被门槛丢弃的那些笔
+   * 不会把定时器往后推】—— 而真实触控板的慢滑/动量尾流里，|deltaX| ≤ 1 或纵向抖动压过
+   * 横向的笔占很大比例（见 utils/switcherMotion 的方向投票注释里的逐帧取证）。
+   * 只要这种笔连续出现 140ms（一次双指慢滑的中段就会），endWheel() 就会在【手指还在
+   * 触控板上】的时候触发：
+   *     releaseSqueeze() + settleTo(round(cur))
+   *   —— 而 round 是「四舍五入到整卡」，cur = 0.45 时它会把位置朝回拉【半张卡】。
+   * 紧接着的下一笔有效事件看到 wheelAcc == null ⇒ 新建累积器（基准取飞行中的 focus）
+   * + setInput 把位置推回去 ⇒【收尾推进器与输入通道轮流写同一个量】。
+   *
+   * 逐帧取证（/tmp/vwork/r27/probe-wheel.mjs，本地 5555）：
+   *   W9 「拨-停-拨，间隙 120ms（< 140）」 → 净位移 1.000 张 · 前卡 tr.e 反号 0 次
+   *   W10「拨-停-拨，间隙 160ms（> 140）」 → 净位移 0.000 张 · 前卡 tr.e 反号 7 次
+   *        focus 轨迹 0.118 → 0.104 → 0.079 → 0.102 → 0.137 → 0.178 → 0.209 → 0.225
+   *                  → 0.212 → 0.161 → 0.163 → 0.199 → 0.240 →（每 ~16 帧重复一次）
+   *        手指一直在拨，位置被锁在 [0.03, 0.12] 里以 ~3Hz 原地抽，一张都翻不过去。
+   *   两个场景【只差 40ms 间隙】，行为从「正常翻一张」翻成「原地抽」—— 变量是唯一的。
+   *
+   * 修法：把定时器重置提到所有门槛【之前】，且判据改成「这段时间里一笔 wheel 都没有」。
+   * 只在已有未决收尾时动它（wheelAcc == null 时 endWheel 本来就是空操作）。 */
+  if (wheelAcc.value != null) {
+    clearTimeout(wheelIdleTimer)
+    wheelIdleTimer = setTimeout(endWheel, WHEEL_IDLE)
+  }
+
+  /* ── ② 方向判定换【滑动窗口投票】（判据本体在 utils/switcherMotion.voteDir）────────
+   * 旧判据是逐笔比较 `|px| > |py| 且 |px| ≥ 2`，两个毛病：
+   *   · `≥ 2` 把慢滑的真实形状（大量 |deltaX| = 1）整笔吃掉 —— 实测 100 笔纯 1px
+   *     事件的位移【精确为 0】；
+   *   · 逐笔比纵向抖动：真实手势里纵向分量是连续变化的，逐笔比会让通过率随手指抖动
+   *     变成随机脉冲，位移被切成不均匀的碎步。
+   * 窗口投票同时修掉这两条，并且【纯纵向滚动（px = 0）进不了投票】——
+   * 卡片内列表的上下滚动照旧放行（这里直接 return，不 preventDefault）。
+   *
+   * ⚠️ 投票器的时间边界与「拨完了」用同一个 WHEEL_IDLE：超过它没来新事件就是新手势，
+   *    窗口清空重投。否则「上一次竖滚留下的票」会替这一次的横滑作决定。 */
+  if (!px) return
+  const nowMs = e.timeStamp || performance.now()
+  if (!wheelDirVote || nowMs - wheelDirAt > WHEEL_IDLE) wheelDirVote = createDirVote()
+  wheelDirAt = nowMs
+  if (!voteDir(wheelDirVote, px, py)) return
   /* 拦掉默认滚动。必要性：卡片里是真实的应用预览，其中设置页等自带可滚列表 ——
      不拦的话横滑会把那张缩小卡里的列表横向滚起来，切换器反而不动。
      监听器注册在 window 且显式 passive:false（见 onMounted）—— 因为底部 ~30px 的
@@ -1964,6 +2073,10 @@ function onWheel(e) {
   setInput(layered)
   /* 第八轮（需求⑦）：触控板横滑同样吃「左滑挤压」—— 换一种输入设备，不是换一套反馈 */
   dragSqueeze()
+  /* ③ 收尾定时器。与 ① 分工明确、两条都不能省：
+   *    ① 管【被门槛丢弃的笔】—— 手势还活着但本笔不动位置；
+   *    ③ 管【本笔真的动了位置】—— 包含一次手势的第一笔（此刻 wheelAcc 还是 null，
+   *       ① 不会执行，定时器只能在这里起）。 */
   clearTimeout(wheelIdleTimer)
   wheelIdleTimer = setTimeout(endWheel, WHEEL_IDLE)
 }
@@ -1975,6 +2088,8 @@ function endWheel() {
   const cur = wheelAcc.value
   wheelAcc.value = null
   wheelInput = null // 累积器与 wheelAcc 同生命周期
+  wheelDirVote = null
+  wheelDirAt = 0
   const last = Math.max(0, apps.value.length - 1)
   releaseSqueeze()
   settleTo(Math.max(0, Math.min(last, Math.round(cur))))
@@ -1986,6 +2101,8 @@ function cancelWheel() {
   wheelIdleTimer = null
   wheelAcc.value = null
   wheelInput = null
+  wheelDirVote = null
+  wheelDirAt = 0
 }
 
 /* ---- 桌面图标的隐藏态归还（第十五轮）----

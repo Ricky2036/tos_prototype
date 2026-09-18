@@ -6,7 +6,12 @@ import {
   stepMotion,
   clampTarget,
   createAccumulator,
-  accumulate
+  accumulate,
+  createDirVote,
+  voteDir,
+  DIR_WINDOW,
+  INERTIA,
+  inertiaExtra
 } from '../src/utils/switcherMotion.js'
 
 /* 逐帧推进到停（带帧数上限，避免回归时死循环把 CI 挂住） */
@@ -226,4 +231,144 @@ test('第二十四轮·契约：accumulate 的边界情形', () => {
   const st3 = createAccumulator(0)
   accumulate(st3, -7)
   assert.equal(st3.acc, -7, '反方向的第一笔同样 1:1')
+})
+
+/* ──────────────────────────────────────────────────────────────────────────────
+ * 第二十六轮：手势方向投票（活取自 /tmp/vwork/r27/probe-wheel.mjs 的逐帧取证）
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+test('第二十六轮·契约：慢滑的 1px 笔必须被认成横向手势（旧判据 100 笔全丢、位移精确为 0）', () => {
+  const v = createDirVote()
+  /* 真实触控板慢滑：120Hz、每笔 deltaX = −1、无纵向分量 */
+  const got = []
+  for (let i = 0; i < 100; i++) {
+    const px = -1
+    const py = 0
+    if (px !== 0) got.push(voteDir(v, px, py) === true)
+  }
+  assert.equal(got.length, 100)
+  assert.ok(got.every(Boolean), '每一笔都必须判为横向 —— 1px 是屏幕能表达的最小位移，不该有幅度门槛')
+})
+
+test('第二十六轮·契约：纵向抖动压过横向的单笔【不该】被整笔丢弃（窗口投票的意义）', () => {
+  const v = createDirVote()
+  /* W3 形状：−3/1 与 −1/1 交替。第 2、4、6… 笔逐笔看是纵向占优，
+     旧判据 `|px| > |py|` 会把它们全丢掉 ⇒ 通过率只剩一半。 */
+  const res = []
+  for (let i = 0; i < 20; i++) res.push(voteDir(v, i % 2 === 0 ? -3 : -1, 1))
+  assert.ok(res.every(Boolean), '一整个手势内的每一笔都应通过（窗口看的是整段方向，不是单笔）')
+})
+
+test('第二十六轮·契约：纯纵向滚动不被拦，且不污染投票窗口', () => {
+  const v = createDirVote()
+  assert.equal(voteDir(v, 0, -20), null, 'px = 0 不参与投票（调用方直接放行，不 preventDefault）')
+  assert.equal(v.xs.length, 0, 'px = 0 的笔不能进窗口')
+  /* 斜着滚（纵向占优）：Σ|dx| = 8 vs Σ|dy| = 160 ⇒ 永远不该判成横向 */
+  const r = []
+  for (let i = 0; i < 20; i++) r.push(voteDir(v, 1, -20))
+  assert.ok(r.every((x) => x === false), '每笔都应放行给卡片内列表（不得 preventDefault）')
+})
+
+test('第二十六轮·契约：先竖滚再横滑，必须在窗口长度内翻过来（不能永久锁死）', () => {
+  const v = createDirVote()
+  for (let i = 0; i < 30; i++) voteDir(v, 1, -20)
+  assert.equal(voteDir(v, 1, -20), false, '竖滚期间一直是纵向')
+  let i = 0
+  while (i < 40 && voteDir(v, -6, -1) === false) i++
+  assert.ok(i < DIR_WINDOW, `改用横滑后必须在 ${DIR_WINDOW} 笔内翻成横向（实测第 ${i + 1} 笔）`)
+})
+
+test('第二十六轮·契约：窗口只保留最近 DIR_WINDOW 笔', () => {
+  const v = createDirVote()
+  for (let i = 0; i < 50; i++) voteDir(v, -2, 0)
+  assert.equal(v.xs.length, DIR_WINDOW)
+  assert.ok(Math.abs(v.sx - DIR_WINDOW * 2) < 1e-9, 'Σ|dx| 只累计窗内')
+  assert.equal(v.sy, 0)
+})
+
+test('第二十六轮·契约：偏离 45° 的斜滑按纵向放行（DIR_RATIO > 1 的意义）', () => {
+  const v = createDirVote()
+  const r = []
+  for (let i = 0; i < 8; i++) r.push(voteDir(v, -3, -3))
+  assert.ok(r.every((x) => x === false), '正好 45° 没有确定性优势 ⇒ 当纵向放行（切换器内没有可横滚内容）')
+})
+
+test('第二十六轮·回归：先横滑再「明确纵滚」必须放行（窗口跨笔污染；e2e 实测踩到）', () => {
+  const v = createDirVote()
+  assert.equal(voteDir(v, -60, 0), true, '第一笔横滑：应被拦（preventDefault）')
+  /* 紧接着一笔明确纵滚。若不设单笔否决线，窗口 Σ|dx| = 70 vs Σ|dy| = 60 ⇒ 误判成横向，
+     卡内列表的滚动就被抢走了（e2e「斜向（纵向占优）放行」由 PASS 变 FAIL）。 */
+  assert.equal(voteDir(v, 10, -60), false, '明确纵滚（|dy| > 3×|dx|）必须一票否决')
+  /* 但它仍然记进窗口 ⇒ 连续纵滚能把窗口翻成纵向 */
+  const r = []
+  for (let i = 0; i < 8; i++) r.push(voteDir(v, 1, -20))
+  assert.ok(r.every((x) => x === false), '连续纵滚之后窗口必须翻成纵向')
+})
+
+test('第二十六轮·契约：小幅纵抖不触发否决（否则又回到「慢滑拨不动」）', () => {
+  const v = createDirVote()
+  /* probe-wheel.mjs 的 W7 逐字形状：dx = −(1 + (i%5===0 ? 2 : i%3===0 ? 1 : 0))、
+     dy = i%4===0 ? 2 : i%3===0 ? 1 : 0。最大 ay/ax = 2/1 = 2 < 3 ⇒ 一笔都不该被否决。
+     （注意「第一笔 dx=1 且 dy=2」这种形状本来就会被判成纵向 —— 那是正确的：
+       它自己的纵向分量就是占优的，代价是 1px，窗口下一笔就翻回来了。） */
+  const r = []
+  for (let i = 0; i < 40; i++) {
+    const dx = -(1 + (i % 5 === 0 ? 2 : i % 3 === 0 ? 1 : 0))
+    const dy = i % 4 === 0 ? 2 : i % 3 === 0 ? 1 : 0
+    r.push(voteDir(v, dx, dy))
+  }
+  assert.ok(r.every(Boolean), `每一笔都应通过（实测 W7 净位移 2.000 张 / 反号 0）`)
+})
+
+/* ══════════ 第二十六轮·需求⑤：触摸端惯性投影 ══════════
+   Ricky 原话：「手机端滑动卡片不支持快速滚动，要支持根据滑动速度的惯性滑动效果。」
+   纯函数 + 单测的理由与 accumulate / voteDir 相同：这条判据决定「一次甩能翻几张」，
+   是用户能一眼看出的量，必须能在不跑浏览器的前提下回归。 */
+test('第二十六轮·惯性：门槛处连续（|v| = V_MIN ⇒ 0，不跳一张）', () => {
+  assert.equal(inertiaExtra(INERTIA.V_MIN), 0, '恰在门槛上不追加')
+  assert.equal(inertiaExtra(INERTIA.V_MIN - 0.001), 0)
+  assert.equal(inertiaExtra(0), 0)
+  /* 略高于门槛必须是「很小的追加」而不是一张 —— 否则门槛两侧会跳变，
+     慢滑的临界样本会随机多翻一张（第十一轮需求⑤的反例）。 */
+  const justAbove = inertiaExtra(INERTIA.V_MIN + 0.1)
+  assert.ok(justAbove > 0 && justAbove < 0.1, `刚过门槛只追加 ${justAbove} 层（< 0.1）`)
+})
+
+test('第二十六轮·惯性：单调不减且与符号无关（方向由调用方给）', () => {
+  const vs = [2.6, 3, 4, 5, 6, 7.2, 9.4, 14, 30]
+  const out = vs.map((v) => inertiaExtra(v))
+  for (let i = 1; i < out.length; i++) assert.ok(out[i] >= out[i - 1] - 1e-12, `v=${vs[i]} 不得比 v=${vs[i - 1]} 小`)
+  for (const v of vs) assert.equal(inertiaExtra(-v), inertiaExtra(v), '只取速度大小，方向不在本函数职责内')
+})
+
+test('第二十六轮·惯性：上限恒为 MAX（再快也不「一甩到底」）', () => {
+  for (const v of [9.4, 14, 30, 100, 1000]) {
+    assert.equal(inertiaExtra(v), INERTIA.MAX, `v=${v} 层/秒也应恰好夹在 MAX=${INERTIA.MAX}`)
+  }
+})
+
+test('第二十六轮·惯性：参考视频 V4 的快甩峰值（7.2 层/秒）≈ 多翻 2 张', () => {
+  /* 7.2 层/秒 = 1680px/s ÷ span 233.75px（第七轮逐帧量测 V4 的峰值，见 FLICK_V_MIN 注释）。
+     TAU = 0.42 就是照着「这个速度 ≈ 追加 1.9 层」定的。 */
+  const e = inertiaExtra(7.2)
+  assert.ok(Math.abs(e - 1.9) < 0.1, `实测 ${e.toFixed(3)} 层（期望 ≈1.9）`)
+  /* 落点 = round(cur + extra)：从 0 号卡（cur ≈ 0.1，只推出 24px）快甩 ⇒ 第 2 张 */
+  assert.equal(Math.round(0.1 + e), 2, '0 号卡上快甩应落到第 2 张（跨过 1 号）')
+  /* 边界不变量：落点仍由调用方夹取 —— 末卡快甩必须停在末卡（不能越界） */
+  const last = 4
+  assert.equal(Math.max(0, Math.min(last, Math.round(4.2246 + e))), last, '末卡快甩仍停在末卡')
+})
+
+test('第二十六轮·惯性：慢滑（|v| < V_MIN）追加恒 0 —— 需求⑤「慢滑一次一张」原样守住', () => {
+  for (const v of [0, 0.5, 1.2, 2.0, 2.59]) {
+    assert.equal(inertiaExtra(v), 0, `v=${v} 层/秒（低于门槛 ${INERTIA.V_MIN}）不追加`)
+  }
+})
+
+test('第二十六轮·惯性：自定义参数生效（纯函数，不改全局常量）', () => {
+  const cfg = { V_MIN: 1, TAU: 1, MAX: 5 }
+  assert.equal(inertiaExtra(0.5, cfg), 0)
+  assert.equal(inertiaExtra(3, cfg), 2)
+  assert.equal(inertiaExtra(100, cfg), 5, 'MAX 夹取')
+  assert.equal(INERTIA.TAU, 0.42, '默认配置不被就地修改')
 })
