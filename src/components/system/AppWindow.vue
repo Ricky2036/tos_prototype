@@ -211,6 +211,7 @@ watch(
 onBeforeUnmount(() => {
   emit('hero-frame', null)
   hero.stop()
+  home.showIcon()
 })
 </script>
 

@@ -45,7 +45,26 @@ export const useSystemStore = defineStore('system', {
 
   getters: {
     overlay: (s) => (name) => s.overlays[name],
-    isOverlayActive: (s) => (name) => s.overlays[name].status !== 'closed'
+    isOverlayActive: (s) => (name) => s.overlays[name].status !== 'closed',
+    /**
+     * 电源/锁屏按钮当前对应的下一个动作：
+     * - 'powerOn' (亮屏)：当前为灭屏黑幕状态 (!screenOn)
+     * - 'powerOff' (灭屏)：当前为亮屏且处于锁屏界面 (screenOn && baseLayer === 'lock')
+     * - 'lock' (锁屏)：当前为亮屏且处于桌面或应用内 (screenOn && baseLayer !== 'lock')
+     */
+    powerButtonAction: (s) => {
+      if (!s.screenOn) return 'powerOn'
+      if (s.baseLayer === 'lock') return 'powerOff'
+      return 'lock'
+    },
+    /**
+     * 电源/锁屏按钮显示的动作文案：'亮屏' | '灭屏' | '锁屏'
+     */
+    powerButtonText: (s) => {
+      if (!s.screenOn) return '亮屏'
+      if (s.baseLayer === 'lock') return '灭屏'
+      return '锁屏'
+    }
   },
 
   actions: {
@@ -75,6 +94,8 @@ export const useSystemStore = defineStore('system', {
       this.baseLayer = 'lock'
       this.activeAppId = null
       this.appSwitcherOpen = false
+      this.unlockProgress = 0
+      this.homeGestureProgress = 0
       for (const key of Object.keys(this.overlays)) {
         this.overlays[key] = { status: 'closed', progress: 0 }
       }
@@ -89,6 +110,22 @@ export const useSystemStore = defineStore('system', {
     powerOn() {
       this.screenOn = true
       this.lock()
+    },
+
+    /**
+     * 电源/锁屏按钮动作处理（三态流转）：
+     * 1. 灭屏状态 (!screenOn) -> 点击亮屏，回到锁屏界面
+     * 2. 锁屏界面 (screenOn && baseLayer === 'lock') -> 点击灭屏 (黑屏遮盖)
+     * 3. 桌面/应用中 (screenOn && baseLayer !== 'lock') -> 点击锁屏 (锁定回锁屏)
+     */
+    togglePower() {
+      if (!this.screenOn) {
+        this.powerOn()
+      } else if (this.baseLayer === 'lock') {
+        this.powerOff()
+      } else {
+        this.lock()
+      }
     },
 
     /** 任一叠层是否打开（Home 手势 / 侧滑返回判断用） */

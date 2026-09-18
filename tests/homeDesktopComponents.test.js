@@ -44,6 +44,8 @@ test('multi-select drag uses a gathered stack and fans every selected item into 
   assert.match(home, /duration:190 \+ Math\.min\(index,5\)\*8/)
   assert.match(home, /settlingIds\.value = \[\.\.\.ids\]/)
   assert.match(home, /ghostMotion\.vx = ghostMotion\.vx\*\.48 \+ instantX\*\.52/)
+  assert.match(home, /const rawSpeed = Math\.hypot\(ghostMotion\.vx,ghostMotion\.vy\)/)
+  assert.match(home, /ghostMotion\.vx\/rawSpeed/)
   assert.match(home, /--cluster-x/)
   assert.match(home, /requestAnimationFrame\(\(\) => requestAnimationFrame\(resolve\)\)/)
   assert.match(home, /duration:48,easing:'linear'/)
@@ -365,4 +367,10 @@ test('folder collapse preserves smooth background backdrop blur and seamless des
   assert.doesNotMatch(overlay, /\.folder-backdrop\s*\{[^}]*transform:\s*translateZ\(0\)/)
   // Desktop folder does not transition background color
   assert.doesNotMatch(folder, /\.folder-apps\{[^}]*background 180ms ease/)
+})
+test('drag ghost preserves 1:1 card aspect ratio and dimensions for widgets and large folders', async () => {
+  const home = await read('../src/components/system/HomeScreen.vue')
+  assert.match(home, /cardEl = source\?\.querySelector\?\.?\(['"]\.widget/)
+  assert.match(home, /aspect-ratio:1\/1/)
+  assert.match(home, /--card-width:\$\{width\}px;--card-height:\$\{height\}px;/)
 })

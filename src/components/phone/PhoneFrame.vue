@@ -1,9 +1,20 @@
 <script setup>
+import { computed } from 'vue'
+import { useSystemStore } from '../../stores/systemStore'
+
+const system = useSystemStore()
+
+const powerTitle = computed(() => `电源键 (${system.powerButtonText})`)
+
+const handlePowerClick = () => {
+  system.togglePower()
+}
+
 /**
  * 旗舰原色/白钛金属机身外框（Natural / Silver Titanium）：
  * - 像素级白钛金属拉丝外框、CNC 微弧双倒角高光与细腻金属质感
  * - 4 处微细注塑天线隔断条（Antenna Bands）
- * - 5 颗金属侧键：左侧动作键（Action Button）、音量+、音量-；右侧侧边电源键、相机控制键（Camera Control）
+ * - 5 颗金属侧键：左侧动作键（Action Button）、音量+、音量-；右侧侧边电源键（交互式触发锁屏/灭屏/亮屏）、相机控制键（Camera Control）
  * - 4px 超窄等宽黑边（BM 区）+ 50px 大圆角精准同心几何
  * - 顶部微缝听筒孔（Speaker Slit）
  * - 居中打孔摄像头（保持 .punch-hole 节点兼容避让测试）
@@ -25,7 +36,14 @@
     <div class="side-btn volume-down"></div>
 
     <!-- 右侧按键：侧边电源键、相机控制键 -->
-    <div class="side-btn power"></div>
+    <div
+      class="side-btn power"
+      @click="handlePowerClick"
+      :title="powerTitle"
+      role="button"
+      tabindex="0"
+      :aria-label="powerTitle"
+    ></div>
     <div class="side-btn camera-control"></div>
 
     <div class="frame-inner">
@@ -212,6 +230,27 @@
     inset 0 0.5px 0.5px rgba(255, 255, 255, 0.3),
     inset 0 -0.5px 0.5px rgba(0, 0, 0, 0.8),
     1px 1.5px 3px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.08s ease, filter 0.08s ease;
+}
+
+.power:hover {
+  filter: brightness(1.35);
+}
+
+.power:active {
+  transform: translateX(-1px);
+}
+
+/* 扩展电源键鼠标点击热区，方便在真机外框侧边轻松触发 */
+.power::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  left: -12px;
+  right: -16px;
 }
 
 /* 相机控制键（Camera Control）：深色蓝宝石触感与微凹深黑切角 */

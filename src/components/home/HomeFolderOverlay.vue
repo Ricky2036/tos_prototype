@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { getApp } from '../../config/apps'
 import { rectRelativeToScreen } from '../../utils/dom.js'
 import AppIcon from '../ui/AppIcon.vue'
@@ -16,7 +16,7 @@ const titleRef = ref(null)
 const iconRefs = new Map()
 const phase = ref('measuring')
 const iconMotions = new Map()
-const panelMotion = reactive({ dx: 0, dy: 0, sx: 0.2, sy: 0.2, startRadius: 100 })
+const panelMotion = reactive({ dx: 0, dy: 0, sx: 0.2, sy: 0.2, startRadius: '100px / 100px' })
 let closeTimer = null
 
 const setIconRef = (id, el) => {
@@ -42,11 +42,42 @@ function getShellFallback() {
   return { left: sw / 2 - 30, top: sh / 2 - 30, width: 60, height: 60, x: sw / 2 - 30, y: sh / 2 - 30 }
 }
 
+function getIconKeyframes(motion, isClosing) {
+  const { cx, cy, targetScale, hasMini } = motion
+  const steps = 16
+  const keyframes = []
+  const sx = panelMotion.sx
+  const sy = panelMotion.sy
+
+  for (let i = 0; i <= steps; i++) {
+    const p = isClosing ? (i / steps) : (1 - i / steps)
+    const px = 1 + (sx - 1) * p
+    const py = 1 + (sy - 1) * p
+    const totScale = 1 + (targetScale - 1) * p
+    const csx = px > 0.001 ? (totScale / px) : 1
+    const csy = py > 0.001 ? (totScale / py) : 1
+    const stepX = cx * p
+    const stepY = cy * p
+    const opacity = hasMini ? 1 : (isClosing ? Math.max(0, 1 - p * 1.5) : Math.min(1, (1 - p) * 1.5))
+    keyframes.push({
+      transform: `translate3d(${stepX}px, ${stepY}px, 0) scale(${csx}, ${csy})`,
+      opacity
+    })
+  }
+  return keyframes
+}
+
 function prepareMotion() {
   if (!panelRef.value) return
   const screen = panelRef.value.closest('.screen-view') || document.querySelector('.screen-view')
   const fallback = props.origin?.shellRect || getShellFallback()
-  const from = (props.origin?.shellRect && props.origin.shellRect.width > 0) ? props.origin.shellRect : fallback
+  const desktopFolder = screen?.querySelector?.(`[data-home-item="folder:${props.folder.id}"] [data-folder-shell]`)
+    || screen?.querySelector?.(`[data-home-item="folder:${props.folder.id}"]`)
+  let liveFrom = (desktopFolder && screen) ? rectRelativeToScreen(desktopFolder, screen) : null
+  if (!liveFrom || !liveFrom.width || !liveFrom.height) {
+    liveFrom = (props.origin?.shellRect && props.origin.shellRect.width > 0) ? props.origin.shellRect : fallback
+  }
+  const from = liveFrom
   const to = screen ? rectRelativeToScreen(panelRef.value, screen) : panelRef.value.getBoundingClientRect()
   if (!to || !to.width || !to.height) return
 
@@ -54,7 +85,11 @@ function prepareMotion() {
   const sy = from.height / to.height
   const dx = from.left - to.left
   const dy = from.top - to.top
-  const startRadius = Math.round(17 / Math.min(sx, sy))
+  const isLarge = (props.folder?.width > 1 || props.folder?.height > 1) || (from?.width || 0) > 80
+  const baseRadius = isLarge ? 22 : 17
+  const startRadiusX = (baseRadius / Math.max(0.001, sx)).toFixed(2)
+  const startRadiusY = (baseRadius / Math.max(0.001, sy)).toFixed(2)
+  const startRadius = `${startRadiusX}px / ${startRadiusY}px`
 
   panelMotion.dx = dx
   panelMotion.dy = dy
@@ -69,55 +104,66 @@ function prepareMotion() {
     const tileEl = iconEl.querySelector('.app-icon-anchor') || iconEl
     const tileRect = screen ? rectRelativeToScreen(tileEl, screen) : tileEl.getBoundingClientRect()
     const iconElRect = screen ? rectRelativeToScreen(iconEl, screen) : iconEl.getBoundingClientRect()
-    const miniRect = props.origin?.iconRects?.[appId]
+    const targetTileSize = isLarge ? 35 : 12
+    const targetScale = targetTileSize / 60
+    const iconShellRelative = props.origin?.iconShellRelatives?.[appId]
+    const hasMini = Boolean(iconShellRelative)
 
     let cx = 0
     let cy = 0
-    let cs = 0.2
 
-    const openCenterX = tileRect.left + tileRect.width / 2
-    const openCenterY = tileRect.top + tileRect.height / 2
-
-    if (miniRect && miniRect.width > 0 && miniRect.height > 0) {
-      const miniCenterX = miniRect.left + miniRect.width / 2
-      const miniCenterY = miniRect.top + miniRect.height / 2
-      cx = (miniCenterX - from.left) / sx - (openCenterX - to.left)
-      cy = (miniCenterY - from.top) / sy - (openCenterY - to.top)
-      cs = miniRect.width / (tileRect.width * sx)
+    if (iconShellRelative) {
+      const origTargetX = from.left + iconShellRelative.rx * from.width
+      const origTargetY = from.top + iconShellRelative.ry * from.height
+      cx = origTargetX - tileRect.left
+      cy = origTargetY - tileRect.top
     } else {
-      cx = (from.width * 0.5) / sx - (openCenterX - to.left)
-      cy = (from.height * 0.5) / sy - (openCenterY - to.top)
-      cs = 0.2
+      const targetCenterX = from.left + from.width / 2
+      const targetCenterY = from.top + from.height / 2
+      const tileCenterX = tileRect.left + tileRect.width / 2
+      const tileCenterY = tileRect.top + tileRect.height / 2
+      cx = targetCenterX - tileCenterX
+      cy = targetCenterY - tileCenterY
     }
 
     const originX = Math.round(tileRect.left - iconElRect.left + tileRect.width / 2)
     const originY = Math.round(tileRect.top - iconElRect.top + tileRect.height / 2)
     iconEl.style.transformOrigin = `${originX}px ${originY}px`
 
-    iconMotions.set(appId, { cx, cy, cs, hasMini: Boolean(miniRect) })
+    iconMotions.set(appId, {
+      cx,
+      cy,
+      targetScale,
+      hasMini
+    })
   }
+}
 
+function open() {
+  prepareMotion()
   phase.value = 'opening'
 
   const prefersReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
-  const dur = prefersReduced ? 1 : 320
-  const easeOpen = 'cubic-bezier(0.2, 0.9, 0.25, 1)'
+  const dur = prefersReduced ? 1 : 280
+  const easeOpen = 'cubic-bezier(0.2, 0.9, 0.3, 1)'
+
+  const { dx, dy, sx, sy, startRadius } = panelMotion
 
   backdropRef.value?.animate([
     { opacity: 0 },
     { opacity: 1 }
   ], {
     duration: dur,
-    easing: easeOpen,
+    easing: 'ease-out',
     fill: 'forwards'
   })
 
   titleRef.value?.animate([
-    { opacity: 0, transform: 'translateY(-8px)' },
+    { opacity: 0, transform: 'translateY(8px)' },
     { opacity: 1, transform: 'translateY(0)' }
   ], {
-    duration: Math.min(dur, 220),
-    delay: prefersReduced ? 0 : 70,
+    duration: Math.min(dur, 200),
+    delay: prefersReduced ? 0 : 50,
     easing: easeOpen,
     fill: 'forwards'
   })
@@ -125,12 +171,8 @@ function prepareMotion() {
   for (const [appId, iconEl] of iconRefs) {
     const motion = iconMotions.get(appId)
     if (!motion || !iconEl) continue
-    const { cx, cy, cs, hasMini } = motion
 
-    iconEl.animate([
-      { transform: `translate3d(${cx}px, ${cy}px, 0) scale(${cs})`, opacity: hasMini ? 1 : 0 },
-      { transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1 }
-    ], {
+    iconEl.animate(getIconKeyframes(motion, false), {
       duration: dur,
       easing: easeOpen,
       fill: 'forwards'
@@ -141,8 +183,8 @@ function prepareMotion() {
       { opacity: 0 },
       { opacity: 1 }
     ], {
-      duration: Math.min(dur, 200),
-      delay: prefersReduced ? 0 : 80,
+      duration: Math.min(dur, 180),
+      delay: prefersReduced ? 0 : 60,
       easing: easeOpen,
       fill: 'forwards'
     })
@@ -151,7 +193,7 @@ function prepareMotion() {
   const openAnim = panelRef.value?.animate([
     {
       transform: `translate3d(${dx}px, ${dy}px, 0) scale(${sx}, ${sy})`,
-      borderRadius: `${startRadius}px`,
+      borderRadius: startRadius,
       boxShadow: '0 0 0 rgba(0, 0, 0, 0)',
       borderColor: 'rgba(255, 255, 255, 0)'
     },
@@ -182,9 +224,7 @@ function prepareMotion() {
 
 function close() {
   if (phase.value === 'closing' || phase.value === 'launching') return
-  if (!panelMotion.dx && !panelMotion.dy && (!panelMotion.sx || panelMotion.sx === 1 || panelMotion.sx === 0.2)) {
-    prepareMotion()
-  }
+  prepareMotion()
   phase.value = 'closing'
   clearTimeout(closeTimer)
 
@@ -215,12 +255,8 @@ function close() {
   for (const [appId, iconEl] of iconRefs) {
     const motion = iconMotions.get(appId)
     if (!motion || !iconEl) continue
-    const { cx, cy, cs, hasMini } = motion
 
-    iconEl.animate([
-      { transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1 },
-      { transform: `translate3d(${cx}px, ${cy}px, 0) scale(${cs})`, opacity: hasMini ? 1 : 0 }
-    ], {
+    iconEl.animate(getIconKeyframes(motion, true), {
       duration: dur,
       easing: easeClose,
       fill: 'forwards'
@@ -246,7 +282,7 @@ function close() {
     },
     {
       transform: `translate3d(${panelMotion.dx}px, ${panelMotion.dy}px, 0) scale(${panelMotion.sx}, ${panelMotion.sy})`,
-      borderRadius: `${panelMotion.startRadius}px`,
+      borderRadius: panelMotion.startRadius,
       boxShadow: '0 0 0 rgba(0, 0, 0, 0)',
       borderColor: 'rgba(255, 255, 255, 0)'
     }
@@ -286,7 +322,10 @@ function onOverlayClick(event) {
   if (!event.target.closest('.folder-panel-app,.folder-title')) close()
 }
 
-onMounted(prepareMotion)
+onMounted(async () => {
+  await nextTick()
+  open()
+})
 onBeforeUnmount(() => {
   if (closeTimer) clearTimeout(closeTimer)
 })
@@ -385,6 +424,14 @@ onBeforeUnmount(() => {
 .folder-panel-app {
   touch-action: none;
   will-change: transform, opacity;
+}
+.folder-panel-app :deep(.app-icon) {
+  aspect-ratio: 1 !important;
+}
+.folder-panel-app :deep(.icon-tile),
+.folder-panel-app :deep(.app-icon-anchor) {
+  aspect-ratio: 1 !important;
+  flex: none !important;
 }
 .folder-panel-app :deep(.icon-label) {
   will-change: opacity;

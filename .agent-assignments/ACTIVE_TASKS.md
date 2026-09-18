@@ -89,8 +89,28 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Replace desktop edit wallpaper icon with settings wallpaper icon | `antigravity/lane` | None (locks released) | `134061b` | `aee15d9` |
 | Merged | Antigravity | Replace desktop edit delete icon with notification center trash SVG | `antigravity/lane` | None (locks released) | `c122c3b` | `52f3576` |
 | Merged | Workbuddy | App Switcher rounds 7-11: gesture follow, inertia snapping, card exit animations, left-slide group motion | `workbuddy/lane` | None (locks released) | `a6c0f0b` | `9377307` |
+| Merged | Antigravity | Fix screen-off edge wallpaper leak by hiding underlying layers and suppressing wallpaper visibility | `antigravity/lane` | None (locks released) | `fdb1967` | `437d496` |
+| Merged | Antigravity | Fix dock/desktop app icon disappearing after entering multitasking and returning to desktop | `antigravity/lane` | None (locks released) | `125bd2c` | `c4def14` |
+| Merged | Antigravity | Enable single-finger horizontal swipe desktop page switching on mobile Chrome and touch screens | `antigravity/lane` | None (locks released) | `4466c9e` | `16e4122` |
+| Merged | Antigravity | LockScreen notification stack top card 90% opacity and 2-card pill expand fix | `antigravity/lane` | None (locks released) | `aa8a310` | `0b2f0db` |
+| Merged | Antigravity | Screenshot filename prefix, desktop big folder 3x3 layout & mini-cluster, and handle persistence | `antigravity/lane` | None (locks released) | `2d0a345` | `0648016` |
+| Merged | Antigravity | Optimize big folder icon spacing, sizing, breathing room, and corner radius | `antigravity/lane` | None (locks released) | `acb5d31` | `89dcfb7` |
+| Merged | Antigravity | Disable horizontal scroll and swipe on mobile dev console modal | `antigravity/lane` | None (locks released) | `6dc5c0b` | `1f8eb4a` |
+| Merged | Antigravity | Make folder size, 1:1 aspect ratio, and radius completely consistent with Widget | `antigravity/lane` | None (locks released) | `d4b4e5a` | `78e984e` |
+| Merged | Antigravity | Fix HomeFolderOverlay dy undefined error and ensure smooth folder expansion | `antigravity/lane` | None (locks released) | `19d16e9` | `382ba09` |
+| Merged | Antigravity | Restore folder title, add title to Widgets, and fix folder collapse corner radius flicker | `antigravity/lane` | None (locks released) | `50406fa` | `ad650ab` |
+| Merged | Antigravity | Add safe vertical distance below widgets and restore edit mode multi-select | `antigravity/lane` | None (locks released) | `c502ca9` | `6cab8df` |
+| Merged | Antigravity | Optimize desktop grid, icon sizing, and row/column gaps matching reference screenshot 2 | `antigravity/lane` | None (locks released) | `45bcf49` | `4870b22` |
+| Merged | Antigravity | Desktop icon vertical breathing room and grid fine-tuning strictly matching reference screenshot | `antigravity/lane` | None (locks released) | `7bcce83` | `0169337` |
+| Merged | Antigravity | Fix Widget/Folder/App drag ghost deformation and preserve square card aspect ratio | `antigravity/lane` | None (locks released) | `182e3d9` | `0fe79bd` |
+| Merged | Antigravity | Adjust LockScreen notification stack top card opacity to 95% | `antigravity/lane` | None (locks released) | `9ab1855` | `709abdb` |
+| Merged | Antigravity | Fix folder resize handle positioning and thicken arc stroke | `antigravity/lane` | None (locks released) | `811615d` | `15dcd6d` |
+| Merged | Antigravity | Three-state power lock button (lock on home/app, power-off on lockscreen, power-on on screen-off) | `antigravity/lane` | None (locks released) | `b165a10` | `65344bf` |
+| Merged | Antigravity | Power button icon refinement (power icon for screen-off, custom lock icon, click dye) and solid wallpaper icon in HomeScreen edit mode | `antigravity/lane` | None (locks released) | `58367b1` | `a4ee037` |
+| Merged | Codex | Desktop multi-select drag release and drop-settle motion | `codex/lane` | None (locks released) | `5594a53` | `ad8e7c7` |
+| Merged | Codex | Fix multi-select drop final-frame flash and add velocity-direction inertia spread | `codex/lane` | None (locks released) | `5e76b94` | `a883740` |
+| Merged | Codex | Regress multi-select drag spread and drop clone scale to match reference | `codex/lane` | None (locks released) | `d71c5d3` | `62b1fec` |
+| Merged | Workbuddy | App Switcher rounds 12-25: zero-jitter first-order stepper, coordinate continuity guard, and squeeze dampening | `workbuddy/lane` | None (locks released) | `6413b0b` | `983686b` |
+| Merged | Antigravity | Notification clear-all viewport stagger, auto-collapse, persistent notification architecture, CC privacy indicator & lock icons | `antigravity/lane` | None (locks released) | `006c174` | `f3bdd33` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
-
-
-

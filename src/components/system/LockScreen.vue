@@ -102,7 +102,7 @@ const LOCK_STACK_BOTTOM_INSET = 110
 const LOCK_STACK_MAX_VISUAL_OFFSET = 36
 const LOCK_CARD_HEIGHT = 90
 const LOCK_CARD_BASE_ALPHA = 0.7
-const LOCK_STACK_FRONT_ALPHA = 0.98
+const LOCK_STACK_FRONT_ALPHA = 0.95
 const LOCK_STACK_BACK_ALPHA = 0.54
 const LOCK_STACK_DEPTH_ALPHA = 0.4
 const LOCK_STACK_ALPHA_OVERLAP = 48
@@ -653,7 +653,7 @@ function handleClipWheel(e) {
   if (isCollapsed.value) {
     // 折叠状态下：必须向上滚轮/滑动手势（deltaY > 15）才反向展开，决不可用 deltaY < 0 同向触发展开
     if (e.deltaY > 15) {
-      handleExpand()
+      handlePillExpand()
     }
     return
   }
@@ -671,7 +671,22 @@ function onPillPointerUp(e) {
   const dy = e.clientY - pillPointerStartY
   // 点击或向上滑动均触发展开通知
   if (dy <= 10) {
-    handleExpand()
+    handlePillExpand()
+  }
+}
+
+function handlePillExpand() {
+  const now = Date.now()
+  cancelMomentum()
+  if (isCollapsed.value) {
+    if (now - lastStateChangeTime < STATE_TRANSITION_MS) return
+    lastStateChangeTime = now
+    triggerStateTransition()
+    isCollapsed.value = false
+    scrollY.value = 0
+    if (listRef.value) {
+      listRef.value.scrollTop = 0
+    }
   }
 }
 
@@ -1074,6 +1089,15 @@ const lockNotificationsLayout = computed(() => {
       opacity = Math.min(opacity, emergeProgress)
     }
 
+    // 堆叠默认态（未向上滚动）时，至多呈现两张堆叠卡片（顶层卡 + 底层露出卡），多余深层卡完全隐藏
+    if (i >= 2 && !isCollapsed.value) {
+      if (scrollY.value <= 0) {
+        opacity = 0
+      } else {
+        opacity = Math.min(opacity, clamp(scrollY.value / 24, 0, 1))
+      }
+    }
+
     if (opacity > 0.02 && !isCollapsed.value) {
       maxCoveringBottom = Math.max(maxCoveringBottom, geo.visualBottom)
     }
@@ -1472,7 +1496,7 @@ function notifStyle(i) {
           :aria-label="notifCountLabel"
           @pointerdown="onPillPointerDown"
           @pointerup="onPillPointerUp"
-          @click="handleExpand"
+          @click="handlePillExpand"
         >
           <div class="lp-bell-wrap">
             <LIcon name="bell" :size="16" />

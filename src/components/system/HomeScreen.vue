@@ -233,9 +233,10 @@ function setGhostPosition(id, clientX, clientY) {
   }
   ghost.value = { ...ghost.value, id, x, y }
   const layers = ghostRef.value?.querySelectorAll?.('.drag-cluster-layer') || []
-  const speed = Math.min(2.4,Math.hypot(ghostMotion.vx,ghostMotion.vy))
-  const directionX = speed > .025 ? ghostMotion.vx/speed : 0
-  const directionY = speed > .025 ? ghostMotion.vy/speed : 0
+  const rawSpeed = Math.hypot(ghostMotion.vx,ghostMotion.vy)
+  const speed = Math.min(2.4,rawSpeed)
+  const directionX = rawSpeed > .025 ? ghostMotion.vx/rawSpeed : 0
+  const directionY = rawSpeed > .025 ? ghostMotion.vy/rawSpeed : 0
   const spread = Math.min(28,8+speed*36)
   layers.forEach((layer) => {
     const depth = Number(layer.style.getPropertyValue('--stack-index')) || 0
@@ -256,19 +257,23 @@ function suppressClick(id) {
 }
 function createDragGhost(source,id,x,y) {
   const rootRect = rootRef.value?.getBoundingClientRect()
-  const sourceRect = source?.getBoundingClientRect()
+  const cardEl = source?.querySelector?.('.widget, .smart-suggestion-stack, .large .folder-apps')
+  const targetEl = cardEl || source
+  const targetRect = targetEl?.getBoundingClientRect()
   const scaleX = rootRect?.width ? rootRef.value.offsetWidth/rootRect.width : 1
   const scaleY = rootRect?.height ? rootRef.value.offsetHeight/rootRect.height : 1
   const point = clientPointToHome(x,y)
-  const left = sourceRect && rootRect ? (sourceRect.left-rootRect.left)*scaleX : point.x-34
-  const top = sourceRect && rootRect ? (sourceRect.top-rootRect.top)*scaleY : point.y-44
+  const left = targetRect && rootRect ? (targetRect.left-rootRect.left)*scaleX : point.x-34
+  const top = targetRect && rootRect ? (targetRect.top-rootRect.top)*scaleY : point.y-44
   const dragIds = home.selectedItemIds.includes(id) && home.selectedItemIds.length > 1
     ? home.order.filter((itemId) => home.selectedItemIds.includes(itemId))
     : [id]
   const sources = dragIds.map((itemId) => rootRef.value?.querySelector(`[data-home-item="${itemId}"]`)).filter(Boolean)
-  const clone = source?.cloneNode(true)
+  const clone = cardEl ? cardEl.cloneNode(true) : source?.cloneNode(true)
+  const width = (targetRect?.width || (cardEl ? 145 : 68)) * scaleX
+  const height = (targetRect?.height || (cardEl ? 145 : 76)) * scaleY
   ghostMotion = { clientX:x,clientY:y,time:performance.now(),vx:0,vy:0 }
-  ghost.value = { id,x:left,y:top,width:(sourceRect?.width || 68)*scaleX,height:(sourceRect?.height || 76)*scaleY,grabX:point.x-left,grabY:point.y-top }
+  ghost.value = { id,x:left,y:top,width,height,grabX:point.x-left,grabY:point.y-top }
   nextTick(() => {
     if (!ghostRef.value || !clone || ghost.value?.id !== id) return
     const cleanClone = (node) => {
@@ -303,7 +308,13 @@ function createDragGhost(source,id,x,y) {
       return
     }
     cleanClone(clone)
-    clone.style.cssText = 'position:relative;left:auto;top:auto;width:100%;height:100%;transform:none;animation:none;opacity:1;pointer-events:none'
+    if (cardEl) {
+      const isSquare = cardEl.matches('.widget, .smart-suggestion-stack, .size-2-2') || Math.abs(width - height) < 2
+      const aspectRule = isSquare ? 'aspect-ratio:1/1;' : ''
+      clone.style.cssText = `position:relative;left:auto;top:auto;width:100%;height:100%;${aspectRule}transform:none;animation:none;opacity:1;pointer-events:none;--card-width:${width}px;--card-height:${height}px;`
+    } else {
+      clone.style.cssText = 'position:relative;left:auto;top:auto;width:100%;height:100%;transform:none;animation:none;opacity:1;pointer-events:none'
+    }
     ghostRef.value.replaceChildren(clone)
   })
 }
@@ -328,6 +339,9 @@ function onEmptyPointerDown(event) {
 function onItemPointerDown(event, id, page, index) {
   if (event.button != null && event.button !== 0) return
   event.stopPropagation()
+  if (folderOperation.value && folderOperation.value.itemId !== id) {
+    folderOperation.value = null
+  }
   const isFolder = home.items[id]?.type === 'folder'
   const readyToMove = home.editing || folderOperation.value?.itemId === id
   pointer = { id:event.pointerId, mode:readyToMove ? 'item-ready' : (isFolder ? 'folder-press' : 'item-press'), itemId:id, page, index,
@@ -612,8 +626,19 @@ function onPointerMove(event) {
   pointer.lastX = event.clientX; pointer.lastY = event.clientY
   const dx = event.clientX - pointer.startX, dy = event.clientY - pointer.startY
   if (pointer.mode === 'folder-resize') { event.preventDefault(); updateFolderResize(event.clientX,event.clientY); return }
-  if (pointer.mode === 'folder-press' && Math.hypot(dx,dy) > 9) { clearTimeout(pressTimer); cleanup(false); return }
-  if (pointer.mode === 'item-press' && Math.hypot(dx,dy) > 9) { clearTimeout(pressTimer); cleanup(false); return }
+  if (pointer.mode === 'folder-press' || pointer.mode === 'item-press') {
+    if (Math.hypot(dx, dy) > 7) {
+      if (Math.abs(dy) > Math.abs(dx) * 1.2) {
+        clearTimeout(pressTimer)
+        cleanup(false)
+        return
+      }
+      clearTimeout(pressTimer)
+      pressTimer = null
+      suppressClick(pointer.itemId)
+      pointer.mode = 'page'
+    }
+  }
   if (pointer.mode === 'item-ready' && Math.hypot(dx,dy) > 5) startItemDrag(event.clientX,event.clientY)
   if (pointer.mode === 'folder-app-ready' && Math.hypot(dx,dy) > 5) {
     pointer.mode = 'folder-app-drag'
@@ -880,9 +905,16 @@ function cleanup(cancelled) {
   if (pointer.mode === 'folder-resize') {
     if (!cancelled && folderResize.value) home.resizeFolder(pointer.folderId,folderResize.value.width,folderResize.value.height)
     folderResize.value = null
+    if (pointer.itemId) suppressClick(pointer.itemId)
+  }
+  if (pointer.mode === 'item-ready') {
+    if (!home.editing && pointer.itemId) suppressClick(pointer.itemId)
   }
   if (pointer.mode === 'folder-app-drag') finishFolderApp(cancelled)
-  if (pointer.mode === 'page') finishPage(cancelled)
+  if (pointer.mode === 'page') {
+    if (pointer.itemId) suppressClick(pointer.itemId)
+    finishPage(cancelled)
+  }
   try { pointer.captureEl?.releasePointerCapture?.(pointer.id) } catch {}
   pointer = null; unbindWindow()
 }
@@ -1064,6 +1096,7 @@ function measureViewport() {
   })
 }
 onMounted(() => {
+  window.__home = home
   window.addEventListener('keydown',onHomeKeydown)
   measureViewport()
   resizeObserver = new ResizeObserver(() => {
@@ -1179,7 +1212,10 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
         <div class="edit-tool-grid">
           <button type="button" @click="showToast('壁纸与个性化：开发中')">
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M17.3906 3.33594C17.7656 3.33594 18.1016 3.33594 18.3984 3.33594C18.6953 3.33594 18.9688 3.35156 19.2188 3.38281C19.4688 3.39844 19.7031 3.42969 19.9219 3.47656C20.1562 3.52344 20.375 3.60156 20.5781 3.71094C20.9219 3.88281 21.2188 4.10156 21.4688 4.36719C21.7344 4.61719 21.9531 4.90625 22.125 5.23438C22.2344 5.45313 22.3125 5.67969 22.3594 5.91406C22.4062 6.13281 22.4375 6.36719 22.4531 6.61719C22.4844 6.85156 22.5 7.125 22.5 7.4375C22.5 7.73437 22.5 8.0625 22.5 8.42188V16.5781C22.5 16.9375 22.5 17.2734 22.5 17.5859C22.5 17.8828 22.4844 18.1484 22.4531 18.3828C22.4375 18.6328 22.4062 18.875 22.3594 19.1094C22.3125 19.3281 22.2344 19.5469 22.125 19.7656C21.9531 20.0938 21.7344 20.3906 21.4688 20.6562C21.2188 20.9062 20.9219 21.1172 20.5781 21.2891C20.375 21.3984 20.1562 21.4766 19.9219 21.5234C19.7031 21.5703 19.4688 21.6016 19.2188 21.6172C18.9688 21.6484 18.6953 21.6641 18.3984 21.6641C18.1016 21.6641 17.7656 21.6641 17.3906 21.6641H6.60938C6.23438 21.6641 5.89844 21.6641 5.60156 21.6641C5.30469 21.6641 5.03125 21.6484 4.78125 21.6172C4.53125 21.6016 4.28906 21.5703 4.05469 21.5234C3.83594 21.4766 3.625 21.3984 3.42188 21.2891C3.07812 21.1172 2.77344 20.9062 2.50781 20.6562C2.25781 20.3906 2.04688 20.0938 1.875 19.7656C1.76562 19.5469 1.6875 19.3281 1.64062 19.1094C1.59375 18.875 1.5625 18.6328 1.54688 18.3828C1.51562 18.1484 1.5 17.8828 1.5 17.5859C1.5 17.2734 1.5 16.9375 1.5 16.5781V8.42188C1.5 8.0625 1.5 7.73437 1.5 7.4375C1.5 7.125 1.51562 6.85156 1.54688 6.61719C1.5625 6.36719 1.59375 6.13281 1.64062 5.91406C1.6875 5.67969 1.76562 5.45313 1.875 5.23438C2.04688 4.90625 2.25781 4.61719 2.50781 4.36719C2.77344 4.10156 3.07812 3.88281 3.42188 3.71094C3.625 3.60156 3.83594 3.52344 4.05469 3.47656C4.28906 3.42969 4.53125 3.39844 4.78125 3.38281C5.03125 3.35156 5.30469 3.33594 5.60156 3.33594C5.89844 3.33594 6.23438 3.33594 6.60938 3.33594H17.3906ZM8.48438 11.4922C8.35938 11.3516 8.20312 11.2812 8.01562 11.2812C7.84375 11.2812 7.69531 11.3516 7.57031 11.4922L3.21094 16.6953C3.21094 16.7109 3.20312 16.7266 3.1875 16.7422C3.1875 16.7422 3.17969 16.75 3.16406 16.7656C3.16406 17.0938 3.16406 17.3828 3.16406 17.6328C3.17969 17.8672 3.19531 18.0703 3.21094 18.2422C3.22656 18.4453 3.24219 18.6094 3.25781 18.7344C3.28906 18.8438 3.32812 18.9297 3.375 18.9922C3.45312 19.1641 3.5625 19.3203 3.70312 19.4609C3.84375 19.6016 4 19.7109 4.17188 19.7891C4.25 19.8359 4.34375 19.875 4.45312 19.9062C4.5625 19.9375 4.71875 19.9609 4.92188 19.9766C5.125 19.9922 5.35938 20 5.625 20C5.89062 20 6.21875 20 6.60938 20H17.3906C17.7812 20 18.1094 20 18.375 20C18.6406 20 18.875 19.9922 19.0781 19.9766C19.2812 19.9609 19.4375 19.9375 19.5469 19.9062C19.6562 19.875 19.75 19.8359 19.8281 19.7891C20 19.7109 20.1562 19.6016 20.2969 19.4609C20.4375 19.3203 20.5469 19.1641 20.625 18.9922C20.6719 18.9297 20.7031 18.8438 20.7188 18.7344C20.75 18.6094 20.7734 18.4453 20.7891 18.2422C20.8047 18.1641 20.8125 18.0859 20.8125 18.0078C20.8125 17.9141 20.8203 17.8125 20.8359 17.7031C20.8203 17.6875 20.8047 17.6719 20.7891 17.6562C20.7891 17.6406 20.7812 17.625 20.7656 17.6094L20.7188 17.5625L18.0703 14.4453C17.9609 14.3047 17.8125 14.2344 17.625 14.2344C17.4531 14.2344 17.3047 14.3047 17.1797 14.4453L15.6562 16.25C15.25 16.75 14.7188 17 14.0625 17C13.4219 17 12.8906 16.75 12.4688 16.25L8.48438 11.4922ZM6.60938 5C6.21875 5 5.89062 5 5.625 5C5.35938 5 5.125 5.00781 4.92188 5.02344C4.71875 5.03906 4.5625 5.0625 4.45312 5.09375C4.34375 5.125 4.25 5.16406 4.17188 5.21094C4 5.28906 3.84375 5.39844 3.70312 5.53906C3.5625 5.67969 3.45312 5.83594 3.375 6.00781C3.32812 6.07031 3.28906 6.16406 3.25781 6.28906C3.24219 6.39844 3.22656 6.55469 3.21094 6.75781C3.17969 6.96094 3.16406 7.19531 3.16406 7.46094C3.16406 7.72656 3.16406 8.04688 3.16406 8.42188V14.4219L6.42188 10.5312C6.84375 10.0312 7.375 9.78125 8.01562 9.78125C8.67188 9.78125 9.21094 10.0312 9.63281 10.5312L13.6172 15.2891C13.7422 15.4297 13.8906 15.5 14.0625 15.5C14.25 15.5 14.3984 15.4297 14.5078 15.2891L16.0312 13.4844C16.4531 12.9844 16.9844 12.7344 17.625 12.7344C18.2812 12.7344 18.8125 12.9844 19.2188 13.4844L20.8359 15.3828V8.42188C20.8359 8.04688 20.8359 7.72656 20.8359 7.46094C20.8359 7.19531 20.8203 6.96094 20.7891 6.75781C20.7734 6.55469 20.75 6.39844 20.7188 6.28906C20.7031 6.16406 20.6719 6.07031 20.625 6.00781C20.5469 5.83594 20.4375 5.67969 20.2969 5.53906C20.1562 5.39844 20 5.28906 19.8281 5.21094C19.75 5.16406 19.6562 5.125 19.5469 5.09375C19.4375 5.0625 19.2812 5.03906 19.0781 5.02344C18.875 5.00781 18.6406 5 18.375 5C18.1094 5 17.7812 5 17.3906 5H6.60938ZM15.6562 7.15625C16.0312 7.15625 16.3438 7.28906 16.5938 7.55469C16.8594 7.82031 16.9922 8.13281 16.9922 8.49219C16.9922 8.86719 16.8594 9.1875 16.5938 9.45312C16.3438 9.70312 16.0312 9.82812 15.6562 9.82812C15.2969 9.82812 14.9844 9.70312 14.7188 9.45312C14.4688 9.1875 14.3438 8.86719 14.3438 8.49219C14.3438 8.13281 14.4688 7.82031 14.7188 7.55469C14.9844 7.28906 15.2969 7.15625 15.6562 7.15625Z" fill="currentColor"/>
+              <g transform="translate(0, 24) scale(0.00625, -0.00625)">
+                <path d="M855 3323 c-47 -11 -316 -103 -347 -119 -45 -23 -152 -127 -187 -183 -16 -25 -41 -81 -55 -123 -26 -77 -26 -77 -26 -1056 0 -978 0 -978 25 -1051 35 -105 61 -146 165 -265 112 -126 135 -140 229 -130 60 6 77 3 135 -20 67 -27 67 -27 1129 -27 601 0 1075 4 1092 10 17 5 68 24 115 44 47 19 101 38 120 42 63 13 124 52 191 121 72 75 99 121 135 228 24 70 24 70 24 1046 0 1072 3 1015 -61 1142 -33 66 -217 277 -257 295 -18 8 -53 11 -102 7 -63 -5 -86 -1 -148 20 -74 25 -74 25 -1115 24 -573 0 -1051 -3 -1062 -5z m2305 -305 c77 -39 170 -183 173 -266 0 -26 0 -279 -2 -562 -1 -283 1 -553 5 -600 8 -97 -8 -145 -50 -156 -33 -8 -60 9 -95 59 -40 59 -67 81 -134 113 -37 17 -71 43 -95 72 -61 74 -156 102 -236 68 -19 -8 -111 -93 -216 -200 -211 -214 -238 -231 -314 -202 -59 23 -219 189 -276 286 -29 49 -59 85 -98 115 -43 33 -76 74 -132 162 -101 157 -131 187 -205 207 -33 9 -95 34 -138 56 -98 51 -156 54 -210 13 -127 -99 -137 -109 -168 -167 -17 -34 -55 -86 -84 -116 -28 -30 -65 -77 -80 -105 -65 -115 -171 -209 -229 -203 -18 2 -37 14 -50 31 -18 25 -21 39 -17 115 5 116 6 150 2 640 -2 414 -2 423 19 467 24 49 76 100 141 138 98 57 55 56 1299 56 1146 1 1146 1 1190 -21z" fill="currentColor"/>
+                <path d="M2448 2668 c-16 -18 -52 -67 -79 -108 -57 -88 -61 -117 -23 -193 49 -97 91 -127 181 -127 79 0 128 29 171 100 71 120 63 176 -41 280 -67 67 -90 80 -144 80 -26 0 -42 -8 -65 -32z" fill="currentColor"/>
+              </g>
             </svg>
             <span>壁纸</span>
           </button>

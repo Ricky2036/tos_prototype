@@ -344,18 +344,162 @@ function handleStopRecording(e) {
   recorder.stopRecording()
 }
 
-/* ---------- 清除动画 ---------- */
+/* ---------- 清除动画与常驻卡片丝滑上浮 (FLIP) ---------- */
 const isClearing = ref(false)
+const clearingDelays = ref({})
 let clearTimer = null
+
+/**
+ * 获取清理动画的阶梯延时样式：
+ * 由 handleClearAll 动态根据视口内卡片的真实可见状态分配。
+ */
+function getItemWrapperStyle(item) {
+  if (!isClearing.value || item.persistent) {
+    return {}
+  }
+  const delayMs = clearingDelays.value[String(item.id)] ?? 0
+  return {
+    transitionDelay: `${delayMs}ms`
+  }
+}
+
 function handleClearAll() {
   if (isClearing.value) return
+  const clearable = notifications.list.filter((n) => !n.persistent)
+  if (clearable.length === 0) return
+
+  const container = listRef.value
+  const newDelays = {}
+  if (container) {
+    const containerRect = container.getBoundingClientRect()
+    const wrappers = Array.from(
+      container.querySelectorAll('.nc-item-wrapper:not(.is-persistent)')
+    )
+
+    // 筛选出当前在视口（或视口底部堆叠区）内可见的卡片
+    const visibleWrappers = wrappers.filter((w) => {
+      const r = w.getBoundingClientRect()
+      return r.bottom > containerRect.top && r.top < containerRect.bottom + 20
+    })
+
+    const visibleCount = visibleWrappers.length
+    if (visibleCount > 0) {
+      // 动效自适应阶梯算法（受限瀑布流）：
+      // 保证总启动时间窗口紧凑（不超过 180ms），每张卡单步间隔在 22~36ms 之间自适应压缩。
+      // 既保证肉眼清晰可辨逐张抽走，又绝不因可见卡片多而线性累加导致整体拖沓慢动。
+      const maxStaggerWindow = 180
+      const step = visibleCount <= 1 ? 0 : Math.min(36, maxStaggerWindow / (visibleCount - 1))
+      for (let i = 0; i < visibleCount; i++) {
+        const w = visibleWrappers[i]
+        const id = String(w.dataset.id)
+        const reverseOrder = visibleCount - 1 - i // 最下方卡片为 0，向上递增
+        newDelays[id] = Math.round(reverseOrder * step)
+      }
+    }
+
+    // 视口外卡片（如未滚入视口的超长列表底层卡片）：不占用阶梯延时窗口，0ms 随动飞出
+    for (const w of wrappers) {
+      const id = String(w.dataset.id)
+      if (newDelays[id] === undefined) {
+        newDelays[id] = 0
+      }
+    }
+  } else {
+    // 降级（如测试或无 DOM 环境）：按前 5 张在视口自下而上阶梯
+    const count = clearable.length
+    const visibleCount = Math.min(count, 5)
+    const step = visibleCount <= 1 ? 0 : Math.min(36, 180 / (visibleCount - 1))
+    for (let i = 0; i < count; i++) {
+      const item = clearable[i]
+      const order = i < visibleCount ? (visibleCount - 1 - i) : 0
+      newDelays[String(item.id)] = Math.round(order * step)
+    }
+  }
+
+  clearingDelays.value = newDelays
   isClearing.value = true
+
+  // 计算整体飞出动画时间：最大延时 + 单卡飞出 340ms + 25ms 充裕余量（轻快利落）
+  const maxDelay = Math.max(0, ...Object.values(newDelays))
+  const exitDuration = 340
+  const totalWaitTime = maxDelay + exitDuration + 25
+
   clearTimeout(clearTimer)
   clearTimer = setTimeout(() => {
-    notifications.clearAll()
+    // 1. FLIP (First): 记录所有留存卡片（常驻通知、灵动岛活动等）在视口中的绝对 Y 坐标
+    const container = listRef.value
+    const remainingElements = container
+      ? Array.from(container.querySelectorAll('.nc-item-wrapper.is-persistent, .nc-activity-wrapper, .nc-media-wrapper'))
+      : []
+    const firstPositions = new Map()
+    for (const el of remainingElements) {
+      const key = el.dataset.id || el
+      firstPositions.set(key, el.getBoundingClientRect().top)
+    }
+
+    // 2. 执行 store 数据清理（只清除非常驻通知）
+    notifications.clearDismissible()
     isClearing.value = false
+    clearingDelays.value = {}
     clearTimer = null
-  }, 800)
+
+    // 清空后自动平滑收起通知中心回到桌面/应用（60ms 快速衔接）
+    setTimeout(() => {
+      system.requestCloseOverlay('notificationCenter')
+    }, 60)
+
+    // 3. FLIP (Last, Invert, Play): 在 DOM 重新渲染后计算位移并平滑位移过渡
+    nextTick(() => {
+      if (!container) return
+      const updatedElements = Array.from(
+        container.querySelectorAll('.nc-item-wrapper.is-persistent, .nc-activity-wrapper, .nc-media-wrapper')
+      )
+
+      let hasMoved = false
+      for (const el of updatedElements) {
+        const key = el.dataset.id || el
+        const oldTop = firstPositions.get(key)
+        if (oldTop !== undefined) {
+          const newTop = el.getBoundingClientRect().top
+          const deltaY = oldTop - newTop
+          if (Math.abs(deltaY) > 1) {
+            // Invert: 瞬间回到旧视觉位置
+            el.style.transform = `translate3d(0, ${deltaY}px, 0)`
+            el.style.transition = 'none'
+            hasMoved = true
+          }
+        }
+      }
+
+      if (!hasMoved) {
+        updateStacking()
+        return
+      }
+
+      // 强制触发回流
+      void container.offsetHeight
+
+      // Play: 下一帧以平滑减速贝塞尔曲线向上滑行过渡
+      requestAnimationFrame(() => {
+        for (const el of updatedElements) {
+          const key = el.dataset.id || el
+          if (firstPositions.has(key)) {
+            el.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)'
+            el.style.transform = 'translate3d(0, 0, 0)'
+          }
+        }
+
+        // 补位动画结束后恢复自然样式并更新堆叠
+        setTimeout(() => {
+          for (const el of updatedElements) {
+            el.style.transition = ''
+            el.style.transform = ''
+          }
+          updateStacking()
+        }, 420)
+      })
+    })
+  }, totalWaitTime)
 }
 
 /* ---------- 底部灵动堆叠算法（底部无空间时才堆叠，位置不变并缩放至完全遮挡） ---------- */
@@ -365,7 +509,7 @@ let rafId = null
 function updateStacking() {
   rafId = null
   const container = listRef.value
-  if (!container || overlay.value.status === 'closed') return
+  if (!container || overlay.value.status === 'closed' || isClearing.value) return
   const containerHeight = container.clientHeight
   if (!containerHeight) return
 
@@ -740,9 +884,9 @@ watch(expandedId, async () => {
             v-for="(n, idx) in notifications.list"
             :key="n.id"
             class="nc-item-wrapper nc-swipe-card-wrapper nc-stack-item"
-            :class="{ clearing: isClearing }"
+            :class="{ clearing: isClearing && !n.persistent, 'is-persistent': n.persistent }"
             :data-id="n.id"
-            :style="{ transitionDelay: isClearing ? idx * 40 + 'ms' : '0ms' }"
+            :style="getItemWrapperStyle(n)"
           >
             <!-- 底层滑动操作按钮 -->
             <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets[n.id] || 0) < -2 }">
@@ -755,6 +899,7 @@ watch(expandedId, async () => {
                 <LIcon name="headerSettings" :size="20" />
               </button>
               <button
+                v-if="!n.persistent"
                 class="nc-action-btn nc-btn-delete"
                 :style="getActionBtnStyle(n.id, 'delete')"
                 @click.stop="onDeleteCard(n.id)"
@@ -787,10 +932,10 @@ watch(expandedId, async () => {
               <NotificationIcon :type="n.iconType" />
               <div class="nc-card-body">
                 <div class="nc-card-head">
-                  <span class="nc-card-title">{{ i18n.notifTitle(n.appId) }}</span>
+                  <span class="nc-card-title">{{ n.title || i18n.notifTitle(n.appId) }}</span>
                   <span class="nc-card-time">{{ formatRelativeTime(n.time, i18n.t) }}</span>
                 </div>
-                <p class="nc-card-desc" :class="{ 'line-clamp-2': expandedId !== n.id }">{{ i18n.notifBody(n.appId) }}</p>
+                <p class="nc-card-desc" :class="{ 'line-clamp-2': expandedId !== n.id }">{{ n.body || i18n.notifBody(n.appId) }}</p>
               </div>
               <svg class="nc-card-chevron" :class="{ flipped: expandedId === n.id }" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
             </div>
@@ -803,7 +948,7 @@ watch(expandedId, async () => {
     </div>
 
     <!-- 悬浮圆形清除按钮（磨砂圆钮抽成共享组件，与最近任务切换器同一份实现） -->
-    <div v-if="notifications.list.length" class="nc-clear-fab-slot">
+    <div v-if="notifications.hasClearable" class="nc-clear-fab-slot" :class="{ 'is-clearing': isClearing }">
       <GlassCircleButton
         :label="i18n.t('clearAllNotifs')"
         @click.stop="handleClearAll"
@@ -1187,8 +1332,12 @@ watch(expandedId, async () => {
   position: relative;
 }
 .nc-item-wrapper.clearing {
-  transform: translateX(120%);
+  transform: translate3d(-120%, 0, 0);
   opacity: 0;
+  pointer-events: none;
+  transition-property: transform, opacity;
+  transition-duration: 0.34s, 0.28s;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1), cubic-bezier(0.5, 0, 0.9, 1);
 }
 .nc-card {
   position: relative;
@@ -1249,7 +1398,23 @@ watch(expandedId, async () => {
 }
 .nc-card-chevron.flipped { transform: rotate(180deg); }
 
-.nc-empty { flex: 1; display: flex; align-items: center; justify-content: center; }
+.nc-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: nc-fade-in 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+@keyframes nc-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 .nc-empty-title {
   font: var(--text-subhead);
   color: rgba(255, 255, 255, 0.65);
@@ -1262,5 +1427,12 @@ watch(expandedId, async () => {
   bottom: 42px;
   margin-left: -26px; /* 52px 圆钮水平居中（改用 margin 而非 transform，留给组件做按压缩放） */
   z-index: 60; /* 高于通知卡片的动态 zIndex（20-idx），保证永不被盖住 */
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  animation: nc-fade-in 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.nc-clear-fab-slot.is-clearing {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.85);
 }
 </style>

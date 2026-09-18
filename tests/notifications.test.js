@@ -34,3 +34,30 @@ test('removal and clear keep unread counts and app badges consistent', () => {
   assert.equal(notifications.unreadCount, 0)
   assert.deepEqual(notifications.countByApp, {})
 })
+
+test('persistent notifications remain after clearDismissible, while clearAll removes everything', () => {
+  const notifications = store()
+  notifications.clearAll()
+  notifications.push({ appId: 'wechat', title: 'WeChat 1', persistent: false })
+  notifications.push({ appId: 'tiktok', title: 'TikTok 1', persistent: false })
+  notifications.push({ appId: 'system', title: '日志抓取中...', persistent: true })
+
+  assert.equal(notifications.unreadCount, 3)
+  assert.equal(notifications.hasClearable, true)
+  assert.equal(notifications.clearableCount, 2)
+
+  // 一键清理：仅清除普通可移除通知
+  notifications.clearDismissible()
+
+  assert.equal(notifications.unreadCount, 1)
+  assert.equal(notifications.list[0].title, '日志抓取中...')
+  assert.equal(notifications.list[0].persistent, true)
+  assert.equal(notifications.hasClearable, false)
+  assert.equal(notifications.clearableCount, 0)
+
+  // clearAll: 彻底清空全部
+  notifications.clearAll()
+  assert.equal(notifications.unreadCount, 0)
+  assert.equal(notifications.list.length, 0)
+})
+

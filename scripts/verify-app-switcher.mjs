@@ -13,6 +13,9 @@
 import { chromium } from 'playwright'
 import { readFileSync } from 'node:fs'
 import { DECK } from '../src/utils/switcherDeck.js'
+/* 第二十四轮：位置推进改成单一写者模型（src/utils/switcherMotion.js），
+   原 `WHEEL_REVERSE_DEAD_PX` 已随反向死区一起删除。 */
+import { MOTION } from '../src/utils/switcherMotion.js'
 
 /* 层间位移的比例契约来自纯函数模块，避免脚本里再抄一份魔数（第六轮：0.32）。 */
 const STAIR_DECAY = DECK.STAIR_DECAY
@@ -608,7 +611,9 @@ let during = await holdDrag(140, 370)
 }
 await page.mouse.up()
 await page.waitForTimeout(900)
-check('右滑吸附后居中卡 = camera（第 2 张）', (await centeredId()) === 'camera', `centered=${await centeredId()}`)
+check('右滑吸附后居中卡 = camera（第 2 张）', (await centeredId()) === 'camera',
+  `centered=${await centeredId()} · mode=${JSON.stringify(await page.evaluate(() => window.__switcherMode))}` +
+  ` · settle=${JSON.stringify(await page.evaluate(() => window.__switcherSettle))}`)
 
 // ② 旧焦点卡（calculator）不再「一张就飞出屏」，而是停在右屏边内侧露出
 //    （此处是 0.98 层的拖动中途态，只断言「没被甩出屏」这个不变量；
@@ -743,7 +748,13 @@ await page.waitForTimeout(500)
   // 停住 500ms（dwell 120ms 就该触发预提交；留足滑入 + 淡入的 320ms）
   for (let i = 0; i < 10; i++) { await page.mouse.move(cx, startY - 420, { steps: 1 }); await page.waitForTimeout(50) }
   const hold = await page.evaluate(() => {
-    const r = (el) => { const b = el.getBoundingClientRect(); return { x: +b.x.toFixed(1), op: +getComputedStyle(el).opacity } }
+    const r = (el) => {
+      const b = el.getBoundingClientRect()
+      /* ownX = 卡【自身】的 track 坐标（矩阵 e；translate3d 写在 scale 左边，不被缩放）。
+         ⚠️ 第十六轮起必须同时留这个量 —— 绝对屏幕坐标会被容器级群组变换映射。 */
+      const m = new DOMMatrix(getComputedStyle(el).transform)
+      return { x: +b.x.toFixed(1), w: +b.width.toFixed(1), ownX: +m.e.toFixed(2), op: +getComputedStyle(el).opacity }
+    }
     const deck = [...document.querySelectorAll('.switcher-card.is-deck')].map((c) => ({
       id: c.dataset.appId,
       depth: c.dataset.depth,
@@ -814,18 +825,46 @@ await page.waitForTimeout(500)
     iHandoff > 0 && bad.length === 0,
     `交接帧 index=${iHandoff}；交接后仍 <1 的帧数=${bad.length}${bad.length ? ` 首个 op=${bad[0].op}` : ''}`
   )
-  /* 停驻期间邻居卡的 x 必须就是【松手后的终点槽位】——
-     否则「进场」只是先冒出来、松手再挪一段，观感依旧会跳。 */
+  /* 停驻期间邻居卡的位姿必须就是【松手后的终点槽位】——
+     否则「进场」只是先冒出来、松手再挪一段，观感依旧会跳。
+     ⚠️ 第十六轮改口径（不能用绝对屏幕坐标了）：整组现在会随跟手卡一起缩放/位移
+        （.switcher-deck-group 的相似变换），而停驻期的 p 可能 >1（滑过满量程）
+        ⇒ 邻居的屏幕 x 与落位后天然不同（实测 49.6 → 25.3，k≈0.872）。
+        而那个差异【正是】「底部卡片与手里的卡同步移动」本身，不是「再挪一段」。
+     改成两条更强的判据（都与群组变换无关）：
+       ① 卡【自身】的 track 坐标（矩阵 e）必须一致 —— 它自己的入场过渡已经跑完、落在槽位；
+       ② 相对前卡、按前卡宽度【归一化】的偏移必须一致 —— 说明松手只是解除容器映射，
+          邻居相对前卡不会再挪一段（相似变换会把偏移与宽度同比例缩放 ⇒ 比值不变）。 */
   const nbAfter = await page.evaluate(() =>
     [...document.querySelectorAll('.switcher-card.is-deck')]
       .filter((c) => c.dataset.depth !== '0')
-      .map((c) => `${c.dataset.appId}:${+c.getBoundingClientRect().x.toFixed(1)}`)
-      .join(' ')
+      .map((c) => {
+        const b = c.getBoundingClientRect()
+        const m = new DOMMatrix(getComputedStyle(c).transform)
+        return { id: c.dataset.appId, x: +b.x.toFixed(1), w: +b.width.toFixed(1), ownX: +m.e.toFixed(2) }
+      })
   )
+  const frontAfter = await page.evaluate(() => {
+    const c = document.querySelector('.switcher-card.is-deck[data-depth="0"]')
+    const b = c.getBoundingClientRect()
+    return { x: +b.x.toFixed(1), w: +b.width.toFixed(1) }
+  })
+  const rel = (a, f) => (!!a && !!f && f.w ? (a.x - f.x) / f.w : NaN)
+  const ownSame =
+    nb.length === nbAfter.length &&
+    nb.every((c) => Math.abs((nbAfter.find((a) => a.id === c.id)?.ownX ?? 1e9) - c.ownX) < 0.05)
+  const relSame =
+    nb.length === nbAfter.length &&
+    nb.every((c) => {
+      const a = nbAfter.find((x) => x.id === c.id)
+      return !!a && Math.abs(rel(a, frontAfter) - rel(c, front)) < 0.002
+    })
   check(
     '需求⑫：停驻期间邻居卡已经在【终点槽位】（与松手后完全一致）',
-    nbAfter === nb.map((c) => `${c.id}:${c.x}`).join(' '),
-    `停驻期 ${nb.map((c) => `${c.id}:${c.x}`).join(' ')} | 松手后 ${nbAfter}`
+    ownSame && relSame,
+    `停驻期 ${nb.map((c) => `${c.id}:own${c.ownX}/rel${rel(c, front).toFixed(4)}`).join(' ')} | ` +
+      `松手后 ${nbAfter.map((a) => `${a.id}:own${a.ownX}/rel${rel(a, frontAfter).toFixed(4)}`).join(' ')}` +
+      `（判 own 一致=${ownSame}、rel 一致=${relSame}）`
   )
 }
 
@@ -845,12 +884,29 @@ await page.waitForTimeout(500)
   for (let i = 1; i <= 8; i++) { await page.mouse.move(cx, cy - i * 13, { steps: 1 }); await page.waitForTimeout(16) }
   const mid = await page.evaluate(() => {
     const c = document.querySelector('.switcher-card.is-deck[data-depth="0"]')
-    return { y: +c.getBoundingClientRect().y.toFixed(1), op: +getComputedStyle(c).opacity }
+    const body = c.querySelector('.switcher-card-body')
+    return {
+      y: +c.getBoundingClientRect().y.toFixed(1),
+      op: +getComputedStyle(c).opacity,
+      bop: body ? +getComputedStyle(body).opacity : null
+    }
   })
+  /* ⚠️ 第十二轮（需求②）改口径：跟手期【只位移、不变淡】。
+     旧断言是 `mid.op < 0.9` —— 它量的正是 stackStyle 里那条
+     `opacity = min(opacity, 1 + ddy/320)`，Ricky 本轮明确要求取消。
+     改前这里的 op ≈ 0.675；改后恒 1。 */
   check(
-    '需求⑧：上滑 104px 时被拖的卡片【跟手上移】（Δy ≈ 104px）且随高度变淡',
-    Math.abs(mid.y - (box.y - 104)) <= 3 && mid.op < 0.9,
-    `起点 y=${box.y.toFixed(1)} → 拖动中 y=${mid.y}（期望 ≈ ${(box.y - 104).toFixed(1)}）op=${mid.op.toFixed(2)}`
+    '需求⑧：上滑 104px 时被拖的卡片【跟手上移】（Δy ≈ 104px）；第十二轮（需求②）起不再随高度变淡',
+    Math.abs(mid.y - (box.y - 104)) <= 3 && mid.op > 0.99,
+    `起点 y=${box.y.toFixed(1)} → 拖动中 y=${mid.y}（期望 ≈ ${(box.y - 104).toFixed(1)}）op=${mid.op.toFixed(2)}（第十二轮起恒 1）`
+  )
+  /* 第十二轮（需求②的连带修正）：跟手卡必须在【上滑删卡】期间让位给堆叠卡，
+     否则可见的跟手卡冻在槽位、真正跟手上移的堆叠卡卡体又是 opacity 0 ⇒ 整段手势零视觉反馈。
+     旧实现在这里量到的 bop = 0（不可见）。 */
+  check(
+    '需求⑧（第十二轮补）：上滑删卡期间【跟手卡让位】且堆叠前卡卡体可见（bop 恒 1）',
+    mid.bop === 1,
+    `堆叠前卡卡体 opacity = ${mid.bop}（期望 1；旧实现被跟手卡顶替成 0 ⇒ 拖动全程看不见）`
   )
   // 未过阈值 → 回弹归位
   await page.mouse.up()
@@ -972,11 +1028,13 @@ await page.waitForTimeout(1000)
    抽帧量化参考视频得到的目标：τ ≈ 110ms 的缓出 + 到位时约 6.7% 的轻微过冲回弹。
    放在脚本最末：此处状态干净（桌面路径刚打开、焦点 = 0、4 层齐全），不影响任何后续断言。
    守两条可回归的行为不变量：
-     ① 无硬跳变 —— 任意相邻帧、任意相邻两层，间距变化 < 10px
-        （旧实现松手瞬间把牵连量硬置零、同时关掉 CSS transition → 一帧 30px+ 的突变）；
-     ② 轻微过冲 —— 快甩后新焦点卡越过终点再回落（旧版 ios-deck 是 ζ=1.0 临界阻尼、无弹性）。
-   ⚠️ 第十一轮改口径：② 现在只对【快甩】成立。慢滑（|v| < FLICK_V_MIN）第十一轮起
-      改走 ios-deck-settle 且不注入速度 ⇒ 位移段严格单调、不得有过冲（见下方第十一轮块）。 */
+     ① 无硬跳变 —— 判断式与「单帧位移 ÷ 该卡整段位移」同形（见下方判据处的注释，阈值 40%）；
+     ② 【第二十四轮改口径】松手后位移必须单调、零反弹 —— 不再是「快甩要有过冲」。
+        一阶推进器（v = 剩余距离 / τ，|v| ≤ MOTION.VMAX）在数学上不可能过冲；
+        Ricky 的原话就是「等到滑动到终点就像绳子绷直了应该立即停止」。
+   ⚠️ 历史：第十一轮把「过冲」收窄到只对快甩成立（慢滑走 ios-deck-settle、ζ=1.0）；
+      第二十四轮把「过冲」整体取消 —— 位置只由 src/utils/switcherMotion.js 的 stepMotion 一个写者推进，
+      不再有「注入初速度」这个动作，也不再需要 ios-deck / ios-deck-settle 服务焦点位置。 */
 {
   const startX = 110
   const slowPx = Math.round(SPAN * 0.42) // 明显不足半层 → 松手必回原位
@@ -1085,10 +1143,16 @@ await page.waitForTimeout(1000)
       ` · 拖动中最大层间距=${peakGap != null ? peakGap.toFixed(1) : '?'}px`
   )
 
-  // ---- ② 快甩 0.62 层 → 采样第 2 张卡的 x，看是否越过终点再回落 ----
+  /* ---- ② 快甩 0.62 层 → 采样第 2 张卡的 x ----
+     第二十四轮改口径：原判据是「越过终点再回落（ζ=0.65、过冲 > 3px）」，
+     那是一阶模型【刻意取消】的行为（Ricky：「到终点就像绳子绷直了应该立即停止」）。
+     现在守的是反过来的契约：松手后 **单调到位、零符号反转**，终值 = 前卡位（≈0）。
+     ⚠️ 必须切出【松手之后】那一段再判 —— 整条轨迹里有手指拖动段，
+        把拖动段混进来会把「拖动换向」误算成反弹。故松手后立刻打一个下标标记。 */
   await page.evaluate(() => {
     window.__d4b = []
     window.__d4bStop = false
+    window.__d4bRel = 0
     const tick = () => {
       if (window.__d4bStop) return
       const c = document.querySelector('.switcher-card.is-deck[data-index="1"]')
@@ -1104,23 +1168,48 @@ await page.waitForTimeout(1000)
     await page.waitForTimeout(6)
   }
   await page.mouse.up()
+  await page.evaluate(() => { window.__d4bRel = window.__d4b.length })
   await page.waitForTimeout(800)
-  const ft = await page.evaluate(() => { window.__d4bStop = true; return window.__d4b })
+  const ftRaw = await page.evaluate(() => {
+    window.__d4bStop = true
+    /* 落点参考 = 收尾后【前卡位】那格的 transform（depth 0 的那张）：
+       堆叠卡的 transform.e 是「相对前卡槽位的位移」，前卡自己是 frontX（≈77.5）而不是 0，
+       所以不能拿 0 当落点基准（第一版就是这么写错的）。 */
+    const front = document.querySelector('.switcher-card.is-deck[data-depth="0"]')
+    return {
+      rows: window.__d4b,
+      rel: window.__d4bRel | 0,
+      frontIdx: front ? +front.dataset.index : null,
+      frontX: front ? +new DOMMatrixReadOnly(getComputedStyle(front).transform).e.toFixed(2) : null
+    }
+  })
+  /* 松手那一帧也在动（rAF 与 pointerup 同一帧），故从 rel − 1 起算，避免把半帧误差算成反弹 */
+  const ft = ftRaw.rows.slice(Math.max(0, ftRaw.rel - 1))
+  const title24Flick =
+    '第二十四轮·取代修正 D②：快甩松手后【零反弹、单调到位】（一阶推进器的数学保证；' +
+    '原「ζ=0.65 轻微过冲回弹」= 本轮明确取消的取舍，不是放宽阈值）'
   if (ft.length > 12) {
-    const peak = Math.max(...ft)
-    const iPeak = ft.indexOf(peak)
-    const finalX = ft[ft.length - 1]
+    const tail = ft[ft.length - 1]
+    /* 向右滑 ⇒ 焦点增大 ⇒ 第 2 张卡朝前卡槽位右移（x 单调【递增】） */
+    const travel = tail - ft[0]
+    let revs = 0
+    let lastD = 0
+    for (let i = 1; i < ft.length; i++) {
+      const d = ft[i] - ft[i - 1]
+      if (Math.abs(d) < 0.05) continue
+      const sg = Math.sign(d)
+      if (lastD !== 0 && sg !== lastD) revs++
+      lastD = sg
+    }
     check(
-      '修正 D②（第十一轮收窄到快甩）：快甩松手吸附带轻微过冲回弹（ζ=0.65，不是临界阻尼的死板收尾）',
-      peak > finalX + 3 && iPeak < ft.length - 3,
-      `终点 x=${finalX} 峰值 x=${peak} 过冲=${(peak - finalX).toFixed(1)}px（峰值在第 ${iPeak}/${ft.length} 帧）`
+      title24Flick,
+      travel > 20 && revs === 0 && ftRaw.frontIdx === 1 &&
+        ftRaw.frontX != null && Math.abs(tail - ftRaw.frontX) <= 1.5,
+      `松手后行程 ${travel.toFixed(1)}px · 终值 x=${tail}（前卡槽位 ${ftRaw.frontX}）· ` +
+        `符号反转 ${revs} 次 · 落点卡 index=${ftRaw.frontIdx} · 松手后 ${ft.length}/${ftRaw.rows.length} 帧`
     )
   } else {
-    check(
-      '修正 D②（第十一轮收窄到快甩）：快甩松手吸附带轻微过冲回弹（ζ=0.65，不是临界阻尼的死板收尾）',
-      false,
-      `采样不足 ${ft.length}`
-    )
+    check(title24Flick, false, `松手后采样不足 ${ft.length} 帧（全程 ${ftRaw.rows.length} 帧）`)
   }
 }
 
@@ -1140,9 +1229,13 @@ await page.waitForTimeout(1000)
    改法：非快甩 → ios-deck-settle（同 ω_n = 14、ζ = 1.0 临界阻尼）+ 不注入速度
         ⇒ v0 = 0 的临界阻尼在数学上严格单调（也不会再有零穿越导致的 DOM 闪断）。
 
-   两条契约用【同一把尺】量同一件事（松手后吸附段的过冲），期望值相反：
+   两条契约用【同一把尺】量同一件事（松手后吸附段的过冲），第二十四轮起【期望值相同】：
      ① 慢滑翻一张 → 过冲 ≤ 1.5px、符号反转 ≤ 1 次；
-     ② 快甩翻一张 → 过冲 > 3px。
+     ② 快甩翻一张 → 同样过冲 ≤ 1.5px，差别只剩「翻过整卡」（由 MOTION.VMAX 的固定力承担）。
+   第二十四轮之前 ② 期望 over > 3px（ζ=0.65 的过冲回弹）—— 那被 Ricky 明确否掉了：
+     「滑动的力是固定的会跟随滑动距离衰减，最终停下来。等到滑动到终点就像绳子绷直了应该立即停止」。
+     一阶系统（v = 剩余距离 / τ，且 |v| ≤ VMAX）**数学上不过冲**，所以 ② 改成「翻过整卡 + 零过冲」。
+     这不是放宽阈值 —— ① 的 1.5px 一分没松，② 反而从「必须过冲」收紧到「必须不过冲」。
    判据定义（与探针 overshoot2.mjs 同源）：
      过冲 = max over 吸附段采样 of (x − 终值) × 运动方向；终值 = 末 12% 采样的均值。
    ⚠️ 终值一定要取末段均值，不能取 max：x 在收尾还有 0.1~0.3px 的爬行（浮点/取整），
@@ -1263,23 +1356,26 @@ await page.waitForTimeout(1000)
     check('第十一轮·需求①附带：深侧第 4 张卡【一次性出现】且在运动末段（不含 DOM 闪现）', false, '采样不足')
   }
 
-  // ---- ② 快甩翻一张（同一把尺：这里必须仍有过冲，证明 ① 不是把弹簧一起改死了）----
+  // ---- ② 快甩翻一张（同一把尺：这里必须仍翻过整卡，证明 ① 不是把整个推进器改死了）----
   await resetToFocus0()
   const flick = await traceSettle(
     '.switcher-card.is-deck[data-index="0"]',
     slowDrag(Math.round(SPAN * 0.62), 6, 6)
   )
   const st2 = settleStats(flick)
+  const title24Req2 =
+    '第二十四轮·取代第十一轮需求②：快甩仍【翻过整卡】（动量需求不变，改由推进器 VMAX「固定的力」承担），' +
+    '但到位即停、零过冲（原判据 over > 3px 是一阶模型刻意取消的行为）'
   if (st2 && flick.info) {
     check(
-      '第十一轮·需求②：快甩仍保留过冲（动量的正常表现，参考视频 V4 回退 254/229px）',
-      flick.info.isFlick === true && st2.over > 3,
+      title24Req2,
+      flick.info.isFlick === true && flick.info.idx === 1 && st2.travel > 60 && st2.over <= 1.5,
       `vFocus=${flick.info.vFocus} 层/s（isFlick=${flick.info.isFlick}）· ` +
-        `行程 ${st2.travel.toFixed(1)}px · 过冲 ${st2.over.toFixed(2)}px · ${st2.n} 帧`
+        `idx ${flick.info.cur}→${flick.info.idx} · 行程 ${st2.travel.toFixed(1)}px · ` +
+        `过冲 ${st2.over.toFixed(2)}px · 符号反转 ${st2.revs} 次 · ${st2.n} 帧`
     )
   } else {
-    check('第十一轮·需求②：快甩仍保留过冲（动量的正常表现，参考视频 V4 回退 254/229px）', false,
-      `采样不足（rows=${flick.rows.length} rel=${flick.relAt}）`)
+    check(title24Req2, false, `采样不足（rows=${flick.rows.length} rel=${flick.relAt}）`)
   }
 
   // ---- ③ 慢滑不足半张（0.42 层、停住 150ms 再松手）→ 回到原卡，同样不得过冲 ----
@@ -1755,6 +1851,277 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
       Math.abs(home.before - home.after) < 1, `桌面 strip x: ${home.before} → ${home.after}`)
   }
 
+  /* ---- 第二十轮·需求：双指单次横滑不再「疯狂抖动」（Ricky 2026-09-16）----
+     录屏 tOS_Prototype_20260916_105155.mp4 逐帧量测（720×1576 / 58.8fps）：
+       卡片组以【帧率】为周期反号抽动 —— 亮度质心在 15 视频帧内反号 5 次
+       （−26.4 / −55.6 / −10.8 / −19.9 / +9.9 / −6.8 / +18.6 / −5.7 / +10.4 视频 px），
+       单帧最大 57.5 视频 px（≈28.7 CSS px）；而同一段单指轨迹只有 5.1 CSS px。
+       反号频率 ~10Hz，远高于本工程最硬的弹簧（ios-snappy ω_n = 22.4 rad/s = 3.6Hz）
+       ⇒ 是【离散瞬写】，不是动画。
+
+     根因：手势没有「指针所有者」。第二根手指的 pointerdown 会换掉 drag 的 startX /
+       startFocus，此后两指的 pointermove 共用同一个 startX（dx = e.clientX − startX），
+       而两指绝对坐标差一个指距 ⇒ 目标焦点在两指距之间来回，每次事件硬写一次。
+
+     ⚠️ 只用【一个】指针的合成事件（page.mouse、既有 synthDrag / synthWheel）
+        结构上点不出这个毛病 —— 所以这一条显式派发两条 pointerId 不同的指针流，
+        并让两指的上报顺序【逐帧交替】（真实数字转换器的顺序就是这么抖的；
+        顺序恒定时「最后一笔」永远落在同一根手指上，反而看不出问题）。 */
+  const synthMulti = (fingers, spread, n, { stepMs = 16, px = 12 } = {}) =>
+    page.evaluate(
+      async ({ fingers, spread, n, stepMs, px }) => {
+        const root = document.querySelector('.app-switcher')
+        if (!root) return { error: 'no .app-switcher' }
+        const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+        const mk = (t, x, id, primary) =>
+          new PointerEvent(t, {
+            bubbles: true, cancelable: true, composed: true,
+            pointerId: id, pointerType: 'touch', isPrimary: primary,
+            buttons: t === 'pointerup' ? 0 : 1, clientX: x, clientY: 500
+          })
+        const A0 = 110
+        const B0 = A0 + spread
+        /* 用 rAF 采样「实际渲染出来的焦点」：瞬写发生在两次采样之间，
+           所以采样到的跳变就是观众看到的那一跳（探针与本用例同一个 oracle）。
+           ⚠️ 第二十一轮把样本带上【相位】：单帧跳变指标只在 ph === 'drag' 的窗口里取。
+           不隔离相位的代价（实测）：松手后 900ms 的吸附/回弹也进 `maxStep`，
+           而它由弹簧逐帧推进 ⇒ 把两种完全不同的运动混成一个数 ⇒ 判据在临界值上来回翻
+           （同一份代码两次跑分别量到 0.018 / 0.036 层，而真缺陷是 0.565 层）。
+           这正是「统计窗口必须与被测通道对齐」那一条。 */
+        const rec = []
+        let run = true
+        let ph = 'idle'
+        const sample = () => {
+          if (!run) return
+          const cs = [...document.querySelectorAll('.switcher-card.is-deck')]
+          if (cs.length) {
+            const pairs = cs.map((c) => [+c.dataset.index, +c.dataset.depth])
+            const best = pairs.reduce((a, b) => (Math.abs(b[1]) < Math.abs(a[1]) ? b : a))
+            rec.push({ v: +(best[0] - best[1]).toFixed(3), ph })
+          }
+          requestAnimationFrame(sample)
+        }
+        requestAnimationFrame(sample)
+        ph = 'drag'
+        root.dispatchEvent(mk('pointerdown', A0, 11, true))
+        if (fingers === 2) {
+          await sleep(30)
+          root.dispatchEvent(mk('pointerdown', B0, 12, false))
+        }
+        for (let i = 1; i <= n; i++) {
+          const pa = mk('pointermove', A0 - px * i, 11, true)
+          const pb = mk('pointermove', B0 - px * i, 12, false)
+          if (fingers === 2 && i % 2) { root.dispatchEvent(pa); root.dispatchEvent(pb) }
+          else if (fingers === 2) { root.dispatchEvent(pb); root.dispatchEvent(pa) }
+          else root.dispatchEvent(pa)
+          await sleep(stepMs)
+        }
+        root.dispatchEvent(mk('pointerup', A0 - px * n, 11, true))
+        if (fingers === 2) root.dispatchEvent(mk('pointerup', B0 - px * n, 12, false))
+        ph = 'after'
+        await sleep(900)
+        run = false
+        const all = rec.map((r) => r.v)
+        const drag = rec.filter((r) => r.ph === 'drag').map((r) => r.v)
+        let maxStep = 0
+        for (let i = 1; i < drag.length; i++) maxStep = Math.max(maxStep, Math.abs(drag[i] - drag[i - 1]))
+        return {
+          maxStep: +maxStep.toFixed(3),
+          samples: rec.length,
+          dragSamples: drag.length,
+          min: all.length ? +Math.min(...all).toFixed(3) : null,
+          end: all.length ? all[all.length - 1] : null
+        }
+      },
+      { fingers, spread, n, stepMs, px }
+    )
+  await resetFocus0()
+  {
+    const one = await synthMulti(1, 0, 10, { stepMs: 24 })
+    await resetFocus0()
+    const two = await synthMulti(2, 120, 10, { stepMs: 24 })
+    /* 判据用【单指对照】归一（不是拍脑袋的绝对阈值）：
+       ① 双指的单帧跳变必须回到单指量级（改前 0.217 层 = 50.7px，是单指 0.021 的 10 倍）；
+       ② 双指的焦点轨迹必须与单指【同一条】—— 改前第二指把自己那 120px 指距的偏移
+          叠加了进去（min 从 −0.237 变 −0.564）。
+       ⚠️ 阈值口径（第二十一轮修订）：stepMs 取 24ms（> 一帧 16.7ms）⇒ 一个 rAF 窗口最多
+       落进 1 笔输入；但客户端合并采样时仍可能落进 2 笔 ⇒ **必须容许一个采样粒度**，
+       故绝对上限 0.12 层（= 2×12px/233.92 + 余量）、相对上限 3× 单指。
+       同时加 `one.maxStep > 0` —— 防「什么都没动」也判过（第二十一轮踩过：一个吃掉
+       全部输入的守卫会让指标恒 0，那是越完美越可疑的数字）。 */
+    check('第二十轮·需求：双指单次横滑的单帧跳变回到单指量级（改前放大 10 倍）',
+      one.maxStep > 0 && one.maxStep < 0.12 && two.maxStep < 0.12 &&
+        two.maxStep <= one.maxStep * 3 + 0.01,
+      `单指单帧最大 ${one.maxStep} 层 · 双指 ${two.maxStep} 层（阈值 0.12 = 一个采样粒度；改前 0.217）`)
+    check('第二十轮·需求：双指的焦点轨迹 = 单指轨迹（第二指的指距偏移不再叠加）',
+      one.min != null && two.min != null && Math.abs(two.min - one.min) < 0.05,
+      `单指最深 ${one.min} · 双指最深 ${two.min}（改前 −0.564 vs −0.237）`)
+  }
+
+  await resetFocus0()
+  {
+    /* ---- 第二十轮·需求：慢滑吸附的【动画曲线】必须与参考视频同形：单调、到位不过冲 ----
+       参考视频 = 真 iPhone / iOS 原生多任务界面（444×960 / 24fps，含 iOS 状态栏与
+       「2 个应用正在运行」），逐帧量测三次换卡：
+         · 到达卡右缘归一化曲线 p(t)：0.212@42ms / 0.383@83ms / 0.527@125ms / 0.615@167ms /
+           0.781@208ms / 0.895@375ms / 0.965@542ms / 0.991@667ms
+         · 反号 0 次、p_max = 1.0000 ⇒ **到位后不回弹**（一阶拟合 τ ≈ 163ms；
+           若按 ζ=1 二阶拟合，ω_n 落在 11.7~13.5 rad/s 区间内 —— 本工程收尾段
+           SETTLE_TAU_MS = 60 与 VMAX = 8 层/秒给出 180ms 到 95%，就在这个量级，故不改参数）
+       ⚠️ 第二十四轮：收尾不再分「快甩 / 非快甩」两条分支（也不再有 initialVelocity 注入）——
+          位置只有一个写者、模型是一阶的 ⇒ 快甩与慢滑的收尾【数学上都不过冲】，这条断言
+          于是从「只约束非快甩」升级为「约束全部收尾」。快甩的动量体现在 MOTION.VMAX
+          （「固定的力」）上，而不是体现在过冲上。
+       观测量取到达卡的 data-depth（= 焦点越过的层数，0 = 恰好到位；< 0 = 冲过头）。 */
+    const settle = await page.evaluate(async () => {
+      const root = document.querySelector('.app-switcher')
+      if (!root) return { error: 'no .app-switcher' }
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+      const mk = (t, x) =>
+        new PointerEvent(t, {
+          bubbles: true, cancelable: true, composed: true,
+          pointerId: 1, pointerType: 'touch', isPrimary: true,
+          buttons: t === 'pointerup' ? 0 : 1, clientX: x, clientY: 500
+        })
+      const x0 = 90
+      const SPAN = 390 * 0.64 * 0.85
+      const total = SPAN * 0.85 // 0.85 层 ⇒ 过半 ⇒ 落第 2 张
+      const rec = []
+      let run = true
+      const tick = () => {
+        if (!run) return
+        const c = document.querySelector('.switcher-card.is-deck[data-index="1"]')
+        if (c) rec.push(+c.dataset.depth)
+        requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+      root.dispatchEvent(mk('pointerdown', x0))
+      for (let i = 1; i <= 12; i++) {
+        root.dispatchEvent(mk('pointermove', x0 + (total * i) / 12))
+        await sleep(13)
+      }
+      await sleep(250) // 停住再松手 ⇒ vFocus ≈ 0（第二十四轮起收尾只有一条路，无分支）
+      root.dispatchEvent(mk('pointerup', x0 + total))
+      await sleep(1000)
+      run = false
+      /* 只看「最后一次越过 0.5 层」之后的那一段 —— 前段是手指的拖动，不是吸附曲线 */
+      let cut = 0
+      for (let i = rec.length - 1; i >= 1; i--) if (Math.abs(rec[i]) < 0.5 && Math.abs(rec[i - 1]) >= 0.5) { cut = i; break }
+      const seg = rec.slice(cut)
+      let rev = 0
+      for (let i = 2; i < seg.length; i++) {
+        const a = seg[i - 1] - seg[i - 2]
+        const b = seg[i] - seg[i - 1]
+        if (Math.abs(a) > 0.02 && Math.abs(b) > 0.02 && Math.sign(a) !== Math.sign(b)) rev++
+      }
+      return { n: seg.length, min: +Math.min(...seg).toFixed(3), end: seg[seg.length - 1], rev }
+    })
+    check('第二十轮·需求（曲线）：慢滑吸附单调、到位不过冲（参考视频 24 帧内反号 0 次 · p_max=1.0000）',
+      settle.n > 8 && settle.min > -0.03 && settle.rev === 0 && Math.abs(settle.end) < 0.02,
+      `吸附段 ${settle.n} 帧 · 最深 depth=${settle.min}（须 > −0.03 ⇒ 过冲 < 3%）· 反号 ${settle.rev} 次 · 终位 ${settle.end}`)
+  }
+
+  /* ---- 第二十一轮·需求：两指被合并成【同一条坐标流】时的右滑瞬移（Ricky 复测「右滑还是没好」）----
+     第二十轮的 owner 守卫只有在浏览器给出【两个不同 pointerId】时才成立。还有第二类形状：
+     两个触摸点被合并成一条坐标流（CDP 传两个【同 id】触点即可复现）——
+       · /tmp/vwork/r21/probe-touchdump.mjs 场景 B 实测：`touchstart.touches` 只有 1 个触点、
+         `pointerdown` 计数 = 1、页面侧只有 1 个 pointerId ⇒ pointerId / isPrimary / touches.length
+         三个判据全部恒等于「单指」的形状，owner 守卫【结构上】看不见第二根手指；
+       · /tmp/vwork/r21/probe-sameid.mjs T2 实测（两指相距 120px）：坐标在【没有任何 pointerdown】
+         的情况下瞬移 120px（90 → 210 → 221 → …），`focus` 单帧跳 0.565 层 = 119.9px；
+         单指对照只有 0.061 层 = 12.9px。
+     方向不对称（与 Ricky「左滑好了、右滑没好」对上）：左滑落【挤压】通道（第十七轮已限速
+     0.09/帧 ≈ 8.4px/帧）⇒ 大跳被摊成小台阶；右滑落【位移】通道（跟手 1:1 直推，
+     1.30px/px）⇒ 瞬移全额可见。
+
+     本用例合成【同一个 pointerId、且第二指落下时没有 pointerdown】的坐标流，两个子形状：
+       · 首笔瞬移：down 落在第一指位置，第一笔 move 直接跳到第二指位置（跳量 = 指距）；
+       · 手势中途瞬移：先走 3 笔真实步长（把参考量立起来），第 4 笔再切到第二指轨迹。
+     判据沿用第二十轮的【单指对照归一】（不拍绝对阈值）⇒ 两条断言都是「与单指同形」。 */
+  const synthMerged = (n, { stepMs = 16, px = 12, spread = 120, warm = 0 } = {}) =>
+    page.evaluate(
+      async ({ n, stepMs, px, spread, warm }) => {
+        const root = document.querySelector('.app-switcher')
+        if (!root) return { error: 'no .app-switcher' }
+        const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+        const ID = 7
+        const mk = (t, x) =>
+          new PointerEvent(t, {
+            bubbles: true, cancelable: true, composed: true,
+            pointerId: ID, pointerType: 'touch', isPrimary: true,
+            buttons: t === 'pointerup' ? 0 : 1, clientX: x, clientY: 500
+          })
+        const A0 = 110
+        const B0 = A0 + spread
+        const rec = []
+        let run = true
+        /* ph = 相位（第二十一轮）：单帧跳变只在 'drag' 窗口里取 —— 理由见 synthMulti 里的注释。 */
+        let ph = 'idle'
+        const sample = () => {
+          if (!run) return
+          const cs = [...document.querySelectorAll('.switcher-card.is-deck')]
+          if (cs.length) {
+            const pairs = cs.map((c) => [+c.dataset.index, +c.dataset.depth])
+            const best = pairs.reduce((a, b) => (Math.abs(b[1]) < Math.abs(a[1]) ? b : a))
+            rec.push({ v: +(best[0] - best[1]).toFixed(3), ph })
+          }
+          requestAnimationFrame(sample)
+        }
+        requestAnimationFrame(sample)
+        ph = 'drag'
+        root.dispatchEvent(mk('pointerdown', A0))
+        /* 第二指【不派发 pointerdown】—— 这正是 owner 守卫看不见它的原因 */
+        for (let i = 1; i <= n; i++) {
+          const onB = i > warm
+          /* 切到第二指轨迹的那一笔：第二指比第一指晚落一帧，此刻它自己只走了 i−1 步
+             （实测 CDP 坐标流 90 → 210 → 221 → …，首笔跳量恰好等于指距）。 */
+          const x = onB ? B0 - px * Math.max(0, i - 1) : A0 - px * i
+          root.dispatchEvent(mk('pointermove', x))
+          await sleep(stepMs)
+        }
+        root.dispatchEvent(mk('pointerup', warm < n ? B0 - px * Math.max(0, n - 1) : A0 - px * n))
+        ph = 'after'
+        await sleep(900)
+        run = false
+        const all = rec.map((r) => r.v)
+        const drag = rec.filter((r) => r.ph === 'drag').map((r) => r.v)
+        let maxStep = 0
+        for (let i = 1; i < drag.length; i++) maxStep = Math.max(maxStep, Math.abs(drag[i] - drag[i - 1]))
+        return {
+          maxStep: +maxStep.toFixed(3),
+          samples: rec.length,
+          dragSamples: drag.length,
+          min: all.length ? +Math.min(...all).toFixed(3) : null,
+          teleports: (window.__switcherMode && window.__switcherMode.teleports) || 0
+        }
+      },
+      { n, stepMs, px, spread, warm }
+    )
+  await resetFocus0()
+  {
+    const one = await synthMulti(1, 0, 10, { stepMs: 24 })
+    await resetFocus0()
+    const first = await synthMerged(10, { warm: 0, stepMs: 24 })
+    await resetFocus0()
+    const mid = await synthMerged(10, { warm: 3, stepMs: 24 })
+    /* ① 单帧跳变回到单指量级（改前 0.565 层 = 119.9px，是单指 0.061 的 9 倍）；
+       ② 焦点轨迹仍与单指同形 ⇒ 那 120px 指距【没有】被叠加进焦点；
+       ③ 守卫生效的 oracle（改前恒为 0 —— 这正是它看不见第二根手指的证据）；
+       ④ 手势没被判死 ⇒ 卡片照旧跟着手指走。
+       阈值口径同第二十轮（0.12 / 3× 单指 / 单指必须 > 0）。 */
+    check('第二十一轮·需求：两指【合并成一条坐标流】时单帧跳变回到单指量级（改前放大 9 倍）',
+      one.maxStep > 0 && one.maxStep < 0.12 && first.maxStep < 0.12 && mid.maxStep < 0.12 &&
+        first.maxStep <= one.maxStep * 3 + 0.01 && mid.maxStep <= one.maxStep * 3 + 0.01,
+      `单指 ${one.maxStep} 层 · 首笔瞬移 ${first.maxStep} · 中途瞬移 ${mid.maxStep} 层（阈值 0.12；改前 0.565）`)
+    check('第二十一轮·需求：合并坐标流下的焦点轨迹 = 单指轨迹（120px 指距不再叠进焦点）',
+      one.min != null && first.min != null && mid.min != null &&
+        Math.abs(first.min - one.min) < 0.05 && Math.abs(mid.min - one.min) < 0.05,
+      `单指最深 ${one.min} · 首笔瞬移 ${first.min} · 中途瞬移 ${mid.min}（改前 −0.564 vs −0.237）`)
+    check('第二十一轮·需求：坐标连续性守卫确实命中（owner 守卫覆盖不到的那一半）',
+      first.teleports >= 1 && mid.teleports >= 1,
+      `__switcherMode.teleports = 首笔瞬移 ${first.teleports} / 中途瞬移 ${mid.teleports}（期望 ≥1；改前恒 0）`)
+  }
+
   /* ══════════ 第七轮 · 批次 4 ══════════
      ⑩「点击一键清理时卡片上滑消失（参考视频 e6da8c6c…mp4）」
      ②「顶层卡片右滑要最多滑到跟底层卡片刚好完全分离再锁死」
@@ -2153,6 +2520,7 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
           }
         }
         window.__sq.push({
+          t: +performance.now().toFixed(1),
           sx: m ? +m.a.toFixed(4) : null,
           tx: m ? +m.e.toFixed(1) : null,
           n: cs.length,
@@ -2201,9 +2569,10 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
 
     /* ③ 等比缩小分量：前卡 宽与高【同比例】缩到 0.951（实测前卡高 654→622）。
        判等比而不是判「宽度恒定」—— 后者正是第九轮量错留下来的假不变量。
-       ⚠️ 静止值必须取【拖动前的首帧】，不能用 max()：
-         松手回弹会把 k 过冲到负值 ⇒ 卡片短暂胀到 1.009 倍，max() 取到的是那个峰值
-         （实测 277.46 而不是 275），于是 gW 变成 0.9426 而不是 0.951 —— 差一点点就漏过去了。 */
+       ⚠️ 静止值必须取【拖动前的首帧】，不能用 min()/max() 之类的扫描值：
+         首帧是唯一【确定未挤压】的参考态。第二十四轮之前它还必须躲开「回弹把 k 过冲到负值
+         ⇒ 卡片短暂胀到 1.009 倍」的污染；第二十五轮起过冲已在实现层消失（回弹改单调推进器），
+         但首帧仍然是唯一不需要附加假设的静止参考 —— 别改成扫描。 */
     const f0 = fs[0]
     const restW = f0.w
     const restH = f0.h
@@ -2251,19 +2620,175 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
       during.length >= 10 && minN === domBefore.n && deepSet.size === 1 && domBefore.deep === DECK.MAX_DEPTH,
       `拖动期卡数 min=${minN}（静止态 ${domBefore.n}），最深层 index 集合={${[...deepSet].join(',')}}（期望恒 {${domBefore.deep}}）`)
 
-    /* ⑥ 松手：ios-squish（ζ≈0.46）把进度弹回 0 并【过冲】⇒ 三分量一起反向
-       （过冲 → k<0 → shift>0 向右弹回 + 卡片短暂胀回 1.7%）。
-       第九轮的旧实现只让位移过冲 —— 现在缩放/收紧/位移同相位，必须一起回弹。 */
-    const maxTx = Math.max(...sqTL.map((r) => r.tx))
-    const settled = sqTL.slice(-6).map((r) => r.tx)
-    check('需求③：松手后整组弹性回弹并过冲（向右弹回 >0），最终归位 0',
-      maxTx > 3 && settled.every((v) => Math.abs(v) < 0.3),
-      `峰值 tx=${maxTx}px（>0 = 向右回弹；理论 ≈frontX×0.20 = ${(frontX * 0.2).toFixed(1)}px）；` +
-        `末 6 帧=${settled.map((v) => v.toFixed(2)).join('/')}（期望恒 0）`)
+    /* ⑥ 松手：整组【单调】滑回 0 —— 第二十五轮把回弹从欠阻尼弹簧换成一阶限速推进器。
+       旧实现（releaseSqueeze 里的 sqTo(0)，'ios-squish' = {300,16} ⇒ ζ≈0.462）必然过冲，
+       逐帧实测（/tmp/vwork/r26/probe-all.mjs，左滑越右边界后松手）：
+           sq     0.2814 → 0 → −0.0523(峰) → 0 → +0.0096(峰) → 0 → −0.0018 → 0   （3 次穿零 / 670ms）
+           tr.e  −21.81  → … → +4.052(峰) → −0.741(峰) → +0.136 → 0             （3 次反号）
+       sq 经 deckSqueezeShift 放大成【整组】位移 ⇒ 那就是 Ricky 20:51 录屏里
+       「2~6 物理px、幅度递减、历时 ~0.6s」的水平抖动（同一把尺在录屏上量到 4.4 CSS px 残摆，
+       与 4.05px 同量级、衰减形状一致）。「回弹」不需要过冲：从 −frontX 单调滑回 0 就已经是回弹，
+       欠阻尼多出来的那几次穿零全部是缺陷。 */
+    const rel = sqTL.slice(dragging)
+    const relTx = rel.map((r) => r.tx)
+    let relRev = 0
+    for (let i = 1; i < relTx.length - 1; i++) {
+      const a = relTx[i] - relTx[i - 1]
+      const b = relTx[i + 1] - relTx[i]
+      if (a * b < 0 && Math.abs(a) > 0.3 && Math.abs(b) > 0.3) relRev++
+    }
+    const relMax = Math.max(...relTx)
+    const relMin = Math.min(...relTx)
+    /* 归位耗时：松手起，最后一个 |tx| > 0.3px 的采样点（0.3px 是「屏幕能表达的位移」量级） */
+    let lastOff = 0
+    relTx.forEach((v, i) => { if (Math.abs(v) > 0.3) lastOff = i })
+    const relMs = rel.length > 1 ? +(rel[lastOff].t - rel[0].t).toFixed(0) : 0
+    check('第二十五轮：松手回弹【单调不过冲】—— 整组 tx 全程不越过 0（旧实现冲到 +4.05px 再摆回）',
+      rel.length >= 4 && relMax <= 0.3 && relMin <= -1,
+      `松手段 ${rel.length} 帧 · tx 范围 ${relMin.toFixed(2)}~${relMax.toFixed(2)}px` +
+        `（期望 ≤ +0.3px = 不向右甩出；旧实现峰值 +4.05px 后 −0.74 再 +0.14）`)
+    check('第二十五轮：松手回弹【方向不反号】—— 反转 0 次（「抖动」的定义）',
+      relRev === 0,
+      `松手段 tx 反转 ${relRev} 次（旧实现 3 次：−21.8 → +4.05 → −0.74 → +0.14 → 0）`)
+    check('第二十五轮：松手回弹【真的回位且够快】—— 满挤压起手、≤ 450ms 精确归位 0',
+      Math.abs(rel[relTx.length - 1].tx) < 0.3 && relMs <= 450 && rel[0].tx <= -frontX + 6,
+      `起手 tx=${rel[0].tx}px（期望 ≤ ${(-frontX + 6).toFixed(1)}px）· ` +
+        `归位耗时 ${relMs}ms（旧实现欠阻尼要 670ms 才停，实测空载 216ms；` +
+        `阈值取 450 是为在 e2e 负载下留余量 —— 推进器的 dt 归一上限 20ms，掉到 30fps 时约 330ms）· ` +
+        `末帧 tx=${rel[relTx.length - 1].tx}px（期望 0）`)
     const fLast = fs[fs.length - 1]
     check('需求③：松手归位后卡片尺寸严格复原（等比缩放回 1，不留残余）',
       Math.abs(fLast.w - restW) < 0.6 && Math.abs(fLast.h - restH) < 0.6,
       `末帧前卡 ${fLast.w}×${fLast.h}（拖动前 ${restW}×${restH}）`)
+  }
+
+  // ---- 第十七轮：横滑挤压【不许抖】----
+  /* Ricky 原话：「横滑切换疯狂抖动。。。」（附 7.2s 录屏 tOS_Prototype_20260914_194725.mp4）。
+     离线逐帧互相关量出的症状：整块卡片组在 12~30ms 内反复反号抽动 48~144 CSS px，
+     且三条取样带的位移序列完全一致 ⇒ 是【整组刚体】在动（不是卡内元素各自抖）。
+
+     根因：挤压是一条「事件驱动 + 零过渡直写（sqSnap）」的通道，而它的增益是全组件最高的
+     一条 —— 手指位移 ×RUBBER(0.35) ÷span(233.75) = 越界层数；÷SQUEEZE_SPAN(0.35) = 进度 k；
+     k ×frontX(77.5) = 整组位移 ⇒ **14px 手指抖动 = 8.8px 整组位移**（221px/层）。
+     越界期卡片位姿又被 poseFocus=max(0,focus) 钉死 ⇒ 屏幕上只有整组在动。
+
+     判据两条，缺一不可：
+       ① 拖动期 tr.e 单帧跳变 ≤ 8px。改前实测 77.50px（首次越过 focus=0 时一步到位）；
+          限速后饱和步长 = SQ_MAX_STEP(0.09) × frontX = 6.98px。
+       ② 拖动期 tr.e 方向反转 0 次 —— 这才是「抖动」的定义（反复反号）。
+          只看幅度会漏掉「幅度小但高频」的抖。
+     ⚠️ 统计窗口严格取【按下 ~ 松手】，不含松手之后：那一段是另一条通道（松手后的整组回弹），
+        它的判据在需求③ 的 ⑥ 里单独写（第二十五轮起是「单调不过冲、反转 0 次、≤320ms 归位」）。
+        第二十四轮之前这里还额外要求排除松手后 ios-squish 的 12.8px 过冲尖峰 —— 那个尖峰
+        经由「本段只看拖动期」已经天然不进来，注释保留是为说明【这条边界不是随手划的】。
+     ⚠️ 往返的两端必须【一边越界、一边不越界】，才能真的让挤压反复「咬合/释放」：
+        x=20   ⇒ raw focus=−1.71 ⇒ 阻尼后 −0.599 ⇒ over=0.599 > SPAN ⇒ k=1（满挤压）
+        x=400  ⇒ raw focus=−0.086 ⇒ 阻尼后 −0.030 ⇒ over=0.030 < 死区 0.04 ⇒ k=0 */
+  {
+    await resetFocus0()
+    await page.evaluate(() => {
+      window.__jt = []
+      window.__jtStop = false
+      const tick = () => {
+        if (window.__jtStop) return
+        const tr = document.querySelector('.switcher-track')
+        window.__jt.push(tr ? +new DOMMatrixReadOnly(getComputedStyle(tr).transform).e.toFixed(2) : 0)
+        requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    })
+    await page.mouse.move(420, 453)
+    await page.waitForTimeout(40)
+    await page.mouse.down()
+    for (let i = 0; i < 8; i++) {
+      await page.mouse.move(20, 453, { steps: 1 })
+      await page.waitForTimeout(45)
+      await page.mouse.move(80, 453, { steps: 1 })
+      await page.waitForTimeout(45)
+    }
+    await page.waitForTimeout(120)
+    const jtDuring = await page.evaluate(() => window.__jt.length) // 松手前的采样点数 = 拖动期
+    await page.mouse.up()
+    await page.waitForTimeout(900) // 等回弹与焦点吸附收完，别把尾巴带进下一段
+    const jt = await page.evaluate(() => { window.__jtStop = true; return window.__jt })
+    const seg = jt.slice(0, jtDuring)
+    let jtMaxJump = 0
+    for (let i = 1; i < seg.length; i++) jtMaxJump = Math.max(jtMaxJump, Math.abs(seg[i] - seg[i - 1]))
+    let jtRev = 0
+    for (let i = 1; i < seg.length - 1; i++) {
+      const a = seg[i] - seg[i - 1]
+      const b = seg[i + 1] - seg[i]
+      if (a * b < 0 && Math.abs(a) > 0.5 && Math.abs(b) > 0.5) jtRev++
+    }
+    const jtMin = Math.min(...seg)
+    const jtMax = Math.max(...seg)
+    const SQ_MAX_STEP_CONTRACT = 0.09
+    check('第十七轮：横滑挤压【不许抖】—— 拖动期整组位移单帧跳变 ≤ 8px（改前 77.5px）',
+      seg.length >= 20 && jtMaxJump <= 8 && jtMaxJump > 0,
+      `拖动期 ${seg.length} 帧 · 单帧最大跳变 ${jtMaxJump.toFixed(2)}px` +
+        `（限速饱和步长 ${SQ_MAX_STEP_CONTRACT}×${frontX.toFixed(1)} = ${(SQ_MAX_STEP_CONTRACT * frontX).toFixed(2)}px；改前 77.50px）`)
+    check('第十七轮：横滑挤压【方向不反号】—— 拖动期 tr.e 反转 0 次（「抖动」的定义）',
+      jtRev === 0,
+      `拖动期 tr.e 反转 ${jtRev} 次 · 范围 ${jtMin.toFixed(1)}~${jtMax.toFixed(1)}px`)
+    check('第十七轮：限速不得削弱挤压行程 —— 拖动期仍要到达 −frontX（前卡左缘贴屏左缘）',
+      Math.abs(jtMin + frontX) < 2.5,
+      `拖动期最小 tx=${jtMin.toFixed(2)}px（目标 −${frontX.toFixed(2)}px）`)
+
+    /* ---- 真机触摸版（CDP Input.dispatchTouchEvent）----
+     * Ricky 的反馈来自安卓 Chrome 的触摸录屏。限速器本身与输入设备无关，但
+     * 「触摸路径有没有走到同一套 dragSqueeze / 同一套 sqReset 接管」只有真跑一遍才知道
+     * （第十二轮的教训：page.mouse 复现不了触摸特有的行为）。
+     * 前置实测（/tmp/vwork/r17/probe-touch-jt.mjs）：触摸下同样单调爬升 0 → −77.5，
+     * 单帧 7.15px、反转 0 次 —— 与鼠标路径逐条一致。 */
+    await page.waitForTimeout(400)
+    await page.evaluate(() => {
+      window.__jt = []
+      window.__jtStop = false
+      const tick = () => {
+        if (window.__jtStop) return
+        const tr = document.querySelector('.switcher-track')
+        window.__jt.push(tr ? +new DOMMatrixReadOnly(getComputedStyle(tr).transform).e.toFixed(2) : 0)
+        requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    })
+    const cdpT = await ctx.newCDPSession(page)
+    const tpT = (x, y) => [{ x, y, radiusX: 12, radiusY: 12, force: 1, id: 1 }]
+    /* ⚠️ 第二十一轮修正【输入形状】：旧写法是「touchStart 420 → touchMove 20 → touchMove 80 …」
+       的两点硬跳 —— 首笔就是单帧 −400px（= 24000px/s，指尖不可能）。第二十一轮加的
+       【坐标连续性守卫】会（正确地）把它判成非物理瞬移并吸收掉，而吸收的语义是「基线跟着瞬移
+       搬走」⇒ startX 被搬到 20，之后 x=80 变成 dx=+60（**向右**）⇒ 挤压通道（只在 focus<0 有量）
+       整个不再被触发 ⇒ 本用例量到的 tx 恒 0（改后假 FAIL，实际行为没坏）。
+       改成【真实步长】的斜坡：同一段行程（420 → 20）分 18 步走完，再在原位 ±6px 微抖。
+       轨迹形状与四条断言一字未改（单调爬到 −frontX、单帧跳变 ≤ 8px、反转 0 次、帧数 ≥ 20），
+       只是去掉了「手指一步 400px」这个不可能的前提。 */
+    const ttTrail = []
+    for (let i = 1; i <= 18; i++) ttTrail.push(420 - (400 * i) / 18)
+    for (let k = 0; k < 3; k++) ttTrail.push(20 + (k % 2 ? -6 : 6))
+    await cdpT.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: tpT(420, 453) })
+    for (const x of ttTrail) {
+      await cdpT.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: tpT(x, 453) })
+      await page.waitForTimeout(45)
+    }
+    await page.waitForTimeout(120)
+    const ttDuring = await page.evaluate(() => window.__jt.length)
+    await cdpT.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    await page.waitForTimeout(900)
+    const tt = await page.evaluate(() => { window.__jtStop = true; return window.__jt })
+    const ttSeg = tt.slice(0, ttDuring)
+    let ttJump = 0
+    for (let i = 1; i < ttSeg.length; i++) ttJump = Math.max(ttJump, Math.abs(ttSeg[i] - ttSeg[i - 1]))
+    let ttRev = 0
+    for (let i = 1; i < ttSeg.length - 1; i++) {
+      const a = ttSeg[i] - ttSeg[i - 1]
+      const b = ttSeg[i + 1] - ttSeg[i]
+      if (a * b < 0 && Math.abs(a) > 0.5 && Math.abs(b) > 0.5) ttRev++
+    }
+    const ttMin = Math.min(...ttSeg)
+    check('第十七轮（真机触摸）：触摸路径下挤压同样不抖 —— 单帧跳变 ≤ 8px、反转 0 次、行程达 −frontX',
+      ttSeg.length >= 20 && ttJump <= 8 && ttRev === 0 && Math.abs(ttMin + frontX) < 2.5,
+      `触摸拖动期 ${ttSeg.length} 帧 · 单帧最大跳变 ${ttJump.toFixed(2)}px · 反转 ${ttRev} 次 · ` +
+        `最小 tx=${ttMin.toFixed(2)}px（目标 −${frontX.toFixed(2)}）`)
   }
 
   // ---- 需求②（第九轮）：垃圾桶「松手后再出现」+ 点空白退场「立即消失」 ----
@@ -2577,10 +3102,18 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
         if (window.__nbStop) return
         const row = { t: +(performance.now() - t0).toFixed(0) }
         for (const c of document.querySelectorAll('.switcher-card.is-deck')) {
+          /* ⚠️ 第十六轮：必须读卡片【自身】的 transform 矩阵，不能再读 getBoundingClientRect()。
+             rect 会把祖先的群组变换（.switcher-deck-group 的 scale(k) / translate）一起乘进来，
+             与本块的三条契约（行程量级 / 时长占比 / 0.93 撑开）都不是同一个量。实测污染幅度：
+               · 「0.93 撑开」→ 0.8522（把跟手期 k=1.17 的帧当成了「落位」）
+               · 入场总时长 479ms → 虚报 1264ms（末段 78% 是松手后群组回落到单位阵的位移）
+             m.a = 卡自身的 scale、m.e = 卡自身的 translateX（translate3d 写在 scale 左边，不被缩放）。
+             这两个量只反映卡片自己的 CSS 过渡 —— 正是本块要守的东西。 */
+          const m = new DOMMatrix(getComputedStyle(c).transform)
           const r = c.getBoundingClientRect()
           row[c.dataset.index] = {
-            x: +r.left.toFixed(2),
-            w: +r.width.toFixed(2),
+            x: +m.e.toFixed(2),
+            w: +(c.offsetWidth * m.a).toFixed(2),
             h: +r.height.toFixed(2),
             op: +getComputedStyle(c).opacity
           }
@@ -2697,6 +3230,1330 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
       bad.length === 0,
       `各卡投影：${Object.entries(sh).map(([k, v]) => `${k}=${v?.a}/${v?.blur}px`).join('  ')}`)
   }
+}
+
+/* ================== 第十二轮（2026-09-13）==================
+   Ricky 原话：
+     ①「移动端通过安卓的 Chrome 浏览器打开，上滑删除多任务卡片的时候，
+        总是变成误触成左右滑动，帮我查一查是什么原因？」
+     ②「另外上滑多任务卡片的时候还是会有一个透明的渐变，取消上滑过程中卡片的透明度变化」
+
+   ⚠️ 为什么本轮的护栏必须用【真实触摸】驱动，不能再用 page.mouse：
+     本文件其余用例全走 page.mouse ⇒ pointerType='mouse'：坐标精确、无接触面抖动、
+     不过 Chrome 的触摸 slop。而本轮两个缺陷都【只在触摸时序下稳定复现】：
+
+     ① 模式判定「一帧定终身」（旧实现 onPointerMove：第一帧 |dx|≥6 或 |dy|≥6 就定模式，
+        且 |dy| > 1.4|dx| 才算上滑）⇒ 等价于「首个 pointermove 仰角 ≤ 54.5° 就判成横滑」。
+        而触摸屏的第一个 pointermove 恰恰最不可靠：接触面是椭圆、按下瞬间质心还在滚动、
+        单手持机时拇指起手走的是【切向】（比整条轨迹平得多）、且 Chrome 要等累计走够
+        8~12px 才派发第一帧 —— 方向当场定型，没有第二次机会。
+        探针实测（/tmp/vwork/r12/probe-touch.mjs，9 个场景，pointercancel 全程 0）：
+          首帧 (7,-7) 之后 21 帧纯纵向 → 旧规则锁 'h'
+          首帧 (6,+2)（拇指横滚）之后 290px 纯纵向 → 旧规则锁 'h'，
+            这 290px 里的 60px 横向漂移【全部被当成翻卡量】→ 卡片横向实走 31.6px、
+            __switcherSettle.cur = 0.28 层 —— 就是用户看到的「变成左右滑动」。
+        蒙特卡洛（/tmp/vwork/r12/mc.mjs，20 万样本）：起手仰角 62° 时旧规则 29.3% 判成横滑；
+        即便完全竖直，仅 3px 接触面抖动也能让旧规则 3.6% 误判。
+
+     ② hitCardId 取【最上层】.switcher-card ⇒ 命中跟手卡（.is-follow，无 data-app-id）
+        返回 null。跟手卡在 onPointerDown（followFreeSnap(0) ⇒ settledOne 失效）之后由
+        Vue 立刻挂出来盖在顶层卡正上方。触摸时序下「按下 → 第一帧 pointermove」至少隔一帧
+        （还要走 Chrome 的 touch slop），DOM 必然已补丁 ⇒ 100% 复现；鼠标时序偶尔抢在
+        补丁之前 ⇒ 竞态漏网（这也是它能在 e2e 里活过 5 轮的原因）。
+        后果有两个：上滑删卡恒删不掉；点顶层卡恒落到 exitWithAnimation() ⇒ 点卡片反而回桌面。
+
+   触摸注入方式：CDP `Input.dispatchTouchEvent` —— Chrome 据此合成
+   pointerType='touch' 的【真实】指针事件（isTrusted = true），走的就是安卓 Chrome 那条路径。 */
+{
+  const cdp = await ctx.newCDPSession(page)
+  const APP5 = ['settings', 'clock', 'phone', 'camera', 'calculator']
+  const tp = (x, y) => [{ x, y, id: 1, force: 1, radiusX: 12, radiusY: 12 }]
+
+  async function seedApps() {
+    await page.evaluate(() => {
+      window.__system.closeSwitcher?.()
+      window.__system.exitSwitcherToHome?.()
+    })
+    await page.waitForTimeout(420)
+    for (const id of APP5) {
+      await page.evaluate((a) => window.__system.openApp(a), id)
+      await page.waitForTimeout(230)
+    }
+  }
+
+  /** 真实触摸上滑 + 停驻 320ms → 进切换器（dwell 门槛 120ms） */
+  async function touchEnterSwitcher() {
+    const box = await page.evaluate(() => {
+      const r = (document.querySelector('.home-indicator') || document.querySelector('.screen')).getBoundingClientRect()
+      const sc = document.querySelector('.screen').getBoundingClientRect()
+      return { x: r.x + r.width / 2, y: r.y + r.height - 3, screenY: sc.y }
+    })
+    const travel = Math.min(320, box.y - box.screenY - 40)
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: tp(box.x, box.y) })
+    for (let i = 1; i <= 26; i++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: tp(box.x, box.y - (travel * i) / 26) })
+      await page.waitForTimeout(12)
+    }
+    await page.waitForTimeout(320)
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    await page.waitForTimeout(1000)
+    return page.evaluate(() => window.__system.appSwitcherOpen)
+  }
+
+  /** 在【顶卡中心】起手，按 offsets（相对位移序列）做一次真实触摸手势。
+   *  逐帧记录：被移位卡的 opacity / 卡体 opacity / 卡片 x（用来判「有没有变成横滑」）。 */
+  async function touchDragTopCard(offsets, { release = true } = {}) {
+    const pt = await page.evaluate(() => {
+      const c = [...document.querySelectorAll('.switcher-card')].find((x) => x.dataset.appId)
+      const r = c.getBoundingClientRect()
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2, app: c.dataset.appId }
+    })
+    await page.evaluate(() => {
+      window.__switcherMode = null
+      window.__switcherSettle = null
+    })
+    const frames = []
+    const sample = () =>
+      page.evaluate((app) => {
+        const c = [...document.querySelectorAll('.switcher-card')].find((x) => x.dataset.appId === app)
+        const body = c?.querySelector('.switcher-card-body')
+        return {
+          op: c ? +getComputedStyle(c).opacity : null,
+          bop: body ? +getComputedStyle(body).opacity : null,
+          x: c ? Math.round(c.getBoundingClientRect().x) : null,
+          y: c ? Math.round(c.getBoundingClientRect().y) : null,
+          follow: !!document.querySelector('.switcher-card.is-follow')
+        }
+      }, pt.app)
+    const start = await sample()
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: tp(pt.x, pt.y) })
+    for (const [dx, dy] of offsets) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: tp(pt.x + dx, pt.y + dy) })
+      await page.waitForTimeout(14)
+      frames.push(await sample())
+    }
+    if (release) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+      for (let k = 0; k < 8; k++) {
+        await page.waitForTimeout(30)
+        frames.push(await sample())
+      }
+      await page.waitForTimeout(600)
+    }
+    const state = await page.evaluate(() => ({
+      mode: window.__switcherMode || null,
+      settle: window.__switcherSettle || null,
+      recent: [...window.__system.recentApps],
+      base: window.__system.baseLayer,
+      activeAppId: window.__system.activeAppId,
+      open: window.__system.appSwitcherOpen
+    }))
+    const alive = frames.filter((f) => f.op !== null)
+    return {
+      app: pt.app,
+      state,
+      frames,
+      xDrift: alive.length ? Math.max(...alive.map((f) => Math.abs(f.x - start.x))) : 0,
+      opMin: alive.length ? Math.min(...alive.map((f) => f.op)) : null,
+      bopMin: alive.length ? Math.min(...alive.filter((f) => f.bop !== null).map((f) => f.bop)) : null,
+      followEver: frames.some((f) => f.follow)
+    }
+  }
+
+  // ---- ①-a 首帧横向抖 7px（触摸屏最典型），之后 21 帧纯纵向 ----
+  await seedApps()
+  await touchEnterSwitcher()
+  {
+    const off = [[7, -7], [5, -19]]
+    for (let k = 3; k <= 22; k++) off.push([2, -k * 12])
+    const r = await touchDragTopCard(off)
+    const m = r.state.mode
+    check(
+      '第十二轮·需求①-a：触摸·首帧横向抖 7px 后 21 帧纯纵向 → 模式必须判成「上滑」而不是横滑',
+      !!m && m.mode === 'v',
+      `__switcherMode.mode = ${m?.mode}（改前 = 'h'）轨迹 = ${JSON.stringify(m?.trace || [])}`
+    )
+    check(
+      '第十二轮·需求①-a：同一手势里卡片【没有任何横向位移】（改前横走 7px 并落到 h 分支）',
+      r.xDrift <= 2,
+      `最大横向漂移 = ${r.xDrift}px（期望 ≤2；改前该手势被判 h）`
+    )
+    check(
+      '第十二轮·需求①-a：该上滑【真的删掉了卡片】（命中判定必须拿到 appId，不能是跟手卡）',
+      !!m && m.cardId === r.app && r.state.recent.length === 4 && !r.state.recent.includes(r.app),
+      `cardId=${m?.cardId} app=${r.app} 剩余 = ${r.state.recent.join('/')}`
+    )
+  }
+
+  // ---- ①-b 首帧 (6,+2) 拇指横滚 + 后续 60px 横向漂移 ----
+  await seedApps()
+  await touchEnterSwitcher()
+  {
+    const off = [[6, 2], [9, -16]]
+    for (let k = 3; k <= 26; k++) {
+      const t = (k - 3) / 23
+      off.push([9 + 51 * t, -16 - 274 * t])
+    }
+    const r = await touchDragTopCard(off)
+    const m = r.state.mode
+    check(
+      '第十二轮·需求①-b：触摸·首帧 (6,+2) 拇指横滚 + 拇指弧线横漂 60px → 仍须判成「上滑」',
+      !!m && m.mode === 'v',
+      `__switcherMode.mode = ${m?.mode}（改前 = 'h'：那 60px 横漂会被当成 0.31 层翻卡量）`
+    )
+    check(
+      '第十二轮·需求①-b：60px 横漂【没有】被当成横向翻卡（焦点不得被推动）',
+      r.xDrift <= 2 && r.state.recent.length === 4,
+      `最大横向漂移 = ${r.xDrift}px；剩余 = ${r.state.recent.join('/')}`
+    )
+  }
+
+  // ---- ①-c 回归护栏：真的横滑仍然要判成 h 并翻一张 ----
+  await seedApps()
+  await touchEnterSwitcher()
+  {
+    const off = []
+    for (let k = 1; k <= 20; k++) off.push([k * 11, -(8 * k) / 20])
+    const r = await touchDragTopCard(off)
+    const m = r.state.mode
+    check(
+      '第十二轮·需求①-c（回归）：触摸·真实横滑（|dx| 主导、纵向仅漂 8px）仍判 h 并翻到第 2 张',
+      !!m && m.mode === 'h' && !!r.state.settle && r.state.settle.idx === 1,
+      `mode=${m?.mode} settle.idx=${r.state.settle?.idx} cur=${r.state.settle?.cur} 横向漂移 = ${r.xDrift}px`
+    )
+  }
+
+  // ---- ①-d 触摸 tap 顶卡必须【恢复该应用】（改前落到「点空白回桌面」分支） ----
+  await seedApps()
+  await touchEnterSwitcher()
+  {
+    const pt = await page.evaluate(() => {
+      const c = [...document.querySelectorAll('.switcher-card')].find((x) => x.dataset.appId)
+      const r = c.getBoundingClientRect()
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2, app: c.dataset.appId }
+    })
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: tp(pt.x, pt.y) })
+    await page.waitForTimeout(60)
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    await page.waitForTimeout(900)
+    const after = await page.evaluate(() => ({ base: window.__system.baseLayer, app: window.__system.activeAppId }))
+    check(
+      '第十二轮·需求①-d：触摸·点顶层卡 → 恢复该应用（改前 hitCardId=null ⇒ 反而回桌面）',
+      after.base === 'app' && after.app === pt.app,
+      `baseLayer=${after.base} activeAppId=${after.app}（期望 app / ${pt.app}）`
+    )
+  }
+
+  // ---- ② 上滑跟手期 + 飞出期：opacity 恒 1，且跟手卡让位、堆叠卡卡体可见 ----
+  await seedApps()
+  await touchEnterSwitcher()
+  {
+    const off = []
+    for (let k = 1; k <= 14; k++) off.push([2, -k * 13])
+    const r = await touchDragTopCard(off, { release: true })
+    check(
+      '第十二轮·需求②：上滑跟手 + 飞出全程卡片 opacity 恒 1（取消透明度变化）',
+      r.opMin !== null && r.opMin > 0.99,
+      `逐帧最小 opacity = ${r.opMin}（改前跟手期随高度线性降到 ≈${(1 - 182 / 320).toFixed(2)}，飞出段直接 0）`
+    )
+    check(
+      '第十二轮·需求②连带：上滑删卡期间【跟手卡让位】、堆叠前卡卡体可见（bop 恒 1）',
+      r.bopMin !== null && r.bopMin > 0.99,
+      `逐帧最小卡体 opacity = ${r.bopMin}（改前 = 0：可见的跟手卡冻在槽位、跟手上移的卡不可见）`
+    )
+    check(
+      '第十二轮·需求②连带：手势期间不再渲染跟手卡（杜绝它压在顶层卡上抢走命中）',
+      !r.followEver,
+      `逐帧是否出现过 .is-follow = ${r.followEver}`
+    )
+    check(
+      '第十二轮·需求②：上滑超过阈值 → 正常删卡（跟手/飞出两条链路都通）',
+      r.state.recent.length === 4 && !r.state.recent.includes(r.app),
+      `剩余 = ${r.state.recent.join('/')}`
+    )
+  }
+}
+
+/* ══════════ 第十四轮 · 回归护栏（2026-09-14，Ricky 报的三条缺陷）══════════
+   Ricky 原话：
+     ①「点击多任务卡片进入全屏时会卡和闪一下，而且很高的概率会出现点击卡片
+        仍然退出多任务回到桌面的问题」
+     ②「从应用进入到多任务界面时，全屏应用缩放为卡片的过程动画一抖一抖的，
+        感觉长宽比例在不停的随机变化」
+     ③「位于顶部的卡片无法通过鼠标上滑关闭，点击还会左右抖动」
+
+   本段用的是**鼠标路径**（Ricky 报的三条都是鼠标复现的；触摸路径由第十二轮那段
+   CDP 用例守着）。逐帧数据与根因见 /tmp/vwork/r14/：
+     probe-label.mjs  标签行命中 / 点击漂移 / 入场残留
+     probe-handoff.mjs 交接段（放大卡 → AppWindow）逐帧几何
+     probe-p3.mjs     三条缺陷的最终验收
+     probe-enter.mjs  入场缩放逐帧宽高比（缺陷②）
+   静态断言的期望值全部来自这些探针，不是估的。 */
+{
+  const APP5 = ['settings', 'clock', 'phone', 'camera', 'calculator']
+  const seedApps = async () => {
+    await page.evaluate(() => {
+      window.__system.exitSwitcherToHome()
+      window.__system.appSwitcherOpen = false
+    })
+    await page.waitForTimeout(160)
+    for (const id of APP5) {
+      await page.evaluate((a) => window.__system.openApp(a), id)
+      await page.waitForTimeout(150)
+    }
+  }
+  /** 鼠标上滑进切换器（与 Ricky 的复现路径一致）。lateral = 上滑时的横向漂移总量 */
+  const mouseEnter = async ({ lateral = 0 } = {}) => {
+    const y0 = 925
+    await page.mouse.move(215, y0)
+    await page.mouse.down()
+    for (let i = 1; i <= 20; i++) {
+      await page.mouse.move(215 + (lateral * i) / 20, y0 - i * 20, { steps: 1 })
+      await page.waitForTimeout(12)
+    }
+    await page.waitForTimeout(300)
+    await page.mouse.up()
+    await page.waitForTimeout(700)
+  }
+  const st = () => page.evaluate(() => ({
+    base: window.__system.baseLayer,
+    app: window.__system.activeAppId,
+    open: window.__system.appSwitcherOpen,
+    recent: [...window.__system.recentApps],
+    dragX: +window.__system.switcherDragX.toFixed(1)
+  }))
+  /** 三态判据 —— 注意从应用内上滑进来时 baseLayer 本来就是 'app'，
+      只看 base 会把「什么都没发生（切换器还开着）」误判成「已恢复」。 */
+  const verdict = (a) => (!a.open && a.base === 'app' && a.app ? 'RESUME'
+    : a.base === 'home' ? 'HOME' : a.open ? 'STAY' : '???')
+  const geom = () => page.evaluate(() => {
+    const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return [+b.x.toFixed(1), +b.y.toFixed(1), +b.width.toFixed(1), +b.height.toFixed(1)] }
+    return {
+      card: r(document.querySelector('.switcher-card.is-deck[data-index="0"]')),
+      label: r(document.querySelector('.switcher-card-label')),
+      mode: window.__switcherMode || null
+    }
+  })
+
+  // ---- 缺陷③前半：标签行不算「这张卡」⇒ 点它回桌面、从它上滑删不掉 ----
+  await seedApps()
+  await mouseEnter()
+  {
+    const g = await geom()
+    const top = g.card?.[1] // 卡顶 y（实测 155）
+    const labelY = g.label?.[1] // 标签行顶（实测 119）
+    check(
+      '第十四轮·几何前置：标签行位于卡顶上方 LABEL_ROW_H+LABEL_GAP=36px 处',
+      top === 155 && labelY === 119,
+      `卡顶 y=${top} 标签行 y=${labelY}（期望 155 / 119）`
+    )
+
+    const hits = []
+    for (const y of [122, 138, 152]) {
+      await seedApps()
+      await mouseEnter()
+      await page.mouse.move(215, y)
+      await page.waitForTimeout(25)
+      await page.mouse.down()
+      await page.waitForTimeout(70)
+      await page.mouse.up()
+      await page.waitForTimeout(1100)
+      hits.push(`y=${y}:${verdict(await st())}`)
+    }
+    check(
+      '第十四轮·需求③-a：点标签行（图标+应用名）必须恢复那张卡 —— 改前 elementFromPoint 落到 .switcher-track ⇒ hitCardId=null ⇒ exitWithAnimation ⇒ 回桌面',
+      hits.every((h) => h.endsWith('RESUME')),
+      hits.join(' / ')
+    )
+
+    /* ⚠️ 上滑必须在【视口内】完成：从标签行（卡顶上方 36px，屏内最高的一行）起手，
+       只要行程够 110px 就必然把指针拖到 y<0 的视口外，而 Chrome 在视口外松手时
+       偶发不派发 pointerup（首跑实测：__switcherMode = undefined ⇒ onPointerUp 根本没跑，
+       recent 5→5）。所以行程取 135px（> 110px 判定阈值），落点 y=15/17 仍在屏内。
+       192px 那条极值路径由 /tmp/vwork/r14/probe-p3b.mjs 单独守。 */
+    const swipes = []
+    for (const y of [150, 152]) {
+      await seedApps()
+      await mouseEnter()
+      const before = await st()
+      const geo0 = await geom()
+      await page.evaluate(() => {
+        window.__switcherMode = null
+        window.__pev = 0
+        document.addEventListener('pointerup', () => { window.__pev++ }, { capture: true, once: true })
+      })
+      await page.mouse.move(215, y)
+      await page.waitForTimeout(25)
+      await page.mouse.down()
+      for (let i = 1; i <= 9; i++) {
+        await page.mouse.move(215, y - i * 15, { steps: 2 })
+        await page.waitForTimeout(10)
+      }
+      await page.mouse.up()
+      await page.waitForTimeout(900)
+      const after = await st()
+      const m = await page.evaluate(() => window.__switcherMode)
+      const ev = await page.evaluate(() => window.__pev)
+      swipes.push(`y=${y}:${before.recent.length}→${after.recent.length}(mode=${m?.mode},cardId=${m?.cardId},dy=${m?.dy},base=${after.base},pointerup=${ev},卡顶=${geo0.card?.[1]})`)
+    }
+    check(
+      '第十四轮·需求③-b：从标签行上滑 135px → 必须删掉那张卡 —— 改前 cardId 恒 null ⇒ willDismiss 恒 false ⇒ 卡片纹丝不动',
+      swipes.every((s) => /→4\(/.test(s)),
+      `${swipes.join(' / ')}（期望 5→4）`
+    )
+  }
+
+  // ---- 缺陷③后半：点击带横向漂移 → 改前「卡片晃一下 + 整段静默」 ----
+  {
+    const rows = []
+    for (const dx of [12, 16]) {
+      await seedApps()
+      await mouseEnter()
+      const c = await page.evaluate(() => {
+        const el = document.querySelector('.switcher-card.is-deck[data-index="0"]')
+        const b = el.getBoundingClientRect()
+        return [b.x + b.width / 2, b.y + b.height / 2]
+      })
+      await page.mouse.move(c[0], c[1])
+      await page.waitForTimeout(30)
+      await page.mouse.down()
+      for (let i = 1; i <= 4; i++) {
+        await page.mouse.move(c[0] + (dx * i) / 4, c[1], { steps: 1 })
+        await page.waitForTimeout(10)
+      }
+      await page.waitForTimeout(50)
+      await page.mouse.up()
+      await page.waitForTimeout(1100)
+      const a = await st()
+      const g = await geom()
+      rows.push(`${dx}px→${verdict(a)}(tapIntent=${g.mode?.tapIntent},frozen=${g.mode?.frozen},dx=${g.mode?.dx})`)
+    }
+    check(
+      '第十四轮·需求③-c：点击带 12/16px 横向漂移仍须恢复 —— 改前被 pickMode 锁成 h（MODE_LOCK_PX=10）而走不到 MODE_COMMIT_PX=22 ⇒ settleFocus 弹回、整段静默',
+      rows.every((r) => r.includes('RESUME')),
+      rows.join(' / ')
+    )
+  }
+
+  // ---- 缺陷③后半（根因二）：入场横向残留不得被「按下」复活 ----
+  {
+    await seedApps()
+    await mouseEnter({ lateral: 90 })
+    const st0 = await st()
+    const x0 = await page.evaluate(() => +document.querySelector('.switcher-card.is-deck[data-index="0"]').getBoundingClientRect().x.toFixed(1))
+    await page.mouse.move(215, 450)
+    await page.waitForTimeout(30)
+    await page.mouse.down()
+    await page.waitForTimeout(120)
+    const x1 = await page.evaluate(() => +document.querySelector('.switcher-card.is-deck[data-index="0"]').getBoundingClientRect().x.toFixed(1))
+    await page.mouse.up()
+    await page.waitForTimeout(1100)
+    check(
+      '第十四轮·需求③-d：入场带 90px 横向残留时，在卡片上按下【不得】横移 —— 改前 onPointerDown 的 followFreeSnap(0) 把已衰减的残留复活成 90×0.42 ≈ 37.8px 的一次横跳',
+      Math.abs(x1 - x0) <= 1,
+      `残留 dragX=${st0.dragX} → 按下 120ms 后卡 x ${x0} → ${x1}（Δ=${(x1 - x0).toFixed(1)}px，期望 ≤1px）`
+    )
+  }
+
+  // ---- 缺陷①：点卡进全屏的「闪」与「回到桌面」 ----
+  for (const [tag, px, py, label, expApp] of [
+    ['same-app', 215, 450, '点前卡（= 当前应用 calculator，AppWindow 不重挂）', 'calculator'],
+    ['swap-app', 66, 450, '点左侧邻居条的 camera 卡（不同应用 ⇒ AppWindow 重挂）', 'camera'],
+  ]) {
+    await seedApps()
+    await mouseEnter()
+    await page.evaluate(() => {
+      window.__hx = []
+      window.__hxStop = false
+      const t0 = performance.now()
+      const area = (r) => Math.max(0, r.width) * Math.max(0, r.height)
+      const tick = () => {
+        if (window.__hxStop) return
+        const rec = { t: +(performance.now() - t0).toFixed(1) }
+        rec.sw = !!document.querySelector('.app-switcher')
+        const win = document.querySelector('.app-window')
+        if (win) {
+          const r = win.getBoundingClientRect()
+          const cs = getComputedStyle(win)
+          rec.win = [+r.x.toFixed(1), +r.y.toFixed(1), +r.width.toFixed(1), +r.height.toFixed(1)]
+          rec.phase = win.dataset.phase
+          rec.hidden = cs.display === 'none' || cs.visibility === 'hidden'
+        } else { rec.win = null; rec.phase = null; rec.hidden = null }
+        let best = null
+        for (const el of document.querySelectorAll('.switcher-card')) {
+          const r = el.getBoundingClientRect()
+          if (!best || area(r) > area(best.r)) best = { r }
+        }
+        rec.card = best ? [+best.r.x.toFixed(1), +best.r.y.toFixed(1), +best.r.width.toFixed(1), +best.r.height.toFixed(1)] : null
+        window.__hx.push(rec)
+        setTimeout(tick, 10)
+      }
+      tick()
+    })
+    await page.mouse.move(px, py)
+    await page.waitForTimeout(30)
+    await page.mouse.down()
+    await page.waitForTimeout(70)
+    await page.mouse.up()
+    await page.waitForTimeout(1400)
+    await page.evaluate(() => { window.__hxStop = true })
+    const rows = await page.evaluate(() => window.__hx)
+    const a = await st()
+
+    const idx = rows.findIndex((r) => !r.sw)
+    const prev = idx > 0 ? rows[idx - 1] : null
+    const cur = idx >= 0 ? rows[idx] : null
+    const jump = prev?.card && cur?.win
+      ? Math.max(...[0, 1, 2, 3].map((k) => Math.abs(prev.card[k] - cur.win[k])))
+      : null
+    /* 「回到桌面」的可观测形状 = 某一帧里 .app-window 是一个面积不足半屏的小窗口。
+       判据必须再剔除【被放大卡完全盖住】的那些帧 —— 交接保持窗口内底下那个 AppWindow
+       正在从桌面图标放大（那是它自己的 hero 开场），它全程被铺满全屏的放大卡压着，
+       眼睛看不到；只有「没被盖住的小窗口」才是用户读到的「退出多任务回到桌面」。 */
+    const covering = (r) => !!r.card && r.card[0] <= 1 && r.card[1] <= 1 && r.card[2] >= 429 && r.card[3] >= 931
+    const small = rows.filter((r) => r.win && !r.hidden && r.win[2] * r.win[3] > 0 && r.win[2] * r.win[3] < 430 * 932 * 0.5)
+    const visibleSmall = small.filter((r) => !covering(r))
+
+    check(
+      `第十四轮·需求①-a（${tag}）：${label} —— 交接帧底下必须是「全屏 + phase=open」的 AppWindow`,
+      !!cur && cur.phase === 'open' && cur.win[2] === 430 && cur.win[3] === 932,
+      `交接帧 t=${cur?.t}ms phase=${cur?.phase} win=${JSON.stringify(cur?.win)}`
+    )
+    check(
+      `第十四轮·需求①-b（${tag}）：交接前后【单帧几何跳变 = 0px】（改前全程可见 725px 的「整屏落在卡位」+ 交接处突变为桌面图标矩形）`,
+      jump !== null && jump <= 1,
+      `交接前一帧放大卡=${JSON.stringify(prev?.card)} → 该帧 win=${JSON.stringify(cur?.win)} 跳变=${jump === null ? 'null' : jump.toFixed(1) + 'px'}`
+    )
+    check(
+      `第十四轮·需求①-c（${tag}）：全程不存在【可见的（未被放大卡盖住的）小窗口帧】= 用户读到的「退出多任务回到桌面」`,
+      visibleSmall.length === 0,
+      visibleSmall.length
+        ? visibleSmall.slice(0, 4).map((r) => `t${r.t}=${r.win[2]}x${r.win[3]} 卡=${JSON.stringify(r.card)}`).join(' ')
+        : `零帧（被盖住的小窗口帧 ${small.length} 帧，全部由放大卡 430×932 完全遮挡）`
+    )
+    check(
+      `第十四轮·需求①-d（${tag}）：最终恢复的目标应用正确`,
+      !a.open && a.base === 'app' && a.app === expApp,
+      `open=${a.open} base=${a.base} activeAppId=${a.app}（期望 app/${expApp}）`
+    )
+  }
+}
+
+/* ══════════ 第十五轮 · 回归护栏（2026-09-14，Ricky：删卡回桌面后桌面图标消失）══════════
+   Ricky 原话：「点击打开应用后，进入多任务，上滑删除任务回到桌面后，桌面图标消失了」
+   截图特征：**文字还在、只有那一格的图形是空的**。
+
+   根因（探针 /tmp/vwork/r15/probe-icon.mjs 实测，改前）：
+     AppWindow 打开时把「桌面图标隐藏态」写进 homeStore.hiddenIconId（单槽），
+     而归还动作只挂在 hero 收回的收尾钩子上（AppWindow 的 onHandoff → home.showIcon()）。
+     切换器里上滑删卡走 systemStore.dismissApp()：它**硬切** activeAppId=null + baseLayer='home'，
+     AppWindow 被直接卸载 ⇒ 收尾钩子永不执行 ⇒ hiddenIconId 永久停在那个 appId。
+     `.is-hidden` 只藏 .icon-tile（与角标）、不藏 .icon-label ⇒ 名字还在、图标没了。
+
+   本段 6 条：
+     ① 前置：打开应用后图标确实进入隐藏态（否则后面几条都是假通过）
+     ② 需求①主诉：真实 UI 点桌面图标 → 上滑进多任务 → 卡上滑删卡 → 图标必须恢复
+     ③ 第二道防线：绕过切换器直接 dismissApp（隐藏态没被清）时图标也必须可见
+     ④ 同类硬切路径「点空白回桌面」也必须恢复
+     ⑤ 同类硬切路径「垃圾桶一键清理」也必须恢复
+     ⑥ 回归护栏：删【后台卡】不得让仍在全屏的前台应用图标提前露出来（防 hero 重影）
+   改前对照值全部来自 r15 探针，不是估的。 */
+{
+  /** 桌面网格里某应用的 AppIcon 可见性（以 .icon-tile 为准 = 用户看到的「图形」） */
+  const homeIcon = (appId) =>
+    page.evaluate((id) => {
+      const el = document.querySelector(`[data-home-item="app:${id}"] .app-icon`)
+      if (!el) return null
+      const tile = el.querySelector('.icon-tile')
+      const r = el.getBoundingClientRect()
+      return {
+        isHidden: el.classList.contains('is-hidden'),
+        tile: tile ? getComputedStyle(tile).visibility : null,
+        label: el.querySelector('.icon-label')?.textContent?.trim() ?? null,
+        size: `${+r.width.toFixed(1)}x${+r.height.toFixed(1)}`
+      }
+    }, appId)
+  /** homeStore 的隐藏态单槽。
+   *  ⚠️ 返回的是**字符串形式**（`String(null)` ⇒ `"null"`），不能直接和 `null` 比：
+   *     本段首跑就是栽在这里 —— 三条断言的值全对，却因为 `"null" !== null` 报 FAIL。
+   *     为什么不用 `?? '默认值'` 兜：`null` 正是「已归还」的正确值，会被 ?? 吞成默认值，
+   *     读起来像是读不到。统一用下面的 NULL_ID 比，别改回 null。 */
+  const NULL_ID = 'null'
+  const hiddenId = () =>
+    page.evaluate(() => {
+      const p = document.querySelector('#app')?.__vue_app__?.config?.globalProperties?.$pinia
+      const h = p?.state?.value?.home
+      return h && 'hiddenIconId' in h ? String(h.hiddenIconId) : '(home 读不到)'
+    })
+  const sysState = () =>
+    page.evaluate(() => ({
+      base: window.__system.baseLayer,
+      app: window.__system.activeAppId,
+      recent: [...window.__system.recentApps]
+    }))
+  const fmtHome = (v) =>
+    v ? `is-hidden=${v.isHidden} tile=${v.tile} 文字=${v.label} ${v.size}` : '(无该桌面图标)'
+  /** 每个用例的统一起点：清空最近任务 + 回桌面 */
+  const resetHome = async () => {
+    await page.evaluate(() => window.__system.dismissAll())
+    await page.waitForTimeout(420)
+  }
+  /** 鼠标上滑进切换器（与 Ricky 的复现路径一致） */
+  const mouseEnterSwitcher = async () => {
+    const y0 = 925
+    await page.mouse.move(215, y0)
+    await page.mouse.down()
+    for (let i = 1; i <= 20; i++) {
+      await page.mouse.move(215, y0 - i * 20, { steps: 1 })
+      await page.waitForTimeout(12)
+    }
+    await page.waitForTimeout(300)
+    await page.mouse.up()
+    await page.waitForTimeout(800)
+  }
+  /** 卡上滑删卡。⚠️ 松手点必须留在视口内：起手 620 → 上行 220 → 落在 400，
+      否则 Chrome 偶发不派发 pointerup（第十四轮踩过）。 */
+  const swipeUpCard = async ({ y0 = 620, travel = 220 } = {}) => {
+    await page.mouse.move(215, y0)
+    await page.waitForTimeout(30)
+    await page.mouse.down()
+    const steps = Math.round(travel / 20)
+    for (let i = 1; i <= steps; i++) {
+      await page.mouse.move(215, y0 - i * 20, { steps: 1 })
+      await page.waitForTimeout(12)
+    }
+    await page.mouse.up()
+    await page.waitForTimeout(900)
+  }
+  /** 「空白」落点：既不在卡片上、也不在垃圾桶上（点空白 = 回桌面） */
+  const blankPoint = () =>
+    page.evaluate(() => {
+      const safe = (x, y) => {
+        const el = document.elementFromPoint(x, y)
+        return !!el && !el.closest('.switcher-card') && !el.closest('.switcher-trash')
+      }
+      for (const [x, y] of [[215, 800], [30, 800], [400, 800], [215, 95], [30, 450], [400, 450]]) {
+        if (safe(x, y)) return [x, y]
+      }
+      return null
+    })
+  const trashPoint = () =>
+    page.evaluate(() => {
+      const el = document.querySelector('.switcher-trash')
+      if (!el) return null
+      const r = el.getBoundingClientRect()
+      return [r.x + r.width / 2, r.y + r.height / 2]
+    })
+  /** 点桌面「文件」图标开应用（真实入口，不是 store 直连） */
+  const clickDeskIcon = async (appId, ms = 800) => {
+    await page.locator(`[data-home-item="app:${appId}"] .app-icon`).first().click()
+    await page.waitForTimeout(ms)
+  }
+
+  // ---- ① 前置：打开应用后图标确实进入隐藏态（只藏图形、不藏文字）----
+  await resetHome()
+  await clickDeskIcon('files')
+  const preId = await hiddenId()
+  const preIcon = await homeIcon('files')
+  check(
+    '第十五轮·前置：打开应用后桌面图标必须进入隐藏态，且【只藏图形、不藏文字】（= Ricky 截图的形状）',
+    preId === 'files' && preIcon?.isHidden === true && preIcon?.tile === 'hidden' && preIcon?.label === '文件',
+    `hiddenIconId=${preId} · 图标[${fmtHome(preIcon)}]（期望 files / is-hidden=true / tile=hidden / 文字=文件）`
+  )
+
+  // ---- ② 需求①主诉：真实 UI 上滑删卡 → 回桌面后图标必须恢复 ----
+  await mouseEnterSwitcher()
+  await swipeUpCard()
+  const a1 = await sysState()
+  const afterId = await hiddenId()
+  const afterIcon = await homeIcon('files')
+  check(
+    '第十五轮·需求①：进入多任务→上滑删卡→回到桌面后，桌面图标【必须恢复】' +
+      '（改前 hiddenIconId 永久停在 files ⇒ tile=hidden、只剩文字）',
+    afterId === NULL_ID && afterIcon?.isHidden === false && afterIcon?.tile === 'visible' && a1.base === 'home',
+    `hiddenIconId=${afterId} base=${a1.base} activeAppId=${a1.app} · 图标[${fmtHome(afterIcon)}]（期望 hiddenIconId=null / tile=visible）`
+  )
+
+  // ---- ③ 第二道防线：把隐藏态【钉死】成一个「并非前台」的 appId，图标也必须可见 ----
+  /* ⚠️ 2026-09-16 合并 main 后重写本段。
+     旧版走「openApp('notes') → dismissApp('notes') → 期望 hiddenIconId 仍停在 notes」，
+     断在 `staleId === 'notes'` 这条【前提】上（详情里写着「符合预期」却判 FAIL）。
+     main 给 AppWindow 加了 `onBeforeUnmount: home.showIcon()`（7ff0bf3），
+     dismissApp 触发 AppWindow 卸载时顺手把隐藏态清了 ⇒ staleId 变 null。
+     ⚠️ 这是断言设计问题、不是代码回归：用户可见结果 tile=visible 一直是对的。
+     但直接删掉那条前提等于**不再验证第二道防线**（AppIcon 的前台判据）——
+     main 那条 unmount 钩子只是「顺手清」，谁也不能保证它覆盖全部硬切路径。
+     ⇒ 改成**绕过一切 store action 与生命周期钩子**，用 pinia 直写把隐藏态钉在 notes 上；
+       此时 activeAppId 为 null（没有任何窗口）⇒ 只可能是 AppIcon 的判据让图标可见。
+       同时仍断言 hiddenIconId 未被清 —— 否则「图标可见」可能是别的东西清的，证不到判据。 */
+  await resetHome()
+  await page.evaluate(() => {
+    const p = document.querySelector('#app')?.__vue_app__?.config?.globalProperties?.$pinia
+    p.state.value.home.hiddenIconId = 'notes'
+  })
+  await page.waitForTimeout(160)
+  const pinnedId = await hiddenId()
+  const pinnedIcon = await homeIcon('notes')
+  check(
+    '第十五轮·需求①第二道防线：隐藏态被钉在一个【并非前台】的 appId 上时，图标也必须可见' +
+      ' —— AppIcon 的「前台判据」自愈（改前 tile=hidden）',
+    pinnedId === 'notes' && pinnedIcon?.isHidden === false && pinnedIcon?.tile === 'visible',
+    `钉住后 hiddenIconId=${pinnedId}（须仍是 notes，证明没被任何钩子清掉）· 图标[${fmtHome(pinnedIcon)}] ← 期望 tile=visible`
+  )
+  // 复位，避免污染后续用例
+  await page.evaluate(() => {
+    const p = document.querySelector('#app')?.__vue_app__?.config?.globalProperties?.$pinia
+    p.state.value.home.hiddenIconId = null
+  })
+
+  // ---- ④ 同类硬切路径：点空白回桌面 ----
+  await resetHome()
+  await clickDeskIcon('notes')
+  await mouseEnterSwitcher()
+  const bp = await blankPoint()
+  if (bp) {
+    await page.mouse.click(bp[0], bp[1])
+    await page.waitForTimeout(1000)
+  }
+  const a4 = await sysState()
+  const id4 = await hiddenId()
+  const icon4 = await homeIcon('notes')
+  check(
+    '第十五轮·同类路径：多任务里【点空白回桌面】后，桌面图标也必须恢复（同样拿不到 hero 收尾钩子）',
+    !!bp && id4 === NULL_ID && icon4?.isHidden === false && icon4?.tile === 'visible' && a4.base === 'home',
+    `落点=${JSON.stringify(bp)} hiddenIconId=${id4} base=${a4.base} · 图标[${fmtHome(icon4)}]`
+  )
+
+  // ---- ⑤ 同类硬切路径：垃圾桶一键清理 ----
+  await resetHome()
+  await clickDeskIcon('notes')
+  await mouseEnterSwitcher()
+  const tp = await trashPoint()
+  if (tp) {
+    await page.mouse.click(tp[0], tp[1])
+    await page.waitForTimeout(1800)
+  }
+  const a5 = await sysState()
+  const id5 = await hiddenId()
+  const icon5 = await homeIcon('notes')
+  check(
+    '第十五轮·同类路径：多任务里【垃圾桶一键清理】后，桌面图标也必须恢复',
+    !!tp && id5 === NULL_ID && icon5?.isHidden === false && icon5?.tile === 'visible' && a5.recent.length === 0,
+    `垃圾桶=${JSON.stringify(tp)} hiddenIconId=${id5} recent=${JSON.stringify(a5.recent)} · 图标[${fmtHome(icon5)}]`
+  )
+
+  // ---- ⑥ 回归护栏：删后台卡不得让仍在全屏的前台应用图标提前露出来 ----
+  await resetHome()
+  await page.evaluate(() => window.__system.openApp('notes'))
+  await page.waitForTimeout(500)
+  await page.evaluate(() => window.__system.openApp('files'))
+  await page.waitForTimeout(800)
+  await mouseEnterSwitcher()
+  /* 后台卡被前台卡压住 ⇒ 必须取它【未被遮挡的左缘条带】。
+     ⚠️ 不能用邻居卡中心：实测在 (154.5,453) 命中的是前台卡，删掉的是前台应用。 */
+  const bg = await page.evaluate(() => {
+    const cards = [...document.querySelectorAll('.switcher-card[data-app-id]')]
+    const front = cards.find((c) => c.dataset.appId === window.__system.activeAppId && !c.classList.contains('is-follow'))
+    const el = cards.find((c) => c.dataset.appId !== window.__system.activeAppId && !c.classList.contains('is-follow'))
+    if (!el || !front) return null
+    const r = el.getBoundingClientRect()
+    const fr = front.getBoundingClientRect()
+    const strip = fr.x - r.x
+    if (strip < 20) return null
+    return { appId: el.dataset.appId, cx: r.x + strip / 2, cy: r.y + r.height / 2, strip: +strip.toFixed(1) }
+  })
+  if (bg) {
+    const hit = await page.evaluate(([x, y]) => {
+      for (const el of document.elementsFromPoint(x, y)) {
+        const id = el?.closest?.('.switcher-card')?.dataset?.appId
+        if (id) return id
+      }
+      return null
+    }, [bg.cx, bg.cy])
+    await page.mouse.move(bg.cx, bg.cy)
+    await page.waitForTimeout(30)
+    await page.mouse.down()
+    for (let i = 1; i <= 10; i++) {
+      await page.mouse.move(bg.cx, bg.cy - i * 20, { steps: 1 })
+      await page.waitForTimeout(12)
+    }
+    await page.mouse.up()
+    await page.waitForTimeout(900)
+    const a6 = await sysState()
+    const id6 = await hiddenId()
+    const frontIcon = await homeIcon('files')
+    const bgIcon = await homeIcon(bg.appId)
+    check(
+      '第十五轮·回归护栏：删除【后台卡】不得让仍在全屏的前台应用图标提前露出来' +
+        '（否则 hero 收回时真图标与镜像会重影）',
+      hit === bg.appId && a6.app === 'files' && id6 === 'files' &&
+        frontIcon?.isHidden === true && frontIcon?.tile === 'hidden' &&
+        bgIcon?.isHidden === false && bgIcon?.tile === 'visible',
+      `落点命中=${hit}（期望 ${bg.appId}）· 删后 activeAppId=${a6.app} hiddenIconId=${id6} · ` +
+        `前台 files 图标[${fmtHome(frontIcon)}]（期望 tile=hidden）· 后台 ${bg.appId} 图标[${fmtHome(bgIcon)}]（期望 tile=visible）`
+    )
+  } else {
+    check(
+      '第十五轮·回归护栏：删除【后台卡】不得让仍在全屏的前台应用图标提前露出来',
+      false,
+      '后台卡可见条带不足 20px，用例未能建立（检查卡片几何是否被改动）'
+    )
+  }
+  // ================= 第十六轮：入场期邻居卡与跟手卡【同步缩放 / 同步位移】 =================
+  /* Ricky 原话：「应用内进入多任务，底部卡片出现时应该与被拖拽的卡片同步进行缩放移动。」
+   *
+   * 判据设计（为什么是这三条）：
+   *   ① 【群组映射不变量】跟手卡在场期间，deck 前卡必须与跟手卡【横向逐位重合】——
+   *      这正是 deckGroupStyle 的定义（把跟手卡的位姿映射到卡位）。改前该不变量不成立：
+   *      前卡始终停在 275 宽的槽位，跟手卡却是 299.8 ⇒ Δx 最高 45px。
+   *   ② 【比例契约】邻居(idx=1) 视觉宽 / 跟手卡视觉宽 必须 ≈ 0.94（= SCALE_DECAY）。
+   *      改前停驻期实测只有 0.863（邻居卡钉死在「落位后」的绝对尺寸 258.5）。
+   *   ③ 【纵向中心】邻居卡与跟手卡的垂直中心必须重合（改前邻居停在 453、跟手卡在 456，
+   *      且邻居「更靠下」正是 Ricky 截图里读到的第二件事）。
+   * 取样窗口：上滑 200px 使停驻发生在 p ≈ 0.77（此时跟手卡明显大于终位），
+   * 停 500ms 让邻居的 480ms 入场过渡跑完，再松手。 */
+  await resetHome()
+  await page.evaluate(() => window.__system.openApp('keynote'))
+  await page.waitForTimeout(420)
+  await page.evaluate(() => window.__system.openApp('photos'))
+  await page.waitForTimeout(800)
+
+  await page.evaluate(() => {
+    window.__r16 = []
+    window.__r16Stop = false
+    const rect = (el) => {
+      const r = el.getBoundingClientRect()
+      return { x: r.x, y: r.y, w: r.width, h: r.height }
+    }
+    const tick = () => {
+      if (window.__r16Stop) return
+      const g = document.querySelector('.switcher-deck-group')
+      const follow = document.querySelector('.switcher-card.is-follow')
+      const d0 = document.querySelector('.switcher-deck-group .switcher-card.is-deck[data-index="0"]')
+      const d1 = document.querySelector('.switcher-deck-group .switcher-card.is-deck[data-index="1"]')
+      window.__r16.push({
+        p: window.__system.switcherProgress,
+        gNone: !g || getComputedStyle(g).transform === 'none',
+        follow: follow ? rect(follow) : null,
+        d0: d0 ? rect(d0) : null,
+        d1: d1 ? rect(d1) : null
+      })
+      requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  })
+  {
+    const y0 = 925
+    await page.mouse.move(215, y0)
+    await page.mouse.down()
+    for (let i = 1; i <= 10; i++) {
+      await page.mouse.move(215, y0 - i * 20, { steps: 1 })
+      await page.waitForTimeout(12)
+    }
+    await page.waitForTimeout(500)
+    await page.mouse.up()
+    await page.waitForTimeout(1400)
+  }
+  const r16 = await page.evaluate(() => {
+    window.__r16Stop = true
+    return window.__r16
+  })
+
+  /* ① 群组映射不变量：跟手卡在场 & 前卡已渲染的每一帧 */
+  const mapFrames = r16.filter((f) => f.follow && f.d0)
+  const maxDx = mapFrames.length ? Math.max(...mapFrames.map((f) => Math.abs(f.d0.x - f.follow.x))) : 999
+  const maxDw = mapFrames.length ? Math.max(...mapFrames.map((f) => Math.abs(f.d0.w - f.follow.w))) : 999
+  check(
+    '第十六轮·需求①地基：跟手卡在场期间，群组变换必须让 deck 前卡与跟手卡【横向逐位重合】' +
+      '（改前前卡恒钉在槽位 77.5 / 275，跟手卡在 65.5 / 299.8 ⇒ Δx 达 45px）',
+    mapFrames.length >= 20 && maxDx <= 1 && maxDw <= 1,
+    `样本 ${mapFrames.length} 帧 · max|Δx|=${maxDx.toFixed(2)}px max|Δw|=${maxDw.toFixed(2)}px（期望 ≤1px）`
+  )
+
+  /* ② 比例契约 + ③ 纵向中心：取「停驻期尾巴」（邻居入场已跑完、手指仍按住） */
+  const holdFrames = r16.filter((f) => f.follow && f.d1 && f.p > 0.5 && f.p < 1)
+  const tail = holdFrames.slice(-16)
+  const ratios = tail.map((f) => f.d1.w / f.follow.w)
+  const rLo = ratios.length ? Math.min(...ratios) : 0
+  const rHi = ratios.length ? Math.max(...ratios) : 0
+  check(
+    '第十六轮·需求①：停驻期邻居卡(idx=1) 视觉宽 / 跟手卡视觉宽 必须收敛到 deck 契约 0.94' +
+      '（改前实测 0.863 —— 邻居被钉死在「落位后」的绝对尺寸 258.5，与手里的卡脱钩）',
+    tail.length >= 8 && rLo >= 0.92 && rHi <= 0.96,
+    `样本 ${tail.length} 帧 · 比值 ${rLo.toFixed(3)}~${rHi.toFixed(3)}（期望 0.92~0.96，契约 0.94）`
+  )
+  const cyGap = tail.length
+    ? Math.max(...tail.map((f) => Math.abs(f.d1.y + f.d1.h / 2 - (f.follow.y + f.follow.h / 2))))
+    : 999
+  check(
+    '第十六轮·需求①：邻居卡的【垂直中心】必须与跟手卡重合（Ricky 原话里「还更靠下」那一半）',
+    tail.length >= 8 && cyGap <= 2,
+    `样本 ${tail.length} 帧 · max|Δcy|=${cyGap.toFixed(2)}px（期望 ≤2px）`
+  )
+
+  /* ④ 交接后退化为单位阵 + 终位仍是原契约（回归护栏：别把群组变换留在 deck 模式里） */
+  const settled16 = r16.slice(-20)
+  const gLeak = settled16.some((f) => !f.gNone)
+  const fin16 = await page.evaluate(() => {
+    const r = (el) => {
+      const b = el.getBoundingClientRect()
+      return [+b.x.toFixed(1), +b.y.toFixed(1), +b.width.toFixed(1), +b.height.toFixed(1)]
+    }
+    const g = document.querySelector('.switcher-deck-group')
+    const out = {}
+    out.gTransform = g ? getComputedStyle(g).transform : null
+    for (const el of document.querySelectorAll('.switcher-deck-group .switcher-card.is-deck')) {
+      out[el.dataset.index] = r(el)
+    }
+    return out
+  })
+  check(
+    '第十六轮·回归护栏：交接完成后群组变换必须退化为单位阵，且终位严格等于 deck 契约' +
+      '（前卡 77.5,155,275,596；邻居 25.3,172.9,258.5,560.2 —— 群组变换不得泄漏到 deck 模式）',
+    !gLeak &&
+      fin16.gTransform === 'none' &&
+      JSON.stringify(fin16['0']) === JSON.stringify([77.5, 155, 275, 596]) &&
+      JSON.stringify(fin16['1']) === JSON.stringify([25.3, 172.9, 258.5, 560.2]),
+    `group=${fin16.gTransform} deck0=${JSON.stringify(fin16['0'])} deck1=${JSON.stringify(fin16['1'])} · 最近 20 帧出现非单位阵=${gLeak}`
+  )
+
+  /* ⑤ 回归护栏：桌面路径（没有跟手卡）全程不得出现群组变换 ——
+     改前首版 followGeom 缺 activeAppId 守卫，桌面入场上会被凭空作用一次。 */
+  /* ⚠️ 前置：桌面路径要求「activeAppId = null 且 recentApps > 0」——
+     dismissAll 会清空 recentApps，那样手势不产生任何进度、断言退化成空样本（踩过一次）。 */
+  await page.evaluate(() => window.__system.dismissAll())
+  await page.waitForTimeout(400)
+  for (const id of ['camera', 'phone']) {
+    await page.evaluate((i) => window.__system.openApp(i), id)
+    await page.waitForTimeout(220)
+    await page.evaluate(() => window.__system.exitSwitcherToHome())
+    await page.waitForTimeout(260)
+  }
+  const deskPre = await page.evaluate(() => ({
+    app: window.__system.activeAppId,
+    recent: [...window.__system.recentApps]
+  }))
+  await page.evaluate(() => {
+    window.__r16b = []
+    window.__r16bStop = false
+    const tick = () => {
+      if (window.__r16bStop) return
+      const g = document.querySelector('.switcher-deck-group')
+      window.__r16b.push({
+        p: window.__system.switcherProgress,
+        none: !g || getComputedStyle(g).transform === 'none',
+        follow: !!document.querySelector('.switcher-card.is-follow')
+      })
+      requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  })
+  {
+    const y0 = 925
+    await page.mouse.move(215, y0)
+    await page.mouse.down()
+    for (let i = 1; i <= 12; i++) {
+      await page.mouse.move(215, y0 - i * 20, { steps: 1 })
+      await page.waitForTimeout(12)
+    }
+    await page.mouse.up()
+    await page.waitForTimeout(1000)
+  }
+  const r16b = await page.evaluate(() => {
+    window.__r16bStop = true
+    return window.__r16b
+  })
+  const moved = r16b.filter((f) => f.p > 0.02)
+  const leaked = moved.filter((f) => !f.none)
+  check(
+    '第十六轮·回归护栏：桌面路径（无跟手卡）上滑进多任务的【全程】不得出现群组变换' +
+      '（否则整组会被第二次缩放；护栏对应 followGeom 里的 activeAppId 短路）',
+    deskPre.app === null && deskPre.recent.length > 0 && moved.length >= 10 && leaked.length === 0,
+    `前置 activeAppId=${deskPre.app} recent=${JSON.stringify(deskPre.recent)} · ` +
+      `采样 ${r16b.length} 帧 / 进度>0 的 ${moved.length} 帧 · 出现群组变换的帧数=${leaked.length}（期望 0）`
+  )
+
+  /* ══════════ 第二十二轮 · 快甩落到【最后一张卡】后的「不停颤抖」（Ricky 2026-09-16 复测）══════════
+   *
+   * Ricky 原话：「有改善，但是还是会出现。抖动发生在快速滑动松手后到达最后一张卡片，卡片不停颤抖」。
+   * （「有改善」= 第二十一轮的坐标连续性守卫确实修掉了「两指被合并成一条坐标流」那一半；
+   *   剩下的这一半与输入设备无关，是【越界释放】本身的力学错误。）
+   *
+   * 量测（/tmp/vwork/r22/probe-apppath.mjs，430×932 / 5 张卡 / 应用内路径）：
+   *   · 快甩落在【中间某张卡】：松手点在目标【之下】（cur = 3.6845 < 目标 4）⇒
+   *     峰值过冲 0.07 层 = 16px —— 与第十一轮量到的「快甩 +12.6px 动量」一致，是需求④要的手感；
+   *   · 快甩落在【最后一张卡】：`deckClampFocus` 的正侧橡皮筋把松手点顶到 `last` **之上**
+   *     （实测 cur = 4.2246 ~ 4.5241），而目标被 `Math.min(last, idx)` 钉回 `last`
+   *     ⇒ 注入的 vFocus 与「当前 → 目标」**反向**，settleFocus 却照旧把它注入 ios-deck
+   *     ⇒ 峰值 4.343 / 4.5759 = **0.34~0.58 层 = 80~135px 的越界冲程**，再整段拉回来。
+   *     单次快甩冲程 0.3628 层(85px)、松手后 ~600ms 才落定；
+   *     连续快甩（14 次 / 300ms）下 spring 运行 6149ms / 总时长 6299ms
+   *     —— 卡片**全程都在这 100px 量级上来回晃**，这就是「不停颤抖」。
+   *   · 左边界为什么「好了」（交叉验证）：`cur < 0` 时 `poseFocus = max(0, …)` 把卡片位置钉死，
+   *     越界量改走【已限速】的挤压通道（SQ_MAX_STEP 0.09/帧）⇒ 注入的越界速度在屏幕上
+   *     没有位移出口。右边界走位移通道、1:1 全额可见 ⇒ 只有右边界表现为「颤抖」。
+   *
+   * 修法：判据下沉为纯函数 `switcherDeck.deckFlingOutward(cur, idx, vFocus, n)`
+   *   ——「越界区 + 速度指向目标之外」⇒ 不注入动量，走 ios-deck-settle（ζ=1.0、v0 = 0）。
+   *   平面内（0 ≤ cur ≤ last）恒 false ⇒ 需求④的动量与参考视频 V4 的过冲回弹逐位不变。
+   *   自省口：`window.__switcherSettle.outward`。
+   *
+   * ⚠️ 本用例必须用【真实触摸 + 真实速度】：
+   *   · `synthDrag` 是 pointerType 'mouse'、且分步时长由 vPx 反推，构造不出「快速甩」；
+   *   · 而这条缺陷的触发条件里【速度方向】是自变量（vFocus 必须朝越界方向）——
+   *     慢放手（v≈0）走的是非快甩分支，根本不进这条路径（那正是「停住再松手不抖」的原因）。
+   *   所以先用慢速触摸走到最后一卡（每步 40ms ⇒ ≈1.9 层/秒 < FLICK_V_MIN 2.6，不构成快甩），
+   *   再在同一张卡上做一次 5 笔 × 30px / 9ms（≈3300px/s ⇒ 必判快甩）的真实触摸快甩。
+   * ⚠️ 判据用【松手那一刻的焦点】当上界（`settle.cur`），而不是拍一个绝对像素数：
+   *   冲程上界 = 手指真的把卡拖到哪儿（跟手，用户没抱怨），越界外甩只允许【不再多走】。 */
+  {
+    const openFiveAndSwitcher = async () => {
+      await page.evaluate(() => { const s = window.__system; s.exitSwitcherToHome(); s.dismissAll() })
+      await page.waitForTimeout(260)
+      for (const id of ['calculator', 'files', 'notes', 'camera', 'clock']) {
+        await page.evaluate((a) => window.__system.openApp(a), id)
+        await page.waitForTimeout(420)
+      }
+      await page.evaluate(() => window.__system.openSwitcher())
+      await page.waitForTimeout(900)
+    }
+
+    /** walkTo：先用【慢速】触摸走到第几张卡（0 = 不走，直接在 0 号卡上甩）。
+     *  之后在同一位置做一次真实快甩，并按【相位】逐帧记「渲染出来的焦点」。
+     *  相位在页面内打标 ⇒ 与 pointerup 严格同源，不像 CDP 方案那样要靠时间猜测。 */
+    const synthLastFlick = (walkTo, { steps = 5, stepMs = 9, px = 30 } = {}) =>
+      page.evaluate(
+        async ({ walkTo, steps, stepMs, px, span }) => {
+          const root = document.querySelector('.app-switcher')
+          if (!root) return { error: 'no .app-switcher' }
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+          const mk = (t, x) =>
+            new PointerEvent(t, {
+              bubbles: true, cancelable: true, composed: true, pointerId: 5,
+              pointerType: 'touch', isPrimary: true,
+              buttons: t === 'pointerup' ? 0 : 1, clientX: x, clientY: 500
+            })
+          const x0 = 70
+          const rec = []
+          let run = true
+          let ph = 'idle'
+          const sample = () => {
+            if (!run) return
+            const cs = [...document.querySelectorAll('.switcher-card.is-deck')]
+            if (cs.length) {
+              const pairs = cs.map((c) => [+c.dataset.index, +c.dataset.depth])
+              const best = pairs.reduce((a, b) => (Math.abs(b[1]) < Math.abs(a[1]) ? b : a))
+              rec.push({ v: +(best[0] - best[1]).toFixed(4), ph })
+            }
+            requestAnimationFrame(sample)
+          }
+          requestAnimationFrame(sample)
+
+          /* ── 阶段 1：慢速走到目标卡（每步 40ms、约 18px ⇒ ≈1.9 层/秒，判不出快甩）── */
+          ph = 'walk'
+          for (let g = 0; g < walkTo; g++) {
+            root.dispatchEvent(mk('pointerdown', x0))
+            await sleep(30)
+            const nSteps = 13
+            for (let i = 1; i <= nSteps; i++) {
+              root.dispatchEvent(mk('pointermove', x0 + (span * i) / nSteps))
+              await sleep(40)
+            }
+            await sleep(200) // 停住 ⇒ 松手速度 ≈ 0（非快甩分支）
+            root.dispatchEvent(mk('pointerup', x0 + span))
+            await sleep(650)
+          }
+          const walked = window.__switcherSettle ? window.__switcherSettle.idx : null
+
+          /* ── 阶段 2：同一张卡上的真实快甩（steps 笔 × px / stepMs ⇒ 远高于 FLICK_V_MIN）── */
+          window.__switcherSettle = null
+          ph = 'flick'
+          root.dispatchEvent(mk('pointerdown', x0))
+          await sleep(22)
+          for (let i = 1; i <= steps; i++) {
+            root.dispatchEvent(mk('pointermove', x0 + px * i))
+            await sleep(stepMs)
+          }
+          root.dispatchEvent(mk('pointerup', x0 + px * steps))
+          ph = 'after'
+          await sleep(1800)
+          run = false
+
+          const after = rec.filter((r) => r.ph === 'after').map((r) => r.v)
+          let rev = 0
+          let prevD = null
+          for (let i = 1; i < after.length; i++) {
+            const d = after[i] - after[i - 1]
+            if (prevD != null && d * prevD < 0 && Math.abs(d) > 0.008 && Math.abs(prevD) > 0.008) rev++
+            prevD = d
+          }
+          return {
+            walked,
+            settle: window.__switcherSettle,
+            afterMax: after.length ? +Math.max(...after).toFixed(4) : null,
+            afterMin: after.length ? +Math.min(...after).toFixed(4) : null,
+            afterEnd: after.length ? after[after.length - 1] : null,
+            rev,
+            nAfter: after.length,
+            apps: window.__system.recentApps.length
+          }
+        },
+        { walkTo, steps, stepMs, px, span: SPAN }
+      )
+
+    await openFiveAndSwitcher()
+    const lastIdx = await page.evaluate(() => Math.max(0, window.__system.recentApps.length - 1))
+    const lf = await synthLastFlick(lastIdx)
+    /* 前置：确实走完了、且最后一卡确实是最后一卡（否则整条用例测的就不是这个位置） */
+    check('第二十二轮·前置：慢速触摸走到的末卡 = recentApps 的最后一张',
+      lastIdx >= 3 && lf.walked === lastIdx && !!lf.settle && lf.settle.idx === lastIdx,
+      `recentApps=${lf.apps} 张 · 走完落点=${lf.walked} · 快甩判定 idx=${lf.settle && lf.settle.idx}`)
+    /* 第二十四轮：原来这里断言 `settle.outward === true`（第二十二轮的越界外甩判据）。
+       那条判据已随「注入初速度」这个动作一起删除 —— 一阶模型下松手只是把 target 钉到整卡，
+       「越界释放」没有速度可注入。核心保障改由下面两条守：不额外越界 + 严格单调收回。 */
+    check('第二十四轮·前置：末卡快甩确实被判成【快甩】且落点在末卡',
+      !!lf.settle && lf.settle.isFlick === true && lf.settle.idx === lastIdx,
+      `settle=${JSON.stringify(lf.settle)}`)
+    check('第二十二轮·需求：越界外甩不再把卡片甩出去 —— 冲程 ≤ 松手点（改前额外越界 ≈0.14 层 ≈ 33px）',
+      lf.afterMax != null && !!lf.settle && lf.afterMax - lastIdx <= lf.settle.cur - lastIdx + 0.02,
+      `松手点 ${lf.settle && lf.settle.cur} 层 · 松手后最高 ${lf.afterMax} 层 · ` +
+        `额外越界 ${lf.afterMax != null && lf.settle ? (lf.afterMax - lf.settle.cur).toFixed(4) : 'n/a'} 层（期望 ≤ 0.02）`)
+    check('第二十二轮·需求：松手后严格单调收回（临界阻尼、反号 0 次）',
+      lf.nAfter >= 60 && lf.rev === 0 && lf.afterMin != null && lf.afterMin >= lastIdx - 0.06,
+      `松手后 ${lf.nAfter} 帧 · 反号 ${lf.rev} 次 · 最低 ${lf.afterMin} 层（下界 ≈ 末卡 ${lastIdx}）`)
+    check('第二十二轮·需求：最终落定在最后一卡（不再「不停颤抖」）',
+      Math.abs(lf.afterEnd - lastIdx) < 0.02,
+      `终位 ${lf.afterEnd} 层（目标 ${lastIdx}）`)
+
+    /* 对照：同一套输入落在【中间某张卡】上必须仍翻过一张 ——
+       第二十四轮起「过冲」被模型整体取消（一阶系统数学上不过冲），所以这里的判据从
+       「松手后越过整卡边界」改为「确实翻过一张 + 到位即停」。这是本轮明确接受的取舍：
+       Ricky 的要求是「到终点像绳子绷直了立即停止」，而不是保留回弹。 */
+    await openFiveAndSwitcher()
+    const ip = await synthLastFlick(0)
+    check('第二十四轮·对照：平面内的快甩仍翻过整卡（动量需求不变，只是到位即停、不再过冲）',
+      !!ip.settle && ip.settle.isFlick === true && ip.settle.idx >= 1 &&
+        ip.afterMax != null && ip.afterMax >= ip.settle.idx - 0.02,
+      `settle=${JSON.stringify(ip.settle)} · 松手后最高 ${ip.afterMax} 层（须 ≥ ${ip.settle && ip.settle.idx}）`)
+  }
+
+  /* ══════════ 第二十三轮 · 触控板 deltaX 的【反向死区】（Ricky 2026-09-16：「无论左滑右滑都开始抖」）══════════
+   *
+   * ## 定位（完整量测在 /tmp/vwork/r23/）
+   * 1. **先定输入设备**（这一步推翻了我上一轮的头号嫌疑）：录屏
+   *    `tOS_Prototype_20260916_162059.mp4` 里用光标模板逐帧匹配 ⇒ **光标在整段拖动期恒定在
+   *    (379,839)、极差 0px**（含卡片移动了 226px 的那 200ms）⇒ 用户用的是**触控板**。
+   *    触控板双指划**不产生任何 pointer 事件** ⇒ 该录屏里唯一能驱动卡片的是 wheel 通道。
+   *    而第二十二轮改的 `settleFocus` 只有指针路径会调（`endWheel` 走 `focusToIndex`）
+   *    ⇒ **结构上够不着它**，本轮回归与第二十二轮无关（该 commit 另已单变量证明为平面内 no-op）。
+   * 2. 抖动 signature（真实内容 30fps，已剔除 69.2% 的录屏重复帧）：卡片左缘
+   *       155 145 149 141 145 138 138 136 139 135 138 134 136
+   *    = 收敛（150→136）之上叠加 **±5 物理px(≈2.5 CSS px)、周期恰好 2 个内容帧(66ms≈15Hz)、
+   *      幅度递减**的摆动。对照实验（垃圾桶按钮 / 背景壁纸左右带 / 状态栏）位移**恒为 0** ⇒ 非录屏伪影；
+   *    多阈值(120/160/200/230)给出的边缘逐帧一致(±1px) ⇒ 卡体在动，不是阴影/模糊在抖。
+   * 3. 根因：`onWheel` 的 `focusSnap(wheelAcc − px/span)` 把 deltaX **零死区、零限速、1:1 直写**
+   *    进 focus ⇒ 触控板动量收尾 / 双指不平行产生的 deltaX 小幅反号被原样放大。
+   *
+   * ## 本区块守住两条，缺一即回归
+   *   ① 同向仍 **1:1 跟手，不许被削**（第七轮契约，也是上面三条既有 wheel 用例的前提）；
+   *   ② 反向的小幅噪声 **不许移动卡片**。
+   *
+   * ⚠️ 输入必须在【同一个 JS 任务】里派发完并读回：
+   *    跨 `page.evaluate` 会引入真实时间流逝，WHEEL_IDLE(140ms) 的吸附可能已经触发
+   *    （wheelAcc 被清空、滤波状态重建）⇒ 基准漂移 ⇒ 假 FAIL。
+   */
+  {
+    const openFiveAndSwitcher = async () => {
+      await page.waitForTimeout(240) // 等上一子用例的 140ms 吸附定时器走完，避免跨用例串味
+      await page.evaluate(() => { const s = window.__system; s.exitSwitcherToHome(); s.dismissAll() })
+      await page.waitForTimeout(260)
+      for (const id of ['calculator', 'files', 'notes', 'camera', 'clock']) {
+        await page.evaluate((a) => window.__system.openApp(a), id)
+        await page.waitForTimeout(420)
+      }
+      await page.evaluate(() => window.__system.openSwitcher())
+      await page.waitForTimeout(900)
+    }
+    /** 在**同一个 JS 任务**里派发整串 wheel，逐笔读回 focus。
+     *  返回 [{dx, focus}, ...]，第 0 项是初始值。
+     *  deltaX 符号与触控板一致（自然滚动：双指往右 ⇒ deltaX < 0 ⇒ 焦点增大）。 */
+    const wheelProbe = (list) =>
+      page.evaluate((l) => {
+        const t = document.querySelector('.app-switcher')
+        if (!t) return { error: 'no .app-switcher' }
+        const S = t.__vueParentComponent.setupState
+        const fire = (dx) =>
+          t.dispatchEvent(new WheelEvent('wheel', {
+            bubbles: true, cancelable: true, composed: true,
+            deltaX: dx, deltaY: 0, deltaMode: 0, clientX: 215, clientY: 500
+          }))
+        /* 第二十四轮：位置改由 rAF 推进器写 ⇒ **同一个 JS 任务里 focus 不会变**
+           （要等下一帧）。所以断言一律读 `motion.target` = 输入累积出的【指令位置】，
+           它在事件同步路径上就更新了。focus 一并读回，仅供诊断。 */
+        /* 模型级不变量诊断：|累积器目标 − 已提交位置| 必须 ≤ SUBMIT_PX。
+           wheelInput 是 script setup 里的 let 绑定（dev 模式 setupState 带 getter），
+           读得到就读、读不到给 null —— ② 把 null 当「无诊断」，不制造假 FAIL。 */
+        const gapOf = () => {
+          try {
+            const w = S.wheelInput
+            return w && w.acc != null ? w.target - w.acc : null
+          } catch { return null }
+        }
+        const out = [{ dx: null, target: S.motion.target, focus: S.focus, gap: gapOf() }]
+        for (const dx of l) {
+          fire(dx)
+          out.push({ dx, target: S.motion.target, focus: S.focus, gap: gapOf() })
+        }
+        return { out }
+      }, list)
+
+    /* ① 同向 1:1 契约：单笔 60px 必须精确走 60/span 层（阈值只允许作用在【反向】上） */
+    await openFiveAndSwitcher()
+    const A = await wheelProbe([-60])
+    const Aobs = A && A.out ? A.out : null
+    check('第二十四轮·前置：干净态焦点 = 0（否则下面的位移断言没有基准）',
+      !!Aobs && Math.abs(Aobs[0].target) < 0.02, A.error ? A.error : `target=${Aobs && Aobs[0].target}`)
+    check('第二十四轮·契约：同向单笔仍 1:1（60px ⇒ 60/span 层，未被 accumulate 削掉）',
+      !!Aobs && Math.abs((Aobs[1].target - Aobs[0].target) - 60 / SPAN) < 1e-6,
+      A.error ? A.error : `Δ=${((Aobs[1].target - Aobs[0].target) * SPAN).toFixed(4)}px（期望 60）`)
+
+    /* ⚠️ 下面三条必须【各自从干净的累积器】起算：
+       140ms 的 WHEEL_IDLE 之后 endWheel 会把 wheelInput 置空，所以每条之前先静置 220ms。
+       否则上一条留下的 1px 滞后会污染基准 —— 实测（不静置的版本）③ 与 ④ 的读数各差 1px，
+       差值恰好就是这 1px 的账，看起来像「实现少了 1px」，其实是测量基准被带脏了。 */
+    /* 静置 400ms（原 220ms）。220ms 时上一条用例的一阶收尾还会剩 ~3.8px 未到零
+       （SETTLE_TAU_MS=60 ⇒ 3τ=180ms 到 95%，余量按 e^(−t/60) 衰减）。
+       平台的 min/max 对常量偏移免疫，所以这不是正确性前提；但让起点落到「收尾真正完成」
+       能让平台的层值落在干净的二进制小数上，读数最稳（实测 /tmp/vwork/r24/probe-plateau.mjs：
+       干净起点下平台差 = 0.004278074866 层 × 233.75 = 【严格 1.000000000000px】）。 */
+    const wheelIdleFlush = () => page.waitForTimeout(400)
+
+    /* ② 录屏实测噪声幅度：反向 ±3px 交替 8 个来回 ⇒ 残摆不得超过 SUBMIT_PX（1px）
+       ⚠️⚠️ 统计窗口【只能覆盖交替平台】，绝不能把起手那笔 −60px 算进来。
+           −60px 是「先离开边界」的一个【台阶】（一次净位移，也是整串里唯一一笔会真
+           改变卡片位置的输入），不是噪声。把它的读数放进 min/max，量到的是台阶自身的
+           落差 ⇒ 假 FAIL 恰好 2.0000px。
+           逐笔铁证 /tmp/vwork/r24/probe-plateau.mjs（干净起点、12 位小数）：
+                lead = −60px 起手 · 单笔 target 步长 = 严格 ±3.000000000px
+                gap = |target − acc| = 严格 ±1.000000000px
+                平台层值 = 0.248128342246 / 0.252406417112
+              ⇒ 残摆 = 步长 − 2×SUBMIT_PX = 3 − 2 = 【1.000000000000px】，
+                 这是模型的精确推论（不是「约等于 1」），所以窗口对齐后判据可以贴到 1px。
+           平台上的 min/max 对【任何常量偏移免疫】—— 所以上一条用例没跑完的收尾余量
+           也不会污染这个读数。
+           ⚠️ 这个窗口不属于「环境抖动」那一类：窗口对齐错了，任何合法实现都会读到 2px。 */
+    {
+      await wheelIdleFlush()
+      const seq = [-60]
+      for (let i = 0; i < 8; i++) seq.push(3, -3)
+      const B = await wheelProbe(seq)
+      const plat = B.out.slice(2) // 丢掉 out[0]（初始基准）与 out[1]（起手台阶）
+      let mn = plat[0].target
+      let mx = plat[0].target
+      for (const o of plat) { mn = Math.min(mn, o.target); mx = Math.max(mx, o.target) }
+      const wob = (mx - mn) * SPAN
+      /* 比残摆更根本的一条：滞后跟随器的可证不变量 |target − acc| ≤ SUBMIT_PX 恒成立
+         （残摆 ≤ 1px 只是它的推论）。读不到 wheelInput 时降级为无诊断，不算失败。
+         残摆本身留 0.05px 的浮点灰尘容差：理论的 1.000000000000px 要经过
+         ×span（层→px）与 e2e 侧 SPAN（由 .screen 实测宽度反推）两次不同来源的换算，
+         这条判据要区分的对照量级是第二十三轮前的 6px 全幅摆动 vs 死区版的 0px，
+         0.05 的余量不影响它抓住任何真实回归。 */
+      const gapMax = B.out.some((o) => o.gap == null)
+        ? null
+        : B.out.reduce((a, o) => Math.max(a, Math.abs(o.gap)), 0)
+      check(`第二十四轮·需求：反向 ±3px 交替 8 个来回的残摆 ≤ ${MOTION.SUBMIT_PX}px（录屏实测噪声 ±2.5px）`,
+        wob <= MOTION.SUBMIT_PX + 0.05 && (gapMax == null || gapMax <= MOTION.SUBMIT_PX + 1e-9),
+        `交替平台残摆 ${wob.toFixed(6)}px（期望 ${MOTION.SUBMIT_PX}，容差 0.05）· 未提交量峰值 ` +
+        `${gapMax == null ? 'n/a' : gapMax.toFixed(6) + 'px'}（≤ ${MOTION.SUBMIT_PX}）` +
+        `· 第二十三轮死区版残摆是 0，但代价是 7px 的可感知黏滞`)
+    }
+
+    /* ③ 阈值边界：滞后跟随器的可证不变量是 |累计输入 − 已提交| ≤ SUBMIT_PX
+          ⇒「反向 R 只走 R − 1」。这里量 R = 2（事件级最小可感知量）与 R = 3。
+       ⚠️ 不能像第一版那样用 R = 1px 去测「恰好阈值 ⇒ 不动」：
+          onWheel 开头有一条【事件级】门槛 `Math.abs(px) < 2 ⇒ return`（第七轮起就有），
+          1px 的 wheel 事件根本进不来（会静默丢弃）⇒ 那条断言测的是「事件被丢了」，
+          而不是「累积器判掉了一个物理上表达不出来的位移」。
+          累积器自己的 1px 边界由单测直接覆盖（tests/switcherMotion.test.js）。 */
+    {
+      await wheelIdleFlush()
+      const C = await wheelProbe([-100, 2])
+      const moved2 = (C.out[1].target - C.out[2].target) * SPAN
+      await wheelIdleFlush()
+      const C3 = await wheelProbe([-100, 3])
+      const moved3 = (C3.out[1].target - C3.out[2].target) * SPAN
+      check('第二十四轮·需求：反向只滞后一个 SUBMIT_PX（2px ⇒ 走 1px · 3px ⇒ 走 2px）',
+        Math.abs(moved2 - 1) < 1e-6 && Math.abs(moved3 - 2) < 1e-6,
+        `反向 2px 走了 ${moved2.toFixed(4)}px（期望 1）· 反向 3px 走了 ${moved3.toFixed(4)}px（期望 2）`)
+    }
+
+    /* ④ 阈值不是「卡死」：真反转（回拨 120px）必须生效，且只滞后一个 SUBMIT_PX */
+    {
+      await wheelIdleFlush()
+      const D = await wheelProbe([-120, 120])
+      const k0 = D.out[1].target
+      const k1 = D.out[2].target
+      check(`第二十四轮·需求：真反转必须生效（回拨 120px ⇒ 走 ${120 - MOTION.SUBMIT_PX}px，只滞后一个阈值）`,
+        Math.abs((k0 - k1) * SPAN - (120 - MOTION.SUBMIT_PX)) < 1e-6,
+        `反向位移 ${((k0 - k1) * SPAN).toFixed(3)}px（期望 ${120 - MOTION.SUBMIT_PX}）`)
+    }
+
+    /* ⑤ 【本轮的核心保障】松手收尾必须是【严格单调、零过冲】——
+         这是一阶位置模型（速度 = 剩余距离/时间常数）的数学推论，
+         也是「快甩到边界不停颤抖」在结构上不可能再发生的原因。 */
+    await openFiveAndSwitcher()
+    {
+      const settle = await page.evaluate(() => new Promise((res) => {
+        const t = document.querySelector('.app-switcher')
+        const S = t.__vueParentComponent.setupState
+        t.dispatchEvent(new WheelEvent('wheel', {
+          bubbles: true, cancelable: true, composed: true,
+          deltaX: -120, deltaY: 0, deltaMode: 0, clientX: 215, clientY: 500
+        }))
+        const seq = [S.focus]
+        let prev = S.focus
+        let prevD = null
+        let rev = 0
+        const t0 = performance.now()
+        const tick = () => {
+          const x = S.focus
+          const d = x - prev
+          if (Math.abs(d) > 0.004) {
+            if (prevD != null && d * prevD < 0) rev += 1
+            prevD = d
+            seq.push(x)
+          }
+          prev = x
+          if (performance.now() - t0 < 1200) requestAnimationFrame(tick)
+          else res({ peak: Math.max(...seq), end: x, rev, n: seq.length, target: S.motion.target })
+        }
+        requestAnimationFrame(tick)
+      }))
+      const over = (settle.peak - settle.end) * SPAN
+      check('第二十四轮·需求：松手收尾严格单调、零过冲（一阶模型的数学保证）',
+        settle.rev === 0 && over <= 1.5,
+        `收尾段 ${settle.n} 帧 · 反号 ${settle.rev} 次 · 过冲 ${over.toFixed(2)}px · 终位 ${settle.end.toFixed(4)}`)
+      check('第二十四轮·需求：收尾落点 = 最近整卡（-120px ⇒ 0.513 层 ⇒ 落 1 号卡）',
+        Math.abs(settle.target - 1) < 1e-9, `target=${settle.target}（期望 1）`)
+    }
+
+    /* ⑥ 既有契约复述：轻拨 90px（0.385 层，不足半张）仍弹回原卡 */
+    await openFiveAndSwitcher()
+    await wheelProbe([-15, -15, -15, -15, -15, -15])
+    await page.waitForTimeout(900)
+    {
+      const lite = await page.evaluate(() => {
+        const r = document.querySelector('.app-switcher')
+        const S = r.__vueParentComponent.setupState
+        return { x: +S.focus, target: S.motion.target }
+      })
+      check('第二十四轮·契约：轻拨 90px 仍弹回原卡（阈值只作用于反向，同向 1:1 不变）',
+        Math.round(lite.x) === 0 && Math.abs(lite.target) < 1e-9,
+        `落点 focus=${lite.x} target=${lite.target}`)
+    }
+  }
+
+  await resetHome()
 }
 
 check('无控制台报错', errs.length === 0, errs.slice(0, 3).join(' | '))

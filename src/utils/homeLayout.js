@@ -12,21 +12,23 @@ const clamp = (min, value, max) => Math.max(min, Math.min(max, value))
 export function createHomeGridProfile({ width = 360, height = 788, safeTop = 54, safeBottom = 34 } = {}) {
   const viewportWidth = Math.max(240, Number(width) || 360)
   const viewportHeight = Math.max(420, Number(height) || 788)
-  const minimumInset = 16
-  const minimumGap = 12
-  const iconSize = clamp(48, (viewportWidth - minimumInset * 2 - minimumGap * 3) / HOME_COLUMNS, 60)
-  const gapX = clamp(minimumGap, (viewportWidth - minimumInset * 2 - iconSize * HOME_COLUMNS) / 3, 32)
+  const iconSize = clamp(48, Math.round(viewportWidth * 0.1528), 58)
+  const idealInset = clamp(18, Math.round(viewportWidth * 0.0778), 32)
+  const remaining = viewportWidth - idealInset * 2 - iconSize * HOME_COLUMNS
+  const gapX = clamp(14, Math.round(remaining / 3), 32)
   const workspaceWidth = iconSize * HOME_COLUMNS + gapX * 3
   const insetX = (viewportWidth - workspaceWidth) / 2
-  const gapY = clamp(14, 14 + ((viewportHeight - 568) / 220) * 6, 20)
-  const dockHeight = iconSize + 32
-  const dockBottom = Math.max(20, (Number(safeBottom) || 34) - 6)
+  const labelHeight = 16
+  const heightRatio = clamp(0.75, (viewportHeight - safeTop - safeBottom) / (788 - 54 - 34), 1.2)
+  const gapY = clamp(14, Math.round(19 * heightRatio), 20)
+  const dockHeight = iconSize + 22
+  const dockBottom = Math.max(16, (Number(safeBottom) || 34) - 8)
   const dockTop = viewportHeight - dockBottom - dockHeight
-  const workspaceTop = (Number(safeTop) || 54) + 12
-  const workspaceBottom = Math.max(workspaceTop + 150, dockTop - 40)
+  const workspaceTop = (Number(safeTop) || 54) + 16
+  const workspaceBottom = Math.max(workspaceTop + 150, dockTop - 24)
   const workspaceHeight = workspaceBottom - workspaceTop
-  const largestDefaultItem = iconSize * 2 + gapX
-  const compactScale = clamp(.8, workspaceHeight / largestDefaultItem, 1)
+  const largestDefaultItem = (iconSize + gapX) * 2
+  const compactScale = clamp(.8, workspaceHeight / (largestDefaultItem * 1.8), 1)
 
   return {
     columns: HOME_COLUMNS,
@@ -36,10 +38,11 @@ export function createHomeGridProfile({ width = 360, height = 788, safeTop = 54,
     gapX,
     gapY,
     insetX,
+    labelHeight,
     compactScale,
     workspaceRect: { left: insetX, top: workspaceTop, right: insetX + workspaceWidth, bottom: workspaceBottom, width: workspaceWidth, height: workspaceHeight },
     dockRect: { left: 14, top: dockTop, right: viewportWidth - 14, bottom: viewportHeight - dockBottom, height: dockHeight },
-    indicatorY: dockTop - 20
+    indicatorY: dockTop - 22
   }
 }
 
@@ -49,12 +52,14 @@ export function homeItemMetrics(item, folders = {}, profile = createHomeGridProf
   const unit = profile.iconSize * scale
   const gapX = profile.gapX * scale
   const gapY = profile.gapY * scale
+  const labelHeight = (profile.labelHeight || 16) * scale
+  const appHeight = unit + labelHeight
+  const rowStride = appHeight + gapY
   const width = span.w * unit + (span.w - 1) * gapX
-  const appHeight = unit + 21 * scale
-  let height = appHeight
-  if (item?.type === 'widget') height = width
-  else if (item?.type === 'folder' && span.h > 1) height = span.h * appHeight + (span.h - 1) * gapY
-  return { spanX: span.w, spanY: span.h, width, height, unit, gapX, gapY }
+  const height = (span.h - 1) * rowStride + appHeight
+  const cardHeight = span.h === 1 ? unit : ((span.h - 1) * rowStride + unit)
+  const cardWidth = (span.w === 2 && span.h === 2) ? cardHeight : width
+  return { spanX: span.w, spanY: span.h, width, height, unit, gapX, gapY, cardWidth, cardHeight, rowStride, labelHeight }
 }
 
 function findSkylinePosition(bottoms, metrics, profile) {
@@ -102,7 +107,9 @@ export function layoutHomeOrder(order, items, folders = {}, profile = createHome
         spanX: metrics.spanX,
         spanY: metrics.spanY,
         w: metrics.spanX,
-        h: metrics.spanY
+        h: metrics.spanY,
+        cardWidth: metrics.cardWidth,
+        cardHeight: metrics.cardHeight
       }
       page.push(id)
       pageFrames[id] = frame

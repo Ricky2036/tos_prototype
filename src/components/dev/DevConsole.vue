@@ -526,20 +526,27 @@ function onToggleFineTune(enabled) {
           <span>{{ isFullscreen ? '退出全屏' : '全屏' }}</span>
         </button>
 
-        <!-- 亮灭屏动作按钮 -->
+        <!-- 灭屏/锁屏/亮屏三态动作按钮 -->
         <button
           class="pc-btn pc-btn-secondary"
-          @click="system.screenOn ? system.powerOff() : system.powerOn()"
-          :title="system.screenOn ? '灭屏' : '亮屏'"
-          aria-label="系统亮灭屏"
+          @click="system.togglePower()"
+          :title="system.powerButtonText"
+          :aria-label="'系统' + system.powerButtonText"
         >
-          <svg v-if="system.screenOn" class="pc-btn-icon pc-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          <!-- 1. 处于桌面或应用内：点击锁屏 (锁头图标) -->
+          <svg v-if="system.powerButtonAction === 'lock'" class="pc-btn-icon pc-icon-lock" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
           </svg>
-          <svg v-else class="pc-btn-icon pc-icon-power" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- 2. 处于锁屏界面：点击灭屏 (换回原版关机图标) -->
+          <svg v-else-if="system.powerButtonAction === 'powerOff'" class="pc-btn-icon pc-icon-power" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
           </svg>
-          <span>{{ system.screenOn ? '灭屏' : '亮屏' }}</span>
+          <!-- 3. 处于灭屏黑幕：点击亮屏 -->
+          <svg v-else class="pc-btn-icon pc-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <span>{{ system.powerButtonText }}</span>
         </button>
       </div>
     </div>
@@ -951,7 +958,25 @@ function onToggleFineTune(enabled) {
             <!-- 虚线分割 -->
             <div class="pc-divider-dashed"></div>
 
-            <!-- 区域 2：穆斯林闹钟时间模式切换卡片 -->
+            <!-- 区域 2：唤礼提醒 开关卡片 -->
+            <div class="pc-section">
+              <div class="pc-card-header" style="margin-bottom: 0;">
+                <span class="pc-card-title">唤礼提醒</span>
+                <label class="pc-switch-wrap">
+                  <input
+                    type="checkbox"
+                    :checked="prayerStore.adhanReminderEnabled"
+                    @change="prayerStore.setAdhanReminderEnabled($event.target.checked)"
+                  />
+                  <div class="pc-switch"></div>
+                </label>
+              </div>
+            </div>
+
+            <!-- 虚线分割 -->
+            <div class="pc-divider-dashed"></div>
+
+            <!-- 区域 3：穆斯林闹钟时间模式切换卡片 -->
             <div class="pc-section">
               <div class="pc-card-header">
                 <span class="pc-card-title">穆斯林闹钟</span>
@@ -1076,20 +1101,27 @@ function onToggleFineTune(enabled) {
                   <span>{{ isFullscreen ? '退出全屏' : '全屏' }}</span>
                 </button>
 
-                <!-- 亮灭屏动作按钮 -->
+                <!-- 灭屏/锁屏/亮屏三态动作按钮 -->
                 <button
                   class="pc-btn pc-btn-secondary"
-                  @click="system.screenOn ? system.powerOff() : system.powerOn()"
-                  :title="system.screenOn ? '灭屏' : '亮屏'"
-                  aria-label="系统亮灭屏"
+                  @click="system.togglePower()"
+                  :title="system.powerButtonText"
+                  :aria-label="'系统' + system.powerButtonText"
                 >
-                  <svg v-if="system.screenOn" class="pc-btn-icon pc-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                  <!-- 1. 处于桌面或应用内：点击锁屏 (锁头图标) -->
+                  <svg v-if="system.powerButtonAction === 'lock'" class="pc-btn-icon pc-icon-lock" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                   </svg>
-                  <svg v-else class="pc-btn-icon pc-icon-power" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <!-- 2. 处于锁屏界面：点击灭屏 (换回原版关机图标) -->
+                  <svg v-else-if="system.powerButtonAction === 'powerOff'" class="pc-btn-icon pc-icon-power" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
                   </svg>
-                  <span>{{ system.screenOn ? '灭屏' : '亮屏' }}</span>
+                  <!-- 3. 处于灭屏黑幕：点击亮屏 -->
+                  <svg v-else class="pc-btn-icon pc-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                  </svg>
+                  <span>{{ system.powerButtonText }}</span>
                 </button>
               </div>
             </div>
@@ -1501,7 +1533,25 @@ function onToggleFineTune(enabled) {
                     <!-- 虚线分割 -->
                     <div class="pc-divider-dashed"></div>
 
-                    <!-- 区域 2：穆斯林闹钟时间模式切换卡片 -->
+                    <!-- 区域 2：唤礼提醒 开关卡片 -->
+                    <div class="pc-section">
+                      <div class="pc-card-header" style="margin-bottom: 0;">
+                        <span class="pc-card-title">唤礼提醒</span>
+                        <label class="pc-switch-wrap">
+                          <input
+                            type="checkbox"
+                            :checked="prayerStore.adhanReminderEnabled"
+                            @change="prayerStore.setAdhanReminderEnabled($event.target.checked)"
+                          />
+                          <div class="pc-switch"></div>
+                        </label>
+                      </div>
+                    </div>
+
+                    <!-- 虚线分割 -->
+                    <div class="pc-divider-dashed"></div>
+
+                    <!-- 区域 3：穆斯林闹钟时间模式切换卡片 -->
                     <div class="pc-section">
                       <div class="pc-card-header">
                         <span class="pc-card-title">穆斯林闹钟</span>
@@ -1569,12 +1619,12 @@ function onToggleFineTune(enabled) {
 
 .pc-glow {
   position: absolute;
-  top: -80px;
-  right: -80px;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
-  filter: blur(40px);
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.3) 0%, transparent 60%);
+  border-radius: inherit;
   pointer-events: none;
 }
 
@@ -1611,12 +1661,24 @@ function onToggleFineTune(enabled) {
   vertical-align: middle;
 }
 
-.pc-icon-sun {
-  color: #fbbf24;
+/* 电源/锁屏/亮屏动作图标：默认无需增加差异化颜色（与常规按钮统一），点击交互（:active）时再染色 */
+.pc-icon-sun,
+.pc-icon-power,
+.pc-icon-lock {
+  color: currentColor;
+  transition: color 0.12s ease;
 }
 
-.pc-icon-power {
+.pc-btn:active .pc-icon-lock {
+  color: #38bdf8;
+}
+
+.pc-btn:active .pc-icon-power {
   color: #ef4444;
+}
+
+.pc-btn:active .pc-icon-sun {
+  color: #fbbf24;
 }
 
 /* ================= 截屏录屏两列操作按钮 ================= */
@@ -2269,6 +2331,9 @@ function onToggleFineTune(enabled) {
   align-items: center;
   justify-content: center;
   padding: 16px;
+  overflow: hidden;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 
 /* 移动端弹窗控制台 (尺寸布局完全同桌面版) */
@@ -2276,11 +2341,19 @@ function onToggleFineTune(enabled) {
   width: min(320px, calc(100vw - 32px));
   max-height: 90dvh;
   overflow-y: auto;
+  overflow-x: hidden !important;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
   pointer-events: auto;
   z-index: 100001;
   box-shadow:
     0 32px 80px rgba(0, 0, 0, 0.8),
     inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.modal-console::-webkit-scrollbar:horizontal {
+  display: none !important;
+  height: 0 !important;
 }
 
 .pc-close-btn {

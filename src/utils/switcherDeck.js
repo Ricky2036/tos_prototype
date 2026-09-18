@@ -264,6 +264,12 @@ export const DECK = {
    *   ✗ 只有 translate，没有缩放                  → ✓ 新增 SQUEEZE_SCALE_MAX 0.049
    *   ✗ 阶梯间距在挤压期不变                      → ✓ 新增 SQUEEZE_TIGHTEN 0.55 */
   SQUEEZE_SPAN: 0.35, // 达到满挤压所需的越界层数（0.35 层 ≈ 82px 手指行程）
+  /* 挤压的【死区】（层数）—— 第十七轮新增，见 deckSqueeze 的注释。
+     越界量小于它时挤压进度恒 0（不再是「一越过 0 就线性起步」）。
+     0.04 层 ≈ 9.4px 的【原始】越界量 ≈ 27px 手指行程（deckClampFocus 的 RUBBER 0.35 折算）。
+     取值只需覆盖「手指/动量在边界附近的抖动幅度」：实测 ±80px 的手抖折成越界
+     ±0.027 层，0.04 的窗口足够兜住，又小到肉眼分不出挤压起步晚了一点。 */
+  SQUEEZE_DEAD_ZONE: 0.04,
   /* 满挤压时整组等比缩小 4.9%（实测前卡高 654 → 622 = 0.951 ⇒ 1 − 0.951 = 0.049）。
      ⚠️ 堆叠卡原点是 0 0（左缘钉住）⇒ 缩小只把【右边缘】往左收，左缘不动。
         所以这一项负责原话里的「缩小底层卡片大小」，「漏出的多少」归 SQUEEZE_TIGHTEN。 */
@@ -489,9 +495,48 @@ export function deckVisible(a) {
  *   · 第九轮改成「只有整组左移」⇒ 又漏了缩放与阶梯收紧（Ricky 第十轮原话：
  *     「需要同时做横向挤压和缩放」）。
  * 副作用（第八轮修好、后续保留）：焦点被冻结在 0 ⇒ 层深恒 ≤ MAX_DEPTH ⇒ 最底部卡片不被剔除。
+ *
+ * ── 第十七轮：为什么必须给它加【死区 + smoothstep】──────────────────────────
+ * Ricky 原话：「横滑切换疯狂抖动。。。」（附 7.2s 录屏）。
+ *
+ * 症状（逐帧量测录像 /tmp/vwork/r17/，413 帧 VFR + 真实时间戳）：
+ *   · 整组卡片作为【刚体】左右抽动，单帧跳变 100~300 视频 px（= 48~144 CSS px），
+ *     且在 12~30ms 内【反号】—— 远高于任何弹簧的频率（本工程最硬的 ios-snappy
+ *     ω_n = 22.4 rad/s = 3.6Hz）⇒ 这不是动画，是【离散瞬移】；
+ *   · 同一段里前卡视觉宽从 275 变成 263（= 0.956）⇒ 挤压态（SQUEEZE_SCALE_MAX 4.9%）
+ *     确实在反复咬合/释放；
+ *   · 尾部还有一段 ±50 视频 px（±24 CSS px）的衰减振荡。
+ * 复现（探针 /tmp/vwork/r17/probe-zig.mjs，模式 z2：在 x=420 按下 → 拖到 x=20 →
+ *   拉回 x=80，来回 8 次，即「贴着第一张卡反复横滑」）：
+ *     focus 范围 −0.599~0.000（吃满 deckClampFocus 的 −0.6 钳位）
+ *     tr.e  范围 −77.5~+14.5，**单帧最大跳变 = 77.50px** ← 就是录像里那 162 视频 px
+ *
+ * 根因（两个缺陷叠加，都在这个函数与它的调用点）：
+ *   ① 【导数拐点】原式 = clamp(over / SPAN) 在 over = 0 处斜率从 0 跳到 1/0.35 = 2.86
+ *      ⇒ 一个「bang-bang 边界」。而 deckClampFocus 把越界量压成手指行程的 0.35 倍，
+ *      于是 14px 的手指抖动就能换到 0.04 层的越界 ⇒ 挤压进度 0.114 ⇒ 整组位移 8.8px。
+ *      这条通道的增益是【221px 位移 / 层越界】，是组件里放大倍数最高的一条。
+ *   ② 【瞬写】调用点 dragSqueeze() 用的是 sqSnap（零过渡直写，见 AppSwitcher）——
+ *      所以增益 221 是把【输入抖动 1:1 变成整组瞬移】，没有任何时间域平滑。
+ *   而「越界时卡片本身不动」（poseFocus = max(0, focus) 把卡片位姿钉在 0）
+ *   ⇒ 这一段屏幕上【只有整组在动】⇒ 读起来就是「卡片冻住 → 整块啪地跳一下」。
+ *
+ * 本函数负责 ①：把进度曲线改成【死区 + smoothstep】——端点导数也为 0，没有拐点，
+ *   越界量在死区内一律输出 0，刚出死区时增益从 0 连续长起来。
+ *   ⚠️ ② 由 AppSwitcher 的 dragSqueeze 用【逐帧限速】解决（每帧最多变 SQ_MAX_STEP）。
+ *      两者都不能省：单靠 ①，满量程的 77.5px 瞬移照旧（它是 0→1 的整段跳）；
+ *      单靠 ②，小抖动的幅度仍被 221px/层 如实放大（只是被摊到几帧）。
+ *
+ * 契约不变（单测已锁）：deckSqueeze(0) = 0、deckSqueeze(SPAN) = 1、更深封顶 1、全程非减。
  */
 export function deckSqueeze(over) {
-  return Math.min(1, Math.max(0, over) / DECK.SQUEEZE_SPAN)
+  const a = Math.max(0, over)
+  const z = DECK.SQUEEZE_DEAD_ZONE
+  if (a <= z) return 0
+  /* 归一化到 [0,1] 后走 smoothstep（3t²−2t³）：两端导数都是 0 ⇒ 与死区、与封顶处都 C¹ 相接。
+     ⚠️ 分母是 SPAN − z（不是 SPAN），否则 a = SPAN 时到不了 1 ⇒ 满挤压位移差几 px。 */
+  const t = Math.min(1, (a - z) / (DECK.SQUEEZE_SPAN - z))
+  return t * t * (3 - 2 * t)
 }
 
 /** 挤压进度的允许区间：ios-squish 的过冲会让 k 短暂为负/超过 1，
@@ -568,6 +613,78 @@ export function deckClampFocus(raw, n) {
 /** 卡片（含最深层）的左边缘最小值 —— 规则③的静态保证（牵连只会往右推，不会破坏它） */
 export function deckMinLeftEdge(m) {
   return m.frontX - deckStair(DECK.MAX_DEPTH, m.cardW)
+}
+
+/* ── 第二十四轮：本区块已删除（原第二十二轮的「越界释放不注入动量」判据）──────────
+ * 原内容：`BOUNDARY_FLING_EPS = 0.02` + `deckFlingOutward(cur, idx, vFocus, n)`
+ *   —— 「越界区里速度指向目标之外时不算动量、不给弹簧注初速度」。
+ *
+ * 为什么现在不需要它：位置推进改成了一阶单一写者模型（src/utils/switcherMotion.js）
+ *   ⇒ 速度恒为「剩余距离 / 时间常数」，【没有任何地方注入初速度】；
+ *   而 target 到边界就被 clampTarget 夹住 ⇒ d 归零 ⇒ 立即停（Ricky 要的「绳子绷直」）。
+ *   即「越界外甩」这个失效模式在结构上不存在了，判据失去对象。
+ *
+ * 历史量测（第二十二轮，/tmp/vwork/r22/probe-apppath.mjs）：末卡快甩的越界冲程
+ *   0.363 层 = 85px、连续快甩下 spring 运行 6149ms / 总时长 6299ms；
+ *   左边界看不见是因为 `poseFocus = max(0, …)` 把位置钉死、越界量只喂已限速的挤压通道，
+ *   只有右边界（1:1 位移通道）表现为「颤抖」。完整数据见 git log 与该轮 commit。 */
+
+/* ── 第二十四轮：本区块已删除（原第二十三轮的触控板「反向死区」滤波器）──────────────
+ * 原内容：`WHEEL_REVERSE_DEAD_PX = 7` + `wheelGateStep(st, d, dead)`
+ *   —— 「同向全额提交，反向先扣住，越过 7px 死区才提交超出段」。
+ *
+ * 为什么删：它是**给「位置被逐笔直写」这个模型打的补丁** —— 阈值必须大于噪声幅度才有用，
+ *   而噪声（±2.5px）与真实微调的幅度**在幅度上重叠** ⇒ 7px 阈值同时带来了可感知的黏滞
+ *   （Ricky 原话「越改越差了」）。位置推进改成一阶单一写者模型之后，这个职责被拆成两半、
+ *   各自落在正确的位置上：
+ *     · 物理上不可表达的位移（< 1 CSS 像素的反向）由 `switcherMotion.accumulate` 判掉
+ *       —— 判据是「屏幕能不能表达它」，不是「幅度够不够大」，阈值 1px 而不是 7px；
+ *       它在触控板通道上是唯一的降噪环节（跟手期是 1:1 同步落位，没有额外低通）。
+ *
+ * 历史量测（第二十三轮，/tmp/vwork/r23/，判据「光标模板互相关」）：录屏里光标在整段拖动期
+ *   恒在 (379,839)、极差 0px ⇒ 用户用的是触控板；抖动为 ±5 物理px、周期恰 2 个内容帧
+ *   （66ms ≈ 15Hz）、幅度递减。完整数据见 git log 与该轮 commit。 */
+
+/* ── 第二十一轮：手势输入的【坐标连续性】判据（纯函数，AppSwitcher 与单测共用）────────
+ *
+ * 用途：多任务页横滑时，owner 指针的 clientX 有可能在**没有任何 pointerdown** 的情况下
+ *   跳到另一根手指的坐标上（两个触摸点被合并成一条坐标流，或指针被重定向到另一指）。
+ *   实测（/tmp/vwork/r21/probe-sameid.mjs，CDP 注入两个同 id 的触点）：
+ *     T2/T2b/T3 三条场景 **单帧最大 Δfocus = 0.565 层 = 119.9px**，而事件流里
+ *     `pointerdown 计数 = 1`、`出现的 pointerId = [4]`、`touchstart` 的 touches 只有 1 个
+ *     ⇒ 页面侧**完全看不见第二根手指**，任何基于 pointerId / isPrimary / touches.length
+ *     的守卫都不可能覆盖（第二十轮的 owner 守卫就是这一类，所以它挡不住）。
+ *
+ * 判据（只用「已应用位移」的历史做参考，因此与事件频率无关）：
+ *   ① 本笔的坐标跳变 ≥ TOUCH_STEP_JUMP_PX（56px —— 单帧手指数值上几乎到不了）；
+ *   ② 且 ≥ TOUCH_STEP_RATIO 倍于【最近若干笔已应用位移的最大值】。
+ * 两条同时成立 ⇒ 判定为「坐标不连续」，调用方应当只把基线平移到新坐标、不让这段位移进焦点。
+ *
+ * 为什么用 max 而不是中位数：手指【渐进加速】时（13 → 25 → 40 → 60px/帧）参考量会跟着抬，
+ *   于是真实的加速永远不触发；只有「在一串小步之后突然出现 3 倍以上的巨步」才触发
+ *   —— 那正是换指/合并的形状（13,13,13,+120），也是物理上手指做不到的形状。
+ * ⚠️ 参考量必须喂「已应用位移」（被守卫吸收的那一笔记 0），否则连续抽动会把参考量抬高，
+ *    第二笔就再也认不出来了（两指来回抽动的形状 = +120, −120, +120…）。
+ * ⚠️ 前 TOUCH_STEP_WARMUP 笔不判（比例判据）：① 参考量还没有意义；② 触摸 slop 释放的第一帧
+ *    本身就可能有 8~12px 的位移（见 MODE_LOCK_PX 的注释），不该被卷入判定。
+ *    热身期只有「巨步兜底」这一条兜着（见实现）。 */
+export const TOUCH_STEP_JUMP_PX = 56
+export const TOUCH_STEP_RATIO = 3
+export const TOUCH_STEP_WARMUP = 3
+/** 参考量的取样窗口（最近多少笔【已应用】位移）—— 5 笔 ≈ 80ms @60Hz，够反映当前手速 */
+export const TOUCH_STEP_KEEP = 5
+
+export function touchStepIsTeleport(jump, applied) {
+  const j = Math.abs(jump)
+  if (!(j >= TOUCH_STEP_JUMP_PX)) return false
+  /* 巨步兜底（≥ 2×56px = 112px）：热身期也判。
+     一帧 112px @60Hz = 6720px/s，指尖要在一帧内从 0 加速到 6720px/s（≈43g）——
+     物理上做不到，所以这一档不必再看参考量；它同时覆盖「两指落下后第一帧就被合并」的时序。 */
+  if (j >= TOUCH_STEP_JUMP_PX * 2) return true
+  if (!applied || applied.length < TOUCH_STEP_WARMUP) return false
+  let ref = 0
+  for (const s of applied) ref = Math.max(ref, Math.abs(s))
+  return j >= ref * TOUCH_STEP_RATIO
 }
 
 /** 焦点层与第 k 层的露出宽度（用于「露出越来越少」断言） */
