@@ -2224,8 +2224,24 @@ function dismissWithAnimation(appId) {
      之后再判断就查不到了（第十五轮的桌面图标消失 bug）。 */
   releaseHiddenIcon(appId)
   system.dismissApp(appId)
-  const idx = Math.max(0, Math.min(apps.value.length - 1, Math.round(focus.value)))
-  settleTo(idx)
+  /* ⚠️ 第二十七轮补（Ricky 2026-09-18 20:52 报「删除卡片以后会闪」）：
+     **只有焦点真的要走时才 settleTo**。删掉顶卡 / 中间卡时 focus 不变（后车直接占它的槽位），
+     此时调 settleTo 会把 `focusMoving` 点亮 ⇒ 根节点挂上 `is-focus-moving`
+     ⇒ 通用过渡规则被 `:not(.is-focus-moving)` 排除 ⇒ **整组补位卡在同一帧瞬移到位**。
+     探针实测（/tmp/vwork/r30/probe-flash.mjs，t=390.3ms 那一帧）：
+       rootCls = `is-focus-moving is-dismissing`，补位卡 transitionDuration = **0s**
+       camera 173→155、notes 190→173 一帧完成，亮度从深度压暗瞬切回全亮，z 同时抬档
+       —— 观感就是「删卡后闪一下」。
+     ⚠️ 这个瞬移【不是本轮新引入的】：第二十六轮在同一位置同样瞬移一下，基线日志
+       /tmp/vwork/r30/base-r26.log（t=607.6ms，`is-focus-moving` + `tdur=0s`）可查。
+       本轮只是把数据出列提前到松手那一帧，于是瞬移从「240ms 后的静止时刻」挪到了
+       「松手那一帧」—— 正好落在眼睛盯着运动、且飞出卡还在屏内的时刻，所以被看见。
+     反过来，焦点越界（删末卡导致 focus > 新长度−1）时移动是必须的：那时位置由 rAF
+     逐帧直写，focusMoving 必须点亮，挂着 CSS 过渡会被二次低通成滞后。
+     ⚠️ 判据【不能】下移到 settleTo() 里统一做：松手吸附路径存在「cur === idx 但位姿仍需
+       由 JS 逐帧演进」的情形（跟手卡让位 / 回弹），在那里省掉这个类会把位姿演进改成 CSS 过渡。 */
+  const want = Math.max(0, Math.min(apps.value.length - 1, Math.round(focus.value)))
+  if (Math.abs(want - focus.value) > 1e-4) settleTo(want)
   /* ③ 到点只撤飞出节点 —— 数据早在②就落定了，这里不再碰 apps / 焦点。
        用 id 过滤而不是整表清空：连续删卡时上一张可能还在飞。 */
   setTimeout(() => {
