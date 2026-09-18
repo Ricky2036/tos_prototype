@@ -14,8 +14,9 @@ import { chromium } from 'playwright'
 import { readFileSync } from 'node:fs'
 import { DECK } from '../src/utils/switcherDeck.js'
 /* 第二十四轮：位置推进改成单一写者模型（src/utils/switcherMotion.js），
-   原 `WHEEL_REVERSE_DEAD_PX` 已随反向死区一起删除。 */
-import { MOTION } from '../src/utils/switcherMotion.js'
+   原 `WHEEL_REVERSE_DEAD_PX` 已随反向死区一起删除。
+   第二十六轮：惯性投影与方向投票也在这个纯函数模块里（INERTIA / inertiaExtra / voteDir）。 */
+import { MOTION, INERTIA, inertiaExtra } from '../src/utils/switcherMotion.js'
 
 /* 层间位移的比例契约来自纯函数模块，避免脚本里再抄一份魔数（第六轮：0.32）。 */
 const STAIR_DECAY = DECK.STAIR_DECAY
@@ -2132,6 +2133,13 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
   const repopulate = async () => {
     await page.evaluate(() => window.__system.exitSwitcherToHome())
     await page.waitForTimeout(420)
+    /* 第二十六轮：最近任务上限从 5 提到 20（systemStore.RECENT_MAX）——
+       旧写法是「靠上限把上一批用例留下的应用挤掉」，上限一放宽就不成立了
+       （实测残留 notes ⇒ 6 张卡，下面那条前置断言随即 FAIL）。
+       改成【先显式清空再灌】⇒ 卡数重新变得确定。
+       断言本身一个字不改：它守的是「前置可确定」，不是「上限 = 5」。 */
+    await page.evaluate(() => window.__system.dismissAll())
+    await page.waitForTimeout(300)
     for (const id of OPENED) {
       await page.evaluate((a) => window.__system.openApp(a), id)
       await page.waitForTimeout(300)
@@ -4364,7 +4372,11 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
    */
   {
     const openFiveAndSwitcher = async () => {
-      await page.waitForTimeout(240) // 等上一子用例的 140ms 吸附定时器走完，避免跨用例串味
+      /* ⚠️ 第二十六轮：由 240ms 提到 1100ms。WHEEL_IDLE 从 140 改成 900（见 AppSwitcher
+         的常量注释）⇒ 240ms 不足以让上一子用例的收尾走完，会带着未决状态进入下一例。
+         关切换器时 watch 里会 cancelWheel()，所以这不是正确性的硬前提；但留足余量能让
+         每个子用例都从「干净累积器」起算，避免又出现「读数差 1px 其实是基准被带脏」。 */
+      await page.waitForTimeout(1100)
       await page.evaluate(() => { const s = window.__system; s.exitSwitcherToHome(); s.dismissAll() })
       await page.waitForTimeout(260)
       for (const id of ['calculator', 'files', 'notes', 'camera', 'clock']) {
@@ -4418,15 +4430,19 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
       A.error ? A.error : `Δ=${((Aobs[1].target - Aobs[0].target) * SPAN).toFixed(4)}px（期望 60）`)
 
     /* ⚠️ 下面三条必须【各自从干净的累积器】起算：
-       140ms 的 WHEEL_IDLE 之后 endWheel 会把 wheelInput 置空，所以每条之前先静置 220ms。
+       第二十六轮起 WHEEL_IDLE = 900ms，之后 endWheel 才会把 wheelInput 置空，所以每条之前先静置 1000ms。
        否则上一条留下的 1px 滞后会污染基准 —— 实测（不静置的版本）③ 与 ④ 的读数各差 1px，
        差值恰好就是这 1px 的账，看起来像「实现少了 1px」，其实是测量基准被带脏了。 */
-    /* 静置 400ms（原 220ms）。220ms 时上一条用例的一阶收尾还会剩 ~3.8px 未到零
-       （SETTLE_TAU_MS=60 ⇒ 3τ=180ms 到 95%，余量按 e^(−t/60) 衰减）。
-       平台的 min/max 对常量偏移免疫，所以这不是正确性前提；但让起点落到「收尾真正完成」
-       能让平台的层值落在干净的二进制小数上，读数最稳（实测 /tmp/vwork/r24/probe-plateau.mjs：
-       干净起点下平台差 = 0.004278074866 层 × 233.75 = 【严格 1.000000000000px】）。 */
-    const wheelIdleFlush = () => page.waitForTimeout(400)
+    /* 静置 1000ms（第二十四轮是 400ms，对应当时的 WHEEL_IDLE = 140）。
+       这一侧的余量不是正确性前提（平台的 min/max 对常量偏移免疫），
+       但让起点落到「收尾真正完成」能让平台的层值落在干净的二进制小数上，读数最稳
+       （实测 /tmp/vwork/r24/probe-plateau.mjs：干净起点下平台差 = 0.004278074866 层 × 233.75
+       = 【严格 1.000000000000px】）。 */
+    /* ⚠️ 第二十六轮：由 400ms 提到 1000ms。WHEEL_IDLE 已从 140 改成 900 ——
+       400ms 已经清不掉累积器了（子用例之间会串味），这是「改了一个常量、断言却还在
+       依赖旧值」的典型坑，务必与 AppSwitcher 的 WHEEL_IDLE 一起改。
+       1000ms = 900 门槛 + 100ms 余量（Node 侧派发抖动实测约 ±40ms）。 */
+    const wheelIdleFlush = () => page.waitForTimeout(1000)
 
     /* ② 录屏实测噪声幅度：反向 ±3px 交替 8 个来回 ⇒ 残摆不得超过 SUBMIT_PX（1px）
        ⚠️⚠️ 统计窗口【只能覆盖交替平台】，绝不能把起手那笔 −60px 算进来。
@@ -4469,13 +4485,18 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
     }
 
     /* ③ 阈值边界：滞后跟随器的可证不变量是 |累计输入 − 已提交| ≤ SUBMIT_PX
-          ⇒「反向 R 只走 R − 1」。这里量 R = 2（事件级最小可感知量）与 R = 3。
-       ⚠️ 不能像第一版那样用 R = 1px 去测「恰好阈值 ⇒ 不动」：
-          onWheel 开头有一条【事件级】门槛 `Math.abs(px) < 2 ⇒ return`（第七轮起就有），
-          1px 的 wheel 事件根本进不来（会静默丢弃）⇒ 那条断言测的是「事件被丢了」，
-          而不是「累积器判掉了一个物理上表达不出来的位移」。
-          累积器自己的 1px 边界由单测直接覆盖（tests/switcherMotion.test.js）。 */
+          ⇒「反向 R 只走 R − 1」。这里量 R = 1（屏幕可表达的最小位移）、R = 2、R = 3。
+       ⚠️ 第二十六轮之前这里【不能】用 R = 1：onWheel 开头有一条【事件级】门槛
+          `Math.abs(px) < 2 ⇒ return`（第七轮起就有），1px 的 wheel 事件进不来，
+          量到的是「事件被丢了」而不是「累积器判掉了一个表达不出来的位移」。
+          该门槛本轮已删除（换成手势级方向投票，见 onWheel 注释 ②）⇒ R = 1 现在可测，
+          而且必须测：1px 笔可进来是「慢滑拨得动」的前提（probe W2：改前 100 笔纯 1px
+          事件位移【精确为 0】）。R = 1 的期望是走 0px（累积器吃掉了这一格）。
+          累积器自己的 1px 边界仍由单测直接覆盖（tests/switcherMotion.test.js）。 */
     {
+      await wheelIdleFlush()
+      const C1 = await wheelProbe([-100, 1])
+      const moved1 = (C1.out[1].target - C1.out[2].target) * SPAN
       await wheelIdleFlush()
       const C = await wheelProbe([-100, 2])
       const moved2 = (C.out[1].target - C.out[2].target) * SPAN
@@ -4485,6 +4506,10 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
       check('第二十四轮·需求：反向只滞后一个 SUBMIT_PX（2px ⇒ 走 1px · 3px ⇒ 走 2px）',
         Math.abs(moved2 - 1) < 1e-6 && Math.abs(moved3 - 2) < 1e-6,
         `反向 2px 走了 ${moved2.toFixed(4)}px（期望 1）· 反向 3px 走了 ${moved3.toFixed(4)}px（期望 2）`)
+      check('第二十六轮·需求：反向 1px（屏幕最小可表达位移）⇒ 一步都不走，但事件本身必须进得来',
+        Math.abs(moved1) < 1e-6,
+        `反向 1px 走了 ${moved1.toFixed(6)}px（期望 0）；若为「事件被门槛丢弃」，` +
+        `同向 1px 也不会动 —— 那一条由下面的 ⑦ 独立守住`)
     }
 
     /* ④ 阈值不是「卡死」：真反转（回拨 120px）必须生效，且只滞后一个 SUBMIT_PX */
@@ -4540,7 +4565,9 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
     /* ⑥ 既有契约复述：轻拨 90px（0.385 层，不足半张）仍弹回原卡 */
     await openFiveAndSwitcher()
     await wheelProbe([-15, -15, -15, -15, -15, -15])
-    await page.waitForTimeout(900)
+    /* ⚠️ 第二十六轮：1100ms（原 900ms）。WHEEL_IDLE 已从 140 改成 900，
+       吸附只会在最后一笔之后 WHEEL_IDLE 才发生 ⇒ 等 900ms 刚好踩在门槛上（假 FAIL 风险）。 */
+    await page.waitForTimeout(1100)
     {
       const lite = await page.evaluate(() => {
         const r = document.querySelector('.app-switcher')
@@ -4551,6 +4578,268 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
         Math.round(lite.x) === 0 && Math.abs(lite.target) < 1e-9,
         `落点 focus=${lite.x} target=${lite.target}`)
     }
+
+    /* ══════════ 第二十六轮 · 「拨-停-拨」不得抽动（Ricky 2026-09-18）══════════
+     *
+     * Ricky 原话：「电脑端使用 Mac 触控板双指横滑 / Magic Mouse 左右滑动翻页时抖，
+     *   手机浏览器用触摸屏横滑不抖」—— 触摸通路没有 idle 定时器，抬手即 pointerup，
+     *   所以病灶只能在这个定时器上。
+     *
+     * 根因（逐帧取证 /tmp/vwork/r27/probe-wheel.mjs，只改一个变量做 A/B）：
+     *   `endWheel` 的触发条件是「WHEEL_IDLE 内没有【有效】事件」，而被事件级门槛丢弃的笔
+     *   【不】重置定时器 ⇒ 触控板上「拨一下、停下看一眼、再拨」的停顿必然越过 140ms ⇒
+     *   每一次停顿都被当成一次收尾 ⇒ settleTo(round(cur)) 把位置朝回拉（最多半张卡）⇒
+     *   下一笔有效事件又把它推回去 = 收尾推进器与输入通道轮流写同一个量 = 抽动。
+     *   实测：停顿 160ms ⇒ 净位移 0.000 张 / 反号 7 次；200ms ⇒ 净位移 0.000 / 反号 9 次。
+     *   手指一直在拨，**一张都翻不过去**。
+     *
+     * 本区块守住三条（缺一即回归）：
+     *   ⑦ 真实节奏（6 簇 ×4 笔 −14px、簇间 500ms 停顿）⇒ 反号 0 次，且净位移必须接近全额；
+     *   ⑧ 停顿【长于】门槛时仍然允许吸附（「松手后归位」这条既有行为不许被顺手改掉）；
+     *   ⑨ 1px 的 wheel 事件必须进得来（事件级门槛已删；probe W2 改前 100 笔纯 1px 位移精确为 0）。
+     *
+     * ⚠️ 本区块的采样必须在【页面内】完成：跨 page.evaluate 会引入真实时间流逝，
+     *    而且停顿窗口需要逐帧读数（rAF），不能靠外部轮询。 */
+    {
+      const bursty = await page.evaluate(({ bursts, perBurst, dx, gapMs, tailMs }) =>
+        new Promise((res) => {
+          const t = document.querySelector('.app-switcher')
+          if (!t) return res({ error: 'no .app-switcher' })
+          const S = t.__vueParentComponent.setupState
+          const fire = (d) =>
+            t.dispatchEvent(new WheelEvent('wheel', {
+              bubbles: true, cancelable: true, composed: true,
+              deltaX: d, deltaY: 0, deltaMode: 0, clientX: 215, clientY: 500
+            }))
+          /* ⚠️ 基线样本必须在【派发任何一笔之前】同步读：rAF 的第一个样本落在第一簇之后，
+             拿它当基准会把整整一簇（56px）漏在窗口外 ⇒ 净位移读数少 56px（实测过的假 FAIL，
+             与「窗口没与被测通道对齐」是同一类错误）。 */
+          const samples = [+S.focus]
+          let stop = false
+          const tick = () => { if (stop) return; samples.push(+S.focus.toFixed(6)); requestAnimationFrame(tick) }
+          requestAnimationFrame(tick)
+          let b = 0
+          const run = () => {
+            for (let i = 0; i < perBurst; i++) fire(dx)
+            if (++b < bursts) setTimeout(run, gapMs)
+            else setTimeout(() => {
+              stop = true
+              res({ samples, target: S.motion.target, focus: S.focus })
+            }, tailMs)
+          }
+          run()
+        }), { bursts: 6, perBurst: 4, dx: -14, gapMs: 500, tailMs: 400 })
+
+      const s = bursty.samples || []
+      const IN_TOTAL = 6 * 4 * 14 // 336px 的手指行程
+      let rev = 0
+      let minPx = 1e9
+      let maxPx = -1e9
+      for (let i = 0; i < s.length; i++) {
+        const px = (s[i] - s[0]) * SPAN
+        minPx = Math.min(minPx, px)
+        maxPx = Math.max(maxPx, px)
+        if (i > 0 && i < s.length - 1) {
+          const d1 = (s[i] - s[i - 1]) * SPAN
+          const d2 = (s[i + 1] - s[i]) * SPAN
+          if (d1 * d2 < 0 && Math.abs(d1) > 1 && Math.abs(d2) > 1) rev++
+        }
+      }
+      const netPx = s.length ? (s[s.length - 1] - s[0]) * SPAN : 0
+      check('第二十六轮·主修：真实节奏「拨-停-拨」（6 簇 ×4 笔 · 簇间停顿 500ms）方向反号 0 次',
+        !!bursty.samples && rev === 0,
+        bursty.error || `${s.length} 帧 · 反号 ${rev} 次 · 净位移 ${netPx.toFixed(2)}px / 行程 ${IN_TOTAL}px`)
+      /* 这一条是「旧实现净位移 0」的直接对照：停顿期间一步都不许动，
+         所以整段手势的位移必须【全额兑现】—— 契约是「只滞后累积器那一个 SUBMIT_PX」。
+         ⚠️ 容差不写成 ±SUBMIT_PX：那是 [335, 337]，恰好把理论值 335 放在闭区间边界上。
+            实测同一份代码两次跑分别读到 335.0001 / 334.99998（滞后 0.9999 / 1.00002）
+            —— 差异只有 1.2e-4 px，是数值余量而不是行为差异，但 1e-6 的 epsilon 会让它
+            一次 PASS 一次 FAIL（本轮实测踩到）。这里给 0.05px 的余量（= 1/20 个屏幕像素，
+            物理上不可表达），下界仍硬守：位移被凭空多给同样是缺陷。 */
+      const lagPx = IN_TOTAL - netPx
+      check('第二十六轮·主修：同一场景位移全额兑现（停顿不得吃掉进度；旧实现实测净位移 0.00px）',
+        !!bursty.samples && lagPx >= -0.05 && lagPx <= MOTION.SUBMIT_PX + 0.05,
+        bursty.error || `净位移 ${netPx.toFixed(4)}px / 行程 ${IN_TOTAL}px ⇒ 滞后 ${lagPx.toFixed(4)}px ` +
+          `（契约 0 ≤ lag ≤ ${MOTION.SUBMIT_PX}px，容差 ±0.05px）`)
+      /* 「停顿期间一步都不动」的可测形式：位置相对于【历史最高点】的回摆幅度 ≤ SUBMIT_PX。
+         这是本轮的判据本体 —— 旧实现在每个停顿里都回摆一次（实测 49~120px）。 */
+      let dropBack = 0
+      let runMax = s.length ? s[0] : 0
+      for (const v of s) {
+        runMax = Math.max(runMax, v)
+        dropBack = Math.max(dropBack, (runMax - v) * SPAN)
+      }
+      check(`第二十六轮·主修：停顿期间的回摆幅度 ≤ ${MOTION.SUBMIT_PX}px（「不抖」的定义本身）`,
+        !!bursty.samples && dropBack <= MOTION.SUBMIT_PX + 1e-6,
+        bursty.error || `最大回摆 ${dropBack.toFixed(4)}px（期望 ≤ ${MOTION.SUBMIT_PX}）` +
+        ` · 位移包络 [${minPx.toFixed(3)}, ${maxPx.toFixed(3)}]px`)
+
+      /* ⑧ 停顿长于门槛 ⇒ 吸附照旧。越过 WHEEL_IDLE(900) 之后必须落到整卡，
+         否则「松手后归位」这条既有行为就被顺手改掉了。 */
+      await page.waitForTimeout(1200)
+      const after = await page.evaluate(() => {
+        const r = document.querySelector('.app-switcher')
+        const S = r.__vueParentComponent.setupState
+        return { target: S.motion.target, focus: +S.focus, x: +S.motion.x }
+      })
+      check('第二十六轮·契约：越过门槛（停顿 > 900ms）后仍然吸附到最近整卡',
+        Number.isInteger(Math.round(after.target * 1e6) / 1e6) &&
+        Math.abs(after.x - Math.round(after.x)) < 0.02 &&
+        after.target === Math.round(after.target),
+        `target=${after.target}（须为整数）· 终位 x=${after.x.toFixed(4)}`)
+    }
+
+    /* ⑨ 1px 的 wheel 事件必须进得来（第二十六轮删掉了事件级 `|px| < 2` 门槛）。
+         10 笔 −1px：累积器使已提交位置滞后 SUBMIT_PX ⇒ 期望走 10 − 1 = 9px。
+         旧实现：100 笔纯 1px 事件的位移【精确为 0】（probe W2）。 */
+    {
+      await openFiveAndSwitcher()
+      const P = await wheelProbe([-1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
+      const moved = Math.abs((P.out[P.out.length - 1].target - P.out[0].target) * SPAN)
+      check(`第二十六轮·需求：10 笔 1px wheel 必须兑现 ${10 - MOTION.SUBMIT_PX}px（慢滑拨得动的前提）`,
+        Math.abs(moved - (10 - MOTION.SUBMIT_PX)) < 1e-6,
+        `净位移 ${moved.toFixed(6)}px（期望 ${10 - MOTION.SUBMIT_PX}；旧实现为 0）`)
+    }
+  }
+
+  /* ══════════ 第二十六轮 · 触摸端的惯性滑动（Ricky 2026-09-18）══════════
+   *
+   * Ricky 原话：「手机端滑动卡片不支持快速滚动，要支持根据滑动速度的惯性滑动效果。」
+   *
+   * 主线判据只有一条：**同一套「快甩」几何，触摸比鼠标多翻几张**。
+   *   · 触摸：CDP `Input.dispatchTouchEvent` 注入真实触摸（isTrusted = true）——
+   *     第十二轮的教训是「page.mouse / 合成 PointerEvent 复现不了触摸特有的行为」，
+   *     而这条需求的适用对象恰恰只有触摸，所以必须走真实触摸。
+   *   · 鼠标对照：合成 PointerEvent（pointerType 'mouse'），几何与行程逐位相同。
+   *   两条都读 `window.__switcherSettle`（落点判定的自省口）。断言的是【规则】而不是
+   *   写死的索引 —— 索引取决于「最后 100ms 窗口速度」的实测值，写死必然对不上。
+   *
+   * ⚠️ 为什么必须按输入设备分流（第七轮否掉过一版投影）：鼠标合成事件的速度不是物理量
+   *    —— `page.mouse.move(steps:3)` 一击 165px ⇒ 实测 23px/ms ≈ 100 层/秒。
+   *    真实手指走完那段距离需要时间，速度天然被物理封顶。详见 utils/switcherMotion.INERTIA。
+   *
+   * ⚠️ 行程取 0.78 层（< 半张 × 2，靠位移只能落第 1 张）：这样「触摸落到第 3 张」
+   *    只可能来自惯性投影，不可能是位移本身翻过去的。 */
+  {
+    const openFiveAndSwitcher = async () => {
+      await page.evaluate(() => { const s = window.__system; s.exitSwitcherToHome(); s.dismissAll() })
+      await page.waitForTimeout(300)
+      for (const id of ['calculator', 'files', 'notes', 'camera', 'clock']) {
+        await page.evaluate((a) => window.__system.openApp(a), id)
+        await page.waitForTimeout(420)
+      }
+      await page.evaluate(() => window.__system.openSwitcher())
+      await page.waitForTimeout(1000)
+    }
+    const cdpT = await ctx.newCDPSession(page)
+    const tp = (x, y) => [{ x, y, id: 1, force: 1, radiusX: 12, radiusY: 12 }]
+    /* 7 步：前 2 步 8px（喂给 Chrome 的 touch slop，同时避开第二十一轮的坐标连续性守卫），
+       后 5 步 36px。总行程 196px ≈ 0.84 层；步距 7ms ⇒ ≈3.4px/ms（≈14.7 层/秒，远超 FLICK_V_MIN 2.6）。
+       行程取 0.84 层（< 半张 × 2）是有意的：靠位移只能落第 1 张，落第 3 张只可能来自投影。 */
+    const PLAN = [8, 8, 36, 36, 36, 36, 36]
+
+    const touchFlick = async () => {
+      const pt = await page.evaluate(() => {
+        const c =
+          document.querySelector('.switcher-card.is-deck[data-depth="0"]') ||
+          document.querySelector('.switcher-card.is-deck')
+        const r = c.getBoundingClientRect()
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+      })
+      await page.evaluate(() => { window.__switcherSettle = null })
+      await cdpT.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: tp(pt.x, pt.y) })
+      let acc = 0
+      for (const step of PLAN) {
+        acc += step
+        await cdpT.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: tp(pt.x + acc, pt.y) })
+        await page.waitForTimeout(7)
+      }
+      await cdpT.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+      await page.waitForTimeout(1300)
+      return page.evaluate(() => window.__switcherSettle)
+    }
+
+    /* 与 touchFlick 同几何、同步距的鼠标版（合成 pointerType 'mouse'） */
+    const mouseFlick = () =>
+      page.evaluate(
+        async ({ plan }) => {
+          const root = document.querySelector('.app-switcher')
+          if (!root) return { error: 'no .app-switcher' }
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+          const mk = (t, x) =>
+            new PointerEvent(t, {
+              bubbles: true, cancelable: true, composed: true, pointerId: 1,
+              pointerType: 'mouse', isPrimary: true,
+              buttons: t === 'pointerup' ? 0 : 1, clientX: x, clientY: 453
+            })
+          const x0 = 215
+          window.__switcherSettle = null
+          root.dispatchEvent(mk('pointerdown', x0))
+          let acc = 0
+          for (const step of plan) {
+            acc += step
+            root.dispatchEvent(mk('pointermove', x0 + acc))
+            await sleep(7)
+          }
+          root.dispatchEvent(mk('pointerup', x0 + acc))
+          await sleep(1300)
+          return window.__switcherSettle
+        },
+        { plan: PLAN }
+      )
+
+    await openFiveAndSwitcher()
+    const tS = await touchFlick()
+    await openFiveAndSwitcher()
+    const mS = await mouseFlick()
+
+    /* ① 对照组必须成立，否则「触摸多翻」可能只是「鼠标那次速度不够」 */
+    check('第二十六轮·需求⑤前置：触摸与鼠标两次快甩都真的被判成【快甩】（否则下面的对照不成立）',
+      !!tS && !!mS && tS.isFlick === true && mS.isFlick === true,
+      `触摸 v=${tS && tS.vFocus} 层/秒 · 鼠标 v=${mS && mS.vFocus} 层/秒（都须 ≥ 快甩门槛 ${INERTIA.V_MIN}）`)
+    /* ② 触摸端确实接上了投影，且追加量与纯函数逐位一致（公式本身由单测守） */
+    check('第二十六轮·需求⑤：触摸快甩的追加层数 = inertiaExtra(vFocus)（投影确实接在触摸通路上）',
+      !!tS && tS.touch === true && Math.abs(tS.extra - inertiaExtra(tS.vFocus)) < 1e-6 &&
+        tS.extra > 0 && tS.extra <= INERTIA.MAX,
+      `extra=${tS && tS.extra} 层（期望 ${tS && inertiaExtra(tS.vFocus)}，上限 ${INERTIA.MAX}）`)
+    /* ③ 鼠标路径一个字都没被改到（投影不许漏到非触摸通路上） */
+    check('第二十六轮·需求⑤：鼠标快甩的追加层数恒 0（投影只对触摸开放）',
+      !!mS && mS.touch === false && mS.extra === 0,
+      `鼠标 extra=${mS && mS.extra} 层 · touch=${mS && mS.touch}（期望 0 / false）`)
+    /* ④ 用户可感知的那一条：同一手势，触摸比鼠标多翻 ≥2 张 */
+    check('第二十六轮·需求⑤：同一套快甩几何下，触摸比鼠标【多翻 ≥2 张】（这就是「惯性滑动」）',
+      !!tS && !!mS && tS.idx >= mS.idx + 2,
+      `触摸落点 ${tS && tS.idx} 张（cur=${tS && tS.cur}）vs 鼠标落点 ${mS && mS.idx} 张（cur=${mS && mS.cur}）`)
+    /* ⑤ 回归：慢速触摸（停住再松手）追加恒 0 ⇒ 第十一轮需求⑤「慢滑一次一张」原样守住 */
+    await openFiveAndSwitcher()
+    const slow = await page.evaluate(
+      async (span) => {
+        const root = document.querySelector('.app-switcher')
+        const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+        const mk = (t, x) =>
+          new PointerEvent(t, {
+            bubbles: true, cancelable: true, composed: true, pointerId: 1,
+            pointerType: 'touch', isPrimary: true,
+            buttons: t === 'pointerup' ? 0 : 1, clientX: x, clientY: 453
+          })
+        const x0 = 215
+        const total = span * 0.71
+        window.__switcherSettle = null
+        root.dispatchEvent(mk('pointerdown', x0))
+        for (let i = 1; i <= 12; i++) {
+          root.dispatchEvent(mk('pointermove', x0 + (total * i) / 12))
+          await sleep(40)
+        }
+        await sleep(260) // 停住再松手 ⇒ vtVelocity 剔旧样本 ⇒ vFocus ≈ 0（非快甩）
+        root.dispatchEvent(mk('pointerup', x0 + total))
+        await sleep(900)
+        return window.__switcherSettle
+      },
+      SPAN
+    )
+    check('第二十六轮·需求⑤回归：慢速触摸（停住再松手）追加 0 ⇒ 0.71 层仍只翻 1 张',
+      !!slow && slow.extra === 0 && slow.isFlick === false && slow.idx === 1,
+      `extra=${slow && slow.extra} · isFlick=${slow && slow.isFlick} · 落点=${slow && slow.idx}（期望 0 / false / 1）`)
   }
 
   await resetHome()

@@ -1,6 +1,23 @@
 import { defineStore } from 'pinia'
 
 /**
+ * 最近任务上限（第二十六轮：5 → 20）。
+ *
+ * Ricky 原话：「另外帮我解除那个多任务最多 5 个的限制，改为 20 个。」
+ *
+ * 旧的 5 不是 bug，是一条【有意设计】（`touchRecent` 里的 `.slice(0, 5)`）——
+ * 但它同时是「后台最多留几张卡」与「切换器最多能翻多远」这两个量的唯一来源，
+ * 所以放宽上限只需要改这一处（AppSwitcher 的 `deckClampFocus(lay, apps.length)`、
+ * `settleFocus` 的 `last`、`labelIndex` 全部从 `recentApps.length` 派生）。
+ *
+ * ⚠️ 为什么不是「越大越好」：可回溯历史变长，但**逐帧渲染成本不变** ——
+ *    切换器真正挂到 DOM 的卡片由 `renderedCards` 按层深（≤ 3）裁剪，
+ *    与 `recentApps.length` 无关。20 是「够用且一眼能数完」的档位（iOS 也不设硬上限）。
+ * ⚠️ 别再把字面量写回任何地方：写死数字必然与这里脱钩。
+ */
+export const RECENT_MAX = 20
+
+/**
  * 系统状态机：基础层（互斥）+ 正交叠层（各自独立进度）。
  * 所有状态转移收敛在 action 中，组件不直接改 state。
  */
@@ -18,7 +35,7 @@ export const useSystemStore = defineStore('system', {
       appLibrary: { status: 'closed', progress: 0 }
     },
     /* ---- 最近任务（App Switcher / Recent） ----
-     * recentApps：最近使用的 appId 列表，LIFO 去重，最多 5 个。
+     * recentApps：最近使用的 appId 列表，LIFO 去重，最多 RECENT_MAX（20）个。
      *   注意它**包含**当前 activeAppId（列表第 0 项），渲染切换器时按此排列。
      *   openApp 时自动 touchRecent，无需应用自己维护。
      * appSwitcherOpen：切换器是否展开（手势驱动时由 HomeIndicator 直写）。
@@ -150,10 +167,10 @@ export const useSystemStore = defineStore('system', {
 
     /* ---- 最近任务 ---- */
 
-    /** 把 appId 提到最近列表最前（LIFO 去重，上限 5 个） */
+    /** 把 appId 提到最近列表最前（LIFO 去重，上限 RECENT_MAX = 20） */
     touchRecent(appId) {
       if (!appId) return
-      this.recentApps = [appId, ...this.recentApps.filter((id) => id !== appId)].slice(0, 5)
+      this.recentApps = [appId, ...this.recentApps.filter((id) => id !== appId)].slice(0, RECENT_MAX)
     },
 
     /** 打开切换器（无最近任务时不打开）。
