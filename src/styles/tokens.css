@@ -91,6 +91,18 @@
   --z-edge-zone: 85;             /* 顶部边缘手势热区 */
   --z-status-bar: 90;
   --z-home-indicator: 96;
+
+  /* ---- 音量 / 电源菜单浮层（集成 volume-plus-mode 时新增）----
+     基准：通知中心 92 / 控制中心 94 / 状态栏 90 / Home Indicator 96。
+     - 电源菜单在原设计里位于控制中心**下层**（CC 向上收起时连续露出），故取 93；
+     - 侧栏的整屏「点击收起」层必须在 Home Indicator 之下，否则会把底部手势热区吞掉；
+     - 全屏音量面板是全屏最强抢焦点层，给最高。 */
+  --z-power-menu: 93;
+  --z-side-volume-dismiss: 95;
+  --z-side-volume: 97;
+  --z-side-volume-modal: 98;
+  --z-volume-panel: 99;
+
   --z-brightness-filter: 71;
 
   /* ---- 微调模式选中框（4 处共用：网格开关 / 头部按钮 / 胶囊 / 响铃三段）----

@@ -122,6 +122,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Fix app icon badge drifting (anchorRef right positioning) and folder grid clipping (top clearance) | `antigravity/lane` | None (locks released) | `4aaaf07` | `7d691f1` |
 | Merged | Antigravity | Floating translucent frosted glass search capsule and remove ugly bottom scrim mask & seam | `antigravity/lane` | None (locks released) | `4c33c90` | `5af4cc5` |
 | Merged | Antigravity | Float search capsule directly on current interface, eliminating full-screen blur and search-hint prompt text | `antigravity/lane` | None (locks released) | `b722244` | `1f39734` |
+| Active | Workbuddy | Port two external snapshots (volume-plus-mode: SideVolumeOverlay / VolumePanel / PowerMenu; super-power-saver-control-center: SuperPowerHome + Super NFC/SIM/Connectivity settings) onto the current 360x788 design system, plus CC long-press volume entry, `power` tile, `superPower` CC variant and store increments | `workbuddy/lane` | `src/components/phone/ScreenView.vue`; `src/components/phone/PhoneFrame.vue`; `src/styles/tokens.css` (only for mount points + `--z-volume-panel` / `--z-side-volume*` / `--z-power-menu`) | `f82bec3` | — |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
