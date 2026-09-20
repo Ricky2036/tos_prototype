@@ -257,4 +257,23 @@ test('DrawerFolderOverlay calculates icon motion using center-to-center delta tr
   assert.doesNotMatch(overlaySource, /const cy = originRect\.top - tileRect\.top/)
 })
 
+test('CategoryCard and DrawerFolderOverlay eliminate active press distortion and query live DOM resting coordinates on close', async () => {
+  const [categorySource, overlaySource] = await Promise.all([
+    read('../src/components/system/drawer/CategoryCard.vue'),
+    read('../src/components/system/drawer/DrawerFolderOverlay.vue')
+  ])
+
+  // 1. CategoryCard 必须在测量时清除 :active 与 transition 变形，确保展开起点基于纯净静止几何
+  assert.match(categorySource, /el\.style\.transform = 'none'/)
+  assert.match(categorySource, /el\.style\.transition = 'none'/)
+  assert.match(categorySource, /void cardRef\.value\.offsetWidth/)
+  assert.match(categorySource, /:data-category-id="category\.id"/)
+
+  // 2. DrawerFolderOverlay 收起时必须通过 live DOM 重新采集处于静止态的分类卡片坐标
+  assert.match(overlaySource, /function getLiveOriginData\(\)/)
+  assert.match(overlaySource, /\[data-category-id="\$\{props\.category\.id\}"\]/)
+  assert.match(overlaySource, /prepareMotion\(true\)/)
+})
+
+
 

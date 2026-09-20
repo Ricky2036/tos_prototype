@@ -54,13 +54,52 @@ function setIconRef(id, el) {
   else iconRefs.delete(id)
 }
 
-function prepareMotion() {
+function getLiveOriginData() {
+  const screen = overlayRef.value?.closest('.screen-view') || document.querySelector('.screen-view')
+  if (!screen) return props.origin
+
+  const cardWrapper = screen.querySelector(`[data-category-id="${props.category.id}"]`)
+  if (!cardWrapper) return props.origin
+
+  const cardEl = cardWrapper.querySelector('.folder-card')
+  if (!cardEl) return props.origin
+
+  const titleEl = cardWrapper.querySelector('.folder-name')
+  const clusterEl = cardWrapper.querySelector('.mini-cluster-grid')
+
+  const cardRect = rectRelativeToScreen(cardEl, screen)
+  const titleRect = titleEl ? rectRelativeToScreen(titleEl, screen) : null
+  const clusterRect = clusterEl ? rectRelativeToScreen(clusterEl, screen) : null
+  const iconRects = {}
+
+  for (const app of allApps.value) {
+    const appIcon = cardWrapper.querySelector(`[data-app-id="${app.id}"]`)
+    if (appIcon) {
+      const anchor = appIcon.querySelector('.app-icon-anchor') || appIcon
+      const r = rectRelativeToScreen(anchor, screen)
+      if (r && r.width > 0) {
+        iconRects[app.id] = r
+      }
+    }
+  }
+
+  return {
+    cardRect: cardRect || props.origin?.cardRect,
+    titleRect: titleRect || props.origin?.titleRect,
+    clusterRect: clusterRect || props.origin?.clusterRect,
+    iconRects: Object.keys(iconRects).length > 0 ? iconRects : (props.origin?.iconRects || {})
+  }
+}
+
+function prepareMotion(isClosing = false) {
   if (!containerRef.value) return
   const screen = overlayRef.value?.closest('.screen-view') || document.querySelector('.screen-view')
   if (!screen) return
 
   const containerTo = rectRelativeToScreen(containerRef.value, screen)
-  const cardFrom = props.origin?.cardRect
+  // 收起时，以 DOM 中真实处于静止态的分类卡片作为归位目标，杜绝用户点击展开时的 :active 缩放下移引起最后一帧向上抖动
+  const originData = isClosing ? getLiveOriginData() : (props.origin || getLiveOriginData())
+  const cardFrom = originData?.cardRect
   if (!containerTo || !cardFrom || containerTo.width <= 0 || containerTo.height <= 0) return
 
   // 1. 卡片外壳几何换算
@@ -87,9 +126,9 @@ function prepareMotion() {
   }
 
   // 2. 文件夹标题几何换算（从卡片下方小标题无缝升起为顶部大标题）
-  if (titleRef.value && props.origin?.titleRect) {
+  if (titleRef.value && originData?.titleRect) {
     const titleTo = rectRelativeToScreen(titleRef.value, screen)
-    const titleFrom = props.origin.titleRect
+    const titleFrom = originData.titleRect
     if (titleTo && titleFrom && titleTo.width > 0) {
       titleMotion.dx = titleFrom.left - titleTo.left
       titleMotion.dy = titleFrom.top - titleTo.top
@@ -104,8 +143,8 @@ function prepareMotion() {
 
   // 3. 图标 Hero 空间连续性几何换算
   iconMotions.clear()
-  const iconFroms = props.origin?.iconRects || {}
-  const clusterFrom = props.origin?.clusterRect || cardFrom
+  const iconFroms = originData?.iconRects || {}
+  const clusterFrom = originData?.clusterRect || cardFrom
 
   for (const app of allApps.value) {
     const iconEl = iconRefs.get(app.id)
@@ -266,7 +305,7 @@ function open() {
 
 function close() {
   if (phase.value === 'closing' || phase.value === 'closed' || phase.value === 'launching') return
-  prepareMotion()
+  prepareMotion(true)
   phase.value = 'closing'
   clearTimeout(closeTimer)
 
