@@ -10,7 +10,13 @@ const props = defineProps({
   name: { type: String, required: true },
   size: { type: [Number, String], default: 20 },
   strokeWidth: { type: [Number, String], default: 2 },
-  filled: { type: Boolean, default: false } // fill=currentColor（播放键等需要填充的场景）
+  filled: { type: Boolean, default: false }, // fill=currentColor（播放键等需要填充的场景）
+  /**
+   * 手绘图标（如 volume2）把颜色写死在路径上（fill="#258FFF"），只换 fill="white" 是不够的。
+   * mono=true 会把所有 fill="#RRGGBB[AA]" 一并换成 currentColor ⇒ 图标真正跟随 `color`。
+   * 默认 false：其它调用点（CC 竖滑块等）保持原样，不产生视觉回归。
+   */
+  mono: { type: Boolean, default: false }
 })
 
 const html = computed(() => {
@@ -31,6 +37,7 @@ const html = computed(() => {
   }
   // 将硬编码的 fill="white" / stroke="white" 替换为 currentColor，使图标支持颜色染色
   svg = svg.replace(/fill="white"/g, 'fill="currentColor"').replace(/stroke="white"/g, 'stroke="currentColor"')
+  if (props.mono) svg = svg.replace(/fill="#[0-9a-fA-F]{3,8}"/g, 'fill="currentColor"')
   return svg
 })
 </script>
