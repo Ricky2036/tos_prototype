@@ -271,7 +271,7 @@ export function cloneHomeState(value) {
 export function resolveDesktopPage({ currentPage, pageCount, delta, velocity = 0, threshold = 72 }) {
   const lastPage = Math.max(0, pageCount - 1)
   if (delta < -threshold || velocity < -0.55) {
-    if (currentPage >= lastPage) return { page: lastPage, openLibrary: true }
+    if (currentPage >= lastPage) return { page: lastPage, openLibrary: false }
     return { page: currentPage + 1, openLibrary: false }
   }
   if (delta > threshold || velocity > 0.55) {

@@ -161,7 +161,23 @@ export const APPS = [
   }
 ]
 
-export const getApp = (id) => APPS.find((a) => a.id === id)
+import { DRAWER_APPS } from './drawerApps.js'
+
+export const getApp = (id) => {
+  const primary = APPS.find((a) => a.id === id)
+  if (primary) return primary
+  const da = DRAWER_APPS?.find((a) => a.id === id)
+  if (da) {
+    return {
+      id: da.id,
+      name: da.name,
+      depth: 'placeholder',
+      image: da.icon,
+      heroBackground: '#F5F5F7'
+    }
+  }
+  return undefined
+}
 
 /** 桌面网格图标（非 Dock），按注册顺序 */
 export const gridApps = APPS.filter((a) => !a.dock)

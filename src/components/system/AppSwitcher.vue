@@ -31,7 +31,11 @@ import {
   createMotion,
   stepMotion,
   createAccumulator,
-  accumulate
+  accumulate,
+  createDirVote,
+  voteDir,
+  /* 第二十六轮·需求⑤：触摸端的惯性投影（只在 pointerType === 'touch' 上生效） */
+  inertiaExtra
 } from '../../utils/switcherMotion'
 /* 第十四轮·需求①：交接保持窗口的时长必须与 hero 开场动画同源（只读引用，不改该文件）。 */
 import { HERO_OPEN_DURATION } from '../../utils/heroGeometry'
@@ -686,14 +690,25 @@ const FLICK_V_MIN = 2.6 // 层/秒 —— 超过它才算「快甩」（≈608px
 
 /** 松手吸附。
  *  @param vFocus     松手瞬时速度（层/秒，向右为正）
- *  @param startFocus 手势按下时的焦点（快甩保底的锚点） */
-function settleFocus(vFocus, startFocus) {
+ *  @param startFocus 手势按下时的焦点（快甩保底的锚点）
+ *  @param touch      本段手势是否来自【真实触摸】（pointerType === 'touch'）。
+ *                    只有它为真才叠加惯性投影 —— 判据与参数在 utils/switcherMotion.INERTIA
+ *                    （那里写了「为什么必须按输入设备分流」：鼠标合成事件的速度不是物理量）。 */
+function settleFocus(vFocus, startFocus, touch = false) {
   /* 落点判定锚在【目标】而不是视觉位置 focus.value：一阶模型下 x 可能滞后不足一帧，
      而「用户把卡片拖到哪了」的唯一权威是 target（输入累积出来的意图）。 */
   const cur = motion.target
   const last = Math.max(0, apps.value.length - 1)
   const isFlick = Math.abs(vFocus) >= FLICK_V_MIN
   let idx = Math.round(cur)
+
+  /* ── 第二十六轮·需求⑤：触摸端惯性投影 ────────────────────────────────────
+     Ricky 原话：「手机端滑动卡片不支持快速滚动，要支持根据滑动速度的惯性滑动效果。」
+     只追加【张数】，方向取松手速度的符号；跟手与收尾曲线一概不动。
+     ⚠️ 必须放在快甩保底【之前】：保底是「至少一张」，投影是「多几张」，
+        两者都在下面统一夹取 —— 贴边界时额外量被 clamp 吃掉（不越界、不过冲）。 */
+  const extra = touch ? inertiaExtra(vFocus) : 0
+  if (extra > 0) idx = Math.round(cur + Math.sign(vFocus) * extra)
 
   if (isFlick) {
     /* 方向保底：快甩至少要翻过「起点那张」后面/前面的一张。
@@ -725,6 +740,10 @@ function settleFocus(vFocus, startFocus) {
     from: +startFocus.toFixed(4),
     vFocus: +vFocus.toFixed(3),
     isFlick,
+    /* 第二十六轮：区分「位移定的张数」与「速度追加的张数」—— e2e 靠这两个字段
+       分别守「鼠标不走投影」与「触摸走投影」，不必反推。 */
+    touch: !!touch,
+    extra: +extra.toFixed(3),
     idx
   }
 }
@@ -749,6 +768,16 @@ const wheelAcc = ref(null)
    （Ricky 原话「越改越差了」），因为 7px 已经大于真实微调的幅度。
    与 wheelAcc 同生命周期：手势起点新建、endWheel / cancelWheel 清掉。 */
 let wheelInput = null
+/* 第二十六轮：本手势的【方向投票器】。逐笔比较换成滑动窗口投票 ——
+   判据本体在 utils/switcherMotion.voteDir（纯函数 + 单测覆盖）。
+   为什么必须动它：真实触控板的慢滑大量事件是 |deltaX| = 1，旧判据
+   `|deltaX| > |deltaY| 且 |deltaX| ≥ 2` 把 100 笔全丢掉（实测位移精确为 0），
+   而「被丢掉的笔不重置 idle 定时器」直接引出本轮主病灶 onWheel 的注释 ①。
+   与 wheelInput 同生命周期：手势起点新建、endWheel / cancelWheel 清掉。 */
+let wheelDirVote = null
+/* 上一笔 wheel 的时刻（e.timeStamp），只用于判「投票窗口要不要重开」——
+   与 WHEEL_IDLE 同阈值：超过它没来新事件就是新手势，上一次的票不能替这一次作决定。 */
+let wheelDirAt = 0
 let wheelIdleTimer = null
 /* 点空白退出的动画定时器（第八轮，需求④）—— 同一个理由必须声明在这里：
    appSwitcherOpen 的 watch（immediate）在关闭分支里 clearTimeout(closeTimer)，
@@ -762,6 +791,37 @@ const drag = ref(null)
 /** 上滑移除松手后的「位姿接力」：{ cardId, dy }，只存活一帧（见 stackStyle / onPointerUp） */
 const vLetGo = ref(null)
 const dismissing = ref(null)
+/* ---- 正在播「飞出」动画的卡（第二十七轮）----
+ *
+ * Ricky 2026-09-18 16:20 报的 bug 原话：
+ *   「出了个Bug，上滑删除卡片后，继续点击鼠标上滑下一个卡片卡片直接消失」
+ *
+ * 根因（`/tmp/vwork/r29/repro-fixed.mjs` 实测，固定屏幕坐标 (215,460) 模拟真人手位）：
+ *   旧实现把「真正出列 + 重排」推迟 240ms（等飞出动画播完）——
+ *     dismissing.value = appId           ← 此刻 apps 里还有它 ⇒ 它仍占 index 0 槽位
+ *     setTimeout(() => { dismissApp(); dismissing = null }, 240)
+ *   于是这 240ms 里：
+ *     ① **顶卡槽位是空的** —— 被删卡占着 index 0（哪怕已飞到 y=−873），
+ *        下一张卡老老实实待在 index 1 = 第二层位姿（实测 notes@173 而不是 155）；
+ *     ② `dismissing` 同时充当【全局手势锁】（`onPointerDown` / `onWheel` 都在它上面 return）
+ *        ⇒ 这段时间里用户再上滑**完全没反应**（实测 gap≤140ms 时 `drag` 恒为 null）。
+ *   复现矩阵：gap 0/60/140ms ⇒ 第二次上滑被吞（只删到 1 张）；gap ≥230ms ⇒ 正常删 2 张。
+ *
+ * 修法（本数组就是那个「独立飞出节点」）：
+ *   把 `dismissApp + settleTo` **提前到删除的同一帧**（其余卡立刻补位），
+ *   飞出中的卡改为由本数组单独喂给 `renderedCards`。删除不再是「数据层的未决状态」，
+ *   于是也不需要再用它锁手势。
+ *
+ * 为什么必须是**列表**而不是单个 id：出列提前之后，「上一张还在飞、下一张又被删」
+ * 成了常态（用户连续上滑）。用单值的话第二次删除会把第一张的飞出节点直接抹掉 ——
+ * 第一张会在半空【凭空消失】，正是这个 bug 的另一种形状。
+ *
+ * 每一项冻结了删除瞬间的 `index / poseFocus / xFrac`：卡已经出列，位姿必须按
+ * 【出列前】的堆叠参数算，否则飞出半途会被重排后的组横向带走。 */
+const flying = ref([])
+/* 与 `.switcher-card` 的飞出过渡同长（见 dismissingStyle 附近的 transition）。
+   到点只撤掉飞出节点，不再动数据 —— 数据早在删除那一帧就落定了。 */
+const DISMISS_MS = 240
 /* ---- 一键清理（需求⑩）的编排态 —— 同样必须声明在 watch 之前（TDZ）----
    clearing = 已武装：卡片拿到「飞出」专用过渡，但目标值还是原位（位姿不动）；
    clearGo  = 放行：下一帧才把目标值切到屏外。分两帧是必须的，与 resumeWithExpand
@@ -950,11 +1010,28 @@ const cullFocus = computed(() => {
    第八轮（需求⑦）：判据必须用 poseFocus —— 用原始 focus 的话，左滑越界 0.6 层时
    最深层的 a 会算成 2.6 > MAX_DEPTH ⇒ 被判不可见 ⇒ 最底部卡片「直接消失」。
    第十一轮：改喂 cullFocus（见上），让深侧的出现时刻不依赖弹簧的渐近尾巴。 */
-const renderedCards = computed(() =>
-  apps.value
+const renderedCards = computed(() => {
+  const list = apps.value
     .map((id, i) => ({ id, i }))
-    .filter(({ id, i }) => id === dismissing.value || id === expanding.value || deckVisible(i - cullFocus.value))
-)
+    .filter(({ id, i }) => id === expanding.value || deckVisible(i - cullFocus.value))
+  /* 第二十七轮：飞出中的卡早已出列（不在 apps 里），但它还得把飞出动画播完 ⇒
+     用冻结的 index 把它补回渲染表。
+     ⚠️ **必须插回它出列前的 DOM 位置，不能 push 到末尾** —— 实测（/tmp/vwork/r29/shot-dismiss.mjs）
+     push 到末尾会让 Vue 把该节点 insertBefore 到最后（= detach + re-attach），
+     进行中的 CSS transition 会被取消：飞出从「240ms 平滑上移」退化成
+     「一帧跳到 −870px」的瞬移（`#13 -85 → #14 -870`）。
+     用 `c.i >= f.index` 找插入点 ⇒ 单张删除时整个列表的 DOM 顺序与删除前逐位相同（零移动），
+     飞出动画的 from-value 就还是它跟手结束时的位姿。
+     ⚠️ 连续删卡时先飞的那张仍可能被挪动一次（它已经飞了 100ms+，位移极小，可接受）；
+     要彻底解决得给飞出卡单独的渲染容器，本轮不做。 */
+  for (const f of flying.value) {
+    if (list.some((c) => c.id === f.id)) continue
+    let at = list.findIndex((c) => c.i >= f.index)
+    if (at < 0) at = list.length
+    list.splice(at, 0, { id: f.id, i: f.index, flying: true })
+  }
+  return list
+})
 
 /* 标签只跟「离焦点最近的那张」走，避免两张卡同时出现标签 */
 const labelIndex = computed(() => {
@@ -1185,15 +1262,23 @@ const settledOne = computed(
    本来就看得见跟手与飞出，不需要（也不应该）动跟手卡。 */
 const followYields = computed(
   () =>
-    !!system.activeAppId &&
-    (drag.value?.mode === 'v' ||
-      !!vLetGo.value ||
-      /* 第十四轮（需求①）：点卡恢复的放大卡【也是】堆叠前卡本身（同一张卡换了位姿），
-         bodyOpacityOf 若继续把它藏成 0，整段放大动画就完全看不见 —— 屏幕上只有一张
-         停在卡位不动的跟手卡，直到交接那一帧才「啪」地变满屏，Ricky 原话
-         「点击多任务卡片进入全屏时会卡和闪一下」。让位条件必须覆盖它。 */
-      !!expanding.value ||
-      dismissing.value === system.activeAppId)
+    /* ⚠️ 第二十七轮：`flying` 必须判在 `!!system.activeAppId` 这道守卫【之外】。
+       原因：删除前台应用时 `dismissApp` 现在【同帧】就把 activeAppId 清成 null，
+       若把 flying 圈进守卫里，整个 computed 会被短路成 false ⇒ 飞出节点的卡体被
+       `bodyOpacityOf` 藏成 0 —— 卡片框架在飞、内容却是全透明的。
+       探针实测（/tmp/vwork/r29/probe-bop.mjs）：松手后 7 帧 bop 全 0，opMin 却仍是 1。
+       旧实现之所以没暴露，纯粹是因为 `dismissApp` 被 `setTimeout` 推迟了 240ms ——
+       那段窗口里 activeAppId 还在，`dismissing === activeAppId` 恰好成立。
+       另一个消费者（followGeom 的 `return null`）同样需要它：飞行期间不渲染跟手卡。 */
+    flying.value.length > 0 ||
+    (!!system.activeAppId &&
+      (drag.value?.mode === 'v' ||
+        !!vLetGo.value ||
+        /* 第十四轮（需求①）：点卡恢复的放大卡【也是】堆叠前卡本身（同一张卡换了位姿），
+           bodyOpacityOf 若继续把它藏成 0，整段放大动画就完全看不见 —— 屏幕上只有一张
+           停在卡位不动的跟手卡，直到交接那一帧才「啪」地变满屏，Ricky 原话
+           「点击多任务卡片进入全屏时会卡和闪一下」。让位条件必须覆盖它。 */
+        !!expanding.value))
 )
 
 /* ---- 跟手缩放（Ricky 2026-09-12 纠正）----
@@ -1473,7 +1558,12 @@ function pickMode(dx, dy, maxMove) {
 }
 
 function onPointerDown(e) {
-  if (dismissing.value || clearing.value || system.switcherClosing) return
+  /* 第二十七轮：**不再**因「有卡在飞」而 return —— 这正是 Ricky 报的 bug 的成因。
+     删除早在松手那一帧就落定到数据层（见 dismissWithAnimation），飞出只是一段
+     纯视觉动画，没有任何「未决状态」需要靠它来锁手势。
+     仍然要挡的是【全局一次性动作】：一键清理（整组正在编排退场）与切换器关闭。
+     复现证据：旧实现在删卡后 ≤140ms 内的第二次上滑 `drag` 恒为 null（完全没反应）。 */
+  if (clearing.value || system.switcherClosing) return
   /* ---- 第二十轮：手势的【指针所有者】（Ricky 2026-09-16）----
    *
    * 原话：「多任务页面双指单次横滑触摸版，老是疯狂抖动」。
@@ -1802,8 +1892,10 @@ function onPointerUp(e) {
     /* 用【松手这一刻重算的】层速度，而不是 d.vPx（最后一次 pointermove 的陈旧值）：
        vtVelocity 会剔除 >100ms 的旧样本，手指停住再松手自然得 0；
        若沿用 d.vPx，停住 300ms 再松手会带着停顿前的旧速度继续翻页（需求⑤的反例）。
-       第二个参数是快甩保底的锚点（手势按下时的焦点）。 */
-    settleFocus(vFocus, d.startFocus)
+       第二个参数是快甩保底的锚点（手势按下时的焦点）。
+       第三个参数（第二十六轮）是【惯性投影的开关】—— 只有真实触摸才开，
+       理由见 utils/switcherMotion.INERTIA 的注释（鼠标合成事件的速度不是物理量）。 */
+    settleFocus(vFocus, d.startFocus, e.pointerType === 'touch')
     return
   }
   if (d.mode === 'v' && !tapIntent) {
@@ -1878,17 +1970,31 @@ function onPointerUp(e) {
      · 从同一片区域上滑 192px ⇒ cardId 恒 null ⇒ willDismiss 恒 false ⇒ 卡片纹丝不动。
    而视觉上这行图标/名字就是卡片的标题行，用户当然会去点它、抓它。
    兜底口径：卡宽 × 卡顶上方 (LABEL_ROW_H + LABEL_GAP) 的横带算作「这张卡」，
-   按 renderedCards 的顺序（顶层在前）取第一个匹配 ⇒ 顶层卡优先。 */
+   按 renderedCards 的顺序（顶层在前）取第一个匹配 ⇒ 顶层卡优先。
+
+   ⚠️ 第二十七轮：两条路径都必须【跳过飞出中的卡】（`data-flying` / `c.flying`）。
+   本轮把删除改成「数据立即出列 + 飞出节点独立存活 DISMISS_MS」，于是 DOM 里会短暂
+   存在一个「不属于 apps、只属于动画」的卡节点。它看上去和真卡一模一样、还盖在最上层，
+   若被判定为可命中，`tapIntent` 就会拿它的 appId 去 `resumeWithExpand(已删除的 app)`
+   —— 把一个刚被关掉的应用重新拉成全屏。这就是 Ricky 那句
+   「继续点击鼠标上滑下一个卡片，卡片直接消失」的另一半成因（第一半是槽位空窗 +
+   手势锁，见 dismissWithAnimation 的注释）。
+   判据一律读 DOM/节点上的 flying 标记，不再查 `dismissing.value` —— 连着删两张时
+   后者只记得【最后】一张（同一理由见 followYields 的注释）。 */
 function hitCardId(e) {
   const els = document.elementsFromPoint(e.clientX, e.clientY)
   for (const el of els) {
-    const id = el?.closest?.('.switcher-card')?.dataset?.appId
+    const card = el?.closest?.('.switcher-card')
+    if (!card) continue
+    if (card.dataset.flying) continue // 飞出节点：数据已出列，不可命中
+    const id = card.dataset.appId
     if (id) return id
   }
   const band = DECK.LABEL_ROW_H + DECK.LABEL_GAP
   const x = e.clientX
   const y = e.clientY
   for (const c of renderedCards.value) {
+    if (c.flying) continue // 同上：飞出节点不参与横带命中
     const p = poseOf(c.i)
     const w = cardW.value * p.scale
     if (x >= p.x && x <= p.x + w && y >= p.y - band && y <= p.y) return c.id
@@ -1896,7 +2002,7 @@ function hitCardId(e) {
   return null
 }
 
-/* ---- 触控板双指横滑（第七轮·批次 3，需求①）----
+/* ---- 触控板双指横滑（第七轮·批次 3，需求①；第二十六轮重写判据）----
    Ricky 原话：「多任务横滑不支持 Mac 触控板双指横滑手势」。
    根因：组件此前只接 pointer 事件，**一个 wheel 都没接** —— 双指横滑产生的 wheel
    被浏览器当成页面滚动吞掉，切换器全程纹丝不动。
@@ -1909,28 +2015,108 @@ function hitCardId(e) {
    ⚠️ 与指针路径最重要的差别：**触控板自带动量相**。一次双指快拨之后 macOS 会继续吐
    一串递减的 wheel（动量），所以这里【绝不叠加投影】—— 惯性已经由系统喂进来了，
    再投影一次就是双重计账（猛拨会飞过头）。做法：
-     · 逐事件把 wheel 增量累加进独立累加器 wheelAcc（不是 focus.value ——
-       焦点会被 spring 拖着滞后，拿它当累加基准每帧都会丢掉一点位移）；
-     · 手全程 focusSnap 逐帧直写（零过渡 → 与触控板 1:1 跟手）；
-     · 手势流停下（WHEEL_IDLE 内无新事件）→ 吸附到最近整卡。
+     · 逐事件把 wheel 增量累加进独立累积器 wheelInput（不是 focus.value ——
+       焦点会跟着输入走，拿它当累加基准每帧都会丢掉一点位移）；
+     · 输入全程走【唯一出口】setInput（零过渡 → 与触控板 1:1 跟手）；
+     · 手势流停下（WHEEL_IDLE 内无任何 wheel 事件）→ 吸附到最近整卡。
    于是：轻拨（累计 < 半张）弹回原卡；拨过半张翻一张（与需求⑤一致）；
    猛拨被动量喂过 1.5 张 → 落点就是第 2 张（触控板上的「惯性加速」）。 */
 const WHEEL_LINE_PX = 16 // deltaMode=1（按行）折算像素
 const WHEEL_PAGE_PX = 400 // deltaMode=2（按页）
-/* 手势结束判定（ms）。取 140 与 HomeScreen 的 wheelResetTimer 同值 —— 同一种输入设备
-   在同一个原型里有且只有一套「拨完了」的门槛。
-   系统动量相的事件间隔常态 < 40ms（尾部也极少超过 100ms），140ms 足够；
-   判早了会把动量尾巴切掉 —— 那正是「惯性」的来源，宁可多等一拍。 */
-const WHEEL_IDLE = 140
+/* 手势结束判定（ms）—— 「确实松手了」的时间门槛。**这是本轮唯一的自由参数。**
+   ⚠️ 第二十六轮：判据改成两条，别只改前一条 ——
+     · 时间上：这段时间里【一笔 wheel 事件都没有】（不是「没有有效笔」）。见 onWheel 注释 ①。
+     · 数值上：140 → 900。原因见下。
+
+   为什么必须从 140 提上来（第二十六轮实测）：
+   DOM 里【没有】触控板手势的 phase，所以「松手了」只能靠时间猜。140ms 猜不出「停顿」和
+   「松手」的区别 —— 而触控板上「拨一下、停下看一眼、再拨」是最自然的节奏，
+   手指停在玻璃上的停顿轻松超过 140ms。旧的 140 于是把每一次停顿都当成一次收尾：
+     endWheel() → settleTo(round(cur)) → round 把位置朝回拉【最多半张卡】。
+   逐帧取证（/tmp/vwork/r27/probe-wheel.mjs，逐次只改这一个变量）：
+     间隙 120ms（< 140）→ 净位移 1.000 张 · 前卡 tr.e 反号 0 次
+     间隙 160ms（> 140）→ 净位移 0.000 张 · 反号 7 次 · 极差 48.8px
+     间隙 200ms（> 140）→ 净位移 0.000 张 · 反号 9 次
+     实测轨迹：0.118 → 0.104 → 0.079（收尾把位置拉下去）→ 0.102 → 0.137 → 0.178
+              →（再来一次）→ 0.212 → 0.161 → 0.163 → 0.199 → 0.240 → …
+     —— 手指一直在拨，位置被锁在一个区间里以 ~3Hz 原地抽，**一张都翻不过去**。
+
+   为什么取 900 而不是「刚好比 140 大一点」（这条是推导出来的，不是拍的）：
+     判据要覆盖的是【人的有意停顿】的上界，不是动量尾流的间隔上界（旧注释按后者定的 140）。
+     实测过的停顿形状：200 / 250 / 360 / 450 / 500ms 全部必须落在门槛内；
+     450ms 那档（每簇 5×14px）在 400ms 门槛下仍有 4 次反号。
+     而「停顿期间动一下、恢复输入再弹回来」这个方案在设计上是不可救的：
+     上一轮实测 ±4px 就会被读成「颤抖」⇒ 只要收尾真的移动了位置，无论多小都算抖动。
+     ⇒ 结论：**停顿期间必须一步都不动**，所以门槛只能取「有意停顿的上界」。
+   ⚠️ 代价（明确接受）：松手后最多晚 WHEEL_IDLE 才归位。它发生在动量尾流停下之后
+      （尾流期间每一笔都在续期），此时画面本就静止，读起来是「稍等一拍再归位」。
+      若 Ricky 反馈「归位太慢」，调小这一个常量即可；若反馈「某些停顿仍在抽」，调大。
+      **不要再引入第二套判据**（第二十三轮 7px 反向死区就是这么翻车的）。
+   ⚠️ 另一个收益：连续两下拨动若间隔 < 门槛，会被当成【同一次手势】⇒ 中途不吸附、只在
+      最后一次之后归位；两下之间不再有中间吸附，比旧版更干净（翻的张数不变）。
+   ⚠️ 残留的已知边界（取舍，不是 bug）：停顿【长于】门槛仍会被当成松手 ⇒ 吸附到最近整卡，
+      进度可能回退（probe 的 500ms 档实测净位移 0、反号 7；900ms 档见 e2e 断言）。
+   ⚠️ 别再往回调：140 那版在触控板上是【必然】抖动，不是概率抖动。
+   同一个 140ms 在 HomeScreen.onWheel 里是无害的，别拿「保持两处一致」当理由：
+   那边超时后只做 `wheelDeltaX = 0`（清累加器，幂等），这边超时后做
+   `settleTo(round(cur))`（移动位置，非幂等）—— 只有后者会被重复触发放大成抽动。 */
+const WHEEL_IDLE = 900
 
 function onWheel(e) {
-  if (!system.appSwitcherOpen || drag.value || dismissing.value || clearing.value || expanding.value) return
+  /* 第二十七轮：门槛里的 `dismissing.value` 已移除 —— 与 onPointerDown 同一个理由：
+     飞出只是一段视觉动画，不该顺手把触控板的翻页手势也锁掉 240ms。 */
+  if (!system.appSwitcherOpen || drag.value || clearing.value || expanding.value) return
   /* deltaMode 归一：部分设备/浏览器给「行」或「页」，要折成像素才与 span 同量纲 */
   const k = e.deltaMode === 1 ? WHEEL_LINE_PX : e.deltaMode === 2 ? WHEEL_PAGE_PX : 1
   const px = e.deltaX * k
-  /* 判据与 HomeScreen.onWheel 完全一致：横向必须【压过纵向】且不小于 2px 才算横滑意图。
-     这样「纯纵向滚轮 / 斜着滚」都不会被我们拦住（切换器里也没有可滚内容）。 */
-  if (!px || Math.abs(px) <= Math.abs(e.deltaY) || Math.abs(px) < 2) return
+  const py = e.deltaY * k
+
+  /* ── ① 手势存活心跳【必须最先做，且不能被任何门槛挡住】──────────────────────────
+   * 第二十六轮主修。Ricky 原话：「电脑端使用 Mac 触控板双指横滑 / Magic Mouse 左右滑动
+   * 翻页时抖，手机浏览器用触摸屏横滑不抖」—— 触摸通路没有 idle 定时器，抬手即 pointerup；
+   * wheel 通路的「拨完了」判据是这个定时器，所以病灶只能在这里。
+   *
+   * 旧实现的顺序是：先过门槛、过了才 clearTimeout/setTimeout。于是【被门槛丢弃的那些笔
+   * 不会把定时器往后推】—— 而真实触控板的慢滑/动量尾流里，|deltaX| ≤ 1 或纵向抖动压过
+   * 横向的笔占很大比例（见 utils/switcherMotion 的方向投票注释里的逐帧取证）。
+   * 只要这种笔连续出现 140ms（一次双指慢滑的中段就会），endWheel() 就会在【手指还在
+   * 触控板上】的时候触发：
+   *     releaseSqueeze() + settleTo(round(cur))
+   *   —— 而 round 是「四舍五入到整卡」，cur = 0.45 时它会把位置朝回拉【半张卡】。
+   * 紧接着的下一笔有效事件看到 wheelAcc == null ⇒ 新建累积器（基准取飞行中的 focus）
+   * + setInput 把位置推回去 ⇒【收尾推进器与输入通道轮流写同一个量】。
+   *
+   * 逐帧取证（/tmp/vwork/r27/probe-wheel.mjs，本地 5555）：
+   *   W9 「拨-停-拨，间隙 120ms（< 140）」 → 净位移 1.000 张 · 前卡 tr.e 反号 0 次
+   *   W10「拨-停-拨，间隙 160ms（> 140）」 → 净位移 0.000 张 · 前卡 tr.e 反号 7 次
+   *        focus 轨迹 0.118 → 0.104 → 0.079 → 0.102 → 0.137 → 0.178 → 0.209 → 0.225
+   *                  → 0.212 → 0.161 → 0.163 → 0.199 → 0.240 →（每 ~16 帧重复一次）
+   *        手指一直在拨，位置被锁在 [0.03, 0.12] 里以 ~3Hz 原地抽，一张都翻不过去。
+   *   两个场景【只差 40ms 间隙】，行为从「正常翻一张」翻成「原地抽」—— 变量是唯一的。
+   *
+   * 修法：把定时器重置提到所有门槛【之前】，且判据改成「这段时间里一笔 wheel 都没有」。
+   * 只在已有未决收尾时动它（wheelAcc == null 时 endWheel 本来就是空操作）。 */
+  if (wheelAcc.value != null) {
+    clearTimeout(wheelIdleTimer)
+    wheelIdleTimer = setTimeout(endWheel, WHEEL_IDLE)
+  }
+
+  /* ── ② 方向判定换【滑动窗口投票】（判据本体在 utils/switcherMotion.voteDir）────────
+   * 旧判据是逐笔比较 `|px| > |py| 且 |px| ≥ 2`，两个毛病：
+   *   · `≥ 2` 把慢滑的真实形状（大量 |deltaX| = 1）整笔吃掉 —— 实测 100 笔纯 1px
+   *     事件的位移【精确为 0】；
+   *   · 逐笔比纵向抖动：真实手势里纵向分量是连续变化的，逐笔比会让通过率随手指抖动
+   *     变成随机脉冲，位移被切成不均匀的碎步。
+   * 窗口投票同时修掉这两条，并且【纯纵向滚动（px = 0）进不了投票】——
+   * 卡片内列表的上下滚动照旧放行（这里直接 return，不 preventDefault）。
+   *
+   * ⚠️ 投票器的时间边界与「拨完了」用同一个 WHEEL_IDLE：超过它没来新事件就是新手势，
+   *    窗口清空重投。否则「上一次竖滚留下的票」会替这一次的横滑作决定。 */
+  if (!px) return
+  const nowMs = e.timeStamp || performance.now()
+  if (!wheelDirVote || nowMs - wheelDirAt > WHEEL_IDLE) wheelDirVote = createDirVote()
+  wheelDirAt = nowMs
+  if (!voteDir(wheelDirVote, px, py)) return
   /* 拦掉默认滚动。必要性：卡片里是真实的应用预览，其中设置页等自带可滚列表 ——
      不拦的话横滑会把那张缩小卡里的列表横向滚起来，切换器反而不动。
      监听器注册在 window 且显式 passive:false（见 onMounted）—— 因为底部 ~30px 的
@@ -1964,6 +2150,10 @@ function onWheel(e) {
   setInput(layered)
   /* 第八轮（需求⑦）：触控板横滑同样吃「左滑挤压」—— 换一种输入设备，不是换一套反馈 */
   dragSqueeze()
+  /* ③ 收尾定时器。与 ① 分工明确、两条都不能省：
+   *    ① 管【被门槛丢弃的笔】—— 手势还活着但本笔不动位置；
+   *    ③ 管【本笔真的动了位置】—— 包含一次手势的第一笔（此刻 wheelAcc 还是 null，
+   *       ① 不会执行，定时器只能在这里起）。 */
   clearTimeout(wheelIdleTimer)
   wheelIdleTimer = setTimeout(endWheel, WHEEL_IDLE)
 }
@@ -1975,6 +2165,8 @@ function endWheel() {
   const cur = wheelAcc.value
   wheelAcc.value = null
   wheelInput = null // 累积器与 wheelAcc 同生命周期
+  wheelDirVote = null
+  wheelDirAt = 0
   const last = Math.max(0, apps.value.length - 1)
   releaseSqueeze()
   settleTo(Math.max(0, Math.min(last, Math.round(cur))))
@@ -1986,6 +2178,8 @@ function cancelWheel() {
   wheelIdleTimer = null
   wheelAcc.value = null
   wheelInput = null
+  wheelDirVote = null
+  wheelDirAt = 0
 }
 
 /* ---- 桌面图标的隐藏态归还（第十五轮）----
@@ -2016,19 +2210,52 @@ function releaseHiddenIcon(appId) {
 
 /* 上滑移除：飞出 + 其余卡片弹簧重排 */
 function dismissWithAnimation(appId) {
+  const index = apps.value.indexOf(appId)
+  if (index < 0) return
+  /* ① 冻结出列【前】的堆叠参数 —— 见 flying 声明处的长注释 */
+  const f = { id: appId, index, poseFocus: poseFocus.value, xFrac: xFrac.value }
+  /* ② 飞出节点 + 数据出列 + 重排，全部在【同一帧】提交。
+        Vue 把这三处改动批在同一次 flush，renderedCards 只会重算一次：
+        飞出卡由 flying 补回，其余卡的 index 已经前移 ⇒ 视觉上是
+        「删掉一张、后面的立刻补位」，不会出现旧实现那种 240ms 的空窗。 */
+  flying.value = [...flying.value.filter((x) => x.id !== appId), f]
   dismissing.value = appId
+  /* ⚠️ releaseHiddenIcon 必须先于 dismissApp：后者会把 activeAppId 置空，
+     之后再判断就查不到了（第十五轮的桌面图标消失 bug）。 */
+  releaseHiddenIcon(appId)
+  system.dismissApp(appId)
+  /* ⚠️ 第二十七轮补（Ricky 2026-09-18 20:52 报「删除卡片以后会闪」）：
+     **只有焦点真的要走时才 settleTo**。删掉顶卡 / 中间卡时 focus 不变（后车直接占它的槽位），
+     此时调 settleTo 会把 `focusMoving` 点亮 ⇒ 根节点挂上 `is-focus-moving`
+     ⇒ 通用过渡规则被 `:not(.is-focus-moving)` 排除 ⇒ **整组补位卡在同一帧瞬移到位**。
+     探针实测（/tmp/vwork/r30/probe-flash.mjs，t=390.3ms 那一帧）：
+       rootCls = `is-focus-moving is-dismissing`，补位卡 transitionDuration = **0s**
+       camera 173→155、notes 190→173 一帧完成，亮度从深度压暗瞬切回全亮，z 同时抬档
+       —— 观感就是「删卡后闪一下」。
+     ⚠️ 这个瞬移【不是本轮新引入的】：第二十六轮在同一位置同样瞬移一下，基线日志
+       /tmp/vwork/r30/base-r26.log（t=607.6ms，`is-focus-moving` + `tdur=0s`）可查。
+       本轮只是把数据出列提前到松手那一帧，于是瞬移从「240ms 后的静止时刻」挪到了
+       「松手那一帧」—— 正好落在眼睛盯着运动、且飞出卡还在屏内的时刻，所以被看见。
+     反过来，焦点越界（删末卡导致 focus > 新长度−1）时移动是必须的：那时位置由 rAF
+     逐帧直写，focusMoving 必须点亮，挂着 CSS 过渡会被二次低通成滞后。
+     ⚠️ 判据【不能】下移到 settleTo() 里统一做：松手吸附路径存在「cur === idx 但位姿仍需
+       由 JS 逐帧演进」的情形（跟手卡让位 / 回弹），在那里省掉这个类会把位姿演进改成 CSS 过渡。 */
+  const want = Math.max(0, Math.min(apps.value.length - 1, Math.round(focus.value)))
+  if (Math.abs(want - focus.value) > 1e-4) settleTo(want)
+  /* ③ 到点只撤飞出节点 —— 数据早在②就落定了，这里不再碰 apps / 焦点。
+       用 id 过滤而不是整表清空：连续删卡时上一张可能还在飞。 */
   setTimeout(() => {
-    /* 必须先于 dismissApp：后者会把 activeAppId 置空，之后再判断就查不到了。 */
-    releaseHiddenIcon(appId)
-    system.dismissApp(appId)
-    dismissing.value = null
-    const idx = Math.max(0, Math.min(apps.value.length - 1, Math.round(focus.value)))
-    settleTo(idx)
-  }, 240)
+    flying.value = flying.value.filter((x) => x.id !== appId)
+    if (!flying.value.length) dismissing.value = null
+  }, DISMISS_MS)
 }
 
-function dismissingStyle(i) {
-  const p = deckPose(i - poseFocus.value, metrics.value, xFrac.value)
+/** 飞出卡的位姿。
+ *  @param f flying 里的一项（含冻结的 index / poseFocus / xFrac）。
+ *  ⚠️ 第二十七轮起不再接收「列表里的 i」：卡已出列，index 会随重排前移，
+ *     若跟着实时 poseFocus 算，飞出半途会被重排后的组横向带走。 */
+function dismissingStyle(f) {
+  const p = deckPose(f.index - f.poseFocus, metrics.value, f.xFrac)
   return {
     width: cardW.value + 'px',
     height: cardH.value + 'px',
@@ -2039,7 +2266,7 @@ function dismissingStyle(i) {
        连续动作，只改跟手段会留半截。同为离场语义的 clearingStyle（一键清理）
        第九轮就已经定成 `opacity: 1`（参考视频末帧残余卡条仍纯白）—— 两条统一。 */
     opacity: 1,
-    zIndex: deckZ(i),
+    zIndex: deckZ(f.index),
     borderRadius: RADIUS.value + 'px'
   }
 }
@@ -2072,6 +2299,11 @@ const RESUME_MS = 320
 const EXPAND_HOLD_MARGIN_MS = 56
 const EXPAND_HOLD_SAME_MS = 64
 function resumeWithExpand(appId) {
+  /* 第二十七轮·防御：飞出中的卡【不允许被恢复】。
+     它的数据早已出列（apps 里没有它），这里是最后一道闸 —— 即便 upper 层有哪条路径
+     漏判了（比如未来新增手势入口），也不能让「刚删掉的 app」借由残留节点被拉回全屏。
+     正常路径下这个 early-return 永不触发（hitCardId 已在上游挡掉）。 */
+  if (flying.value.some((x) => x.id === appId)) return
   expanding.value = appId
   expandTo.value = false
   // 先渲染「起始态」，两帧后再切目标态，浏览器才会跑过渡
@@ -2131,7 +2363,10 @@ function expandingStyle(i) {
 /* 卡片样式分派 —— 锚点几何（跟手/展开）居中缩放，堆叠几何以左上角为原点 */
 function cardStyle(id, i) {
   if (clearing.value) return clearingStyle(i) // 一键清理优先（清空动作压过一切）
-  if (id === dismissing.value) return dismissingStyle(i)
+  /* 第二十七轮：飞出卡按 id 去 flying 里查（判据由 `id === dismissing.value` 换掉）——
+     连续删卡时可能有两张同时在飞，单值判据会让先飞的那张丢掉自己的位姿。 */
+  const fly = flying.value.find((x) => x.id === id)
+  if (fly) return dismissingStyle(fly)
   if (id === expanding.value) return expandingStyle(i)
   return stackStyle(i)
 }
@@ -2436,6 +2671,7 @@ onBeforeUnmount(() => {
           :data-app-id="c.id"
           :data-index="c.i"
           :data-depth="+(c.i - focus).toFixed(3)"
+          :data-flying="c.flying ? '1' : null"
           :style="cardStyle(c.id, c.i)"
         >
           <!-- 卡片上方一行：应用图标 + 名称（第七轮改）。
@@ -2447,7 +2683,7 @@ onBeforeUnmount(() => {
                （名称还在，因为名称不吃隐藏态）。这是 Ricky 截图里「设置的图标消失了」的根因。
                ⚠️ 第九轮（需求①）：前卡被跟手卡顶替时（bodyOpacityOf = 0）这一行必须【让位】——
                标签已经挂在跟手卡上，两边都画就会同时在槽位和跟手卡上出现两份图标。 -->
-          <div v-if="!dismissing && bodyOpacityOf(c.i) !== 0" class="switcher-card-label" :style="labelStyle()">
+          <div v-if="!c.flying && bodyOpacityOf(c.i) !== 0" class="switcher-card-label" :style="labelStyle()">
             <AppIcon :app="appOf(c.id)" :size="24" :show-label="false" ignore-hidden />
             <span v-if="c.i === labelIndex">{{ nameOf(c.id) }}</span>
           </div>
@@ -2578,11 +2814,25 @@ onBeforeUnmount(() => {
      手势取消后会自然退出这个类 → 过渡恢复 → 卡片顺势向左滑出淡出。
    - 曲线 0.32s / cubic-bezier(0.32, 1.16, 0.6, 1)：与 ios-deck 弹簧（τ≈110ms、
      过冲 6.7%）的收尾观感一致，末段带一点回弹余韵，不再是死板的 ease-out。 */
-.app-switcher:not(.is-dragging):not(.is-focus-moving):not(.is-home-entrance) .switcher-card:not(.is-follow) {
+.app-switcher:not(.is-dragging):not(.is-focus-moving):not(.is-home-entrance) .switcher-card:not(.is-follow):not([data-flying]) {
   transition:
     transform 0.32s cubic-bezier(0.32, 1.16, 0.6, 1),
     opacity 0.22s ease,
     filter 0.28s ease;
+}
+/* 飞出卡（第二十七轮）单独一条 —— **必须豁免上面那三条排除**。
+   理由：飞出卡的 transform 只由 `dismissingStyle` 写一次，不参与焦点推进，
+   不存在「被逐帧直写二次低通」的风险；反过来，被那三条排除会让它退化成瞬移：
+     · `is-focus-moving`：`dismissWithAnimation` 里的 `settleTo` 会在【删除那一帧】
+       点亮它，实测飞出从 240ms 平滑上移变成「一帧跳到 −870px」
+       （/tmp/vwork/r29/shot-dismiss.mjs：`#13 files@-85 → #14 files@-870`）；
+     · `is-dragging`：删除后立刻拖下一张时，前一张的飞出动画会被后一段手势掐断；
+     · `is-home-entrance`：同上，桌面进场期删卡。
+   时长与 AppSwitcher.vue 的 `DISMISS_MS`(240) 必须同源。 */
+.app-switcher .switcher-card[data-flying] {
+  transition:
+    transform 240ms cubic-bezier(0.32, 1.16, 0.6, 1),
+    opacity 0.22s ease;
 }
 
 /* 跟手卡的标签锚点（第九轮，需求①）——

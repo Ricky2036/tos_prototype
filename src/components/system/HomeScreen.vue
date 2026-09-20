@@ -180,8 +180,7 @@ function onWheel(event) {
   setTimeout(() => { wheelLocked = false }, 420)
   revealPageDots()
   const requested = home.currentPage + direction
-  if (requested >= home.pageCount) emit('open-library')
-  else home.setPage(Math.max(0, requested))
+  home.setPage(Math.max(0, Math.min(home.pageCount - 1, requested)))
   restoreSearchAfterPaging()
 }
 function bindWindow() {
@@ -329,7 +328,7 @@ function enterEditingFromEmptyPress() {
 }
 function onEmptyPointerDown(event) {
   if (event.button != null && event.button !== 0) return
-  if (event.target.closest('[data-home-item],.dock-bar,.home-editor')) return
+  if (event.target.closest('[data-home-item],[data-dock-item],.home-editor')) return
   folderOperation.value = null
   pointer = { id:event.pointerId, mode:'page', startX:event.clientX, startY:event.clientY, lastX:event.clientX, lastY:event.clientY,
     startedAt:performance.now(), startPage:home.currentPage, exitEditingOnTap:home.editing, captureEl:capture(event) }
@@ -626,16 +625,34 @@ function onPointerMove(event) {
   pointer.lastX = event.clientX; pointer.lastY = event.clientY
   const dx = event.clientX - pointer.startX, dy = event.clientY - pointer.startY
   if (pointer.mode === 'folder-resize') { event.preventDefault(); updateFolderResize(event.clientX,event.clientY); return }
+
+  // 桌面任意位置上滑唤起应用抽屉（非编辑态下，从空白桌面、应用图标、文件夹或 Dock 上滑）
+  if (!home.editing && ['page', 'item-press', 'folder-press'].includes(pointer.mode)) {
+    if (dy < 0 && Math.abs(dy) > Math.abs(dx)) {
+      if (Math.hypot(dx, dy) > 5) {
+        clearTimeout(pressTimer)
+        pressTimer = null
+        if (pointer.itemId) suppressClick(pointer.itemId)
+      }
+      if (!home.editing && dy < -25) {
+        cleanup(false)
+        emit('open-library')
+        return
+      }
+      event.preventDefault()
+      return
+    }
+  }
+
   if (pointer.mode === 'folder-press' || pointer.mode === 'item-press') {
     if (Math.hypot(dx, dy) > 7) {
+      clearTimeout(pressTimer)
+      pressTimer = null
+      if (pointer.itemId) suppressClick(pointer.itemId)
       if (Math.abs(dy) > Math.abs(dx) * 1.2) {
-        clearTimeout(pressTimer)
         cleanup(false)
         return
       }
-      clearTimeout(pressTimer)
-      pressTimer = null
-      suppressClick(pointer.itemId)
       pointer.mode = 'page'
     }
   }
