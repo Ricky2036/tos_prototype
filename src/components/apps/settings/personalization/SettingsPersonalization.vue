@@ -1,5 +1,9 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { useHomeStore } from '../../../../stores/homeStore'
+import { useClock } from '../../../../composables/useClock'
+import { APPS } from '../../../../config/apps'
+import AppIcon from '../../../ui/AppIcon.vue'
 import currentWallpaper from '../../../../assets/img/wallpaper-lock.jpg'
 import bronzeWallpaper from '../../../../assets/img/personalization/glass-bronze.png'
 import blueWallpaper from '../../../../assets/img/personalization/glass-blue.png'
@@ -8,10 +12,31 @@ import roseWallpaper from '../../../../assets/img/personalization/glass-rose.png
 import colorIconsArtwork from '../../../../assets/img/personalization/color-icons.png'
 
 const emit = defineEmits(['back'])
+const home = useHomeStore()
+const { timeShort, dateLong } = useClock()
 
 const screen = ref('overview')
 const selectedWallpaper = ref(currentWallpaper)
 const activeWallpaper = ref(currentWallpaper)
+const appById = Object.fromEntries(APPS.map((app) => [app.id, app]))
+
+const previewItems = computed(() => {
+  const pageIndex = home.currentPage || 0
+  const ids = home.pages?.[pageIndex] || []
+  const frames = home.positions?.[pageIndex] || {}
+  return ids.map((id) => ({ id, item: home.items[id], frame: frames[id] })).filter((entry) => entry.item && entry.frame)
+})
+
+function previewFrameStyle(frame) {
+  const workspace = home.profile?.workspaceRect || { left: 0, top: 0, width: 304, height: 591 }
+  const left = ((frame.x - workspace.left) / workspace.width) * 100
+  const top = ((frame.y - workspace.top) / workspace.height) * 100
+  return {
+    left: `${left}%`, top: `${top}%`,
+    width: `${(frame.width / workspace.width) * 100}%`,
+    height: `${(frame.height / workspace.height) * 100}%`
+  }
+}
 
 const wallpapers = [
   { id: 'bronze', src: bronzeWallpaper, tone: '#d9974e', title: '鎏金玻璃' },
@@ -60,7 +85,7 @@ const menuItems = [
   { id: 'font', label: '字体', icon: 'font', color: '#087cff' },
   { id: 'color', label: '系统颜色', icon: 'palette', color: '#20cbd0' },
   { id: 'lock', label: '锁屏设置', icon: 'lock', color: '#087cff' },
-  { id: 'home', label: '桌面设置', icon: 'home', color: '#7558ff' }
+  { id: 'desktop', label: '桌面设置', icon: 'desktop', color: '#7558ff' }
 ]
 </script>
 
@@ -80,22 +105,28 @@ const menuItems = [
         <div class="current-theme-stage">
           <div class="theme-pair">
             <article class="device-preview lock-preview" :style="{ backgroundImage: `url(${activeWallpaper})` }">
-              <div class="preview-date">周日, 9月20日</div>
-              <div class="preview-clock">18:16</div>
+              <div class="preview-date">{{ dateLong }}</div>
+              <div class="preview-clock">{{ timeShort }}</div>
               <button class="edit-pill">编辑</button>
             </article>
             <article class="device-preview home-preview" :style="{ backgroundImage: `url(${activeWallpaper})` }">
-              <div class="mini-app-grid">
-                <span v-for="n in 16" :key="n" :style="{ '--i': n }"></span>
+              <div class="live-home-layout">
+                <div v-for="entry in previewItems" :key="entry.id" class="live-home-item" :class="`mini-${entry.item.type}`" :style="previewFrameStyle(entry.frame)">
+                  <AppIcon v-if="entry.item.type === 'app' && appById[entry.item.appId]" :app="appById[entry.item.appId]" :size="18" :show-label="false" :show-badge="false" :launch-on-click="false" />
+                  <span v-else-if="entry.item.type === 'widget'" class="preview-widget">
+                    <b>{{ entry.item.widgetId === 'clock' ? timeShort : '31°' }}</b>
+                    <small>{{ entry.item.widgetId === 'clock' ? '时钟' : '深圳' }}</small>
+                  </span>
+                  <span v-else class="preview-folder"><i v-for="n in 9" :key="n"></i></span>
+                </div>
               </div>
-              <div class="mini-dock"><i v-for="n in 4" :key="n"></i></div>
               <button class="edit-pill">编辑</button>
             </article>
           </div>
         </div>
 
         <button class="add-theme-button" @click="screen = 'themes'">
-          <span class="plus-ring">+</span> 添加新主题
+          <span class="plus-ring"><svg viewBox="0 0 20 20"><path d="M10 5v10M5 10h10" /></svg></span> 添加新主题
         </button>
 
         <section class="personalization-menu">
@@ -107,7 +138,7 @@ const menuItems = [
               <span v-else-if="item.icon === 'font'" class="font-glyph">Aa</span>
               <svg v-else-if="item.icon === 'palette'" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18h1.4a2 2 0 0 0 1.3-3.5 1.7 1.7 0 0 1 1.1-3h1.7A3.5 3.5 0 0 0 21 11 8 8 0 0 0 12 3Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>
               <svg v-else-if="item.icon === 'lock'" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-              <svg v-else viewBox="0 0 24 24"><path d="m4 11 8-7 8 7v9H4Z"/><path d="M9 20v-5h6v5"/></svg>
+              <svg v-else viewBox="0 0 24 24"><path d="m4.5 9.5 7.5-6 7.5 6v9.5h-15Z"/><path d="M8 18h8M9 15.5h6"/></svg>
             </span>
             <span class="menu-label">{{ item.label }}</span>
             <svg class="chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" /></svg>
@@ -176,7 +207,8 @@ const menuItems = [
 .personalization-root { --ink:#f7f7fa; min-height:100%; height:100%; background:#000; color:var(--ink); overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC",sans-serif; }
 .personalization-header { height:calc(var(--safe-top) + 58px); padding:var(--safe-top) 18px 0; display:flex; align-items:center; gap:14px; box-sizing:border-box; background:linear-gradient(#000 72%,rgba(0,0,0,.92)); position:relative; z-index:4; }
 .personalization-header h1 { margin:0; font-size:21px; font-weight:700; letter-spacing:-.4px; }
-.round-back { width:42px; height:42px; border:1px solid rgba(255,255,255,.12); border-radius:50%; background:rgba(255,255,255,.09); color:white; display:grid; place-items:center; padding:0; box-shadow:inset 0 1px rgba(255,255,255,.08); }
+.round-back { width:42px; height:42px; border:1px solid rgba(255,255,255,.16); border-radius:50%; background:linear-gradient(145deg,rgba(255,255,255,.17),rgba(255,255,255,.055) 62%); color:white; display:grid; place-items:center; padding:0; box-shadow:inset 0 1px 1px rgba(255,255,255,.22),inset 0 -1px rgba(0,0,0,.32),0 7px 20px rgba(0,0,0,.38); backdrop-filter:blur(22px) saturate(155%); -webkit-backdrop-filter:blur(22px) saturate(155%); }
+.round-back::before { content:""; position:absolute; width:28px; height:12px; border-radius:50%; background:radial-gradient(ellipse,rgba(255,255,255,.13),transparent 70%); transform:translateY(-10px); pointer-events:none; }
 .round-back svg { width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .personalization-scroll { height:calc(100% - var(--safe-top) - 58px); overflow:auto; scrollbar-width:none; box-sizing:border-box; padding-bottom:calc(var(--safe-bottom) + 30px); }
 .personalization-scroll::-webkit-scrollbar { display:none; }
@@ -184,21 +216,27 @@ const menuItems = [
 .section-kicker { text-align:center; color:#c6c6cb; font-size:14px; font-weight:600; margin:0 0 24px; }
 .current-theme-stage { width:100%; overflow:hidden; }
 .theme-pair { display:flex; justify-content:center; gap:10px; padding:0 20px; }
-.device-preview { width:142px; height:284px; border-radius:22px; position:relative; overflow:hidden; flex:none; background-position:center; background-size:cover; box-shadow:0 16px 24px rgba(0,0,0,.55); }
+.device-preview { width:142px; height:284px; border-radius:22px; position:relative; overflow:hidden; flex:none; background-position:center; background-size:cover; box-shadow:0 16px 30px rgba(0,0,0,.62),inset 0 0 0 .5px rgba(255,255,255,.2); }
 .device-preview::after { content:""; position:absolute; inset:0; background:linear-gradient(rgba(0,0,0,.04),rgba(0,0,0,.1)); pointer-events:none; }
-.preview-date { position:absolute; top:26px; left:0; right:0; text-align:center; z-index:1; font-size:8px; font-weight:600; }
+.preview-date { position:absolute; top:26px; left:0; right:0; text-align:center; z-index:1; font-size:7.5px; font-weight:600; }
 .preview-clock { position:absolute; top:39px; left:0; right:0; text-align:center; z-index:1; font-size:33px; line-height:1; font-weight:650; letter-spacing:-2px; }
-.edit-pill { position:absolute; z-index:2; bottom:14px; left:50%; transform:translateX(-50%); border:0; border-radius:18px; padding:7px 18px; color:white; background:rgba(128,128,132,.62); backdrop-filter:blur(14px); font-size:10px; }
-.mini-app-grid { position:absolute; inset:62px 14px 66px; display:grid; grid-template-columns:repeat(4,1fr); gap:9px 7px; z-index:1; }
-.mini-app-grid span { aspect-ratio:1; border-radius:7px; background:hsl(calc(var(--i) * 38deg) 82% 56%); box-shadow:inset 0 0 0 1px rgba(255,255,255,.3); }
-.mini-dock { position:absolute; bottom:49px; left:13px; right:13px; height:28px; border-radius:12px; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:space-around; z-index:1; }
-.mini-dock i { width:20px; height:20px; border-radius:6px; background:#f4f4f4; }
-.add-theme-button { margin:44px auto 36px; display:flex; align-items:center; gap:8px; border:1px solid rgba(255,255,255,.14); background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.06)); color:white; height:46px; padding:0 34px; border-radius:24px; font-size:15px; font-weight:650; box-shadow:0 8px 24px rgba(0,0,0,.4); }
-.plus-ring { width:18px; height:18px; border:1.8px solid white; border-radius:50%; display:grid; place-items:center; font-size:18px; line-height:14px; }
+.edit-pill { position:absolute; z-index:3; bottom:14px; left:50%; transform:translateX(-50%); border:1px solid rgba(255,255,255,.15); border-radius:18px; min-width:59px; height:29px; color:white; background:linear-gradient(180deg,rgba(255,255,255,.25),rgba(118,118,124,.37)); box-shadow:inset 0 1px rgba(255,255,255,.18),0 5px 14px rgba(0,0,0,.2); backdrop-filter:blur(16px) saturate(145%); -webkit-backdrop-filter:blur(16px) saturate(145%); font-size:10px; }
+.live-home-layout { position:absolute; left:10px; right:10px; top:27px; bottom:48px; z-index:2; }
+.live-home-item { position:absolute; display:flex; align-items:flex-start; justify-content:center; overflow:hidden; }
+.live-home-item :deep(.app-icon) { transform:scale(.98); transform-origin:top center; pointer-events:none; }
+.preview-widget { width:100%; height:100%; min-height:18px; border-radius:5px; color:white; background:linear-gradient(145deg,rgba(255,255,255,.32),rgba(25,89,230,.68)); border:.5px solid rgba(255,255,255,.24); display:flex; flex-direction:column; align-items:flex-start; justify-content:center; box-sizing:border-box; padding:3px; text-align:left; box-shadow:0 2px 5px rgba(0,0,0,.16); }
+.preview-widget b { font-size:9px; line-height:1; }.preview-widget small { font-size:4px; margin-top:2px; opacity:.85; }
+.preview-folder { width:18px; height:18px; padding:2px; border-radius:5px; display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:rgba(255,255,255,.28); box-sizing:border-box; }
+.preview-folder i { border-radius:1px; background:rgba(255,255,255,.8); }
+.add-theme-button { position:relative; isolation:isolate; margin:44px auto 36px; display:flex; align-items:center; justify-content:center; gap:9px; border:1px solid rgba(255,255,255,.17); background:linear-gradient(180deg,rgba(60,60,66,.72),rgba(19,19,22,.64)); color:white; height:46px; min-width:184px; padding:0 30px; border-radius:24px; font-size:15px; font-weight:650; box-shadow:inset 0 1px rgba(255,255,255,.21),inset 0 -1px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.54); backdrop-filter:blur(22px) saturate(155%); -webkit-backdrop-filter:blur(22px) saturate(155%); overflow:hidden; }
+.add-theme-button::before { content:""; position:absolute; z-index:-1; left:11%; right:11%; top:-11px; height:25px; border-radius:50%; background:radial-gradient(ellipse,rgba(255,255,255,.28),rgba(255,255,255,.05) 48%,transparent 74%); }
+.plus-ring { width:20px; height:20px; border:1.6px solid rgba(255,255,255,.94); border-radius:50%; display:grid; place-items:center; box-sizing:border-box; flex:none; }
+.plus-ring svg { width:13px; height:13px; fill:none; stroke:white; stroke-width:1.8; stroke-linecap:round; }
 .personalization-menu { margin:0 16px; border-radius:20px; background:#1b1b1d; padding:0 12px; overflow:hidden; }
 .menu-row { width:100%; min-height:62px; display:flex; align-items:center; gap:14px; color:white; border:0; border-bottom:1px solid rgba(255,255,255,.1); background:transparent; padding:0 2px; text-align:left; }
 .menu-row:last-child { border-bottom:0; }
-.menu-icon { width:35px; height:35px; flex:none; border-radius:10px; display:grid; place-items:center; box-shadow:inset 0 1px rgba(255,255,255,.24); }
+.menu-icon { width:35px; height:35px; flex:none; border-radius:10px; display:grid; place-items:center; box-shadow:inset 0 1px 1px rgba(255,255,255,.38),inset 0 -1px 1px rgba(0,0,0,.2),0 2px 5px rgba(0,0,0,.22); overflow:hidden; }
+.icon-image { background:linear-gradient(145deg,#8b6aff,#5a3bea)!important; }.icon-phone { background:linear-gradient(145deg,#4b4b4f,#242426)!important; }.icon-font,.icon-lock { background:linear-gradient(145deg,#178dff,#0060e8)!important; }.icon-palette { background:linear-gradient(145deg,#35dbdf,#08aeb9)!important; }.icon-desktop { background:linear-gradient(145deg,#896fff,#5740e5)!important; }
 .menu-icon svg { width:22px; height:22px; fill:none; stroke:white; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .menu-icon img { width:100%; height:100%; object-fit:contain; border-radius:10px; }
 .font-glyph { font:400 22px/1 Georgia,serif; }

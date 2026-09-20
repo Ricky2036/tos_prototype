@@ -21,6 +21,11 @@ test('personalization page provides overview, theme market and wallpaper picker'
   assert.match(personalization, /添加新主题/)
   assert.match(personalization, /从图库选择/)
   assert.match(personalization, /设为当前/)
+  assert.match(personalization, /previewItems/)
+  assert.match(personalization, /home\.positions/)
+  assert.doesNotMatch(personalization, /mini-dock/)
+  assert.match(personalization, /plus-ring.*<svg/s)
+  assert.match(personalization, /icon-desktop/)
 })
 
 test('generated wallpaper and colorful icon assets are present and used', () => {
