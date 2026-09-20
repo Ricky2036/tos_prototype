@@ -71,13 +71,10 @@ defineExpose({
 
 <template>
   <div class="drawer-search-wrapper" :class="{ 'is-hidden': hidden, 'is-active': isFocused }">
-    <!-- 底部渐变半透遮罩层（柔和通透，绝不遮挡底部圆角与全局导航） -->
-    <div class="bottom-gradient-scrim"></div>
-
-    <!-- 搜索结果浮层（聚焦输入时激活展示） -->
+    <!-- 搜索结果浮层（聚焦输入时激活展示，通透毛玻璃全屏覆盖，绝无断层遮罩） -->
     <transition name="fade">
       <div v-if="isFocused" class="search-overlay" @click.self="handleCancel">
-        <div class="search-results-box scrollable">
+        <div class="search-results-box scrollable" @click.self="handleCancel">
           <div v-if="searchQuery.trim() && searchResults.length > 0" class="results-grid">
             <div
               v-for="app in searchResults"
@@ -187,17 +184,6 @@ defineExpose({
   pointer-events: none;
 }
 
-/* 底部柔和渐变暗黑遮罩 */
-.bottom-gradient-scrim {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 96px;
-  background: linear-gradient(to top, rgba(14, 17, 23, 0.6) 0%, rgba(14, 17, 23, 0.2) 60%, rgba(14, 17, 23, 0) 100%);
-  pointer-events: none;
-}
-
 .bottom-capsule-container {
   position: relative;
   width: 100%;
@@ -208,30 +194,32 @@ defineExpose({
   box-sizing: border-box;
   margin-bottom: 24px;
   pointer-events: auto;
+  z-index: 100;
 }
 
-/* 一体化暗黑毛玻璃胶囊 */
+/* 悬浮半透深色毛玻璃搜索胶囊 */
 .search-capsule {
   width: 100%;
   height: 48px;
-  background: rgba(42, 46, 56, 0.78);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border: 0.5px solid rgba(255, 255, 255, 0.14);
+  background: rgba(36, 40, 52, 0.60);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.16);
   border-radius: 24px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.12);
   display: flex;
   align-items: center;
   padding: 0 16px;
   box-sizing: border-box;
   cursor: text;
   gap: 10px;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .drawer-search-wrapper.is-active .search-capsule {
-  background: rgba(48, 52, 64, 0.92);
-  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(44, 49, 64, 0.72);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .search-icon {
@@ -301,25 +289,24 @@ defineExpose({
   flex-shrink: 0;
 }
 
-/* 搜索结果全屏浮层 */
+/* 搜索结果全屏浮层：通透半透深色毛玻璃全屏延展，绝无断层黑色遮罩 */
 .search-overlay {
   position: fixed;
   inset: 0;
-  bottom: 84px;
-  background: rgba(14, 18, 26, 0.88);
-  backdrop-filter: blur(32px);
-  -webkit-backdrop-filter: blur(32px);
+  background: rgba(14, 18, 26, 0.45);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
   z-index: 90;
   pointer-events: auto;
   padding-top: calc(var(--safe-top, 24px) + 50px);
-  padding-bottom: 20px;
+  padding-bottom: 84px;
   box-sizing: border-box;
 }
 
 .search-results-box {
   height: 100%;
   overflow-y: auto;
-  padding: 10px 20px;
+  padding: 10px 20px 88px 20px;
   box-sizing: border-box;
 }
 
