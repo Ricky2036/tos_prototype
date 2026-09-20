@@ -123,6 +123,8 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Floating translucent frosted glass search capsule and remove ugly bottom scrim mask & seam | `antigravity/lane` | None (locks released) | `4c33c90` | `5af4cc5` |
 | Merged | Antigravity | Float search capsule directly on current interface, eliminating full-screen blur and search-hint prompt text | `antigravity/lane` | None (locks released) | `b722244` | `1f39734` |
 | Merged | Antigravity | Replace drawer search cancel text with small cross icon and unify single-button clear/dismiss | `antigravity/lane` | None (locks released) | `081d087` | `60dc689` |
+| Merged | Codex | Personalization theme framework, live preview mirroring, and personalization glyph & icon sizing normalization | `codex/lane` | None (locks released) | `1f44667` | `f52eeb4` |
+| Merged | Workbuddy | Volume Plus, physical side volume keys, SideVolumeOverlay & VolumePanel restoration with transparent frosted glass, and CC power tile removal | `workbuddy/lane` | None (locks released) | `f6bdb32` | `6d1f087` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
