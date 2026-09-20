@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useHomeStore } from '../../../../stores/homeStore'
+import { useWallpaperStore } from '../../../../stores/wallpaperStore'
 import { useClock } from '../../../../composables/useClock'
 import AppGrid from '../../../system/AppGrid.vue'
 import LockScreen from '../../../system/LockScreen.vue'
@@ -12,11 +13,12 @@ import roseWallpaper from '../../../../assets/img/personalization/glass-rose.png
 
 const emit = defineEmits(['back'])
 const home = useHomeStore()
+const wallpaperStore = useWallpaperStore()
 const { timeShort } = useClock()
 
 const screen = ref('overview')
-const selectedWallpaper = ref(currentWallpaper)
-const activeWallpaper = ref(currentWallpaper)
+const selectedWallpaper = ref(wallpaperStore.active || currentWallpaper)
+const activeWallpaper = computed(() => wallpaperStore.active || currentWallpaper)
 
 const wallpapers = [
   { id: 'bronze', src: bronzeWallpaper, tone: '#d9974e', title: '鎏金玻璃' },
@@ -24,6 +26,29 @@ const wallpapers = [
   { id: 'mint', src: mintWallpaper, tone: '#38e6c1', title: '薄荷极光' },
   { id: 'rose', src: roseWallpaper, tone: '#ff4fa1', title: '玫瑰霓虹' }
 ]
+
+const generatedWallpaperUrls = import.meta.glob('../../../../assets/img/personalization/generated/*.png', { eager: true, query: '?url', import: 'default' })
+const generatedWallpaperOrder = [
+  ['abstract-glass-blue', '抽象·玻璃蓝'],
+  ['abstract-folded-lavender', '抽象·折叠光'],
+  ['abstract-liquid-teal', '抽象·液态青'],
+  ['nature-mountain-lake', '自然·山湖晨雾'],
+  ['nature-alpine-meadow', '自然·雪峰花野'],
+  ['nature-coast', '自然·海岸暮光'],
+  ['pet-golden-retriever', '宠物·金毛'],
+  ['pet-white-gray-cat', '宠物·银灰猫'],
+  ['pet-red-fox', '宠物·赤狐'],
+  ['person-field', '人物·金色田野'],
+  ['person-haze', '人物·雾光侧影'],
+  ['person-coast', '人物·海岸漫步']
+]
+for (const [id, title] of generatedWallpaperOrder) {
+  const path = `../../../../assets/img/personalization/generated/${id}.png`
+  const src = generatedWallpaperUrls[path]
+  if (src) wallpapers.push({ id, src, tone: '#4f8cff', title })
+}
+
+onMounted(() => wallpaperStore.hydrate())
 
 const pageTitle = computed(() => {
   if (screen.value === 'themes') return '添加新主题'
@@ -54,7 +79,7 @@ function chooseWallpaper(src) {
 }
 
 function applyWallpaper() {
-  activeWallpaper.value = selectedWallpaper.value
+  wallpaperStore.apply(selectedWallpaper.value)
 }
 
 defineExpose({ back: () => {
