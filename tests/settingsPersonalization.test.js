@@ -8,6 +8,8 @@ const settings = readFileSync(resolve(root, 'src/components/apps/settings/Settin
 const personalizationPath = resolve(root, 'src/components/apps/settings/personalization/SettingsPersonalization.vue')
 const personalization = readFileSync(personalizationPath, 'utf8')
 const appGrid = readFileSync(resolve(root, 'src/components/system/AppGrid.vue'), 'utf8')
+const lockScreen = readFileSync(resolve(root, 'src/components/system/LockScreen.vue'), 'utf8')
+const screenView = readFileSync(resolve(root, 'src/components/phone/ScreenView.vue'), 'utf8')
 
 test('Settings routes wallpaper and personalization into a real nested page', () => {
   assert.match(settings, /push\('personalization'\)/)
@@ -43,6 +45,9 @@ test('personalization page provides overview, theme market and wallpaper picker'
   assert.match(personalization, /pet-golden-retriever/)
   assert.match(personalization, /person-field/)
   assert.match(personalization, /wallpaperStore\.apply\(selectedWallpaper\.value\)/)
+  assert.match(lockScreen, /:href="activeWallpaper"/)
+  assert.match(lockScreen, /backgroundImage: `url\(\$\{activeWallpaper\}\)`/)
+  assert.match(screenView, /backgroundImage: `url\(\$\{activeWallpaper\}\)`/)
   assert.match(personalization, /\.filled-palette-glyph \{ width:20px; height:20px; stroke:none/)
   assert.match(personalization, /\.filled-lock-glyph \{ width:19px; height:21px; stroke:none/)
   assert.match(personalization, /\.filled-desktop-glyph \{ width:20px; height:20px; stroke:none/)
