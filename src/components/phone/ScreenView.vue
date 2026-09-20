@@ -19,6 +19,7 @@ import AppSwitcher from '../system/AppSwitcher.vue'
 import { registerDriver } from '../../composables/driverRegistry'
 import { runBackHandler } from '../../composables/backRegistry'
 import wallpaper from '../../assets/img/wallpaper-lock.jpg'
+import { useWallpaperStore } from '../../stores/wallpaperStore'
 
 /**
  * 屏幕容器（OS 合成器）：
@@ -26,6 +27,8 @@ import wallpaper from '../../assets/img/wallpaper-lock.jpg'
  */
 const control = useControlStore()
 const system = useSystemStore()
+const wallpaperStore = useWallpaperStore()
+const activeWallpaper = computed(() => wallpaperStore.active || wallpaper)
 const heroVisual = ref(null)
 
 const rootEl = ref(null)
@@ -264,7 +267,7 @@ useSwipeGesture(sideEdgeRef, {
     <div
       v-show="isWallpaperVisible"
       class="wallpaper"
-      :style="{ backgroundImage: `url(${wallpaper})` }"
+      :style="{ backgroundImage: `url(${activeWallpaper})` }"
     ></div>
 
     <!-- 桌面（常驻 DOM，支撑解锁入场动效与 Hero 实时锚点计算） -->

@@ -10,6 +10,7 @@ import { useRecorderStore } from '../../stores/recorderStore'
 import { useClockStore } from '../../stores/clockStore'
 import { usePrayerStore } from '../../stores/prayerStore'
 import { useControlStore } from '../../stores/controlStore'
+import { useWallpaperStore } from '../../stores/wallpaperStore'
 import { useActiveActivities } from '../../composables/useActiveActivities'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import { GLYPHS } from '../../assets/icons/glyphs'
@@ -40,7 +41,9 @@ const recorder = useRecorderStore()
 const clock = useClockStore()
 const prayer = usePrayerStore()
 const control = useControlStore()
+const wallpaperStore = useWallpaperStore()
 const { activeActivities } = useActiveActivities()
+const activeWallpaper = computed(() => wallpaperStore.active || wallpaper)
 
 if (typeof window !== 'undefined') {
   window.__system = system
@@ -1231,7 +1234,7 @@ function notifStyle(i) {
 <template>
   <div ref="rootRef" class="lock-screen" :style="containerStyle" @click="onBackdropTap">
     <!-- 壁纸 -->
-    <div class="ls-wallpaper" :style="{ backgroundImage: `url(${wallpaper})` }"></div>
+    <div class="ls-wallpaper" :style="{ backgroundImage: `url(${activeWallpaper})` }"></div>
     <div ref="unlockRef" class="ls-unlock-surface"></div>
     <!-- 解锁进度驱动的整体容器 -->
     <div class="ls-inner" :style="layerStyle">
@@ -1268,7 +1271,7 @@ function notifStyle(i) {
             </linearGradient>
           </defs>
           <g :clip-path="'url(#' + glassUid + '-glyph)'">
-            <image :href="wallpaper" :x="glassRect.x" :y="glassRect.y"
+            <image :href="activeWallpaper" :x="glassRect.x" :y="glassRect.y"
                    :width="glassRect.w" :height="glassRect.h"
                    preserveAspectRatio="xMidYMid slice"
                    :filter="'url(#' + glassUid + '-blur)'" />
