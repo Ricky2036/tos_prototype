@@ -136,9 +136,16 @@ const menuItems = [
                 <rect x="15.4" y="15.4" width="7.6" height="7.6" rx="2.15" fill="#20c96b" />
               </svg>
               <span v-else-if="item.icon === 'font'" class="font-glyph">Aa</span>
-              <svg v-else-if="item.icon === 'palette'" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18h1.4a2 2 0 0 0 1.3-3.5 1.7 1.7 0 0 1 1.1-3h1.7A3.5 3.5 0 0 0 21 11 8 8 0 0 0 12 3Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>
-              <svg v-else-if="item.icon === 'lock'" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-              <svg v-else viewBox="0 0 24 24"><path d="m4.5 9.5 7.5-6 7.5 6v9.5h-15Z"/><path d="M8 18h8M9 15.5h6"/></svg>
+              <svg v-else-if="item.icon === 'palette'" class="filled-palette-glyph" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#fff" d="M12 2.5a9.5 9.5 0 1 0 0 19h1.55a2.35 2.35 0 0 0 1.52-4.14 1.65 1.65 0 0 1 1.08-2.91h1.55A3.8 3.8 0 0 0 21.5 10.7 8.45 8.45 0 0 0 12 2.5Zm-4.6 10.15a1.35 1.35 0 1 1 0-2.7 1.35 1.35 0 0 1 0 2.7Zm2.45-4.3a1.35 1.35 0 1 1 0-2.7 1.35 1.35 0 0 1 0 2.7Zm5.15.35A1.35 1.35 0 1 1 15 6a1.35 1.35 0 0 1 0 2.7Z" />
+              </svg>
+              <svg v-else-if="item.icon === 'lock'" class="filled-lock-glyph" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#fff" fill-rule="evenodd" d="M7.2 9V7a4.8 4.8 0 0 1 9.6 0v2h.7a2.8 2.8 0 0 1 2.8 2.8v7.4a2.8 2.8 0 0 1-2.8 2.8h-11a2.8 2.8 0 0 1-2.8-2.8v-7.4A2.8 2.8 0 0 1 6.5 9h.7Zm2.35 0h4.9V7a2.45 2.45 0 0 0-4.9 0v2Z" />
+              </svg>
+              <svg v-else class="filled-desktop-glyph" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#fff" d="M12 2.4 21 9v10.2a2.4 2.4 0 0 1-2.4 2.4H5.4A2.4 2.4 0 0 1 3 19.2V9l9-6.6Z" />
+                <rect x="7.7" y="17.3" width="8.6" height="1.65" rx=".825" fill="#5f48e8" />
+              </svg>
             </span>
             <span class="menu-label">{{ item.label }}</span>
             <svg class="chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" /></svg>
@@ -239,9 +246,9 @@ const menuItems = [
 .menu-icon .filled-phone-glyph { width:22px; height:26px; stroke:none; }
 .menu-icon .color-grid-glyph { width:35px; height:35px; stroke:none; overflow:visible; }
 .color-grid-glyph .grid-shell { fill:#f7f7f8; stroke:#d9d9dc; stroke-width:.7; }
-.icon-palette svg { width:19px; height:19px; }
-.icon-lock svg { width:18px; height:20px; }
-.icon-desktop svg { width:19px; height:19px; }
+.icon-palette .filled-palette-glyph { width:20px; height:20px; stroke:none; }
+.icon-lock .filled-lock-glyph { width:19px; height:21px; stroke:none; }
+.icon-desktop .filled-desktop-glyph { width:20px; height:20px; stroke:none; }
 .font-glyph { font:400 19px/1 Georgia,serif; transform:translateY(-.5px); }
 .menu-label { flex:1; font:450 15.5px/1.3 var(--font-stack); }
 .chevron { width:21px; height:21px; fill:none; stroke:#77777b; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
