@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { getDrawerAppById } from '../../../config/drawerApps'
 import { useHomeStore } from '../../../stores/homeStore'
+import { rubberBand } from '../../../utils/math'
 import AppIcon from '../../ui/AppIcon.vue'
 
 const props = defineProps({
@@ -208,9 +209,21 @@ function onOverlayClick(e) {
   }
 }
 
-// 下滑手势支持（对齐 22.mp4）
+// 下滑手势支持（对齐 22.mp4）与上滑阻尼橡皮筋回弹
 let startY = 0
 let isTracking = false
+const overscrollY = ref(0)
+const isBouncing = ref(false)
+
+const containerStyle = computed(() => {
+  if (overscrollY.value === 0 && !isBouncing.value) {
+    return {}
+  }
+  return {
+    transform: `translateY(calc(-16px + ${overscrollY.value}px))`,
+    transition: isBouncing.value ? 'transform 0.38s cubic-bezier(0.18, 0.9, 0.32, 1.2)' : 'none'
+  }
+})
 
 function onPointerDown(e) {
   if (isClosing.value) return
@@ -224,11 +237,25 @@ function onPointerMove(e) {
   if (dy > 45) {
     isTracking = false
     closeAnimation()
+    return
+  }
+  if (dy < 0) {
+    isBouncing.value = false
+    overscrollY.value = rubberBand(dy, 280, 0.45)
+  } else if (overscrollY.value < 0) {
+    overscrollY.value = 0
   }
 }
 
 function onPointerUp() {
   isTracking = false
+  if (overscrollY.value < 0) {
+    isBouncing.value = true
+    overscrollY.value = 0
+    setTimeout(() => {
+      isBouncing.value = false
+    }, 380)
+  }
 }
 
 onMounted(() => {
@@ -251,7 +278,7 @@ onMounted(() => {
     <div ref="backdropRef" class="folder-backdrop"></div>
 
     <!-- 展开内容区 -->
-    <div class="folder-container">
+    <div class="folder-container" :style="containerStyle">
       <!-- 文件夹名称标题（左对齐，对齐 22.mp4） -->
       <div class="folder-header">
         <h2 ref="titleRef" class="folder-title">{{ category.name }}</h2>

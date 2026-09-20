@@ -6,7 +6,7 @@ import { useSystemStore } from '../../stores/systemStore'
 import { useHomeStore } from '../../stores/homeStore'
 import { useSwipeGesture } from '../../composables/useSwipeGesture'
 import { getDriver } from '../../composables/driverRegistry'
-import { clamp } from '../../utils/math'
+import { clamp, rubberBand } from '../../utils/math'
 import DrawerCapsuleTabs from './drawer/DrawerCapsuleTabs.vue'
 import AlphabetScrubber from './drawer/AlphabetScrubber.vue'
 import CategoryCard from './drawer/CategoryCard.vue'
@@ -200,6 +200,8 @@ function handleCategoryFolderLaunchApp(appId) {
 watch(currentTab, () => {
   isFilterMode.value = false
   handleCloseCategoryFolder()
+  overscrollOffset.value = 0
+  isBouncing.value = false
   if (scrollContainerRef.value) {
     scrollContainerRef.value.scrollTop = 0
   }
@@ -208,8 +210,113 @@ watch(currentTab, () => {
 watch(() => overlay.value.status, (status) => {
   if (status === 'closed' || status === 'closing') {
     handleCloseCategoryFolder()
+    overscrollOffset.value = 0
+    isBouncing.value = false
   }
 })
+
+/* ── 上滑阻尼橡皮筋回弹动效（内容完全显示或处于最底部继续上滑时生效） ── */
+const overscrollOffset = ref(0)
+const isBouncing = ref(false)
+let scrollPointerStartY = 0
+let isDraggingOverscroll = false
+let lastOverscrollEndAt = 0
+let wheelBounceTimer = null
+
+const overscrollStyle = computed(() => {
+  if (overscrollOffset.value === 0 && !isBouncing.value) {
+    return {}
+  }
+  return {
+    transform: `translate3d(0, ${overscrollOffset.value}px, 0)`,
+    transition: isBouncing.value ? 'transform 0.38s cubic-bezier(0.18, 0.9, 0.32, 1.2)' : 'none',
+    willChange: 'transform'
+  }
+})
+
+function onScrollPointerDown(e) {
+  if (activeCategoryFolder.value || isFilterMode.value || isSearchActive.value) return
+  if (e.button != null && e.button !== 0) return
+  if (!scrollContainerRef.value) return
+
+  scrollPointerStartY = e.clientY
+  isDraggingOverscroll = false
+
+  window.addEventListener('pointermove', onScrollPointerMove, { passive: false })
+  window.addEventListener('pointerup', onScrollPointerUp)
+  window.addEventListener('pointercancel', onScrollPointerUp)
+}
+
+function onScrollPointerMove(e) {
+  if (!scrollContainerRef.value) return
+  const el = scrollContainerRef.value
+  const dy = e.clientY - scrollPointerStartY
+
+  if (dy < 0) {
+    const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight)
+    const isFullyVisible = maxScroll <= 16
+    const atBottom = isFullyVisible || el.scrollTop >= maxScroll - 6
+    if (atBottom) {
+      isDraggingOverscroll = true
+      isBouncing.value = false
+      overscrollOffset.value = rubberBand(dy, 320, 0.45)
+      e.preventDefault?.()
+    }
+  } else if (isDraggingOverscroll) {
+    if (dy < 0) {
+      overscrollOffset.value = rubberBand(dy, 320, 0.45)
+    } else {
+      overscrollOffset.value = 0
+      isDraggingOverscroll = false
+    }
+  }
+}
+
+function onScrollPointerUp() {
+  window.removeEventListener('pointermove', onScrollPointerMove)
+  window.removeEventListener('pointerup', onScrollPointerUp)
+  window.removeEventListener('pointercancel', onScrollPointerUp)
+
+  if (isDraggingOverscroll || overscrollOffset.value < 0) {
+    lastOverscrollEndAt = Date.now()
+    isBouncing.value = true
+    overscrollOffset.value = 0
+    setTimeout(() => {
+      isBouncing.value = false
+    }, 380)
+  }
+  isDraggingOverscroll = false
+}
+
+function onScrollWheel(e) {
+  if (activeCategoryFolder.value || isFilterMode.value || isSearchActive.value) return
+  if (!scrollContainerRef.value) return
+  const el = scrollContainerRef.value
+  const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight)
+  const isFullyVisible = maxScroll <= 16
+  const atBottom = isFullyVisible || el.scrollTop >= maxScroll - 6
+
+  if (atBottom && e.deltaY > 0) {
+    if (wheelBounceTimer) clearTimeout(wheelBounceTimer)
+    isBouncing.value = false
+    const bounceMagnitude = clamp(e.deltaY * 0.35, 10, 42)
+    overscrollOffset.value = -bounceMagnitude
+    wheelBounceTimer = setTimeout(() => {
+      isBouncing.value = true
+      overscrollOffset.value = 0
+      wheelBounceTimer = setTimeout(() => {
+        isBouncing.value = false
+      }, 380)
+    }, 50)
+  }
+}
+
+function handleContainerClick(e) {
+  if (Date.now() - lastOverscrollEndAt < 250) {
+    e.stopPropagation()
+    e.preventDefault()
+  }
+}
 
 watch(lettersWithApps, (letters) => {
   if (letters.length > 0 && !letters.includes(activeLetter.value)) {
@@ -292,6 +399,13 @@ onMounted(() => {
     updateSectionTops()
   })
 })
+
+onBeforeUnmount(() => {
+  window.removeEventListener('pointermove', onScrollPointerMove)
+  window.removeEventListener('pointerup', onScrollPointerUp)
+  window.removeEventListener('pointercancel', onScrollPointerUp)
+  if (wheelBounceTimer) clearTimeout(wheelBounceTimer)
+})
 </script>
 
 <template>
@@ -317,12 +431,16 @@ onMounted(() => {
         <DrawerCapsuleTabs v-model="currentTab" />
       </div>
 
-      <!-- 滚动主体内容区 -->
+      <!-- 滚动主体内容区（支持触底继续上滑阻尼橡皮筋回弹） -->
       <div
         ref="scrollContainerRef"
         class="drawer-body scrollable"
         @scroll="handleScroll"
+        @pointerdown="onScrollPointerDown"
+        @wheel="onScrollWheel"
+        @click.capture="handleContainerClick"
       >
+        <div class="drawer-scroll-viewport" :style="overscrollStyle">
         <!-- ── 模式 A: 字母过滤聚焦视图（像素级对齐 media_1789877584491.jpg，点击右侧导轨字母激活） ── -->
         <!-- ── 模式 A: 字母过滤聚焦视图（仅在有应用的字母下展示；无相关应用直接隐藏） ── -->
         <transition name="fade-filter">
@@ -413,6 +531,7 @@ onMounted(() => {
             />
           </div>
         </div>
+      </div>
       </div>
 
       <!-- 右侧垂直 A-Z 字母快速检索导轨（仅全部 Tab 下展示；仅展示有对应应用的字母） -->
@@ -618,7 +737,13 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 18px 14px;
-  padding: 14px 18px 120px 18px;
+  padding: 14px 18px 24px 18px;
+  box-sizing: border-box;
+}
+
+.drawer-scroll-viewport {
+  width: 100%;
+  min-height: 100%;
   box-sizing: border-box;
 }
 </style>

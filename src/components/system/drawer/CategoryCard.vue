@@ -92,13 +92,17 @@ function handleAppClick(appId, e) {
       :class="{ 'is-xhide': category.type === 'xhide' }"
       @click="handleExpandFolder"
     >
-      <!-- XHide 专属占位骨架卡片（100% 像素级对齐 media_1789896055622.jpg） -->
-      <div v-if="category.type === 'xhide'" class="grid-2x2 xhide-grid">
-        <div class="xhide-placeholder-item"></div>
-        <div class="xhide-placeholder-item"></div>
-        <div class="xhide-placeholder-item"></div>
-        <div class="xhide-mini-cluster-placeholder">
-          <div v-for="i in 4" :key="i" class="xhide-mini-item"></div>
+      <!-- XHide 专属占位骨架卡片（大小与圆角与实际有图标时完全一致，复用网格与 squircle-mask） -->
+      <div v-if="category.type === 'xhide'" class="grid-2x2">
+        <div v-for="i in 3" :key="'xhide-large-' + i" class="folder-app-item">
+          <div class="xhide-placeholder-tile squircle-mask"></div>
+        </div>
+        <div class="folder-app-item">
+          <div class="mini-cluster-grid">
+            <div v-for="i in 4" :key="'xhide-mini-' + i" class="mini-app-item">
+              <div class="xhide-mini-placeholder-tile squircle-mask"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -138,23 +142,22 @@ function handleAppClick(appId, e) {
           />
         </div>
 
-        <!-- 第 4 格：2x2 迷你微簇（支持点击四合一缩略图展开） -->
-        <div
-          class="mini-cluster-grid"
-          @click.stop="handleExpandFolder"
-        >
-          <div
-            v-for="cApp in clusterApps"
-            :key="cApp.id"
-            :ref="el => setIconRef(cApp.id, el)"
-            class="mini-app-item"
-          >
-            <AppIcon
-              :app="cApp"
-              :size="24"
-              :show-label="false"
-              :launch-on-click="false"
-            />
+        <!-- 第 4 格：2x2 迷你微簇（整体尺寸 52px 严格等于大图标，支持点击四合一缩略图展开） -->
+        <div class="folder-app-item" @click.stop="handleExpandFolder">
+          <div class="mini-cluster-grid">
+            <div
+              v-for="cApp in clusterApps"
+              :key="cApp.id"
+              :ref="el => setIconRef(cApp.id, el)"
+              class="mini-app-item"
+            >
+              <AppIcon
+                :app="cApp"
+                :size="24"
+                :show-label="false"
+                :launch-on-click="false"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -231,13 +234,13 @@ function handleAppClick(appId, e) {
   transform: scale(0.88);
 }
 
-/* 2x2 迷你微簇容器（无额外背板，直接呈现 4 个小图标） */
+/* 2x2 迷你微簇容器（尺寸 52px x 52px，与单个大图标完全一致，无额外背板） */
 .mini-cluster-grid {
-  width: 100%;
-  height: 100%;
+  width: 52px;
+  height: 52px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(2, 1fr);
+  grid-template-columns: repeat(2, 24px);
+  grid-template-rows: repeat(2, 24px);
   gap: 4px;
   box-sizing: border-box;
   background: transparent;
@@ -252,12 +255,11 @@ function handleAppClick(appId, e) {
 }
 
 .mini-app-item {
-  width: 100%;
-  height: 100%;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
   pointer-events: none;
 }
 
@@ -276,45 +278,28 @@ function handleAppClick(appId, e) {
   cursor: pointer;
 }
 
-/* XHide 专属占位骨架卡片（100% 像素级还原 media_1789896055622.jpg，无额外背板） */
-.xhide-grid {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(2, 1fr);
-  gap: 8px;
-  box-sizing: border-box;
-  align-items: center;
-  justify-items: center;
+/* Squircle 统一蒙版（与系统 AppIcon 100% 相同圆角曲率） */
+.squircle-mask {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 50 0 L 72 0 C 86 0 100 14 100 28 L 100 72 C 100 86 86 100 72 100 L 28 100 C 14 100 0 86 0 72 L 0 28 C 0 14 14 0 28 0 Z' fill='black'/%3E%3C/svg%3E");
+  -webkit-mask-size: 100% 100%;
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 50 0 L 72 0 C 86 0 100 14 100 28 L 100 72 C 100 86 86 100 72 100 L 28 100 C 14 100 0 86 0 72 L 0 28 C 0 14 14 0 28 0 Z' fill='black'/%3E%3C/svg%3E");
+  mask-size: 100% 100%;
 }
 
-.xhide-placeholder-item {
-  width: 100%;
-  height: 100%;
-  border-radius: 15px;
-  background: rgba(255, 255, 255, 0.14);
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.1);
+/* XHide 专属占位骨架色块：与实际大图标 52px、小图标 24px 大小与圆角完全一模一样 */
+.xhide-placeholder-tile {
+  width: 52px;
+  height: 52px;
+  background: rgba(255, 255, 255, 0.16);
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
-.xhide-mini-cluster-placeholder {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(2, 1fr);
-  gap: 4px;
-  box-sizing: border-box;
-  background: transparent;
-  align-items: center;
-  justify-items: center;
-}
-
-.xhide-mini-item {
-  width: 100%;
-  height: 100%;
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.14);
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.1);
+.xhide-mini-placeholder-tile {
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.16);
+  flex-shrink: 0;
+  pointer-events: none;
 }
 </style>
