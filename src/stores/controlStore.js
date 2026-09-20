@@ -237,6 +237,23 @@ export const useControlStore = defineStore('control', {
     mediaTitle: 'Big Big World',
     mediaArtist: 'Emilia',
 
+    /* ---- 音量 Plus / 全屏音量面板 / 侧边音量 / 电源菜单 ----
+       这一组来自 volume-plus-mode 原型，整体为纯增量：
+       旧逻辑只认 volume(0..1)，这里在它之上叠一层「Plus 档位」和三条独立的浮层状态机。 */
+    volumePlusLevel: 0,        // 0 | 2 | 3 | 5，对应普通音量 / 200% / 300% / 500%
+    volumePanelOpen: false,    // 全屏音量面板（长按 CC 音量条打开）
+    volumePanelAnchor: null,   // 打开时的锚点矩形，供 FLIP 从 CC 音量条放大到全屏
+    volumeAnchorHidden: false, // 锚点移交期间隐藏 CC 里那条音量条，避免重影
+    sideVolumeMode: 'hidden',  // hidden | expanded | compact | panel | media
+    sideVolumePulse: 0,        // 实体键/触摸每次 +1，驱动侧栏重新计时
+    sideVolumeBounceSeq: 0,    // 弹跳动画序号（用序号触发，避免连续同向按不重放）
+    sideVolumeBounceDirection: 'up',
+    sideVolumeChannel: 'media', // media | ring | notification | alarm | microphone
+    currentAppMuteGuideSeq: 0,
+    auxiliaryVolumes: { ring: 0.36, notification: 0.5, alarm: 0.62, microphone: 0.46 },
+    mediaVolumes: { google: 0.82, play: 0.34, spotify: 0.52, tiktok: 0.62, video: 0.44 },
+    powerMenuOpen: false,
+
     /* ---- 控制台 / 编辑模式（与 App.vue 控制台共享） ---- */
     editing: false,        // 控制中心编辑模式（控制台可切换）
     dragMode: 'swap',      // 'swap' 绝对坐标沉降 | 'flow' 流式推挤（控制台切换）
@@ -323,7 +340,102 @@ export const useControlStore = defineStore('control', {
     setShowPrivacyIndicators(v) { this.showPrivacyIndicators = !!v },
     setShowDualSim(v) { this.showDualSim = !!v },
     setBrightness(v) { this.brightness = Math.min(1, Math.max(0.25, v)) },
-    setVolume(v) { this.volume = Math.min(1, Math.max(0, v)) },
+    setVolume(v) {
+      this.volume = Math.min(1, Math.max(0, v))
+      // 拖滑块 / 点轨道都视为主动离开 Plus 档（volumePlus.test.js 有断言）
+      this.volumePlusLevel = 0
+    },
+
+    /* ---- 音量 Plus：100% 之上再叠 200 / 300 / 500 三档 ---- */
+    volumeUp(allowPlus = false) {
+      if (this.volumePlusLevel) {
+        const levels = [2, 3, 5]
+        const index = levels.indexOf(this.volumePlusLevel)
+        this.volumePlusLevel = levels[Math.min(index + 1, levels.length - 1)]
+        return
+      }
+      if (this.volume < 1) {
+        this.volume = Math.min(1, Math.round((this.volume + 0.1) * 100) / 100)
+        return
+      }
+      if (allowPlus) this.volumePlusLevel = 2
+    },
+    volumeDown() {
+      if (this.volumePlusLevel) {
+        const previous = { 5: 3, 3: 2, 2: 0 }
+        this.volumePlusLevel = previous[this.volumePlusLevel]
+        this.volume = 1
+        return
+      }
+      this.volume = Math.max(0, Math.round((this.volume - 0.1) * 100) / 100)
+    },
+    /** 实体键长按：先顶到 100%，到顶后（allowPlus）才连续进 Plus 档 */
+    stepVolumeTowardBoundary(direction, allowPlus = false) {
+      if (direction === 'up') {
+        if (this.volumePlusLevel || this.volume >= 1) {
+          if (allowPlus) this.volumeUp(true)
+          return
+        }
+        this.volume = Math.min(1, Math.round((this.volume + 0.1) * 100) / 100)
+        return
+      }
+      if (direction === 'down') this.volumeDown()
+    },
+
+    /* ---- 全屏音量面板（长按 CC 音量条）---- */
+    openVolumePanel(anchor = null) {
+      this.volumePanelAnchor = anchor
+      this.volumeAnchorHidden = Boolean(anchor)
+      this.volumePanelOpen = true
+    },
+    closeVolumePanel() {
+      this.volumePanelOpen = false
+      this.volumePanelAnchor = null
+      this.volumeAnchorHidden = false
+    },
+
+    /* ---- 侧边音量浮层（实体键 / 侧栏）---- */
+    showSideVolume() {
+      this.sideVolumePulse += 1
+      if (this.sideVolumeMode === 'hidden') {
+        this.sideVolumeBounceSeq = 0
+        this.sideVolumeMode = 'expanded'
+      } else if (this.sideVolumeMode === 'expanded') this.sideVolumeMode = 'compact'
+    },
+    touchSideVolume() { this.sideVolumePulse += 1 },
+    compactSideVolume() {
+      if (this.sideVolumeMode === 'expanded') this.sideVolumeMode = 'compact'
+    },
+    closeSideVolume() { this.sideVolumeMode = 'hidden' },
+    openSideVolumePanel(mode = 'panel') {
+      if (mode === 'panel' || mode === 'media') {
+        this.sideVolumeMode = mode
+        if (mode === 'panel') this.sideVolumeChannel = 'media'
+      }
+    },
+    triggerSideVolumeBounce(direction) {
+      this.sideVolumeBounceDirection = direction === 'down' ? 'down' : 'up'
+      this.sideVolumeBounceSeq += 1
+    },
+    selectSideVolumeChannel(key) {
+      if (['media', 'ring', 'notification', 'alarm', 'microphone'].includes(key)) this.sideVolumeChannel = key
+    },
+    setAuxiliaryVolume(key, value) {
+      if (key in this.auxiliaryVolumes) this.auxiliaryVolumes[key] = Math.min(1, Math.max(0, value))
+    },
+    stepAuxiliaryVolume(key, direction) {
+      if (!(key in this.auxiliaryVolumes)) return
+      const delta = direction === 'down' ? -0.1 : 0.1
+      this.auxiliaryVolumes[key] = Math.min(1, Math.max(0, Math.round((this.auxiliaryVolumes[key] + delta) * 100) / 100))
+    },
+    setMediaVolume(key, value) {
+      if (key in this.mediaVolumes) this.mediaVolumes[key] = Math.min(1, Math.max(0, value))
+    },
+    showCurrentAppMuteGuide() { this.currentAppMuteGuideSeq += 1 },
+
+    /* ---- 电源菜单 ---- */
+    openPowerMenu() { this.powerMenuOpen = true },
+    closePowerMenu() { this.powerMenuOpen = false },
     setSoundItemSize(size) {
       if (size === '1x1' || size === '2x1') this.soundItemSize = size
     },

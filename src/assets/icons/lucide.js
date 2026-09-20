@@ -118,6 +118,76 @@ const volume2 = `<svg width="30" height="30" viewBox="0 0 30 30" fill="none" xml
 </g>
 </svg>`
 
+// 15.1 音量面板 / 侧边音量 / 电源菜单补充图标
+// 与上面手绘填充图标不同，这一组是 stroke 体系（fill="none" + stroke="currentColor"），
+// 由 LIcon 统一注入 width/height/stroke-width 并染色。viewBox 保持 lucide 原生 24×24，
+// 便于与 lucide 生态的其他线型图标保持同一套笔画比例。
+// bellDotOff 上游 lucide 没有，这里按 lucide 的 off 约定（对角斜线 m2 2 20 20）自行合成，
+// 不用字符串替换拼路径——那样会把注释/属性一起改坏。
+const volumeX = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+<path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/>
+<line x1="22" x2="16" y1="9" y2="15"/>
+<line x1="16" x2="22" y1="9" y2="15"/>
+</svg>`
+
+const bellDot = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+<path d="M10.268 21a2 2 0 0 0 3.464 0"/>
+<path d="M11.68 2.009A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673c-.824-.85-1.678-1.731-2.21-3.348"/>
+<circle cx="18" cy="5" r="3"/>
+</svg>`
+
+const bellDotOff = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+<path d="M10.268 21a2 2 0 0 0 3.464 0"/>
+<path d="M11.68 2.009A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673c-.824-.85-1.678-1.731-2.21-3.348"/>
+<circle cx="18" cy="5" r="3"/>
+<path d="m2 2 20 20"/>
+</svg>`
+
+const alarmClock = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+<circle cx="12" cy="13" r="8"/>
+<path d="M12 9v4l2 2"/>
+<path d="M5 3 2 6"/>
+<path d="m22 6-3-3"/>
+<path d="M6.38 18.7 4 21"/>
+<path d="M17.64 18.67 20 21"/>
+</svg>`
+
+const alarmClockOff = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+<path d="M6.87 6.87a8 8 0 1 0 11.26 11.26"/>
+<path d="M19.9 14.25a8 8 0 0 0-9.15-9.15"/>
+<path d="m22 6-3-3"/>
+<path d="M6.26 18.67 4 21"/>
+<path d="m2 2 20 20"/>
+<path d="M4 4 2 6"/>
+</svg>`
+
+const mic = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 19v3"/>
+<path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+<rect x="9" y="2" width="6" height="13" rx="3"/>
+</svg>`
+
+const micOff = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 19v3"/>
+<path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/>
+<path d="M16.95 16.95A7 7 0 0 1 5 12v-2"/>
+<path d="M18.89 13.23A7 7 0 0 0 19 12v-2"/>
+<path d="m2 2 20 20"/>
+<path d="M9 9v3a3 3 0 0 0 5.12 2.12"/>
+</svg>`
+
+const power = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 2v10"/>
+<path d="M18.4 6.6a9 9 0 1 1-12.77.04"/>
+</svg>`
+
+// 电源菜单「重启」专用。⚠️ 不能复用 name="refreshCw"：那一档当前是 `refreshCw: cast` 的别名，
+// 指向快速分享图标，直接覆盖会改掉所有 cast 调用点的外观。
+const restart = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
+<path d="M21 3v5h-5"/>
+</svg>`
+
 // 16. 亮度自动滑块图标 (sun)
 const sun = `<svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M15 6.17639C19.8698 6.17643 23.823 10.1299 23.8232 14.9996C23.8232 19.8696 19.87 23.8238 15 23.8239C10.13 23.8239 6.17676 19.8696 6.17676 14.9996C6.17699 10.1298 10.1302 6.17639 15 6.17639ZM14.9971 10.1471C14.3579 10.1544 13.7791 10.5497 13.5088 11.1637L13.1221 12.0416H13.123L10.6738 17.61C10.4634 18.0883 10.6582 18.6574 11.1094 18.8805C11.5605 19.1035 12.0971 18.8968 12.3076 18.4186L13.0703 16.6832H16.9307L17.6934 18.4186C17.9038 18.8968 18.4404 19.1035 18.8916 18.8805C19.3428 18.6574 19.5375 18.0883 19.3271 17.61L16.8779 12.0416L16.4834 11.1412C16.2153 10.529 15.6338 10.14 14.9971 10.1471ZM16.0898 14.7721H13.9102L15 12.2955L16.0898 14.7721Z" fill="#FAB500"/>
@@ -310,5 +380,6 @@ export const LUCIDE = {
   shoulderKey, jbl, vpn,
   layoutGrid, settings, pencil, check, plus, slidersHorizontal, minus,
   arrowDownUp, darkTheme, autoRotate, quickShare, headerEdit, headerSettings, headerPlus,
-  bg1x1, bg2x1, mediaCast
+  bg1x1, bg2x1, mediaCast,
+  volumeX, bellDot, bellDotOff, alarmClock, alarmClockOff, mic, micOff, power, restart
 }
