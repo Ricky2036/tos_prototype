@@ -223,9 +223,16 @@ watch(
 .vp-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(5, 29, 55, 0.28);
-  backdrop-filter: blur(28px) saturate(135%);
-  -webkit-backdrop-filter: blur(28px) saturate(135%);
+  /* ⚠️ 2026-09-20：原来是**深蓝**幕布 rgba(5,29,55,.28) + blur(28px) saturate(135%)。
+     蓝底 + >100% 的饱和会把整屏连同上头的白条一起染成蓝灰 ⇒ 这是「玻璃背景颜色很奇怪」的来源之一。
+     现在：底色改**中性黑**（去掉蓝），但**保留自己的模糊配方**、不套白条的 `--glass-white-blur`
+     —— 幕布不是「白玻璃条」，它要让背后的壁纸仍然好看；
+     白条要去饱和是因为它自己就是白的（见 tokens.css），幕布没这个诉求。
+     实测：以前白条 α 只有 .18 时幕布的蓝会主导观感；现在白条 α .74，幕布只贡献 26%，
+     所以幕布保持有彩色即可，白条照样是白的。 */
+  background: rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(28px) saturate(130%);
+  -webkit-backdrop-filter: blur(28px) saturate(130%);
 }
 
 .vp-heading {
@@ -259,9 +266,12 @@ watch(
   height: 100%;
   overflow: hidden;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  background: rgba(255, 255, 255, 0.18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  /* 平时**无描边**（Ricky 2026-09-20：去掉大小音量条多余的描边）。
+     保留 1px **透明**边框占位：Plus 态只改 border-color 就能点出琥珀环，
+     而 overflow:hidden 会把子元素裁在 padding box 内 ⇒ 白 fill 铺满也盖不掉那圈环。
+     （顺带去掉了顶部 1px inset 白色高光 —— 它也是一道「描边」。） */
+  border: 1px solid transparent;
+  background: var(--glass-white-bar);
   cursor: pointer;
   touch-action: none;
   will-change: contents;

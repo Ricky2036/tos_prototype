@@ -1342,7 +1342,7 @@ const glassRing = computed(() =>
           <div v-else-if="item.id === 'mediaControls'" class="cc-sliders">
             <div class="cc-vslider" @pointerdown="sliderPointer($event, 'brightness')">
               <svg class="cc-vslider-bg-svg" width="100%" height="100%" viewBox="0 0 62 138" preserveAspectRatio="none" fill="none">
-                <rect x="0.5" y="0.5" width="61" height="137" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_2865_138)" vector-effect="non-scaling-stroke" />
+                <rect x="0.5" y="0.5" width="61" height="137" rx="30.5" fill="rgba(255, 255, 255, 0.04)" />
               </svg>
               <div class="cc-vslider-fill" :style="{ height: brightnessPct + '%' }"></div>
               <div class="cc-vslider-icon">
@@ -1365,7 +1365,7 @@ const glassRing = computed(() =>
               @keydown.enter.prevent="openVolumePanel($event.currentTarget)"
             >
               <svg class="cc-vslider-bg-svg" width="100%" height="100%" viewBox="0 0 62 138" preserveAspectRatio="none" fill="none">
-                <rect x="0.5" y="0.5" width="61" height="137" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_2865_138)" vector-effect="non-scaling-stroke" />
+                <rect x="0.5" y="0.5" width="61" height="137" rx="30.5" fill="rgba(255, 255, 255, 0.04)" />
               </svg>
               <div class="cc-vslider-fill" :style="{ height: volumePct + '%' }"></div>
               <!-- Plus 态：琥珀渐变 + 档位数字（z-index 夹在 fill(1) 与描边 svg(2) 之间） -->
@@ -2009,9 +2009,18 @@ const glassRing = computed(() =>
 .cc-vslider {
   flex: 1;
   border-radius: calc(var(--cc-cell) / 2);
-  background: rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(30px) saturate(200%);
-  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  /* 白色毛玻璃（配方见 styles/tokens.css 的 `--glass-white-*`）。
+     ⚠️⚠️ 这里的 backdrop-filter 是**死的**，实测无效 —— 别指望它给滑块去饱和：
+     `.cc-content`(will-change: transform, opacity) 与 `.control-center`(will-change: transform)
+     都会建立 **backdrop root**，而滑块就是该 root 里最底层的东西 ⇒ 采样结果为透明。
+     验证方法：把 token 的 saturate 从 200% 改成 0%，屏上像素**一个字节都不变**
+     （scripts/probe-volume-glass.mjs 的 cc 段就是这条回归）。
+     滑块背后的模糊已由 CC 自己的 MaterialBlur 提供，所以观感不受影响；
+     但也因此**拿不到 saturate(45%) 的去饱和补偿**，只能靠 α 把紫色压下去。
+     改这个 α 之前先跑探针，别凭手感。 */
+  background: var(--glass-white-bar);
+  backdrop-filter: var(--glass-white-blur);
+  -webkit-backdrop-filter: var(--glass-white-blur);
   position: relative;
   overflow: hidden;
   cursor: pointer;
@@ -2046,9 +2055,12 @@ const glassRing = computed(() =>
 /* 音量推满后继续按音量键 → 满格 + 琥珀渐变 + 档位数字（200/300/500），
    色阶逐级加深做「越推越热」的暗示。 */
 
-/* 琥珀描边必须画在 ::after 而不是直接给 .cc-volume-slider 加 inset box-shadow：
-   元素自身的背景/阴影是画在所有子元素**之下**的，Plus 态 fill 正好铺满 100%，
-   直接写会被白 fill 整个盖掉。挂 ::after 并压到描边 svg 同层才露得出来。 */
+/* 琥珀环必须画在 ::after 而不是直接给 .cc-volume-slider 加 inset box-shadow：
+   inset 阴影属于元素自身的绘制层，在所有子元素**之下**，而 Plus 态 fill 正好铺满 100%
+   ⇒ 直接写会被白 fill 整个盖掉。::after 是最后一个子层，稳定压在 fill / 渐变之上。
+   （本条的**普通态描边**已于 2026-09-20 按 Ricky 要求撤掉 —— 现在只剩 Plus 这一圈；
+     撤掉的是模板里那两个 rect 的 stroke，`#paint0_linear_2865_138` 渐变定义保留，
+     因为媒体播放器卡片还在用它。） */
 .cc-volume-slider.is-plus::after {
   content: '';
   position: absolute;
@@ -2067,8 +2079,8 @@ const glassRing = computed(() =>
   position: absolute;
   inset: 0;
   pointer-events: none;
-  /* 夹在 fill(z-index 1) 与描边 svg(z-index 2) 之间：与 fill 同层靠 DOM 顺序
-     取胜（渐变写在 svg 之后），于是盖住 fill 又压在玻璃轮廓下面。 */
+  /* 夹在 fill(z-index 1) 与 bg svg(z-index 2) 之间：与 fill 同层靠 DOM 顺序
+     取胜（渐变写在 svg 之后），于是盖住 fill 又压在那层 4% 白的柔光下面。 */
   z-index: 1;
   transition: background 220ms ease;
 }
