@@ -16,6 +16,9 @@ import NotificationCenter from '../system/NotificationCenter.vue'
 import ControlCenter from '../system/ControlCenter.vue'
 import AppLibrary from '../system/AppLibrary.vue'
 import AppSwitcher from '../system/AppSwitcher.vue'
+import VolumePanel from '../system/VolumePanel.vue'
+import SideVolumeOverlay from '../system/SideVolumeOverlay.vue'
+import PowerMenu from '../system/PowerMenu.vue'
 import { registerDriver } from '../../composables/driverRegistry'
 import { runBackHandler } from '../../composables/backRegistry'
 import wallpaper from '../../assets/img/wallpaper-lock.jpg'
@@ -305,6 +308,11 @@ useSwipeGesture(sideEdgeRef, {
 
     <!-- 最近任务切换器（App Switcher / Recent） -->
     <AppSwitcher />
+
+    <!-- 音量 Plus 浮层：全屏音量面板 / 侧边音量 / 电源菜单（层级见 tokens.css 的 --z-volume-* / --z-side-volume* / --z-power-menu） -->
+    <VolumePanel />
+    <SideVolumeOverlay />
+    <PowerMenu />
 
     <!-- 顶部边缘手势热区：左/中 = 通知中心，右 1/4 = 控制中心 (当叠层打开时禁用热区避免遮挡头部按钮) -->
     <div

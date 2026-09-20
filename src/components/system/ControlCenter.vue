@@ -11,6 +11,7 @@ import GridButton from './cc/GridButton.vue'
 import LIcon from '../ui/LIcon.vue'
 import StatusIcons from '../ui/StatusIcons.vue'
 import MaterialBlur from '../ui/MaterialBlur.vue'
+import { VOLUME_LABELS } from '../../locales/volume.js'
 import { clamp } from '../../utils/math'
 import { orderedIndicators } from '../../utils/statusBarIndicators'
 import albumCover from '../../assets/icons/album_cover.png'
@@ -25,8 +26,18 @@ const system = useSystemStore()
 const control = useControlStore()
 const i18n = useI18nStore()
 
+/* 音量面板相关文案（长按音量条的 aria 等）住在 locales/volume.js，
+   与 CC 自身的磁贴名（locales/cc-labels.js）分文件，避免两个 feature 互相踩。 */
+const vLabel = (k) => VOLUME_LABELS[i18n.locale]?.[k] ?? VOLUME_LABELS.zh[k] ?? k
+
 const overlay = computed(() => system.overlays.controlCenter)
 const visible = computed(() => overlay.value.status !== 'closed')
+
+/* 电源菜单是「压在控制中心下层」的全屏层（--z-power-menu 93 < --z-control-center 94）。
+   从关机磁贴唤起时 CC 会同时开始收起，若按常规让内容随 progress 一起淡出，
+   露出的电源菜单就会从一片空白里长出来。所以这段时间把 CC 的内容/背板钉在不透明，
+   视觉上变成「整块 CC 向上抽走，电源菜单从下面连续露出」。 */
+const powerTransition = computed(() => control.powerMenuOpen && visible.value)
 
 // 状态栏指示器：勿扰/热点/静音/振动 启用后，在控制中心状态行也点亮（与开关按钮同源 LIcon）
 /* 下拉控制中心状态行：与桌面状态栏共用 src/utils/statusBarIndicators.js 同一套优先级排序规则，
@@ -57,10 +68,12 @@ const gridVars = computed(() => ({
   '--cc-pitch': `${control.cellPitch}px`,
   '--cc-grid-w': `${control.gridWidth}px`
 }))
-const blurStyle = computed(() => ({ opacity: clamp(overlay.value.progress * 1.2, 0, 1) }))
+const blurStyle = computed(() => ({
+  opacity: powerTransition.value ? 1 : clamp(overlay.value.progress * 1.2, 0, 1)
+}))
 const contentStyle = computed(() => ({
   transform: `translateY(${(1 - overlay.value.progress) * 26}px)`,
-  opacity: clamp(overlay.value.progress * 1.5, 0, 1)
+  opacity: powerTransition.value ? 1 : clamp(overlay.value.progress * 1.5, 0, 1)
 }))
 
 const scrollRef = ref(null)
@@ -119,6 +132,10 @@ onBeforeUnmount(() => {
     sliderUpHandler = null
   }
 
+  // 音量条：拖动句柄 + 长按展开定时器（长按期间没有任何 pointermove，
+  // 与亮度条那套句柄语义互斥，所以是独立的一份，必须单独摘）
+  clearVolumeSliderGestures()
+
   // 定时器
   if (interactTimer) { clearTimeout(interactTimer); interactTimer = null }
   if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null }
@@ -133,6 +150,11 @@ watch(() => overlay.value.status, (status) => {
       checkOverflow()
     })
   }
+  /* 电源菜单只该活在「从关机磁贴唤起、CC 随即收起」这一条路径上。
+     一旦 CC 被重新拉开（手势下拉 dragging / 落到 open），说明用户已经离开那条路径，
+     必须把菜单收掉 —— 否则 powerTransition 会一直把 CC 内容钉在 opacity 1，
+     表现成「CC 拉不开、内容半透明地糊在电源菜单上面」。 */
+  if (status === 'open' || status === 'dragging') control.closePowerMenu()
 })
 
 /* 宫格整体缩放会改变内容高度，但 ResizeObserver 只盯着 .cc-scroll 自身的盒子
@@ -305,6 +327,12 @@ const TOGGLES = [
   // 恢复方式 = 同时做两件事：把 'jbl' 加回下面的 DEFAULT_TOGGLE_IDS，
   //   并把 'jbl' 加回 controlStore 里 NOTE 的 only —— 只加一处不会生效。
   { id: 'jbl', icon: 'jbl', activeBg: '#fff', activeColor: '#258FFF' }
+  /* 关机磁贴已下线（Ricky 2026-09-20：「关机按钮要去掉」）。
+     它是一个「一次性动作」磁贴而非开关（control.toggles 里没有它），
+     放在 CC 里既不属于这套网格的语义，又会让 4 个预设从 9 行涨到 10 行并进入溢出态。
+     电源菜单改由**长按实体电源键**进入，见 src/components/phone/PhoneFrame.vue 的
+     startPowerHold（那边同时把 CC 走动画收起，把压在下面的菜单一帧帧露出来）。
+     要恢复磁贴：这里加回定义，再把 id 加回 DEFAULT_TOGGLE_IDS 与 HIOS17_ITEMS 两处。 */
 ]
 
 const DEFAULT_TOGGLE_IDS = [
@@ -319,6 +347,10 @@ const DEFAULT_TOGGLE_IDS = [
   /* 收尾三个固定为 快速分享 / 扫一扫 / 钱包 —— 所有默认布局统一（Ricky 2026-09-08）。
      注意要放在机型独占项之后，否则 GT 的液冷/肩键会插到末尾把它们挤掉。 */
   'cast', 'scan', 'calculator'
+  /* 关机垫底已移除（Ricky 2026-09-20）。删掉它回到「加磁贴之前」的基线高度：
+     note17 / gt17 恢复 9 行且不再进入溢出态（「空白处上滑关闭」随之回归），
+     其余 5 个预设本来就在溢出态，只是末行少一格。
+     同一把尺的实测记录留在 scripts/verify-cc-volume-plus.mjs 的 A 段。 */
   // 'jbl' 已下线：见上面 TOGGLES 里的 jbl 注释（两个地方要一起改）
 ]
 
@@ -371,6 +403,8 @@ const HIOS17_ITEMS = [
   { id: 'cast', type: 'toggle', size: '1x1' },
   { id: 'scan', type: 'toggle', size: '1x1' },
   { id: 'calculator', type: 'toggle', size: '1x1' }
+  /* 关机磁贴已下线（Ricky 2026-09-20）。删掉这一格把 hios17 / ee1Camon 从
+     10 行 + 溢出态退回 9 行、一屏放得下（「空白处上滑关闭」回归）。 */
 ].map((i) => {
   const [w, h] = i.size.split('x').map(Number)
   return { ...i, w, h }
@@ -643,6 +677,14 @@ function onResizeEnd() {
 /* ================= 开关激活 ================= */
 
 function onActivate(id) {
+  /* 原「关机」磁贴分支已移除（Ricky 2026-09-20）。电源菜单改由「长按实体电源键」
+     进入，路径与本分支原本的写法完全一致（openPowerMenu + 让 CC 走
+     requestCloseOverlay 的动画收起），实现在 src/components/phone/PhoneFrame.vue
+     的 startPowerHold。
+     下面这两个 computed / watch 守卫**保留**：只要 powerMenuOpen 还可能为真，
+     CC 背板就不能在菜单上层透出底下的桌面 ——
+       · powerTransition（本文件上方）：菜单开着时把 CC 内容钉在 opacity 1；
+       · status watch：CC 被重新拉开时 closePowerMenu()，免得 CC 内容被钉死。 */
   if (id === 'camera') {
     system.closeOverlay('controlCenter')
     system.openApp('camera')
@@ -770,10 +812,115 @@ function sliderPointer(e, key) {
   window.addEventListener('pointerup', sliderUpHandler, { once: true })
 }
 
+/* ---- 音量条：拖动调音量 + 按住 500ms 展开全屏面板 ---- */
+
+/* 长按判定：位移不超过这个像素数才算「按住不动」（与拖动共用一次 pointer 序列）。
+   7px 取的是「手指/鼠标按住时的自然抖动上界」：再小会把静止长按误判成拖动，
+   再大会让「想微调音量却拖不动」的手感变钝。 */
+const VOLUME_LONG_PRESS_SLOP = 7
+/** 起手到展开的等待时间。500ms 是长按的通用阈值（Android long press / HIG 同值）。 */
+const VOLUME_LONG_PRESS_MS = 500
+
+/* ⚠️ 不复用上面亮度那条的 sliderMoveHandler/sliderUpHandler：
+   长按期间整段没有 pointermove，两套语义（「按住不动」vs「跟手拖动」）互斥，
+   共用句柄会让后一次交互把前一次的监听摘掉。所以这里是一套独立句柄，
+   并在 onBeforeUnmount 里通过 clearVolumeSliderGestures() 一并摘除。 */
+let volumeSliderMoveHandler = null
+let volumeSliderUpHandler = null
+let volumeSliderTimer = null
+
+function clearVolumeSliderGestures() {
+  if (volumeSliderTimer) {
+    clearTimeout(volumeSliderTimer)
+    volumeSliderTimer = null
+  }
+  if (volumeSliderMoveHandler) {
+    window.removeEventListener('pointermove', volumeSliderMoveHandler)
+    volumeSliderMoveHandler = null
+  }
+  if (volumeSliderUpHandler) {
+    window.removeEventListener('pointerup', volumeSliderUpHandler)
+    window.removeEventListener('pointercancel', volumeSliderUpHandler)
+    volumeSliderUpHandler = null
+  }
+}
+
+function volumeSliderPointer(e) {
+  if (editing.value) return
+  e.stopPropagation()
+  const track = e.currentTarget
+  const startY = e.clientY
+  let moved = false
+  let longPressed = false
+
+  const setFromEvent = (ev) => {
+    const r = track.getBoundingClientRect()
+    control.setVolume(clamp((r.bottom - ev.clientY) / r.height, 0, 1))
+  }
+
+  // 上一次拖拽若未正常结束（多指 / 组件被切走），先摘掉残留监听与残留定时器
+  clearVolumeSliderGestures()
+
+  volumeSliderMoveHandler = (ev) => {
+    if (Math.abs(ev.clientY - startY) > VOLUME_LONG_PRESS_SLOP) moved = true
+    if (!moved) return
+    // 确认为拖动后立刻撤销长按；setVolume 内部会把 Plus 档清零（volumePlus.test.js 有断言）
+    if (volumeSliderTimer) {
+      clearTimeout(volumeSliderTimer)
+      volumeSliderTimer = null
+    }
+    setFromEvent(ev)
+  }
+
+  volumeSliderUpHandler = (ev) => {
+    // pointercancel = 手势被系统/滚动抢走，不是用户有意定位，绝不能当作单击落音量
+    const wasTap = ev.type === 'pointerup' && !moved && !longPressed
+    clearVolumeSliderGestures()
+    /* 单击 = 直接跳到该位置的音量（亮度条一直是这个行为，音量条此前也是）。
+       快照的原版把 setFromEvent 只挂在 move 上，等于顺手砍掉了「点哪到哪」；
+       这里补回来 —— 长按已经在上面的 timer 里分流，两者不冲突。 */
+    if (wasTap) setFromEvent(ev)
+  }
+
+  volumeSliderTimer = window.setTimeout(() => {
+    if (moved) return
+    longPressed = true
+    volumeSliderTimer = null
+    // 按住不动满 500ms：以音量条当前渲染矩形为锚点展开全屏面板
+    openVolumePanel(track)
+    clearVolumeSliderGestures()
+  }, VOLUME_LONG_PRESS_MS)
+
+  window.addEventListener('pointermove', volumeSliderMoveHandler)
+  window.addEventListener('pointerup', volumeSliderUpHandler)
+  window.addEventListener('pointercancel', volumeSliderUpHandler)
+}
+
+/** 把音量条的真实渲染矩形交给面板，供其做「从条原位长大」的锚点动画。
+ *  取的是 getBoundingClientRect 的**合成后**尺寸 —— CC 本身有 translateY 变换，
+ *  面板展开时 CC 已经收起，所以面板侧会用屏幕坐标系直接用这个矩形。 */
+function openVolumePanel(track) {
+  const r = track?.getBoundingClientRect?.()
+  control.openVolumePanel(r ? { x: r.x, y: r.y, width: r.width, height: r.height } : null)
+}
+
 /* ================= 其他 ================= */
 
 const brightnessPct = computed(() => control.brightness * 100)
-const volumePct = computed(() => control.volume * 100)
+
+/* Plus 档（音量已到顶后继续按音量键）在 CC 上表现为三件事同时发生：
+   条子填充铺满 100%、顶部叠一层琥珀渐变、条内显示档位数字（200 / 300 / 500）。
+   注意 fill 恒为 100% 而数字用 `档位×100`，两者不是同一个量，
+   所以这里是两个 computed，不要合并。 */
+const volumePct = computed(() => (control.volumePlusLevel ? 100 : control.volume * 100))
+const volumeDisplayPct = computed(() =>
+  control.volumePlusLevel ? control.volumePlusLevel * 100 : Math.round(control.volume * 100)
+)
+const volumePlusActive = computed(() => control.volumePlusLevel > 0)
+/* 静音态换成带斜杠的 volumeX —— 只在非 Plus 态判 0，Plus 档一定是满音量 */
+const volumeIconName = computed(() =>
+  control.volume === 0 && !volumePlusActive.value ? 'volumeX' : 'volume2'
+)
 
 function cellStyle(item) {
   return {
@@ -1195,20 +1342,44 @@ const glassRing = computed(() =>
           <div v-else-if="item.id === 'mediaControls'" class="cc-sliders">
             <div class="cc-vslider" @pointerdown="sliderPointer($event, 'brightness')">
               <svg class="cc-vslider-bg-svg" width="100%" height="100%" viewBox="0 0 62 138" preserveAspectRatio="none" fill="none">
-                <rect x="0.5" y="0.5" width="61" height="137" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_2865_138)" vector-effect="non-scaling-stroke" />
+                <rect x="0.5" y="0.5" width="61" height="137" rx="30.5" fill="rgba(255, 255, 255, 0.04)" />
               </svg>
               <div class="cc-vslider-fill" :style="{ height: brightnessPct + '%' }"></div>
               <div class="cc-vslider-icon">
                 <LIcon name="sun" :size="26" />
               </div>
             </div>
-            <div class="cc-vslider" @pointerdown="sliderPointer($event, 'volume')">
+            <div
+              class="cc-vslider cc-volume-slider"
+              :class="{
+                'is-plus': volumePlusActive,
+                'anchor-hidden': control.volumeAnchorHidden,
+                'plus-200': control.volumePlusLevel === 2,
+                'plus-300': control.volumePlusLevel === 3,
+                'plus-500': control.volumePlusLevel === 5
+              }"
+              data-testid="volume-slider"
+              tabindex="0"
+              :aria-label="vLabel('sliderAria')"
+              @pointerdown="volumeSliderPointer"
+              @keydown.enter.prevent="openVolumePanel($event.currentTarget)"
+            >
               <svg class="cc-vslider-bg-svg" width="100%" height="100%" viewBox="0 0 62 138" preserveAspectRatio="none" fill="none">
-                <rect x="0.5" y="0.5" width="61" height="137" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_2865_138)" vector-effect="non-scaling-stroke" />
+                <rect x="0.5" y="0.5" width="61" height="137" rx="30.5" fill="rgba(255, 255, 255, 0.04)" />
               </svg>
               <div class="cc-vslider-fill" :style="{ height: volumePct + '%' }"></div>
-              <div class="cc-vslider-icon">
-                <LIcon name="volume2" :size="26" />
+              <!-- Plus 态：琥珀渐变 + 档位数字（z-index 夹在 fill(1) 与描边 svg(2) 之间） -->
+              <div v-if="volumePlusActive" class="cc-volume-plus-gradient" aria-hidden="true"></div>
+              <div v-if="volumePlusActive" class="cc-volume-value" data-testid="volume-value">
+                {{ volumeDisplayPct }}%
+              </div>
+              <div
+                class="cc-vslider-icon"
+                :class="{ cool: control.volume > 0.15 && !volumePlusActive, hot: volumePlusActive }"
+                :data-muted="control.volume === 0 && !volumePlusActive"
+                data-testid="control-volume-icon"
+              >
+                <LIcon :name="volumeIconName" :size="26" />
               </div>
             </div>
           </div>
@@ -1838,9 +2009,18 @@ const glassRing = computed(() =>
 .cc-vslider {
   flex: 1;
   border-radius: calc(var(--cc-cell) / 2);
-  background: rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(30px) saturate(200%);
-  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  /* 白色毛玻璃（配方见 styles/tokens.css 的 `--glass-white-*`）。
+     ⚠️⚠️ 这里的 backdrop-filter 是**死的**，实测无效 —— 别指望它给滑块去饱和：
+     `.cc-content`(will-change: transform, opacity) 与 `.control-center`(will-change: transform)
+     都会建立 **backdrop root**，而滑块就是该 root 里最底层的东西 ⇒ 采样结果为透明。
+     验证方法：把 token 的 saturate 从 200% 改成 0%，屏上像素**一个字节都不变**
+     （scripts/probe-volume-glass.mjs 的 cc 段就是这条回归）。
+     滑块背后的模糊已由 CC 自己的 MaterialBlur 提供，所以观感不受影响；
+     但也因此**拿不到 saturate(45%) 的去饱和补偿**，只能靠 α 把紫色压下去。
+     改这个 α 之前先跑探针，别凭手感。 */
+  background: var(--glass-white-bar);
+  backdrop-filter: var(--glass-white-blur);
+  -webkit-backdrop-filter: var(--glass-white-blur);
   position: relative;
   overflow: hidden;
   cursor: pointer;
@@ -1870,6 +2050,63 @@ const glassRing = computed(() =>
   pointer-events: none;
   z-index: 3;
 }
+
+/* ---- 音量条 Plus 态（2026-09-20 集成外部 volume-plus-mode 快照）---- */
+/* 音量推满后继续按音量键 → 满格 + 琥珀渐变 + 档位数字（200/300/500），
+   色阶逐级加深做「越推越热」的暗示。 */
+
+/* 琥珀环必须画在 ::after 而不是直接给 .cc-volume-slider 加 inset box-shadow：
+   inset 阴影属于元素自身的绘制层，在所有子元素**之下**，而 Plus 态 fill 正好铺满 100%
+   ⇒ 直接写会被白 fill 整个盖掉。::after 是最后一个子层，稳定压在 fill / 渐变之上。
+   （本条的**普通态描边**已于 2026-09-20 按 Ricky 要求撤掉 —— 现在只剩 Plus 这一圈；
+     撤掉的是模板里那两个 rect 的 stroke，`#paint0_linear_2865_138` 渐变定义保留，
+     因为媒体播放器卡片还在用它。） */
+.cc-volume-slider.is-plus::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;                 /* 与描边 svg 同层；::after 是最后一个子层，绘制在其上 */
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 190, 92, 0.72);
+  pointer-events: none;
+}
+/* 面板从这条条子上长大期间源条让位（VolumePanel 按同一矩形做展开动画） */
+.cc-volume-slider.anchor-hidden {
+  opacity: 0;
+  transition: none;
+}
+.cc-volume-plus-gradient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* 夹在 fill(z-index 1) 与 bg svg(z-index 2) 之间：与 fill 同层靠 DOM 顺序
+     取胜（渐变写在 svg 之后），于是盖住 fill 又压在那层 4% 白的柔光下面。 */
+  z-index: 1;
+  transition: background 220ms ease;
+}
+.cc-volume-slider.plus-200 .cc-volume-plus-gradient {
+  background: linear-gradient(to top, rgba(253, 186, 116, 0) 0%, rgba(253, 186, 116, 0.42) 52%, rgba(251, 146, 60, 1) 100%);
+}
+.cc-volume-slider.plus-300 .cc-volume-plus-gradient {
+  background: linear-gradient(to top, rgba(251, 146, 60, 0) 0%, rgba(251, 146, 60, 0.5) 52%, rgba(249, 115, 22, 1) 100%);
+}
+.cc-volume-slider.plus-500 .cc-volume-plus-gradient {
+  background: linear-gradient(to top, rgba(249, 115, 22, 0) 0%, rgba(234, 88, 12, 0.58) 52%, rgba(194, 65, 12, 1) 100%);
+}
+.cc-volume-value {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 18px;
+  z-index: 4;
+  text-align: center;
+  color: #fff7ed;
+  font: 800 16px/1 var(--font-stack);
+  letter-spacing: -0.3px;
+  pointer-events: none;
+}
+/* Plus 态图标压深：fill 此刻是满格纯白，白图标会整个糊掉 */
+.cc-vslider-icon.hot { color: #7c2d12; }
 
 /* 删除徽标（widget 通用） */
 .cc-remove {
