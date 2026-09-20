@@ -30,14 +30,15 @@ test('personalization page provides overview, theme market and wallpaper picker'
   assert.match(appGrid, /:home-anchor="registerHomeAnchors"/)
   assert.match(personalization, /\.preview-lock-viewport :deep\(\.ls-clip\)/)
   assert.match(personalization, /\.preview-lock-viewport :deep\(\.ls-shortcuts\)/)
-  assert.match(personalization, /\.icon-grid img \{ width:42px/)
+  assert.match(personalization, /class="color-grid-glyph"/)
+  assert.match(personalization, /\.menu-icon \.color-grid-glyph \{ width:28px; height:28px/)
   assert.doesNotMatch(personalization, /mini-dock/)
   assert.match(personalization, /plus-ring.*<svg/s)
   assert.match(personalization, /icon-desktop/)
 })
 
-test('generated wallpaper and colorful icon assets are present and used', () => {
-  for (const file of ['glass-bronze.png', 'glass-blue.png', 'glass-mint.png', 'glass-rose.png', 'color-icons.png']) {
+test('generated wallpapers are present and used', () => {
+  for (const file of ['glass-bronze.png', 'glass-blue.png', 'glass-mint.png', 'glass-rose.png']) {
     assert.equal(existsSync(resolve(root, 'src/assets/img/personalization', file)), true, `${file} should exist`)
     assert.match(personalization, new RegExp(file.replace('.', '\\.')))
   }
