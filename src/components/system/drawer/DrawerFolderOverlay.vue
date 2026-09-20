@@ -1,7 +1,8 @@
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { getDrawerAppById } from '../../../config/drawerApps'
 import { useHomeStore } from '../../../stores/homeStore'
+import { rectRelativeToScreen } from '../../../utils/dom'
 import { rubberBand } from '../../../utils/math'
 import AppIcon from '../../ui/AppIcon.vue'
 
@@ -35,177 +36,363 @@ const allApps = computed(() => {
     .filter(Boolean)
 })
 
-const backdropRef = ref(null)
-const titleRef = ref(null)
 const overlayRef = ref(null)
+const backdropRef = ref(null)
+const shellRef = ref(null)
+const containerRef = ref(null)
+const titleRef = ref(null)
 const iconRefs = new Map()
-const isClosing = ref(false)
+
+const phase = ref('measuring')
+const shellMotion = reactive({ dx: 0, dy: 0, sx: 0.2, sy: 0.2, startRadius: '26px' })
+const titleMotion = reactive({ dx: 0, dy: 0, scale: 0.54, valid: false })
+const iconMotions = new Map()
+let closeTimer = null
 
 function setIconRef(id, el) {
   if (el) iconRefs.set(id, el)
   else iconRefs.delete(id)
 }
 
-const OPEN_DURATION = 300
-const OPEN_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)'
-const CLOSE_DURATION = 240
-const CLOSE_EASING = 'cubic-bezier(0.25, 1, 0.5, 1)'
+function prepareMotion() {
+  if (!containerRef.value) return
+  const screen = overlayRef.value?.closest('.screen-view') || document.querySelector('.screen-view')
+  if (!screen) return
 
-function openAnimation() {
-  // 1. 深色遮罩淡入
+  const containerTo = rectRelativeToScreen(containerRef.value, screen)
+  const cardFrom = props.origin?.cardRect
+  if (!containerTo || !cardFrom || containerTo.width <= 0 || containerTo.height <= 0) return
+
+  // 1. 卡片外壳几何换算
+  const sx = cardFrom.width / containerTo.width
+  const sy = cardFrom.height / containerTo.height
+  const dx = cardFrom.left - containerTo.left
+  const dy = cardFrom.top - containerTo.top
+  const baseRadius = 26
+  const startRadiusX = (baseRadius / Math.max(0.001, sx)).toFixed(2)
+  const startRadiusY = (baseRadius / Math.max(0.001, sy)).toFixed(2)
+  const startRadius = `${startRadiusX}px / ${startRadiusY}px`
+
+  shellMotion.dx = dx
+  shellMotion.dy = dy
+  shellMotion.sx = sx
+  shellMotion.sy = sy
+  shellMotion.startRadius = startRadius
+
+  if (shellRef.value) {
+    shellRef.value.style.left = `${containerTo.left}px`
+    shellRef.value.style.top = `${containerTo.top}px`
+    shellRef.value.style.width = `${containerTo.width}px`
+    shellRef.value.style.height = `${containerTo.height}px`
+  }
+
+  // 2. 文件夹标题几何换算（从卡片下方小标题无缝升起为顶部大标题）
+  if (titleRef.value && props.origin?.titleRect) {
+    const titleTo = rectRelativeToScreen(titleRef.value, screen)
+    const titleFrom = props.origin.titleRect
+    if (titleTo && titleFrom && titleTo.width > 0) {
+      titleMotion.dx = titleFrom.left - titleTo.left
+      titleMotion.dy = titleFrom.top - titleTo.top
+      titleMotion.scale = 13 / 24 // 卡片标题 13px，展开标题 24px
+      titleMotion.valid = true
+    } else {
+      titleMotion.valid = false
+    }
+  } else {
+    titleMotion.valid = false
+  }
+
+  // 3. 图标 Hero 空间连续性几何换算
+  iconMotions.clear()
+  const iconFroms = props.origin?.iconRects || {}
+  const clusterFrom = props.origin?.clusterRect || cardFrom
+
+  for (const app of allApps.value) {
+    const iconEl = iconRefs.get(app.id)
+    if (!iconEl) continue
+
+    const tileEl = iconEl.querySelector('.app-icon-anchor') || iconEl
+    const tileRect = rectRelativeToScreen(tileEl, screen)
+    const iconElRect = rectRelativeToScreen(iconEl, screen)
+    if (!tileRect || !iconElRect) continue
+
+    // 以每个图标 tile 的绝对中心作为缩放旋转原点，彻底防止拉伸变形
+    const originX = Math.round(tileRect.left - iconElRect.left + tileRect.width / 2)
+    const originY = Math.round(tileRect.top - iconElRect.top + tileRect.height / 2)
+    iconEl.style.transformOrigin = `${originX}px ${originY}px`
+
+    const originRect = iconFroms[app.id]
+    if (originRect && originRect.width > 0) {
+      const cx = originRect.left - tileRect.left
+      const cy = originRect.top - tileRect.top
+      const scale = originRect.width / tileRect.width
+      iconMotions.set(app.id, {
+        cx,
+        cy,
+        scale,
+        isFromSlot: true
+      })
+    } else {
+      // 未在源卡片直接露出的图标（第 8 个之后），从微簇中心优雅向外发散
+      const targetCenterX = clusterFrom.left + clusterFrom.width / 2
+      const targetCenterY = clusterFrom.top + clusterFrom.height / 2
+      const tileCenterX = tileRect.left + tileRect.width / 2
+      const tileCenterY = tileRect.top + tileRect.height / 2
+      iconMotions.set(app.id, {
+        cx: targetCenterX - tileCenterX,
+        cy: targetCenterY - tileCenterY,
+        scale: 0.25,
+        isFromSlot: false
+      })
+    }
+  }
+}
+
+function open() {
+  prepareMotion()
+  phase.value = 'opening'
+
+  const prefersReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
+  const dur = prefersReduced ? 1 : 280
+  const easeOpen = 'cubic-bezier(0.2, 0.9, 0.3, 1)'
+
+  // 1. 全屏深色毛玻璃遮罩淡入
   backdropRef.value?.animate([
     { opacity: 0 },
     { opacity: 1 }
   ], {
-    duration: OPEN_DURATION,
-    easing: OPEN_EASING,
+    duration: dur,
+    easing: 'ease-out',
     fill: 'forwards'
   })
 
-  // 2. 标题微移淡入（从顶部微向下落）
-  titleRef.value?.animate([
-    { opacity: 0, transform: 'translate3d(0, -12px, 0)' },
-    { opacity: 1, transform: 'translate3d(0, 0, 0)' }
-  ], {
-    duration: 260,
-    easing: OPEN_EASING,
-    fill: 'forwards'
-  })
-
-  // 3. 图标 Hero 空间连续性展开动画
-  for (const app of allApps.value) {
-    const el = iconRefs.get(app.id)
-    if (!el) continue
-
-    const anchor = el.querySelector('.app-icon-anchor') || el
-    const label = el.querySelector('.icon-label')
-    const fromRect = props.origin?.iconRects?.[app.id]
-
-    if (fromRect && anchor) {
-      const toRect = anchor.getBoundingClientRect()
-      if (toRect.width > 0 && fromRect.width > 0) {
-        const dx = fromRect.left - toRect.left
-        const dy = fromRect.top - toRect.top
-        const scale = fromRect.width / toRect.width
-
-        anchor.animate([
-          { transform: `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`, transformOrigin: 'top left' },
-          { transform: 'translate3d(0, 0, 0) scale(1)', transformOrigin: 'top left' }
-        ], {
-          duration: OPEN_DURATION,
-          easing: OPEN_EASING,
-          fill: 'forwards'
-        })
-
-        label?.animate([
-          { opacity: 0 },
-          { opacity: 1 }
-        ], {
-          duration: 200,
-          delay: 80,
-          easing: 'ease-out',
-          fill: 'forwards'
-        })
-        continue
-      }
+  // 2. 一镜到底文件夹卡片外壳平滑放大并消融至全屏深色毛玻璃中
+  shellRef.value?.animate([
+    {
+      transform: `translate3d(${shellMotion.dx}px, ${shellMotion.dy}px, 0) scale(${shellMotion.sx}, ${shellMotion.sy})`,
+      borderRadius: shellMotion.startRadius,
+      opacity: 1
+    },
+    {
+      transform: 'translate3d(0, 0, 0) scale(1, 1)',
+      borderRadius: '32px',
+      opacity: 0
     }
+  ], {
+    duration: dur,
+    easing: easeOpen,
+    fill: 'forwards'
+  })
 
-    // 若来源未提供该图标（如额外应用），采用优雅缩放淡入
-    el.animate([
-      { opacity: 0, transform: 'scale(0.8)' },
-      { opacity: 1, transform: 'scale(1)' }
+  // 3. 标题空间连续性位移升起
+  if (titleMotion.valid && titleRef.value) {
+    titleRef.value.animate([
+      {
+        transform: `translate3d(${titleMotion.dx}px, ${titleMotion.dy}px, 0) scale(${titleMotion.scale})`,
+        transformOrigin: 'top left',
+        opacity: 0.9
+      },
+      {
+        transform: 'translate3d(0, 0, 0) scale(1, 1)',
+        transformOrigin: 'top left',
+        opacity: 1
+      }
     ], {
-      duration: 260,
-      delay: 50,
-      easing: OPEN_EASING,
+      duration: Math.min(dur, 260),
+      easing: easeOpen,
+      fill: 'forwards'
+    })
+  } else {
+    titleRef.value?.animate([
+      { opacity: 0, transform: 'translate3d(0, -10px, 0)' },
+      { opacity: 1, transform: 'translate3d(0, 0, 0)' }
+    ], {
+      duration: Math.min(dur, 200),
+      easing: easeOpen,
       fill: 'forwards'
     })
   }
+
+  // 4. 图标 Hero 物理轨迹飞行与标签延迟淡入
+  let lastIconAnim = null
+  for (const app of allApps.value) {
+    const iconEl = iconRefs.get(app.id)
+    const motion = iconMotions.get(app.id)
+    if (!iconEl || !motion) continue
+
+    const anim = iconEl.animate([
+      {
+        transform: `translate3d(${motion.cx}px, ${motion.cy}px, 0) scale(${motion.scale})`,
+        opacity: motion.isFromSlot ? 1 : 0
+      },
+      {
+        transform: 'translate3d(0, 0, 0) scale(1, 1)',
+        opacity: 1
+      }
+    ], {
+      duration: dur,
+      easing: easeOpen,
+      fill: 'forwards'
+    })
+    lastIconAnim = anim
+
+    const label = iconEl.querySelector('.icon-label')
+    label?.animate([
+      { opacity: 0 },
+      { opacity: 1 }
+    ], {
+      duration: Math.min(dur, 180),
+      delay: prefersReduced ? 0 : 70,
+      easing: easeOpen,
+      fill: 'both'
+    })
+  }
+
+  const finishOpen = () => {
+    phase.value = 'open'
+    if (backdropRef.value) backdropRef.value.style.opacity = '1'
+  }
+
+  if (lastIconAnim) {
+    lastIconAnim.onfinish = finishOpen
+  } else {
+    finishOpen()
+  }
 }
 
-function closeAnimation() {
-  if (isClosing.value) return
-  isClosing.value = true
+function close() {
+  if (phase.value === 'closing' || phase.value === 'closed' || phase.value === 'launching') return
+  prepareMotion()
+  phase.value = 'closing'
+  clearTimeout(closeTimer)
 
-  // 1. 遮罩淡出
+  const prefersReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
+  const dur = prefersReduced ? 1 : 260
+  const easeClose = 'cubic-bezier(0.25, 1, 0.5, 1)'
+  const easeBackdropClose = 'cubic-bezier(0.33, 0, 0.67, 1)'
+
+  // 1. 深色毛玻璃遮罩淡出
+  if (backdropRef.value) backdropRef.value.style.opacity = ''
   backdropRef.value?.animate([
     { opacity: 1 },
     { opacity: 0 }
   ], {
-    duration: CLOSE_DURATION,
-    easing: CLOSE_EASING,
+    duration: dur,
+    easing: easeBackdropClose,
     fill: 'forwards'
   })
 
-  // 2. 标题微移淡出
-  titleRef.value?.animate([
-    { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-    { opacity: 0, transform: 'translate3d(0, -8px, 0)' }
-  ], {
-    duration: 160,
-    easing: 'ease-in',
-    fill: 'forwards'
-  })
-
-  // 3. 图标飞回卡片源位置
-  for (const app of allApps.value) {
-    const el = iconRefs.get(app.id)
-    if (!el) continue
-
-    const anchor = el.querySelector('.app-icon-anchor') || el
-    const label = el.querySelector('.icon-label')
-    const fromRect = props.origin?.iconRects?.[app.id]
-
-    if (fromRect && anchor) {
-      const toRect = anchor.getBoundingClientRect()
-      if (toRect.width > 0 && fromRect.width > 0) {
-        const dx = fromRect.left - toRect.left
-        const dy = fromRect.top - toRect.top
-        const scale = fromRect.width / toRect.width
-
-        anchor.animate([
-          { transform: 'translate3d(0, 0, 0) scale(1)', transformOrigin: 'top left' },
-          { transform: `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`, transformOrigin: 'top left' }
-        ], {
-          duration: CLOSE_DURATION,
-          easing: CLOSE_EASING,
-          fill: 'forwards'
-        })
-
-        label?.animate([
-          { opacity: 1 },
-          { opacity: 0 }
-        ], {
-          duration: 100,
-          fill: 'forwards'
-        })
-        continue
-      }
+  // 2. 卡片外壳重新凝聚并坍缩回源卡片
+  const closeShellAnim = shellRef.value?.animate([
+    {
+      transform: 'translate3d(0, 0, 0) scale(1, 1)',
+      borderRadius: '32px',
+      opacity: 0
+    },
+    {
+      transform: `translate3d(${shellMotion.dx}px, ${shellMotion.dy}px, 0) scale(${shellMotion.sx}, ${shellMotion.sy})`,
+      borderRadius: shellMotion.startRadius,
+      opacity: 1
     }
+  ], {
+    duration: dur,
+    easing: easeClose,
+    fill: 'forwards'
+  })
 
-    el.animate([
-      { opacity: 1, transform: 'scale(1)' },
-      { opacity: 0, transform: 'scale(0.8)' }
+  // 3. 标题降回源卡片下方位置
+  if (titleMotion.valid && titleRef.value) {
+    titleRef.value.animate([
+      {
+        transform: 'translate3d(0, 0, 0) scale(1, 1)',
+        transformOrigin: 'top left',
+        opacity: 1
+      },
+      {
+        transform: `translate3d(${titleMotion.dx}px, ${titleMotion.dy}px, 0) scale(${titleMotion.scale})`,
+        transformOrigin: 'top left',
+        opacity: 0.9
+      }
     ], {
-      duration: 180,
+      duration: dur,
+      easing: easeClose,
+      fill: 'forwards'
+    })
+  } else {
+    titleRef.value?.animate([
+      { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+      { opacity: 0, transform: 'translate3d(0, -8px, 0)' }
+    ], {
+      duration: Math.min(dur, 140),
+      easing: 'ease-out',
       fill: 'forwards'
     })
   }
 
-  setTimeout(() => {
+  // 4. 图标飞回卡片源位置，文字快速淡出防重影
+  for (const app of allApps.value) {
+    const iconEl = iconRefs.get(app.id)
+    const motion = iconMotions.get(app.id)
+    if (!iconEl || !motion) continue
+
+    iconEl.animate([
+      {
+        transform: 'translate3d(0, 0, 0) scale(1, 1)',
+        opacity: 1
+      },
+      {
+        transform: `translate3d(${motion.cx}px, ${motion.cy}px, 0) scale(${motion.scale})`,
+        opacity: motion.isFromSlot ? 1 : 0
+      }
+    ], {
+      duration: dur,
+      easing: easeClose,
+      fill: 'forwards'
+    })
+
+    const label = iconEl.querySelector('.icon-label')
+    label?.animate([
+      { opacity: 1 },
+      { opacity: 0 }
+    ], {
+      duration: Math.min(dur, 100),
+      easing: 'ease-out',
+      fill: 'forwards'
+    })
+  }
+
+  const finishClose = () => {
+    if (closeTimer) {
+      clearTimeout(closeTimer)
+      closeTimer = null
+    }
+    phase.value = 'closed'
     emit('close')
-  }, CLOSE_DURATION + 10)
+  }
+
+  if (closeShellAnim) {
+    closeShellAnim.onfinish = finishClose
+  }
+  closeTimer = setTimeout(finishClose, dur + 40)
 }
 
 function handleAppClick(appId) {
-  if (isClosing.value) return
+  if (phase.value !== 'open') return
+  phase.value = 'launching'
+  backdropRef.value?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' })
+  shellRef.value?.animate([{ opacity: 0 }], { duration: 160, fill: 'forwards' })
+  containerRef.value?.animate([
+    { transform: 'scale(1)', opacity: 1 },
+    { transform: 'scale(0.96)', opacity: 0.2 }
+  ], { duration: 160, fill: 'forwards' })
+
   emit('launch-app', appId)
 }
 
 function onOverlayClick(e) {
-  if (isClosing.value) return
+  if (phase.value !== 'open') return
   if (!e.target.closest('.folder-grid-item')) {
-    closeAnimation()
+    close()
   }
 }
 
@@ -226,17 +413,17 @@ const containerStyle = computed(() => {
 })
 
 function onPointerDown(e) {
-  if (isClosing.value) return
+  if (phase.value !== 'open') return
   startY = e.clientY
   isTracking = true
 }
 
 function onPointerMove(e) {
-  if (!isTracking || isClosing.value) return
+  if (!isTracking || phase.value !== 'open') return
   const dy = e.clientY - startY
   if (dy > 45) {
     isTracking = false
-    closeAnimation()
+    close()
     return
   }
   if (dy < 0) {
@@ -258,10 +445,13 @@ function onPointerUp() {
   }
 }
 
-onMounted(() => {
-  nextTick(() => {
-    openAnimation()
-  })
+onMounted(async () => {
+  await nextTick()
+  open()
+})
+
+onBeforeUnmount(() => {
+  if (closeTimer) clearTimeout(closeTimer)
 })
 </script>
 
@@ -269,23 +459,27 @@ onMounted(() => {
   <div
     ref="overlayRef"
     class="drawer-folder-overlay"
+    :class="`phase-${phase}`"
     @click="onOverlayClick"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
   >
-    <!-- 全屏深色毛玻璃遮罩（对齐 22.mp4） -->
+    <!-- 1. 全屏深色毛玻璃遮罩（对齐 22.mp4） -->
     <div ref="backdropRef" class="folder-backdrop"></div>
 
-    <!-- 展开内容区 -->
-    <div class="folder-container" :style="containerStyle">
+    <!-- 2. 一镜到底文件夹卡片过渡外壳（无缝连接分类卡片与展开网格） -->
+    <div ref="shellRef" class="folder-card-shell"></div>
+
+    <!-- 3. 居中展开内容区 -->
+    <div ref="containerRef" class="folder-container" :style="containerStyle">
       <!-- 文件夹名称标题（左对齐，对齐 22.mp4） -->
       <div class="folder-header">
         <h2 ref="titleRef" class="folder-title">{{ category.name }}</h2>
       </div>
 
-      <!-- 4 列应用网格（对齐 22.mp4） -->
-      <div class="folder-grid-scroll">
+      <!-- 4 列应用网格（动画期间 overflow visible 防止裁剪，静止态允许滚动） -->
+      <div class="folder-grid-scroll" :class="{ 'is-animating': phase !== 'open' }">
         <div class="folder-app-grid">
           <div
             v-for="app in allApps"
@@ -320,6 +514,14 @@ onMounted(() => {
   align-items: center;
 }
 
+.phase-measuring {
+  visibility: hidden;
+}
+
+.phase-launching {
+  pointer-events: none;
+}
+
 .folder-backdrop {
   position: absolute;
   inset: -30px;
@@ -329,6 +531,25 @@ onMounted(() => {
   pointer-events: none;
   opacity: 0;
   will-change: opacity;
+}
+
+.phase-open .folder-backdrop {
+  opacity: 1;
+}
+
+/* 一镜到底卡片外壳：起始对齐分类卡片几何与毛玻璃质感，展开时消融，收起时凝聚 */
+.folder-card-shell {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.24);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.16);
+  transform-origin: 0 0;
+  will-change: transform, opacity, border-radius;
+  opacity: 0;
 }
 
 .folder-container {
@@ -371,6 +592,10 @@ onMounted(() => {
   -webkit-overflow-scrolling: touch;
 }
 
+.folder-grid-scroll.is-animating {
+  overflow: visible !important;
+}
+
 /* 4 列应用网格 */
 .folder-app-grid {
   display: grid;
@@ -389,7 +614,7 @@ onMounted(() => {
   align-items: center;
   cursor: pointer;
   width: 66px;
-  transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1);
+  touch-action: none;
   will-change: transform, opacity;
 }
 
@@ -397,9 +622,29 @@ onMounted(() => {
   transform: scale(0.88);
 }
 
+.folder-grid-item :deep(.app-icon) {
+  aspect-ratio: 1 !important;
+}
+
+.folder-grid-item :deep(.icon-tile),
+.folder-grid-item :deep(.app-icon-anchor) {
+  aspect-ratio: 1 !important;
+  flex: none !important;
+}
+
+.folder-grid-item :deep(.icon-label) {
+  opacity: 0;
+  will-change: opacity;
+}
+
+.phase-open .folder-grid-item :deep(.icon-label) {
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .drawer-folder-overlay,
   .folder-backdrop,
+  .folder-card-shell,
   .folder-title,
   .folder-grid-item {
     transition-duration: 1ms !important;

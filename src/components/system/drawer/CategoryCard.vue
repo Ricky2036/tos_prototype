@@ -2,12 +2,17 @@
 import { computed, ref } from 'vue'
 import { getDrawerAppById } from '../../../config/drawerApps'
 import { useHomeStore } from '../../../stores/homeStore'
+import { rectRelativeToScreen } from '../../../utils/dom'
 import AppIcon from '../../ui/AppIcon.vue'
 
 const props = defineProps({
   category: {
     type: Object,
     required: true
+  },
+  isFolderOpen: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -17,6 +22,8 @@ const home = useHomeStore()
 const isInstalled = (id) => (home.appInstalled ? home.appInstalled(id) : true)
 
 const cardRef = ref(null)
+const nameRef = ref(null)
+const clusterRef = ref(null)
 const iconRefs = new Map()
 
 function setIconRef(id, el) {
@@ -52,16 +59,21 @@ const clusterApps = computed(() => {
 
 function getOriginData() {
   if (!cardRef.value) return null
-  const cardRect = cardRef.value.getBoundingClientRect()
+  const screen = cardRef.value.closest('.screen-view') || document.querySelector('.screen-view')
+  const cardRect = screen ? rectRelativeToScreen(cardRef.value, screen) : cardRef.value.getBoundingClientRect()
+  const titleRect = nameRef.value ? (screen ? rectRelativeToScreen(nameRef.value, screen) : nameRef.value.getBoundingClientRect()) : null
+  const clusterRect = clusterRef.value ? (screen ? rectRelativeToScreen(clusterRef.value, screen) : clusterRef.value.getBoundingClientRect()) : null
   const iconRects = {}
   for (const [id, el] of iconRefs) {
     if (el) {
       const anchor = el.querySelector?.('.app-icon-anchor') || el
-      iconRects[id] = anchor.getBoundingClientRect()
+      iconRects[id] = screen ? rectRelativeToScreen(anchor, screen) : anchor.getBoundingClientRect()
     }
   }
   return {
     cardRect,
+    titleRect,
+    clusterRect,
     iconRects
   }
 }
@@ -84,7 +96,7 @@ function handleAppClick(appId, e) {
 </script>
 
 <template>
-  <div class="category-folder-wrapper">
+  <div class="category-folder-wrapper" :class="{ 'is-folder-open': isFolderOpen }">
     <!-- 桌面大文件夹 1:1 正方形白色半透毛玻璃卡片（参考 media_1789896055622.jpg） -->
     <div
       ref="cardRef"
@@ -144,7 +156,7 @@ function handleAppClick(appId, e) {
 
         <!-- 第 4 格：2x2 迷你微簇（整体尺寸 52px 严格等于大图标，支持点击四合一缩略图展开） -->
         <div class="folder-app-item" @click.stop="handleExpandFolder">
-          <div class="mini-cluster-grid">
+          <div ref="clusterRef" class="mini-cluster-grid">
             <div
               v-for="cApp in clusterApps"
               :key="cApp.id"
@@ -164,7 +176,7 @@ function handleAppClick(appId, e) {
     </div>
 
     <!-- 分类文件夹名称（位于卡片外正下方居中，点击亦可触发展开） -->
-    <div class="folder-name" @click="handleExpandFolder">{{ category.name }}</div>
+    <div ref="nameRef" class="folder-name" @click="handleExpandFolder">{{ category.name }}</div>
   </div>
 </template>
 
@@ -175,6 +187,12 @@ function handleAppClick(appId, e) {
   align-items: center;
   user-select: none;
   width: 100%;
+}
+
+.category-folder-wrapper.is-folder-open {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: none !important;
 }
 
 /* 1:1 正方形白色半透毛玻璃文件夹卡片（对齐 media_1789896055622.jpg） */

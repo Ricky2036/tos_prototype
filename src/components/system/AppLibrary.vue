@@ -525,6 +525,7 @@ onBeforeUnmount(() => {
               v-for="cat in DRAWER_CATEGORIES"
               :key="cat.id"
               :category="cat"
+              :is-folder-open="activeCategoryFolder?.id === cat.id"
               @select-app="launchApp"
               @open-folder="handleOpenCategoryFolder"
               @open-xhide="handleOpenXHide"
