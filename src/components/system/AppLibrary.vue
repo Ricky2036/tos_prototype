@@ -33,6 +33,10 @@ const currentTab = ref('all')
 const isScrubbing = ref(false)
 const isSearchActive = ref(false)
 
+// 字母聚焦/过滤模式：点击/拖拽右侧导轨时激活，隐藏其他图标和界面
+const isFilterMode = ref(false)
+const filterLetter = ref('D')
+
 const isInstalled = (id) => (home.appInstalled ? home.appInstalled(id) : true)
 
 const allGroups = computed(() => {
@@ -44,7 +48,7 @@ const allGroups = computed(() => {
   return filtered
 })
 
-const availableLetters = computed(() => {
+const lettersWithApps = computed(() => {
   return ALPHABET_LIST.filter((l) => (allGroups.value[l] || []).length > 0)
 })
 
@@ -56,7 +60,7 @@ const pinnedApps = computed(() => DRAWER_APPS.filter((a) => a.pinned && isInstal
 const alphabeticalAppList = computed(() => {
   const list = []
   const seenInitials = new Set()
-  for (const letter of availableLetters.value) {
+  for (const letter of ALPHABET_LIST) {
     const group = allGroups.value[letter] || []
     for (const app of group) {
       const isFirst = !seenInitials.has(app.initial)
@@ -72,6 +76,11 @@ const alphabeticalAppList = computed(() => {
   return list
 })
 
+// 过滤模式下仅展示当前选中字母的应用
+const filteredApps = computed(() => {
+  return allGroups.value[filterLetter.value] || []
+})
+
 const rootRef = ref(null)
 const scrollContainerRef = ref(null)
 
@@ -82,7 +91,7 @@ function updateSectionTops() {
   if (!scrollContainerRef.value) return
   const containerRect = scrollContainerRef.value.getBoundingClientRect()
   const tops = {}
-  for (const letter of availableLetters.value) {
+  for (const letter of lettersWithApps.value) {
     const el = scrollContainerRef.value.querySelector(`#section-${letter}`)
     if (el) {
       tops[letter] = el.getBoundingClientRect().top - containerRect.top + scrollContainerRef.value.scrollTop
@@ -92,10 +101,10 @@ function updateSectionTops() {
 }
 
 function handleScroll() {
-  if (isScrubbing.value || currentTab.value !== 'all' || !scrollContainerRef.value) return
+  if (isScrubbing.value || isFilterMode.value || currentTab.value !== 'all' || !scrollContainerRef.value) return
   const scrollTop = scrollContainerRef.value.scrollTop + 90
-  let current = availableLetters.value[0] || 'D'
-  for (const letter of availableLetters.value) {
+  let current = lettersWithApps.value[0] || 'D'
+  for (const letter of lettersWithApps.value) {
     if (sectionTops.value[letter] != null && sectionTops.value[letter] <= scrollTop) {
       current = letter
     }
@@ -118,21 +127,34 @@ function scrollToLetter(letter) {
   }
 }
 
+/** 点击或滑动右侧字母导航：激活字母聚焦过滤模式 */
+function handleSelectLetter(letter) {
+  activeLetter.value = letter
+  filterLetter.value = letter
+  isFilterMode.value = true
+}
+
 function handleScrubbing(scrubbing, letter) {
   isScrubbing.value = scrubbing
   if (letter) {
     activeLetter.value = letter
-    scrollToLetter(letter)
+    filterLetter.value = letter
+    isFilterMode.value = true
   }
 }
 
+function exitFilterMode() {
+  isFilterMode.value = false
+}
+
 watch(currentTab, () => {
+  isFilterMode.value = false
   if (scrollContainerRef.value) {
     scrollContainerRef.value.scrollTop = 0
   }
 })
 
-watch(availableLetters, (letters) => {
+watch(lettersWithApps, (letters) => {
   if (letters.length > 0 && !letters.includes(activeLetter.value)) {
     activeLetter.value = letters[0]
   }
@@ -153,7 +175,7 @@ function onSearchActive(active) {
   isSearchActive.value = active
 }
 
-/* 下拉关闭（反向手势，仅在未滚动且非搜索态时接管） */
+/* 下拉关闭（反向手势，仅在未滚动且非搜索态、非过滤模式时接管） */
 const CLOSE_SPAN = 380
 
 useSwipeGesture(rootRef, {
@@ -161,7 +183,7 @@ useSwipeGesture(rootRef, {
   direction: 1, // 下拉关闭
   span: CLOSE_SPAN,
   canStart: () => {
-    if (isSearchActive.value) return false
+    if (isSearchActive.value || isFilterMode.value) return false
     if (scrollContainerRef.value && scrollContainerRef.value.scrollTop > 4) return false
     return (
       overlay.value.status === 'open' ||
@@ -197,6 +219,10 @@ useSwipeGesture(rootRef, {
 })
 
 function onBackdropClick(e) {
+  if (isFilterMode.value) {
+    exitFilterMode()
+    return
+  }
   if (e.target === e.currentTarget) {
     system.requestCloseOverlay('appLibrary')
   }
@@ -221,8 +247,14 @@ onMounted(() => {
     <div class="drawer-backdrop" :style="blurStyle"></div>
 
     <div class="drawer-content">
-      <!-- 顶部胶囊分段选择器（全部 | 分类） -->
-      <div class="drawer-header" :class="{ 'is-dimmed': isScrubbing }">
+      <!-- 顶部胶囊分段选择器（点击导轨过滤时优雅淡出隐藏） -->
+      <div
+        class="drawer-header"
+        :class="{
+          'is-hidden': isFilterMode,
+          'is-dimmed': isScrubbing
+        }"
+      >
         <DrawerCapsuleTabs v-model="currentTab" />
       </div>
 
@@ -232,8 +264,35 @@ onMounted(() => {
         class="drawer-body scrollable"
         @scroll="handleScroll"
       >
-        <!-- ── TAB 1: 全部应用视图（严格像素还原真机连续 4 列流） ── -->
-        <div v-show="currentTab === 'all'" class="all-tab-content">
+        <!-- ── 模式 A: 字母过滤聚焦视图（点击/滑动右侧导轨时激活，隐藏其他图标和界面） ── -->
+        <transition name="fade-filter">
+          <div v-if="isFilterMode" class="filter-mode-container" @click="exitFilterMode">
+            <div class="filtered-apps-wrapper" @click.stop>
+              <div v-if="filteredApps.length > 0" class="app-grid four-columns filtered-app-grid">
+                <div
+                  v-for="app in filteredApps"
+                  :key="app.id"
+                  class="grid-app-item"
+                  @click="launchApp(app.id)"
+                >
+                  <AppIcon
+                    :app="app"
+                    :size="50"
+                    :show-label="true"
+                    :launch-on-click="false"
+                  />
+                </div>
+              </div>
+
+              <div v-else class="empty-letter-state">
+                <p>暂无 “{{ filterLetter }}” 开头的应用</p>
+              </div>
+            </div>
+          </div>
+        </transition>
+
+        <!-- ── 模式 B: 常规全量视图 ── -->
+        <div v-show="!isFilterMode && currentTab === 'all'" class="all-tab-content">
           <!-- Row 1: 常用置顶应用（电话、信息、浏览器、相机） -->
           <div class="app-grid four-columns pinned-row">
             <div
@@ -244,7 +303,7 @@ onMounted(() => {
             >
               <AppIcon
                 :app="app"
-                :size="56"
+                :size="50"
                 :show-label="true"
                 :launch-on-click="false"
               />
@@ -254,7 +313,7 @@ onMounted(() => {
           <!-- 置顶与全量字母网格之间的细微分界线（对齐真机 rows1_to_3） -->
           <div class="pinned-divider"></div>
 
-          <!-- 单一连续无缝 4 列 A-Z 应用流（无跨行空洞、无生硬标题） -->
+          <!-- 单一连续无缝 4 列 A-Z 应用流（无跨行空洞、呼吸感间隙） -->
           <div class="app-grid four-columns continuous-app-grid">
             <div
               v-for="app in alphabeticalAppList"
@@ -265,7 +324,7 @@ onMounted(() => {
             >
               <AppIcon
                 :app="app"
-                :size="56"
+                :size="50"
                 :show-label="true"
                 :launch-on-click="false"
               />
@@ -274,7 +333,7 @@ onMounted(() => {
         </div>
 
         <!-- ── TAB 2: 分类大卡片视图（双列 1:1 正方形磨砂大文件夹） ── -->
-        <div v-show="currentTab === 'category'" class="category-tab-content">
+        <div v-show="!isFilterMode && currentTab === 'category'" class="category-tab-content">
           <div class="category-cards-grid">
             <CategoryCard
               v-for="cat in DRAWER_CATEGORIES"
@@ -287,18 +346,20 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 右侧垂直 A-Z 字母快速检索导轨（仅全部 Tab 下展示，仅索引真实存在的应用） -->
+      <!-- 右侧垂直 A-Z 字母快速检索导轨（仅全部 Tab 下展示） -->
       <AlphabetScrubber
         v-if="currentTab === 'all'"
-        :letters="availableLetters"
+        :letters="ALPHABET_LIST"
+        :letters-with-apps="lettersWithApps"
         :active-letter="activeLetter"
-        @select="scrollToLetter"
+        :is-filter-mode="isFilterMode"
+        @select="handleSelectLetter"
         @scrubbing="handleScrubbing"
       />
 
-      <!-- 底部常驻悬浮搜索胶囊 -->
+      <!-- 底部常驻悬浮搜索胶囊（过滤模式下优雅隐藏） -->
       <DrawerSearchBar
-        :hidden="isScrubbing"
+        :hidden="isScrubbing || isFilterMode"
         @select-app="launchApp"
         @search-active="onSearchActive"
       />
@@ -336,15 +397,21 @@ onMounted(() => {
 
 /* 顶部胶囊导航头 */
 .drawer-header {
-  height: 52px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: calc(var(--safe-top, 24px) + 8px);
+  margin-top: calc(var(--safe-top, 24px) + 6px);
   padding: 0 16px;
   flex-shrink: 0;
   z-index: 10;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.drawer-header.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
 }
 
 .drawer-header.is-dimmed {
@@ -356,37 +423,42 @@ onMounted(() => {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 8px 12px 120px 12px;
+  padding: 4px 0 110px 0;
   box-sizing: border-box;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
 
-/* 全部应用视图：连续紧凑的 4 列网格 */
+/* 全部应用视图 */
 .all-tab-content {
   display: flex;
   flex-direction: column;
 }
 
 .pinned-row {
-  margin-bottom: 2px;
+  padding-top: 14px;
 }
 
 .pinned-divider {
   height: 0.5px;
   background: rgba(255, 255, 255, 0.12);
-  margin: 12px 6px 16px;
+  margin: 20px 14px 22px 14px;
 }
 
 .continuous-app-grid {
   width: 100%;
 }
 
+/* 重新设计的 4 列宫格：图标 50px、垂直间隙 28px、右侧让位 26px 防与导轨挤压 */
 .app-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px 8px;
+  row-gap: 28px;
+  column-gap: 12px;
   justify-items: center;
+  padding: 0 26px 0 14px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .grid-app-item {
@@ -394,7 +466,44 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   cursor: pointer;
+  width: 66px;
   scroll-margin-top: calc(var(--safe-top, 24px) + 70px);
+}
+
+/* ── 字母过滤模式视图（对齐 media_1789875217726.jpg） ── */
+.filter-mode-container {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.filtered-apps-wrapper {
+  margin-top: calc(var(--safe-top, 24px) + 76px);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.empty-letter-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.fade-filter-enter-active,
+.fade-filter-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.fade-filter-enter-from,
+.fade-filter-leave-to {
+  opacity: 0;
+  transform: scale(0.97);
 }
 
 /* 分类 Tab 内容 */
@@ -405,8 +514,8 @@ onMounted(() => {
 .category-cards-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px 14px;
-  padding: 8px 16px 120px 16px;
+  gap: 18px 14px;
+  padding: 14px 18px 120px 18px;
   box-sizing: border-box;
 }
 </style>

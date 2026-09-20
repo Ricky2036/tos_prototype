@@ -26,8 +26,11 @@ test('DRAWER_APPS contains 19 real desktop apps matching apps.js and 4 pinned do
   const pinnedIds = pinned.map((a) => a.id)
   assert.deepEqual(pinnedIds, ['phone', 'messages', 'safari', 'camera'])
 
-  // 实际存在的字母索引列表
-  assert.deepEqual(ALPHABET_LIST, ['D', 'J', 'L', 'R', 'S', 'T', 'W', 'X', 'Y', 'Z'])
+  // 全量 27 字母表索引列表（对齐真机 A-Z 及 # 导轨）
+  assert.equal(ALPHABET_LIST.length, 27)
+  assert.equal(ALPHABET_LIST[0], 'A')
+  assert.equal(ALPHABET_LIST[25], 'Z')
+  assert.equal(ALPHABET_LIST[26], '#')
 
   // 每个应用必须具备合法元数据
   for (const app of DRAWER_APPS) {
@@ -148,6 +151,16 @@ test('AppLibrary and DrawerSearchBar wire AppIcon and do NOT draw redundant home
   // DrawerSearchBar 严禁手绘内部 home-indicator（底部导航属于全局系统）
   assert.doesNotMatch(searchBarSource, /class="home-indicator"/)
   assert.doesNotMatch(searchBarSource, /\.home-indicator\s*\{/)
+})
+
+test('AppLibrary implements letter filter focus mode and spacious grid metrics', async () => {
+  const librarySource = await read('../src/components/system/AppLibrary.vue')
+  // 字母过滤聚焦模式：隐藏其他图标与界面
+  assert.match(librarySource, /isFilterMode/)
+  assert.match(librarySource, /filteredApps/)
+  assert.match(librarySource, /filter-mode-container/)
+  assert.match(librarySource, /row-gap:\s*28px/)
+  assert.match(librarySource, /:size="50"/)
 })
 
 test('ScreenView and HomeScreen integrate vertical drawer gesture invocation', async () => {

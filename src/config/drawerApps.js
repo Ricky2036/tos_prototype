@@ -245,13 +245,16 @@ export const DRAWER_APPS = [
   }
 ]
 
-/** 实际拥有应用的字母索引（按字母升序） */
-export const ALPHABET_LIST = [
-  'D', 'J', 'L', 'R', 'S', 'T', 'W', 'X', 'Y', 'Z'
+/** 全量 27 个字母索引（对齐真机 A-Z 及 # 导轨） */
+export const FULL_ALPHABET = [
+  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+  'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '#'
 ]
 
+export const ALPHABET_LIST = FULL_ALPHABET
+
 /**
- * 按字母分组的应用字典：{ D: [...], J: [...], ... }
+ * 按字母分组的应用字典：{ A: [...], B: [...], ..., Z: [...], '#': [...] }
  */
 export function getAlphabeticalGroups() {
   const groups = {}
@@ -259,7 +262,7 @@ export function getAlphabeticalGroups() {
     groups[letter] = []
   }
   for (const app of DRAWER_APPS) {
-    const l = app.initial
+    const l = app.initial || '#'
     if (!groups[l]) groups[l] = []
     groups[l].push(app)
   }
