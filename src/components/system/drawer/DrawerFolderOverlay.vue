@@ -610,7 +610,7 @@ onBeforeUnmount(() => {
 .folder-header {
   margin-top: 0;
   padding: 0 24px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   flex-shrink: 0;
 }
 
@@ -639,14 +639,14 @@ onBeforeUnmount(() => {
   overflow: visible !important;
 }
 
-/* 4 列应用网格 */
+/* 4 列应用网格：预留顶部 8px 呼吸安全距，防止首行图标角标 (-4px) 被滚动视口裁剪 */
 .folder-app-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   row-gap: 24px;
   column-gap: 12px;
   justify-items: center;
-  padding: 0 20px;
+  padding: 8px 20px;
   box-sizing: border-box;
   width: 100%;
 }

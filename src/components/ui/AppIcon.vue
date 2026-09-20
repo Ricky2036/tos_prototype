@@ -20,7 +20,8 @@ const props = defineProps({
   size: { type: Number, default: 60 },  // tile 边长（默认桌面 60；通知设置内 40）
   ignoreHidden: { type: Boolean, default: false }, // 是否忽略全局隐藏状态（用于过渡动画中的镜像）
   homeAnchor: { type: Boolean, default: false },
-  launchOnClick: { type: Boolean, default: true }
+  launchOnClick: { type: Boolean, default: true },
+  showBadge: { type: Boolean, default: true }
 })
 const emit = defineEmits(['activate'])
 
@@ -167,10 +168,12 @@ onBeforeUnmount(() => {
           <circle cx="30" cy="30" r="1.6" fill="#1c1c1e"/>
         </svg>
       </span>
+
+      <!-- 应用数字红角标：绝对锚定于图标瓦片右上角，自适应任意图标尺寸，防止尺寸变化引起飘移 -->
+      <span v-if="showBadge && badge && size >= 36" class="icon-badge">{{ badge }}</span>
     </span>
 
     <span v-if="showLabel" class="icon-label">{{ appDisplayName }}</span>
-    <span v-if="badge" class="icon-badge">{{ badge }}</span>
   </button>
 </template>
 
@@ -232,7 +235,7 @@ onBeforeUnmount(() => {
 .icon-badge {
   position: absolute;
   top: -4px;
-  left: 44px;
+  right: -5px;
   min-width: 19px;
   height: 19px;
   padding: 0 5px;
@@ -242,6 +245,8 @@ onBeforeUnmount(() => {
   font: 600 12px/19px var(--font-stack);
   text-align: center;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  z-index: 2;
 }
 
 /* 日历图标 */

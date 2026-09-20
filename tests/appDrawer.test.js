@@ -275,5 +275,22 @@ test('CategoryCard and DrawerFolderOverlay eliminate active press distortion and
   assert.match(overlaySource, /prepareMotion\(true\)/)
 })
 
+test('AppIcon badge anchoring and DrawerFolderOverlay top clearance prevent drift and clipping', async () => {
+  const [iconSource, overlaySource] = await Promise.all([
+    read('../src/components/ui/AppIcon.vue'),
+    read('../src/components/system/drawer/DrawerFolderOverlay.vue')
+  ])
+
+  // 1. 角标必须定位于 anchorRef 内部，使用 right: -5px 锚定右上角，严禁写死 left: 44px 导致不同尺寸图标漂移
+  assert.doesNotMatch(iconSource, /left:\s*44px/)
+  assert.match(iconSource, /right:\s*-5px/)
+  assert.match(iconSource, /<span v-if="showBadge && badge && size >= 36" class="icon-badge">/)
+
+  // 2. DrawerFolderOverlay 网格必须留有顶部安全间隙，防止首行角标 (-4px) 被滚动视口 overflow 裁剪
+  assert.match(overlaySource, /padding:\s*8px\s+20px/)
+  assert.match(overlaySource, /margin-bottom:\s*12px/)
+})
+
+
 
 
