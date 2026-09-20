@@ -81,6 +81,22 @@ const filteredApps = computed(() => {
   return allGroups.value[filterLetter.value] || []
 })
 
+/**
+ * 字母过滤模式下右对齐布局（对齐 media_1789877584491.jpg）：
+ * 每一行应用向右对齐，紧贴右侧导轨方向排布。
+ * 若某行不足 4 个应用（如 3 个），起始列为 4 - count + 1（即从第 2 列开始），第 1 列留空；
+ * 确保第 4 列应用始终对齐上方的大号字母标题。
+ */
+function getFilteredItemStyle(index, total) {
+  if (index % 4 === 0) {
+    const rowLen = Math.min(4, total - index)
+    return {
+      gridColumnStart: 4 - rowLen + 1
+    }
+  }
+  return undefined
+}
+
 const rootRef = ref(null)
 const scrollContainerRef = ref(null)
 
@@ -277,9 +293,10 @@ onMounted(() => {
 
               <div v-if="filteredApps.length > 0" class="app-grid four-columns filtered-app-grid">
                 <div
-                  v-for="app in filteredApps"
+                  v-for="(app, index) in filteredApps"
                   :key="app.id"
                   class="grid-app-item"
+                  :style="getFilteredItemStyle(index, filteredApps.length)"
                   @click.stop="launchApp(app.id)"
                 >
                   <AppIcon

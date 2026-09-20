@@ -173,6 +173,10 @@ test('AppLibrary implements letter filter focus mode and spacious grid metrics',
   assert.match(librarySource, /grid-column:\s*4/)
   assert.match(librarySource, /padding-right:\s*8px/)
 
+  // 字母过滤网格应用行右对齐（不足 4 个应用时向右紧凑排布至第 4 列）
+  assert.match(librarySource, /getFilteredItemStyle/)
+  assert.match(librarySource, /gridColumnStart:\s*4\s*-\s*rowLen\s*\+\s*1/)
+
   // 导轨大号气泡仅在拖拽时显示，过滤模式下由 AppLibrary 头部承载字母
   assert.match(scrubberSource, /v-if="isDragging && previewLetter"/)
   assert.doesNotMatch(scrubberSource, /isFilterMode && activeLetter/)
