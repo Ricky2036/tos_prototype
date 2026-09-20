@@ -228,7 +228,7 @@ const menuItems = [
 .menu-icon { width:35px; height:35px; flex:none; border-radius:10px; display:grid; place-items:center; box-shadow:none; overflow:hidden; }
 .icon-image { background:linear-gradient(145deg,#8b6aff,#5a3bea)!important; }.icon-phone { background:linear-gradient(145deg,#4b4b4f,#242426)!important; }.icon-font,.icon-lock { background:linear-gradient(145deg,#178dff,#0060e8)!important; }.icon-palette { background:linear-gradient(145deg,#35dbdf,#08aeb9)!important; }.icon-desktop { background:linear-gradient(145deg,#896fff,#5740e5)!important; }
 .menu-icon svg { width:22px; height:22px; fill:none; stroke:white; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
-.menu-icon .color-grid-glyph { width:28px; height:28px; stroke:none; overflow:visible; }
+.menu-icon .color-grid-glyph { width:35px; height:35px; stroke:none; overflow:visible; }
 .color-grid-glyph .grid-shell { fill:#f7f7f8; stroke:#d9d9dc; stroke-width:.7; }
 .font-glyph { font:400 22px/1 Georgia,serif; }
 .menu-label { flex:1; font:450 15.5px/1.3 var(--font-stack); }
