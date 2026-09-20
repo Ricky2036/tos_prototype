@@ -11,10 +11,17 @@ import blueWallpaper from '../../../../assets/img/personalization/glass-blue.png
 import mintWallpaper from '../../../../assets/img/personalization/glass-mint.png'
 import roseWallpaper from '../../../../assets/img/personalization/glass-rose.png'
 
+import { useDepthSegmentation, getPresetDepthSubject } from '../../../../composables/useDepthSegmentation.js'
+
 const emit = defineEmits(['back'])
 const home = useHomeStore()
 const wallpaperStore = useWallpaperStore()
 const { timeShort } = useClock()
+const { isAnalyzing, segmentImage } = useDepthSegmentation()
+
+const fileInputRef = ref(null)
+const isScanning = ref(false)
+const scanToastText = ref('')
 
 const screen = ref('overview')
 const selectedWallpaper = ref(wallpaperStore.active || currentWallpaper)
@@ -45,8 +52,17 @@ const generatedWallpaperOrder = [
 for (const [id, title] of generatedWallpaperOrder) {
   const path = `../../../../assets/img/personalization/generated/${id}.png`
   const src = generatedWallpaperUrls[path]
-  if (src) wallpapers.push({ id, src, tone: '#4f8cff', title })
+  if (src && !id.endsWith('-subject')) wallpapers.push({ id, src, tone: '#4f8cff', title })
 }
+
+const depthWallpapers = computed(() => {
+  return wallpapers.filter((w) => !!getPresetDepthSubject(w.src))
+})
+
+const hasDepthSubjectForSelected = computed(() => {
+  if (!selectedWallpaper.value) return false
+  return !!getPresetDepthSubject(selectedWallpaper.value) || (selectedWallpaper.value === activeWallpaper.value && !!wallpaperStore.depthSubjectUrl)
+})
 
 onMounted(() => wallpaperStore.hydrate())
 
@@ -76,6 +92,55 @@ function openSection(id) {
 
 function chooseWallpaper(src) {
   selectedWallpaper.value = src
+}
+
+function chooseDepthTheme(item) {
+  selectedWallpaper.value = item.src
+  wallpaperStore.setDepthEnabled(true)
+  wallpaperStore.apply(item.src)
+  screen.value = 'overview'
+}
+
+function triggerGallerySelect() {
+  fileInputRef.value?.click()
+}
+
+async function onCustomFileSelected(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+
+  isScanning.value = true
+  scanToastText.value = '正在智能提取景深主体...'
+
+  try {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+
+    selectedWallpaper.value = dataUrl
+
+    // 触发端侧分割算法
+    const res = await segmentImage(file)
+    if (res.subjectUrl) {
+      wallpaperStore.apply(dataUrl, res.subjectUrl)
+      wallpaperStore.setDepthSubject(res.subjectUrl, res.occlusionRatio)
+      wallpaperStore.setDepthEnabled(true)
+      scanToastText.value = res.isSafe ? '景深主体提取成功' : '主体遮挡较多，已开启景深'
+    } else {
+      wallpaperStore.apply(dataUrl, '')
+      scanToastText.value = '未检测到显著主体，已应用为常规壁纸'
+    }
+  } catch (err) {
+    console.error('Custom file segmentation error:', err)
+    scanToastText.value = '分析失败，已应用常规壁纸'
+  } finally {
+    isScanning.value = false
+    setTimeout(() => { scanToastText.value = '' }, 2600)
+    if (e.target) e.target.value = ''
+  }
 }
 
 function applyWallpaper() {
@@ -206,20 +271,49 @@ const menuItems = [
         </section>
 
         <section class="theme-section depth-section">
-          <div class="section-heading"><h2>景深</h2><span>›</span></div>
+          <div class="section-heading"><h2>景深推荐</h2><span>›</span></div>
           <div class="depth-row">
-            <article class="depth-card depth-sky"><small>Mon, Dec 18</small><b>09:30</b><span class="skater">●</span><i>↓</i></article>
-            <article class="depth-card depth-flower"><small>Mon, Dec 18</small><b>09:30</b><span class="flower">✦</span><i>↓</i></article>
-            <article class="depth-card depth-forest"><small>Mon, Dec 18</small><b>09:30</b><span class="forest">◢</span><i>↓</i></article>
+            <button
+              v-for="item in depthWallpapers"
+              :key="item.id"
+              class="depth-card"
+              @click="chooseDepthTheme(item)"
+            >
+              <img :src="item.src" :alt="item.title" class="depth-card-bg" />
+              <div class="depth-card-overlay">
+                <small>周日, 9月20日</small>
+                <b>09:30</b>
+                <span class="depth-badge">景深</span>
+              </div>
+              <span class="depth-card-label">{{ item.title }}</span>
+            </button>
           </div>
         </section>
       </main>
 
       <main v-else key="wallpapers" class="personalization-scroll wallpapers-page">
-        <button class="gallery-card">
+        <!-- 隐藏的原生相册文件选择器 -->
+        <input
+          ref="fileInputRef"
+          type="file"
+          accept="image/*"
+          style="display: none;"
+          @change="onCustomFileSelected"
+        />
+
+        <button class="gallery-card" @click="triggerGallerySelect">
           <span class="gallery-icon"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="3"/><path d="m5.5 17 4-4 3 2.5 2.7-3 3.3 4.5"/></svg></span>
-          <span>从图库选择</span>
+          <span>从图库选择 (智能抠图景深)</span>
         </button>
+
+        <!-- 扫描分析提示浮层 -->
+        <Transition name="fade">
+          <div v-if="isScanning || scanToastText" class="scanning-toast">
+            <span v-if="isScanning" class="scan-spinner"></span>
+            <span>{{ scanToastText }}</span>
+          </div>
+        </Transition>
+
         <h2 class="wallpaper-heading">静态壁纸</h2>
         <div class="wallpaper-grid">
           <button v-for="wallpaper in wallpapers" :key="wallpaper.id" class="wallpaper-tile" :class="{ selected: selectedWallpaper === wallpaper.src }" @click="chooseWallpaper(wallpaper.src)">
@@ -227,6 +321,31 @@ const menuItems = [
             <span class="selection-check">✓</span>
           </button>
         </div>
+
+        <!-- 景深开关卡片：当选中壁纸具备景深主体时展示 -->
+        <div v-if="hasDepthSubjectForSelected" class="depth-toggle-card">
+          <div class="depth-toggle-left">
+            <div class="depth-toggle-title">
+              <svg class="depth-icon" viewBox="0 0 24 24">
+                <path d="m12 4 8 4-8 4-8-4Z"/>
+                <path d="m5 12 7 3.5 7-3.5M5 16l7 3.5 7-3.5"/>
+              </svg>
+              <span>景深时钟穿插效果</span>
+            </div>
+            <div class="depth-toggle-desc">时钟置于主体后方，呈现 3D 纵深立体质感</div>
+          </div>
+          <button
+            type="button"
+            class="depth-switch"
+            :class="{ active: wallpaperStore.depthEnabled }"
+            role="switch"
+            :aria-checked="wallpaperStore.depthEnabled"
+            @click="wallpaperStore.setDepthEnabled(!wallpaperStore.depthEnabled)"
+          >
+            <span class="depth-switch-knob"></span>
+          </button>
+        </div>
+
         <button class="apply-wallpaper" :disabled="selectedWallpaper === activeWallpaper" @click="applyWallpaper">
           {{ selectedWallpaper === activeWallpaper ? '当前壁纸' : '设为当前' }}
         </button>
@@ -292,11 +411,28 @@ const menuItems = [
 .market-time { position:absolute; top:30px; left:0; right:0; text-align:center; font-size:37px; color:rgba(255,255,255,.66); font-weight:600; letter-spacing:-3px; }
 .download-mark { position:absolute; right:9px; bottom:10px; width:22px; height:22px; font-size:24px; font-weight:700; }
 .depth-section { margin-top:4px; }
-.depth-card { padding:15px 9px; box-sizing:border-box; text-align:center; background:#2965a5; }
-.depth-card small { display:block; font-size:7px; }.depth-card b { display:block; font-size:43px; letter-spacing:-4px; color:rgba(255,255,255,.76); }.depth-card i { position:absolute; right:9px; bottom:8px; font-size:22px; font-style:normal; }
-.depth-sky { background:linear-gradient(#1c4b91,#70b8e7 62%,#232a35); }.depth-sky .skater { display:block; font-size:85px; transform:translateY(20px); color:#f4f4f4; }
-.depth-flower { background:linear-gradient(140deg,#7149b9,#9f65dc 48%,#251840); }.depth-flower .flower { display:block; font-size:105px; color:#bba1ff; transform:translateY(23px); }
-.depth-forest { background:linear-gradient(145deg,#063d24,#2e7c3d 48%,#8caa4d); }.depth-forest .forest { display:block; font-size:95px; color:#173715; transform:translateY(23px); }
+.depth-card { width:130px; height:277px; border:0; border-radius:18px; overflow:hidden; flex:none; position:relative; padding:0; scroll-snap-align:start; background:#111; color:white; cursor:pointer; }
+.depth-card-bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.depth-card-overlay { position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.6) 100%); display:flex; flex-direction:column; align-items:center; padding-top:28px; box-sizing:border-box; }
+.depth-card-overlay small { font-size:10px; color:rgba(255,255,255,0.85); font-weight:500; }
+.depth-card-overlay b { font-size:42px; letter-spacing:-2px; color:rgba(255,255,255,0.95); font-weight:700; margin-top:2px; }
+.depth-badge { margin-top:auto; margin-bottom:28px; background:rgba(255,255,255,0.25); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); padding:2px 10px; border-radius:10px; font-size:11px; font-weight:600; color:white; }
+.depth-card-label { position:absolute; bottom:8px; left:0; right:0; text-align:center; font-size:12px; font-weight:500; color:rgba(255,255,255,0.8); }
+
+.depth-toggle-card { margin-top:20px; padding:14px 16px; border-radius:16px; background:#1c1c1e; border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.depth-toggle-left { display:flex; flex-direction:column; gap:4px; }
+.depth-toggle-title { display:flex; align-items:center; gap:8px; font-size:16px; font-weight:600; color:white; }
+.depth-icon { width:18px; height:18px; stroke:#ff9f0a; stroke-width:2; fill:none; }
+.depth-toggle-desc { font-size:12px; color:#8e8e93; line-height:1.3; }
+.depth-switch { width:48px; height:28px; border-radius:14px; background:#39393d; border:none; position:relative; cursor:pointer; padding:2px; transition:background-color 0.2s ease; flex-shrink:0; }
+.depth-switch.active { background:#34c759; }
+.depth-switch-knob { width:24px; height:24px; border-radius:50%; background:white; display:block; box-shadow:0 2px 4px rgba(0,0,0,0.2); transition:transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.depth-switch.active .depth-switch-knob { transform:translateX(20px); }
+
+.scanning-toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:rgba(30,30,32,0.92); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.18); padding:10px 18px; border-radius:20px; display:flex; align-items:center; gap:10px; font-size:14px; font-weight:500; color:white; z-index:100; box-shadow:0 12px 30px rgba(0,0,0,0.5); }
+.scan-spinner { width:14px; height:14px; border:2px solid rgba(255,255,255,0.3); border-top-color:white; border-radius:50%; animation:scan-spin 0.8s linear infinite; }
+@keyframes scan-spin { to { transform:rotate(360deg); } }
+
 .wallpapers-page { padding:44px 17px 100px; position:relative; }
 .gallery-card { width:100%; height:74px; border:0; border-radius:18px; background:#1b1b1d; color:white; display:flex; align-items:center; gap:18px; padding:0 17px; font-size:19px; font-weight:650; text-align:left; }
 .gallery-icon { width:42px; height:42px; border-radius:12px; background:#ff9f0a; display:grid; place-items:center; }
