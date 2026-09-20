@@ -41,9 +41,25 @@ const recorder = useRecorderStore()
 const clock = useClockStore()
 const prayer = usePrayerStore()
 const control = useControlStore()
+import { getPresetDepthSubject } from '../../composables/useDepthSegmentation.js'
 const wallpaperStore = useWallpaperStore()
 const { activeActivities } = useActiveActivities()
 const activeWallpaper = computed(() => wallpaperStore.active || wallpaper)
+
+const depthSubjectUrl = computed(() => {
+  if (!wallpaperStore.depthEnabled) return ''
+  return wallpaperStore.depthSubjectUrl || getPresetDepthSubject(activeWallpaper.value) || ''
+})
+
+const depthSubjectStyle = computed(() => {
+  const p = progress.value
+  const s = 1 - p * 0.04
+  const ty = -p * 240
+  return {
+    transform: `scale(${1 / s}) translateY(${-ty / s}px)`,
+    transformOrigin: 'center center'
+  }
+})
 
 if (typeof window !== 'undefined') {
   window.__system = system
@@ -1282,6 +1298,16 @@ function notifStyle(i) {
         </svg>
       </div>
 
+      <!-- 景深前景主体：位于时钟之上、通知/播放器容器之下 -->
+      <div
+        v-if="depthSubjectUrl"
+        class="ls-depth-subject"
+        :style="depthSubjectStyle"
+        aria-hidden="true"
+      >
+        <img :src="depthSubjectUrl" class="ls-depth-img" alt="" />
+      </div>
+
       <!-- 裁剪容器：播放器 + 通知队列 -->
       <div
         ref="listRef"
@@ -1747,6 +1773,23 @@ function notifStyle(i) {
               最小态 font-size 151 / ytde 18 → 242.0 × 79.7（对齐参考图最小态 242.7 × 79.7）。
    两个轴都必须显式给：字体默认实例是 wght100 / ytde0，即极细且极扁。
    font-variation-settings 优先于 font-weight；若字体回退到系统字体，该声明被忽略、仍走 font-weight 降级链。 */
+
+/* 景深主体前景层：严密对应壁纸视口，位于时钟之上，赋予细腻的真实接触微投影 */
+.ls-depth-subject {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+.ls-depth-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.35));
+}
 
 /* 裁剪容器：贯通式容器对齐全屏边缘，卡片滑动至屏幕边缘直接被视口平齐裁切 */
 .ls-clip {
