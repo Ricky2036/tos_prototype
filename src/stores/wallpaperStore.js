@@ -34,6 +34,10 @@ function syncWallpaperStyle(url) {
     : ''
 }
 
+// SettingsApp imports this module during app startup, so a previously applied
+// wallpaper is restored before the first lock-screen or desktop paint.
+syncWallpaperStyle(readSavedWallpaper())
+
 export const useWallpaperStore = defineStore('wallpaper', {
   state: () => ({
     active: readSavedWallpaper()
