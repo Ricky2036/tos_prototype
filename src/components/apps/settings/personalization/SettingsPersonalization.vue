@@ -208,8 +208,11 @@ const menuItems = [
 .device-preview::after { content:""; position:absolute; inset:0; background:linear-gradient(rgba(0,0,0,.04),rgba(0,0,0,.1)); pointer-events:none; }
 .preview-viewport { position:absolute; left:0; top:0; transform-origin:top left; pointer-events:none; overflow:hidden; }
 .preview-viewport :deep(.lock-screen),.preview-viewport :deep(.app-grid) { pointer-events:none!important; }
+.preview-lock-viewport :deep(.ls-clip),
+.preview-lock-viewport :deep(.ls-pill-container),
+.preview-lock-viewport :deep(.ls-shortcuts) { display:none!important; }
 .preview-home-viewport :deep(.widget-name),.preview-home-viewport :deep(.icon-label) { text-shadow:none!important; }
-.edit-pill { position:absolute; z-index:30; bottom:14px; left:50%; transform:translateX(-50%); box-sizing:border-box; width:62px; height:28px; padding:0; border:1px solid rgba(255,255,255,.18); border-radius:999px; color:white; background:rgba(122,122,128,.34); backdrop-filter:blur(18px) saturate(155%); -webkit-backdrop-filter:blur(18px) saturate(155%); box-shadow:none; font:500 10px/28px var(--font-stack); text-align:center; }
+.edit-pill { position:absolute; z-index:30; bottom:14px; left:50%; transform:translateX(-50%); box-sizing:border-box; width:62px; height:28px; padding:0; border:1px solid rgba(255,255,255,.22); border-radius:14px; color:rgba(255,255,255,.96); background:linear-gradient(180deg,rgba(255,255,255,.36),rgba(255,255,255,.19)); backdrop-filter:blur(20px) saturate(125%) brightness(1.08); -webkit-backdrop-filter:blur(20px) saturate(125%) brightness(1.08); box-shadow:none; display:flex; align-items:center; justify-content:center; font:500 10px/1 var(--font-stack); text-align:center; }
 .add-theme-button { position:relative; isolation:isolate; margin:44px auto 36px; display:flex; align-items:center; justify-content:center; gap:9px; border:1px solid rgba(255,255,255,.17); background:linear-gradient(180deg,rgba(60,60,66,.72),rgba(19,19,22,.64)); color:white; height:46px; min-width:184px; padding:0 30px; border-radius:24px; font-size:15px; font-weight:650; box-shadow:inset 0 1px rgba(255,255,255,.21),inset 0 -1px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.54); backdrop-filter:blur(22px) saturate(155%); -webkit-backdrop-filter:blur(22px) saturate(155%); overflow:hidden; }
 .add-theme-button::before { content:""; position:absolute; z-index:-1; left:11%; right:11%; top:-11px; height:25px; border-radius:50%; background:radial-gradient(ellipse,rgba(255,255,255,.28),rgba(255,255,255,.05) 48%,transparent 74%); }
 .plus-ring { width:20px; height:20px; border:1.6px solid rgba(255,255,255,.94); border-radius:50%; display:grid; place-items:center; box-sizing:border-box; flex:none; }
@@ -221,6 +224,7 @@ const menuItems = [
 .icon-image { background:linear-gradient(145deg,#8b6aff,#5a3bea)!important; }.icon-phone { background:linear-gradient(145deg,#4b4b4f,#242426)!important; }.icon-font,.icon-lock { background:linear-gradient(145deg,#178dff,#0060e8)!important; }.icon-palette { background:linear-gradient(145deg,#35dbdf,#08aeb9)!important; }.icon-desktop { background:linear-gradient(145deg,#896fff,#5740e5)!important; }
 .menu-icon svg { width:22px; height:22px; fill:none; stroke:white; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .menu-icon img { width:100%; height:100%; object-fit:contain; border-radius:10px; }
+.icon-grid img { width:42px; height:42px; max-width:none; max-height:none; }
 .font-glyph { font:400 22px/1 Georgia,serif; }
 .menu-label { flex:1; font:450 15.5px/1.3 var(--font-stack); }
 .chevron { width:21px; height:21px; fill:none; stroke:#77777b; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
