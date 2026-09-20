@@ -2,8 +2,8 @@
 import { computed, ref } from 'vue'
 import { useHomeStore } from '../../../../stores/homeStore'
 import { useClock } from '../../../../composables/useClock'
-import { APPS } from '../../../../config/apps'
-import AppIcon from '../../../ui/AppIcon.vue'
+import AppGrid from '../../../system/AppGrid.vue'
+import LockScreen from '../../../system/LockScreen.vue'
 import currentWallpaper from '../../../../assets/img/wallpaper-lock.jpg'
 import bronzeWallpaper from '../../../../assets/img/personalization/glass-bronze.png'
 import blueWallpaper from '../../../../assets/img/personalization/glass-blue.png'
@@ -13,30 +13,11 @@ import colorIconsArtwork from '../../../../assets/img/personalization/color-icon
 
 const emit = defineEmits(['back'])
 const home = useHomeStore()
-const { timeShort, dateLong } = useClock()
+const { timeShort } = useClock()
 
 const screen = ref('overview')
 const selectedWallpaper = ref(currentWallpaper)
 const activeWallpaper = ref(currentWallpaper)
-const appById = Object.fromEntries(APPS.map((app) => [app.id, app]))
-
-const previewItems = computed(() => {
-  const pageIndex = home.currentPage || 0
-  const ids = home.pages?.[pageIndex] || []
-  const frames = home.positions?.[pageIndex] || {}
-  return ids.map((id) => ({ id, item: home.items[id], frame: frames[id] })).filter((entry) => entry.item && entry.frame)
-})
-
-function previewFrameStyle(frame) {
-  const workspace = home.profile?.workspaceRect || { left: 0, top: 0, width: 304, height: 591 }
-  const left = ((frame.x - workspace.left) / workspace.width) * 100
-  const top = ((frame.y - workspace.top) / workspace.height) * 100
-  return {
-    left: `${left}%`, top: `${top}%`,
-    width: `${(frame.width / workspace.width) * 100}%`,
-    height: `${(frame.height / workspace.height) * 100}%`
-  }
-}
 
 const wallpapers = [
   { id: 'bronze', src: bronzeWallpaper, tone: '#d9974e', title: '鎏金玻璃' },
@@ -49,6 +30,11 @@ const pageTitle = computed(() => {
   if (screen.value === 'themes') return '添加新主题'
   if (screen.value === 'wallpapers') return '壁纸'
   return '主题与个性化'
+})
+const previewViewportStyle = computed(() => {
+  const width = home.profile?.width || 360
+  const height = home.profile?.height || 788
+  return { width: `${width}px`, height: `${height}px`, transform: `scale(${142 / width})` }
 })
 
 function goBack() {
@@ -81,7 +67,7 @@ defineExpose({ back: () => {
 const menuItems = [
   { id: 'wallpaper', label: '壁纸', icon: 'image', color: '#7658ff' },
   { id: 'aod', label: '息屏显示', icon: 'phone', color: '#48484a' },
-  { id: 'icons', label: '图标', icon: 'grid', color: '#ffffff' },
+  { id: 'icons', label: '图标', icon: 'grid', color: 'transparent' },
   { id: 'font', label: '字体', icon: 'font', color: '#087cff' },
   { id: 'color', label: '系统颜色', icon: 'palette', color: '#20cbd0' },
   { id: 'lock', label: '锁屏设置', icon: 'lock', color: '#087cff' },
@@ -104,21 +90,23 @@ const menuItems = [
 
         <div class="current-theme-stage">
           <div class="theme-pair">
-            <article class="device-preview lock-preview" :style="{ backgroundImage: `url(${activeWallpaper})` }">
-              <div class="preview-date">{{ dateLong }}</div>
-              <div class="preview-clock">{{ timeShort }}</div>
+            <article class="device-preview lock-preview">
+              <div class="preview-viewport preview-lock-viewport" :style="previewViewportStyle">
+                <LockScreen />
+              </div>
               <button class="edit-pill">编辑</button>
             </article>
             <article class="device-preview home-preview" :style="{ backgroundImage: `url(${activeWallpaper})` }">
-              <div class="live-home-layout">
-                <div v-for="entry in previewItems" :key="entry.id" class="live-home-item" :class="`mini-${entry.item.type}`" :style="previewFrameStyle(entry.frame)">
-                  <AppIcon v-if="entry.item.type === 'app' && appById[entry.item.appId]" :app="appById[entry.item.appId]" :size="18" :show-label="false" :show-badge="false" :launch-on-click="false" />
-                  <span v-else-if="entry.item.type === 'widget'" class="preview-widget">
-                    <b>{{ entry.item.widgetId === 'clock' ? timeShort : '31°' }}</b>
-                    <small>{{ entry.item.widgetId === 'clock' ? '时钟' : '深圳' }}</small>
-                  </span>
-                  <span v-else class="preview-folder"><i v-for="n in 9" :key="n"></i></span>
-                </div>
+              <div class="preview-viewport preview-home-viewport" :style="previewViewportStyle">
+                <AppGrid
+                  :page-index="home.currentPage"
+                  :item-ids="home.pages[home.currentPage] || []"
+                  :items="home.items"
+                  :positions="home.positions[home.currentPage] || {}"
+                  :folders="home.folders"
+                  :profile="home.profile"
+                  :register-home-anchors="false"
+                />
               </div>
               <button class="edit-pill">编辑</button>
             </article>
@@ -218,16 +206,10 @@ const menuItems = [
 .theme-pair { display:flex; justify-content:center; gap:10px; padding:0 20px; }
 .device-preview { width:142px; height:284px; border-radius:22px; position:relative; overflow:hidden; flex:none; background-position:center; background-size:cover; box-shadow:0 16px 30px rgba(0,0,0,.62),inset 0 0 0 .5px rgba(255,255,255,.2); }
 .device-preview::after { content:""; position:absolute; inset:0; background:linear-gradient(rgba(0,0,0,.04),rgba(0,0,0,.1)); pointer-events:none; }
-.preview-date { position:absolute; top:26px; left:0; right:0; text-align:center; z-index:1; font-size:7.5px; font-weight:600; }
-.preview-clock { position:absolute; top:39px; left:0; right:0; text-align:center; z-index:1; font-size:33px; line-height:1; font-weight:650; letter-spacing:-2px; }
-.edit-pill { position:absolute; z-index:3; bottom:14px; left:50%; transform:translateX(-50%); border:1px solid rgba(255,255,255,.15); border-radius:18px; min-width:59px; height:29px; color:white; background:linear-gradient(180deg,rgba(255,255,255,.25),rgba(118,118,124,.37)); box-shadow:inset 0 1px rgba(255,255,255,.18),0 5px 14px rgba(0,0,0,.2); backdrop-filter:blur(16px) saturate(145%); -webkit-backdrop-filter:blur(16px) saturate(145%); font-size:10px; }
-.live-home-layout { position:absolute; left:10px; right:10px; top:27px; bottom:48px; z-index:2; }
-.live-home-item { position:absolute; display:flex; align-items:flex-start; justify-content:center; overflow:hidden; }
-.live-home-item :deep(.app-icon) { transform:scale(.98); transform-origin:top center; pointer-events:none; }
-.preview-widget { width:100%; height:100%; min-height:18px; border-radius:5px; color:white; background:linear-gradient(145deg,rgba(255,255,255,.32),rgba(25,89,230,.68)); border:.5px solid rgba(255,255,255,.24); display:flex; flex-direction:column; align-items:flex-start; justify-content:center; box-sizing:border-box; padding:3px; text-align:left; box-shadow:0 2px 5px rgba(0,0,0,.16); }
-.preview-widget b { font-size:9px; line-height:1; }.preview-widget small { font-size:4px; margin-top:2px; opacity:.85; }
-.preview-folder { width:18px; height:18px; padding:2px; border-radius:5px; display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:rgba(255,255,255,.28); box-sizing:border-box; }
-.preview-folder i { border-radius:1px; background:rgba(255,255,255,.8); }
+.preview-viewport { position:absolute; left:0; top:0; transform-origin:top left; pointer-events:none; overflow:hidden; }
+.preview-viewport :deep(.lock-screen),.preview-viewport :deep(.app-grid) { pointer-events:none!important; }
+.preview-home-viewport :deep(.widget-name),.preview-home-viewport :deep(.icon-label) { text-shadow:none!important; }
+.edit-pill { position:absolute; z-index:30; bottom:14px; left:50%; transform:translateX(-50%); box-sizing:border-box; width:62px; height:28px; padding:0; border:1px solid rgba(255,255,255,.18); border-radius:999px; color:white; background:rgba(122,122,128,.34); backdrop-filter:blur(18px) saturate(155%); -webkit-backdrop-filter:blur(18px) saturate(155%); box-shadow:none; font:500 10px/28px var(--font-stack); text-align:center; }
 .add-theme-button { position:relative; isolation:isolate; margin:44px auto 36px; display:flex; align-items:center; justify-content:center; gap:9px; border:1px solid rgba(255,255,255,.17); background:linear-gradient(180deg,rgba(60,60,66,.72),rgba(19,19,22,.64)); color:white; height:46px; min-width:184px; padding:0 30px; border-radius:24px; font-size:15px; font-weight:650; box-shadow:inset 0 1px rgba(255,255,255,.21),inset 0 -1px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.54); backdrop-filter:blur(22px) saturate(155%); -webkit-backdrop-filter:blur(22px) saturate(155%); overflow:hidden; }
 .add-theme-button::before { content:""; position:absolute; z-index:-1; left:11%; right:11%; top:-11px; height:25px; border-radius:50%; background:radial-gradient(ellipse,rgba(255,255,255,.28),rgba(255,255,255,.05) 48%,transparent 74%); }
 .plus-ring { width:20px; height:20px; border:1.6px solid rgba(255,255,255,.94); border-radius:50%; display:grid; place-items:center; box-sizing:border-box; flex:none; }
@@ -235,12 +217,12 @@ const menuItems = [
 .personalization-menu { margin:0 16px; border-radius:20px; background:#1b1b1d; padding:0 12px; overflow:hidden; }
 .menu-row { width:100%; min-height:62px; display:flex; align-items:center; gap:14px; color:white; border:0; border-bottom:1px solid rgba(255,255,255,.1); background:transparent; padding:0 2px; text-align:left; }
 .menu-row:last-child { border-bottom:0; }
-.menu-icon { width:35px; height:35px; flex:none; border-radius:10px; display:grid; place-items:center; box-shadow:inset 0 1px 1px rgba(255,255,255,.38),inset 0 -1px 1px rgba(0,0,0,.2),0 2px 5px rgba(0,0,0,.22); overflow:hidden; }
+.menu-icon { width:35px; height:35px; flex:none; border-radius:10px; display:grid; place-items:center; box-shadow:none; overflow:hidden; }
 .icon-image { background:linear-gradient(145deg,#8b6aff,#5a3bea)!important; }.icon-phone { background:linear-gradient(145deg,#4b4b4f,#242426)!important; }.icon-font,.icon-lock { background:linear-gradient(145deg,#178dff,#0060e8)!important; }.icon-palette { background:linear-gradient(145deg,#35dbdf,#08aeb9)!important; }.icon-desktop { background:linear-gradient(145deg,#896fff,#5740e5)!important; }
 .menu-icon svg { width:22px; height:22px; fill:none; stroke:white; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .menu-icon img { width:100%; height:100%; object-fit:contain; border-radius:10px; }
 .font-glyph { font:400 22px/1 Georgia,serif; }
-.menu-label { flex:1; font-size:17px; font-weight:600; }
+.menu-label { flex:1; font:450 15.5px/1.3 var(--font-stack); }
 .chevron { width:21px; height:21px; fill:none; stroke:#77777b; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .theme-actions { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; padding:46px 15px 34px; }
 .theme-actions button { border:0; background:none; color:white; display:flex; flex-direction:column; align-items:center; gap:10px; font-size:12px; white-space:nowrap; }
