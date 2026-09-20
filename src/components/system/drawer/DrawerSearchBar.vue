@@ -45,6 +45,14 @@ function handleClear() {
   }
 }
 
+function handleCancelClick() {
+  if (searchQuery.value) {
+    handleClear()
+  } else {
+    handleCancel()
+  }
+}
+
 function handleSelectApp(appId) {
   emit('select-app', appId)
   handleCancel()
@@ -136,19 +144,6 @@ defineExpose({
           @focus="handleFocus"
         />
 
-        <!-- 清空按钮 -->
-        <button
-          v-if="searchQuery"
-          type="button"
-          class="clear-btn"
-          @click.stop="handleClear"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-
         <!-- 胶囊内嵌右侧「⋮」更多菜单按钮（常规态） -->
         <button
           v-if="!isFocused"
@@ -164,14 +159,18 @@ defineExpose({
           </svg>
         </button>
 
-        <!-- 取消按钮 (搜索态) -->
+        <!-- 取消/关闭按钮 (搜索态：小叉叉图标) -->
         <button
           v-else
           type="button"
           class="capsule-cancel-btn"
-          @click.stop="handleCancel"
+          title="取消搜索"
+          @click.stop="handleCancelClick"
         >
-          取消
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
         </button>
       </div>
     </div>
@@ -253,21 +252,6 @@ defineExpose({
   color: rgba(255, 255, 255, 0.65);
 }
 
-.clear-btn {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
 /* 胶囊内嵌右侧 ⋮ 按钮 */
 .capsule-more-btn {
   background: transparent;
@@ -288,16 +272,24 @@ defineExpose({
   transform: scale(0.92);
 }
 
+/* 胶囊内嵌右侧 ✕ 小叉叉取消/关闭按钮 */
 .capsule-cancel-btn {
   background: transparent;
   border: none;
-  color: #22d3ee;
-  font-size: 15px;
-  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  white-space: nowrap;
-  padding: 0 4px;
   flex-shrink: 0;
+  border-radius: 50%;
+  transition: color 0.15s ease, transform 0.12s ease;
+}
+
+.capsule-cancel-btn:active {
+  color: #ffffff;
+  transform: scale(0.92);
 }
 
 /* 搜索结果全屏浮层：仅在有搜索内容时展示结果，无遮罩与模糊，搜索框完全悬浮于当前界面 */
