@@ -117,6 +117,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Codex | Install mobile motion builder tooling and folder baseline | `codex/lane` | None (locks released) | `8b3253f` | `95ff2c8` |
 | Merged | Antigravity | Flagship Transsion App Drawer (All apps A-Z scrubber, 14-Category Big Cards, interactive search, vertical gesture, XHide placeholder, and continuous one-shot Hero folder expansion) | `antigravity/lane` | None (locks released) | `8b3253f` | `b3dba4a` |
 | Merged | Workbuddy | LockScreen clock: swap numeral font to variable Transsion Tecno pnum (wght/ytde axes), re-tune default height, weight, date/time anchors and font-size against reference screenshot, rework the scroll-squeeze (font-size + ytde interpolation with a pinned ink top) so the numerals never squash or collide with the date, and add a frosted-glass material (blurred-wallpaper clipPath layer + translucent white frost veil) matched to the reference via a controlled sigma sweep (fast-forward merged into main as `7844b71`) | `workbuddy/lane` | None (locks released) | `06d6007` | `f82bec3` |
+| Merged | Antigravity | Fix category folder collapse icon cluster final-frame position alignment (center-to-center delta translation) to eliminate 13px hitch | `antigravity/lane` | None (locks released) | `2ce3f56` | `33271fa` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
