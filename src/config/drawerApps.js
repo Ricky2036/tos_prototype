@@ -5,16 +5,16 @@
 
 export const DRAWER_APPS = [
   // ── 常用置顶应用 ──
-  { id: 'contacts', name: '通讯录', initial: 'T', pinyin: 'tongxunlu', icon: '/icons/drawer/contacts.png', core: false, pinned: true },
   { id: 'wechat', name: '微信', initial: 'W', pinyin: 'weixin', icon: '/icons/drawer/wechat.png', core: false, pinned: true },
-  { id: 'pupu', name: '朴朴超市', initial: 'P', pinyin: 'pupuchaoshi', icon: '/icons/drawer/pupu.png', core: false, pinned: true },
-  { id: 'taobao', name: '淘宝', initial: 'T', pinyin: 'taobao', icon: '/icons/drawer/taobao.png', badge: '2', core: false, pinned: true },
+  { id: 'transsioner', name: 'Transsioner', initial: 'T', pinyin: 'transsioner', icon: '/icons/drawer/transsioner.png', core: false, pinned: true },
+  { id: 'contacts', name: '通讯录', initial: 'T', pinyin: 'tongxunlu', icon: '/icons/drawer/contacts.png', core: false, pinned: true },
+  { id: 'weibo', name: '微博', initial: 'W', pinyin: 'weibo', icon: '/icons/drawer/weibo.png', core: false, pinned: true },
 
   // ── A ──
   { id: 'ahagames', name: 'AHA Games', initial: 'A', pinyin: 'ahagames', icon: '/icons/drawer/ahagames.png', core: false },
   { id: 'ahaprime', name: 'AHA Prime', initial: 'A', pinyin: 'ahaprime', icon: '/icons/drawer/ahaprime.png', core: false },
   { id: 'antigravity', name: 'Antigravity', initial: 'A', pinyin: 'antigravity', icon: '/icons/drawer/antigravity.png', core: false },
-  { id: 'appcenter', name: 'App Center', initial: 'A', pinyin: 'appcenter', icon: '/icons/drawer/appcenter.png', badge: '1', core: false },
+  { id: 'appcenter', name: 'App Center', initial: 'A', pinyin: 'appcenter', icon: '/icons/drawer/appcenter.png', core: false },
   { id: 'security', name: '安全', initial: 'A', pinyin: 'anquan', icon: '/icons/drawer/security.png', core: false },
 
   // ── B ──
@@ -75,7 +75,7 @@ export const DRAWER_APPS = [
   // ── J ──
   { id: 'toutiao', name: '今日头条', initial: 'J', pinyin: 'jinritoutiao', icon: '/icons/drawer/toutiao.png', core: false },
   { id: 'jianying', name: '剪映', initial: 'J', pinyin: 'jianying', icon: '/icons/drawer/jianying.png', core: false },
-  { id: 'calculator', name: '计算器', initial: 'J', pinyin: 'jisuanqi', icon: '/icons/calculator.png', core: false },
+  { id: 'calculator', name: '计算器', initial: 'J', pinyin: 'jisuanqi', icon: '/icons/drawer/calculator.png', core: false },
 
   // ── M ──
   { id: 'mihome', name: '米家', initial: 'M', pinyin: 'mijia', icon: '/icons/drawer/mihome.png', core: false },
@@ -86,6 +86,7 @@ export const DRAWER_APPS = [
   { id: 'oppo_health', name: 'OPPO 健康', initial: 'O', pinyin: 'oppojiankang', icon: '/icons/drawer/oppo_health.png', core: false },
 
   // ── P ──
+  { id: 'pupu', name: '朴朴超市', initial: 'P', pinyin: 'pupuchaoshi', icon: '/icons/drawer/pupu.png', core: false },
   { id: 'phonemaster', name: 'Phone Master', initial: 'P', pinyin: 'phonemaster', icon: '/icons/drawer/phonemaster.png', core: false },
   { id: 'playstore', name: 'Play 商店', initial: 'P', pinyin: 'playstore', icon: '/icons/drawer/playstore.png', core: false },
   { id: 'pinduoduo', name: '拼多多', initial: 'P', pinyin: 'pinduoduo', icon: '/icons/drawer/pinduoduo.png', core: false },
@@ -102,16 +103,17 @@ export const DRAWER_APPS = [
 
   // ── S ──
   { id: 'notestips', name: '便签技巧', initial: 'S', pinyin: 'bianqianjiqiao', icon: '/icons/drawer/notestips.png', core: false },
-  { id: 'notes', name: '便签', initial: 'S', pinyin: 'bianqian', icon: '/icons/notes.png', core: false },
+  { id: 'notes', name: '便签', initial: 'S', pinyin: 'bianqian', icon: '/icons/drawer/notes.png', core: false },
   { id: 'transcribe', name: '实时转写', initial: 'S', pinyin: 'shishizhuanxie', icon: '/icons/drawer/transcribe.png', core: false },
   { id: 'sogou', name: '搜狗输入法', initial: 'S', pinyin: 'sougoushurufa', icon: '/icons/drawer/sogou.png', core: false },
   { id: 'clock', name: '时钟', initial: 'S', pinyin: 'shizhong', icon: '/icons/drawer/clock_alt.png', core: true },
   { id: 'settings', name: '设置', initial: 'S', pinyin: 'shezhi', icon: '/icons/drawer/settings_alt.png', core: true },
 
   // ── T ──
+  { id: 'taobao', name: '淘宝', initial: 'T', pinyin: 'taobao', icon: '/icons/drawer/taobao.png', core: false },
   { id: 'telegram', name: 'Telegram', initial: 'T', pinyin: 'telegram', icon: '/icons/drawer/telegram.png', core: false },
   { id: 'tidymaster', name: 'Tidy Master Pro', initial: 'T', pinyin: 'tidymaster', icon: '/icons/drawer/tidymaster.png', core: false },
-  { id: 'transsioner', name: 'Transsioner', initial: 'T', pinyin: 'transsioner', icon: '/icons/drawer/transsioner.png', badge: '99+', core: false },
+  { id: 'transsioner', name: 'Transsioner', initial: 'T', pinyin: 'transsioner', icon: '/icons/drawer/transsioner.png', core: false },
   { id: 'weather', name: '天气', initial: 'T', pinyin: 'tianqi', icon: '/icons/drawer/weather_alt.png', core: false },
   { id: 'theme', name: '主题', initial: 'T', pinyin: 'zhuti', icon: '/icons/drawer/theme.png', core: false },
   { id: 'doodle', name: '涂鸦', initial: 'T', pinyin: 'tuya', icon: '/icons/drawer/doodle.png', core: false },

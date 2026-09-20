@@ -8,7 +8,7 @@ export const DRAWER_CATEGORIES = [
     id: 'frequent',
     name: '常用应用',
     type: '4-large',
-    apps: ['contacts', 'wechat', 'pupu', 'taobao']
+    apps: ['wechat', 'transsioner', 'contacts', 'weibo']
   },
   {
     id: 'recent_added',

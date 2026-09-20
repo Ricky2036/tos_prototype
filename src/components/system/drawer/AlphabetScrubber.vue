@@ -1,11 +1,15 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { ALPHABET_LIST } from '../../../config/drawerApps'
 
 const props = defineProps({
   activeLetter: {
     type: String,
     default: 'A'
+  },
+  showIndicator: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -90,14 +94,14 @@ function onPointerUp(e) {
       {{ letter }}
     </div>
 
-    <!-- 拖拽时右侧悬浮的大号字母预览气泡 (参考 111.mp4 浮动指示) -->
-    <Transition name="fade-bubble">
+    <!-- 拖拽/滚动时悬浮的纯净大号字母指示（参考 media_1789870900111.jpg 像素级还原，无圆形硬底） -->
+    <Transition name="fade-char">
       <div
         v-if="isDragging && previewLetter"
-        class="scrubber-bubble"
+        class="scrubber-floating-char"
         :style="{ top: previewY + 'px' }"
       >
-        <span class="bubble-char">{{ previewLetter }}</span>
+        {{ previewLetter }}
       </div>
     </Transition>
   </div>
@@ -106,10 +110,10 @@ function onPointerUp(e) {
 <style scoped>
 .alphabet-scrubber {
   position: absolute;
-  right: 2px;
-  top: calc(var(--safe-top) + 54px);
-  bottom: calc(var(--safe-bottom) + 64px);
-  width: 22px;
+  right: 4px;
+  top: calc(var(--safe-top, 24px) + 64px);
+  bottom: calc(var(--safe-bottom, 16px) + 80px);
+  width: 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -124,59 +128,47 @@ function onPointerUp(e) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font: 600 9px/1 var(--font-stack);
-  color: rgba(255, 255, 255, 0.55);
+  font: 600 9.5px/1 var(--font-stack, -apple-system, BlinkMacSystemFont, sans-serif);
+  color: rgba(255, 255, 255, 0.5);
   transition: color 0.12s ease, transform 0.12s ease;
   width: 16px;
-  height: 14px;
+  height: 13px;
+  cursor: pointer;
 }
 
 .scrubber-item.is-active {
-  color: #22D3EE; /* 传音风格清爽青蓝色高亮 */
+  color: #22D3EE;
   font-weight: 700;
-  transform: scale(1.15);
+  transform: scale(1.2);
 }
 
 .scrubber-item.is-scrubbed {
   color: #00F0FF;
   font-weight: 800;
-  transform: scale(1.3);
+  transform: scale(1.35);
 }
 
-/* 浮动大号字母气泡 */
-.scrubber-bubble {
+/* 浮动大号字母指示：纯净无框文字，与真机截图像素级一致 */
+.scrubber-floating-char {
   position: absolute;
-  right: 32px;
+  right: 28px;
   transform: translateY(-50%);
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 26px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
   pointer-events: none;
   z-index: 120;
 }
 
-.bubble-char {
-  color: #fff;
-  font: 700 28px/1 var(--font-stack);
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+.fade-char-enter-active,
+.fade-char-leave-active {
+  transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
-.fade-bubble-enter-active,
-.fade-bubble-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
-.fade-bubble-enter-from,
-.fade-bubble-leave-to {
+.fade-char-enter-from,
+.fade-char-leave-to {
   opacity: 0;
-  transform: translateY(-50%) scale(0.7);
+  transform: translateY(-50%) scale(0.75);
 }
 </style>

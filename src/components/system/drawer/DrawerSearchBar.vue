@@ -9,7 +9,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['select-app', 'search-active'])
+const emit = defineEmits(['select-app', 'search-active', 'open-options'])
 
 const isFocused = ref(false)
 const searchQuery = ref('')
@@ -52,6 +52,11 @@ function activateSearch() {
   })
 }
 
+function handleMoreOptions(e) {
+  e.stopPropagation()
+  emit('open-options')
+}
+
 defineExpose({
   activateSearch,
   handleCancel
@@ -60,7 +65,10 @@ defineExpose({
 
 <template>
   <div class="drawer-search-wrapper" :class="{ 'is-hidden': hidden, 'is-active': isFocused }">
-    <!-- 搜索结果全屏/半屏浮层 (当聚焦且有内容/激活态时展示) -->
+    <!-- 底部渐变防穿帮遮罩层（严格真机氛围） -->
+    <div class="bottom-gradient-scrim"></div>
+
+    <!-- 搜索结果浮层（聚焦输入时激活展示） -->
     <transition name="fade">
       <div v-if="isFocused" class="search-overlay" @click.self="handleCancel">
         <div class="search-results-box scrollable">
@@ -93,14 +101,16 @@ defineExpose({
       </div>
     </transition>
 
-    <!-- 底部常驻悬浮胶囊 -->
-    <div class="bottom-bar-container">
+    <!-- 底部常驻一体化暗黑毛玻璃搜索胶囊 -->
+    <div class="bottom-capsule-container">
       <div class="search-capsule" @click="activateSearch">
-        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- 搜索放大镜图标 -->
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
 
+        <!-- 输入框 -->
         <input
           ref="inputRef"
           v-model="searchQuery"
@@ -110,6 +120,7 @@ defineExpose({
           @focus="handleFocus"
         />
 
+        <!-- 清空按钮 -->
         <button
           v-if="searchQuery"
           type="button"
@@ -121,31 +132,35 @@ defineExpose({
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
         </button>
+
+        <!-- 胶囊内嵌右侧「⋮」更多菜单按钮（常规态） -->
+        <button
+          v-if="!isFocused"
+          type="button"
+          class="capsule-more-btn"
+          title="更多选项"
+          @click.stop="handleMoreOptions"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="5" r="1.8"></circle>
+            <circle cx="12" cy="12" r="1.8"></circle>
+            <circle cx="12" cy="19" r="1.8"></circle>
+          </svg>
+        </button>
+
+        <!-- 取消按钮 (搜索态) -->
+        <button
+          v-else
+          type="button"
+          class="capsule-cancel-btn"
+          @click.stop="handleCancel"
+        >
+          取消
+        </button>
       </div>
 
-      <!-- 取消按钮 (搜索态) 或 更多操作按钮 ⋮ (常规态) -->
-      <button
-        v-if="isFocused"
-        type="button"
-        class="cancel-btn"
-        @click.stop="handleCancel"
-      >
-        取消
-      </button>
-
-      <button
-        v-else
-        type="button"
-        class="more-btn"
-        title="更多选项"
-        @click.stop
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-          <circle cx="12" cy="5" r="1.8"></circle>
-          <circle cx="12" cy="12" r="1.8"></circle>
-          <circle cx="12" cy="19" r="1.8"></circle>
-        </svg>
-      </button>
+      <!-- 底部 Home Indicator 条 -->
+      <div class="home-indicator"></div>
     </div>
   </div>
 </template>
@@ -163,38 +178,59 @@ defineExpose({
 
 .drawer-search-wrapper.is-hidden {
   opacity: 0;
-  transform: translateY(12px);
+  transform: translateY(14px);
   pointer-events: none;
 }
 
-.bottom-bar-container {
+/* 底部渐变暗黑遮罩 */
+.bottom-gradient-scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 140px;
+  background: linear-gradient(to top, rgba(14, 17, 23, 0.98) 0%, rgba(14, 17, 23, 0.82) 55%, rgba(14, 17, 23, 0) 100%);
+  pointer-events: none;
+}
+
+.bottom-capsule-container {
+  position: relative;
+  width: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
   padding: 0 16px;
-  margin-bottom: calc(var(--safe-bottom, 16px) + 12px);
+  box-sizing: border-box;
+  margin-bottom: calc(var(--safe-bottom, 16px) + 8px);
   pointer-events: auto;
 }
 
+/* 一体化暗黑毛玻璃胶囊 */
 .search-capsule {
-  flex: 1;
-  height: 44px;
-  background: rgba(255, 255, 255, 0.88);
+  width: 100%;
+  height: 48px;
+  background: rgba(42, 46, 56, 0.78);
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border: 0.5px solid rgba(255, 255, 255, 0.7);
-  border-radius: 22px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 24px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
-  padding: 0 14px;
-  cursor: text;
+  padding: 0 16px;
   box-sizing: border-box;
+  cursor: text;
+  gap: 10px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.drawer-search-wrapper.is-active .search-capsule {
+  background: rgba(48, 52, 64, 0.92);
+  border-color: rgba(255, 255, 255, 0.24);
 }
 
 .search-icon {
-  color: #8e8e93;
-  margin-right: 8px;
+  color: rgba(255, 255, 255, 0.75);
   flex-shrink: 0;
 }
 
@@ -202,18 +238,19 @@ defineExpose({
   flex: 1;
   border: none;
   background: transparent;
-  font-size: 14.5px;
-  color: #1c1c1e;
+  font-size: 15px;
+  color: #ffffff;
   outline: none;
   padding: 0;
+  font-family: inherit;
 }
 
 .search-input::placeholder {
-  color: #8e8e93;
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .clear-btn {
-  background: rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.2);
   border: none;
   border-radius: 50%;
   width: 18px;
@@ -222,54 +259,61 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #636366;
+  color: #ffffff;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
-.more-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border: 0.5px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+/* 胶囊内嵌右侧 ⋮ 按钮 */
+.capsule-more-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.75);
+  padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #1c1c1e;
   cursor: pointer;
-  padding: 0;
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition: color 0.15s ease, transform 0.12s ease;
 }
 
-.more-btn:active {
+.capsule-more-btn:active {
+  color: #ffffff;
   transform: scale(0.92);
 }
 
-.cancel-btn {
+.capsule-cancel-btn {
   background: transparent;
   border: none;
-  color: #007aff;
+  color: #22d3ee;
   font-size: 15px;
   font-weight: 500;
-  padding: 0 6px;
   cursor: pointer;
   white-space: nowrap;
+  padding: 0 4px;
+  flex-shrink: 0;
 }
 
-.cancel-btn:active {
-  opacity: 0.6;
+/* 底部 Home Indicator 条 */
+.home-indicator {
+  width: 134px;
+  height: 4.5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.45);
+  margin-top: 12px;
+  pointer-events: none;
 }
 
-/* 搜索浮层结果视图 */
+/* 搜索结果全屏浮层 */
 .search-overlay {
   position: fixed;
   inset: 0;
-  bottom: 80px;
-  background: rgba(248, 249, 250, 0.88);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  bottom: 84px;
+  background: rgba(14, 18, 26, 0.88);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
   z-index: 90;
   pointer-events: auto;
   padding-top: calc(var(--safe-top, 24px) + 50px);
@@ -280,14 +324,14 @@ defineExpose({
 .search-results-box {
   height: 100%;
   overflow-y: auto;
-  padding: 10px 16px;
+  padding: 10px 20px;
   box-sizing: border-box;
 }
 
 .results-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 18px 12px;
+  gap: 20px 12px;
   justify-items: center;
 }
 
@@ -297,7 +341,7 @@ defineExpose({
   align-items: center;
   cursor: pointer;
   user-select: none;
-  width: 64px;
+  width: 72px;
 }
 
 .result-item:active {
@@ -305,26 +349,26 @@ defineExpose({
 }
 
 .result-icon-wrap {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.07);
-  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .result-icon-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .result-name {
   font-size: 12px;
-  color: #1c1c1e;
+  color: rgba(255, 255, 255, 0.9);
   margin-top: 6px;
   text-align: center;
-  max-width: 64px;
+  max-width: 72px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -336,7 +380,7 @@ defineExpose({
   align-items: center;
   justify-content: center;
   height: 240px;
-  color: #8e8e93;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 14px;
 }
 
@@ -345,7 +389,6 @@ defineExpose({
   opacity: 0.5;
 }
 
-/* 动效 */
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
 }

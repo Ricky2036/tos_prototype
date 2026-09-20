@@ -16,13 +16,14 @@ function select(tab) {
 <template>
   <div class="capsule-wrap">
     <div class="capsule-container">
-      <!-- 实体滑动药丸滑块 -->
+      <!-- 实体滑动药丸滑块（浅灰白真机质感） -->
       <div
         class="capsule-slider"
         :class="{ 'is-right': modelValue === 'category' }"
       ></div>
 
       <button
+        type="button"
         class="capsule-btn"
         :class="{ 'is-active': modelValue === 'all' }"
         @click="select('all')"
@@ -30,6 +31,7 @@ function select(tab) {
         全部
       </button>
       <button
+        type="button"
         class="capsule-btn"
         :class="{ 'is-active': modelValue === 'category' }"
         @click="select('category')"
@@ -52,27 +54,27 @@ function select(tab) {
   position: relative;
   display: flex;
   align-items: center;
-  width: 200px;
-  height: 38px;
-  background: rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  width: 216px;
+  height: 42px;
+  background: rgba(55, 59, 70, 0.5);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
   border-radius: 999px;
-  padding: 3px;
+  padding: 3.5px;
   box-sizing: border-box;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
 }
 
 .capsule-slider {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: calc(50% - 3px);
-  height: calc(100% - 6px);
-  background: rgba(255, 255, 255, 0.92);
+  top: 3.5px;
+  left: 3.5px;
+  width: calc(50% - 3.5px);
+  height: calc(100% - 7px);
+  background: #D8D8DC;
   border-radius: 999px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
   transition: transform 0.28s cubic-bezier(0.25, 1, 0.5, 1);
   pointer-events: none;
   z-index: 1;
@@ -88,8 +90,8 @@ function select(tab) {
   height: 100%;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.72);
-  font: 500 15px/1 var(--font-stack);
+  color: rgba(255, 255, 255, 0.85);
+  font: 500 15px/1 var(--font-stack, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
   cursor: pointer;
   z-index: 2;
   transition: color 0.2s ease;
@@ -102,7 +104,7 @@ function select(tab) {
 }
 
 .capsule-btn.is-active {
-  color: #111;
-  font-weight: 600;
+  color: #111111;
+  font-weight: 700;
 }
 </style>

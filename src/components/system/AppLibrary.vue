@@ -44,6 +44,26 @@ const allGroups = computed(() => {
 })
 const pinnedApps = computed(() => DRAWER_APPS.filter((a) => a.pinned && isInstalled(a.id)))
 
+// 展平成单一连续紧凑的 4 列应用流（严格对齐真机 media_1789870904758.jpg）
+const alphabeticalAppList = computed(() => {
+  const list = []
+  const seenInitials = new Set()
+  for (const letter of ALPHABET_LIST) {
+    const group = allGroups.value[letter] || []
+    for (const app of group) {
+      const isFirst = !seenInitials.has(app.initial)
+      if (isFirst) {
+        seenInitials.add(app.initial)
+      }
+      list.push({
+        ...app,
+        isFirstOfLetter: isFirst
+      })
+    }
+  }
+  return list
+})
+
 const rootRef = ref(null)
 const scrollContainerRef = ref(null)
 
@@ -65,7 +85,7 @@ function updateSectionTops() {
 
 function handleScroll() {
   if (isScrubbing.value || currentTab.value !== 'all' || !scrollContainerRef.value) return
-  const scrollTop = scrollContainerRef.value.scrollTop + 80
+  const scrollTop = scrollContainerRef.value.scrollTop + 90
   let current = 'A'
   for (const letter of ALPHABET_LIST) {
     if (sectionTops.value[letter] != null && sectionTops.value[letter] <= scrollTop) {
@@ -109,7 +129,6 @@ function launchApp(appId) {
 }
 
 function handleOpenXHide() {
-  // XHide 隐私保险箱打开安全验证或进入设置
   system.openApp('settings')
 }
 
@@ -196,58 +215,46 @@ onMounted(() => {
         class="drawer-body scrollable"
         @scroll="handleScroll"
       >
-        <!-- ── TAB 1: 全部应用视图 ── -->
+        <!-- ── TAB 1: 全部应用视图（严格像素还原真机连续 4 列流） ── -->
         <div v-show="currentTab === 'all'" class="all-tab-content">
-          <!-- 常用应用置顶区域 -->
-          <div class="drawer-section pinned-section">
-            <div class="section-title">常用应用</div>
-            <div class="app-grid four-columns">
-              <div
-                v-for="app in pinnedApps"
-                :key="app.id"
-                class="grid-app-item"
-                @click="launchApp(app.id)"
-              >
-                <div class="icon-wrap">
-                  <img :src="app.icon" :alt="app.name" class="app-icon-img" loading="lazy" />
-                  <span v-if="app.badge" class="badge-bubble">{{ app.badge }}</span>
-                </div>
-                <span class="app-title">{{ app.name }}</span>
+          <!-- Row 1: 常用置顶应用（微信、Transsioner、通讯录、微博） -->
+          <div class="app-grid four-columns pinned-row">
+            <div
+              v-for="app in pinnedApps"
+              :key="'pinned-' + app.id"
+              class="grid-app-item"
+              @click="launchApp(app.id)"
+            >
+              <div class="icon-wrap">
+                <img :src="app.icon" :alt="app.name" class="app-icon-img" loading="lazy" />
+                <span v-if="app.badge" class="badge-bubble">{{ app.badge }}</span>
               </div>
+              <span class="app-title">{{ app.name }}</span>
             </div>
           </div>
 
-          <!-- A-Z 字母分组应用网格 -->
-          <div
-            v-for="letter in ALPHABET_LIST"
-            :id="'section-' + letter"
-            :key="letter"
-            class="drawer-section letter-section"
-          >
-            <template v-if="allGroups[letter] && allGroups[letter].length > 0">
-              <div class="letter-badge-row">
-                <span class="letter-char">{{ letter }}</span>
-              </div>
+          <!-- 置顶与全量字母网格之间的细微分界线（对齐真机 rows1_to_3） -->
+          <div class="pinned-divider"></div>
 
-              <div class="app-grid four-columns">
-                <div
-                  v-for="app in allGroups[letter]"
-                  :key="app.id"
-                  class="grid-app-item"
-                  @click="launchApp(app.id)"
-                >
-                  <div class="icon-wrap">
-                    <img :src="app.icon" :alt="app.name" class="app-icon-img" loading="lazy" />
-                    <span v-if="app.badge" class="badge-bubble">{{ app.badge }}</span>
-                  </div>
-                  <span class="app-title">{{ app.name }}</span>
-                </div>
+          <!-- 单一连续无缝 4 列 A-Z 应用流（无跨行空洞、无生硬标题） -->
+          <div class="app-grid four-columns continuous-app-grid">
+            <div
+              v-for="app in alphabeticalAppList"
+              :id="app.isFirstOfLetter ? 'section-' + app.initial : undefined"
+              :key="app.id"
+              class="grid-app-item"
+              @click="launchApp(app.id)"
+            >
+              <div class="icon-wrap">
+                <img :src="app.icon" :alt="app.name" class="app-icon-img" loading="lazy" />
+                <span v-if="app.badge" class="badge-bubble">{{ app.badge }}</span>
               </div>
-            </template>
+              <span class="app-title">{{ app.name }}</span>
+            </div>
           </div>
         </div>
 
-        <!-- ── TAB 2: 14 大分类大卡片视图 ── -->
+        <!-- ── TAB 2: 14 大分类大卡片视图（双列 1:1 正方形磨砂大文件夹） ── -->
         <div v-show="currentTab === 'category'" class="category-tab-content">
           <div class="category-cards-grid">
             <CategoryCard
@@ -292,14 +299,14 @@ onMounted(() => {
 .drawer-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(14, 18, 26, 0.72);
-  backdrop-filter: blur(36px) saturate(190%);
-  -webkit-backdrop-filter: blur(36px) saturate(190%);
+  background: rgba(14, 17, 24, 0.78);
+  backdrop-filter: blur(36px) saturate(180%);
+  -webkit-backdrop-filter: blur(36px) saturate(180%);
 }
 
 @supports not (backdrop-filter: blur(1px)) {
   .drawer-backdrop {
-    background: rgba(14, 18, 26, 0.94);
+    background: rgba(14, 17, 24, 0.96);
   }
 }
 
@@ -331,62 +338,40 @@ onMounted(() => {
 /* 抽屉滚动主体 */
 .drawer-body {
   flex: 1;
-  padding-top: calc(var(--safe-top, 24px) + 62px);
-  padding-bottom: calc(var(--safe-bottom, 16px) + 90px);
-  padding-left: 16px;
-  padding-right: 28px; /* 给右侧字母检索条留出安全距离 */
+  padding-top: calc(var(--safe-top, 24px) + 64px);
+  padding-bottom: calc(var(--safe-bottom, 16px) + 96px);
+  padding-left: 14px;
+  padding-right: 26px; /* 给右侧字母导轨留出操作通道 */
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
 
-/* 全部应用视图 */
+/* 全部应用视图：连续紧凑的 4 列网格 */
 .all-tab-content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
 }
 
-.drawer-section {
-  display: flex;
-  flex-direction: column;
+.pinned-row {
+  margin-bottom: 2px;
 }
 
-.pinned-section {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  padding: 12px 10px 14px;
-  margin-bottom: 8px;
-  border: 0.5px solid rgba(255, 255, 255, 0.1);
+.pinned-divider {
+  height: 0.5px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 12px 6px 18px;
 }
 
-.section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.75);
-  margin-bottom: 10px;
-  padding-left: 4px;
-}
-
-.letter-badge-row {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-  padding-left: 4px;
-}
-
-.letter-char {
-  font-size: 14px;
-  font-weight: 700;
-  color: #22d3ee;
-  letter-spacing: -0.2px;
+.continuous-app-grid {
+  width: 100%;
 }
 
 .app-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px 8px;
+  gap: 18px 8px;
   justify-items: center;
 }
 
@@ -394,17 +379,18 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 64px;
+  width: 70px;
   cursor: pointer;
+  scroll-margin-top: calc(var(--safe-top, 24px) + 70px);
 }
 
 .icon-wrap {
   position: relative;
-  width: 54px;
-  height: 54px;
-  border-radius: 12px;
+  width: 68px;
+  height: 68px;
+  border-radius: 16px;
   overflow: visible;
-  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .grid-app-item:active .icon-wrap {
@@ -414,9 +400,9 @@ onMounted(() => {
 .app-icon-img {
   width: 100%;
   height: 100%;
-  border-radius: 12px;
+  border-radius: 16px;
   object-fit: cover;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
   display: block;
 }
 
@@ -436,22 +422,23 @@ onMounted(() => {
   padding: 0 4px;
   box-shadow: 0 2px 5px rgba(255, 59, 48, 0.5);
   box-sizing: border-box;
+  z-index: 2;
 }
 
 .app-title {
-  margin-top: 5px;
-  font-size: 11.5px;
+  margin-top: 6px;
+  font-size: 12px;
   color: #ffffff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   text-align: center;
-  max-width: 64px;
+  max-width: 70px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.2;
 }
 
-/* 14 大分类视图 */
+/* 分类 Tab：双列正方形大文件夹 */
 .category-tab-content {
   padding-right: 0;
 }
@@ -459,6 +446,7 @@ onMounted(() => {
 .category-cards-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px 10px;
+  gap: 22px 14px;
+  padding: 4px 6px 16px;
 }
 </style>

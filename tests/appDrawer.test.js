@@ -20,7 +20,7 @@ test('DRAWER_APPS contains pinned apps and valid initial letters matching 111.mp
   const pinned = DRAWER_APPS.filter((a) => a.pinned)
   assert.equal(pinned.length, 4)
   const pinnedIds = pinned.map((a) => a.id)
-  assert.deepEqual(pinnedIds, ['contacts', 'wechat', 'pupu', 'taobao'])
+  assert.deepEqual(pinnedIds, ['wechat', 'transsioner', 'contacts', 'weibo'])
 
   // 字母表覆盖
   assert.equal(ALPHABET_LIST.length, 27)
