@@ -206,11 +206,12 @@ test('ScreenView and HomeScreen integrate vertical drawer gesture invocation', a
   assert.match(homeScreen, /emit\('open-library'\)/)
 })
 
-test('AppLibrary adheres to refined UI metrics and prevents corner wallpaper leakage', async () => {
-  const [librarySource, capsuleSource, searchBarSource] = await Promise.all([
+test('AppLibrary adheres to refined UI metrics and maintains authentic frosted glass', async () => {
+  const [librarySource, capsuleSource, searchBarSource, frameSource] = await Promise.all([
     read('../src/components/system/AppLibrary.vue'),
     read('../src/components/system/drawer/DrawerCapsuleTabs.vue'),
-    read('../src/components/system/drawer/DrawerSearchBar.vue')
+    read('../src/components/system/drawer/DrawerSearchBar.vue'),
+    read('../src/components/phone/PhoneFrame.vue')
   ])
 
   // 1. 顶部 Tab 距离屏幕留白 50px，高度 36px
@@ -227,8 +228,13 @@ test('AppLibrary adheres to refined UI metrics and prevents corner wallpaper lea
   // 4. 搜索栏距离底部 24px
   assert.match(searchBarSource, /margin-bottom:\s*24px/)
 
-  // 5. 四角防透底：抽屉圆角同心裁切 + 实体深色背景彻底杜绝壁纸透底
-  assert.match(librarySource, /border-radius:\s*var\(--screen-radius,\s*50px\)/)
-  assert.match(librarySource, /background:\s*#12141a/)
+  // 5. 纯正旗舰级毛玻璃材质与外扩采样（杜绝边缘模糊衰减）
+  assert.match(librarySource, /background:\s*rgba\(18,\s*20,\s*26,\s*0\.76\)/)
+  assert.match(librarySource, /backdrop-filter:\s*blur\(36px\)\s*saturate\(180%\)/)
+  assert.match(librarySource, /inset:\s*-30px/)
+
+  // 6. PhoneFrame 旗舰级 BM 压边黑圈遮罩（彻底杜绝四角圆角亚像素漏色透底）
+  assert.match(frameSource, /\.frame-inner::after/)
+  assert.match(frameSource, /box-shadow:\s*inset\s+0\s+0\s+0\s+6px\s+#000000/)
 })
 

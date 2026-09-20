@@ -412,16 +412,15 @@ onMounted(() => {
   inset: 0;
   z-index: var(--z-app-library, 30);
   will-change: transform;
-  border-radius: var(--screen-radius, 50px);
-  overflow: hidden;
   user-select: none;
-  background: #12141a;
 }
 
 .drawer-backdrop {
   position: absolute;
-  inset: -10px;
-  background: linear-gradient(180deg, #181a22 0%, #111218 100%);
+  inset: -30px;
+  background: rgba(18, 20, 26, 0.76);
+  backdrop-filter: blur(36px) saturate(180%);
+  -webkit-backdrop-filter: blur(36px) saturate(180%);
   z-index: 1;
 }
 
@@ -432,8 +431,6 @@ onMounted(() => {
   flex-direction: column;
   z-index: 2;
   box-sizing: border-box;
-  border-radius: inherit;
-  overflow: hidden;
 }
 
 /* 顶部胶囊导航头（留白对齐真机 50px 顶间距，高度 36px） */
