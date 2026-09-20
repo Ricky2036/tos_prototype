@@ -9,6 +9,23 @@
   <meta name="theme-color" content="#000000" />
   <title>tOS Prototype</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <!--
+    锁屏时钟定制数字字体（Transsion Tecno pnum, 可变字体）。
+    两个自定义轴：
+      wght 100–1000  仅改变笔画粗细（默认 100，需显式抬到 ~840）
+      ytde 0–1000    「顶部锚定垂直缩放」——yMax 恒定、yMin 向下延伸，
+                     高度 0.470em → 2.565em（×5.46）。锁屏数字的“高度拉伸”即由此轴驱动。
+    放在 index.html 而非 tokens.css/main.js，避免触碰共享锁文件。
+  -->
+  <style>
+    @font-face {
+      font-family: "Transsion Tecno pnum";
+      src: url("/fonts/transsion-tecno-pnum.ttf") format("truetype");
+      font-weight: 100 1000;
+      font-style: normal;
+      font-display: block;
+    }
+  </style>
 </head>
 <body>
   <div id="app"></div>

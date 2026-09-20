@@ -54,12 +54,19 @@ const UNLOCK_SPAN = 460
 
 /* ---------- 响应式屏幕高度与自适应布局常量 ---------- */
 const screenHeight = ref(844)
+/* 玻璃层要把壁纸按 SVG user unit 铺到字形后面（见 glassRect），需要屏宽。
+   顺带复用同一个 ResizeObserver 口，不再多挂一个监听。 */
+const screenWidth = ref(360)
 
 function updateScreenHeight() {
   if (rootRef.value) {
     const h = rootRef.value.clientHeight
     if (h > 200) {
       screenHeight.value = h
+    }
+    const w = rootRef.value.clientWidth
+    if (w > 200) {
+      screenWidth.value = w
     }
   }
 }
@@ -91,13 +98,64 @@ const PLAYER_NOTIF_GAP = 8
 const PLAYER_START_Y = computed(() => BASE_Y.value - PLAYER_HEIGHT - PLAYER_NOTIF_GAP)
 const ACTIVITY_CARD_HEIGHT = 84
 const ACTIVITY_GAP = 10
-const DATE_TOP = 55
-const DATE_HEIGHT = 28
-const CLOCK_TOP = DATE_TOP + DATE_HEIGHT - 6 // 77
+/* 数字顶边锚点（原先由 DATE_TOP + DATE_HEIGHT - 6 推导，现已与日期盒解耦）：
+   数字 ink 顶须落在 104.7，故固定为 77。
+   ink 顶相对容器顶的内偏移 = text.y − font-size × 0.710em = 149.8 − 172 × 0.710 ≈ 27.7。
+   日期盒的定位改由 CSS `.ls-date` 的 top 独占（避免两处常量各说各话）。 */
+const CLOCK_TOP = 77
 const TOP_GAP = 16
-const CLOCK_MAX_HEIGHT = 220
+/* 容器高度须真实容纳拉伸后的数字（视觉高 273.7，ink 底 = CLOCK_TOP + 301），故 220 → 305。
+   副作用（数字变高后的必然联动）：clipTop 313 → 398、HIT_DISTANCE 251 → 170、
+   EXPAND_SCROLL_Y 110 → 195。 */
+const CLOCK_MAX_HEIGHT = 305
 const CLOCK_MIN_HEIGHT = 110
+/* ---- 挤压：改「字号 + ytde 轴」，而不是改 svg 高度 ----
+   旧做法让 svg `height:100%` 跟着容器从 305 缩到 110 ⇒ scaleY 掉到 0.36 而 scaleX 仍为 1
+   ⇒ 数字被纵向压扁（笔画变形），ink 顶也被一起往下带到 87、压在日期上（日期视觉底 88.35）。
+   新做法：svg 高度固定（见 CSS `.ls-clock svg`），挤压缩放完全交给 font-size 与 ytde：
+     · ytde 是「顶部锚定」的垂直缩放轴 ⇒ ink 顶不动，只有底边往上收
+     · 实测 top_em = 0.7100 在 ytde 0→525 全量程恒定
+       ⇒ 只要 y = 27.7 + fs × 0.710，ink 顶就恒为 104.7（数字顶部固定）
+   两个端点由参考图反解：展开态 fs172/ytde525 → 280.7×273.7；最小态 fs151/ytde18 → 242.0×79.7
+   （与参考图最小态 242.7×79.7 对齐，同字符串 "18:16" 实测）。 */
+const CLOCK_FONT_MAX = 172
+const CLOCK_FONT_MIN = 151
+const CLOCK_YTDE_MAX = 525
+const CLOCK_YTDE_MIN = 18
+const CLOCK_WEIGHT = 840
+const CLOCK_BASELINE_TO_INK_TOP = 0.7100 // 基线 → ink 顶（em），全量程恒定
+const CLOCK_INK_TOP_OFFSET = 27.7        // ink 顶相对容器顶 = 149.8 − 172 × 0.7100
 const SAFE_GAP = TOP_GAP
+
+/* ---- 玻璃质感（全部参数从真机参考图像素量测反推，不是拍脑袋）----
+   参考图 1080×2363 / DPR 3，对「17:56」整串量测：
+     · 霜面 = 纯白叠加：α ≈ 0.47（分通道 0.480 / 0.472 / 0.447）
+       上段 0.480 与中段 0.470 几乎相同 ⇒ 本质上没有垂直渐变，只留一点点给玻璃受光感。
+     · 【关键】笔画内部的壁纸细节被显著压掉：内部/外部 梯度能量比 中位 0.376
+       （人脸这种高对比区 0.514）。若只是白色叠加，梯度比应该 ≈ 1（线性压暗不改变梯度）
+       ⇒ 参考图确实存在【真实的背景模糊】。用同样内容的壁纸做前向仿真反推 ⇒ σ ≈ 3.1–6.5 CSS px。
+     · 笔画边缘锐度实测 1 物理 px（0.33 CSS）⇒ 玻璃是【硬边】的，⛔ 不要加发光 / 羽化边。
+   实现：把壁纸【自身】模糊后裁进字形里 —— 等价于 backdrop-filter，但半径可控，
+        且不依赖浏览器对「SVG 元素上的 backdrop-filter」的支持（Chromium 不认）。
+       ⛔ 不能只减 alpha 了事：那样只是「半透明白字」，壁纸细节会原样透出来，不是玻璃。 */
+/* 霜面不透明度：目标「屏上有效 α」= 参考图实测 0.47（顶）→ 0.44（底）。
+   ⚠️ `.ls-clock` 自己还有 `opacity: .95`，会再乘一次 ⇒ 这里写 0.47/0.95 = 0.495。
+   ⛔ 直接写 0.47 的话，屏上实际只有 0.447 —— 比参考图淡一档，看起来「发灰发虚」。 */
+const CLOCK_GLASS_ALPHA_TOP = 0.495
+const CLOCK_GLASS_ALPHA_BOTTOM = 0.46
+/* σ 的三个独立估计（都基于参考图实测，见 /tmp/vwork/r33）：
+     ① 参考图自身上下文前向仿真         ⇒ 3.1–6.5
+     ② 用参考图下半段壁纸搭受控实验台，扫 σ 并扣掉「无模糊对照」的系统偏置 ⇒ ≈ 8
+     ③ 目视对照表（sigma-compare.png）  ⇒ 5–6 最接近参考图的「细节被压掉但仍保留大色块」程度
+   取 6。⛔ 别调到 0：σ=0 时笔画里会原样透出壁纸细节，那是「半透明白字」不是玻璃。 */
+const CLOCK_GLASS_BLUR = 6
+/* svg 的 CSS 盒（306×305）与 viewBox 1:1，故 user unit = CSS px；306 = 85% × 360。 */
+const CLOCK_SVG_W = 306
+const CLOCK_SVG_H = 305
+/* 玻璃层的 <defs> id 必须全局唯一：万一 LockScreen 被同时挂载两份（预览 / 调试台 / 截图模式），
+   重复的 clipPath id 会让第二个实例拿到第一个的字形。 */
+let glassUidSeq = 0
+const glassUid = `ls-clock-${++glassUidSeq}`
 const LOCK_STACK_BOTTOM_INSET = 110
 const LOCK_STACK_MAX_VISUAL_OFFSET = 36
 const LOCK_CARD_HEIGHT = 90
@@ -945,6 +1003,41 @@ const containerStyle = computed(() => {
 
 const squeeze = computed(() => Math.max(0, scrollY.value > 0 ? scrollY.value - HIT_DISTANCE.value : 0))
 const clockHeight = computed(() => Math.max(CLOCK_MIN_HEIGHT, CLOCK_INITIAL_HEIGHT.value - squeeze.value))
+/* 挤压进度 0..1。容器高 / 字号 / ytde 三者由这同一个 p 驱动，保证严格同步。 */
+const clockProgress = computed(() => {
+  const span = CLOCK_INITIAL_HEIGHT.value - CLOCK_MIN_HEIGHT
+  return span > 0 ? Math.min(1, Math.max(0, squeeze.value / span)) : 0
+})
+const clockFontSize = computed(() => CLOCK_FONT_MAX + (CLOCK_FONT_MIN - CLOCK_FONT_MAX) * clockProgress.value)
+const clockYtde = computed(() => Math.round(CLOCK_YTDE_MAX + (CLOCK_YTDE_MIN - CLOCK_YTDE_MAX) * clockProgress.value))
+/* y 随字号同步下移，使 ink 顶恒为 CLOCK_INK_TOP_OFFSET（数字顶部固定，不随挤压下沉） */
+const clockTextY = computed(() => CLOCK_INK_TOP_OFFSET + clockFontSize.value * CLOCK_BASELINE_TO_INK_TOP)
+const clockVariation = computed(() => `"wght" ${CLOCK_WEIGHT}, "ytde" ${clockYtde.value}`)
+/* 玻璃取样窗：把「整屏壁纸」映射回 svg 的 user space。
+   静止态（p = 0）退化成常量：x = −27、y = −77、w = 360、h = 788
+   （svg 顶在 CLOCK_TOP、`.ls-clock` 是 flex 居中 ⇒ 左偏 (360 − 306)/2 = 27）。
+   上滑解锁时 `.ls-inner` 会 translateY(−p·240) scale(1−p·0.04)（原点在屏心），而壁纸不动，
+   所以这里对同一变换做【逆映射】，让取样窗钉死在屏幕上，而不是跟着数字一起跑
+   （否则解锁过程中字形里的壁纸图案会整体平移，很假）。 */
+const glassRect = computed(() => {
+  const p = progress.value
+  const s = 1 - p * 0.04
+  const ty = -p * 240
+  const W = screenWidth.value
+  const H = screenHeight.value
+  const svgW = W * (CLOCK_SVG_W / 360)   // = 85% 屏宽，与 CSS `.ls-clock svg { width: 85% }` 同源
+  const kx = svgW / CLOCK_SVG_W          // user unit → CSS px（横向）
+  const ky = 1                           // svg CSS 高恒为 CLOCK_SVG_H ⇒ 纵向 1:1
+  const svgLeft = (W - svgW) / 2         // 居中
+  const xLocal = W / 2 + (0 - W / 2) / s
+  const yLocal = H / 2 + (0 - H / 2 - ty) / s
+  return {
+    x: (xLocal - svgLeft) / kx,
+    y: (yLocal - CLOCK_TOP) / ky,
+    w: (W / s) / kx,
+    h: (H / s) / ky
+  }
+})
 const clipTop = computed(() => CLOCK_TOP + clockHeight.value + SAFE_GAP)
 const scrollOffset = computed(() => scrollY.value)
 const expandedPlayerBaseY = computed(() => Math.max(
@@ -1147,8 +1240,42 @@ function notifStyle(i) {
 
       <!-- 巨大时钟（高度随滚动挤压） -->
       <div class="ls-clock" :style="clockStyle">
-        <svg viewBox="0 0 280 84" preserveAspectRatio="none" style="overflow: visible;">
-          <text x="140" y="82" text-anchor="middle" fill="white" font-weight="900" font-size="95" letter-spacing="-2">{{ timeShort }}</text>
+        <!-- viewBox 与 svg CSS 盒 1:1（306×305），故 preserveAspectRatio="none" 等价于等比。
+             字形高度靠可变字体的 ytde 轴（顶部锚定垂直缩放）驱动，而不是靠视图盒非等比拉伸。
+             挤出效果由 font-size + ytde 插值（`clockFontSize` / `clockYtde`）承担，
+             y 同步下移使 ink 顶恒定（`clockTextY`）——数字顶部固定，不随挤压下沉、不压在日期上。
+             letter-spacing:1 用于把展开态整串视觉宽从 276.7 补到参考图的 280.7（只加宽不加高）。
+
+             玻璃质感 = 三层（详见 CLOCK_GLASS_* 注释）：
+               ① clipPath 用同一套排版属性画出字形轮廓；
+               ② 字形内 = 【壁纸自身】经 feGaussianBlur 模糊后的那一片（= 真背景模糊，不是半透明白字）；
+               ③ 最上面再叠一层半透明白霜面（objectBoundingBox 渐变，随字形高度铺满）。
+             ⛔ 三层里的 <text> 排版属性必须逐字一致，否则轮廓与霜面会错位。 -->
+        <svg viewBox="0 0 306 305" preserveAspectRatio="none" style="overflow: visible;">
+          <defs>
+            <clipPath :id="glassUid + '-glyph'">
+              <text class="ls-clock-num" x="153" :y="clockTextY" :font-size="clockFontSize"
+                    :style="{ fontVariationSettings: clockVariation }"
+                    text-anchor="middle" letter-spacing="1" fill="#fff">{{ timeShort }}</text>
+            </clipPath>
+            <filter :id="glassUid + '-blur'" x="-14%" y="-9%" width="128%" height="118%"
+                    color-interpolation-filters="sRGB">
+              <feGaussianBlur :stdDeviation="CLOCK_GLASS_BLUR" />
+            </filter>
+            <linearGradient :id="glassUid + '-frost'" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#ffffff" :stop-opacity="CLOCK_GLASS_ALPHA_TOP" />
+              <stop offset="1" stop-color="#ffffff" :stop-opacity="CLOCK_GLASS_ALPHA_BOTTOM" />
+            </linearGradient>
+          </defs>
+          <g :clip-path="'url(#' + glassUid + '-glyph)'">
+            <image :href="wallpaper" :x="glassRect.x" :y="glassRect.y"
+                   :width="glassRect.w" :height="glassRect.h"
+                   preserveAspectRatio="xMidYMid slice"
+                   :filter="'url(#' + glassUid + '-blur)'" />
+          </g>
+          <text class="ls-clock-num" x="153" :y="clockTextY" :font-size="clockFontSize"
+                :style="{ fontVariationSettings: clockVariation }"
+                text-anchor="middle" :fill="'url(#' + glassUid + '-frost)'" letter-spacing="1">{{ timeShort }}</text>
         </svg>
       </div>
 
@@ -1571,14 +1698,17 @@ function notifStyle(i) {
   pointer-events: none;
 }
 
-/* 日期 */
+/* 日期
+   参考图标定（以参考图字符串「周日, 9月20日」实测对齐）：
+     top 71 + (line-height 20 − ink 高 14.7)/2 ≈ 视觉顶 73.7 → 命中参考图 73.7 ✓
+     字号 16px 对应参考图 ink 高 15.7 / 宽 107.3（原型原为 22px → 20.3 / 154.3） */
 .ls-date {
   position: absolute;
-  top: 55px;
+  top: 71px;
   left: 0;
   right: 0;
   text-align: center;
-  font: 500 22px/28px var(--font-stack);
+  font: 500 16px/20px var(--font-stack);
   color: rgba(255, 255, 255, 0.92);
   letter-spacing: 0.5px;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
@@ -1600,11 +1730,20 @@ function notifStyle(i) {
 }
 .ls-clock svg {
   width: 85%;
-  height: 100%;
+  /* 高度固定 = viewBox 高（306×305 与 viewBox 1:1 ⇒ scale 恒为 1）。
+     ⛔ 不能改回 height:100%：容器会从 305 缩到 110，那样 scaleY 掉到 0.36 而 scaleX 仍为 1
+     ⇒ 数字被纵向压扁（笔画变形）、ink 顶被一起往下带到日期上（日期视觉底 88.35）。
+     挤压缩放一律交给 font-size + ytde，见 CLOCK_FONT_* / CLOCK_YTDE_* 注释。 */
+  height: 305px;
   flex: none;
   filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.2));
-  font-family: -apple-system, "SF Pro Rounded", "Arial Rounded MT Bold", "Helvetica Neue", sans-serif;
+  font-family: "Transsion Tecno pnum", -apple-system, "SF Pro Rounded", "Arial Rounded MT Bold", "Helvetica Neue", sans-serif;
 }
+/* 轴值改由模板 :style 动态给出（wght 固定 840、ytde 随挤压在 525 → 18 间插值），此处不再静态声明。
+   参考图标定：展开态 wght 840 / ytde 525 → 笔画宽 20.0px、视觉 280.7 × 273.7；
+              最小态 font-size 151 / ytde 18 → 242.0 × 79.7（对齐参考图最小态 242.7 × 79.7）。
+   两个轴都必须显式给：字体默认实例是 wght100 / ytde0，即极细且极扁。
+   font-variation-settings 优先于 font-weight；若字体回退到系统字体，该声明被忽略、仍走 font-weight 降级链。 */
 
 /* 裁剪容器：贯通式容器对齐全屏边缘，卡片滑动至屏幕边缘直接被视口平齐裁切 */
 .ls-clip {
