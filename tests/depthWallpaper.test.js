@@ -60,7 +60,7 @@ test('computeClockOcclusionRatio calculates accurate clock occlusion', () => {
   assert.equal(ratioFloat, 1)
 })
 
-test('getPresetDepthSubject identifies pre-rendered pet cutouts', () => {
+test('getPresetDepthSubject identifies pre-rendered pet and person cutouts', () => {
   // 1. 命中金毛犬
   const goldenSubject = getPresetDepthSubject('some/path/pet-golden-retriever-abc.png')
   assert.ok(goldenSubject, 'Golden retriever must have a preset subject')
@@ -71,12 +71,21 @@ test('getPresetDepthSubject identifies pre-rendered pet cutouts', () => {
   assert.ok(catSubject, 'Cat must have a preset subject')
   assert.ok(catSubject.includes('pet-white-gray-cat-subject'))
 
-  // 3. 普通壁纸返回 null
+  // 3. 命中人物壁纸（金色田野、雾光侧影）
+  const personFieldSubject = getPresetDepthSubject('some/path/person-field-123.png')
+  assert.ok(personFieldSubject, 'Person field must have a preset subject')
+  assert.ok(personFieldSubject.includes('person-field-subject'))
+
+  const personHazeSubject = getPresetDepthSubject('some/path/person-haze-456.png')
+  assert.ok(personHazeSubject, 'Person haze must have a preset subject')
+  assert.ok(personHazeSubject.includes('person-haze-subject'))
+
+  // 4. 普通壁纸返回 null
   const nullSubject = getPresetDepthSubject('some/path/nature-forest.png')
   assert.equal(nullSubject, null)
 })
 
-test('LockScreen.vue renders depth subject in correct DOM stacking order', () => {
+test('LockScreen.vue renders depth subject in correct DOM stacking order and z-index hierarchy', () => {
   const lockScreenSource = readFileSync(resolve(root, 'src/components/system/LockScreen.vue'), 'utf8')
 
   // 1. 必须引入 getPresetDepthSubject
@@ -94,7 +103,11 @@ test('LockScreen.vue renders depth subject in correct DOM stacking order', () =>
   assert.ok(clockIdx < depthIdx, '.ls-clock must be before .ls-depth-subject so subject renders over clock')
   assert.ok(depthIdx < clipIdx, '.ls-depth-subject must be before .ls-clip so notifications render over subject')
 
-  // 3. 接触投影与逆映射防位移
+  // 3. z-index 层级保证：.ls-clip(10) > .ls-depth-subject(2) > .ls-clock(1)
+  assert.match(lockScreenSource, /\.ls-depth-subject\s*\{[^}]*z-index:\s*2/s)
+  assert.match(lockScreenSource, /\.ls-clip\s*\{[^}]*z-index:\s*10/s)
+
+  // 4. 接触投影与逆映射防位移
   assert.match(lockScreenSource, /drop-shadow\(0 6px 14px rgba\(0, 0, 0, 0\.35\)\)/)
   assert.match(lockScreenSource, /depthSubjectStyle/)
 })
