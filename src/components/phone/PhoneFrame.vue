@@ -122,6 +122,17 @@ const handlePowerClick = () => {
     0 0 0 0.5px rgba(0, 0, 0, 0.95);
 }
 
+/* 旗舰级 BM 压边黑圈遮罩（置于屏幕最顶层，彻底杜绝四角圆角抗锯齿和叠层硬件加速透底） */
+.frame-inner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: inset 0 0 0 6px #000000;
+}
+
 /* 顶部超窄微缝听筒 */
 .speaker-slit {
   position: absolute;

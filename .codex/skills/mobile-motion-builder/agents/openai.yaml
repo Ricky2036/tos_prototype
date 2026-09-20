@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mobile Motion Builder"
+  short_description: "Analyze, reproduce, and verify mobile UI motion"
+  default_prompt: "Use $mobile-motion-builder to reproduce this reference motion in the current mobile prototype and verify the result."
