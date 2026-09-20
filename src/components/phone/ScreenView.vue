@@ -194,11 +194,11 @@ const ccDriver = useOverlayDriver('controlCenter')
 registerDriver('notificationCenter', ncDriver)
 registerDriver('controlCenter', ccDriver)
 
-/* 应用抽屉驱动：桌面左滑越界打开（轴 x，span 偏小更跟手） */
+/* 应用抽屉驱动：桌面纵向上滑打开（轴 y，span 450） */
 const libDriver = useOverlayDriver('appLibrary', {
-  axis: 'x',
+  axis: 'y',
   direction: -1,
-  span: 340,
+  span: 450,
   canStartExtra: () => system.baseLayer === 'home'
 })
 registerDriver('appLibrary', libDriver)

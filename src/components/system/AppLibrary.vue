@@ -1,73 +1,137 @@
 <script setup>
-import { computed, ref } from 'vue'
-import { APPS } from '../../config/apps'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { DRAWER_APPS, ALPHABET_LIST, getAlphabeticalGroups } from '../../config/drawerApps'
+import { DRAWER_CATEGORIES } from '../../config/drawerCategories'
 import { useSystemStore } from '../../stores/systemStore'
+import { useHomeStore } from '../../stores/homeStore'
 import { useSwipeGesture } from '../../composables/useSwipeGesture'
 import { getDriver } from '../../composables/driverRegistry'
-import AppIcon from '../ui/AppIcon.vue'
-import SearchBar from '../ui/SearchBar.vue'
 import { clamp } from '../../utils/math'
+import DrawerCapsuleTabs from './drawer/DrawerCapsuleTabs.vue'
+import AlphabetScrubber from './drawer/AlphabetScrubber.vue'
+import CategoryCard from './drawer/CategoryCard.vue'
+import DrawerSearchBar from './drawer/DrawerSearchBar.vue'
 
-import { useI18nStore } from '../../stores/i18nStore'
-import { useHomeStore } from '../../stores/homeStore'
-
-/**
- * App 资源库：搜索实时过滤 + 分类网格。
- * 打开：桌面左滑越界 / 点搜索胶囊；关闭：右滑 / 点空白 / Home 条。
- * 反向手势通过 driverRegistry 接管 ScreenView 的同一个 spring。
- */
 const system = useSystemStore()
-const i18n = useI18nStore()
 const home = useHomeStore()
 
 const overlay = computed(() => system.overlays.appLibrary)
 const visible = computed(() => overlay.value.status !== 'closed')
 
+// 垂直纵向滑入/滑出：translateY(100% -> 0%)
 const layerStyle = computed(() => ({
-  transform: `translateX(${(1 - overlay.value.progress) * 100}%)`
+  transform: `translateY(${(1 - overlay.value.progress) * 100}%)`
 }))
-const blurStyle = computed(() => ({ opacity: clamp(overlay.value.progress * 1.2, 0, 1) }))
 
-/* 分类分组 */
-const CATEGORIES = [
-  { key: 'social', ids: ['phone', 'messages'] },
-  { key: 'productivity', ids: ['settings', 'calendar', 'clock', 'notes', 'files', 'keynote'] },
-  { key: 'creativity', ids: ['photos', 'camera', 'voicememos', 'theme'] },
-  { key: 'utilities', ids: ['safari', 'weather', 'fitness', 'calculator', 'games', 'tips', 'compass'] }
-]
+const blurStyle = computed(() => ({
+  opacity: clamp(overlay.value.progress * 1.2, 0, 1)
+}))
 
-const query = ref('')
+// 当前活动 Tab: 'all' | 'category'
+const currentTab = ref('all')
+const activeLetter = ref('A')
+const isScrubbing = ref(false)
+const isSearchActive = ref(false)
 
-const filteredCategories = computed(() => {
-  const q = query.value.trim().toLowerCase()
-  if (!q) {
-    return CATEGORIES.map((c) => ({
-      name: i18n.categoryName(c.key),
-      apps: c.ids.filter(home.appInstalled).map(getAppById)
-    }))
+const isInstalled = (id) => (home.appInstalled ? home.appInstalled(id) : true)
+const allGroups = computed(() => {
+  const raw = getAlphabeticalGroups()
+  const filtered = {}
+  for (const [k, list] of Object.entries(raw)) {
+    filtered[k] = list.filter((a) => isInstalled(a.id))
   }
-  const matched = APPS.filter((a) => home.appInstalled(a.id) && (() => {
-    const locName = i18n.appName(a.id)?.toLowerCase() || ''
-    return a.name.toLowerCase().includes(q) || locName.includes(q) || a.id.toLowerCase().includes(q)
-  })())
-  return matched.length ? [{ name: i18n.categoryName('searchResults'), apps: matched }] : []
+  return filtered
 })
+const pinnedApps = computed(() => DRAWER_APPS.filter((a) => a.pinned && isInstalled(a.id)))
 
-function getAppById(id) {
-  return APPS.find((a) => a.id === id)
+const rootRef = ref(null)
+const scrollContainerRef = ref(null)
+
+// 字母段元素位置缓存
+const sectionTops = ref({})
+
+function updateSectionTops() {
+  if (!scrollContainerRef.value) return
+  const containerRect = scrollContainerRef.value.getBoundingClientRect()
+  const tops = {}
+  for (const letter of ALPHABET_LIST) {
+    const el = scrollContainerRef.value.querySelector(`#section-${letter}`)
+    if (el) {
+      tops[letter] = el.getBoundingClientRect().top - containerRect.top + scrollContainerRef.value.scrollTop
+    }
+  }
+  sectionTops.value = tops
 }
 
-/* 右滑关闭（反向手势，接管共享 spring） */
-const rootRef = ref(null)
-const CLOSE_SPAN = 320
+function handleScroll() {
+  if (isScrubbing.value || currentTab.value !== 'all' || !scrollContainerRef.value) return
+  const scrollTop = scrollContainerRef.value.scrollTop + 80
+  let current = 'A'
+  for (const letter of ALPHABET_LIST) {
+    if (sectionTops.value[letter] != null && sectionTops.value[letter] <= scrollTop) {
+      current = letter
+    }
+  }
+  activeLetter.value = current
+}
+
+function scrollToLetter(letter) {
+  if (!scrollContainerRef.value) return
+  const el = scrollContainerRef.value.querySelector(`#section-${letter}`)
+  if (el) {
+    const container = scrollContainerRef.value
+    const containerRect = container.getBoundingClientRect()
+    const elRect = el.getBoundingClientRect()
+    const targetScrollTop = container.scrollTop + (elRect.top - containerRect.top) - 10
+    container.scrollTo({
+      top: Math.max(0, targetScrollTop),
+      behavior: isScrubbing.value ? 'auto' : 'smooth'
+    })
+  }
+}
+
+function handleScrubbing(scrubbing, letter) {
+  isScrubbing.value = scrubbing
+  if (letter) {
+    activeLetter.value = letter
+    scrollToLetter(letter)
+  }
+}
+
+watch(currentTab, () => {
+  if (scrollContainerRef.value) {
+    scrollContainerRef.value.scrollTop = 0
+  }
+})
+
+function launchApp(appId) {
+  system.openApp(appId)
+}
+
+function handleOpenXHide() {
+  // XHide 隐私保险箱打开安全验证或进入设置
+  system.openApp('settings')
+}
+
+function onSearchActive(active) {
+  isSearchActive.value = active
+}
+
+/* 下拉关闭（反向手势，仅在未滚动且非搜索态时接管） */
+const CLOSE_SPAN = 380
 
 useSwipeGesture(rootRef, {
-  axis: 'x',
-  direction: 1, // 右滑
+  axis: 'y',
+  direction: 1, // 下拉关闭
   span: CLOSE_SPAN,
-  canStart: () =>
-    overlay.value.status === 'open' ||
-    (overlay.value.status === 'settling' && overlay.value.progress > 0.5),
+  canStart: () => {
+    if (isSearchActive.value) return false
+    if (scrollContainerRef.value && scrollContainerRef.value.scrollTop > 4) return false
+    return (
+      overlay.value.status === 'open' ||
+      (overlay.value.status === 'settling' && overlay.value.progress > 0.5)
+    )
+  },
   onStart() {
     getDriver('appLibrary')?.snapTo(overlay.value.progress)
   },
@@ -78,7 +142,7 @@ useSwipeGesture(rootRef, {
   },
   onRelease(p, velocity) {
     const driver = getDriver('appLibrary')
-    const close = p > 0.32 || velocity > 0.5
+    const close = p > 0.22 || velocity > 0.45
     if (close) {
       system.beginSettle('appLibrary', clamp(1 - p, 0, 1))
       driver?.animateTo(0, {
@@ -97,107 +161,304 @@ useSwipeGesture(rootRef, {
 })
 
 function onBackdropClick(e) {
-  if (e.target === e.currentTarget) system.requestCloseOverlay('appLibrary')
+  if (e.target === e.currentTarget) {
+    system.requestCloseOverlay('appLibrary')
+  }
 }
 
-function onCancelSearch() {
-  query.value = ''
-  system.requestCloseOverlay('appLibrary')
-}
+onMounted(() => {
+  nextTick(() => {
+    updateSectionTops()
+  })
+})
 </script>
 
 <template>
-  <!-- v-show 而非 v-if：反向手势在组件挂载时绑定，元素需始终存在；关闭时 display:none 不影响布局 -->
-  <div v-show="visible" ref="rootRef" class="app-library" :style="layerStyle" @click="onBackdropClick">
-    <div class="al-backdrop" :style="blurStyle"></div>
+  <div
+    v-show="visible"
+    ref="rootRef"
+    class="app-library-drawer"
+    :style="layerStyle"
+    @click="onBackdropClick"
+  >
+    <!-- 旗舰级磨砂深色半透毛玻璃背景 -->
+    <div class="drawer-backdrop" :style="blurStyle"></div>
 
-    <div class="al-content">
-      <div class="al-header" @click.stop>
-        <div class="al-title">{{ i18n.t('appLibrary') }}</div>
-        <SearchBar v-model="query" :placeholder="i18n.t('searchApp')" @cancel="onCancelSearch" />
+    <div class="drawer-content">
+      <!-- 顶部胶囊分段选择器（全部 | 分类） -->
+      <div class="drawer-header" :class="{ 'is-dimmed': isScrubbing }">
+        <DrawerCapsuleTabs v-model="currentTab" />
       </div>
 
-      <div class="al-body scrollable" @click="onBackdropClick">
-        <template v-if="filteredCategories.length">
-          <div v-for="cat in filteredCategories" :key="cat.name" class="al-category" @click.stop>
-            <div class="al-cat-name">{{ cat.name }}</div>
-            <div class="al-cat-grid">
-              <AppIcon
-                v-for="app in cat.apps"
+      <!-- 滚动主体内容区 -->
+      <div
+        ref="scrollContainerRef"
+        class="drawer-body scrollable"
+        @scroll="handleScroll"
+      >
+        <!-- ── TAB 1: 全部应用视图 ── -->
+        <div v-show="currentTab === 'all'" class="all-tab-content">
+          <!-- 常用应用置顶区域 -->
+          <div class="drawer-section pinned-section">
+            <div class="section-title">常用应用</div>
+            <div class="app-grid four-columns">
+              <div
+                v-for="app in pinnedApps"
                 :key="app.id"
-                :app="app"
-              />
+                class="grid-app-item"
+                @click="launchApp(app.id)"
+              >
+                <div class="icon-wrap">
+                  <img :src="app.icon" :alt="app.name" class="app-icon-img" loading="lazy" />
+                  <span v-if="app.badge" class="badge-bubble">{{ app.badge }}</span>
+                </div>
+                <span class="app-title">{{ app.name }}</span>
+              </div>
             </div>
           </div>
-        </template>
-        <div v-else class="al-empty" @click.stop>{{ i18n.t('noMatch') }}</div>
+
+          <!-- A-Z 字母分组应用网格 -->
+          <div
+            v-for="letter in ALPHABET_LIST"
+            :id="'section-' + letter"
+            :key="letter"
+            class="drawer-section letter-section"
+          >
+            <template v-if="allGroups[letter] && allGroups[letter].length > 0">
+              <div class="letter-badge-row">
+                <span class="letter-char">{{ letter }}</span>
+              </div>
+
+              <div class="app-grid four-columns">
+                <div
+                  v-for="app in allGroups[letter]"
+                  :key="app.id"
+                  class="grid-app-item"
+                  @click="launchApp(app.id)"
+                >
+                  <div class="icon-wrap">
+                    <img :src="app.icon" :alt="app.name" class="app-icon-img" loading="lazy" />
+                    <span v-if="app.badge" class="badge-bubble">{{ app.badge }}</span>
+                  </div>
+                  <span class="app-title">{{ app.name }}</span>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- ── TAB 2: 14 大分类大卡片视图 ── -->
+        <div v-show="currentTab === 'category'" class="category-tab-content">
+          <div class="category-cards-grid">
+            <CategoryCard
+              v-for="cat in DRAWER_CATEGORIES"
+              :key="cat.id"
+              :category="cat"
+              @select-app="launchApp"
+              @open-xhide="handleOpenXHide"
+            />
+          </div>
+        </div>
       </div>
+
+      <!-- 右侧垂直 A-Z 字母快速检索导轨（仅全部 Tab 下展示） -->
+      <AlphabetScrubber
+        v-if="currentTab === 'all'"
+        :active-letter="activeLetter"
+        @select="scrollToLetter"
+        @scrubbing="handleScrubbing"
+      />
+
+      <!-- 底部常驻悬浮搜索胶囊 -->
+      <DrawerSearchBar
+        :hidden="isScrubbing"
+        @select-app="launchApp"
+        @search-active="onSearchActive"
+      />
     </div>
   </div>
 </template>
 
 <style scoped>
-.app-library {
+.app-library-drawer {
   position: absolute;
   inset: 0;
-  z-index: var(--z-app-library);
+  z-index: var(--z-app-library, 30);
   will-change: transform;
-}
-.al-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(238, 238, 244, 0.55);
-  backdrop-filter: blur(26px) saturate(180%);
-  -webkit-backdrop-filter: blur(26px) saturate(180%);
-}
-@supports not (backdrop-filter: blur(1px)) {
-  .al-backdrop { background: rgba(238, 238, 244, 0.94); }
+  overflow: hidden;
+  user-select: none;
 }
 
-.al-content {
+.drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(14, 18, 26, 0.72);
+  backdrop-filter: blur(36px) saturate(190%);
+  -webkit-backdrop-filter: blur(36px) saturate(190%);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .drawer-backdrop {
+    background: rgba(14, 18, 26, 0.94);
+  }
+}
+
+.drawer-content {
   position: relative;
+  width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+/* 顶部胶囊分段区 */
+.drawer-header {
+  position: absolute;
+  top: calc(var(--safe-top, 24px) + 8px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding: 0 16px;
+  transition: opacity 0.2s ease;
+  pointer-events: auto;
+}
+
+.drawer-header.is-dimmed {
+  opacity: 0;
   pointer-events: none;
 }
-.al-content > * { pointer-events: auto; }
 
-.al-header {
-  padding: calc(var(--safe-top) + 8px) 16px 10px;
-  flex: none;
-}
-.al-title {
-  font: 700 26px/1.2 var(--font-stack);
-  color: var(--label);
-  margin-bottom: 10px;
-}
-
-.al-body {
+/* 抽屉滚动主体 */
+.drawer-body {
   flex: 1;
-  padding: 4px 16px 60px;
+  padding-top: calc(var(--safe-top, 24px) + 62px);
+  padding-bottom: calc(var(--safe-bottom, 16px) + 90px);
+  padding-left: 16px;
+  padding-right: 28px; /* 给右侧字母检索条留出安全距离 */
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
-.al-category { margin-bottom: 22px; }
-.al-cat-name {
-  font: var(--text-headline);
-  color: var(--label);
-  margin: 0 4px 10px;
+
+/* 全部应用视图 */
+.all-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
-.al-cat-grid {
+
+.drawer-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.pinned-section {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 12px 10px 14px;
+  margin-bottom: 8px;
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+
+.letter-badge-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+
+.letter-char {
+  font-size: 14px;
+  font-weight: 700;
+  color: #22d3ee;
+  letter-spacing: -0.2px;
+}
+
+.app-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px 0;
+  gap: 16px 8px;
   justify-items: center;
 }
-/* 资源库背景为浅色，图标标签改深色 */
-.al-cat-grid :deep(.icon-label) {
-  color: var(--label);
-  text-shadow: none;
+
+.grid-app-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 64px;
+  cursor: pointer;
 }
-.al-empty {
+
+.icon-wrap {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  border-radius: 12px;
+  overflow: visible;
+  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.grid-app-item:active .icon-wrap {
+  transform: scale(0.88);
+}
+
+.app-icon-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  display: block;
+}
+
+.badge-bubble {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  line-height: 16px;
+  border-radius: 8px;
+  background: #ff3b30;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
   text-align: center;
-  color: var(--label-secondary);
-  font: var(--text-subhead);
-  margin-top: 80px;
+  padding: 0 4px;
+  box-shadow: 0 2px 5px rgba(255, 59, 48, 0.5);
+  box-sizing: border-box;
+}
+
+.app-title {
+  margin-top: 5px;
+  font-size: 11.5px;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+  text-align: center;
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+/* 14 大分类视图 */
+.category-tab-content {
+  padding-right: 0;
+}
+
+.category-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px 10px;
 }
 </style>

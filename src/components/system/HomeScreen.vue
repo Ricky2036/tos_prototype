@@ -629,6 +629,12 @@ function onPointerMove(event) {
   if (pointer.mode === 'folder-press' || pointer.mode === 'item-press') {
     if (Math.hypot(dx, dy) > 7) {
       if (Math.abs(dy) > Math.abs(dx) * 1.2) {
+        if (!home.editing && dy < -25) {
+          clearTimeout(pressTimer)
+          cleanup(false)
+          emit('open-library')
+          return
+        }
         clearTimeout(pressTimer)
         cleanup(false)
         return
@@ -677,6 +683,11 @@ function onPointerMove(event) {
   if (pointer.mode === 'page') {
     if (Math.abs(dx) < 7 && Math.abs(dy) < 7) return
     clearTimeout(pressTimer)
+    if (!home.editing && dy < -25 && Math.abs(dy) > Math.abs(dx) * 1.25) {
+      cleanup(false)
+      emit('open-library')
+      return
+    }
     if (Math.abs(dy) > Math.abs(dx) * 1.2) { cleanup(false); return }
     revealPageDots()
     event.preventDefault()
