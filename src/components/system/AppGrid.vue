@@ -14,7 +14,8 @@ const props = defineProps({
   selectedIds: { type: Array, default: () => [] }, draggingId: { type: String, default: null },
   draggingIds: { type: Array, default: () => [] }, settlingIds: { type: Array, default: () => [] },
   folderTargetId: { type: String, default: null }, folderCandidateId:{type:String,default:null}, folderCandidateArmed:{type:Boolean,default:false}, mergingFolderItemId:{type:String,default:null}, removingIds: { type: Array, default: () => [] },
-  suppressClickId: { type: String, default: null }, openFolderId: { type: String, default: null }, folderOperationId: { type: String, default: null }
+  suppressClickId: { type: String, default: null }, openFolderId: { type: String, default: null }, folderOperationId: { type: String, default: null },
+  registerHomeAnchors: { type: Boolean, default: true }
 })
 const emit = defineEmits(['item-pointerdown', 'folder-resize-pointerdown', 'toggle-select', 'open-folder', 'request-remove', 'launch-app'])
 const selected = computed(() => new Set(props.selectedIds))
@@ -88,7 +89,7 @@ function activate(event, id, item) {
         <SmartSuggestionWidget v-else />
         <span class="widget-name" data-widget-title>{{ widgetTitle(items[id]) }}</span>
       </div>
-      <AppIcon v-else-if="appFor(items[id])" :app="appFor(items[id])" :size="profile.iconSize * profile.compactScale" :enter-delay="120 + index * 28" home-anchor />
+      <AppIcon v-else-if="appFor(items[id])" :app="appFor(items[id])" :size="profile.iconSize * profile.compactScale" :enter-delay="120 + index * 28" :home-anchor="registerHomeAnchors" />
       <HomeFolder v-else-if="folderFor(items[id])" :folder="folderFor(items[id])" :editing="editing" :operation-active="folderOperationId === items[id].folderId" :merging="mergingFolderItemId === id" :enter-delay="120 + index * 28"
         @open="emit('open-folder',items[id].folderId, $event || itemRefs.get(id))" @resize-pointerdown="emit('folder-resize-pointerdown',$event,id,items[id].folderId)"
         @launch-app="(appId, anchor) => emit('launch-app', appId, anchor)" />
