@@ -55,23 +55,23 @@ function select(tab) {
   display: flex;
   align-items: center;
   width: 216px;
-  height: 42px;
+  height: 36px;
   background: rgba(55, 59, 70, 0.5);
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
   border: 0.5px solid rgba(255, 255, 255, 0.14);
   border-radius: 999px;
-  padding: 3.5px;
+  padding: 3px;
   box-sizing: border-box;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
 }
 
 .capsule-slider {
   position: absolute;
-  top: 3.5px;
-  left: 3.5px;
-  width: calc(50% - 3.5px);
-  height: calc(100% - 7px);
+  top: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  height: calc(100% - 6px);
   background: #D8D8DC;
   border-radius: 999px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
@@ -91,7 +91,7 @@ function select(tab) {
   border: none;
   background: transparent;
   color: rgba(255, 255, 255, 0.85);
-  font: 500 15px/1 var(--font-stack, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font: 600 14px/1 var(--font-stack, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
   cursor: pointer;
   z-index: 2;
   transition: color 0.2s ease;

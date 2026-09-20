@@ -205,3 +205,30 @@ test('ScreenView and HomeScreen integrate vertical drawer gesture invocation', a
   assert.match(homeScreen, /!home\.editing && dy < -25/)
   assert.match(homeScreen, /emit\('open-library'\)/)
 })
+
+test('AppLibrary adheres to refined UI metrics and prevents corner wallpaper leakage', async () => {
+  const [librarySource, capsuleSource, searchBarSource] = await Promise.all([
+    read('../src/components/system/AppLibrary.vue'),
+    read('../src/components/system/drawer/DrawerCapsuleTabs.vue'),
+    read('../src/components/system/drawer/DrawerSearchBar.vue')
+  ])
+
+  // 1. 顶部 Tab 距离屏幕留白 50px，高度 36px
+  assert.match(librarySource, /margin-top:\s*50px/)
+  assert.match(librarySource, /height:\s*36px/)
+  assert.match(capsuleSource, /height:\s*36px/)
+
+  // 2. 图标距离 Tab 留白 38px
+  assert.match(librarySource, /\.app-grid\.pinned-row\s*\{[\s\S]*margin-top:\s*38px/)
+
+  // 3. 分割线精确对齐列 1 图标左边缘与列 4 图标右边缘（margin: 20px 36px 20px 24px）
+  assert.match(librarySource, /margin:\s*20px\s+36px\s+20px\s+24px/)
+
+  // 4. 搜索栏距离底部 24px
+  assert.match(searchBarSource, /margin-bottom:\s*24px/)
+
+  // 5. 四角防透底：抽屉圆角同心裁切 + 背景外扩 -40px 消除边缘模糊衰减
+  assert.match(librarySource, /border-radius:\s*var\(--screen-radius,\s*50px\)/)
+  assert.match(librarySource, /inset:\s*-40px/)
+})
+

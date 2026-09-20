@@ -412,16 +412,17 @@ onMounted(() => {
   inset: 0;
   z-index: var(--z-app-library, 30);
   will-change: transform;
+  border-radius: var(--screen-radius, 50px);
   overflow: hidden;
   user-select: none;
 }
 
 .drawer-backdrop {
   position: absolute;
-  inset: 0;
-  background: rgba(18, 20, 26, 0.76);
-  backdrop-filter: blur(36px) saturate(180%);
-  -webkit-backdrop-filter: blur(36px) saturate(180%);
+  inset: -40px;
+  background: rgba(18, 20, 26, 0.82);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
   z-index: 1;
 }
 
@@ -432,15 +433,17 @@ onMounted(() => {
   flex-direction: column;
   z-index: 2;
   box-sizing: border-box;
+  border-radius: inherit;
+  overflow: hidden;
 }
 
-/* 顶部胶囊导航头 */
+/* 顶部胶囊导航头（留白对齐真机 50px 顶间距，高度 36px） */
 .drawer-header {
-  height: 48px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: calc(var(--safe-top, 24px) + 6px);
+  margin-top: 50px;
   padding: 0 16px;
   flex-shrink: 0;
   z-index: 10;
@@ -462,7 +465,7 @@ onMounted(() => {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 4px 0 110px 0;
+  padding: 0 0 96px 0;
   box-sizing: border-box;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
@@ -474,14 +477,16 @@ onMounted(() => {
   flex-direction: column;
 }
 
-.pinned-row {
-  padding-top: 14px;
+/* 置顶常用应用行：与上方 Tab 保持 38px 舒展呼吸感留白 */
+.app-grid.pinned-row {
+  margin-top: 38px;
 }
 
+/* 分割线：精确对齐第 1 列图标左边缘与第 4 列图标右边缘，不向外溢出至边距或右侧导轨 */
 .pinned-divider {
   height: 0.5px;
   background: rgba(255, 255, 255, 0.12);
-  margin: 20px 14px 22px 14px;
+  margin: 20px 36px 20px 24px;
 }
 
 .continuous-app-grid {

@@ -204,9 +204,9 @@ defineExpose({
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 20px;
   box-sizing: border-box;
-  margin-bottom: calc(var(--safe-bottom, 34px) + 8px);
+  margin-bottom: 24px;
   pointer-events: auto;
 }
 
