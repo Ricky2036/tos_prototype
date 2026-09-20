@@ -231,7 +231,7 @@ function handleAppClick(appId, e) {
   transform: scale(0.88);
 }
 
-/* 2x2 迷你微簇容器 */
+/* 2x2 迷你微簇容器（无额外背板，直接呈现 4 个小图标） */
 .mini-cluster-grid {
   width: 100%;
   height: 100%;
@@ -239,10 +239,8 @@ function handleAppClick(appId, e) {
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
   gap: 4px;
-  padding: 4px;
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
+  background: transparent;
   align-items: center;
   justify-items: center;
   cursor: pointer;
@@ -278,7 +276,7 @@ function handleAppClick(appId, e) {
   cursor: pointer;
 }
 
-/* XHide 专属占位骨架卡片（100% 像素级还原 media_1789896055622.jpg） */
+/* XHide 专属占位骨架卡片（100% 像素级还原 media_1789896055622.jpg，无额外背板） */
 .xhide-grid {
   width: 100%;
   height: 100%;
@@ -306,10 +304,8 @@ function handleAppClick(appId, e) {
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
   gap: 4px;
-  padding: 4px;
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
+  background: transparent;
   align-items: center;
   justify-items: center;
 }
@@ -317,7 +313,8 @@ function handleAppClick(appId, e) {
 .xhide-mini-item {
   width: 100%;
   height: 100%;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.1);
 }
 </style>
