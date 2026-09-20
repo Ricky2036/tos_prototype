@@ -119,14 +119,22 @@ const menuItems = [
         <section class="personalization-menu">
           <button v-for="(item, index) in menuItems" :key="item.id" class="menu-row" @click="openSection(item.id)">
             <span class="menu-icon" :style="{ background: item.color }" :class="`icon-${item.icon}`">
-              <svg v-if="item.icon === 'image'" viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="3"/><circle cx="9" cy="9" r="1.5"/><path d="m5.5 17 4-4 3 2.5 2.7-3 3.3 4.5"/></svg>
-              <svg v-else-if="item.icon === 'phone'" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M10 18h4"/></svg>
+              <svg v-if="item.icon === 'image'" class="filled-wallpaper-glyph" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="2.5" y="3" width="19" height="18" rx="3.6" fill="#fff" />
+                <circle cx="8.7" cy="8.7" r="1.7" fill="#7658ff" />
+                <path d="m5 17 4.1-4.4 3.15 2.75 2.65-3.05 4.15 4.7Z" fill="#7658ff" />
+              </svg>
+              <svg v-else-if="item.icon === 'phone'" class="filled-phone-glyph" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="6.5" y="2" width="11" height="20" rx="3" fill="#fff" />
+                <rect x="8.4" y="4" width="7.2" height="14.8" rx="1.35" fill="#3f3f42" />
+                <rect x="10.1" y="20" width="3.8" height=".8" rx=".4" fill="#3f3f42" />
+              </svg>
               <svg v-else-if="item.icon === 'grid'" class="color-grid-glyph" viewBox="0 0 28 28" aria-hidden="true">
                 <rect class="grid-shell" x="0.75" y="0.75" width="26.5" height="26.5" rx="7" />
-                <rect x="4.2" y="4.2" width="8.7" height="8.7" rx="2.5" fill="#ff4b12" />
-                <rect x="15.1" y="4.2" width="8.7" height="8.7" rx="2.5" fill="#087cff" />
-                <rect x="4.2" y="15.1" width="8.7" height="8.7" rx="2.5" fill="#ffd51b" />
-                <rect x="15.1" y="15.1" width="8.7" height="8.7" rx="2.5" fill="#20c96b" />
+                <rect x="5" y="5" width="7.6" height="7.6" rx="2.15" fill="#ff4b12" />
+                <rect x="15.4" y="5" width="7.6" height="7.6" rx="2.15" fill="#087cff" />
+                <rect x="5" y="15.4" width="7.6" height="7.6" rx="2.15" fill="#ffd51b" />
+                <rect x="15.4" y="15.4" width="7.6" height="7.6" rx="2.15" fill="#20c96b" />
               </svg>
               <span v-else-if="item.icon === 'font'" class="font-glyph">Aa</span>
               <svg v-else-if="item.icon === 'palette'" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18h1.4a2 2 0 0 0 1.3-3.5 1.7 1.7 0 0 1 1.1-3h1.7A3.5 3.5 0 0 0 21 11 8 8 0 0 0 12 3Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>
@@ -227,10 +235,15 @@ const menuItems = [
 .menu-row:last-child { border-bottom:0; }
 .menu-icon { width:35px; height:35px; flex:none; border-radius:10px; display:grid; place-items:center; box-shadow:none; overflow:hidden; }
 .icon-image { background:linear-gradient(145deg,#8b6aff,#5a3bea)!important; }.icon-phone { background:linear-gradient(145deg,#4b4b4f,#242426)!important; }.icon-font,.icon-lock { background:linear-gradient(145deg,#178dff,#0060e8)!important; }.icon-palette { background:linear-gradient(145deg,#35dbdf,#08aeb9)!important; }.icon-desktop { background:linear-gradient(145deg,#896fff,#5740e5)!important; }
-.menu-icon svg { width:22px; height:22px; fill:none; stroke:white; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
+.menu-icon svg { width:20px; height:20px; fill:none; stroke:white; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
+.menu-icon .filled-wallpaper-glyph { width:20px; height:20px; stroke:none; }
+.menu-icon .filled-phone-glyph { width:18px; height:21px; stroke:none; }
 .menu-icon .color-grid-glyph { width:35px; height:35px; stroke:none; overflow:visible; }
 .color-grid-glyph .grid-shell { fill:#f7f7f8; stroke:#d9d9dc; stroke-width:.7; }
-.font-glyph { font:400 22px/1 Georgia,serif; }
+.icon-palette svg { width:19px; height:19px; }
+.icon-lock svg { width:18px; height:20px; }
+.icon-desktop svg { width:19px; height:19px; }
+.font-glyph { font:400 19px/1 Georgia,serif; transform:translateY(-.5px); }
 .menu-label { flex:1; font:450 15.5px/1.3 var(--font-stack); }
 .chevron { width:21px; height:21px; fill:none; stroke:#77777b; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .theme-actions { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; padding:46px 15px 34px; }
