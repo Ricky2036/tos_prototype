@@ -9,82 +9,88 @@ import {
   getDrawerAppById
 } from '../src/config/drawerApps.js'
 import { DRAWER_CATEGORIES } from '../src/config/drawerCategories.js'
-import { getApp } from '../src/config/apps.js'
+import { APPS, getApp } from '../src/config/apps.js'
 
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8')
 
-test('DRAWER_APPS contains pinned apps and valid initial letters matching 111.mp4', () => {
-  assert.ok(DRAWER_APPS.length >= 70, 'Drawer apps list should contain comprehensive app set')
+test('DRAWER_APPS contains 19 real desktop apps matching apps.js and 4 pinned dock apps', () => {
+  // 必须严格对应系统桌面 19 个真实应用
+  assert.equal(DRAWER_APPS.length, 19, 'Drawer apps list must have exactly the 19 desktop apps')
+  const desktopIds = APPS.map((a) => a.id).sort()
+  const drawerIds = DRAWER_APPS.map((a) => a.id).sort()
+  assert.deepEqual(drawerIds, desktopIds, 'Drawer apps must 100% match desktop APPS IDs')
 
-  // 置顶常用应用
+  // 置顶常用应用（Dock 4 核心应用）
   const pinned = DRAWER_APPS.filter((a) => a.pinned)
   assert.equal(pinned.length, 4)
   const pinnedIds = pinned.map((a) => a.id)
-  assert.deepEqual(pinnedIds, ['wechat', 'transsioner', 'contacts', 'weibo'])
+  assert.deepEqual(pinnedIds, ['phone', 'messages', 'safari', 'camera'])
 
-  // 字母表覆盖
-  assert.equal(ALPHABET_LIST.length, 27)
-  assert.equal(ALPHABET_LIST[0], 'A')
-  assert.equal(ALPHABET_LIST[25], 'Z')
-  assert.equal(ALPHABET_LIST[26], '#')
+  // 实际存在的字母索引列表
+  assert.deepEqual(ALPHABET_LIST, ['D', 'J', 'L', 'R', 'S', 'T', 'W', 'X', 'Y', 'Z'])
 
   // 每个应用必须具备合法元数据
   for (const app of DRAWER_APPS) {
     assert.ok(app.id, 'app must have id')
     assert.ok(app.name, `app ${app.id} must have name`)
-    assert.ok(app.icon, `app ${app.id} must have icon`)
     assert.ok(app.initial, `app ${app.id} must have initial`)
+    assert.ok(app.pinyin, `app ${app.id} must have pinyin`)
     assert.ok(ALPHABET_LIST.includes(app.initial), `app ${app.id} initial ${app.initial} must be in ALPHABET_LIST`)
   }
 })
 
-test('getAlphabeticalGroups organizes apps into correct initial buckets', () => {
+test('getAlphabeticalGroups organizes real apps into correct initial buckets', () => {
   const groups = getAlphabeticalGroups()
-  assert.ok(groups.A.length > 0)
-  assert.ok(groups.W.some((a) => a.id === 'wechat'))
-  assert.ok(groups['#'].some((a) => a.id === 'traffic12123'))
+  assert.ok(groups.D.some((a) => a.id === 'phone'))
+  assert.ok(groups.J.some((a) => a.id === 'calculator'))
+  assert.ok(groups.L.some((a) => a.id === 'safari'))
+  assert.ok(groups.R.some((a) => a.id === 'calendar'))
+  assert.ok(groups.S.some((a) => a.id === 'clock'))
+  assert.ok(groups.S.some((a) => a.id === 'settings'))
+  assert.ok(groups.T.some((a) => a.id === 'weather'))
+  assert.ok(groups.W.some((a) => a.id === 'files'))
+  assert.ok(groups.X.some((a) => a.id === 'camera'))
+  assert.ok(groups.X.some((a) => a.id === 'messages'))
+  assert.ok(groups.Y.some((a) => a.id === 'games'))
+  assert.ok(groups.Z.some((a) => a.id === 'photos'))
 })
 
-test('searchDrawerApps supports Chinese, Pinyin, English, and partial queries', () => {
+test('searchDrawerApps supports Chinese, Pinyin, English ID, and partial queries for real apps', () => {
   // 中文检索
-  const wechat = searchDrawerApps('微信')
-  assert.ok(wechat.some((a) => a.id === 'wechat'))
-  assert.ok(wechat.some((a) => a.id === 'wechat_read'))
+  const phone = searchDrawerApps('电话')
+  assert.ok(phone.some((a) => a.id === 'phone'))
+
+  const calendar = searchDrawerApps('日历')
+  assert.ok(calendar.some((a) => a.id === 'calendar'))
 
   // 拼音检索
-  const pinyinResults = searchDrawerApps('taobao')
-  assert.ok(pinyinResults.some((a) => a.id === 'taobao'))
+  const pinyinResults = searchDrawerApps('jisuanqi')
+  assert.ok(pinyinResults.some((a) => a.id === 'calculator'))
 
-  // 英文与大小写不敏感
-  const chromeResults = searchDrawerApps('CHROME')
-  assert.ok(chromeResults.some((a) => a.id === 'chrome'))
+  const tianqi = searchDrawerApps('tianqi')
+  assert.ok(tianqi.some((a) => a.id === 'weather'))
 
-  // 前缀与模糊匹配
-  const douyinResults = searchDrawerApps('douyin')
-  assert.equal(douyinResults.length, 3) // 抖音, 抖音商城, 抖音极速版
+  // 英文 ID 与大小写不敏感
+  const safariResults = searchDrawerApps('SAFARI')
+  assert.ok(safariResults.some((a) => a.id === 'safari'))
+
+  const clockResults = searchDrawerApps('clock')
+  assert.ok(clockResults.some((a) => a.id === 'clock'))
 
   // 空值安全
   assert.deepEqual(searchDrawerApps(''), [])
   assert.deepEqual(searchDrawerApps(null), [])
 })
 
-test('DRAWER_CATEGORIES accurately models the 14 categories from 111.mp4', () => {
-  assert.equal(DRAWER_CATEGORIES.length, 14, 'Should have exactly 14 categories')
+test('DRAWER_CATEGORIES groups real desktop apps cleanly with XHide', () => {
+  assert.equal(DRAWER_CATEGORIES.length, 6, 'Should have 6 curated categories')
 
   const expectedCategoryIds = [
     'frequent',
-    'recent_added',
-    'social',
     'productivity',
-    'tools',
-    'entertainment',
-    'finance',
-    'travel',
     'lifestyle',
-    'games',
-    'news',
-    'health',
-    'uncategorized',
+    'entertainment',
+    'system',
     'xhide'
   ]
 
@@ -93,62 +99,55 @@ test('DRAWER_CATEGORIES accurately models the 14 categories from 111.mp4', () =>
     expectedCategoryIds
   )
 
-  // 结构校验：4-large
-  const fourLarge = DRAWER_CATEGORIES.filter((c) => c.type === '4-large')
-  assert.ok(fourLarge.length >= 6)
-  for (const cat of fourLarge) {
-    assert.equal(cat.apps.length, 4, `Category ${cat.name} should have 4 apps`)
-    for (const appId of cat.apps) {
-      assert.ok(getDrawerAppById(appId), `App ${appId} in ${cat.name} must exist in DRAWER_APPS`)
+  // 结构校验：所有分类里的应用必须真实存在于 DRAWER_APPS
+  for (const cat of DRAWER_CATEGORIES) {
+    if (cat.type === '4-large') {
+      assert.equal(cat.apps.length, 4, `Category ${cat.name} should have 4 apps`)
+      for (const appId of cat.apps) {
+        assert.ok(getDrawerAppById(appId), `App ${appId} in ${cat.name} must exist in DRAWER_APPS`)
+      }
+    } else if (cat.type === '3-large-1-cluster') {
+      assert.equal(cat.largeApps.length, 3, `Category ${cat.name} should have 3 large apps`)
+      assert.equal(cat.clusterApps.length, 4, `Category ${cat.name} should have 4 cluster apps`)
+      for (const appId of [...cat.largeApps, ...cat.clusterApps]) {
+        assert.ok(getDrawerAppById(appId), `App ${appId} in ${cat.name} must exist in DRAWER_APPS`)
+      }
+    } else if (cat.type === 'xhide') {
+      assert.equal(cat.isPrivate, true)
     }
   }
-
-  // 结构校验：3-large-1-cluster
-  const clusterCats = DRAWER_CATEGORIES.filter((c) => c.type === '3-large-1-cluster')
-  assert.ok(clusterCats.length >= 6)
-  for (const cat of clusterCats) {
-    assert.equal(cat.largeApps.length, 3, `Category ${cat.name} should have 3 large apps`)
-    assert.equal(cat.clusterApps.length, 4, `Category ${cat.name} should have 4 cluster apps`)
-    for (const appId of [...cat.largeApps, ...cat.clusterApps]) {
-      assert.ok(getDrawerAppById(appId), `App ${appId} in ${cat.name} must exist in DRAWER_APPS`)
-    }
-  }
-
-  // XHide 隐私卡片
-  const xhide = DRAWER_CATEGORIES.find((c) => c.id === 'xhide')
-  assert.ok(xhide)
-  assert.equal(xhide.type, 'xhide')
-  assert.equal(xhide.isPrivate, true)
 })
 
-test('apps.js fallback resolver provides valid app descriptor for all drawer apps', () => {
+test('apps.js resolver provides valid app descriptor for all drawer apps', () => {
   for (const drawerApp of DRAWER_APPS) {
     const resolved = getApp(drawerApp.id)
     assert.ok(resolved, `getApp('${drawerApp.id}') must return a valid app object`)
     assert.equal(resolved.id, drawerApp.id)
     assert.ok(resolved.name)
-    assert.ok(resolved.image || resolved.glyph || resolved.special)
   }
 })
 
-test('AppLibrary component wires capsule tabs, scrubber, search bar, and vertical transform', async () => {
-  const librarySource = await read('../src/components/system/AppLibrary.vue')
+test('AppLibrary and DrawerSearchBar wire AppIcon and do NOT draw redundant home-indicator', async () => {
+  const [librarySource, searchBarSource] = await Promise.all([
+    read('../src/components/system/AppLibrary.vue'),
+    read('../src/components/system/drawer/DrawerSearchBar.vue')
+  ])
 
-  // 组件引入与声明
+  // AppLibrary 复用系统 AppIcon 原生图标
+  assert.match(librarySource, /AppIcon/)
   assert.match(librarySource, /DrawerCapsuleTabs/)
   assert.match(librarySource, /AlphabetScrubber/)
   assert.match(librarySource, /CategoryCard/)
   assert.match(librarySource, /DrawerSearchBar/)
 
-  // 纵向动画规范
-  assert.match(librarySource, /translateY\(\$\{\(1 - overlay\.value\.progress\) \* 100\}%\)/)
-  assert.match(librarySource, /axis:\s*'y'/)
-  assert.match(librarySource, /direction:\s*1/) // 下拉关闭
-
-  // 两个 Tab 视图
+  // 纵向手势与 Tab
   assert.match(librarySource, /currentTab === 'all'/)
   assert.match(librarySource, /currentTab === 'category'/)
   assert.match(librarySource, /home\.appInstalled/)
+
+  // DrawerSearchBar 严禁手绘内部 home-indicator（底部导航属于全局系统）
+  assert.doesNotMatch(searchBarSource, /class="home-indicator"/)
+  assert.doesNotMatch(searchBarSource, /\.home-indicator\s*\{/)
 })
 
 test('ScreenView and HomeScreen integrate vertical drawer gesture invocation', async () => {

@@ -1,6 +1,8 @@
 <script setup>
 import { computed, nextTick, ref } from 'vue'
 import { searchDrawerApps } from '../../../config/drawerApps'
+import { useHomeStore } from '../../../stores/homeStore'
+import AppIcon from '../../ui/AppIcon.vue'
 
 const props = defineProps({
   hidden: {
@@ -11,12 +13,15 @@ const props = defineProps({
 
 const emit = defineEmits(['select-app', 'search-active', 'open-options'])
 
+const home = useHomeStore()
+const isInstalled = (id) => (home.appInstalled ? home.appInstalled(id) : true)
+
 const isFocused = ref(false)
 const searchQuery = ref('')
 const inputRef = ref(null)
 
 const searchResults = computed(() => {
-  return searchDrawerApps(searchQuery.value)
+  return searchDrawerApps(searchQuery.value).filter((a) => isInstalled(a.id))
 })
 
 function handleFocus() {
@@ -42,6 +47,7 @@ function handleClear() {
 
 function handleSelectApp(appId) {
   emit('select-app', appId)
+  handleCancel()
 }
 
 function activateSearch() {
@@ -65,7 +71,7 @@ defineExpose({
 
 <template>
   <div class="drawer-search-wrapper" :class="{ 'is-hidden': hidden, 'is-active': isFocused }">
-    <!-- 底部渐变防穿帮遮罩层（严格真机氛围） -->
+    <!-- 底部渐变半透遮罩层（柔和通透，绝不遮挡底部圆角与全局导航） -->
     <div class="bottom-gradient-scrim"></div>
 
     <!-- 搜索结果浮层（聚焦输入时激活展示） -->
@@ -79,10 +85,12 @@ defineExpose({
               class="result-item"
               @click="handleSelectApp(app.id)"
             >
-              <div class="result-icon-wrap">
-                <img :src="app.icon" :alt="app.name" class="result-icon-img" />
-              </div>
-              <span class="result-name">{{ app.name }}</span>
+              <AppIcon
+                :app="app"
+                :size="56"
+                :show-label="true"
+                :launch-on-click="false"
+              />
             </div>
           </div>
 
@@ -101,7 +109,7 @@ defineExpose({
       </div>
     </transition>
 
-    <!-- 底部常驻一体化暗黑毛玻璃搜索胶囊 -->
+    <!-- 底部常驻一体化暗黑毛玻璃搜索胶囊（绝不自绘底部导航，自然衔接系统全局导航栏） -->
     <div class="bottom-capsule-container">
       <div class="search-capsule" @click="activateSearch">
         <!-- 搜索放大镜图标 -->
@@ -158,9 +166,6 @@ defineExpose({
           取消
         </button>
       </div>
-
-      <!-- 底部 Home Indicator 条 -->
-      <div class="home-indicator"></div>
     </div>
   </div>
 </template>
@@ -182,14 +187,14 @@ defineExpose({
   pointer-events: none;
 }
 
-/* 底部渐变暗黑遮罩 */
+/* 底部柔和渐变暗黑遮罩 */
 .bottom-gradient-scrim {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: 140px;
-  background: linear-gradient(to top, rgba(14, 17, 23, 0.98) 0%, rgba(14, 17, 23, 0.82) 55%, rgba(14, 17, 23, 0) 100%);
+  height: 96px;
+  background: linear-gradient(to top, rgba(14, 17, 23, 0.6) 0%, rgba(14, 17, 23, 0.2) 60%, rgba(14, 17, 23, 0) 100%);
   pointer-events: none;
 }
 
@@ -201,7 +206,7 @@ defineExpose({
   align-items: center;
   padding: 0 16px;
   box-sizing: border-box;
-  margin-bottom: calc(var(--safe-bottom, 16px) + 8px);
+  margin-bottom: calc(var(--safe-bottom, 34px) + 8px);
   pointer-events: auto;
 }
 
@@ -296,16 +301,6 @@ defineExpose({
   flex-shrink: 0;
 }
 
-/* 底部 Home Indicator 条 */
-.home-indicator {
-  width: 134px;
-  height: 4.5px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.45);
-  margin-top: 12px;
-  pointer-events: none;
-}
-
 /* 搜索结果全屏浮层 */
 .search-overlay {
   position: fixed;
@@ -346,32 +341,6 @@ defineExpose({
 
 .result-item:active {
   transform: scale(0.9);
-}
-
-.result-icon-wrap {
-  width: 60px;
-  height: 60px;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.result-icon-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.result-name {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
-  margin-top: 6px;
-  text-align: center;
-  max-width: 72px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .empty-search, .search-hint {

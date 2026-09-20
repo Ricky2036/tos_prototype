@@ -1,6 +1,8 @@
 <script setup>
 import { computed } from 'vue'
 import { getDrawerAppById } from '../../../config/drawerApps'
+import { useHomeStore } from '../../../stores/homeStore'
+import AppIcon from '../../ui/AppIcon.vue'
 
 const props = defineProps({
   category: {
@@ -11,19 +13,31 @@ const props = defineProps({
 
 const emit = defineEmits(['select-app', 'open-xhide'])
 
+const home = useHomeStore()
+const isInstalled = (id) => (home.appInstalled ? home.appInstalled(id) : true)
+
 const largeApps = computed(() => {
   if (props.category.type === '4-large') {
-    return (props.category.apps || []).map((id) => getDrawerAppById(id)).filter(Boolean)
+    return (props.category.apps || [])
+      .filter(isInstalled)
+      .map((id) => getDrawerAppById(id))
+      .filter(Boolean)
   }
   if (props.category.type === '3-large-1-cluster') {
-    return (props.category.largeApps || []).map((id) => getDrawerAppById(id)).filter(Boolean)
+    return (props.category.largeApps || [])
+      .filter(isInstalled)
+      .map((id) => getDrawerAppById(id))
+      .filter(Boolean)
   }
   return []
 })
 
 const clusterApps = computed(() => {
   if (props.category.type === '3-large-1-cluster') {
-    return (props.category.clusterApps || []).map((id) => getDrawerAppById(id)).filter(Boolean)
+    return (props.category.clusterApps || [])
+      .filter(isInstalled)
+      .map((id) => getDrawerAppById(id))
+      .filter(Boolean)
   }
   return []
 })
@@ -58,7 +72,7 @@ function handleCardClick() {
         <span class="xhide-tip">隐私保险箱</span>
       </div>
 
-      <!-- 4 大图标布局 -->
+      <!-- 4 大图标布局：复用原生 AppIcon，动态时钟走针/日历 -->
       <div v-else-if="category.type === '4-large'" class="grid-2x2">
         <div
           v-for="app in largeApps"
@@ -66,7 +80,12 @@ function handleCardClick() {
           class="folder-app-item"
           @click="handleAppClick(app.id, $event)"
         >
-          <img :src="app.icon" :alt="app.name" class="folder-app-icon" loading="lazy" />
+          <AppIcon
+            :app="app"
+            :size="52"
+            :show-label="false"
+            :launch-on-click="false"
+          />
         </div>
       </div>
 
@@ -79,7 +98,12 @@ function handleCardClick() {
           class="folder-app-item"
           @click="handleAppClick(app.id, $event)"
         >
-          <img :src="app.icon" :alt="app.name" class="folder-app-icon" loading="lazy" />
+          <AppIcon
+            :app="app"
+            :size="52"
+            :show-label="false"
+            :launch-on-click="false"
+          />
         </div>
 
         <!-- 第 4 格：2x2 迷你微簇 -->
@@ -90,7 +114,12 @@ function handleCardClick() {
             class="mini-app-item"
             @click="handleAppClick(cApp.id, $event)"
           >
-            <img :src="cApp.icon" :alt="cApp.name" class="mini-app-icon" loading="lazy" />
+            <AppIcon
+              :app="cApp"
+              :size="24"
+              :show-label="false"
+              :launch-on-click="false"
+            />
           </div>
         </div>
       </div>
@@ -141,8 +170,10 @@ function handleCardClick() {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
-  gap: 10px;
+  gap: 8px;
   box-sizing: border-box;
+  align-items: center;
+  justify-items: center;
 }
 
 .folder-app-item {
@@ -160,15 +191,6 @@ function handleCardClick() {
   transform: scale(0.88);
 }
 
-.folder-app-icon {
-  width: 100%;
-  height: 100%;
-  border-radius: 15px;
-  object-fit: cover;
-  display: block;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
 /* 2x2 迷你微簇容器 */
 .mini-cluster-grid {
   width: 100%;
@@ -176,11 +198,13 @@ function handleCardClick() {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
-  gap: 5px;
-  padding: 2px;
+  gap: 4px;
+  padding: 4px;
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 14px;
+  align-items: center;
+  justify-items: center;
 }
 
 .mini-app-item {
@@ -198,14 +222,6 @@ function handleCardClick() {
   transform: scale(0.84);
 }
 
-.mini-app-icon {
-  width: 100%;
-  height: 100%;
-  border-radius: 6px;
-  object-fit: cover;
-  display: block;
-}
-
 /* 卡片正下方标题 */
 .folder-name {
   margin-top: 8px;
@@ -218,28 +234,27 @@ function handleCardClick() {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
-/* XHide 样式 */
-.is-xhide {
+/* XHide 专属卡片 */
+.folder-card.is-xhide {
+  background: rgba(30, 35, 45, 0.6);
+  border-color: rgba(34, 211, 238, 0.25);
   cursor: pointer;
 }
 
 .xhide-content {
-  width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .xhide-icon-wrap {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
   background: rgba(34, 211, 238, 0.12);
   display: flex;
   align-items: center;
@@ -248,7 +263,7 @@ function handleCardClick() {
 
 .xhide-tip {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 500;
+  color: #22d3ee;
+  font-weight: 600;
 }
 </style>
