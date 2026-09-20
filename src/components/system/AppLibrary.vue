@@ -10,6 +10,7 @@ import { clamp } from '../../utils/math'
 import DrawerCapsuleTabs from './drawer/DrawerCapsuleTabs.vue'
 import AlphabetScrubber from './drawer/AlphabetScrubber.vue'
 import CategoryCard from './drawer/CategoryCard.vue'
+import DrawerFolderOverlay from './drawer/DrawerFolderOverlay.vue'
 import DrawerSearchBar from './drawer/DrawerSearchBar.vue'
 import AppIcon from '../ui/AppIcon.vue'
 
@@ -177,10 +178,36 @@ function exitFilterMode() {
   isFilterMode.value = false
 }
 
+// 大文件夹展开视图状态（参考 22.mp4）
+const activeCategoryFolder = ref(null)
+const folderOriginGeometry = ref(null)
+
+function handleOpenCategoryFolder({ category, origin }) {
+  activeCategoryFolder.value = category
+  folderOriginGeometry.value = origin
+}
+
+function handleCloseCategoryFolder() {
+  activeCategoryFolder.value = null
+  folderOriginGeometry.value = null
+}
+
+function handleCategoryFolderLaunchApp(appId) {
+  handleCloseCategoryFolder()
+  launchApp(appId)
+}
+
 watch(currentTab, () => {
   isFilterMode.value = false
+  handleCloseCategoryFolder()
   if (scrollContainerRef.value) {
     scrollContainerRef.value.scrollTop = 0
+  }
+})
+
+watch(() => overlay.value.status, (status) => {
+  if (status === 'closed' || status === 'closing') {
+    handleCloseCategoryFolder()
   }
 })
 
@@ -205,7 +232,7 @@ function onSearchActive(active) {
   isSearchActive.value = active
 }
 
-/* 下拉关闭（反向手势，仅在未滚动且非搜索态、非过滤模式时接管） */
+/* 下拉关闭（反向手势，仅在未滚动且非搜索态、非过滤模式、非展开大文件夹时接管） */
 const CLOSE_SPAN = 380
 
 useSwipeGesture(rootRef, {
@@ -213,6 +240,7 @@ useSwipeGesture(rootRef, {
   direction: 1, // 下拉关闭
   span: CLOSE_SPAN,
   canStart: () => {
+    if (activeCategoryFolder.value) return false
     if (isSearchActive.value || isFilterMode.value) return false
     if (scrollContainerRef.value && scrollContainerRef.value.scrollTop > 4) return false
     return (
@@ -249,6 +277,7 @@ useSwipeGesture(rootRef, {
 })
 
 function onBackdropClick(e) {
+  if (activeCategoryFolder.value) return
   if (isFilterMode.value) {
     exitFilterMode()
     return
@@ -379,6 +408,7 @@ onMounted(() => {
               :key="cat.id"
               :category="cat"
               @select-app="launchApp"
+              @open-folder="handleOpenCategoryFolder"
               @open-xhide="handleOpenXHide"
             />
           </div>
@@ -396,11 +426,20 @@ onMounted(() => {
         @scrubbing="handleScrubbing"
       />
 
-      <!-- 底部常驻悬浮搜索胶囊（过滤模式下优雅隐藏） -->
+      <!-- 底部常驻悬浮搜索胶囊（过滤模式或展开大文件夹时优雅隐藏） -->
       <DrawerSearchBar
-        :hidden="isScrubbing || isFilterMode"
+        :hidden="isScrubbing || isFilterMode || !!activeCategoryFolder"
         @select-app="launchApp"
         @search-active="onSearchActive"
+      />
+
+      <!-- 抽屉大文件夹展开视图（全屏深色毛玻璃 + 4 列图标网格 + Hero 动画，参考 22.mp4） -->
+      <DrawerFolderOverlay
+        v-if="activeCategoryFolder"
+        :category="activeCategoryFolder"
+        :origin="folderOriginGeometry"
+        @close="handleCloseCategoryFolder"
+        @launch-app="handleCategoryFolderLaunchApp"
       />
     </div>
   </div>
