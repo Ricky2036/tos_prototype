@@ -291,7 +291,7 @@ test('AppIcon badge anchoring and DrawerFolderOverlay top clearance prevent drif
   assert.match(overlaySource, /margin-bottom:\s*12px/)
 })
 
-test('DrawerSearchBar floats with translucent frosted glass and eliminates bottom scrim mask', async () => {
+test('DrawerSearchBar floats on current interface without blur or prompt text', async () => {
   const searchBarSource = await read('../src/components/system/drawer/DrawerSearchBar.vue')
 
   // 1. 彻底移除底部丑陋黑色遮罩（bottom-gradient-scrim）
@@ -304,6 +304,11 @@ test('DrawerSearchBar floats with translucent frosted glass and eliminates botto
   assert.match(searchBarSource, /background:\s*rgba\(36,\s*40,\s*52,\s*0\.60\)/)
   assert.match(searchBarSource, /border-radius:\s*24px/)
 
-  // 3. 搜索全屏浮层无断层底边截断（不硬写 bottom: 84px 与 0.88 纯黑遮罩）
-  assert.doesNotMatch(searchBarSource, /bottom:\s*84px;[\s\S]*background:\s*rgba\(14,\s*18,\s*26,\s*0\.88\)/)
+  // 3. 彻底去掉文案（search-hint / "输入应用名称或拼音快速检索"）与全屏背景模糊
+  assert.doesNotMatch(searchBarSource, /search-hint/)
+  assert.doesNotMatch(searchBarSource, /输入应用名称或拼音快速检索/)
+  assert.doesNotMatch(searchBarSource, /\.search-overlay\s*\{[^}]*backdrop-filter/)
+
+  // 4. 仅在输入关键字时展示结果列表，未输入时完全悬浮于当前界面
+  assert.match(searchBarSource, /v-if="isFocused && searchQuery\.trim\(\)"/)
 })
