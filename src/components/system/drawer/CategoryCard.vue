@@ -60,6 +60,29 @@ const clusterApps = computed(() => {
 function getOriginData() {
   if (!cardRef.value) return null
   const screen = cardRef.value.closest('.screen-view') || document.querySelector('.screen-view')
+
+  // 点击卡片或图标时，:active 或 transition 缩放会导致卡片临时缩小下沉（约 1-3px 偏移）。
+  // 必须临时重置 transform/transition 测量物理静止态基准坐标，杜绝回位最后一帧向上抖动。
+  const transformedEls = [
+    cardRef.value,
+    clusterRef.value,
+    ...cardRef.value.querySelectorAll('.folder-app-item, .mini-cluster-grid, .mini-app-item')
+  ].filter(Boolean)
+
+  const savedStyles = transformedEls.map((el) => ({
+    el,
+    transform: el.style.transform,
+    transition: el.style.transition
+  }))
+
+  for (const { el } of savedStyles) {
+    el.style.transform = 'none'
+    el.style.transition = 'none'
+  }
+
+  // 强制读取 offsetWidth 触发重绘刷新几何
+  void cardRef.value.offsetWidth
+
   const cardRect = screen ? rectRelativeToScreen(cardRef.value, screen) : cardRef.value.getBoundingClientRect()
   const titleRect = nameRef.value ? (screen ? rectRelativeToScreen(nameRef.value, screen) : nameRef.value.getBoundingClientRect()) : null
   const clusterRect = clusterRef.value ? (screen ? rectRelativeToScreen(clusterRef.value, screen) : clusterRef.value.getBoundingClientRect()) : null
@@ -70,6 +93,13 @@ function getOriginData() {
       iconRects[id] = screen ? rectRelativeToScreen(anchor, screen) : anchor.getBoundingClientRect()
     }
   }
+
+  // 恢复行内样式
+  for (const { el, transform, transition } of savedStyles) {
+    el.style.transform = transform
+    el.style.transition = transition
+  }
+
   return {
     cardRect,
     titleRect,
@@ -96,7 +126,11 @@ function handleAppClick(appId, e) {
 </script>
 
 <template>
-  <div class="category-folder-wrapper" :class="{ 'is-folder-open': isFolderOpen }">
+  <div
+    class="category-folder-wrapper"
+    :data-category-id="category.id"
+    :class="{ 'is-folder-open': isFolderOpen }"
+  >
     <!-- 桌面大文件夹 1:1 正方形白色半透毛玻璃卡片（参考 media_1789896055622.jpg） -->
     <div
       ref="cardRef"
