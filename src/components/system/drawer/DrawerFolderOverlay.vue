@@ -117,14 +117,20 @@ function prepareMotion() {
     if (!tileRect || !iconElRect) continue
 
     // 以每个图标 tile 的绝对中心作为缩放旋转原点，彻底防止拉伸变形
-    const originX = Math.round(tileRect.left - iconElRect.left + tileRect.width / 2)
-    const originY = Math.round(tileRect.top - iconElRect.top + tileRect.height / 2)
+    const originX = tileRect.left - iconElRect.left + tileRect.width / 2
+    const originY = tileRect.top - iconElRect.top + tileRect.height / 2
     iconEl.style.transformOrigin = `${originX}px ${originY}px`
+
+    const tileCenterX = tileRect.left + tileRect.width / 2
+    const tileCenterY = tileRect.top + tileRect.height / 2
 
     const originRect = iconFroms[app.id]
     if (originRect && originRect.width > 0) {
-      const cx = originRect.left - tileRect.left
-      const cy = originRect.top - tileRect.top
+      // 严格以物理中心计算位移差，彻底杜绝微簇小图标（24px 与 50px 缩放）在最后一帧的 13px 坐标漂移
+      const originCenterX = originRect.left + originRect.width / 2
+      const originCenterY = originRect.top + originRect.height / 2
+      const cx = originCenterX - tileCenterX
+      const cy = originCenterY - tileCenterY
       const scale = originRect.width / tileRect.width
       iconMotions.set(app.id, {
         cx,
@@ -136,8 +142,6 @@ function prepareMotion() {
       // 未在源卡片直接露出的图标（第 8 个之后），从微簇中心优雅向外发散
       const targetCenterX = clusterFrom.left + clusterFrom.width / 2
       const targetCenterY = clusterFrom.top + clusterFrom.height / 2
-      const tileCenterX = tileRect.left + tileRect.width / 2
-      const tileCenterY = tileRect.top + tileRect.height / 2
       iconMotions.set(app.id, {
         cx: targetCenterX - tileCenterX,
         cy: targetCenterY - tileCenterY,
