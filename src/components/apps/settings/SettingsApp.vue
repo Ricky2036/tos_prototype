@@ -12,6 +12,7 @@ import SettingsNotifications from './SettingsNotifications.vue'
 import SettingsSound from './SettingsSound.vue'
 import SettingsDND from './SettingsDND.vue'
 import SettingsPrayer from './SettingsPrayer.vue'
+import SettingsPersonalization from './personalization/SettingsPersonalization.vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
 import { useSystemStore } from '../../../stores/systemStore'
@@ -85,7 +86,9 @@ function pop() {
 /* 全局侧滑返回：子页 → 首页逐层消费 */
 const notifRef = ref(null)
 const prayerRef = ref(null)
+const personalizationRef = ref(null)
 useBackHandler(() => {
+  if (view.value === 'personalization' && personalizationRef.value?.back()) return true
   if (view.value === 'prayer' && prayerRef.value?.back()) return true
   if (view.value === 'notifications' && notifRef.value?.back()) return true
   if (stack.value.length > 1) { pop(); return true }
@@ -102,6 +105,7 @@ const viewTitles = computed(() => ({
   sound: i18n.t('soundAndVibration') || '声音与振动',
   dnd: i18n.t('dnd') || '勿扰模式',
   prayer: i18n.t('prayerDnd') || '礼拜模式',
+  personalization: '主题与个性化',
   placeholder: placeholderTitle.value || '设置'
 }))
 
@@ -143,7 +147,7 @@ const allSearchableItems = [
   { id: 'bluetooth', title: '蓝牙', group: '网络与连接', action: () => pushUnimplemented('蓝牙') },
   { id: 'multiDevice', title: '多设备连接', group: '网络与连接', action: () => pushUnimplemented('多设备连接') },
   { id: 'infinixAi', title: 'Infinix AI', group: '特色功能', action: () => pushUnimplemented('Infinix AI') },
-  { id: 'wallpaper', title: '壁纸与个性化', group: '个性化', action: () => pushUnimplemented('壁纸与个性化') },
+  { id: 'wallpaper', title: '壁纸与个性化', group: '个性化', action: () => push('personalization') },
   { id: 'display', title: '显示与亮度', group: '显示', action: () => push('display') },
   { id: 'sound', title: '声音与振动', group: '声音', action: () => push('sound') },
   { id: 'notifications', title: '通知与状态栏', group: '通知', action: () => push('notifications') },
@@ -314,7 +318,7 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- 壁纸与个性化 -->
-              <ListCell title="壁纸与个性化" chevron @click="pushUnimplemented('壁纸与个性化')">
+              <ListCell title="壁纸与个性化" chevron @click="push('personalization')">
                 <template #icon>
                   <div class="squircle-icon bg-wallpaper">
                     <SettingsSystemIcon name="wallpaper" :size="19" />
@@ -525,6 +529,11 @@ const filteredSearchResults = computed(() => {
       <!-- ================= 通知与状态栏 (含礼拜灵动岛与闹钟联动设置) ================= -->
       <div v-else-if="view === 'notifications'" key="notifications" class="settings-page">
         <SettingsNotifications ref="notifRef" @back-to-settings="pop" />
+      </div>
+
+      <!-- ================= 主题与个性化 ================= -->
+      <div v-else-if="view === 'personalization'" key="personalization" class="settings-page">
+        <SettingsPersonalization ref="personalizationRef" @back="pop" />
       </div>
 
       <!-- ================= 其他二级页 ================= -->
