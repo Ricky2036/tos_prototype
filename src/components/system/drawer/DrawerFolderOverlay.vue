@@ -289,6 +289,8 @@ onMounted(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .folder-backdrop {
@@ -307,14 +309,17 @@ onMounted(() => {
   z-index: 2;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  width: 100%;
+  max-height: 82%;
   box-sizing: border-box;
+  transform: translateY(-16px);
 }
 
-/* 顶部标题栏：左对齐大号文字，留白对齐 22.mp4 */
+/* 标题栏：左对齐大号文字，与整体网格对齐 */
 .folder-header {
-  margin-top: 76px;
+  margin-top: 0;
   padding: 0 24px;
+  margin-bottom: 20px;
   flex-shrink: 0;
 }
 
@@ -331,10 +336,10 @@ onMounted(() => {
 }
 
 .folder-grid-scroll {
-  flex: 1;
+  flex: 0 1 auto;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 0 40px 0;
+  padding: 0;
   box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
 }
@@ -343,10 +348,10 @@ onMounted(() => {
 .folder-app-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  row-gap: 28px;
+  row-gap: 24px;
   column-gap: 12px;
   justify-items: center;
-  padding: 28px 20px 60px;
+  padding: 0 20px;
   box-sizing: border-box;
   width: 100%;
 }
