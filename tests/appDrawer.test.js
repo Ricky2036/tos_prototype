@@ -182,6 +182,10 @@ test('AppLibrary implements letter filter focus mode and spacious grid metrics',
   assert.match(librarySource, /apps\.length > 0[\s\S]*isFilterMode\.value = true[\s\S]*isFilterMode\.value = false/)
   assert.doesNotMatch(librarySource, /empty-letter-state/)
 
+  // 导轨仅展示有对应应用的字母（无对应应用的字母不显示）
+  assert.match(librarySource, /:letters="lettersWithApps"/)
+  assert.match(scrubberSource, /gap:\s*12px/)
+
   // 导轨移除浮动字母气泡，防止点击时出现重复字母
   assert.doesNotMatch(scrubberSource, /class="scrubber-floating-char"/)
 })

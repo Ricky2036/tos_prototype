@@ -27,7 +27,11 @@ const props = defineProps({
 
 const emit = defineEmits(['select', 'scrubbing'])
 
-const activeList = computed(() => (props.letters && props.letters.length > 0 ? props.letters : ALPHABET_LIST))
+const activeList = computed(() => {
+  if (props.letters && props.letters.length > 0) return props.letters
+  if (props.lettersWithApps && props.lettersWithApps.length > 0) return props.lettersWithApps
+  return ALPHABET_LIST
+})
 
 const isDragging = ref(false)
 const previewLetter = ref('')
@@ -66,15 +70,27 @@ function getLetterFromEvent(e) {
     }
   }
 
-  const rect = barRef.value.getBoundingClientRect()
-  const clampedY = Math.max(rect.top, Math.min(rect.bottom - 1, e.clientY))
-  const ratio = (clampedY - rect.top) / rect.height
-  const index = Math.floor(ratio * activeList.value.length)
-  const validIndex = Math.max(0, Math.min(activeList.value.length - 1, index))
-  return {
-    letter: activeList.value[validIndex],
-    y: clampedY - rect.top
+  const items = Array.from(barRef.value.querySelectorAll('.scrubber-item'))
+  if (items.length > 0) {
+    let closest = items[0]
+    let minDistance = Infinity
+    for (const item of items) {
+      const itemRect = item.getBoundingClientRect()
+      const itemCenterY = itemRect.top + itemRect.height / 2
+      const dist = Math.abs(e.clientY - itemCenterY)
+      if (dist < minDistance) {
+        minDistance = dist
+        closest = item
+      }
+    }
+    const rect = barRef.value.getBoundingClientRect()
+    const itemRect = closest.getBoundingClientRect()
+    return {
+      letter: closest.dataset.letter,
+      y: itemRect.top + itemRect.height / 2 - rect.top
+    }
   }
+  return null
 }
 
 function onPointerDown(e) {
@@ -161,7 +177,8 @@ function onClickLetter(letter, e) {
   width: 18px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 12px;
   align-items: center;
   user-select: none;
   touch-action: none;
@@ -174,28 +191,28 @@ function onClickLetter(letter, e) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font: 700 8.5px/1 var(--font-stack, -apple-system, BlinkMacSystemFont, sans-serif);
-  color: rgba(255, 255, 255, 0.3);
+  font: 700 9.5px/1 var(--font-stack, -apple-system, BlinkMacSystemFont, sans-serif);
+  color: rgba(255, 255, 255, 0.65);
   transition: color 0.12s ease, transform 0.12s ease;
   width: 16px;
-  height: 13.5px;
+  height: 15px;
   cursor: pointer;
   border-radius: 3px;
 }
 
-.scrubber-item.has-apps {
-  color: rgba(255, 255, 255, 0.62);
+.scrubber-item:hover {
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .scrubber-item.is-active {
   color: #22d3ee;
   font-weight: 900;
-  transform: scale(1.3);
+  transform: scale(1.35);
 }
 
 .scrubber-item.is-scrubbed {
   color: #00f0ff;
   font-weight: 900;
-  transform: scale(1.45);
+  transform: scale(1.5);
 }
 </style>

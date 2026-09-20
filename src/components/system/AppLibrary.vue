@@ -385,10 +385,10 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 右侧垂直 A-Z 字母快速检索导轨（仅全部 Tab 下展示） -->
+      <!-- 右侧垂直 A-Z 字母快速检索导轨（仅全部 Tab 下展示；仅展示有对应应用的字母） -->
       <AlphabetScrubber
         v-if="currentTab === 'all'"
-        :letters="ALPHABET_LIST"
+        :letters="lettersWithApps"
         :letters-with-apps="lettersWithApps"
         :active-letter="activeLetter"
         :is-filter-mode="isFilterMode"
