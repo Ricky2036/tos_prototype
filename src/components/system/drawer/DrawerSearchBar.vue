@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { searchDrawerApps } from '../../../config/drawerApps'
 import { useHomeStore } from '../../../stores/homeStore'
 import AppIcon from '../../ui/AppIcon.vue'
@@ -63,6 +63,21 @@ function handleMoreOptions(e) {
   emit('open-options')
 }
 
+function onGlobalPointerDown(e) {
+  if (!isFocused.value || searchQuery.value.trim()) return
+  const capsule = document.querySelector('.bottom-capsule-container')
+  if (capsule && capsule.contains(e.target)) return
+  handleCancel()
+}
+
+onMounted(() => {
+  window.addEventListener('pointerdown', onGlobalPointerDown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('pointerdown', onGlobalPointerDown)
+})
+
 defineExpose({
   activateSearch,
   handleCancel
@@ -71,11 +86,11 @@ defineExpose({
 
 <template>
   <div class="drawer-search-wrapper" :class="{ 'is-hidden': hidden, 'is-active': isFocused }">
-    <!-- 搜索结果浮层（聚焦输入时激活展示，通透毛玻璃全屏覆盖，绝无断层遮罩） -->
+    <!-- 搜索结果浮层（仅在输入了关键词时展示，去除模糊与提示文案，完全悬浮于当前界面） -->
     <transition name="fade">
-      <div v-if="isFocused" class="search-overlay" @click.self="handleCancel">
+      <div v-if="isFocused && searchQuery.trim()" class="search-overlay" @click.self="handleCancel">
         <div class="search-results-box scrollable" @click.self="handleCancel">
-          <div v-if="searchQuery.trim() && searchResults.length > 0" class="results-grid">
+          <div v-if="searchResults.length > 0" class="results-grid">
             <div
               v-for="app in searchResults"
               :key="app.id"
@@ -91,16 +106,12 @@ defineExpose({
             </div>
           </div>
 
-          <div v-else-if="searchQuery.trim() && searchResults.length === 0" class="empty-search">
+          <div v-else class="empty-search">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="empty-icon">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
             <p>未找到相关应用</p>
-          </div>
-
-          <div v-else class="search-hint">
-            <p>输入应用名称或拼音快速检索</p>
           </div>
         </div>
       </div>
@@ -289,13 +300,11 @@ defineExpose({
   flex-shrink: 0;
 }
 
-/* 搜索结果全屏浮层：通透半透深色毛玻璃全屏延展，绝无断层黑色遮罩 */
+/* 搜索结果全屏浮层：仅在有搜索内容时展示结果，无遮罩与模糊，搜索框完全悬浮于当前界面 */
 .search-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(14, 18, 26, 0.45);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background: #12141a;
   z-index: 90;
   pointer-events: auto;
   padding-top: calc(var(--safe-top, 24px) + 50px);
@@ -330,7 +339,7 @@ defineExpose({
   transform: scale(0.9);
 }
 
-.empty-search, .search-hint {
+.empty-search {
   display: flex;
   flex-direction: column;
   align-items: center;
