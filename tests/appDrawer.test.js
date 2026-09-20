@@ -311,4 +311,8 @@ test('DrawerSearchBar floats on current interface without blur or prompt text', 
 
   // 4. 仅在输入关键字时展示结果列表，未输入时完全悬浮于当前界面
   assert.match(searchBarSource, /v-if="isFocused && searchQuery\.trim\(\)"/)
+
+  // 5. 去掉取消文案，换为小叉叉关闭/清空图标
+  assert.doesNotMatch(searchBarSource, />\s*取消\s*</)
+  assert.match(searchBarSource, /class="capsule-cancel-btn"[\s\S]*<line x1="18" y1="6" x2="6" y2="18"/)
 })
