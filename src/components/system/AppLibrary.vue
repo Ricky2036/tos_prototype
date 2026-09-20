@@ -415,14 +415,13 @@ onMounted(() => {
   border-radius: var(--screen-radius, 50px);
   overflow: hidden;
   user-select: none;
+  background: #12141a;
 }
 
 .drawer-backdrop {
   position: absolute;
-  inset: -40px;
-  background: rgba(18, 20, 26, 0.82);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  inset: -10px;
+  background: linear-gradient(180deg, #181a22 0%, #111218 100%);
   z-index: 1;
 }
 

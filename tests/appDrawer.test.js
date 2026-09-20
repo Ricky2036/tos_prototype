@@ -227,8 +227,8 @@ test('AppLibrary adheres to refined UI metrics and prevents corner wallpaper lea
   // 4. 搜索栏距离底部 24px
   assert.match(searchBarSource, /margin-bottom:\s*24px/)
 
-  // 5. 四角防透底：抽屉圆角同心裁切 + 背景外扩 -40px 消除边缘模糊衰减
+  // 5. 四角防透底：抽屉圆角同心裁切 + 实体深色背景彻底杜绝壁纸透底
   assert.match(librarySource, /border-radius:\s*var\(--screen-radius,\s*50px\)/)
-  assert.match(librarySource, /inset:\s*-40px/)
+  assert.match(librarySource, /background:\s*#12141a/)
 })
 
