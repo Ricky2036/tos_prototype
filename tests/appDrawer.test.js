@@ -238,3 +238,23 @@ test('AppLibrary adheres to refined UI metrics and maintains authentic frosted g
   assert.match(frameSource, /box-shadow:\s*inset\s+0\s+0\s+0\s+6px\s+#000000/)
 })
 
+test('DrawerFolderOverlay calculates icon motion using center-to-center delta translation to eliminate cluster hitch', async () => {
+  const overlaySource = await read('../src/components/system/drawer/DrawerFolderOverlay.vue')
+
+  // 必须以 tile 物理中心为 transform-origin
+  assert.match(overlaySource, /const originX = tileRect\.left - iconElRect\.left \+ tileRect\.width \/ 2/)
+  assert.match(overlaySource, /const originY = tileRect\.top - iconElRect\.top \+ tileRect\.height \/ 2/)
+  assert.match(overlaySource, /iconEl\.style\.transformOrigin = `\${originX}px \${originY}px`/)
+
+  // 必须严格使用中心对齐差值（originCenterX - tileCenterX, originCenterY - tileCenterY）
+  assert.match(overlaySource, /const originCenterX = originRect\.left \+ originRect\.width \/ 2/)
+  assert.match(overlaySource, /const originCenterY = originRect\.top \+ originRect\.height \/ 2/)
+  assert.match(overlaySource, /const cx = originCenterX - tileCenterX/)
+  assert.match(overlaySource, /const cy = originCenterY - tileCenterY/)
+
+  // 不得退回基于 top-left 的差值（否则 24px 微簇小图标收起最后一帧会有 13px 坐标跳变）
+  assert.doesNotMatch(overlaySource, /const cx = originRect\.left - tileRect\.left/)
+  assert.doesNotMatch(overlaySource, /const cy = originRect\.top - tileRect\.top/)
+})
+
+
