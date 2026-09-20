@@ -120,6 +120,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Fix category folder collapse icon cluster final-frame position alignment (center-to-center delta translation) to eliminate 13px hitch | `antigravity/lane` | None (locks released) | `2ce3f56` | `33271fa` |
 | Merged | Antigravity | Eliminate category folder closing final-frame jitter and upward displacement (active transform clearing & live DOM resting sampling) | `antigravity/lane` | None (locks released) | `487d5c8` | `a38950a` |
 | Merged | Antigravity | Fix app icon badge drifting (anchorRef right positioning) and folder grid clipping (top clearance) | `antigravity/lane` | None (locks released) | `4aaaf07` | `7d691f1` |
+| Merged | Antigravity | Floating translucent frosted glass search capsule and remove ugly bottom scrim mask & seam | `antigravity/lane` | None (locks released) | `4c33c90` | `5af4cc5` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 

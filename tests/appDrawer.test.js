@@ -291,6 +291,19 @@ test('AppIcon badge anchoring and DrawerFolderOverlay top clearance prevent drif
   assert.match(overlaySource, /margin-bottom:\s*12px/)
 })
 
+test('DrawerSearchBar floats with translucent frosted glass and eliminates bottom scrim mask', async () => {
+  const searchBarSource = await read('../src/components/system/drawer/DrawerSearchBar.vue')
 
+  // 1. 彻底移除底部丑陋黑色遮罩（bottom-gradient-scrim）
+  assert.doesNotMatch(searchBarSource, /class="bottom-gradient-scrim"/)
+  assert.doesNotMatch(searchBarSource, /\.bottom-gradient-scrim/)
 
+  // 2. 搜索框悬浮胶囊具备半透深色毛玻璃效果
+  assert.match(searchBarSource, /\.search-capsule\s*\{/)
+  assert.match(searchBarSource, /backdrop-filter:\s*blur\(24px\)/)
+  assert.match(searchBarSource, /background:\s*rgba\(36,\s*40,\s*52,\s*0\.60\)/)
+  assert.match(searchBarSource, /border-radius:\s*24px/)
 
+  // 3. 搜索全屏浮层无断层底边截断（不硬写 bottom: 84px 与 0.88 纯黑遮罩）
+  assert.doesNotMatch(searchBarSource, /bottom:\s*84px;[\s\S]*background:\s*rgba\(14,\s*18,\s*26,\s*0\.88\)/)
+})
