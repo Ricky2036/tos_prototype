@@ -264,16 +264,23 @@ onMounted(() => {
         class="drawer-body scrollable"
         @scroll="handleScroll"
       >
-        <!-- ── 模式 A: 字母过滤聚焦视图（点击/滑动右侧导轨时激活，隐藏其他图标和界面） ── -->
+        <!-- ── 模式 A: 字母过滤聚焦视图（像素级对齐 media_1789877584491.jpg，点击右侧导轨字母激活） ── -->
         <transition name="fade-filter">
           <div v-if="isFilterMode" class="filter-mode-container" @click="exitFilterMode">
-            <div class="filtered-apps-wrapper" @click.stop>
+            <div class="filtered-apps-wrapper">
+              <!-- 顶部大号字母标题：置于第 4 列上方，右边缘对齐第 4 列应用图标（对齐参考图 2） -->
+              <div class="filter-header-row">
+                <div class="filter-letter-col">
+                  <span class="filter-letter-title">{{ filterLetter }}</span>
+                </div>
+              </div>
+
               <div v-if="filteredApps.length > 0" class="app-grid four-columns filtered-app-grid">
                 <div
                   v-for="app in filteredApps"
                   :key="app.id"
                   class="grid-app-item"
-                  @click="launchApp(app.id)"
+                  @click.stop="launchApp(app.id)"
                 >
                   <AppIcon
                     :app="app"
@@ -470,7 +477,7 @@ onMounted(() => {
   scroll-margin-top: calc(var(--safe-top, 24px) + 70px);
 }
 
-/* ── 字母过滤模式视图（对齐 media_1789875217726.jpg） ── */
+/* ── 字母过滤模式视图（像素级对齐 media_1789877584491.jpg） ── */
 .filter-mode-container {
   width: 100%;
   min-height: 100%;
@@ -479,9 +486,44 @@ onMounted(() => {
 }
 
 .filtered-apps-wrapper {
-  margin-top: calc(var(--safe-top, 24px) + 76px);
+  margin-top: calc(var(--safe-top, 24px) + 54px);
   width: 100%;
   box-sizing: border-box;
+}
+
+/* 顶部字母标题行：与 4 列网格共享边距与列宽，标题字母精准对齐第 4 列应用图标右边缘 */
+.filter-header-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  column-gap: 12px;
+  justify-items: center;
+  padding: 0 26px 0 14px;
+  box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 22px;
+}
+
+.filter-letter-col {
+  grid-column: 4;
+  width: 66px;
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 8px; /* (66px - 50px) / 2 = 8px，与下方 50px 图标右边缘绝对齐平 */
+  box-sizing: border-box;
+}
+
+.filter-letter-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75);
+  user-select: none;
+  font-family: var(--font-stack, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+}
+
+.filtered-app-grid {
+  width: 100%;
 }
 
 .empty-letter-state {

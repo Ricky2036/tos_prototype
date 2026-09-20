@@ -154,13 +154,28 @@ test('AppLibrary and DrawerSearchBar wire AppIcon and do NOT draw redundant home
 })
 
 test('AppLibrary implements letter filter focus mode and spacious grid metrics', async () => {
-  const librarySource = await read('../src/components/system/AppLibrary.vue')
+  const [librarySource, scrubberSource] = await Promise.all([
+    read('../src/components/system/AppLibrary.vue'),
+    read('../src/components/system/drawer/AlphabetScrubber.vue')
+  ])
+
   // 字母过滤聚焦模式：隐藏其他图标与界面
   assert.match(librarySource, /isFilterMode/)
   assert.match(librarySource, /filteredApps/)
   assert.match(librarySource, /filter-mode-container/)
   assert.match(librarySource, /row-gap:\s*28px/)
   assert.match(librarySource, /:size="50"/)
+
+  // 顶部大写字母标题置于第 4 列上方，右边缘对齐应用图标（对齐 media_1789877584491.jpg）
+  assert.match(librarySource, /filter-header-row/)
+  assert.match(librarySource, /filter-letter-col/)
+  assert.match(librarySource, /filter-letter-title/)
+  assert.match(librarySource, /grid-column:\s*4/)
+  assert.match(librarySource, /padding-right:\s*8px/)
+
+  // 导轨大号气泡仅在拖拽时显示，过滤模式下由 AppLibrary 头部承载字母
+  assert.match(scrubberSource, /v-if="isDragging && previewLetter"/)
+  assert.doesNotMatch(scrubberSource, /isFilterMode && activeLetter/)
 })
 
 test('ScreenView and HomeScreen integrate vertical drawer gesture invocation', async () => {

@@ -150,14 +150,14 @@ function onClickLetter(letter, e) {
       {{ letter }}
     </div>
 
-    <!-- 拖拽/点击时常驻的大号字母指示（紧邻导轨左侧对齐当前选中字母） -->
+    <!-- 拖拽导轨时指示当前手指位置的大号字母气泡（松手后自动淡出） -->
     <Transition name="fade-char">
       <div
-        v-if="(isDragging && previewLetter) || (isFilterMode && activeLetter)"
+        v-if="isDragging && previewLetter"
         class="scrubber-floating-char"
-        :style="{ top: (isDragging ? previewY : activeY) + 'px' }"
+        :style="{ top: previewY + 'px' }"
       >
-        {{ isDragging ? previewLetter : activeLetter }}
+        {{ previewLetter }}
       </div>
     </Transition>
   </div>
