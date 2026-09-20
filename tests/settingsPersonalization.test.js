@@ -34,6 +34,7 @@ test('personalization page provides overview, theme market and wallpaper picker'
   assert.match(personalization, /\.menu-icon \.color-grid-glyph \{ width:35px; height:35px/)
   assert.match(personalization, /class="filled-wallpaper-glyph"/)
   assert.match(personalization, /class="filled-phone-glyph"/)
+  assert.match(personalization, /\.filled-phone-glyph \{ width:22px; height:26px/)
   assert.match(personalization, /\.font-glyph \{ font:400 19px/)
   assert.doesNotMatch(personalization, /mini-dock/)
   assert.match(personalization, /plus-ring.*<svg/s)

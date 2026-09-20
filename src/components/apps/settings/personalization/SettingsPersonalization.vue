@@ -125,9 +125,8 @@ const menuItems = [
                 <path d="m5 17 4.1-4.4 3.15 2.75 2.65-3.05 4.15 4.7Z" fill="#7658ff" />
               </svg>
               <svg v-else-if="item.icon === 'phone'" class="filled-phone-glyph" viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="6.5" y="2" width="11" height="20" rx="3" fill="#fff" />
-                <rect x="8.4" y="4" width="7.2" height="14.8" rx="1.35" fill="#3f3f42" />
-                <rect x="10.1" y="20" width="3.8" height=".8" rx=".4" fill="#3f3f42" />
+                <rect x="4.25" y="1.5" width="15.5" height="21" rx="3.4" fill="#fff" />
+                <rect x="9" y="18.7" width="6" height="1.35" rx=".675" fill="#3f3f42" />
               </svg>
               <svg v-else-if="item.icon === 'grid'" class="color-grid-glyph" viewBox="0 0 28 28" aria-hidden="true">
                 <rect class="grid-shell" x="0.75" y="0.75" width="26.5" height="26.5" rx="7" />
@@ -237,7 +236,7 @@ const menuItems = [
 .icon-image { background:linear-gradient(145deg,#8b6aff,#5a3bea)!important; }.icon-phone { background:linear-gradient(145deg,#4b4b4f,#242426)!important; }.icon-font,.icon-lock { background:linear-gradient(145deg,#178dff,#0060e8)!important; }.icon-palette { background:linear-gradient(145deg,#35dbdf,#08aeb9)!important; }.icon-desktop { background:linear-gradient(145deg,#896fff,#5740e5)!important; }
 .menu-icon svg { width:20px; height:20px; fill:none; stroke:white; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
 .menu-icon .filled-wallpaper-glyph { width:20px; height:20px; stroke:none; }
-.menu-icon .filled-phone-glyph { width:18px; height:21px; stroke:none; }
+.menu-icon .filled-phone-glyph { width:22px; height:26px; stroke:none; }
 .menu-icon .color-grid-glyph { width:35px; height:35px; stroke:none; overflow:visible; }
 .color-grid-glyph .grid-shell { fill:#f7f7f8; stroke:#d9d9dc; stroke-width:.7; }
 .icon-palette svg { width:19px; height:19px; }
