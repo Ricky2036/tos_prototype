@@ -1742,6 +1742,7 @@ function notifStyle(i) {
   letter-spacing: 0.5px;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
   pointer-events: none;
+  z-index: 3;
 }
 
 /* 巨大时钟 */
@@ -1756,6 +1757,7 @@ function notifStyle(i) {
   opacity: 0.95;
   will-change: height;
   pointer-events: none;
+  z-index: 1;
 }
 .ls-clock svg {
   width: 85%;
@@ -1781,7 +1783,7 @@ function notifStyle(i) {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 1;
+  z-index: 2;
 }
 .ls-depth-img {
   width: 100%;
@@ -1791,7 +1793,7 @@ function notifStyle(i) {
   filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.35));
 }
 
-/* 裁剪容器：贯通式容器对齐全屏边缘，卡片滑动至屏幕边缘直接被视口平齐裁切 */
+/* 裁剪容器：贯通式容器对齐全屏边缘，卡片滑动至屏幕边缘直接被视口平齐裁切；z-index 设为 10，确保通知与播放器始终在景深主体上方，绝不被遮挡 */
 .ls-clip {
   position: absolute;
   top: 0;
@@ -1806,6 +1808,7 @@ function notifStyle(i) {
   touch-action: pan-y;
   pointer-events: none;
   will-change: clip-path;
+  z-index: 10;
 }
 .ls-clip::-webkit-scrollbar { display: none; }
 .ls-scroll-stage {
@@ -2208,6 +2211,7 @@ function notifStyle(i) {
   justify-content: space-between;
   padding: 0 44px;
   pointer-events: none;
+  z-index: 30;
 }
 .ls-shortcut {
   width: 50px;

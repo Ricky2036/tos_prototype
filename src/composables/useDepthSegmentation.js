@@ -12,7 +12,9 @@ const presetSubjectUrls = (typeof import.meta !== 'undefined' && typeof import.m
 // 预置备用映射表（Node.js 测试环境回退）
 const FALLBACK_PRESETS = {
   'pet-golden-retriever': '/src/assets/img/personalization/generated/pet-golden-retriever-subject.png',
-  'pet-white-gray-cat': '/src/assets/img/personalization/generated/pet-white-gray-cat-subject.png'
+  'pet-white-gray-cat': '/src/assets/img/personalization/generated/pet-white-gray-cat-subject.png',
+  'person-field': '/src/assets/img/personalization/generated/person-field-subject.png',
+  'person-haze': '/src/assets/img/personalization/generated/person-haze-subject.png'
 }
 
 // 缓存已解析的主体映射
@@ -194,16 +196,38 @@ export function useDepthSegmentation() {
       const imgData = ctx.getImageData(0, 0, w, h)
       const pixels = imgData.data
 
-      // 选择非背景中置信度最高的主体
+      // 检查 labels，优先选用人像（person）或常见宠物（dog/cat）
+      const labels = typeof segmenter.getLabels === 'function' ? segmenter.getLabels() : []
       let bestMask = null
       let bestSum = 0
-      for (let i = 1; i < masks.length; i++) {
-        const maskArr = masks[i].getAsFloat32Array()
-        let sum = 0
-        for (let j = 0; j < maskArr.length; j += 64) sum += maskArr[j]
-        if (sum > bestSum) {
-          bestSum = sum
-          bestMask = maskArr
+
+      if (Array.isArray(labels) && labels.length > 0) {
+        for (let i = 0; i < labels.length; i++) {
+          const l = String(labels[i]).toLowerCase()
+          if (l === 'person' || l === 'dog' || l === 'cat') {
+            if (masks[i]) {
+              const maskArr = masks[i].getAsFloat32Array()
+              let sum = 0
+              for (let j = 0; j < maskArr.length; j += 64) sum += maskArr[j]
+              if (sum > bestSum && sum > 20) {
+                bestSum = sum
+                bestMask = maskArr
+              }
+            }
+          }
+        }
+      }
+
+      // 若未通过优先标签匹配到显著主体，则选择非背景中置信度最高的主体
+      if (!bestMask) {
+        for (let i = 1; i < masks.length; i++) {
+          const maskArr = masks[i].getAsFloat32Array()
+          let sum = 0
+          for (let j = 0; j < maskArr.length; j += 64) sum += maskArr[j]
+          if (sum > bestSum) {
+            bestSum = sum
+            bestMask = maskArr
+          }
         }
       }
 
