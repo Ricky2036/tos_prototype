@@ -1,16 +1,18 @@
-/* 音量玻璃「白度」回归探针（2026-09-20）
+/* 音量玻璃「透过率」回归探针（2026-09-20，同日修订判据）
  *
  * 为什么必须用像素：`getComputedStyle` 只给得到「半透明白 α」这种**声明值**，
- * 给不到合成后屏上真正的颜色 —— 而 Ricky 抱怨的正是「玻璃背景颜色看起来很奇怪」。
- * 玻璃是半透明的：最终颜色 = α·白 + (1−α)·(被 backdrop-filter 处理过的背景)，
- * 所以只有量像素才能证明它是白的。
+ * 给不到合成后屏上真正的颜色。玻璃是半透明的：
+ *   最终颜色 = α·白 + (1 − α)·(被 backdrop-filter 处理过的背景)
+ * 所以只有量像素才能证明它是不是一块**透明毛玻璃**。
  *
- * 仪器定义：
- *   luma   = 0.2126R + 0.7152G + 0.0722B
- *   chroma = max(R,G,B) − min(R,G,B)   ← 「白不白」的判据：越小越中性
- * 线性混色下 **chroma_结果 ≈ (1 − α) · chroma_背景**
- * ⇒ 想压到 chroma ≤ T 就要 α ≥ 1 − T / chroma_背景。
- * 所以每个玻璃面都配一个**紧邻它的背景采样点**，用来看「玻璃有没有真的把色偏压下去」。
+ * ⚠️ 判据在 2026-09-20 当天修订过一次，别改回去：
+ *   旧判据「玻璃 chroma ≤ 32（够白）」是**错的** —— 低 chroma 既可能是「不透明」，
+ *   也可能是「透明、但背景本来就是灰的」，这个数**区分不出来**。
+ *   照着旧判据调出来的 `saturate(20%)` 把背景颜色杀掉 ~80% ⇒ 面板退化成一块平灰 ⇒
+ *   用户直接读作「你把音量面板改成不透明的了」。
+ *   新判据 = **背景彩度保留率** `chroma_玻璃 / chroma_紧邻背景`，必须落在 [RET_MIN, RET_MAX]。
+ *   仪器定义：luma = 0.2126R + 0.7152G + 0.0722B；chroma = max(R,G,B) − min(R,G,B)
+ *   线性混色下 chroma_玻璃 ≈ (1 − α) × saturate系数 × chroma_背景
  *
  * ⚠️ 三条踩过的坑，改这个脚本时别踩回去：
  *  1. 裁剪框必须**覆盖全部采样点**。只按玻璃点开一个 28px 的小窗，背景点会落到窗外 ⇒
@@ -23,7 +25,7 @@
  *
  * 用法: node scripts/probe-volume-glass.mjs [port]
  *   OUT_DIR=<目录>  截图与数据的输出目录（默认 /tmp/vwork/volume-glass）
- *   CHROMA_MAX=<数> 断言阈值（默认 32）
+ *   RET_MIN / RET_MAX  透过率断言区间（默认 0.15 / 0.90）
  */
 import { chromium } from 'playwright'
 import { mkdirSync, writeFileSync } from 'node:fs'
@@ -31,7 +33,12 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 const PORT = process.argv[2] || '5555'
 const URL = `http://127.0.0.1:${PORT}/`
 const OUT = process.env.OUT_DIR || '/tmp/vwork/volume-glass'
-const CHROMA_MAX = Number(process.env.CHROMA_MAX || 32)
+/* ⚠️ 原来的 CHROMA_MAX（旧「白度」判据阈值）已删除 —— 新判据见下方「透过率判定」注释块。 */
+/* 新判据的参数（**放模块作用域**，末尾汇总行要用） */
+const RET_MIN = Number(process.env.RET_MIN || 0.15)   // 背景彩度保留率下限：再低就是「不透明」
+const RET_MAX = Number(process.env.RET_MAX || 0.90)   // 上限：再高就是「纯透明、没有霜面」
+const BG_MIN = 15        // 背景本身不够彩时比值没意义（非空性守卫）
+const CHROMA_MIN = 15    // 小面积玻璃的弱判据：自身 chroma 低于此说明背景色被吃光（≈不透明）
 
 const CHROME =
   process.env.PLAYWRIGHT_CHROME ||
@@ -185,10 +192,49 @@ for (const [name, cfg] of Object.entries(SHOTS)) {
   if (!res) continue
   console.log(`  clip=${JSON.stringify(res.clip)}`)
   for (const p of res.points) {
-    const tag = p.glass ? '【判定】' : '  参考 '
+    const tag = p.glass ? '【玻璃】' : '【背景】'
     console.log(`  ${tag} ${p.name.padEnd(20)} (${String(p.r).padStart(3)},${String(p.g).padStart(3)},${String(p.b).padStart(3)})  luma=${String(p.luma).padStart(5)}  chroma=${String(p.chroma).padStart(3)}`)
-    if (p.glass) {
-      ok(p.chroma <= CHROMA_MAX, `${name} / ${p.name}: chroma ${p.chroma} ≤ ${CHROMA_MAX}（白色毛玻璃）`)
+  }
+
+  /* ---- 【透过率判定】改判「背景还剩多少」，不再判「够不够白】 ----
+     ⚠️ 这里**曾经**判的是 `chroma_玻璃 ≤ 32`，理由是「毛玻璃应该是白的」。那是错的：
+     低 chroma 既可能是「不透明」，也可能是「透明、但背景本来就是灰的」——**这个判据区分不出来**。
+     照着它优化出来的 `saturate(20%)` 把背景颜色杀掉 ~80% ⇒ 面板变成一块平灰 ⇒ 用户读作「不透明」。
+     正确判据 = 背景彩度保留率：`chroma_玻璃 / chroma_紧邻背景 ≈ (1 − α) × saturate 系数`
+        比值 → 0  ：不透明（背景色被吃光）
+        比值 → 1  ：纯透明（没有霜面）
+     只对「侧栏音量」两个面下判据（Ricky 指的就是这两个）；CC / 全屏面板的紧邻点不是**原始**背景
+     （是幕布或面板自身），比值没有意义，只留读数。 */
+  /* 判据分两档 —— 面板用**比值**，胶囊只能用**弱判据**：
+     · b-side-modal（面板，面积大）→ 比值可靠，用 [RET_MIN, RET_MAX]。
+     · a-side-overlay（44.7px 胶囊）→ 只判「玻璃自身还看得出颜色」。
+       原因：dpr1 下 `-7px` 的**单像素**基准不可信（壁纸局部变化比 7px 还快：实测基准 chroma 33
+       而胶囊自身 45 ⇒ 比值 1.36 是假数据）。弱判据同样抓得住这次的 bug ——
+       旧 `saturate(20%)` 时胶囊 chroma = 14 < CHROMA_MIN。
+     · c-cc-sliders / d-fullscreen-panel → 只记读数：它们的「紧邻点」不是**原始**背景
+       （是幕布或面板自身），比值没有意义。 */
+  if (name === 'b-side-modal') {
+    const bg = res.points.find((p) => !p.glass)
+    for (const p of res.points.filter((q) => q.glass)) {
+      if (!bg || bg.chroma < BG_MIN) {
+        ok(false, `${name} / ${p.name}: 配不到饱和的紧邻背景点`
+          + `（bg chroma=${bg ? bg.chroma : '缺失'}，需 ≥ ${BG_MIN}）⇒ 判据不可用`)
+        continue
+      }
+      const ratio = p.chroma / bg.chroma
+      console.log(`  [透过率] ${p.name} → ${ratio.toFixed(3)}`
+        + `  (玻璃 ${p.chroma} / 背景 ${bg.chroma})`)
+      ok(ratio >= RET_MIN && ratio <= RET_MAX,
+        `${name} / ${p.name}: 背景彩度保留 ${ratio.toFixed(3)} ∈ [${RET_MIN}, ${RET_MAX}]（透明毛玻璃）`)
+    }
+  }
+  if (name === 'a-side-overlay') {
+    const g = res.points.find((p) => p.glass)
+    if (g) {
+      console.log(`  [弱判据] 胶囊自身 chroma = ${g.chroma}（需 ≥ ${CHROMA_MIN}：背景色没被吃光）`)
+      ok(g.chroma >= CHROMA_MIN,
+        `${name} / ${g.name}: 玻璃自身 chroma ${g.chroma} ≥ ${CHROMA_MIN}`
+        + `（背景色没被吃光 ⇒ 是透明毛玻璃而非不透明）`)
     }
   }
   report.push({ name, clip: res.clip, points: res.points })
@@ -208,7 +254,7 @@ for (const [name, cfg] of Object.entries(SHOTS)) {
 
 writeFileSync(`${OUT}/shots.json`, JSON.stringify(report, null, 2))
 console.log('\n' + '='.repeat(66))
-console.log(`PASS ${pass.length} / FAIL ${fail.length}    阈值 chroma ≤ ${CHROMA_MAX}`)
+console.log(`PASS ${pass.length} / FAIL ${fail.length}    判据：侧栏音量「背景彩度保留率」∈ [${RET_MIN ?? 0.15}, ${RET_MAX ?? 0.90}]`)
 if (fail.length) fail.forEach((f) => console.log('  ✗ ' + f))
 console.log(`截图与数据 → ${OUT}/shots.json`)
 await browser.close()

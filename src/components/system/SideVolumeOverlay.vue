@@ -265,14 +265,19 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
      那两个是本层最底、α 必须更高。 */
   background: rgba(255, 255, 255, .45);
   box-shadow: 0 2px 24px rgba(0, 0, 0, .18);
-  /* ⚠️⛔ 必须**自己去饱和**：实测（probe-pill-opt）本层 backdrop-filter 是活的，
-     但 `blur` 完全无效（背后是一块均匀的蓝壁纸，模糊没东西可混），
-     真正起作用的是 `saturate`——saturate(0%) 能把玻璃 chroma 从 131 压到 0。
-     参考图的胶囊/面板都是**中性灰**（chroma 1 / 6），所以这里必须去饱和；
-     照抄 `--glass-white-blur`(saturate 75%) 只会让紫色壁纸透上来（实测 chroma 53）。
-     取 20% 而不是 0%：留一丝壁纸色，避免面板变成一块死灰；实测 chroma ≈ 14，仍在阈值内。 */
-  backdrop-filter: blur(30px) saturate(20%);
-  -webkit-backdrop-filter: blur(30px) saturate(20%);
+  /* ⚠️⛔ 2026-09-20 修订（Ricky：「音量面板应该是透明毛玻璃」——判断正确，之前做错了）：
+     这里**曾经**写死 `saturate(20%)`，理由是「参考图胶囊/面板实测 chroma 1/6，是中性灰」。
+     那个结论错了，错在**只看了一个采样点**：把参考图面板左上象限 1:1 放大后（`/tmp/vwork/r34/zoom-quad.png`）
+     能清楚看到背后暖橙 / 青绿的色块轮廓 —— 参考面板本身是**有色的透明霜面**，不是中性灰。
+     `saturate(20%)` 把背景颜色杀掉 ~80% ⇒ 面板退化成一块平灰 ⇒ 屏上读作「不透明」。
+     实测「背景彩度保留率」（面板内 chroma ÷ 紧邻背景 chroma，越接近 0 越不透明）：
+        saturate(20%) = **0.12**（≈不透明，错） · blur 不饱和 = 0.56 · saturate(180%) = 1.00
+     改用设计系统 token（= `blur(30px) saturate(75%)`）：保留率 ≈ 0.44 —— 背景可见、又带一层霜感，
+     与参考图观感最接近（六档 A/B 全图 `/tmp/vwork/r34/ab2-grid.png`）。
+     ⛔ 别再为了「把玻璃读数压成中性」往下调 saturate：判据是「**背景能不能透出来**」，
+        不是「chroma 够不够小」。低 chroma 既可能是「不透明」，也可能是「透明但背景本来就是灰的」。 */
+  backdrop-filter: var(--glass-white-blur);
+  -webkit-backdrop-filter: var(--glass-white-blur);
 }
 .sv-dismiss-layer { position:absolute; inset:0; z-index:var(--z-side-volume-dismiss); }
 /* 参考图：胶囊 44.7 × 159.7，顶 232.0，右距 17.0（本实现镜像到左侧 ⇒ left:17px，与机身左侧实体音量键同侧）。 */
