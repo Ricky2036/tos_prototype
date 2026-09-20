@@ -149,17 +149,6 @@ function onClickLetter(letter, e) {
     >
       {{ letter }}
     </div>
-
-    <!-- 拖拽导轨时指示当前手指位置的大号字母气泡（松手后自动淡出） -->
-    <Transition name="fade-char">
-      <div
-        v-if="isDragging && previewLetter"
-        class="scrubber-floating-char"
-        :style="{ top: previewY + 'px' }"
-      >
-        {{ previewLetter }}
-      </div>
-    </Transition>
   </div>
 </template>
 
@@ -208,29 +197,5 @@ function onClickLetter(letter, e) {
   color: #00f0ff;
   font-weight: 900;
   transform: scale(1.45);
-}
-
-/* 浮动大号字母指示（像素级对齐 media_1789875217726.jpg） */
-.scrubber-floating-char {
-  position: absolute;
-  right: 28px;
-  transform: translateY(-50%);
-  font-size: 26px;
-  font-weight: 800;
-  color: #ffffff;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
-  pointer-events: none;
-  z-index: 120;
-}
-
-.fade-char-enter-active,
-.fade-char-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
-.fade-char-enter-from,
-.fade-char-leave-to {
-  opacity: 0;
-  transform: translateY(-50%) scale(0.7);
 }
 </style>

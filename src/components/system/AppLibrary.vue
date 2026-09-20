@@ -147,7 +147,14 @@ function scrollToLetter(letter) {
 function handleSelectLetter(letter) {
   activeLetter.value = letter
   filterLetter.value = letter
-  isFilterMode.value = true
+  const apps = allGroups.value[letter] || []
+  if (apps.length > 0) {
+    isFilterMode.value = true
+  } else {
+    // 当前字母没有相关应用直接隐藏，不用一直展示出来
+    isFilterMode.value = false
+    scrollToLetter(letter)
+  }
 }
 
 function handleScrubbing(scrubbing, letter) {
@@ -155,7 +162,14 @@ function handleScrubbing(scrubbing, letter) {
   if (letter) {
     activeLetter.value = letter
     filterLetter.value = letter
-    isFilterMode.value = true
+    const apps = allGroups.value[letter] || []
+    if (apps.length > 0) {
+      isFilterMode.value = true
+    } else {
+      // 当前字母没有相关应用直接隐藏
+      isFilterMode.value = false
+      scrollToLetter(letter)
+    }
   }
 }
 
@@ -281,8 +295,13 @@ onMounted(() => {
         @scroll="handleScroll"
       >
         <!-- ── 模式 A: 字母过滤聚焦视图（像素级对齐 media_1789877584491.jpg，点击右侧导轨字母激活） ── -->
+        <!-- ── 模式 A: 字母过滤聚焦视图（仅在有应用的字母下展示；无相关应用直接隐藏） ── -->
         <transition name="fade-filter">
-          <div v-if="isFilterMode" class="filter-mode-container" @click="exitFilterMode">
+          <div
+            v-if="isFilterMode && filteredApps.length > 0"
+            class="filter-mode-container"
+            @click="exitFilterMode"
+          >
             <div class="filtered-apps-wrapper">
               <!-- 顶部大号字母标题：置于第 4 列上方，右边缘对齐第 4 列应用图标（对齐参考图 2） -->
               <div class="filter-header-row">
@@ -291,7 +310,7 @@ onMounted(() => {
                 </div>
               </div>
 
-              <div v-if="filteredApps.length > 0" class="app-grid four-columns filtered-app-grid">
+              <div class="app-grid four-columns filtered-app-grid">
                 <div
                   v-for="(app, index) in filteredApps"
                   :key="app.id"
@@ -306,10 +325,6 @@ onMounted(() => {
                     :launch-on-click="false"
                   />
                 </div>
-              </div>
-
-              <div v-else class="empty-letter-state">
-                <p>暂无 “{{ filterLetter }}” 开头的应用</p>
               </div>
             </div>
           </div>
@@ -541,17 +556,6 @@ onMounted(() => {
 
 .filtered-app-grid {
   width: 100%;
-}
-
-.empty-letter-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.2px;
 }
 
 .fade-filter-enter-active,

@@ -177,9 +177,13 @@ test('AppLibrary implements letter filter focus mode and spacious grid metrics',
   assert.match(librarySource, /getFilteredItemStyle/)
   assert.match(librarySource, /gridColumnStart:\s*4\s*-\s*rowLen\s*\+\s*1/)
 
-  // 导轨大号气泡仅在拖拽时显示，过滤模式下由 AppLibrary 头部承载字母
-  assert.match(scrubberSource, /v-if="isDragging && previewLetter"/)
-  assert.doesNotMatch(scrubberSource, /isFilterMode && activeLetter/)
+  // 当前字母无应用时直接隐藏过滤模式（不展示空状态）
+  assert.match(librarySource, /isFilterMode && filteredApps\.length > 0/)
+  assert.match(librarySource, /apps\.length > 0[\s\S]*isFilterMode\.value = true[\s\S]*isFilterMode\.value = false/)
+  assert.doesNotMatch(librarySource, /empty-letter-state/)
+
+  // 导轨移除浮动字母气泡，防止点击时出现重复字母
+  assert.doesNotMatch(scrubberSource, /class="scrubber-floating-char"/)
 })
 
 test('ScreenView and HomeScreen integrate vertical drawer gesture invocation', async () => {

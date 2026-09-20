@@ -41,7 +41,7 @@ async function run() {
   })
   await page.waitForTimeout(600)
 
-  // 3. 点击 'J' 字母进入过滤模式
+  // 3. 点击 'J' 字母进入过滤模式（有应用）
   console.log('Clicking letter J on scrubber rail...')
   const letterJ = page.locator('.scrubber-item[data-letter="J"]')
   await letterJ.click()
@@ -50,9 +50,20 @@ async function run() {
   const shotJ = join(OUT_DIR, 'filter_mode_j.png')
   await page.screenshot({ path: shotJ })
   await copyFile(shotJ, join(ARTIFACT_DIR, 'drawer_filter_mode_j.png'))
-  console.log('Captured filter_mode_j.png')
+  console.log('Captured filter_mode_j.png (should show single J, right-aligned apps)')
 
-  // 4. 点击 'S' 字母
+  // 4. 点击 'H' 字母（无应用，直接隐藏过滤模式，不展示空状态）
+  console.log('Clicking letter H on scrubber rail (no apps, should directly hide filter view)...')
+  const letterH = page.locator('.scrubber-item[data-letter="H"]')
+  await letterH.click()
+  await page.waitForTimeout(500)
+
+  const shotH = join(OUT_DIR, 'filter_mode_h_hidden.png')
+  await page.screenshot({ path: shotH })
+  await copyFile(shotH, join(ARTIFACT_DIR, 'drawer_filter_mode_h_hidden.png'))
+  console.log('Captured filter_mode_h_hidden.png (should return to normal drawer, no empty state)')
+
+  // 5. 点击 'S' 字母（有应用，展示过滤模式）
   console.log('Clicking letter S on scrubber rail...')
   const letterS = page.locator('.scrubber-item[data-letter="S"]')
   await letterS.click()
@@ -63,7 +74,7 @@ async function run() {
   await copyFile(shotS, join(ARTIFACT_DIR, 'drawer_filter_mode_s.png'))
   console.log('Captured filter_mode_s.png')
 
-  // 5. 点击背景空白处退出过滤模式
+  // 6. 点击背景空白处退出过滤模式
   console.log('Clicking blank area to exit filter mode...')
   await page.mouse.click(200, 650)
   await page.waitForTimeout(500)
