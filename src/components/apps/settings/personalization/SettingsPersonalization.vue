@@ -11,6 +11,7 @@ import coastWallpaper from '../../../../assets/img/personalization/generated/nat
 import personFieldWallpaper from '../../../../assets/img/personalization/generated/person-field.jpg'
 
 import { useDepthSegmentation, getPresetDepthSubject } from '../../../../composables/useDepthSegmentation.js'
+import { useSystemChrome } from '../../../../composables/useSystemChrome.js'
 import FloatingHeader from '../../../ui/FloatingHeader.vue'
 import FloatingBottomPill from '../../../ui/FloatingBottomPill.vue'
 import ActionSheetModal from '../../../ui/ActionSheetModal.vue'
@@ -20,6 +21,9 @@ const home = useHomeStore()
 const wallpaperStore = useWallpaperStore()
 const { timeShort } = useClock()
 const { isAnalyzing, segmentImage } = useDepthSegmentation()
+
+// 主题与个性化采用纯黑深色背景，声明浅色状态栏与导航条 (白字/白条)
+useSystemChrome('light')
 
 const fileInputRef = ref(null)
 const isScanning = ref(false)

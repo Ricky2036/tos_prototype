@@ -121,6 +121,7 @@ function onBack() {
   z-index: var(--z-home-indicator);
   pointer-events: auto;
   user-select: none;
+  transition: color 0.2s ease;
 }
 
 .nav-btn {

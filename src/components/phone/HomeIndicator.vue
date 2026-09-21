@@ -202,10 +202,9 @@ const gesture = useSwipeGesture(rootRef, {
   }
 })
 
-/* 深色（浅色背景上，如白色设置页）与浅色（深色背景，如桌面壁纸）两个态都降到约 30%：
-   Ricky 2026-09-09 —— 原本 0.85 / 0.88 太实，深色在白色界面上是一条纯黑，
-   浅色在深色壁纸上又过白，统一压到 30% 更贴合系统观感。 */
-const bg = computed(() => (props.dark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)'))
+/* 深色（浅色背景上，如白色设置页）与浅色（深色背景，如桌面壁纸/深色页面）：
+ * 浅色状态下采用 0.65 保持在深黑背景下的高对比与可见性；深色状态下采用 0.4 保持在浅底上的清晰度 */
+const bg = computed(() => (props.dark ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.65)'))
 
 function onTap() {
   // 拖拽松手后浏览器会补发 click，350ms 内忽略防误回桌面
@@ -240,7 +239,7 @@ function onTap() {
   width: 134px;
   height: 5px;
   border-radius: 2.5px;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, background 0.22s ease;
   pointer-events: none;
 }
 .home-indicator:active .bar { transform: scaleX(0.92); }
