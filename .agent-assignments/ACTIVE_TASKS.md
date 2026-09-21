@@ -133,6 +133,8 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Restore authentic translucent frosted glass styling for desktop Dock and LockScreen bottom buttons | `antigravity/lane` | None (locks released) | `dd0d25a` | `8b746a0` |
 | Merged | Antigravity | Polish wallpaper settings UI, full-screen preview with zero-gap zoom, reusable action components, and separate lock/home wallpapers | `antigravity/lane` | None (locks released) | `58516aa` | `5269157` |
 | Merged | Antigravity | Global adaptive contrast color inversion for StatusBar, HomeIndicator, and ThreeButtonNav with useSystemChrome composable | `antigravity/lane` | None (locks released) | `9d51971` | `c493b0e` |
+| Merged | Antigravity | Tune LockScreen card alpha to 85%/80%, separate bottom cards with gap, and enable overscroll bounce | `antigravity/lane` | None (locks released) | `d25cfb8` | `94d31ab` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
+
 
