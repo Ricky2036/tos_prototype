@@ -136,6 +136,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Tune LockScreen card alpha to 85%/80%, separate bottom cards with gap, and enable overscroll bounce | `antigravity/lane` | None (locks released) | `d25cfb8` | `94d31ab` |
 | Merged | Antigravity | Fix LockScreen shortcut buttons white frosted glass, restore natural back-card stacking, and preserve 100% card text visibility | `antigravity/lane` | None (locks released) | `94d31ab` | `43b5996` |
 | Merged | Antigravity | Restore LockScreen top stacked card 95% opacity and align shortcut buttons frosted glass with reference screenshot | `antigravity/lane` | None (locks released) | `43b5996` | `857b4f5` |
+| Merged | Antigravity | Add bottom adaptive protective scrim and lens contrast for LockScreen shortcut buttons across light and dark wallpapers | `antigravity/lane` | None (locks released) | `857b4f5` | `362c885` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
