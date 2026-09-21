@@ -16,7 +16,7 @@ import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import { GLYPHS } from '../../assets/icons/glyphs'
 import NotificationIcon from '../ui/NotificationIcon.vue'
 import { formatRelativeTime } from '../../utils/timeFormat'
-import { clamp, createVelocityTracker } from '../../utils/math'
+import { clamp, rubberBand, createVelocityTracker } from '../../utils/math'
 import { getNotificationStackLayout } from '../../utils/notificationStack'
 import wallpaper from '../../assets/img/wallpaper-lock.jpg'
 import albumArt from '../../assets/img/album-2.jpg'
@@ -108,6 +108,7 @@ onBeforeUnmount(() => {
   if (scrollIdleTimer) clearTimeout(scrollIdleTimer)
   cancelMomentum()
   if (stateTransitionTimer) clearTimeout(stateTransitionTimer)
+  if (bounceResetTimer) clearTimeout(bounceResetTimer)
 })
 
 const BASE_Y = computed(() => screenHeight.value - 224)
@@ -178,9 +179,9 @@ const glassUid = `ls-clock-${++glassUidSeq}`
 const LOCK_STACK_BOTTOM_INSET = 110
 const LOCK_STACK_MAX_VISUAL_OFFSET = 36
 const LOCK_CARD_HEIGHT = 90
-const LOCK_CARD_BASE_ALPHA = 0.92
+const LOCK_CARD_BASE_ALPHA = 0.85
 const LOCK_STACK_FRONT_ALPHA = 0.96
-const LOCK_STACK_BACK_ALPHA = 0.75
+const LOCK_STACK_BACK_ALPHA = 0.80
 const LOCK_STACK_DEPTH_ALPHA = 0.15
 const LOCK_STACK_ALPHA_OVERLAP = 48
 const NATIVE_EXPAND_OFFSET = 0
@@ -257,7 +258,8 @@ const overflowDistance = computed(() => {
     + totalActivitiesHeight.value
     + Math.max(0, lockItems.value.length - 1) * NOTIF_SPACING
     + (lockItems.value.length > 0 ? LOCK_CARD_HEIGHT : 0)
-  const targetBottom = screenHeight.value - 100
+  // 滑到最底部时，确保底端卡片完全脱离底部堆叠（高于 bottomThreshold），保留标准间隙，并与快捷按钮保持舒适间距
+  const targetBottom = screenHeight.value - LOCK_STACK_BOTTOM_INSET - 10
   return Math.max(0, TOP_WIDGET_START_Y.value + totalStackHeight - targetBottom)
 })
 const MAX_SCROLL = computed(() => {
@@ -265,6 +267,33 @@ const MAX_SCROLL = computed(() => {
   return Math.max(liftDistance.value, overflowDistance.value)
 })
 const scrollSpacerStyle = computed(() => ({ height: `${NATIVE_EXPAND_OFFSET + MAX_SCROLL.value}px` }))
+
+/* ---------- 越界上滑阻尼与回弹（Overscroll & Spring Bounce） ---------- */
+const overscrollOffset = ref(0)
+const isBouncing = ref(false)
+let bounceResetTimer = null
+
+function triggerBounceBack() {
+  lastScrollDragEndAt = Date.now()
+  if (overscrollOffset.value === 0) return
+  isBouncing.value = true
+  overscrollOffset.value = 0
+  if (bounceResetTimer) clearTimeout(bounceResetTimer)
+  bounceResetTimer = setTimeout(() => {
+    isBouncing.value = false
+    bounceResetTimer = null
+  }, 380)
+}
+
+const stageOverscrollStyle = computed(() => {
+  if (overscrollOffset.value === 0 && !isBouncing.value) return {}
+  return {
+    transform: `translate3d(0, ${overscrollOffset.value}px, 0)`,
+    transition: isBouncing.value
+      ? 'transform 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+      : 'none'
+  }
+})
 
 /* ---------- 原生滚动状态：与通知中心一样由浏览器处理触摸惯性 ---------- */
 const scrollY = ref(0)
@@ -306,9 +335,15 @@ function resetOtherCards(exceptId = null) {
 
 let isCardVerticalDragging = false
 let cardDragStartScrollTop = 0
+let lastScrollDragEndAt = 0
 
 function onCardPointerDown(e, id) {
   if (e.pointerType === 'touch') return
+  isBouncing.value = false
+  if (bounceResetTimer) {
+    clearTimeout(bounceResetTimer)
+    bounceResetTimer = null
+  }
   // 普通通知在折叠态禁止横滑，但活跃灵动岛卡片始终默认展开展示，允许随时左滑操作
   const isAct = activeActivities.value.some(a => a.id === id) || id === '__recorder__'
   if (isCollapsed.value && !isAct) return
@@ -365,8 +400,18 @@ function onCardPointerMove(e, id) {
     }
   } else if (isCardVerticalDragging) {
     e.preventDefault?.()
-    if (listRef.value) {
-      listRef.value.scrollTop = cardDragStartScrollTop - dy
+    const targetScroll = cardDragStartScrollTop - dy
+    if (targetScroll > MAX_SCROLL.value) {
+      const over = targetScroll - MAX_SCROLL.value
+      overscrollOffset.value = -rubberBand(over, 280, 0.45)
+      if (listRef.value) {
+        listRef.value.scrollTop = MAX_SCROLL.value
+      }
+    } else {
+      if (overscrollOffset.value !== 0) overscrollOffset.value = 0
+      if (listRef.value) {
+        listRef.value.scrollTop = targetScroll
+      }
     }
   }
 }
@@ -377,6 +422,9 @@ const swipedTransitionId = ref(null)
 function onCardPointerCancel(e, id) {
   if (e.pointerType === 'touch') return
   if (activeCardId !== id) return
+  if (overscrollOffset.value < 0) {
+    triggerBounceBack()
+  }
   if (isSwipingCard) {
     const next = { ...swipeOffsets.value }
     delete next[id]
@@ -396,6 +444,9 @@ function onCardPointerCancel(e, id) {
 function onCardPointerUp(e, id) {
   if (e.pointerType === 'touch') return
   if (activeCardId !== id) return
+  if (overscrollOffset.value < 0) {
+    triggerBounceBack()
+  }
   if (isSwipingCard) {
     justSwipedId = id
     swipedTransitionId.value = id
@@ -431,6 +482,7 @@ function onCardPointerUp(e, id) {
       swipeOffsets.value = next
     }
   } else if (isCardVerticalDragging) {
+    lastScrollDragEndAt = Date.now()
     // 鼠标纵向拖拽释放：抑制随后的 click 误触展开/打开应用
     justSwipedId = id
     setTimeout(() => {
@@ -501,6 +553,11 @@ function applyMomentumScroll(initialDelta) {
 
 function onCardTouchStart(e, id) {
   cancelMomentum()
+  isBouncing.value = false
+  if (bounceResetTimer) {
+    clearTimeout(bounceResetTimer)
+    bounceResetTimer = null
+  }
   const isAct = activeActivities.value.some(a => a.id === id) || id === '__recorder__'
   if (isCollapsed.value && !isAct) return
   if (!e.touches || e.touches.length !== 1) return
@@ -550,14 +607,27 @@ function onCardTouchMove(e, id) {
     }
   } else if (isCardTouchVerticalDragging) {
     if (e.cancelable) e.preventDefault()
-    if (listRef.value) {
-      listRef.value.scrollTop = clamp(cardTouchStartScrollTop - dy, 0, MAX_SCROLL.value)
+    const targetScroll = cardTouchStartScrollTop - dy
+    if (targetScroll > MAX_SCROLL.value) {
+      const over = targetScroll - MAX_SCROLL.value
+      overscrollOffset.value = -rubberBand(over, 280, 0.45)
+      if (listRef.value) {
+        listRef.value.scrollTop = MAX_SCROLL.value
+      }
+    } else {
+      if (overscrollOffset.value !== 0) overscrollOffset.value = 0
+      if (listRef.value) {
+        listRef.value.scrollTop = clamp(targetScroll, 0, MAX_SCROLL.value)
+      }
     }
   }
 }
 
 function onCardTouchEnd(e, id) {
   if (activeCardId !== id) return
+  if (overscrollOffset.value < 0) {
+    triggerBounceBack()
+  }
   const touch = e.changedTouches ? e.changedTouches[0] : null
   const dx = touch ? touch.clientX - cardTouchStartX : 0
   const dy = touch ? touch.clientY - cardTouchStartY : 0
@@ -622,6 +692,9 @@ function onCardTouchEnd(e, id) {
 
 function onCardTouchCancel(e, id) {
   if (activeCardId !== id) return
+  if (overscrollOffset.value < 0) {
+    triggerBounceBack()
+  }
   if (isCardTouchSwiping) {
     const next = { ...swipeOffsets.value }
     delete next[id]
@@ -670,6 +743,11 @@ let clipPointerId = null
 
 function onClipPointerDown(e) {
   if (e.pointerType === 'touch' || isCollapsed.value) return
+  isBouncing.value = false
+  if (bounceResetTimer) {
+    clearTimeout(bounceResetTimer)
+    bounceResetTimer = null
+  }
   clipPointerStartY = e.clientY
   clipPointerStartX = e.clientX
   clipStartScrollTop = listRef.value ? listRef.value.scrollTop : 0
@@ -696,15 +774,31 @@ function onClipPointerMove(e) {
 
   if (clipIsDragging) {
     e.preventDefault?.()
-    if (listRef.value) {
-      listRef.value.scrollTop = clipStartScrollTop - dy
+    const targetScroll = clipStartScrollTop - dy
+    if (targetScroll > MAX_SCROLL.value) {
+      const over = targetScroll - MAX_SCROLL.value
+      overscrollOffset.value = -rubberBand(over, 280, 0.45)
+      if (listRef.value) {
+        listRef.value.scrollTop = MAX_SCROLL.value
+      }
+    } else {
+      if (overscrollOffset.value !== 0) overscrollOffset.value = 0
+      if (listRef.value) {
+        listRef.value.scrollTop = targetScroll
+      }
     }
   }
 }
 
 function onClipPointerUp(e) {
   if (e.pointerType === 'touch') return
+  if (overscrollOffset.value < 0) {
+    triggerBounceBack()
+  }
   if (clipPointerActive && !isCollapsed.value && !isSwipingCard) {
+    if (clipIsDragging) {
+      lastScrollDragEndAt = Date.now()
+    }
     const dy = e.clientY - clipPointerStartY
     const dx = e.clientX - clipPointerStartX
     const pulledPastTop = (clipStartScrollTop - dy) < -15
@@ -737,6 +831,20 @@ function handleClipWheel(e) {
   // 展开状态且位于列表顶部：向下滚轮/滑动手势收起（deltaY < -12）
   if (scrollY.value <= 0 && e.deltaY < -12) {
     collapseNotifications()
+    return
+  }
+  // 展开状态且位于列表底部：向上滚动（滚轮向下推）触发弹性阻尼并回弹
+  if (scrollY.value >= MAX_SCROLL.value - 2 && e.deltaY > 0) {
+    const extra = Math.min(50, Math.abs(e.deltaY) * 0.45)
+    overscrollOffset.value = -rubberBand(extra, 200, 0.35)
+    isBouncing.value = true
+    setTimeout(() => {
+      overscrollOffset.value = 0
+    }, 50)
+    setTimeout(() => {
+      isBouncing.value = false
+    }, 380)
+    return
   }
 }
 
@@ -991,6 +1099,7 @@ const unlockGesture = useSwipeGesture(unlockRef, {
 function onBackdropTap(e) {
   if (isIslandModalVisible.value) return
   if (Date.now() - unlockGesture.lastDragEndAt() < 300) return
+  if (Date.now() - lastScrollDragEndAt < 350) return
   // 点击卡片本体、按钮或交互区域内部时不收起滑开状态
   if (e.target.closest('.ls-card-front, .ls-swipe-actions, .ls-action-btn, .ls-shortcut, .ls-pill, .island-modal-backdrop')) {
     return
@@ -1191,6 +1300,14 @@ const lockNotificationsLayout = computed(() => {
       opacity = geo.layout.opacity
     }
 
+    // 保证相邻卡片在展开态绝不重叠：当前序卡片已脱离堆叠时，后续卡片必须保留至少 8px 标准间隙
+    if (i > 0 && !isCollapsed.value && !geometries[i - 1].layout.stacked) {
+      const minAllowedY = result[i - 1].yPos + LOCK_CARD_HEIGHT + 8
+      if (yPos < minAllowedY) {
+        yPos = minAllowedY
+      }
+    }
+
     // 遮挡检测与完全隐藏处理：
     // 当卡片被前序可见卡片完全遮挡时（底部未超出前序卡片的最大底部），直接隐藏 (opacity = 0, visibility = hidden)
     // 杜绝上拉通知时被完全遮挡的卡片提前透出显示
@@ -1330,7 +1447,7 @@ function notifStyle(i) {
         @pointercancel="clipPointerActive = false"
         @wheel.passive="handleClipWheel"
       >
-        <div class="ls-scroll-stage">
+        <div class="ls-scroll-stage" :style="stageOverscrollStyle">
         <!-- 活跃活动卡片队列：同步所有活跃灵动岛（不设数量上限，有几个显示几个，展开与折叠均呈现） -->
         <template v-for="(act, actIdx) in standaloneActivities" :key="act.id">
           <div
@@ -1925,7 +2042,7 @@ function notifStyle(i) {
 .ls-card-front {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, var(--ls-card-bg-alpha, 0.92));
+  background: rgba(255, 255, 255, var(--ls-card-bg-alpha, 0.85));
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
   border: 1px solid rgba(255, 255, 255, 0.5);
