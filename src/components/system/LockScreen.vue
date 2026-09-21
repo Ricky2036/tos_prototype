@@ -44,7 +44,7 @@ const control = useControlStore()
 import { getPresetDepthSubject } from '../../composables/useDepthSegmentation.js'
 const wallpaperStore = useWallpaperStore()
 const { activeActivities } = useActiveActivities()
-const activeWallpaper = computed(() => wallpaperStore.active || wallpaper)
+const activeWallpaper = computed(() => wallpaperStore.lockWallpaper || wallpaperStore.active || wallpaper)
 
 const depthSubjectUrl = computed(() => {
   if (!wallpaperStore.depthEnabled) return ''

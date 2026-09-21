@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { getPresetDepthSubject } from '../composables/useDepthSegmentation.js'
 
 export const WALLPAPER_STORAGE_KEY = 'tos.personalization.wallpaper.v1'
+export const WALLPAPER_LOCK_STORAGE_KEY = 'tos.personalization.wallpaper.lock.v1'
+export const WALLPAPER_HOME_STORAGE_KEY = 'tos.personalization.wallpaper.home.v1'
 export const WALLPAPER_DEPTH_ENABLED_KEY = 'tos.personalization.wallpaper.depth_enabled.v1'
 export const WALLPAPER_DEPTH_SUBJECT_KEY = 'tos.personalization.wallpaper.depth_subject.v1'
 export const WALLPAPER_DEPTH_OCCLUSION_KEY = 'tos.personalization.wallpaper.depth_occlusion.v1'
@@ -15,11 +17,11 @@ function getStorage() {
   }
 }
 
-function readSavedWallpaper() {
+function readSavedWallpaper(key = WALLPAPER_STORAGE_KEY) {
   const storage = getStorage()
   if (!storage) return ''
   try {
-    const value = storage.getItem(WALLPAPER_STORAGE_KEY)
+    const value = storage.getItem(key)
     return typeof value === 'string' ? value : ''
   } catch {
     return ''
@@ -61,14 +63,21 @@ function readSavedDepthOcclusion() {
 
 export const useWallpaperStore = defineStore('wallpaper', {
   state: () => {
-    const savedActive = readSavedWallpaper()
+    const savedActive = readSavedWallpaper(WALLPAPER_STORAGE_KEY)
+    const savedLock = readSavedWallpaper(WALLPAPER_LOCK_STORAGE_KEY)
+    const savedHome = readSavedWallpaper(WALLPAPER_HOME_STORAGE_KEY)
+
     const active = savedActive || DEFAULT_WALLPAPER
+    const lockWallpaper = savedLock || active
+    const homeWallpaper = savedHome || active
+
     const savedSubject = readSavedDepthSubject()
-    // 若存储中无显式主体，但激活的壁纸命中内置预置主体，则自动匹配
-    const resolvedSubject = savedSubject || (active ? (getPresetDepthSubject(active) || '') : '')
+    const resolvedSubject = savedSubject || (lockWallpaper ? (getPresetDepthSubject(lockWallpaper) || '') : '')
 
     return {
       active,
+      lockWallpaper,
+      homeWallpaper,
       depthEnabled: readSavedDepthEnabled(),
       depthSubjectUrl: resolvedSubject,
       depthOcclusionRatio: readSavedDepthOcclusion(),
@@ -77,12 +86,22 @@ export const useWallpaperStore = defineStore('wallpaper', {
   },
   actions: {
     apply(url, customSubjectUrl = undefined) {
+      this.applyBoth(url, customSubjectUrl)
+    },
+
+    applyBoth(url, customSubjectUrl = undefined) {
       if (!url) return
       this.active = url
-      const storage = getStorage()
-      try { storage?.setItem(WALLPAPER_STORAGE_KEY, url) } catch {}
+      this.lockWallpaper = url
+      this.homeWallpaper = url
 
-      // 更新景深主体
+      const storage = getStorage()
+      try {
+        storage?.setItem(WALLPAPER_STORAGE_KEY, url)
+        storage?.setItem(WALLPAPER_LOCK_STORAGE_KEY, url)
+        storage?.setItem(WALLPAPER_HOME_STORAGE_KEY, url)
+      } catch {}
+
       if (customSubjectUrl !== undefined) {
         this.depthSubjectUrl = customSubjectUrl || ''
       } else {
@@ -92,6 +111,35 @@ export const useWallpaperStore = defineStore('wallpaper', {
 
       try {
         storage?.setItem(WALLPAPER_DEPTH_SUBJECT_KEY, this.depthSubjectUrl)
+      } catch {}
+    },
+
+    applyLock(url, customSubjectUrl = undefined) {
+      if (!url) return
+      this.lockWallpaper = url
+      const storage = getStorage()
+      try {
+        storage?.setItem(WALLPAPER_LOCK_STORAGE_KEY, url)
+      } catch {}
+
+      if (customSubjectUrl !== undefined) {
+        this.depthSubjectUrl = customSubjectUrl || ''
+      } else {
+        const preset = getPresetDepthSubject(url)
+        this.depthSubjectUrl = preset || ''
+      }
+
+      try {
+        storage?.setItem(WALLPAPER_DEPTH_SUBJECT_KEY, this.depthSubjectUrl)
+      } catch {}
+    },
+
+    applyHome(url) {
+      if (!url) return
+      this.homeWallpaper = url
+      const storage = getStorage()
+      try {
+        storage?.setItem(WALLPAPER_HOME_STORAGE_KEY, url)
       } catch {}
     },
 
@@ -118,12 +166,17 @@ export const useWallpaperStore = defineStore('wallpaper', {
     },
 
     hydrate() {
-      const active = readSavedWallpaper()
+      const active = readSavedWallpaper(WALLPAPER_STORAGE_KEY)
+      const lock = readSavedWallpaper(WALLPAPER_LOCK_STORAGE_KEY)
+      const home = readSavedWallpaper(WALLPAPER_HOME_STORAGE_KEY)
+
       this.active = active || DEFAULT_WALLPAPER
+      this.lockWallpaper = lock || this.active
+      this.homeWallpaper = home || this.active
 
       this.depthEnabled = readSavedDepthEnabled()
       const savedSubject = readSavedDepthSubject()
-      this.depthSubjectUrl = savedSubject || (this.active ? (getPresetDepthSubject(this.active) || '') : '')
+      this.depthSubjectUrl = savedSubject || (this.lockWallpaper ? (getPresetDepthSubject(this.lockWallpaper) || '') : '')
       this.depthOcclusionRatio = readSavedDepthOcclusion()
     }
   }

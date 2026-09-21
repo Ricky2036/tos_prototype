@@ -31,7 +31,7 @@ import { useWallpaperStore } from '../../stores/wallpaperStore'
 const control = useControlStore()
 const system = useSystemStore()
 const wallpaperStore = useWallpaperStore()
-const activeWallpaper = computed(() => wallpaperStore.active || wallpaper)
+const activeWallpaper = computed(() => wallpaperStore.homeWallpaper || wallpaperStore.active || wallpaper)
 const heroVisual = ref(null)
 
 const rootEl = ref(null)
