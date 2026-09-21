@@ -132,6 +132,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Prune dead assets and optimize wallpaper and notification icon compression | `antigravity/lane` | None (locks released) | `834c34f` | `2788c54` |
 | Merged | Antigravity | Restore authentic translucent frosted glass styling for desktop Dock and LockScreen bottom buttons | `antigravity/lane` | None (locks released) | `dd0d25a` | `8b746a0` |
 | Merged | Antigravity | Polish wallpaper settings UI, full-screen preview with zero-gap zoom, reusable action components, and separate lock/home wallpapers | `antigravity/lane` | None (locks released) | `58516aa` | `5269157` |
+| Merged | Antigravity | Global adaptive contrast color inversion for StatusBar, HomeIndicator, and ThreeButtonNav with useSystemChrome composable | `antigravity/lane` | None (locks released) | `9d51971` | `c493b0e` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
