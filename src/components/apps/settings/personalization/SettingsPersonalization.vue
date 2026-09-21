@@ -7,8 +7,8 @@ import AppGrid from '../../../system/AppGrid.vue'
 import LockScreen from '../../../system/LockScreen.vue'
 import defaultWallpaper from '../../../../assets/img/wallpaper-lock.jpg'
 import cubesWallpaper from '../../../../assets/img/personalization/generated/abstract-geometric-cubes.png'
-import coastWallpaper from '../../../../assets/img/personalization/generated/nature-coast.png'
-import personFieldWallpaper from '../../../../assets/img/personalization/generated/person-field.png'
+import coastWallpaper from '../../../../assets/img/personalization/generated/nature-coast.jpg'
+import personFieldWallpaper from '../../../../assets/img/personalization/generated/person-field.jpg'
 
 import { useDepthSegmentation, getPresetDepthSubject } from '../../../../composables/useDepthSegmentation.js'
 
