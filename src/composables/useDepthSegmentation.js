@@ -11,11 +11,8 @@ const presetSubjectUrls = (typeof import.meta !== 'undefined' && typeof import.m
 
 // 预置备用映射表（Node.js 测试环境回退）
 const FALLBACK_PRESETS = {
-  'pet-golden-retriever': '/src/assets/img/personalization/generated/pet-golden-retriever-subject.png',
-  'pet-white-gray-cat': '/src/assets/img/personalization/generated/pet-white-gray-cat-subject.png',
-  'person-field': '/src/assets/img/personalization/generated/person-field-subject.png',
-  'person-haze': '/src/assets/img/personalization/generated/person-haze-subject.png',
-  'abstract-geometric-cubes': '/src/assets/img/personalization/generated/abstract-geometric-cubes-subject.png'
+  'abstract-geometric-cubes': '/src/assets/img/personalization/generated/abstract-geometric-cubes-subject.png',
+  'person-field': '/src/assets/img/personalization/generated/person-field-subject.png'
 }
 
 // 缓存已解析的主体映射

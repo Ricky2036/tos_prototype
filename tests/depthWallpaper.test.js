@@ -19,21 +19,25 @@ test('wallpaperStore manages depthEnabled and depthSubjectUrl with persistence',
   // 1. 默认景深开启
   assert.equal(store.depthEnabled, true)
 
-  // 2. 切换景深开关
+  // 2. 默认壁纸为建筑几何方块，且自动关联景深主体
+  assert.ok(store.active.includes('abstract-geometric-cubes'))
+  assert.ok(store.depthSubjectUrl.includes('abstract-geometric-cubes-subject'))
+
+  // 3. 切换景深开关
   store.setDepthEnabled(false)
   assert.equal(store.depthEnabled, false)
 
   store.setDepthEnabled(true)
   assert.equal(store.depthEnabled, true)
 
-  // 3. 设置主体与遮挡率
+  // 4. 设置主体与遮挡率
   store.setDepthSubject('blob:http://localhost/test-subject', 0.25)
   assert.equal(store.depthSubjectUrl, 'blob:http://localhost/test-subject')
   assert.equal(store.depthOcclusionRatio, 0.25)
 
-  // 4. 应用带有预置标识的宠物壁纸时自动关联景深主体
-  store.apply('/assets/pet-golden-retriever.png')
-  assert.ok(store.depthSubjectUrl.includes('pet-golden-retriever-subject'))
+  // 5. 应用带有预置标识的人物壁纸时自动关联景深主体
+  store.apply('/assets/person-field.png')
+  assert.ok(store.depthSubjectUrl.includes('person-field-subject'))
 })
 
 test('computeClockOcclusionRatio calculates accurate clock occlusion', () => {
@@ -60,32 +64,18 @@ test('computeClockOcclusionRatio calculates accurate clock occlusion', () => {
   assert.equal(ratioFloat, 1)
 })
 
-test('getPresetDepthSubject identifies pre-rendered pet and person cutouts', () => {
-  // 1. 命中金毛犬
-  const goldenSubject = getPresetDepthSubject('some/path/pet-golden-retriever-abc.png')
-  assert.ok(goldenSubject, 'Golden retriever must have a preset subject')
-  assert.ok(goldenSubject.includes('pet-golden-retriever-subject'))
-
-  // 2. 命中猫咪
-  const catSubject = getPresetDepthSubject('some/path/pet-white-gray-cat-xyz.png')
-  assert.ok(catSubject, 'Cat must have a preset subject')
-  assert.ok(catSubject.includes('pet-white-gray-cat-subject'))
-
-  // 3. 命中人物壁纸（金色田野、雾光侧影）
+test('getPresetDepthSubject identifies pre-rendered depth cutouts', () => {
+  // 1. 命中人物壁纸（金色田野）
   const personFieldSubject = getPresetDepthSubject('some/path/person-field-123.png')
   assert.ok(personFieldSubject, 'Person field must have a preset subject')
   assert.ok(personFieldSubject.includes('person-field-subject'))
 
-  const personHazeSubject = getPresetDepthSubject('some/path/person-haze-456.png')
-  assert.ok(personHazeSubject, 'Person haze must have a preset subject')
-  assert.ok(personHazeSubject.includes('person-haze-subject'))
-
-  // 4. 命中建筑几何方块
+  // 2. 命中建筑几何方块
   const cubesSubject = getPresetDepthSubject('some/path/abstract-geometric-cubes.png')
   assert.ok(cubesSubject, 'Geometric cubes must have a preset subject')
   assert.ok(cubesSubject.includes('abstract-geometric-cubes-subject'))
 
-  // 5. 普通壁纸返回 null
+  // 3. 普通壁纸返回 null
   const nullSubject = getPresetDepthSubject('some/path/nature-forest.png')
   assert.equal(nullSubject, null)
 })
