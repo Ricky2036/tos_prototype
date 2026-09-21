@@ -58,7 +58,7 @@ test('personalization page provides overview, theme market and wallpaper picker'
 
 test('bundled wallpapers are present and used', () => {
   assert.equal(existsSync(resolve(root, 'src/assets/img/wallpaper-lock.jpg')), true, 'wallpaper-lock.jpg should exist')
-  for (const file of ['abstract-geometric-cubes.png', 'abstract-geometric-cubes-subject.png', 'nature-coast.png', 'person-field.png', 'person-field-subject.png']) {
+  for (const file of ['abstract-geometric-cubes.png', 'abstract-geometric-cubes-subject.png', 'nature-coast.jpg', 'person-field.jpg', 'person-field-subject.png']) {
     assert.equal(existsSync(resolve(root, 'src/assets/img/personalization/generated', file)), true, `${file} should exist`)
     if (!file.endsWith('-subject.png')) {
       assert.match(personalization, new RegExp(file.replace('.', '\\.')))

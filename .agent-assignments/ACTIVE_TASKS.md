@@ -130,6 +130,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Fix LockScreen notification z-index hierarchy over depth subject and add portrait person segmentation support | `antigravity/lane` | None (locks released) | `c5a4118` | `303058a` |
 | Merged | Antigravity | Preset abstract-geometric-cubes wallpaper with depth-of-field foreground and fallback cutout | `antigravity/lane` | None (locks released) | `303058a` | `53a83bb` |
 | Merged | Antigravity | Set abstract geometric cubes as default wallpaper and prune unneeded wallpaper assets | `antigravity/lane` | None (locks released) | `53a83bb` | `834c34f` |
+| Merged | Antigravity | Prune dead assets and optimize wallpaper and notification icon compression | `antigravity/lane` | None (locks released) | `834c34f` | `2788c54` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
