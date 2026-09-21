@@ -80,7 +80,12 @@ test('getPresetDepthSubject identifies pre-rendered pet and person cutouts', () 
   assert.ok(personHazeSubject, 'Person haze must have a preset subject')
   assert.ok(personHazeSubject.includes('person-haze-subject'))
 
-  // 4. 普通壁纸返回 null
+  // 4. 命中建筑几何方块
+  const cubesSubject = getPresetDepthSubject('some/path/abstract-geometric-cubes.png')
+  assert.ok(cubesSubject, 'Geometric cubes must have a preset subject')
+  assert.ok(cubesSubject.includes('abstract-geometric-cubes-subject'))
+
+  // 5. 普通壁纸返回 null
   const nullSubject = getPresetDepthSubject('some/path/nature-forest.png')
   assert.equal(nullSubject, null)
 })

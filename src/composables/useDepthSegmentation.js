@@ -14,7 +14,8 @@ const FALLBACK_PRESETS = {
   'pet-golden-retriever': '/src/assets/img/personalization/generated/pet-golden-retriever-subject.png',
   'pet-white-gray-cat': '/src/assets/img/personalization/generated/pet-white-gray-cat-subject.png',
   'person-field': '/src/assets/img/personalization/generated/person-field-subject.png',
-  'person-haze': '/src/assets/img/personalization/generated/person-haze-subject.png'
+  'person-haze': '/src/assets/img/personalization/generated/person-haze-subject.png',
+  'abstract-geometric-cubes': '/src/assets/img/personalization/generated/abstract-geometric-cubes-subject.png'
 }
 
 // 缓存已解析的主体映射

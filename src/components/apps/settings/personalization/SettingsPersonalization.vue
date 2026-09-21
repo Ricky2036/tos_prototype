@@ -36,6 +36,7 @@ const wallpapers = [
 
 const generatedWallpaperUrls = import.meta.glob('../../../../assets/img/personalization/generated/*.png', { eager: true, query: '?url', import: 'default' })
 const generatedWallpaperOrder = [
+  ['abstract-geometric-cubes', '建筑·几何方块'],
   ['abstract-glass-blue', '抽象·玻璃蓝'],
   ['abstract-folded-lavender', '抽象·折叠光'],
   ['abstract-liquid-teal', '抽象·液态青'],
