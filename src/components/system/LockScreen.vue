@@ -180,7 +180,7 @@ const LOCK_STACK_BOTTOM_INSET = 110
 const LOCK_STACK_MAX_VISUAL_OFFSET = 36
 const LOCK_CARD_HEIGHT = 90
 const LOCK_CARD_BASE_ALPHA = 0.85
-const LOCK_STACK_FRONT_ALPHA = 0.96
+const LOCK_STACK_FRONT_ALPHA = 0.95
 const LOCK_STACK_BACK_ALPHA = 0.80
 const LOCK_STACK_DEPTH_ALPHA = 0.15
 const LOCK_STACK_ALPHA_OVERLAP = 48
@@ -1271,19 +1271,12 @@ const lockNotificationsLayout = computed(() => {
     const geo = geometries[i]
     const next = i < count - 1 ? geometries[i + 1] : null
     const coveringProgress = getLockCardOverlap(geo, next)
-    const backgroundAlpha = !geo.layout.stacked
-      ? LOCK_CARD_BASE_ALPHA
-      : i === 0
-        ? LOCK_STACK_FRONT_ALPHA
-        : Math.min(
-            LOCK_STACK_FRONT_ALPHA,
-            Math.max(
-              LOCK_STACK_BACK_ALPHA,
-              LOCK_CARD_BASE_ALPHA
-                + (LOCK_STACK_FRONT_ALPHA - LOCK_CARD_BASE_ALPHA) * coveringProgress
-                - LOCK_STACK_DEPTH_ALPHA * geo.stackDepthProgress
-            )
-          )
+    const isFrontCard = i === 0 && count > 1
+    const backgroundAlpha = isFrontCard
+      ? LOCK_CARD_BASE_ALPHA + (LOCK_STACK_FRONT_ALPHA - LOCK_CARD_BASE_ALPHA) * coveringProgress
+      : geo.layout.stacked
+        ? LOCK_STACK_BACK_ALPHA
+        : LOCK_CARD_BASE_ALPHA
 
     let yPos, scale, opacity
     if (isCollapsed.value) {
@@ -1826,12 +1819,13 @@ function notifStyle(i) {
   background-size: cover;
   background-position: center;
 }
-/* 轻微暗化让白色文字更清晰 */
+/* 轻微暗化顶部让状态栏更清晰，底部保持纯净明亮 */
 .ls-wallpaper::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.02) 30%, rgba(0,0,0,0.18) 100%);
+  background: linear-gradient(180deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0) 25%);
+  pointer-events: none;
 }
 
 .ls-inner {
@@ -2320,12 +2314,12 @@ function notifStyle(i) {
 /* ---- 底部快捷按钮 ---- */
 .ls-shortcuts {
   position: absolute;
-  bottom: 42px;
+  bottom: 44px;
   left: 0;
   right: 0;
   display: flex;
   justify-content: space-between;
-  padding: 0 44px;
+  padding: 0 42px;
   pointer-events: none;
   z-index: 30;
 }
@@ -2333,11 +2327,11 @@ function notifStyle(i) {
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.28);
-  backdrop-filter: blur(24px) saturate(160%) brightness(105%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%) brightness(105%);
-  border: 0.5px solid rgba(255, 255, 255, 0.55);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), inset 0 0.5px 1px rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.20);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 0.8px solid rgba(255, 255, 255, 0.50);
+  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2347,10 +2341,10 @@ function notifStyle(i) {
   transition: background 0.2s ease, transform 0.12s ease;
 }
 .ls-shortcut svg {
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+  display: block;
 }
 .ls-shortcut:active {
-  background: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.45);
   transform: scale(0.92);
 }
 </style>
