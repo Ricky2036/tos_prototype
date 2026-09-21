@@ -1300,13 +1300,7 @@ const lockNotificationsLayout = computed(() => {
       opacity = geo.layout.opacity
     }
 
-    // 保证相邻卡片在展开态绝不重叠：当前序卡片已脱离堆叠时，后续卡片必须保留至少 8px 标准间隙
-    if (i > 0 && !isCollapsed.value && !geometries[i - 1].layout.stacked) {
-      const minAllowedY = result[i - 1].yPos + LOCK_CARD_HEIGHT + 8
-      if (yPos < minAllowedY) {
-        yPos = minAllowedY
-      }
-    }
+
 
     // 遮挡检测与完全隐藏处理：
     // 当卡片被前序可见卡片完全遮挡时（底部未超出前序卡片的最大底部），直接隐藏 (opacity = 0, visibility = hidden)
@@ -1335,15 +1329,11 @@ const lockNotificationsLayout = computed(() => {
       maxCoveringBottom = Math.max(maxCoveringBottom, geo.visualBottom)
     }
 
-    const isStackedUnder = i > 0 && geo.layout.stacked
-    const contentOpacity = isStackedUnder ? clamp(scrollY.value / 32, 0, 1) : 1
-
     result.push({
       yPos,
       scale,
       opacity,
       backgroundAlpha,
-      contentOpacity,
       interactive: opacity > 0 && geo.layout.interactive,
       isCompletelyCovered
     })
@@ -1367,8 +1357,7 @@ function notifStyle(i) {
     zIndex: 100 - i,
     transition: transitionStyle.value,
     pointerEvents: itemLayout.interactive ? 'auto' : 'none',
-    '--ls-card-bg-alpha': itemLayout.backgroundAlpha.toFixed(3),
-    '--ls-card-content-opacity': itemLayout.contentOpacity.toFixed(2)
+    '--ls-card-bg-alpha': itemLayout.backgroundAlpha.toFixed(3)
   }
 }
 </script>
@@ -2058,10 +2047,6 @@ function notifStyle(i) {
   touch-action: none;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.18s linear;
 }
-.ls-card-front > * {
-  opacity: var(--ls-card-content-opacity, 1);
-  transition: opacity 0.2s ease;
-}
 
 .ls-card-front.is-swiping,
 .ls-activity-card.is-swiping {
@@ -2348,18 +2333,24 @@ function notifStyle(i) {
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: rgba(30, 30, 35, 0.22);
-  backdrop-filter: blur(28px) saturate(120%) brightness(108%);
-  -webkit-backdrop-filter: blur(28px) saturate(120%) brightness(108%);
-  border: 0.5px solid rgba(255, 255, 255, 0.3);
-  box-shadow: inset 0 0.5px 1px rgba(255, 255, 255, 0.35), 0 2px 10px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(24px) saturate(160%) brightness(105%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%) brightness(105%);
+  border: 0.5px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), inset 0 0.5px 1px rgba(255, 255, 255, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: #ffffff;
   cursor: pointer;
   pointer-events: auto;
   transition: background 0.2s ease, transform 0.12s ease;
 }
-.ls-shortcut:active { background: rgba(255, 255, 255, 0.85); color: #000; }
+.ls-shortcut svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+}
+.ls-shortcut:active {
+  background: rgba(255, 255, 255, 0.65);
+  transform: scale(0.92);
+}
 </style>
