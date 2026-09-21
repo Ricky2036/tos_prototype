@@ -232,7 +232,7 @@ watch(isIslandExpanded, (expanded) => {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.2px;
   pointer-events: none; /* 热区手势由叠层 edge 元素负责 */
-  transition: opacity 0.22s ease;
+  transition: opacity 0.22s ease, color 0.2s ease;
 }
 .status-bar.island-expanded {
   opacity: 0;

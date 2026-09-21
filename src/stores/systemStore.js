@@ -29,6 +29,7 @@ export const useSystemStore = defineStore('system', {
     homeGestureProgress: 0,       // 应用内底部上滑返回手势进度（AppWindow 缩放预览）
     screenOn: true,               // 亮/灭屏（控制台控制；灭屏=黑屏，亮屏回锁屏）
     navigationMode: 'gesture',    // 'gesture' (手势导航) | 'threeButton' (三键导航)
+    chromeStyleOverride: null,    // 状态栏与导航条动态显式反色覆盖：'light' | 'dark' | null (null 为跟随系统/应用默认)
     overlays: {
       notificationCenter: { status: 'closed', progress: 0 },
       controlCenter: { status: 'closed', progress: 0 },
@@ -99,11 +100,21 @@ export const useSystemStore = defineStore('system', {
       }
     },
 
+    /** 动态设置状态栏与导航条反色风格：'light' | 'dark' | null */
+    setChromeStyle(style) {
+      if (style === 'light' || style === 'dark' || style === null) {
+        this.chromeStyleOverride = style
+      } else {
+        this.chromeStyleOverride = null
+      }
+    },
+
     /** 解锁完成：lock → home */
     unlock() {
       if (this.baseLayer !== 'lock') return
       this.baseLayer = 'home'
       this.unlockProgress = 0
+      this.chromeStyleOverride = null
     },
 
     /** 重新锁定（电源键 / 演示用 / 亮屏） */
@@ -113,6 +124,7 @@ export const useSystemStore = defineStore('system', {
       this.appSwitcherOpen = false
       this.unlockProgress = 0
       this.homeGestureProgress = 0
+      this.chromeStyleOverride = null
       for (const key of Object.keys(this.overlays)) {
         this.overlays[key] = { status: 'closed', progress: 0 }
       }
@@ -155,6 +167,7 @@ export const useSystemStore = defineStore('system', {
       if (this.baseLayer === 'lock') return
       this.baseLayer = 'app'
       this.activeAppId = appId
+      this.chromeStyleOverride = null
       this.touchRecent(appId)
       // 打开应用时收起所有叠层与切换器
       this.appSwitcherOpen = false
@@ -270,9 +283,11 @@ export const useSystemStore = defineStore('system', {
     goHome() {
       if (this.baseLayer !== 'app') return
       this.baseLayer = 'home'
+      this.chromeStyleOverride = null
     },
     finishGoHome() {
       this.activeAppId = null
+      this.chromeStyleOverride = null
     },
 
     /* ---- 叠层 ---- */

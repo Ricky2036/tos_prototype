@@ -76,9 +76,15 @@ const isWallpaperVisible = computed(() => {
   return true
 })
 
-/** 状态栏/Home 条配色：浅色背景应用内切换为深色（相机、时钟、录音等深色应用除外） */
+/** 状态栏/Home 条配色：
+ * 1. 显式覆盖优先（如子页面/弹窗/全屏预览请求 useSystemChrome('light' | 'dark')）
+ * 2. 应用内默认：深色背景应用为浅色 chrome（白字/白条），浅色背景应用为深色 chrome（黑字/黑条）
+ * 3. 锁屏/桌面默认：浅色 chrome（白字/白条）
+ */
 const DARK_BG_APPS = ['camera', 'clock', 'voicememos']
 const chromeLight = computed(() => {
+  if (system.chromeStyleOverride === 'light') return true
+  if (system.chromeStyleOverride === 'dark') return false
   if (system.baseLayer === 'app') return DARK_BG_APPS.includes(system.activeAppId)
   return true
 })
