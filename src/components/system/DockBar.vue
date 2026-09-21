@@ -29,5 +29,68 @@ function activate(event,id) {
 </template>
 
 <style scoped>
-.dock-bar{position:absolute;left:14px;right:14px;bottom:28px;height:88px;border-radius:30px;background:rgba(255,255,255,.24);backdrop-filter:blur(22px) saturate(180%);border:.5px solid rgba(255,255,255,.28);display:grid;grid-template-columns:repeat(4,1fr);align-items:center;justify-items:center;padding:0 8px;z-index:var(--z-dock);transition:background 180ms ease}.dock-bar.has-target{background:rgba(255,255,255,.36)}.dock-item{position:relative;transition:transform 180ms ease,opacity 160ms ease;touch-action:none}.dock-item.is-dragging-source{opacity:.15}.dock-item.is-drop-target{transform:scale(1.12)}.dock-item.is-removing{transform:scale(.2);opacity:0}.remove-badge{position:absolute;left:-7px;top:-7px;width:21px;height:21px;border-radius:50%;background:rgba(45,45,50,.85);color:#fff;font:700 19px/18px var(--font-stack);z-index:5}.dock-select{position:absolute;right:-5px;top:-5px;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:#0a84ff;color:#fff;font:700 11px/1 var(--font-stack);pointer-events:none}
+.dock-bar {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 28px;
+  height: 88px;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(28px) saturate(130%) brightness(104%);
+  -webkit-backdrop-filter: blur(28px) saturate(130%) brightness(104%);
+  border: 0.5px solid rgba(255, 255, 255, 0.38);
+  box-shadow: inset 0 0.5px 1px rgba(255, 255, 255, 0.5), 0 8px 32px rgba(0, 0, 0, 0.12);
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  align-items: center;
+  justify-items: center;
+  padding: 0 8px;
+  z-index: var(--z-dock);
+  transition: background 180ms ease;
+}
+.dock-bar.has-target {
+  background: rgba(255, 255, 255, 0.36);
+}
+.dock-item {
+  position: relative;
+  transition: transform 180ms ease, opacity 160ms ease;
+  touch-action: none;
+}
+.dock-item.is-dragging-source {
+  opacity: 0.15;
+}
+.dock-item.is-drop-target {
+  transform: scale(1.12);
+}
+.dock-item.is-removing {
+  transform: scale(0.2);
+  opacity: 0;
+}
+.remove-badge {
+  position: absolute;
+  left: -7px;
+  top: -7px;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: rgba(45, 45, 50, 0.85);
+  color: #fff;
+  font: 700 19px/18px var(--font-stack);
+  z-index: 5;
+}
+.dock-select {
+  position: absolute;
+  right: -5px;
+  top: -5px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #0a84ff;
+  color: #fff;
+  font: 700 11px/1 var(--font-stack);
+  pointer-events: none;
+}
 </style>

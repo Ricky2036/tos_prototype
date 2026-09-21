@@ -50,8 +50,10 @@ const i18n = useI18nStore()
   padding: 0 12px;
   border-radius: 13px;
   background: rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(20px) saturate(120%) brightness(105%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%) brightness(105%);
+  border: 0.5px solid rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 0.5px 0.5px rgba(255, 255, 255, 0.4), 0 2px 8px rgba(0, 0, 0, 0.08);
   color: #fff;
   font: 500 12px/1 var(--font-stack);
   transition: transform 0.15s ease;

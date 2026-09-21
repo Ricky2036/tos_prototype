@@ -2168,9 +2168,9 @@ function notifStyle(i) {
   height: 36px;
   padding: 0 16px 0 13px;
   background: rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border: 0.5px solid rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(28px) saturate(130%) brightness(104%);
+  -webkit-backdrop-filter: blur(28px) saturate(130%) brightness(104%);
+  border: 0.5px solid rgba(255, 255, 255, 0.45);
   border-radius: 9999px;
   box-shadow: none;
   cursor: pointer;
@@ -2217,10 +2217,11 @@ function notifStyle(i) {
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(30, 30, 35, 0.22);
+  backdrop-filter: blur(28px) saturate(120%) brightness(108%);
+  -webkit-backdrop-filter: blur(28px) saturate(120%) brightness(108%);
+  border: 0.5px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 0.5px 1px rgba(255, 255, 255, 0.35), 0 2px 10px rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2229,5 +2230,5 @@ function notifStyle(i) {
   pointer-events: auto;
   transition: background 0.2s ease, transform 0.12s ease;
 }
-.ls-shortcut:active { background: rgba(255, 255, 255, 0.8); color: #000; }
+.ls-shortcut:active { background: rgba(255, 255, 255, 0.85); color: #000; }
 </style>
