@@ -127,6 +127,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Workbuddy | Volume Plus, physical side volume keys, SideVolumeOverlay & VolumePanel restoration with transparent frosted glass, and CC power tile removal | `workbuddy/lane` | None (locks released) | `f6bdb32` | `6d1f087` |
 | Merged | Antigravity | LockScreen depth-of-field wallpaper effect (3-layer clock occlusion, contact shadow, on-device segmentation & personalization depth toggle) | `antigravity/lane` | None (locks released) | `b8f5cda` | `cde6398` |
 | Merged | Antigravity | Fix LockScreen notification z-index hierarchy over depth subject and add portrait person segmentation support | `antigravity/lane` | None (locks released) | `c5a4118` | `303058a` |
+| Merged | Antigravity | Preset abstract-geometric-cubes wallpaper with depth-of-field foreground and fallback cutout | `antigravity/lane` | None (locks released) | `303058a` | `53a83bb` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
