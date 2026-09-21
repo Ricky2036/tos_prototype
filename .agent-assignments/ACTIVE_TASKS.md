@@ -134,6 +134,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Polish wallpaper settings UI, full-screen preview with zero-gap zoom, reusable action components, and separate lock/home wallpapers | `antigravity/lane` | None (locks released) | `58516aa` | `5269157` |
 | Merged | Antigravity | Global adaptive contrast color inversion for StatusBar, HomeIndicator, and ThreeButtonNav with useSystemChrome composable | `antigravity/lane` | None (locks released) | `9d51971` | `c493b0e` |
 | Merged | Antigravity | Tune LockScreen card alpha to 85%/80%, separate bottom cards with gap, and enable overscroll bounce | `antigravity/lane` | None (locks released) | `d25cfb8` | `94d31ab` |
+| Merged | Antigravity | Fix LockScreen shortcut buttons white frosted glass, restore natural back-card stacking, and preserve 100% card text visibility | `antigravity/lane` | None (locks released) | `94d31ab` | `43b5996` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
