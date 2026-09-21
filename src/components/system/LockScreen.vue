@@ -1819,12 +1819,19 @@ function notifStyle(i) {
   background-size: cover;
   background-position: center;
 }
-/* 轻微暗化顶部让状态栏更清晰，底部保持纯净明亮 */
+/* 顶部与底部双向保护渐变：顶部保护状态栏，底部保护快捷按钮与手势指示条 */
 .ls-wallpaper::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0) 25%);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.15) 0%,
+    rgba(0, 0, 0, 0) 18%,
+    rgba(0, 0, 0, 0) 65%,
+    rgba(0, 0, 0, 0.16) 82%,
+    rgba(0, 0, 0, 0.32) 100%
+  );
   pointer-events: none;
 }
 
@@ -2327,11 +2334,11 @@ function notifStyle(i) {
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.20);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 0.8px solid rgba(255, 255, 255, 0.50);
-  box-shadow: none;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(24px) brightness(0.92);
+  -webkit-backdrop-filter: blur(24px) brightness(0.92);
+  border: 0.8px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16), inset 0 0.5px 1px rgba(255, 255, 255, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2342,6 +2349,7 @@ function notifStyle(i) {
 }
 .ls-shortcut svg {
   display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 .ls-shortcut:active {
   background: rgba(255, 255, 255, 0.45);
