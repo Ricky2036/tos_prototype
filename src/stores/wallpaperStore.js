@@ -5,6 +5,7 @@ export const WALLPAPER_STORAGE_KEY = 'tos.personalization.wallpaper.v1'
 export const WALLPAPER_DEPTH_ENABLED_KEY = 'tos.personalization.wallpaper.depth_enabled.v1'
 export const WALLPAPER_DEPTH_SUBJECT_KEY = 'tos.personalization.wallpaper.depth_subject.v1'
 export const WALLPAPER_DEPTH_OCCLUSION_KEY = 'tos.personalization.wallpaper.depth_occlusion.v1'
+export const DEFAULT_WALLPAPER = new URL('../assets/img/personalization/generated/abstract-geometric-cubes.png', import.meta.url).href
 
 function getStorage() {
   try {
@@ -60,7 +61,8 @@ function readSavedDepthOcclusion() {
 
 export const useWallpaperStore = defineStore('wallpaper', {
   state: () => {
-    const active = readSavedWallpaper()
+    const savedActive = readSavedWallpaper()
+    const active = savedActive || DEFAULT_WALLPAPER
     const savedSubject = readSavedDepthSubject()
     // 若存储中无显式主体，但激活的壁纸命中内置预置主体，则自动匹配
     const resolvedSubject = savedSubject || (active ? (getPresetDepthSubject(active) || '') : '')
@@ -117,7 +119,7 @@ export const useWallpaperStore = defineStore('wallpaper', {
 
     hydrate() {
       const active = readSavedWallpaper()
-      if (active) this.active = active
+      this.active = active || DEFAULT_WALLPAPER
 
       this.depthEnabled = readSavedDepthEnabled()
       const savedSubject = readSavedDepthSubject()

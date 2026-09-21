@@ -40,9 +40,8 @@ test('personalization page provides overview, theme market and wallpaper picker'
   assert.match(personalization, /class="filled-palette-glyph"/)
   assert.match(personalization, /class="filled-lock-glyph"/)
   assert.match(personalization, /class="filled-desktop-glyph"/)
-  assert.match(personalization, /abstract-glass-blue/)
-  assert.match(personalization, /nature-mountain-lake/)
-  assert.match(personalization, /pet-golden-retriever/)
+  assert.match(personalization, /abstract-geometric-cubes/)
+  assert.match(personalization, /nature-coast/)
   assert.match(personalization, /person-field/)
   assert.match(personalization, /wallpaperStore\.apply\(selectedWallpaper\.value\)/)
   assert.match(lockScreen, /:href="activeWallpaper"/)
@@ -57,9 +56,12 @@ test('personalization page provides overview, theme market and wallpaper picker'
   assert.match(personalization, /icon-desktop/)
 })
 
-test('generated wallpapers are present and used', () => {
-  for (const file of ['glass-bronze.png', 'glass-blue.png', 'glass-mint.png', 'glass-rose.png']) {
-    assert.equal(existsSync(resolve(root, 'src/assets/img/personalization', file)), true, `${file} should exist`)
-    assert.match(personalization, new RegExp(file.replace('.', '\\.')))
+test('bundled wallpapers are present and used', () => {
+  assert.equal(existsSync(resolve(root, 'src/assets/img/wallpaper-lock.jpg')), true, 'wallpaper-lock.jpg should exist')
+  for (const file of ['abstract-geometric-cubes.png', 'abstract-geometric-cubes-subject.png', 'nature-coast.png', 'person-field.png', 'person-field-subject.png']) {
+    assert.equal(existsSync(resolve(root, 'src/assets/img/personalization/generated', file)), true, `${file} should exist`)
+    if (!file.endsWith('-subject.png')) {
+      assert.match(personalization, new RegExp(file.replace('.', '\\.')))
+    }
   }
 })
