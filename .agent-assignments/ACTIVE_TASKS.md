@@ -130,6 +130,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Preset abstract-geometric-cubes wallpaper with depth-of-field foreground and fallback cutout | `antigravity/lane` | None (locks released) | `303058a` | `53a83bb` |
 | Merged | Antigravity | Set abstract geometric cubes as default wallpaper and prune unneeded wallpaper assets | `antigravity/lane` | None (locks released) | `53a83bb` | `834c34f` |
 | Merged | Antigravity | Prune dead assets and optimize wallpaper and notification icon compression | `antigravity/lane` | None (locks released) | `834c34f` | `2788c54` |
+| Merged | Antigravity | Restore authentic translucent frosted glass styling for desktop Dock and LockScreen bottom buttons | `antigravity/lane` | None (locks released) | `dd0d25a` | `8b746a0` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
