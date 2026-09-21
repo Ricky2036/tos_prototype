@@ -129,6 +129,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | LockScreen depth-of-field wallpaper effect (3-layer clock occlusion, contact shadow, on-device segmentation & personalization depth toggle) | `antigravity/lane` | None (locks released) | `b8f5cda` | `cde6398` |
 | Merged | Antigravity | Fix LockScreen notification z-index hierarchy over depth subject and add portrait person segmentation support | `antigravity/lane` | None (locks released) | `c5a4118` | `303058a` |
 | Merged | Antigravity | Preset abstract-geometric-cubes wallpaper with depth-of-field foreground and fallback cutout | `antigravity/lane` | None (locks released) | `303058a` | `53a83bb` |
+| Merged | Antigravity | Set abstract geometric cubes as default wallpaper and prune unneeded wallpaper assets | `antigravity/lane` | None (locks released) | `53a83bb` | `834c34f` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 

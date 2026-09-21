@@ -5,11 +5,10 @@ import { useWallpaperStore } from '../../../../stores/wallpaperStore'
 import { useClock } from '../../../../composables/useClock'
 import AppGrid from '../../../system/AppGrid.vue'
 import LockScreen from '../../../system/LockScreen.vue'
-import currentWallpaper from '../../../../assets/img/wallpaper-lock.jpg'
-import bronzeWallpaper from '../../../../assets/img/personalization/glass-bronze.png'
-import blueWallpaper from '../../../../assets/img/personalization/glass-blue.png'
-import mintWallpaper from '../../../../assets/img/personalization/glass-mint.png'
-import roseWallpaper from '../../../../assets/img/personalization/glass-rose.png'
+import defaultWallpaper from '../../../../assets/img/wallpaper-lock.jpg'
+import cubesWallpaper from '../../../../assets/img/personalization/generated/abstract-geometric-cubes.png'
+import coastWallpaper from '../../../../assets/img/personalization/generated/nature-coast.png'
+import personFieldWallpaper from '../../../../assets/img/personalization/generated/person-field.png'
 
 import { useDepthSegmentation, getPresetDepthSubject } from '../../../../composables/useDepthSegmentation.js'
 
@@ -24,37 +23,15 @@ const isScanning = ref(false)
 const scanToastText = ref('')
 
 const screen = ref('overview')
-const selectedWallpaper = ref(wallpaperStore.active || currentWallpaper)
-const activeWallpaper = computed(() => wallpaperStore.active || currentWallpaper)
+const selectedWallpaper = ref(wallpaperStore.active || cubesWallpaper)
+const activeWallpaper = computed(() => wallpaperStore.active || cubesWallpaper)
 
 const wallpapers = [
-  { id: 'bronze', src: bronzeWallpaper, tone: '#d9974e', title: '鎏金玻璃' },
-  { id: 'blue', src: blueWallpaper, tone: '#4789ff', title: '深海蓝光' },
-  { id: 'mint', src: mintWallpaper, tone: '#38e6c1', title: '薄荷极光' },
-  { id: 'rose', src: roseWallpaper, tone: '#ff4fa1', title: '玫瑰霓虹' }
+  { id: 'abstract-geometric-cubes', src: cubesWallpaper, tone: '#4f8cff', title: '建筑·几何方块' },
+  { id: 'nature-coast', src: coastWallpaper, tone: '#e6935b', title: '自然·海岸暮光' },
+  { id: 'person-field', src: personFieldWallpaper, tone: '#e0a458', title: '人物·金色田野' },
+  { id: 'default', src: defaultWallpaper, tone: '#4f8cff', title: '经典默认' }
 ]
-
-const generatedWallpaperUrls = import.meta.glob('../../../../assets/img/personalization/generated/*.png', { eager: true, query: '?url', import: 'default' })
-const generatedWallpaperOrder = [
-  ['abstract-geometric-cubes', '建筑·几何方块'],
-  ['abstract-glass-blue', '抽象·玻璃蓝'],
-  ['abstract-folded-lavender', '抽象·折叠光'],
-  ['abstract-liquid-teal', '抽象·液态青'],
-  ['nature-mountain-lake', '自然·山湖晨雾'],
-  ['nature-alpine-meadow', '自然·雪峰花野'],
-  ['nature-coast', '自然·海岸暮光'],
-  ['pet-golden-retriever', '宠物·金毛'],
-  ['pet-white-gray-cat', '宠物·银灰猫'],
-  ['pet-red-fox', '宠物·赤狐'],
-  ['person-field', '人物·金色田野'],
-  ['person-haze', '人物·雾光侧影'],
-  ['person-coast', '人物·海岸漫步']
-]
-for (const [id, title] of generatedWallpaperOrder) {
-  const path = `../../../../assets/img/personalization/generated/${id}.png`
-  const src = generatedWallpaperUrls[path]
-  if (src && !id.endsWith('-subject')) wallpapers.push({ id, src, tone: '#4f8cff', title })
-}
 
 const depthWallpapers = computed(() => {
   return wallpapers.filter((w) => !!getPresetDepthSubject(w.src))
