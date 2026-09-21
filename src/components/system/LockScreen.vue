@@ -178,10 +178,10 @@ const glassUid = `ls-clock-${++glassUidSeq}`
 const LOCK_STACK_BOTTOM_INSET = 110
 const LOCK_STACK_MAX_VISUAL_OFFSET = 36
 const LOCK_CARD_HEIGHT = 90
-const LOCK_CARD_BASE_ALPHA = 0.7
-const LOCK_STACK_FRONT_ALPHA = 0.95
-const LOCK_STACK_BACK_ALPHA = 0.54
-const LOCK_STACK_DEPTH_ALPHA = 0.4
+const LOCK_CARD_BASE_ALPHA = 0.92
+const LOCK_STACK_FRONT_ALPHA = 0.96
+const LOCK_STACK_BACK_ALPHA = 0.75
+const LOCK_STACK_DEPTH_ALPHA = 0.15
 const LOCK_STACK_ALPHA_OVERLAP = 48
 const NATIVE_EXPAND_OFFSET = 0
 const activityBottomY = computed(() => control.mediaActive ? PLAYER_START_Y.value : BASE_Y.value)
@@ -1162,15 +1162,19 @@ const lockNotificationsLayout = computed(() => {
     const geo = geometries[i]
     const next = i < count - 1 ? geometries[i + 1] : null
     const coveringProgress = getLockCardOverlap(geo, next)
-    const backgroundAlpha = Math.min(
-      LOCK_STACK_FRONT_ALPHA,
-      Math.max(
-        LOCK_STACK_BACK_ALPHA,
-        LOCK_CARD_BASE_ALPHA
-          + (LOCK_STACK_FRONT_ALPHA - LOCK_CARD_BASE_ALPHA) * coveringProgress
-          - LOCK_STACK_DEPTH_ALPHA * geo.stackDepthProgress
-      )
-    )
+    const backgroundAlpha = !geo.layout.stacked
+      ? LOCK_CARD_BASE_ALPHA
+      : i === 0
+        ? LOCK_STACK_FRONT_ALPHA
+        : Math.min(
+            LOCK_STACK_FRONT_ALPHA,
+            Math.max(
+              LOCK_STACK_BACK_ALPHA,
+              LOCK_CARD_BASE_ALPHA
+                + (LOCK_STACK_FRONT_ALPHA - LOCK_CARD_BASE_ALPHA) * coveringProgress
+                - LOCK_STACK_DEPTH_ALPHA * geo.stackDepthProgress
+            )
+          )
 
     let yPos, scale, opacity
     if (isCollapsed.value) {
@@ -1214,11 +1218,15 @@ const lockNotificationsLayout = computed(() => {
       maxCoveringBottom = Math.max(maxCoveringBottom, geo.visualBottom)
     }
 
+    const isStackedUnder = i > 0 && geo.layout.stacked
+    const contentOpacity = isStackedUnder ? clamp(scrollY.value / 32, 0, 1) : 1
+
     result.push({
       yPos,
       scale,
       opacity,
       backgroundAlpha,
+      contentOpacity,
       interactive: opacity > 0 && geo.layout.interactive,
       isCompletelyCovered
     })
@@ -1242,7 +1250,8 @@ function notifStyle(i) {
     zIndex: 100 - i,
     transition: transitionStyle.value,
     pointerEvents: itemLayout.interactive ? 'auto' : 'none',
-    '--ls-card-bg-alpha': itemLayout.backgroundAlpha.toFixed(3)
+    '--ls-card-bg-alpha': itemLayout.backgroundAlpha.toFixed(3),
+    '--ls-card-content-opacity': itemLayout.contentOpacity.toFixed(2)
   }
 }
 </script>
@@ -1916,7 +1925,7 @@ function notifStyle(i) {
 .ls-card-front {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, var(--ls-card-bg-alpha, 0.7));
+  background: rgba(255, 255, 255, var(--ls-card-bg-alpha, 0.92));
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
   border: 1px solid rgba(255, 255, 255, 0.5);
@@ -1932,6 +1941,11 @@ function notifStyle(i) {
   touch-action: none;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.18s linear;
 }
+.ls-card-front > * {
+  opacity: var(--ls-card-content-opacity, 1);
+  transition: opacity 0.2s ease;
+}
+
 .ls-card-front.is-swiping,
 .ls-activity-card.is-swiping {
   transition: none !important;
