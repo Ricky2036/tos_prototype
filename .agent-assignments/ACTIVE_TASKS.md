@@ -145,6 +145,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Optical and mathematical centering for app icon notification badge numbers | `antigravity/lane` | None (locks released) | `5450046` | `04bad88` |
 | Merged | Antigravity | Adjust app icon notification badge anchor position upwards and rightwards (top: -8px, right: -8px) | `antigravity/lane` | None (locks released) | `163bcc6` | `be265de` |
 | Merged | Antigravity | Restore badge anchor to top -4px right -5px and center number 1 vertically inside red background | `antigravity/lane` | None (locks released) | `58af722` | `d695442` |
+| Merged | Antigravity | Save persistent weekly update log archive system (docs portal, 2026-09-15 to 09-22 weekly report, sync previous 09-03 to 09-14 report, and WEEKLY_UPDATES.md) | `main` | `docs/**`; `.agent-assignments/ACTIVE_TASKS.md` | `0c8f8ff` | HEAD |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
