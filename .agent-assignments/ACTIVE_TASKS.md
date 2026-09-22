@@ -143,6 +143,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Side volume 10s dismiss, centered compact dots, translucent color-blending track, and compact tap-to-expand | `antigravity/lane` | None (locks released) | `78528ae` | `93cffae` |
 | Merged | Antigravity | Volume fill borderless outline and continuous hero transition for panel expansion | `antigravity/lane` | None (locks released) | `d085ca8` | `3270bdb` |
 | Merged | Antigravity | Optical and mathematical centering for app icon notification badge numbers | `antigravity/lane` | None (locks released) | `5450046` | `04bad88` |
+| Merged | Antigravity | Adjust app icon notification badge anchor position upwards and rightwards (top: -8px, right: -8px) | `antigravity/lane` | None (locks released) | `163bcc6` | `be265de` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
