@@ -234,11 +234,11 @@ onBeforeUnmount(() => {
 
 .icon-badge {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -4px;
+  right: -5px;
   min-width: 20px;
   height: 20px;
-  padding: 0.8px 5.5px 0 5.5px;
+  padding: 0 5.5px 1px 5.5px;
   border-radius: 10px;
   box-sizing: border-box;
   display: flex;
