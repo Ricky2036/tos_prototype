@@ -13,9 +13,9 @@ import { APPS, getApp } from '../src/config/apps.js'
 
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8')
 
-test('DRAWER_APPS contains 19 real desktop apps matching apps.js and 4 pinned dock apps', () => {
-  // 必须严格对应系统桌面 19 个真实应用
-  assert.equal(DRAWER_APPS.length, 19, 'Drawer apps list must have exactly the 19 desktop apps')
+test('DRAWER_APPS contains 37 real desktop apps matching apps.js and 4 pinned dock apps', () => {
+  // 必须严格对应系统桌面 37 个真实应用（19 系统核心 + 18 通知中心应用）
+  assert.equal(DRAWER_APPS.length, 37, 'Drawer apps list must have exactly the 37 desktop apps')
   const desktopIds = APPS.map((a) => a.id).sort()
   const drawerIds = DRAWER_APPS.map((a) => a.id).sort()
   assert.deepEqual(drawerIds, desktopIds, 'Drawer apps must 100% match desktop APPS IDs')

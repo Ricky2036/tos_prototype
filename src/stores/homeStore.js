@@ -29,9 +29,9 @@ export function createDefaultHomeState() {
     version: HOME_LAYOUT_VERSION, currentPage: 0,
     order: [
       'widget:clock', 'widget:smart',
-      ...gridApps.slice(0, 8).map((app) => appItemId(app.id)),
+      ...gridApps.slice(0, 15).map((app) => appItemId(app.id)),
       'page-break:default',
-      ...gridApps.slice(8).map((app) => appItemId(app.id))
+      ...gridApps.slice(15).map((app) => appItemId(app.id))
     ],
     pages: [[]], positions: {}, profile: createHomeGridProfile(), items: defaultItems(), folders: {},
     dock: dockApps.map((app) => appItemId(app.id)).slice(0, 4),
@@ -48,7 +48,7 @@ function safeStorage() {
 
 function reconcile(raw) {
   const defaults = createDefaultHomeState()
-  if (!raw?.items || (raw.version === 2 ? !Array.isArray(raw.order) : !Array.isArray(raw.pages))) return defaults
+  if (!raw?.items || !raw.items['app:whatsapp'] || (raw.version === 2 ? !Array.isArray(raw.order) : !Array.isArray(raw.pages))) return defaults
   const knownApps = new Set(APPS.map((app) => app.id))
   const uninstalled = new Set((raw.uninstalledAppIds || []).filter((id) => knownApps.has(id)))
   const hidden = new Set((raw.hiddenDesktopAppIds || []).filter((id) => knownApps.has(id) && !uninstalled.has(id)))

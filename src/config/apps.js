@@ -158,6 +158,150 @@ export const APPS = [
     heroBackground: '#F5F5F7',
     image: '/icons/compass.png',
     page: 0
+  },
+  {
+    id: 'whatsapp',
+    name: 'WhatsApp',
+    depth: 'placeholder',
+    heroBackground: 'linear-gradient(180deg,#25D366 0%,#128C7E 100%)',
+    image: '/icons/whatsapp.png',
+    page: 1
+  },
+  {
+    id: 'facebook',
+    name: 'Facebook',
+    depth: 'placeholder',
+    heroBackground: 'linear-gradient(180deg,#1877F2 0%,#0C63D4 100%)',
+    image: '/icons/facebook.png',
+    page: 1
+  },
+  {
+    id: 'tiktok',
+    name: 'TikTok',
+    depth: 'placeholder',
+    heroBackground: '#000000',
+    image: '/icons/tiktok.png',
+    page: 1
+  },
+  {
+    id: 'spotify',
+    name: 'Spotify',
+    depth: 'placeholder',
+    heroBackground: 'linear-gradient(180deg,#1ED760 0%,#1DB954 100%)',
+    image: '/icons/spotify.png',
+    page: 1
+  },
+  {
+    id: 'gmail',
+    name: 'Gmail',
+    depth: 'placeholder',
+    heroBackground: 'linear-gradient(180deg,#EA4335 0%,#C5221F 100%)',
+    image: '/icons/gmail.png',
+    page: 1
+  },
+  {
+    id: 'amazon',
+    name: 'Amazon',
+    depth: 'placeholder',
+    heroBackground: 'linear-gradient(180deg,#232F3E 0%,#131921 100%)',
+    image: '/icons/amazon.png',
+    page: 1
+  },
+  {
+    id: 'snapchat',
+    name: 'Snapchat',
+    depth: 'placeholder',
+    heroBackground: 'linear-gradient(180deg,#FFFC00 0%,#F5EE00 100%)',
+    image: '/icons/snapchat.png',
+    page: 1
+  },
+  {
+    id: 'uber',
+    name: 'Uber',
+    depth: 'placeholder',
+    heroBackground: '#000000',
+    image: '/icons/uber.png',
+    page: 1
+  },
+  {
+    id: 'google',
+    name: 'Google',
+    depth: 'placeholder',
+    heroBackground: 'linear-gradient(180deg,#FFFFFF 0%,#F1F3F4 100%)',
+    image: '/icons/google.png',
+    page: 1
+  },
+  {
+    id: 'pinterest',
+    name: 'Pinterest',
+    depth: 'placeholder',
+    heroBackground: 'linear-gradient(180deg,#E60023 0%,#BD081C 100%)',
+    image: '/icons/pinterest.png',
+    page: 1
+  },
+  {
+    id: 'wechat',
+    name: '微信',
+    depth: 'placeholder',
+    heroBackground: 'linear-gradient(180deg,#09BB07 0%,#07C160 100%)',
+    image: '/icons/wechat.png',
+    page: 1
+  },
+  {
+    id: 'instagram',
+    name: 'Instagram',
+    depth: 'placeholder',
+    heroBackground: 'linear-gradient(135deg,#833AB4 0%,#FD1D1D 50%,#FCB045 100%)',
+    image: '/icons/instagram.png',
+    page: 1
+  },
+  {
+    id: 'x',
+    name: 'X',
+    depth: 'placeholder',
+    heroBackground: '#000000',
+    image: '/icons/x.png',
+    page: 1
+  },
+  {
+    id: 'netflix',
+    name: 'Netflix',
+    depth: 'placeholder',
+    heroBackground: 'linear-gradient(180deg,#141414 0%,#000000 100%)',
+    image: '/icons/netflix.png',
+    page: 1
+  },
+  {
+    id: 'telegram',
+    name: 'Telegram',
+    depth: 'placeholder',
+    heroBackground: 'linear-gradient(180deg,#2AABEE 0%,#229ED9 100%)',
+    image: '/icons/telegram.png',
+    page: 1
+  },
+  {
+    id: 'youtube',
+    name: 'YouTube',
+    depth: 'placeholder',
+    heroBackground: 'linear-gradient(180deg,#FF0000 0%,#CC0000 100%)',
+    image: '/icons/youtube.png',
+    page: 1
+  },
+  {
+    id: 'linkedin',
+    name: 'LinkedIn',
+    depth: 'placeholder',
+    heroBackground: 'linear-gradient(180deg,#0A66C2 0%,#004182 100%)',
+    image: '/icons/linkedin.png',
+    page: 1
+  },
+  {
+    id: 'alipay',
+    name: '支付宝',
+    depth: 'placeholder',
+    heroBackground: 'linear-gradient(180deg,#1677FF 0%,#0958D9 100%)',
+    image: '/icons/alipay.png',
+    page: 1
   }
 ]
 
