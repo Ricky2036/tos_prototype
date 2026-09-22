@@ -436,14 +436,14 @@ function onSurfaceClick(event) {
 }
 
 .home-folder .folder-app :deep(.icon-badge) {
-  top: -4px;
+  top: -2px;
   left: auto;
-  right: -4px;
+  right: -3px;
   min-width: 14px;
   height: 14px;
   font-size: 9px;
   line-height: 1;
-  padding: 0.5px 3px 0 3px;
+  padding: 0 3px 0.5px 3px;
   border-radius: 7px;
 }
 
