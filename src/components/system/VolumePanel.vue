@@ -270,7 +270,7 @@ watch(
      保留 1px **透明**边框占位：Plus 态只改 border-color 就能点出琥珀环，
      而 overflow:hidden 会把子元素裁在 padding box 内 ⇒ 白 fill 铺满也盖不掉那圈环。
      （顺带去掉了顶部 1px inset 白色高光 —— 它也是一道「描边」。） */
-  border: 1px solid transparent;
+  border: none;
   background: var(--glass-white-bar);
   cursor: pointer;
   touch-action: none;
@@ -279,7 +279,15 @@ watch(
   contain: paint;
 }
 
-.vp-slider.is-plus { border-color: rgba(255, 190, 92, 0.78); }
+.vp-slider.is-plus::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 190, 92, 0.78);
+  pointer-events: none;
+}
 .vp-fill {
   position: absolute;
   left: 0;

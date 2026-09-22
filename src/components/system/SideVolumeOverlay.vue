@@ -220,7 +220,7 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
         @click="compact && control.expandSideVolume()"
       >
         <svg class="sv-track-bg-svg" width="100%" height="100%" viewBox="0 0 45 160" preserveAspectRatio="none" fill="none">
-          <rect x="0.5" y="0.5" width="43.7" height="158.7" rx="21.85" fill="rgba(255, 255, 255, 0.04)" />
+          <rect x="0" y="0" width="45" height="160" rx="22.5" fill="rgba(255, 255, 255, 0.04)" />
         </svg>
         <div class="sv-fill" :style="{ height: volumePct + '%' }"></div>
         <div v-if="control.volumePlusLevel" class="sv-side-plus-gradient"></div>
@@ -272,7 +272,7 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
           <h2>{{ modalTitle }}</h2>
           <div class="sv-sliders">
           <template v-if="!isMedia">
-            <div v-for="item in systemSliders" :key="item.key" class="sv-column">
+            <div v-for="(item, idx) in systemSliders" :key="item.key" class="sv-column" :class="{ 'hero-column': idx === 0 }">
               <div class="sv-large-track" @pointerdown="beginSystemPointer($event, item)">
                 <div class="sv-large-fill" :style="{ height: (item.main && control.volumePlusLevel ? 100 : item.value * 100) + '%' }"></div>
                 <div v-if="item.main && control.volumePlusLevel" class="sv-plus-gradient" :class="'plus-' + control.volumePlusLevel * 100"></div>
@@ -282,7 +282,7 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
             </div>
           </template>
           <template v-else>
-            <div v-for="item in mediaSliders" :key="item.key" class="sv-column">
+            <div v-for="(item, idx) in mediaSliders" :key="item.key" class="sv-column" :class="{ 'hero-column': idx === 0 }">
               <div class="sv-large-track" @pointerdown="setFromPointer($event, value => setMedia(item, value))">
                 <div
                   class="sv-large-fill"
@@ -385,7 +385,7 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
   pointer-events: auto;
   touch-action: none;
   transition: width .3s cubic-bezier(.2,.8,.2,1), border-radius .3s, transform .3s, left .3s;
-  border: 1px solid transparent;
+  border: none;
   background: rgba(255, 255, 255, 0.28);
   backdrop-filter: blur(25px) saturate(180%);
   -webkit-backdrop-filter: blur(25px) saturate(180%);
@@ -393,8 +393,16 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
 }
 .sv-track-bg-svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:0; }
 .side-volume-wrap.compact .sv-track-bg-svg { display:none; }
-.sv-fill { position:absolute; left:-1px; right:-1px; bottom:-1px; background:rgba(255,255,255,.95); border-radius:0 0 22.35px 22.35px; transition:height 110ms ease-out; z-index:1; }
-.sv-track.is-plus { border-color:rgba(255,190,92,.78); }
+.sv-fill { position:absolute; left:0; right:0; bottom:0; background:rgba(255,255,255,.95); border-radius:0 0 22.35px 22.35px; transition:height 110ms ease-out; z-index:1; }
+.sv-track.is-plus::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 190, 92, 0.78);
+  pointer-events: none;
+}
 .sv-side-plus-gradient { position:absolute; inset:0; z-index:2; pointer-events:none; }
 .sv-track.plus-200 .sv-side-plus-gradient { background:linear-gradient(to top,rgba(253,186,116,0) 0%,rgba(253,186,116,.42) 52%,rgba(251,146,60,1) 100%); }
 .sv-track.plus-300 .sv-side-plus-gradient { background:linear-gradient(to top,rgba(251,146,60,0) 0%,rgba(251,146,60,.5) 52%,rgba(249,115,22,1) 100%); }
@@ -507,42 +515,178 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
    右距都是 17；本实现把胶囊镜像到左侧(left:17) ⇒ 面板也必须左对齐到 17，
    否则展开动画的 clip-path（把面板裁成胶囊大小）会锚在 76.5 而不是胶囊所在的 17，错位 60px。
    内边距 18.75 是使「4 轨 × 44 宽 + 3 × 17.67 隙 = 229」正好居中。 */
-.sv-modal { position:absolute; left:17px; top:232px; width:266.5px; height:217.3px; border-radius:26px; padding:14.5px 18.75px 17.6px; color:#fff; background:rgba(255,255,255,.42); border:1px solid rgba(255,255,255,.22); box-sizing:border-box; }
+.sv-modal {
+  position: absolute;
+  left: 17px;
+  top: 232px;
+  width: 266.5px;
+  height: 217.3px;
+  border-radius: 26px;
+  padding: 14.5px 18.75px 17.6px;
+  color: #fff;
+  background: rgba(255, 255, 255, .45);
+  backdrop-filter: var(--glass-white-blur);
+  -webkit-backdrop-filter: var(--glass-white-blur);
+  box-shadow: 0 2px 24px rgba(0, 0, 0, .18), inset 0 0 0 1px rgba(255, 255, 255, .22);
+  box-sizing: border-box;
+}
 /* 「按应用」是 **5 轨**（系统 + 4 个 App），44 宽 × 5 塞不进 266.5，所以面板更宽；
    仍是**左对齐 17**（与胶囊同边），右侧留 14.8。 */
-.sv-modal.media { width:328.2px; }
+.sv-modal.media { width: 328.2px; }
 /* 标题：参考图 ink 24.3 × 11.3、水平居中、ink 顶距面板顶 16.67 ⇒ CJK 字号 ≈ 13.3px。 */
-.sv-modal h2 { margin:0 0 9.3px; text-align:center; font:500 13.3px/1.15 var(--font-stack); }
-.sv-sliders { display:flex; justify-content:space-between; align-items:flex-start; }
-.sv-column { width:44px; }
+.sv-modal h2 { margin: 0 0 9.3px; text-align: center; font: 500 13.3px/1.15 var(--font-stack); }
+.sv-sliders { display: flex; justify-content: space-between; align-items: flex-start; }
+.sv-column { width: 44px; }
 /* 参考图：轨 44 × 160.4（顶 271.3 / 底 431.67），全胶囊圆角 22。 */
-/* 轨 α：参考图反解 ≈ .42（轨 191 − 面板 144 = 47 = α ×(255−144)）。
-   ⛔ 不走 `--glass-white-bar-in-card`(.34)：那样台阶只有 +19，四条轨在面板上几乎看不见。 */
-.sv-large-track { position:relative; width:44px; height:160.4px; overflow:hidden; border-radius:22px; background:rgba(255,255,255,.44); touch-action:none; }
-.sv-large-fill { position:absolute; left:0; right:0; bottom:0; background:rgba(255,255,255,.94); transition:height 100ms ease-out; }
-.slider-icon,.media-badge { position:absolute; z-index:2; left:50%; bottom:11.5px; transform:translateX(-50%); }
-/* 图标：参考图 ink 19.3 × 14.7 ⇒ Lucide 24 viewBox 的 size=24；颜色是中灰 #828282（实测核心 (128,128,128)–(131,130,131)），
-   原来那套 #3482bb 蓝是错的。bottom:10 让 ink 底落在轨底上方 ≈15.1（参考 15.1）。 */
-.slider-icon { color:#828282; width:24px; height:24px; display:grid; place-items:center; }
-.side-volume-enter-active,.side-volume-leave-active { transition:opacity .2s, transform .32s cubic-bezier(.2,.8,.2,1); }
-.side-volume-enter-from,.side-volume-leave-to { opacity:0; transform:translateX(-70px); }
-.side-volume-wrap.anchor-handoff.side-volume-leave-active { transition:none !important; }
-.side-volume-wrap.anchor-handoff.side-volume-leave-to { opacity:0; transform:none; }
-.sv-modal-content { height:100%; }
-.sv-plus-gradient { position:absolute; inset:0; z-index:1; pointer-events:none; }
-.sv-plus-gradient.plus-200 { background:linear-gradient(to top,rgba(253,186,116,0) 0%,rgba(253,186,116,.42) 52%,rgba(251,146,60,1) 100%); }
-.sv-plus-gradient.plus-300 { background:linear-gradient(to top,rgba(251,146,60,0) 0%,rgba(251,146,60,.5) 52%,rgba(249,115,22,1) 100%); }
-.sv-plus-gradient.plus-500 { background:linear-gradient(to top,rgba(249,115,22,0) 0%,rgba(234,88,12,.58) 52%,rgba(194,65,12,1) 100%); }
-.sv-plus-value { position:absolute; z-index:3; top:18px; left:0; right:0; text-align:center; color:#fff7ed; font:800 11px/1 var(--font-stack); pointer-events:none; }
-.volume-modal-enter-active,.volume-modal-leave-active { transition:background-color .32s ease; }
-.volume-modal-enter-active .sv-modal { transition:clip-path .36s cubic-bezier(.2,.82,.18,1),transform .36s cubic-bezier(.2,.82,.18,1),border-radius .36s cubic-bezier(.2,.82,.18,1); will-change:clip-path,transform; }
-.volume-modal-enter-active .sv-modal-content { transition:opacity .2s ease-out .12s; }
-.volume-modal-enter-from { background-color:rgba(10,35,58,0); }
-/* clip-path 从「胶囊」长成「面板」：右侧留 44.7、下侧留 57.6、圆角 22.35 —— 与胶囊实尺寸一一对应。 */
-.volume-modal-enter-from .sv-modal { clip-path:inset(0 221.8px 57.6px 0 round 22.35px); transform:translate3d(-1px,0,0); border-radius:22.35px; }
-.volume-modal-enter-from .sv-modal.media { clip-path:inset(0 283.5px 57.6px 0 round 22.35px); }
-.volume-modal-enter-from .sv-modal-content { opacity:0; }
-.volume-modal-leave-active .sv-modal { transition:transform .32s cubic-bezier(.2,.8,.2,1),opacity .22s; }
-.volume-modal-leave-to { background-color:rgba(10,35,58,0); }
-.volume-modal-leave-to .sv-modal { transform:translate3d(-330px,0,0); opacity:0; }
+.sv-large-track {
+  position: relative;
+  width: 44px;
+  height: 160.4px;
+  overflow: hidden;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .44);
+  touch-action: none;
+  border: none;
+}
+.sv-large-track.is-plus::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 190, 92, 0.78);
+  pointer-events: none;
+}
+.sv-large-fill { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, .94); transition: height 100ms ease-out; }
+.slider-icon, .media-badge { position: absolute; z-index: 2; left: 50%; bottom: 11.5px; transform: translateX(-50%); }
+.slider-icon { color: #828282; width: 24px; height: 24px; display: grid; place-items: center; }
+.hero-column .slider-icon { color: #c0d8f2; }
+.side-volume-enter-active, .side-volume-leave-active { transition: opacity .2s, transform .32s cubic-bezier(.2,.8,.2,1); }
+.side-volume-enter-from, .side-volume-leave-to { opacity: 0; transform: translateX(-70px); }
+.side-volume-wrap.anchor-handoff.side-volume-leave-active { transition: none !important; }
+.side-volume-wrap.anchor-handoff.side-volume-leave-to { opacity: 0; transform: none; }
+.sv-modal-content { height: 100%; }
+.sv-plus-gradient { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.sv-plus-gradient.plus-200 { background: linear-gradient(to top,rgba(253,186,116,0) 0%,rgba(253,186,116,.42) 52%,rgba(251,146,60,1) 100%); }
+.sv-plus-gradient.plus-300 { background: linear-gradient(to top,rgba(251,146,60,0) 0%,rgba(251,146,60,.5) 52%,rgba(249,115,22,1) 100%); }
+.sv-plus-gradient.plus-500 { background: linear-gradient(to top,rgba(249,115,22,0) 0%,rgba(234,88,12,.58) 52%,rgba(194,65,12,1) 100%); }
+.sv-plus-value { position: absolute; z-index: 3; top: 18px; left: 0; right: 0; text-align: center; color: #fff7ed; font: 800 11px/1 var(--font-stack); pointer-events: none; }
+
+/* 一镜到底动画：从侧边音量胶囊平滑无缝展开至多通道面板 */
+.volume-modal-enter-active,
+.volume-modal-leave-active {
+  transition: background-color .36s ease;
+}
+
+.volume-modal-enter-active .sv-modal {
+  transition:
+    clip-path .36s cubic-bezier(.2, .85, .25, 1),
+    border-radius .36s cubic-bezier(.2, .85, .25, 1),
+    background .36s ease,
+    box-shadow .36s ease;
+  will-change: clip-path, border-radius;
+}
+
+.volume-modal-leave-active .sv-modal {
+  transition:
+    clip-path .30s cubic-bezier(.2, .85, .25, 1),
+    border-radius .30s cubic-bezier(.2, .85, .25, 1),
+    opacity .26s ease,
+    transform .30s cubic-bezier(.2, .85, .25, 1);
+  will-change: clip-path, border-radius, transform, opacity;
+}
+
+/* 起始态（enter-from）：外壳裁切为侧边音量条尺寸与圆角，与源胶囊 1:1 重合 */
+.volume-modal-enter-from .sv-modal {
+  clip-path: inset(0 221.8px 57.6px 0 round 22.35px);
+  border-radius: 22.35px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.16);
+}
+.volume-modal-enter-from .sv-modal.media {
+  clip-path: inset(0 283.5px 57.6px 0 round 22.35px);
+}
+.volume-modal-enter-from {
+  background-color: transparent !important;
+}
+
+/* 离开态（leave-to）：平滑收起至侧边胶囊位置并消融 */
+.volume-modal-leave-to .sv-modal {
+  clip-path: inset(0 221.8px 57.6px 0 round 22.35px);
+  border-radius: 22.35px;
+  opacity: 0;
+  transform: translate3d(-10px, 0, 0);
+}
+.volume-modal-leave-to .sv-modal.media {
+  clip-path: inset(0 283.5px 57.6px 0 round 22.35px);
+}
+.volume-modal-leave-to {
+  background-color: transparent !important;
+}
+
+/* 一镜到底核心：首列（媒体主通道）作为 Hero 主体无缝移入槽位，全程可见不闪烁 */
+.volume-modal-enter-active .sv-column.hero-column {
+  transition: transform .36s cubic-bezier(.2, .85, .25, 1);
+  will-change: transform;
+}
+.volume-modal-enter-from .sv-column.hero-column {
+  transform: translate3d(-18.75px, -39.1px, 0) scale(1.0159, 0.9956);
+  transform-origin: top left;
+}
+
+.volume-modal-leave-active .sv-column.hero-column {
+  transition: transform .30s cubic-bezier(.2, .85, .25, 1);
+  will-change: transform;
+}
+.volume-modal-leave-to .sv-column.hero-column {
+  transform: translate3d(-18.75px, -39.1px, 0) scale(1.0159, 0.9956);
+  transform-origin: top left;
+}
+
+/* 首列大滑槽在展开过程中平滑融合背景 */
+.volume-modal-enter-active .hero-column .sv-large-track {
+  transition: background .36s ease;
+}
+.volume-modal-enter-from .hero-column .sv-large-track {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* 面板标题：在展开过程中从上方自然淡入 */
+.volume-modal-enter-active h2 {
+  transition: opacity .22s ease-out .10s, transform .26s cubic-bezier(.2, .85, .25, 1) .10s;
+}
+.volume-modal-enter-from h2 {
+  opacity: 0;
+  transform: translate3d(0, -8px, 0);
+}
+.volume-modal-leave-active h2 {
+  transition: opacity .16s ease-out, transform .18s ease-out;
+}
+.volume-modal-leave-to h2 {
+  opacity: 0;
+  transform: translate3d(0, -6px, 0);
+}
+
+/* 伴随展开的其他音量列（铃声、闹钟、通知）：从主音量条右侧依次层叠展开 */
+.volume-modal-enter-active .sv-column:not(.hero-column) {
+  transition: opacity .24s ease-out, transform .32s cubic-bezier(.2, .85, .25, 1);
+  will-change: opacity, transform;
+}
+.volume-modal-enter-active .sv-column:nth-child(2) { transition-delay: .04s; }
+.volume-modal-enter-active .sv-column:nth-child(3) { transition-delay: .08s; }
+.volume-modal-enter-active .sv-column:nth-child(4) { transition-delay: .12s; }
+.volume-modal-enter-active .sv-column:nth-child(5) { transition-delay: .16s; }
+
+.volume-modal-enter-from .sv-column:not(.hero-column) {
+  opacity: 0;
+  transform: translate3d(-24px, 0, 0) scale(0.92);
+}
+
+.volume-modal-leave-active .sv-column:not(.hero-column) {
+  transition: opacity .18s ease-out, transform .22s cubic-bezier(.2, .85, .25, 1);
+}
+.volume-modal-leave-to .sv-column:not(.hero-column) {
+  opacity: 0;
+  transform: translate3d(-20px, 0, 0) scale(0.92);
+}
 </style>
