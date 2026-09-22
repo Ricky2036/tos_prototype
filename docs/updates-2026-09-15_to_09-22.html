@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tOS 原型 · 周度更新说明（2026-09-15 → 09-22）</title>
+<style>
+:root{
+  --ink:#0F172A; --ink2:#475569; --ink3:#94A3B8; --ink4:#CBD5E1;
+  --bg:#F7F9FC; --card:#FFFFFF; --line:#E6ECF3; --line2:#EEF3F8;
+  --brand:#258FFF; --brand-soft:#EAF4FF; --brand-line:#C7E1FF;
+  --sys:#258FFF; --home:#8B5CF6; --sw:#F97316; --app:#10B981; --eng:#64748B;
+  --ok:#10B981; --ok-soft:#E7F8F1;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:system-ui,-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:14px; line-height:1.68; -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1000px;margin:0 auto;padding:0 24px}
+
+/* ---------- 顶部导航 ---------- */
+.top-nav{background:#090E1A;border-bottom:1px solid rgba(255,255,255,0.08);padding:10px 0;font-size:12.5px}
+.nav-inner{display:flex;align-items:center;justify-content:space-between}
+.nav-brand{color:#94A3B8;text-decoration:none;font-weight:500}
+.nav-brand:hover{color:#FFF}
+.nav-links{display:flex;gap:18px;align-items:center}
+.nav-prev{color:#CBD5E1;text-decoration:none}
+.nav-prev:hover{color:#FFF}
+.nav-cur{color:#38BDF8;font-weight:600}
+
+/* ---------- 页头 ---------- */
+header{background:#0F172A;color:#FFF;padding:52px 0 44px;position:relative;overflow:hidden}
+header::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;
+  background:linear-gradient(90deg,var(--brand) 0%,#8B5CF6 35%,#10B981 70%,#F97316 100%)}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7DA9E8;font-weight:500;margin:0 0 12px}
+h1{font-size:32px;line-height:1.25;font-weight:600;margin:0 0 8px;letter-spacing:-.01em}
+h1 .range{color:#7DA9E8}
+.sub{font-size:14.5px;color:#9FB3C8;margin:0 0 28px;max-width:720px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,.12);
+  border-radius:10px;overflow:hidden}
+.stat{background:#141E33;padding:16px 14px}
+.stat b{display:block;font-size:22px;font-weight:600;letter-spacing:-.01em;line-height:1.2}
+.stat span{display:block;font-size:11.5px;color:#8CA3BC;margin-top:5px;letter-spacing:.02em}
+
+/* ---------- 通用 ---------- */
+main{padding:48px 0 40px}
+section{margin-bottom:56px}
+h2{font-size:20px;font-weight:600;margin:0 0 6px;letter-spacing:-.005em;
+  display:flex;align-items:baseline;gap:10px}
+h2 .n{font-size:12.5px;color:var(--brand);font-weight:600;
+  background:var(--brand-soft);border-radius:5px;padding:2px 7px;letter-spacing:.04em}
+.lede{color:var(--ink2);margin:0 0 22px;font-size:14px;max-width:760px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius)}
+.pill{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:20px;
+  background:var(--line2);color:var(--ink2);font-weight:500;letter-spacing:.02em}
+
+/* ---------- 六条战线 ---------- */
+.lanes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.lane{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 18px 16px;border-top:3px solid var(--c)}
+.lane h3{font-size:15px;font-weight:600;margin:0 0 4px}
+.lane .span{font-size:12px;color:var(--ink3);margin:0 0 12px}
+.lane ul{margin:0;padding-left:0;list-style:none}
+.lane li{position:relative;padding-left:14px;margin-bottom:6px;font-size:12.8px;color:var(--ink2)}
+.lane li::before{content:"";position:absolute;left:0;top:8px;width:4.5px;height:4.5px;border-radius:50%;background:var(--c);opacity:.85}
+.lane .metric{margin-top:12px;padding-top:11px;border-top:1px dashed var(--line);
+  font-size:12px;color:var(--ink3);display:flex;justify-content:space-between;align-items:baseline}
+.lane .metric b{font-size:14.5px;color:var(--ink);font-weight:600}
+
+/* ---------- 时间线 ---------- */
+.tl{position:relative;padding-left:0}
+.day{position:relative;padding-left:116px;padding-bottom:6px}
+.day::before{content:"";position:absolute;left:93px;top:15px;bottom:-15px;width:2px;background:#CFDCEA}
+.day:last-child::before{display:none}
+.day > .dot{position:absolute;left:88.5px;top:15px;width:12px;height:12px;border-radius:50%;
+  background:var(--card);border:2.5px solid var(--c);z-index:1}
+.day .stamp{position:absolute;left:0;top:7px;width:76px;text-align:right}
+.day .stamp b{display:block;font-size:16.5px;font-weight:600;letter-spacing:-.01em}
+.day .stamp span{font-size:11.5px;color:var(--ink3)}
+.day .body{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px 20px 15px;margin-bottom:18px}
+.day .head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.day .head h3{font-size:15px;font-weight:600;margin:0}
+.day .head .cnt{font-size:11.5px;color:var(--ink3);margin-left:auto}
+.day ul{margin:0;padding-left:0;list-style:none}
+.day li{position:relative;padding-left:15px;margin-bottom:6px;font-size:13px;color:var(--ink2)}
+.day li::before{content:"";position:absolute;left:2px;top:9px;width:4px;height:4px;border-radius:1px;
+  background:var(--ink4)}
+.day li b{color:var(--ink);font-weight:500}
+.day li.sub{padding-left:28px;font-size:12.5px;color:var(--ink3)}
+.day li.sub::before{left:14px;width:8px;height:1px;border-radius:0;top:12px}
+.notice-box{margin-top:12px;padding:11px 14px;background:#F8FAFC;border:1px solid var(--line);
+  border-radius:8px;font-size:12.5px;color:var(--ink2)}
+.notice-box b{color:var(--ink);font-weight:600}
+.tag{font-size:11px;padding:2px 7px;border-radius:5px;font-weight:500;letter-spacing:.02em}
+.t-sys{background:var(--brand-soft);color:#1769C9}
+.t-home{background:#F3EEFE;color:#6D3FD1}
+.t-sw{background:#FFF1E6;color:#C2591A}
+.t-app{background:var(--ok-soft);color:#0A7A5A}
+.t-eng{background:#EEF2F7;color:#4A5A70}
+.t-idle{background:var(--line2);color:var(--ink3)}
+
+/* ---------- 轮次沉淀 ---------- */
+.rounds{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--card)}
+.round{display:grid;grid-template-columns:84px 1fr 110px;gap:0;border-bottom:1px solid var(--line2)}
+.round:last-child{border-bottom:none}
+.round:hover{background:#FCFDFF}
+.round > div{padding:12px 16px}
+.round .r{font-weight:600;font-size:12.5px;color:var(--sw);background:#FFFBF6;border-right:1px solid var(--line2);white-space:nowrap}
+.round .t{font-size:13px;color:var(--ink)}
+.round .t b{font-weight:500}
+.round .t em{font-style:normal;color:var(--ink3);font-size:12px;display:block;margin-top:3px}
+.round .w{font-size:12px;color:var(--ink3);text-align:right}
+.round.key .r{background:#FFF1E6}
+.round.key .t b::after{content:" 核心";font-size:10.5px;color:#C2591A;background:#FFE7D4;
+  border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:1px;font-weight:500}
+
+/* ---------- 表格 ---------- */
+table{width:100%;border-collapse:collapse;background:var(--card);
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;font-size:13px}
+th{text-align:left;font-weight:600;font-size:12px;color:var(--ink2);letter-spacing:.03em;
+  background:#FAFCFE;padding:11px 16px;border-bottom:1px solid var(--line)}
+td{padding:11px 16px;border-bottom:1px solid var(--line2);color:var(--ink2);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td b{color:var(--ink);font-weight:500}
+td .bar{display:inline-block;width:3px;height:13px;border-radius:2px;margin-right:9px;vertical-align:-2px}
+
+/* ---------- 工程结构 ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px}
+.box h4{font-size:13.5px;font-weight:600;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.box h4::before{content:"";width:3px;height:13px;border-radius:2px;background:var(--brand)}
+.box ul{margin:0;padding-left:0;list-style:none}
+.box li{position:relative;padding-left:14px;margin-bottom:6px;font-size:12.5px;color:var(--ink2)}
+.box li::before{content:"";position:absolute;left:1px;top:8px;width:4px;height:4px;border-radius:50%;background:var(--ink4)}
+.box code{font-size:11.5px;background:#F1F5FA;border-radius:4px;padding:1.5px 5px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#334155}
+
+/* ---------- 待办 ---------- */
+.todo{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.todo .box h4::before{background:var(--ink3)}
+.todo .box li::before{background:var(--ok)}
+
+footer{border-top:1px solid var(--line);padding:24px 0 46px;color:var(--ink3);font-size:12.5px}
+footer .row{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+@media (max-width:860px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .stat:last-child{grid-column:span 2}
+  .lanes,.cols,.todo{grid-template-columns:1fr}
+  .round{grid-template-columns:72px 1fr}
+  .round .w{grid-column:2;padding-top:0;text-align:left}
+  h1{font-size:26px}
+}
+@media (max-width:620px){
+  .day{padding-left:0}
+  .day::before{display:none}
+  .day > .dot{display:none}
+  .day .stamp{position:static;width:auto;text-align:left;margin-bottom:8px}
+  .day .stamp b{display:inline;font-size:15px;margin-right:7px}
+  .day .stamp span{font-size:12px}
+  .wrap{padding:0 16px}
+}
+</style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="wrap nav-inner">
+    <a href="index.html" class="nav-brand">tOS 原型更新归档</a>
+    <div class="nav-links">
+      <a href="updates-2026-09-03_to_09-14.html" class="nav-prev">← 上一阶段：2026-09-03 → 09-14</a>
+      <span class="nav-cur">当前周：2026-09-15 → 09-22</span>
+    </div>
+  </div>
+</nav>
+
+<header>
+  <div class="wrap">
+    <p class="eyebrow">tOS 原型 · 周度阶段更新说明</p>
+    <h1>2026-09-15 <span class="range">→</span> 09-22</h1>
+    <p class="sub">历经 8 天持续攻坚，项目全面完成旗舰级应用抽屉、锁屏景深壁纸与可变时钟、侧边物理音量与一镜到底展开、多任务切换器消抖终局、全局高对比自适应反色及桌面第二屏通知应用平铺。</p>
+    <div class="stats">
+      <div class="stat"><b class="mono">130</b><span>阶段提交（全部集成主干）</span></div>
+      <div class="stat"><b class="mono">81</b><span>组件体系（新增 12 项组件）</span></div>
+      <div class="stat"><b class="mono">46,900</b><span>核心工程代码行数</span></div>
+      <div class="stat"><b class="mono">280</b><span>自动化测试（通过率 100%）</span></div>
+      <div class="stat"><b class="mono">3</b><span>智能体并行协同交付</span></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ 一 ============ -->
+  <section>
+    <h2><span class="n">一</span>六大核心业务战线</h2>
+    <p class="lede">本阶段研发横跨系统级交互、视觉工程与性能优化，由六大业务模块协同推进。</p>
+    <div class="lanes">
+      <div class="lane" style="--c:var(--brand)">
+        <h3>旗舰应用抽屉与分类</h3>
+        <p class="span">9-20 → 9-22 · 抽屉 / 分类卡片 / 字母导轨 / 展开动效</p>
+        <ul>
+          <li>全应用与分类双标签页切换，支持桌面任意位置上滑唤出</li>
+          <li>A-Z 动态字母导轨：仅渲染已安装字母，右侧第 4 列贴边对齐</li>
+          <li>14 组大分类毛玻璃卡片与槽 4 迷你簇聚合结构</li>
+          <li>一镜到底连续物理形变：开合中心点偏移补偿，根除 13px 末帧跳动</li>
+          <li>悬浮毛玻璃搜索胶囊：界面直接悬浮，单键清除与退出统一</li>
+        </ul>
+        <div class="metric"><span>单日峰值</span><b class="mono">55 提交</b></div>
+      </div>
+
+      <div class="lane" style="--c:var(--home)">
+        <h3>锁屏景深与可变时钟</h3>
+        <p class="span">9-20 → 9-21 · 景深算法 / 双轴可变字体 / 磨砂质感</p>
+        <ul>
+          <li>传音可变数字字体接入：粗细与下延双轴联动，上沿基线绝对钉死</li>
+          <li>时钟滑动挤压重构：消除数字形变挤压与日期撞车缺陷</li>
+          <li>三层景深壁纸架构：背景层、数字层与前景轮廓切片分层渲染</li>
+          <li>接触阴影与前端轮廓分割，预置抽象几何方块景深壁纸</li>
+          <li>通知层级与捷径按钮更新：毛玻璃底板与控制中心级高光对齐</li>
+        </ul>
+        <div class="metric"><span>测试验证</span><b>双轴无过冲</b></div>
+      </div>
+
+      <div class="lane" style="--c:var(--sw)">
+        <h3>侧边音量与一镜到底</h3>
+        <p class="span">9-20 → 9-22 · 实体按键 / 连续无缝展开 / 超级音量</p>
+        <ul>
+          <li>物理音量键真实联动：长按连续步进，支持 100% 自动阶梯升至 500%</li>
+          <li>侧边胶囊音量条：44.7×159.7 尺寸，10秒无操作自动收起</li>
+          <li>填充四周无边框处理：纯净填充无杂边，内部紧凑音量点居中</li>
+          <li>一镜到底无缝展开动效：胶囊平滑连续形变展开至四轨大面板</li>
+          <li>复用控制中心毛玻璃底板与镜面高光描边材质</li>
+        </ul>
+        <div class="metric"><span>交互质感</span><b>控制中心级复用</b></div>
+      </div>
+
+      <div class="lane" style="--c:var(--app)">
+        <h3>多任务切换器消抖终局</h3>
+        <p class="span">9-16 → 9-18 · 第 18 至 27 轮 · 20 任务池扩容</p>
+        <ul>
+          <li>一阶推进器替代欠阻尼弹簧：收敛严格单调，根除多任务整组颤抖</li>
+          <li>坐标连续性守卫：拦截双指合并坐标流导致的瞬移跳变</li>
+          <li>触控板噪声微扰滤波与窗口投票：精准识别 1px 微慢滑手势</li>
+          <li>死区消除与后继槽位即时回填：删卡后下一张无响应问题彻底解决</li>
+          <li>多任务容量由 5 个扩容至 20 个，飞出动画期间屏蔽误命中</li>
+        </ul>
+        <div class="metric"><span>专项断言</span><b class="mono">280 项全绿</b></div>
+      </div>
+
+      <div class="lane" style="--c:var(--eng)">
+        <h3>全局高对比自适应反色</h3>
+        <p class="span">9-21 · 状态栏 / 底部手势指示条 / 三键导航</p>
+        <ul>
+          <li>抽象提取系统镀铬层自适应组合式函数，统一反色调度逻辑</li>
+          <li>基于当前壁纸明暗度、窗口背景色及顶层浮层毫秒级计算亮度</li>
+          <li>状态栏图标、时间与电量指示根据底色自适应黑白双态切换</li>
+          <li>底部手势指示条与三键导航自适应深浅对比度补偿</li>
+          <li>锁屏底部捷径按钮增加自适应防眩光遮罩</li>
+        </ul>
+        <div class="metric"><span>响应延时</span><b>毫秒级即时计算</b></div>
+      </div>
+
+      <div class="lane" style="--c:var(--ok)">
+        <h3>桌面二屏通知与角标</h3>
+        <p class="span">9-21 → 9-22 · 应用补齐 / 图标复用 / 双轴居中</p>
+        <ul>
+          <li>将通知中心内全部 18 个应用完整平铺至桌面第二屏</li>
+          <li>直接复用通知中心已有高清矢量图标与配色体系</li>
+          <li>应用抽屉字母导轨与桌面第二屏图标数据双向对齐</li>
+          <li>通知未读角标双轴光学居中：彻底解决数字 1 基线沉降偏下问题</li>
+          <li>角标锚点精准复位至图标右上角，大文件夹增加顶部防裁切间隙</li>
+        </ul>
+        <div class="metric"><span>新增应用</span><b class="mono">18 个完整节点</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 二 ============ -->
+  <section>
+    <h2><span class="n">二</span>逐日演进时间线</h2>
+    <p class="lede">完整记录 2026-09-15 至 2026-09-22 期间的开发提交与技术演进。</p>
+    <div class="tl">
+
+      <div class="day" style="--c:var(--ink4)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-15</b><span>周二</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-idle">规划整备</span><h3>阶段目标梳理与架构评审</h3><span class="cnt mono">0 提交</span></div>
+          <ul>
+            <li>针对第一阶段 17 轮多任务切换器遗留问题进行真机触控日志分析</li>
+            <li>规划第二阶段核心目标：应用抽屉体系、锁屏景深壁纸、物理侧边音量键与桌面第二屏补齐</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--sw)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-16</b><span>周三</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-home">桌面</span><span class="tag t-sys">系统 UI</span><span class="tag t-sw">切换器</span><h3>多选拖拽动效、三态电源与多任务第 20-25 轮</h3><span class="cnt mono">25 提交</span></div>
+          <ul>
+            <li><b>多选拖拽物理扩散</b>：桌面编辑模式多选拖拽释放动效重构，增加速度方向惯性扩散与落位对齐</li>
+            <li><b>三态电源按键体系</b>：实现锁屏、熄屏与亮屏解锁的三态逻辑闭环，熄屏模式下彻底隐藏壁纸与底层元素防止边缘漏光</li>
+            <li><b>通知中心动态阶梯退场</b>：一键清理动效由视口自下而上动态阶梯式飞出，单卡飞行时长优化至 340ms</li>
+            <li><b>多任务切换器（第 20-25 轮）</b>：
+              <div class="notice-box">
+                <b>消抖核心突破</b>：第二十四轮引入「单一写者 + 一阶限速推进器」模型，废弃欠阻尼弹簧。力随距离衰减，到位时动量归零，结构上杜绝过冲振荡。第二十一轮引入坐标连续性判据拦截双指跳变，第二十三轮消除横滑反向死区。
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--sys)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-17</b><span>周四</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-sys">系统架构</span><span class="tag t-sw">切换器</span><h3>常驻通知架构、自动收拢与切换器核心合流</h3><span class="cnt mono">5 提交</span></div>
+          <ul>
+            <li><b>通知中心清理收拢</b>：通知全部清空后通知中心面板平滑自动收起回桌面</li>
+            <li><b>常驻通知架构</b>：实现系统级常驻通知与普通可划除通知分流机制，支持可划除通知一键清理而常驻通知守卫保留</li>
+            <li><b>控制中心细节精修</b>：状态栏隐私指示胶囊微距对齐，更新系统锁定与解锁矢量图标</li>
+            <li><b>多任务切换器 12-25 轮主干合流</b>：将一阶推进器、坐标守卫与挤压阻尼平滑合并至主干仓库并通过回归测试</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--sw)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-18</b><span>周五</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-sw">切换器</span><h3>第二十六至二十七轮：滚轮抽动根治、死区消除与 20 任务池</h3><span class="cnt mono">6 提交</span></div>
+          <ul>
+            <li><b>第二十六轮（滚轮通道抽动根治）</b>：定位触控板与外接鼠标微小纵向偏移触发的误判，建立滑动方向滑动窗口投票机制，保留纯纵向滚动放行，同时慢滑 1px 笔准确归类为横向手势</li>
+            <li><b>任务池上限扩容</b>：最近任务池由 5 个放宽至 20 个，满足重度多任务切换需求</li>
+            <li><b>第二十七轮（后继死区消除）</b>：删除卡片后立即回填槽位空窗，移除删除过程中的全局手势锁，飞出卡片剔除碰撞命中检测</li>
+            <li><b>瞬移闪烁终结</b>：焦点未发生转移时不触发焦点移动标记，消除无过渡瞬移</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--ink4)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-19</b><span>周六</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-idle">例行整备</span><h3>自动化测试用例沉淀与环境校验</h3><span class="cnt mono">0 提交</span></div>
+          <ul>
+            <li>梳理多任务手势契约测试断言，扩充真机触控模型测试用例集</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--brand)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-20</b><span>周日</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-brand">应用抽屉</span><span class="tag t-home">锁屏时钟</span><span class="tag t-sys">音量与个性化</span><h3>旗舰应用抽屉落地、分类一镜到底、可变字体时钟与个性化底座</h3><span class="cnt mono">55 提交</span></div>
+          <ul>
+            <li><b>旗舰应用抽屉完整落地</b>：实现全应用字母索引与 14 组大分类双标签页架构，手势滑动即刻唤出</li>
+            <li><b>A-Z 导轨与布局对齐</b>：字母导轨仅渲染含应用的字符，筛选状态下列表行靠右侧第 4 列贴边对齐</li>
+            <li><b>分类卡片一镜到底展开</b>：实现大分类 4 列卡片点击连续无缝展开至全屏文件夹，关闭时动态重采样实时 DOM 绝对坐标，彻底根除 13px 跳跃与末帧抖动</li>
+            <li><b>悬浮毛玻璃搜索胶囊</b>：搜索条直接浮于当前界面，去除遮罩打断，单小叉号统一清除输入与退出</li>
+            <li><b>锁屏可变字体时钟</b>：引入传音 Tecno 可变数字字体，粗细与下延双轴联动，上沿基线绝对钉死，支持壁纸采样毛玻璃与高光遮罩</li>
+            <li><b>个性化主题框架</b>：设置内新增个性化主题框架、壁纸选择器、实时锁屏与桌面双镜像预览</li>
+            <li><b>侧边音量按键与增强模式</b>：接入物理音量键联动，实现 100% 自动阶梯升至 500% 超级音量增强通道</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--home)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-21</b><span>周一</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-home">锁屏景深</span><span class="tag t-eng">自适应反色</span><span class="tag t-sys">质感工程</span><h3>锁屏景深壁纸体系、全局高对比自适应反色与资产优化</h3><span class="cnt mono">25 提交</span></div>
+          <ul>
+            <li><b>锁屏景深壁纸体系</b>：构建背景底板、时钟文字、前景主体切片三层景深渲染树，支持接触羽化与端侧轮廓分割</li>
+            <li><b>抽象几何方块景深壁纸</b>：预置几何方块高保真景深壁纸并设为系统默认，通知卡片层级绝对置顶于景深主体之上</li>
+            <li><b>全局高对比自适应反色</b>：状态栏、底部手势指示条与三键导航统一接入自适应反色组合式函数，毫秒级响应壁纸底色明暗反转</li>
+            <li><b>锁屏捷径按钮与底栏质感还原</b>：捷径按钮替换为控制中心级磨砂玻璃底板与镜面高光描边，增加防眩光对比度遮罩</li>
+            <li><b>壁纸设置与全屏缩放</b>：壁纸设置支持零间隙全屏手势预览缩放，锁屏与桌面壁纸解耦独立设定</li>
+            <li><b>工程资产瘦身</b>：清理未引用死资产，全量壁纸与通知图标进行高保真无损压缩</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--ok)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-22</b><span>周二</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-sys">侧边音量</span><span class="tag t-home">桌面二屏</span><span class="tag t-app">角标精修</span><h3>音量无缝展开动效、桌面二屏通知应用补齐与角标双轴光学居中</h3><span class="cnt mono">14 提交</span></div>
+          <ul>
+            <li><b>侧边音量无缝展开动效</b>：实现侧边胶囊音量条一镜到底平滑连续展开至四轨大面板动效</li>
+            <li><b>音量条纯净填充与控制中心质感</b>：填充四周去除边框实现纯净无缝裁切，复用控制中心磨砂玻璃材质，紧凑圆点居中，支持 10 秒无操作自动收拢</li>
+            <li><b>桌面第二屏通知应用全量补齐</b>：将通知中心内的全部 18 个应用完整平铺至桌面第二屏，直接复用通知中心已有高清图标体系</li>
+            <li><b>应用抽屉与桌面数据双向对齐</b>：抽屉字母检索与大分类库同步吸收新增的 18 个应用节点</li>
+            <li><b>通知角标双轴光学居中</b>：
+              <div class="notice-box">
+                <b>光学对齐纠正</b>：针对数字 1 在红色椭圆背景中偏下问题，调整行高与文字基线，实现单数字与多数字在红底圆角胶囊内绝对垂直与水平双轴居中；角标锚点复位至图标右上角（top: -4px, right: -5px），大文件夹增加顶部避让间隙。
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ 三 ============ -->
+  <section>
+    <h2><span class="n">三</span>多任务切换器 · 终局攻坚与动效沉淀</h2>
+    <p class="lede">自第一阶段 17 轮迭代后，本周继续推进第 18 至 27 轮深度攻坚，彻底解决触控板抖动、一阶单调收敛、死区回填等关键难点，形成稳定的物理动效基座。</p>
+    <div class="rounds">
+      <div class="round"><div class="r mono">第十八轮</div><div class="t"><b>触控板噪声抑制</b>：针对触控板 ±1.25px 抖动噪声引入滞后滤波，微弱微调平滑吸收</div><div class="w">9-16</div></div>
+      <div class="round"><div class="r mono">第十九轮</div><div class="t"><b>手势所有权分离</b>：明确触控板与触摸屏输入通道的独占性，避免多通道事件冲突</div><div class="w">9-16</div></div>
+      <div class="round"><div class="r mono">第二十轮</div><div class="t"><b>双指横滑滤波</b>：建立滑动窗口滤波模型，严格对齐参考曲线</div><div class="w">9-16</div></div>
+      <div class="round key"><div class="r mono">第二十一轮</div><div class="t"><b>坐标连续性守卫</b>：判定两指合并为单坐标流时的瞬移跳变，杜绝坐标突变引发的整组瞬移</div><div class="w">9-16</div></div>
+      <div class="round"><div class="r mono">第二十二轮</div><div class="t"><b>越界动量截断</b>：快甩到最后一张卡片时截断多余外甩动量，避免边界回弹颤动</div><div class="w">9-16</div></div>
+      <div class="round"><div class="r mono">第二十三轮</div><div class="t"><b>反向死区优化</b>：消除触控板横滑时的反向死区，反向滞后由 7px 压缩至 1px</div><div class="w">9-16</div></div>
+      <div class="round key"><div class="r mono">第二十四轮</div><div class="t"><b>单一写者与一阶推进器</b>：废弃欠阻尼弹簧，改为一阶限速推进器，到位时动量归零，结构上消除抖动</div><div class="w">9-16</div></div>
+      <div class="round"><div class="r mono">第二十五轮</div><div class="t"><b>挤压收尾平滑化</b>：挤压进度松手收尾统一改为一阶限速推进器，消除松手瞬间微抖</div><div class="w">9-16</div></div>
+      <div class="round key"><div class="r mono">第二十六轮</div><div class="t"><b>滚轮通道抽动根治与 20 任务池</b>：触控板纵向微扰窗口投票放行、1px 慢滑准确捕获、任务容量扩充至 20</div><div class="w">9-18</div></div>
+      <div class="round key"><div class="r mono">第二十七轮</div><div class="t"><b>后继死区消除与瞬移终结</b>：删卡即时回填槽位、飞出卡片屏蔽命中判定、条件状态守卫消除瞬移闪烁</div><div class="w">9-18</div></div>
+    </div>
+  </section>
+
+  <!-- ============ 四 ============ -->
+  <section>
+    <h2><span class="n">四</span>模块最新状态全景</h2>
+    <p class="lede">汇总各核心业务模块在本阶段的具体进展与当前状态。</p>
+    <table>
+      <thead><tr><th style="width:170px">模块</th><th>阶段关键进展</th><th style="width:90px">当前状态</th></tr></thead>
+      <tbody>
+        <tr><td><span class="bar" style="background:var(--brand)"></span><b>应用抽屉</b></td><td>全应用字母索引轨、14 组大分类毛玻璃卡片、一镜到底连续物理展开收起、悬浮搜索胶囊</td><td><span class="pill">完整交付</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--home)"></span><b>锁屏体系</b></td><td>传音 Tecno 双轴可变字体时钟、三层景深壁纸架构与端侧分割、捷径按钮控制中心级磨砂质感</td><td><span class="pill">完整交付</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--sw)"></span><b>侧边音量</b></td><td>物理按键联动、Plus 超级音量（100%→500%）、无边框纯净填充、一镜到底四轨面板无缝展开</td><td><span class="pill">完整交付</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--app)"></span><b>多任务切换器</b></td><td>完成第 18 至 27 轮攻坚，一阶推进器消除过冲抖动，20 任务池扩容，删卡死区彻底消除</td><td><span class="pill">稳定就绪</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--eng)"></span><b>状态栏与导航</b></td><td>抽象全局自适应反色组合式函数，状态栏、手势底条与三键导航毫秒级智能反色</td><td><span class="pill">稳定就绪</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--ok)"></span><b>桌面第二屏与角标</b></td><td>全量补齐 18 个通知应用节点并平铺桌面二屏，复用高清矢量图标；通知角标双轴绝对光学居中</td><td><span class="pill">完整交付</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--sys)"></span><b>通知中心</b></td><td>自下而上视口动态阶梯清理动效、清空后自动收起、常驻系统通知与普通通知分流架构</td><td><span class="pill">稳定就绪</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--eng)"></span><b>个性化与设置</b></td><td>主题框架支持、动态壁纸库、全屏零间隙预览缩放、锁屏与桌面壁纸独立应用</td><td><span class="pill">稳定就绪</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============ 五 ============ -->
+  <section>
+    <h2><span class="n">五</span>工程体系与质量保障</h2>
+    <p class="lede">多智能体分工协同机制与全自动化测试为高质量迭代提供稳固支撑。</p>
+    <div class="cols">
+      <div class="box">
+        <h4>自动化测试体系</h4>
+        <ul>
+          <li>基于 Node.js 原生测试运行器，测试覆盖几何算法、手势推进器、状态管理与视图联动</li>
+          <li>现存 <b>280 项</b>自动化测试用例全部绿灯通过，零失败、零跳过</li>
+          <li>建立一阶推进器单调收敛、坐标守卫判据、双轴字形挤压不变性专项断言</li>
+          <li>角标光学中心、音量 Plus 步进与自适应反色逻辑均有自动化用例守卫</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h4>工程规范与资产优化</h4>
+        <ul>
+          <li>严格遵循多智能体工作区协议，共享核心文件加锁登记与中央集成验证机制</li>
+          <li>清理未引用死资产，全量壁纸与通知图标高保真压缩，降低原型包体负荷</li>
+          <li>建立周度更新记录归档机制，统一存放于 <code>docs/</code> 目录并提供双向索引</li>
+          <li>严控代码规范与无障碍基线，保持纯正规范的设计与排版风格</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 六 ============ -->
+  <section>
+    <h2><span class="n">六</span>后续规划</h2>
+    <div class="todo">
+      <div class="box">
+        <h4>应用生态深化</h4>
+        <ul>
+          <li>完善桌面二屏新加入的 18 个应用的详情内容与交互模板</li>
+          <li>深化微信、小红书等高频应用的通知流与实时活动联动</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h4>桌面小组件扩展</h4>
+        <ul>
+          <li>扩充更多大尺寸动态天气、音乐与日历小组件</li>
+          <li>增强小组件在不同屏幕比例下的网格响应能力</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h4>系统动效打磨</h4>
+        <ul>
+          <li>推进全局横竖屏旋转过渡与多窗口分屏原型探索</li>
+          <li>持续优化极端低端机型在复杂毛玻璃叠加下的帧率表现</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap row">
+    <span>tOS 原型 · 周度更新说明 · 2026-09-15 → 09-22</span>
+    <span><a href="updates-2026-09-03_to_09-14.html" style="color:var(--brand);text-decoration:none">← 回顾上一阶段（2026-09-03 → 09-14）</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

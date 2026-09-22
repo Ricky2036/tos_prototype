@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tOS 原型 · 阶段更新说明（2026-09-03 → 09-14）</title>
+<style>
+:root{
+  --ink:#0F172A; --ink2:#475569; --ink3:#94A3B8; --ink4:#CBD5E1;
+  --bg:#F7F9FC; --card:#FFFFFF; --line:#E6ECF3; --line2:#EEF3F8;
+  --brand:#258FFF; --brand-soft:#EAF4FF; --brand-line:#C7E1FF;
+  --sys:#258FFF; --home:#8B5CF6; --sw:#F97316; --app:#10B981; --eng:#64748B;
+  --ok:#10B981; --ok-soft:#E7F8F1;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:system-ui,-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:14px; line-height:1.68; -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1000px;margin:0 auto;padding:0 24px}
+
+/* ---------- 页头 ---------- */
+header{background:#0F172A;color:#fff;padding:56px 0 44px;position:relative;overflow:hidden}
+header::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;
+  background:linear-gradient(90deg,var(--brand) 0%,#7C3AED 45%,#F97316 100%)}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7DA9E8;font-weight:500;margin:0 0 14px}
+h1{font-size:34px;line-height:1.24;font-weight:600;margin:0 0 6px;letter-spacing:-.01em}
+h1 .range{color:#7DA9E8}
+.sub{font-size:15px;color:#9FB3C8;margin:0 0 32px;max-width:660px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,.12);
+  border-radius:10px;overflow:hidden}
+.stat{background:#141E33;padding:16px 14px}
+.stat b{display:block;font-size:23px;font-weight:600;letter-spacing:-.01em;line-height:1.2}
+.stat span{display:block;font-size:11.5px;color:#8CA3BC;margin-top:5px;letter-spacing:.02em}
+
+/* ---------- 通用 ---------- */
+main{padding:52px 0 40px}
+section{margin-bottom:60px}
+h2{font-size:20px;font-weight:600;margin:0 0 6px;letter-spacing:-.005em;
+  display:flex;align-items:baseline;gap:10px}
+h2 .n{font-size:12.5px;color:var(--brand);font-weight:600;
+  background:var(--brand-soft);border-radius:5px;padding:2px 7px;letter-spacing:.04em}
+.lede{color:var(--ink2);margin:0 0 24px;font-size:14px;max-width:760px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius)}
+.pill{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:20px;
+  background:var(--line2);color:var(--ink2);font-weight:500;letter-spacing:.02em}
+
+/* ---------- 三条主线 ---------- */
+.lanes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.lane{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px 20px 18px;border-top:3px solid var(--c)}
+.lane h3{font-size:15.5px;font-weight:600;margin:0 0 4px}
+.lane .span{font-size:12px;color:var(--ink3);margin:0 0 14px}
+.lane ul{margin:0;padding-left:0;list-style:none}
+.lane li{position:relative;padding-left:15px;margin-bottom:7px;font-size:13px;color:var(--ink2)}
+.lane li::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:var(--c);opacity:.75}
+.lane .metric{margin-top:14px;padding-top:13px;border-top:1px dashed var(--line);
+  font-size:12px;color:var(--ink3);display:flex;justify-content:space-between;align-items:baseline}
+.lane .metric b{font-size:15px;color:var(--ink);font-weight:600}
+
+/* ---------- 时间线 ---------- */
+.tl{position:relative;padding-left:0}
+.day{position:relative;padding-left:118px;padding-bottom:8px}
+.day::before{content:"";position:absolute;left:95px;top:15px;bottom:-15px;width:2px;background:#CFDCEA}
+.day:last-child::before{display:none}
+.day > .dot{position:absolute;left:90.5px;top:15px;width:12px;height:12px;border-radius:50%;
+  background:var(--card);border:2.5px solid var(--c);z-index:1}
+.day .stamp{position:absolute;left:0;top:7px;width:78px;text-align:right}
+.day .stamp b{display:block;font-size:17px;font-weight:600;letter-spacing:-.01em}
+.day .stamp span{font-size:11.5px;color:var(--ink3)}
+.day .body{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:17px 20px 16px;margin-bottom:18px}
+.day .head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px}
+.day .head h3{font-size:15.5px;font-weight:600;margin:0}
+.day .head .cnt{font-size:11.5px;color:var(--ink3);margin-left:auto}
+.day ul{margin:0;padding-left:0;list-style:none}
+.day li{position:relative;padding-left:16px;margin-bottom:6px;font-size:13px;color:var(--ink2)}
+.day li::before{content:"";position:absolute;left:2px;top:9px;width:4px;height:4px;border-radius:1px;
+  background:var(--ink4)}
+.day li b{color:var(--ink);font-weight:500}
+.day li.sub{padding-left:30px;font-size:12.5px;color:var(--ink3)}
+.day li.sub::before{left:16px;width:8px;height:1px;border-radius:0;top:12px}
+.quote{margin-top:12px;padding:10px 14px;background:#FFFDF7;border:1px solid #FDE68A;
+  border-radius:8px;font-size:12.5px;color:#7A5B12}
+.quote i{font-style:normal;color:#B4820E;font-weight:500}
+.tag{font-size:11px;padding:2px 7px;border-radius:5px;font-weight:500;letter-spacing:.02em}
+.t-sys{background:var(--brand-soft);color:#1769C9}
+.t-home{background:#F3EEFE;color:#6D3FD1}
+.t-sw{background:#FFF1E6;color:#C2591A}
+.t-app{background:var(--ok-soft);color:#0A7A5A}
+.t-eng{background:#EEF2F7;color:#4A5A70}
+.t-idle{background:var(--line2);color:var(--ink3)}
+
+/* ---------- 轮次 ---------- */
+.rounds{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--card)}
+.round{display:grid;grid-template-columns:80px 1fr 116px;gap:0;border-bottom:1px solid var(--line2)}
+.round:last-child{border-bottom:none}
+.round:hover{background:#FCFDFF}
+.round > div{padding:12px 16px}
+.round .r{font-weight:600;font-size:13px;color:var(--sw);background:#FFFBF6;border-right:1px solid var(--line2);white-space:nowrap}
+.round .t{font-size:13px;color:var(--ink)}
+.round .t b{font-weight:500}
+.round .t em{font-style:normal;color:var(--ink3);font-size:12.5px;display:block;margin-top:3px}
+.round .w{font-size:12px;color:var(--ink3);text-align:right}
+.round.key .r{background:#FFF1E6}
+.round.key .t b::after{content:" 关键";font-size:10.5px;color:#C2591A;background:#FFE7D4;
+  border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:1.5px;font-weight:500}
+
+/* ---------- 表格 ---------- */
+table{width:100%;border-collapse:collapse;background:var(--card);
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;font-size:13px}
+th{text-align:left;font-weight:600;font-size:12px;color:var(--ink2);letter-spacing:.03em;
+  background:#FAFCFE;padding:11px 16px;border-bottom:1px solid var(--line)}
+td{padding:11px 16px;border-bottom:1px solid var(--line2);color:var(--ink2);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td b{color:var(--ink);font-weight:500}
+td .bar{display:inline-block;width:3px;height:13px;border-radius:2px;margin-right:9px;vertical-align:-2px}
+
+/* ---------- 工程 ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:19px 20px}
+.box h4{font-size:13.5px;font-weight:600;margin:0 0 11px;display:flex;align-items:center;gap:8px}
+.box h4::before{content:"";width:3px;height:13px;border-radius:2px;background:var(--brand)}
+.box ul{margin:0;padding-left:0;list-style:none}
+.box li{position:relative;padding-left:15px;margin-bottom:7px;font-size:12.5px;color:var(--ink2)}
+.box li::before{content:"";position:absolute;left:1px;top:8px;width:4px;height:4px;border-radius:50%;background:var(--ink4)}
+.box code{font-size:11.5px;background:#F1F5FA;border-radius:4px;padding:1.5px 5px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#334155}
+
+/* ---------- 待办 ---------- */
+.todo{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.todo .box h4::before{background:var(--ink3)}
+.todo .box li::before{background:var(--ok)}
+
+footer{border-top:1px solid var(--line);padding:26px 0 50px;color:var(--ink3);font-size:12.5px}
+footer .row{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+@media (max-width:860px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .stat:last-child{grid-column:span 2}
+  .lanes,.cols,.todo{grid-template-columns:1fr}
+  .round{grid-template-columns:72px 1fr}
+  .round .w{grid-column:2;padding-top:0;text-align:left}
+  h1{font-size:26px}
+}
+@media (max-width:620px){
+  .day{padding-left:0}
+  .day::before{display:none}
+  .day > .dot{display:none}
+  .day .stamp{position:static;width:auto;text-align:left;margin-bottom:8px}
+  .day .stamp b{display:inline;font-size:15px;margin-right:7px}
+  .day .stamp span{font-size:12px}
+  .wrap{padding:0 16px}
+.top-nav{background:#090e1a;border-bottom:1px solid rgba(255,255,255,0.08);padding:10px 0;font-size:12.5px}
+.nav-inner{display:flex;align-items:center;justify-content:space-between}
+.nav-brand{color:#94a3b8;text-decoration:none;font-weight:500}
+.nav-brand:hover{color:#fff}
+.nav-links{display:flex;gap:16px;align-items:center}
+.nav-cur{color:#38bdf8;font-weight:600}
+.nav-next{color:#cbd5e1;text-decoration:none}
+.nav-next:hover{color:#fff}
+</style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="wrap nav-inner">
+    <a href="index.html" class="nav-brand">tOS 原型更新归档</a>
+    <div class="nav-links">
+      <span class="nav-cur">2026-09-03 → 09-14</span>
+      <a href="updates-2026-09-15_to_09-22.html" class="nav-next">下一阶段：2026-09-15 → 09-22 →</a>
+    </div>
+  </div>
+</nav>
+
+<header>
+  <div class="wrap">
+    <p class="eyebrow">tOS Prototype · 阶段更新说明</p>
+    <h1>2026-09-03 <span class="range">→</span> 09-14</h1>
+    <p class="sub">12 天里，原型从「控制中心图标还原」一路走到「多任务切换器十七轮打磨」。本说明按天记录每一步的来由与落点，主要材料取自提交历史与当日工作日志。</p>
+    <div class="stats">
+      <div class="stat"><b class="mono">555</b><span>提交（全分支 / 进 main 448）</span></div>
+      <div class="stat"><b class="mono">69</b><span>Vue 组件</span></div>
+      <div class="stat"><b class="mono">37,324</b><span>代码行数</span></div>
+      <div class="stat"><b class="mono">25 + 32</b><span>单测 / e2e 脚本</span></div>
+      <div class="stat"><b class="mono">3</b><span>Agent 并行</span></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ 一 ============ -->
+  <section>
+    <h2><span class="n">一</span>三条主线</h2>
+    <p class="lede">这 12 天不是一条线走到底，而是三块彼此独立的战场并行推进。其中多任务切换器占了后半程的大部分精力。</p>
+    <div class="lanes">
+      <div class="lane" style="--c:var(--sys)">
+        <h3>系统 UI 1:1 还原</h3>
+        <p class="span">9-03 → 9-10 · 控制中心 / 通知中心 / 动态岛 / 锁屏 / 状态栏</p>
+        <ul>
+          <li>磁贴图标全部换成矢量字形，主题色定为 <code class="mono">#258FFF</code></li>
+          <li>磨砂玻璃底板（4 层叠加）+ 镜面高光描边</li>
+          <li>通知堆叠：阶梯 + 挤压下沉 + clip-path 真几何遮挡</li>
+          <li>动态岛：液体形变、礼拜模式、实时活动多卡</li>
+        </ul>
+        <div class="metric"><span>最高单日</span><b class="mono">114 提交</b></div>
+      </div>
+      <div class="lane" style="--c:var(--home)">
+        <h3>桌面体系</h3>
+        <p class="span">9-11 → 9-14 · 分页 / 文件夹 / 小组件 / 编辑模式</p>
+        <ul>
+          <li>分页桌面 + 拖拽重排 + 持久化布局模型</li>
+          <li>文件夹：FLIP 无缝展开、大文件夹 3×3、槽 9 迷你簇</li>
+          <li>编辑模式：多选拖拽、缩略卡、图标与网格统一</li>
+          <li>动效：英雄锚点、跨屏拖拽、边缘停驻翻页</li>
+        </ul>
+        <div class="metric"><span>落到 9-14</span><b>网格几何精修</b></div>
+      </div>
+      <div class="lane" style="--c:var(--sw)">
+        <h3>多任务切换器</h3>
+        <p class="span">9-11 诞生 → 9-14 · 共 17 轮迭代</p>
+        <ul>
+          <li>堆叠式卡片 + 实渲染预览 + 停驻手势进入</li>
+          <li>快滑惯性、慢滑一次一张、触控板双指横滑</li>
+          <li>上滑移除、点空白退出、一键清理飞出</li>
+          <li>左滑挤压三分量（位移 + 等比缩小 + 阶梯收紧）</li>
+        </ul>
+        <div class="metric"><span>专项 e2e</span><b class="mono">187 条断言</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 二 ============ -->
+  <section>
+    <h2><span class="n">二</span>逐日时间线</h2>
+    <p class="lede">每天标注了提交量与所属模块。9-05 / 9-06 无提交，保留占位以便对齐时间轴。</p>
+    <div class="tl">
+
+      <div class="day" style="--c:var(--sys)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-03</b><span>周四</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-sys">系统 UI</span><h3>控制中心图标体系 1:1 还原</h3><span class="cnt mono">20 提交</span></div>
+          <ul>
+            <li>磁贴图标批量换成矢量字形：Wi-Fi、手电、录屏、闹钟、定位、旋转锁、音量、亮度、相机、分享、投屏、扫一扫</li>
+            <li>主题色定为 <b>#258FFF</b>；电池指示器从 CSS 拼接改为精确矢量图标</li>
+            <li>磨砂玻璃基底（1×1 / 2×1 SVG 底板）+ 高光描边，修掉 SVG color-dodge 隔离导致的暗底</li>
+            <li>热点（radio）右弧对称修正；头部编辑/设置图标回归；媒体播放卡更新</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--sys)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-04</b><span>周五</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-sys">系统 UI</span><h3>网格与光学尺寸校准</h3><span class="cnt mono">5 提交</span></div>
+          <ul>
+            <li>控制中心网格像素级还原：用户提供的 SVG、头部按钮、隐私胶囊、整体对齐</li>
+            <li>统一 1×1 方形图标 viewBox；修编辑模式 resize 退出；默认不再显示 2×1 徽标</li>
+            <li>图标<b>光学尺寸</b>校准 —— 几何尺寸相同不等于看起来一样大，按视觉重量补偿</li>
+            <li>恢复 4 层 SVG 玻璃底板 + 镜面高光描边；状态栏配色统一</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--ink4)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-05</b><span>周六</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-idle">无提交</span><h3>—</h3><span class="cnt mono">0 提交</span></div>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--ink4)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-06</b><span>周日</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-idle">无提交</span><h3>—</h3><span class="cnt mono">0 提交</span></div>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--sys)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-07</b><span>周一</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-sys">系统 UI</span><h3>DevConsole 能力补齐</h3><span class="cnt mono">1 提交</span></div>
+          <ul>
+            <li>控制台截图捕获、布局预设、新增开关、图标精修</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--app)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-08</b><span>周二</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-app">系统 App</span><span class="tag t-eng">协作</span><h3>三 Agent 开工 + 系统 App 大爆发</h3><span class="cnt mono">114 提交</span></div>
+          <ul>
+            <li><b>协作协议落地</b>：确立多智能体工作区协议（角色识别、共享锁清单、端口分配、交接格式），Workbuddy / Codex / Antigravity 三线并行开工</li>
+            <li><b>时钟 App</b>：完整实现（对齐 Clock.mp4 参考）；计时器 / 秒表接入动态岛实时活动；最多 4 张岛卡；新增悬浮胶囊导航坞</li>
+            <li><b>动态岛</b>：液体形变过渡、礼拜模式 80px 圆角矩形、消除幽灵闪烁、多卡收拢回摄像头开孔、删除确认弹窗改底部 sheet</li>
+            <li><b>通知中心</b>：阶梯堆叠 + 底部挤压下沉 + 渐隐、iOS 深色磨砂材质、clip-path 真几何遮挡；替换 <code class="mono">getBoundingClientRect</code> 消除布局抖动</li>
+            <li><b>控制中心</b>：新增 HiOS 17 预设、tOS16 / tOS17 对比预设；JBL 磁贴从默认布局下线；默认布局合并为单卡片</li>
+            <li><b>状态栏</b>：热点 / 静音 / 振动 / 勿扰启用后显示对应图标；图标优先级化 + 摄像头避让；Wi-Fi 关闭整颗隐藏（而非置灰）；蓝牙 18 → 16（字形视觉重量补偿）</li>
+            <li><b>设置</b>：动态栏改单卡 + 实时活动子开关；通知列表与通知中心对齐</li>
+            <li><b>勿扰月亮图标</b>：改为按<b>面积质心</b>居中，并加硬约束单测 —— 终结三次反复翻车</li>
+            <li>其他：语音备忘录、三键导航、双卡状态行、i18n 硬编码修复</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--sys)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-09</b><span>周三</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-sys">系统 UI</span><span class="tag t-eng">工程</span><h3>默认布局合流 + 设置体系重构</h3><span class="cnt mono">54 提交</span></div>
+          <ul>
+            <li><b>控制中心预设</b>：EE1 系列 + VPN 开关；GT / GT 17 倒数第二排改 肩键 / 液冷散热 / 灯效 / 晕动舒缓；所有布局收尾三个统一为 快速分享 / 扫一扫 / 钱包</li>
+            <li><b>设置</b>：首页改 8 组卡片 + 悬浮搜索栏；全部页面过渡动画统一；标题栏 sticky 防止滚出屏幕；改用 Figma 系统图标</li>
+            <li><b>锁屏</b>：原生滚动 + 时钟压缩 + 堆叠重叠几何；通知堆叠与动态岛溢出共享同一份数据</li>
+            <li><b>动态岛</b>：闹钟实时活动（贪睡倒计时 + 关闭）</li>
+            <li><b>通知中心</b>：媒体卡滑动操作；滑动时保持玻璃色；去掉滑动边缘模糊</li>
+            <li>底部导航条透明度 88% → 30%（白色态同步，与深色态统一）</li>
+            <li><b>工程</b>：定位「批量删除 54 项」弹窗真凶 = <code class="mono">vite build</code> 清空 <code class="mono">dist</code> → 建立构建残留自动回收（超阈值时回收最旧一批）</li>
+          </ul>
+          <div class="quote"><i>「为什么老要我确认删除？」</i> —— 由此定下一条长期约定：临时产物一律写 <code class="mono">/tmp</code>，不在仓库里建了再删。</div>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--app)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-10</b><span>周四</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-app">系统 App</span><span class="tag t-eng">工具</span><h3>时钟深度打磨 + DevConsole 重构</h3><span class="cnt mono">65 提交</span></div>
+          <ul>
+            <li><b>时钟 · 礼拜 Tab 高保真</b>：星盘玫瑰、新月翼、罗盘 NWSE 齿、天房徽章、祈祷轮新月，逐项像素级对齐参考图</li>
+            <li>提取全局悬浮标签栏 FloatingTabBar + 滚动遮罩渐变</li>
+            <li><b>设置</b>：折叠标题 + 滚动遮罩、列表右侧文字规范、账号头像更新、标题起始位置对齐</li>
+            <li><b>动态岛</b>：音乐 / 礼拜默认关闭；闹钟与贪睡图标换成居中矢量图标</li>
+            <li><b>DevConsole</b>：顶角图标 + 合并捕获卡 + 下拉模块切换器 + 虚线大卡；语言 / 导航配置迁移到设置</li>
+            <li>修复 AppWindow / ScreenView 的圆角与缩放边缘壁纸泄漏</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--sw)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-11</b><span>周五</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-home">桌面</span><span class="tag t-sw">切换器</span><h3>桌面体系从零到一 + App Switcher 诞生</h3><span class="cnt mono">89 提交</span></div>
+          <ul>
+            <li><b>桌面</b>：分页桌面 + 指针重排、持久化布局模型、文件夹 + 可调大文件夹、Dock 编辑 + 应用卸载流程、编辑模式对齐参考稿</li>
+            <li><b>多任务切换器诞生</b>：iOS 风格最近任务 —— 卡片堆叠实渲染预览、停驻手势进入、快滑浏览、上滑移除、点卡恢复</li>
+            <li class="sub">二轮：按参考录屏打磨（卡宽 0.82 零裁切、槽位随焦点 3.5% → 16%、悬停 0.5s 邻居逐张进场、后卡亮度 0.75）</li>
+            <li class="sub">三轮：四处纠正（堆叠改到右侧、卡 0.64 避让底栏、跟手缩放全程连续、悬停 0.2s 即激活且邻居立即进场、桌面阈值降到 5%）</li>
+            <li class="sub">四轮：跟手缩放锚点改屏幕中心、过拉可继续缩小变透明（进度上限 1.35 松手回弹）、当前卡固定最右侧、浏览时槽位移到 23.5% 对称露出</li>
+            <li><b>锁屏</b>：默认堆叠通知 + 收拢态岛卡下沉；铃铛图标复用控制中心；底部留白减 60%</li>
+            <li>实时活动在 动态岛 / 锁屏 / 通知中心 三处交互统一</li>
+            <li>i18n 词条分包到 <code class="mono">src/locales</code>，store 瘦身到 46 行</li>
+          </ul>
+          <div class="quote"><i>「对现在最近任务动效很不满意」</i> —— 切换器从这一句开始进入逐帧级打磨。</div>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--sw)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-12</b><span>周六</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-sw">切换器</span><span class="tag t-home">桌面</span><h3>物理规律落地 + 帧级复刻</h3><span class="cnt mono">84 提交</span></div>
+          <ul>
+            <li><b>切换器 第四轮</b>：卡片相对运动纳入物理规律 —— 同相位推进、顶卡出屏前不分离</li>
+            <li><b>第五轮</b>：横滑永不回退 + 桌面上滑跟手入场</li>
+            <li><b>第六轮</b>：应用切换横滑改为「整条卡链连锁位移」</li>
+            <li>修四个真实缺陷：跟手卡几何就绪、遮罩残留、CSS transition 拖慢跟手、垃圾桶失效</li>
+            <li><b>手机外框</b>：深空黑钛金属边框 + 真实按键比例、50px 圆角、2px 钛边 + 3px 黑边</li>
+            <li><b>桌面</b>：自适应设备网格、文件夹动效锚定与缩放、拖拽直接移动 + 捏合编辑</li>
+            <li><b>锁屏</b>：修移动端触摸滚动卡住、桌面闪烁、下滑收拢、非卡片滑动解锁</li>
+            <li>移动 FAB：迷你原型手机 + 齿轮彩蛋旋转</li>
+            <li>方法论沉淀：从参考视频抽帧量化、反推动画曲线（τ 与过冲率 → 弹簧参数）</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--sw)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-13</b><span>周日</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-sw">切换器</span><span class="tag t-home">桌面</span><h3>第七 → 十二轮 + 桌面文件夹攻坚</h3><span class="cnt mono">78 提交</span></div>
+          <ul>
+            <li><b>第七轮（12 项需求，分 4 批）</b>：设置图标 / 垃圾桶位置 / 点空白回桌面 / 三层堆叠；上滑跟手与停驻进场；快滑惯性吸附 / 慢滑一次一张 / 触控板双指横滑；一键清理逐卡上滑飞出 / 顶卡右滑刚好贴住</li>
+            <li><b>第八轮（8 项）</b>：点空白可退出（含卡片上下大块空白）、离场卡遮挡 C 位约 10%、点空白退出补动画、桌面与应用双路径跟手、左滑挤压幅度与弹性、垃圾桶图标复用通知中心</li>
+            <li><b>第九轮（6 项）</b>：左滑挤压改整组左移、图标随卡一起走、垃圾桶松手后再出现、退场动画去重</li>
+            <li><b>第十 / 十一轮</b>：慢滑去掉多余回弹 —— 吸附预设改为临界阻尼（零过冲）</li>
+            <li><b>第十二轮</b>：安卓触摸上滑删卡两处根因 —— 模式判定改「累计位移 + 允许改判」，命中判定改「沿层叠顺序找第一个带 appId 的」；同时取消上滑过程的透明度变化</li>
+            <li><b>桌面 / 文件夹</b>：展开收起不闪、FLIP 无缝扩展 + 图标缩放、英雄锚点修正、跨屏图标拖拽 + 边缘停驻翻页 + 弹簧动画、编辑模式多选拖拽到缩略卡</li>
+          </ul>
+          <div class="quote"><i>「移动端通过安卓的 Chrome 浏览器打开，上滑删除多任务卡片的时候，总是变成误触成左右滑动」</i> —— 第十二轮的起点，也是「真机触摸必须单独验证」这条规矩的由来。</div>
+        </div>
+      </div>
+
+      <div class="day" style="--c:var(--sw)">
+        <div class="dot"></div>
+        <div class="stamp"><b class="mono">9-14</b><span>周一</span></div>
+        <div class="body">
+          <div class="head"><span class="tag t-home">桌面</span><span class="tag t-sw">切换器</span><h3>网格精修 + 第十四 → 十七轮</h3><span class="cnt mono">45 提交</span></div>
+          <ul>
+            <li><b>桌面</b>：网格几何 / 图标尺寸 / 行列间距对齐旗舰参考；文件夹与小组件统一 1:1 圆角；大文件夹改 3×3 + 槽 9 迷你簇 + 常驻缩放手柄；小组件拖拽幽灵保持 1:1 不变形</li>
+            <li><b>第十四轮</b>：点卡进全屏的闪跳 / 误退桌面、入场形变抖动、顶卡点不动 —— 一次定位六处根因</li>
+            <li><b>第十五轮</b>：上滑删卡回桌面后，桌面图标「图形」消失（隐藏态永久泄漏）</li>
+            <li><b>第十六轮</b>：应用内进多任务时，底部卡片未与被拖拽的卡片同步缩放 / 位移</li>
+            <li><b>第十七轮</b>：横滑切换整组卡片疯狂抖动（挤压通道的瞬移）</li>
+          </ul>
+          <div class="quote"><i>「横滑切换疯狂抖动。。。」</i> —— 第十七轮起点。离线逐帧互相关量出「整组刚体在 12~30ms 内反复反号抽动 48~144px」，最终定位到挤压通道 221px / 层越界的高增益 + 零过渡直写。</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ 三 ============ -->
+  <section>
+    <h2><span class="n">三</span>多任务切换器 · 十七轮演进</h2>
+    <p class="lede">这是这 12 天里投入最集中的一块：从 9-11 诞生到 9-14，共 17 轮迭代（第十三轮为环境重启，无代码变更）。每一轮都对应一条具体的用户反馈或一次探针实测。</p>
+    <div class="rounds">
+      <div class="round"><div class="r mono">第一轮</div><div class="t"><b>诞生</b>：堆叠实渲染预览 + 停驻手势进入 + 快滑浏览 + 上滑移除<em>确定基本形态：卡片堆叠、底部垃圾桶、点卡恢复</em></div><div class="w">9-11</div></div>
+      <div class="round"><div class="r mono">第二轮</div><div class="t"><b>按参考录屏调参</b>：卡宽 0.82、槽位 3.5%→16%、悬停 0.5s 邻居进场<em>后卡亮度 0.75，预览裁底无黑边</em></div><div class="w">9-11</div></div>
+      <div class="round"><div class="r mono">第三轮</div><div class="t"><b>四处纠正</b>：堆叠改右侧、卡 0.64 避让底栏、跟手缩放连续<em>悬停阈值收紧到 0.2s、桌面路径阈值降到 5%</em></div><div class="w">9-11</div></div>
+      <div class="round"><div class="r mono">第四轮</div><div class="t"><b>锚点与过拉</b>：跟手缩放锚点改屏幕中心、过拉可继续缩小变透明<em>续：Coverflow 改固定层级堆叠、卡片相对运动符合物理规律（同相位推进、顶卡出屏前不分离）</em></div><div class="w">9-11 → 9-12</div></div>
+      <div class="round"><div class="r mono">第五轮</div><div class="t"><b>横滑永不回退 + 桌面上滑跟手入场</b><em>补齐桌面路径的入场手势</em></div><div class="w">9-12</div></div>
+      <div class="round"><div class="r mono">第六轮</div><div class="t"><b>卡链连锁位移</b>：横滑改为整条卡链连锁，而非逐卡各自平移<em>修掉跟手卡几何、遮罩残留、transition 拖慢跟手、垃圾桶失效</em></div><div class="w">9-12</div></div>
+      <div class="round key"><div class="r mono">第七轮</div><div class="t"><b>12 项需求（4 批交付）</b>：点空白回桌面、三层堆叠、上滑跟手与停驻进场、快滑惯性吸附、慢滑一次一张、触控板双指横滑、一键清理逐卡飞出<em>本轮把「手感」拆成了可测量的契约</em></div><div class="w">9-13</div></div>
+      <div class="round key"><div class="r mono">第八轮</div><div class="t"><b>8 项需求</b>：点空白可退出（含卡片上下大块空白）、离场卡遮挡 C 位约 10%、退出动画、桌面/应用双路径跟手、左滑挤压幅度与弹性<em>垃圾桶图标统一到通知中心同一份</em></div><div class="w">9-13</div></div>
+      <div class="round"><div class="r mono">第九轮</div><div class="t"><b>6 项需求</b>：左滑挤压改整组左移、图标随卡、垃圾桶松手后再出现、退场动画去重<em>废弃第八轮「压扁」方案，改为位移 + 等比缩小 + 阶梯收紧三分量</em></div><div class="w">9-13</div></div>
+      <div class="round"><div class="r mono">第十轮</div><div class="t"><b>挤压三分量补齐</b>：位移 / 等比缩小 / 阶梯收紧共用一个进度 k</div><div class="w">9-13</div></div>
+      <div class="round"><div class="r mono">第十一轮</div><div class="t"><b>去掉多余回弹</b>：慢滑吸附改用临界阻尼（ζ = 1.0，零过冲）<em>快甩保留过冲，两者分开</em></div><div class="w">9-13</div></div>
+      <div class="round key"><div class="r mono">第十二轮</div><div class="t"><b>安卓触摸的两处根因</b>：模式判定改累计位移 + 允许改判；命中判定沿层叠顺序找第一个带 appId 的<em>取消上滑过程的透明度变化；e2e 首次引入 CDP 真实触摸用例</em></div><div class="w">9-13</div></div>
+      <div class="round"><div class="r mono">第十三轮</div><div class="t"><b>环境重启</b>：无代码变更</div><div class="w">9-14</div></div>
+      <div class="round key"><div class="r mono">第十四轮</div><div class="t"><b>点卡进全屏的闪跳 / 误退桌面、入场形变抖动、顶卡点不动</b><em>一次定位六处根因，全部附探针数值</em></div><div class="w">9-14</div></div>
+      <div class="round key"><div class="r mono">第十五轮</div><div class="t"><b>上滑删卡回桌面后桌面图标图形消失</b><em>根因：桌面图标的隐藏态是单槽的，而「归还」动作只挂在英雄动画的收尾钩子上；改走两道防线</em></div><div class="w">9-14</div></div>
+      <div class="round key"><div class="r mono">第十六轮</div><div class="t"><b>入场期底部卡片未与跟手卡同步缩放 / 位移</b><em>根因：邻居卡的目标位姿是「落位后」的绝对终位，参照系选错；改为给整组一个相似变换 G</em></div><div class="w">9-14</div></div>
+      <div class="round key"><div class="r mono">第十七轮</div><div class="t"><b>横滑切换疯狂抖动</b><em>根因：挤压通道增益达 221px / 层越界，而进口是零过渡直写 ⇒ 14px 指尖抖动 = 8.8px 整组瞬移。修法两条：曲线加死区 + smoothstep、进口加逐帧限速</em></div><div class="w">9-14</div></div>
+    </div>
+  </section>
+
+  <!-- ============ 四 ============ -->
+  <section>
+    <h2><span class="n">四</span>模块现状</h2>
+    <p class="lede">按模块汇总这 12 天的变化与当前状态。</p>
+    <table>
+      <thead><tr><th style="width:180px">模块</th><th>期间主要变化</th><th style="width:88px">状态</th></tr></thead>
+      <tbody>
+        <tr><td><span class="bar" style="background:var(--sys)"></span><b>控制中心</b></td><td>图标体系 1:1 还原、4 层玻璃底板、预设体系（HiOS 17 / tOS16 / tOS17 / EE1 / GT）、编辑模式 resize 与退出</td><td><span class="pill">稳定</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--sys)"></span><b>通知中心</b></td><td>阶梯堆叠 + 底部挤压下沉 + 渐隐、iOS 深色磨砂、clip-path 几何遮挡、卡片滑动操作、布局抖动性能优化</td><td><span class="pill">稳定</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--sys)"></span><b>动态岛</b></td><td>液体形变过渡、礼拜模式圆角矩形、音乐 / 闹钟 / 计时实时活动、最多 4 卡、收拢回摄像头开孔、删除弹窗</td><td><span class="pill">稳定</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--sys)"></span><b>锁屏</b></td><td>堆叠通知、时钟压缩、胶囊展开保持 2 张堆叠、下滑收拢、移动端滚动与触摸解锁</td><td><span class="pill">稳定</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--sys)"></span><b>状态栏</b></td><td>指示器体系（热点 / 静音 / 振动 / 勿扰）、图标优先级排序、摄像头避让、Wi-Fi 关闭整颗隐藏、视觉重量补偿</td><td><span class="pill">稳定</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--home)"></span><b>桌面</b></td><td>分页 + 拖拽重排、持久化布局模型、文件夹（含大文件夹 3×3 / 槽 9 迷你簇）、小组件、编辑模式、跨屏拖拽 + 边缘停驻翻页</td><td><span class="pill">精修中</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--sw)"></span><b>多任务切换器</b></td><td>十七轮迭代：堆叠形态、物理规律、卡链连锁位移、挤压三分量、触摸根因、入场群组变换、挤压限速</td><td><span class="pill">待复验</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--app)"></span><b>时钟</b></td><td>完整实现 + 穆斯林礼拜 Tab 高保真（星盘玫瑰 / 新月翼 / 罗盘齿 / 天房徽章）+ 全局悬浮标签栏 + 动态岛实时活动</td><td><span class="pill">稳定</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--app)"></span><b>设置</b></td><td>首页 8 组卡片重构、悬浮搜索栏、折叠标题与滚动遮罩、子页过渡动画统一、Figma 系统图标、深色磨砂</td><td><span class="pill">稳定</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--eng)"></span><b>DevConsole</b></td><td>截图捕获、布局预设、下拉模块切换、捕获卡合并、迷你原型手机 FAB（齿轮彩蛋）</td><td><span class="pill">稳定</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--eng)"></span><b>手机外框</b></td><td>深空黑钛金属边框、真实按键比例、50px 圆角、2px 钛边</td><td><span class="pill">稳定</span></td></tr>
+        <tr><td><span class="bar" style="background:var(--app)"></span><b>其他应用</b></td><td>语音备忘录（录音权限弹窗）、相机、信息、电话、日历的基础实现与注册</td><td><span class="pill">进行中</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============ 五 ============ -->
+  <section>
+    <h2><span class="n">五</span>工程与协作</h2>
+    <p class="lede">这 12 天的另一条暗线：三个人工智能体在同一个仓库里并行开发，靠一套书面协议避免互相踩踏。</p>
+    <div class="cols">
+      <div class="box">
+        <h4>多智能体工作区协议</h4>
+        <ul>
+          <li>按 worktree 目录名识别角色（Workbuddy / Codex / Antigravity / 集成）</li>
+          <li>共享锁清单：<code>package.json</code>、<code>App.vue</code>、<code>main.js</code>、<code>apps.js</code>、<code>registry.js</code>、<code>ScreenView</code>、<code>AppWindow</code>、<code>HomeScreen</code>、两个 store、两份全局样式、英雄动画与几何工具</li>
+          <li>改共享文件前须在 <code>ACTIVE_TASKS.md</code> 登记独占所有者</li>
+          <li>提交只 stage 显式路径，禁用 <code>git add -A</code>；禁止改他人改动</li>
+          <li>交接须报告：任务名 / 分支与提交号 / 变更文件 / 测试结果 / 风险 / 锁可否释放</li>
+          <li>集成由 Antigravity 逐条 cherry-pick → 验证 → 发布 main</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h4>质量保障</h4>
+        <ul>
+          <li>单元测试 25 个文件、<b>200 条</b>断言（几何纯函数、弹簧、store）</li>
+          <li>端到端 32 个脚本；其中切换器专项 <b>187 条</b>断言，全绿</li>
+          <li>e2e 覆盖真实触摸（CDP <code>Input.dispatchTouchEvent</code>）—— 桌面鼠标复现不了的触摸缺陷必须走这条路</li>
+          <li>每项几何改动都要求「改前基线 → 改后实测」的数值对照，不接受「感觉好了」</li>
+          <li>开发端口 5555；构建走覆盖配置（不清空 <code>dist</code>、自动回收最旧产物）</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 六 ============ -->
+  <section>
+    <h2><span class="n">六</span>仍在推进</h2>
+    <div class="todo">
+      <div class="box">
+        <h4>桌面</h4>
+        <ul>
+          <li>网格几何与图标体系继续对参考稿收敛</li>
+          <li>大文件夹 / 小组件在更多设备尺寸下的自适应</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h4>多任务切换器</h4>
+        <ul>
+          <li>十七轮已交付，等真机复验抖动是否彻底消除</li>
+          <li>挤压限速参数（每帧 0.09）与慢拖稳态契约的余量只有约 25%</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h4>应用深度</h4>
+        <ul>
+          <li>相机 / 信息 / 电话 / 日历 / 语音备忘录功能仍偏基础</li>
+          <li>实时活动与通知权限的跨应用联动</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap row">
+    <span>tOS 原型 · 阶段更新说明 · 2026-09-03 → 09-14</span>
+    <span><a href="updates-2026-09-15_to_09-22.html" style="color:var(--brand);text-decoration:none">下一周更新（2026-09-15 → 09-22）→</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
