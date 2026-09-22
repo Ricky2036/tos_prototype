@@ -162,6 +162,18 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
   <div v-if="expanded || compact" class="sv-dismiss-layer" @click="control.closeSideVolume()"></div>
   <Transition name="side-volume">
     <div v-if="expanded || compact" class="side-volume-wrap" :class="{ compact, 'anchor-handoff': anchorHandoff }" data-testid="side-volume">
+      <!-- 控制中心图标同款矢量高光渐变定义 -->
+      <svg width="0" height="0" style="position: absolute; pointer-events: none">
+        <defs>
+          <linearGradient id="sv_btn_linear_stroke" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="white" stop-opacity="0.8"/>
+            <stop offset="30%" stop-color="white" stop-opacity="0.2"/>
+            <stop offset="70%" stop-color="white" stop-opacity="0.2"/>
+            <stop offset="100%" stop-color="white" stop-opacity="0.5"/>
+          </linearGradient>
+        </defs>
+      </svg>
+
       <button
         v-if="expanded"
         class="sv-more"
@@ -172,7 +184,7 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
       >{{ showTopPlusValue ? volumeDisplayPct + '%' : '•••' }}</button>
       <div
         :key="'side-volume-track-' + control.sideVolumeBounceSeq"
-        class="sv-track glass"
+        class="sv-track"
         :class="{
           'is-plus': control.volumePlusLevel,
           ['plus-' + control.volumePlusLevel * 100]: control.volumePlusLevel,
@@ -182,12 +194,28 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
         :aria-hidden="compact"
         @pointerdown="expanded && setFromPointer($event, value => control.setVolume(value))"
       >
+        <svg class="sv-track-bg-svg" width="100%" height="100%" viewBox="0 0 45 160" preserveAspectRatio="none" fill="none">
+          <rect x="0.5" y="0.5" width="43.7" height="158.7" rx="21.85" fill="rgba(255, 255, 255, 0.04)" />
+        </svg>
         <div class="sv-fill" :style="{ height: volumePct + '%' }"></div>
         <div v-if="control.volumePlusLevel" class="sv-side-plus-gradient"></div>
         <LIcon class="sv-speaker" :name="control.volume === 0 ? 'volumeX' : 'volume2'" :size="24" :stroke-width="2.2" mono />
       </div>
-      <button v-if="expanded" class="sv-custom glass" :aria-label="vLabel('customMediaVolume')" data-testid="side-volume-custom" @click="openAnchoredPanel('media')">
-        <LIcon name="slidersHorizontal" :size="20" :stroke-width="2.2" />
+      <button v-if="expanded" class="sv-custom" :aria-label="vLabel('customMediaVolume')" data-testid="side-volume-custom" @click="openAnchoredPanel('media')">
+        <svg class="sv-custom-bg" width="100%" height="100%" viewBox="0 0 45 34" fill="none">
+          <rect
+            x="0.5"
+            y="0.5"
+            width="43.7"
+            height="33"
+            rx="16.5"
+            fill="rgba(255, 255, 255, 0.04)"
+            stroke="url(#sv_btn_linear_stroke)"
+            stroke-width="1"
+            vector-effect="non-scaling-stroke"
+          />
+        </svg>
+        <LIcon name="slidersHorizontal" :size="20" :stroke-width="2.2" class="sv-custom-icon" />
       </button>
       <Transition name="custom-guide">
         <div v-if="expanded && showCustomGuide && !showAppMuteGuide" class="sv-custom-guide" data-testid="side-volume-custom-guide">
@@ -285,15 +313,18 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
 .side-volume-wrap button { border:0; color:#fff; padding:0; pointer-events:auto; }
 /* 「•••」：参考图量得三点 Ø2.67 / 点距 7.0 / 点心距胶囊顶 18.67 ⇒ 高 = 2×18.67 = 37.3。
    字号按「点径 ∝ 字号」反推：13px 时实测点 Ø4.0 偏大 ⇒ 9px（Ø≈2.8），字距 3.3px 把点距调到 7.0。 */
-.sv-more { position:absolute; z-index:2; top:0; left:0; width:44.7px; height:37.3px; border:0; border-radius:22.35px; background:transparent; box-shadow:none; color:#fff; font:700 9px/1 var(--font-stack); letter-spacing:3.3px; transition:color .16s ease; }
-.sv-more.inverted { color:#3482bb; }
+.sv-more { position:absolute; z-index:2; top:0; left:0; width:44.7px; height:37.3px; border:0; border-radius:22.35px; background:transparent; box-shadow:none; color:#fff; font:700 9px/1 var(--font-stack); letter-spacing:3.3px; transition:color .16s ease; text-shadow:0 1px 2px rgba(0,0,0,.15); }
+.sv-more.inverted { color:#3482bb; text-shadow:none; }
 .sv-more.showing-value { color:#fff7ed; font-size:13px; letter-spacing:-.35px; }
 /* 1px **透明**边框是留给 Plus 态琥珀环的槽位（.sv-track.is-plus 只改 border-color）。
-   平时它完全不可见 ⇒ 满足「音量条不要多余描边」。宽度保持 1px，布局与改动前一致。 */
-.sv-track { position:absolute; top:0; left:0; width:44.7px; height:159.7px; border-radius:22.35px; overflow:hidden; pointer-events:auto; touch-action:none; transition:width .3s cubic-bezier(.2,.8,.2,1), border-radius .3s, transform .3s, left .3s; border:1px solid transparent; }
-.sv-fill { position:absolute; left:-1px; right:-1px; bottom:-1px; background:rgba(255,255,255,.95); border-radius:0 0 22.35px 22.35px; transition:height 110ms ease-out; }
+   平时它完全不可见 ⇒ 满足「音量条不要多余描边」。宽度保持 1px，布局与改动前一致。
+   背景与控制中心音量条一致：复用 --glass-white-bar 与 --glass-white-blur。 */
+.sv-track { position:absolute; top:0; left:0; width:44.7px; height:159.7px; border-radius:22.35px; overflow:hidden; pointer-events:auto; touch-action:none; transition:width .3s cubic-bezier(.2,.8,.2,1), border-radius .3s, transform .3s, left .3s; border:1px solid transparent; background:var(--glass-white-bar); backdrop-filter:var(--glass-white-blur); -webkit-backdrop-filter:var(--glass-white-blur); box-shadow:0 2px 24px rgba(0,0,0,.18); }
+.sv-track-bg-svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:0; }
+.side-volume-wrap.compact .sv-track-bg-svg { display:none; }
+.sv-fill { position:absolute; left:-1px; right:-1px; bottom:-1px; background:rgba(255,255,255,.95); border-radius:0 0 22.35px 22.35px; transition:height 110ms ease-out; z-index:1; }
 .sv-track.is-plus { border-color:rgba(255,190,92,.78); }
-.sv-side-plus-gradient { position:absolute; inset:0; z-index:1; pointer-events:none; }
+.sv-side-plus-gradient { position:absolute; inset:0; z-index:2; pointer-events:none; }
 .sv-track.plus-200 .sv-side-plus-gradient { background:linear-gradient(to top,rgba(253,186,116,0) 0%,rgba(253,186,116,.42) 52%,rgba(251,146,60,1) 100%); }
 .sv-track.plus-300 .sv-side-plus-gradient { background:linear-gradient(to top,rgba(251,146,60,0) 0%,rgba(251,146,60,.5) 52%,rgba(249,115,22,1) 100%); }
 .sv-track.plus-500 .sv-side-plus-gradient { background:linear-gradient(to top,rgba(249,115,22,0) 0%,rgba(234,88,12,.58) 52%,rgba(194,65,12,1) 100%); }
@@ -302,8 +333,49 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
    （对齐 ink 底：bottom = 16.37 − 4.29/30×24 = 12.94）。
    颜色是**淡蓝**（参考图实测 (194,218,242) = #C2DAF2），不是原来的 #3984bd 深蓝。
    ⚠️ 必须配 `mono`：该图标把 fill="#258FFF" 写死在路径上，只靠继承 color 不会变色。 */
-.sv-speaker { position:absolute; z-index:2; left:50%; bottom:12.9px; transform:translateX(-50%); color:#c0d8f2; }
-.sv-custom { position:absolute; left:0; top:170.7px; width:44.7px; height:34px; display:grid; place-items:center; border-radius:22.35px; }
+.sv-speaker { position:absolute; z-index:3; left:50%; bottom:12.9px; transform:translateX(-50%); color:#c0d8f2; }
+
+/* 按钮复用控制中心按钮背景效果：高质感毛玻璃 + 饱和度增益 + 矢量高光轮廓 + 柔和投影 */
+.sv-custom {
+  position: absolute;
+  left: 0;
+  top: 170.7px;
+  width: 44.7px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border: none;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.18));
+  color: #ffffff;
+  cursor: pointer;
+  padding: 0;
+  overflow: hidden;
+  transition: background 0.2s ease, transform 0.12s ease, opacity 0.15s ease;
+}
+.sv-custom:active {
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(0.92);
+  opacity: 0.85;
+}
+.sv-custom-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+.sv-custom-icon {
+  position: relative;
+  z-index: 1;
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
 .sv-custom-guide { position:absolute; z-index:3; left:46px; top:170px; width:142px; height:36px; color:#fff; filter:drop-shadow(0 2px 12px rgba(0,0,0,.2)); font:600 14px/36px var(--font-stack); letter-spacing:.1px; white-space:nowrap; pointer-events:none; }
 .sv-guide-blur { position:absolute; inset:0; z-index:0; display:block; background:rgba(255,255,255,.10); backdrop-filter:var(--glass-white-blur); -webkit-backdrop-filter:var(--glass-white-blur); clip-path:path("M31 1H124Q141 1 141 18Q141 35 124 35H31Q15 35 15 25L6 18L15 11Q15 1 31 1Z"); }
 .sv-guide-shape { position:absolute; z-index:1; inset:0; width:100%; height:100%; overflow:visible; }
