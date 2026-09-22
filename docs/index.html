@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tOS 原型 · 研发演进与周度更新归档</title>
+<style>
+:root{
+  --ink:#0F172A; --ink2:#475569; --ink3:#94A3B8; --ink4:#CBD5E1;
+  --bg:#F8FAFC; --card:#FFFFFF; --line:#E2E8F0; --line2:#F1F5F9;
+  --brand:#258FFF; --brand-soft:#EAF4FF; --brand-line:#C7E1FF;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:system-ui,-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:14px; line-height:1.68; -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:960px;margin:0 auto;padding:0 24px}
+
+header{background:#0F172A;color:#FFF;padding:54px 0 42px;position:relative;overflow:hidden}
+header::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;
+  background:linear-gradient(90deg,#258FFF 0%,#8B5CF6 50%,#10B981 100%)}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7DA9E8;font-weight:500;margin:0 0 12px}
+h1{font-size:30px;line-height:1.28;font-weight:600;margin:0 0 8px;letter-spacing:-.01em}
+.sub{font-size:14.5px;color:#9FB3C8;margin:0;max-width:680px}
+
+main{padding:44px 0 60px}
+.section-title{font-size:18px;font-weight:600;margin:0 0 20px;color:var(--ink)}
+
+.grid{display:grid;grid-template-columns:1fr;gap:20px}
+.item-card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:24px 28px; transition:border-color .2s ease, box-shadow .2s ease;
+  display:flex; flex-direction:column; gap:14px; text-decoration:none; color:inherit;
+}
+.item-card:hover{border-color:var(--brand);box-shadow:0 8px 24px rgba(37,143,255,0.08)}
+.item-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px}
+.item-title{font-size:18px;font-weight:600;margin:0;color:var(--ink);display:flex;align-items:center;gap:10px}
+.badge-latest{font-size:11px;padding:2px 8px;border-radius:20px;background:#E7F8F1;color:#0A7A5A;font-weight:600}
+.badge-archive{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--line2);color:var(--ink3);font-weight:500}
+.item-date{font-size:13px;color:var(--brand);font-weight:600}
+.item-desc{color:var(--ink2);font-size:13.5px;margin:0;line-height:1.6}
+
+.item-tags{display:flex;flex-wrap:wrap;gap:8px}
+.tag{font-size:11.5px;padding:3px 9px;border-radius:6px;background:var(--line2);color:var(--ink2);font-weight:500}
+
+.item-stats{display:flex;gap:24px;padding-top:14px;border-top:1px solid var(--line2);font-size:12.5px;color:var(--ink3)}
+.item-stats b{color:var(--ink);font-weight:600;margin-right:4px}
+
+.rule-box{
+  margin-top:40px; background:var(--card); border:1px solid var(--line);
+  border-radius:var(--radius); padding:22px 26px;
+}
+.rule-box h3{margin:0 0 10px;font-size:15px;font-weight:600;color:var(--ink)}
+.rule-box p{margin:0 0 8px;font-size:13px;color:var(--ink2);line-height:1.6}
+.rule-box code{font-size:12px;background:#F1F5FA;border-radius:4px;padding:2px 6px;color:#334155}
+
+footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--ink3);font-size:12.5px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="eyebrow">tOS 原型系统</p>
+    <h1>研发演进与周度更新归档</h1>
+    <p class="sub">集中记录 tOS 原型系统的每周版本迭代、核心功能演进、动效物理调优与测试工程指标。后续每周更新直接在此系统追加记录。</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="section-title">周度更新记录列表</div>
+
+  <div class="grid">
+
+    <!-- 最新周度更新 -->
+    <a href="updates-2026-09-15_to_09-22.html" class="item-card">
+      <div class="item-head">
+        <div>
+          <h2 class="item-title">
+            第二阶段周报：2026-09-15 → 09-22
+            <span class="badge-latest">最新版本</span>
+          </h2>
+        </div>
+        <span class="item-date mono">2026-09-15 → 09-22</span>
+      </div>
+      <p class="item-desc">
+        旗舰级应用抽屉落地（A-Z 动态导轨、14 大类毛玻璃卡片、一镜到底无缝展开）、锁屏景深壁纸与传音可变字体时钟、侧边物理音量键联动与四轨面板一镜到底展开、多任务切换器第 18 至 27 轮攻坚（一阶推进器消抖终局、死区消除与 20 任务池）、全局高对比自适应反色及桌面第二屏 18 个通知应用全量平铺与角标双轴光学居中。
+      </p>
+      <div class="item-tags">
+        <span class="tag">旗舰应用抽屉</span>
+        <span class="tag">锁屏景深壁纸</span>
+        <span class="tag">双轴可变时钟</span>
+        <span class="tag">侧边音量一镜到底</span>
+        <span class="tag">多任务消抖终局</span>
+        <span class="tag">全局自适应反色</span>
+        <span class="tag">桌面二屏应用</span>
+        <span class="tag">角标光学居中</span>
+      </div>
+      <div class="item-stats">
+        <span><b>130</b> 阶段提交</span>
+        <span><b>81</b> Vue 组件</span>
+        <span><b>46,900</b> 代码行数</span>
+        <span><b>280</b> 自动化测试全绿</span>
+      </div>
+    </a>
+
+    <!-- 第一阶段更新 -->
+    <a href="updates-2026-09-03_to_09-14.html" class="item-card">
+      <div class="item-head">
+        <div>
+          <h2 class="item-title">
+            第一阶段周报：2026-09-03 → 09-14
+            <span class="badge-archive">历史归档</span>
+          </h2>
+        </div>
+        <span class="item-date mono">2026-09-03 → 09-14</span>
+      </div>
+      <p class="item-desc">
+        原型系统从零到一构建。控制中心图标体系 1:1 矢量还原、4 层磨砂玻璃底板与镜面高光描边、通知中心阶梯堆叠与几何遮挡、动态岛液体形变与实时活动、时钟穆斯林礼拜高保真页面、桌面分页与大文件夹迷你簇、多任务切换器诞生并历经前 17 轮逐帧物理调优。
+      </p>
+      <div class="item-tags">
+        <span class="tag">控制中心矢量还原</span>
+        <span class="tag">磨砂玻璃底板</span>
+        <span class="tag">动态岛多卡</span>
+        <span class="tag">桌面体系与大文件夹</span>
+        <span class="tag">多任务切换器前17轮</span>
+      </div>
+      <div class="item-stats">
+        <span><b>555</b> 阶段提交</span>
+        <span><b>69</b> Vue 组件</span>
+        <span><b>37,324</b> 代码行数</span>
+        <span><b>200+</b> 断言测试</span>
+      </div>
+    </a>
+
+  </div>
+
+  <div class="rule-box">
+    <h3>后续每周更新规范与维护说明</h3>
+    <p>1. <b>归档目录</b>：所有周度更新文档统一存放在 <code>docs/</code> 目录下，命名遵循 <code>updates-YYYY-MM-DD_to_MM-DD.html</code> 规范。</p>
+    <p>2. <b>通用文档与索引</b>：本页面 <code>docs/index.html</code> 与 <code>docs/WEEKLY_UPDATES.md</code> 集中维护历周索引与统计概览。</p>
+    <p>3. <b>排版与设计铁律</b>：严禁使用 AI 风格的左侧单边加粗竖线边框，统一采用微细四边框与轻柔底色；杜绝假大空词汇，客观如实记录功能改动、工程细节与测试指标。</p>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>tOS 原型系统研发团队 · 持续集成周报归档</span>
+  </div>
+</footer>
+
+</body>
+</html>
