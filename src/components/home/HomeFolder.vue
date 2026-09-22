@@ -442,8 +442,8 @@ function onSurfaceClick(event) {
   min-width: 14px;
   height: 14px;
   font-size: 9px;
-  line-height: 14px;
-  padding: 0 3px;
+  line-height: 1;
+  padding: 0.5px 3px 0 3px;
   border-radius: 7px;
 }
 
