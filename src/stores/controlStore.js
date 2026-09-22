@@ -403,6 +403,10 @@ export const useControlStore = defineStore('control', {
       } else if (this.sideVolumeMode === 'expanded') this.sideVolumeMode = 'compact'
     },
     touchSideVolume() { this.sideVolumePulse += 1 },
+    expandSideVolume() {
+      this.sideVolumeMode = 'expanded'
+      this.sideVolumePulse += 1
+    },
     compactSideVolume() {
       if (this.sideVolumeMode === 'expanded') this.sideVolumeMode = 'compact'
     },
