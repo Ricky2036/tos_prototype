@@ -49,9 +49,20 @@ function scheduleLifecycle() {
   clearTimeout(lifecycleTimer)
   if (sliderActive) return
   const mode = control.sideVolumeMode
-  if (mode === 'expanded') lifecycleTimer = window.setTimeout(() => control.closeSideVolume(), 5000)
-  else if (mode === 'compact' || mode === 'panel' || mode === 'media') {
-    lifecycleTimer = window.setTimeout(() => control.closeSideVolume(), mode === 'compact' ? 3000 : 5000)
+  if (mode !== 'hidden') {
+    lifecycleTimer = window.setTimeout(() => control.closeSideVolume(), 10000)
+  }
+}
+
+function onTrackPointerDown(event) {
+  if (compact.value) {
+    event.preventDefault()
+    event.stopPropagation()
+    control.expandSideVolume()
+    return
+  }
+  if (expanded.value) {
+    setFromPointer(event, value => control.setVolume(value))
   }
 }
 
@@ -161,7 +172,13 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
 <template>
   <div v-if="expanded || compact" class="sv-dismiss-layer" @click="control.closeSideVolume()"></div>
   <Transition name="side-volume">
-    <div v-if="expanded || compact" class="side-volume-wrap" :class="{ compact, 'anchor-handoff': anchorHandoff }" data-testid="side-volume">
+    <div
+      v-if="expanded || compact"
+      class="side-volume-wrap"
+      :class="{ compact, 'anchor-handoff': anchorHandoff }"
+      data-testid="side-volume"
+      @click="compact && control.expandSideVolume()"
+    >
       <!-- 控制中心图标同款矢量高光渐变定义 -->
       <svg width="0" height="0" style="position: absolute; pointer-events: none">
         <defs>
@@ -181,7 +198,14 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
         :aria-label="vLabel('moreVolume')"
         data-testid="side-volume-more"
         @click="openAnchoredPanel('panel')"
-      >{{ showTopPlusValue ? volumeDisplayPct + '%' : '•••' }}</button>
+      >
+        <span v-if="showTopPlusValue" class="sv-more-val">{{ volumeDisplayPct }}%</span>
+        <svg v-else class="sv-more-dots" width="14" height="4" viewBox="0 0 14 4" fill="currentColor" aria-hidden="true">
+          <circle cx="2" cy="2" r="1.3" />
+          <circle cx="7" cy="2" r="1.3" />
+          <circle cx="12" cy="2" r="1.3" />
+        </svg>
+      </button>
       <div
         :key="'side-volume-track-' + control.sideVolumeBounceSeq"
         class="sv-track"
@@ -192,7 +216,8 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
           'bounce-down': compact && control.sideVolumeBounceDirection === 'down' && control.sideVolumeBounceSeq
         }"
         :aria-hidden="compact"
-        @pointerdown="expanded && setFromPointer($event, value => control.setVolume(value))"
+        @pointerdown="onTrackPointerDown($event)"
+        @click="compact && control.expandSideVolume()"
       >
         <svg class="sv-track-bg-svg" width="100%" height="100%" viewBox="0 0 45 160" preserveAspectRatio="none" fill="none">
           <rect x="0.5" y="0.5" width="43.7" height="158.7" rx="21.85" fill="rgba(255, 255, 255, 0.04)" />
@@ -311,15 +336,61 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
 /* 参考图：胶囊 44.7 × 159.7，顶 232.0，右距 17.0（本实现镜像到左侧 ⇒ left:17px，与机身左侧实体音量键同侧）。 */
 .side-volume-wrap { position:absolute; left:17px; top:232px; z-index:var(--z-side-volume); width:44.7px; height:204.7px; pointer-events:none; }
 .side-volume-wrap button { border:0; color:#fff; padding:0; pointer-events:auto; }
-/* 「•••」：参考图量得三点 Ø2.67 / 点距 7.0 / 点心距胶囊顶 18.67 ⇒ 高 = 2×18.67 = 37.3。
-   字号按「点径 ∝ 字号」反推：13px 时实测点 Ø4.0 偏大 ⇒ 9px（Ø≈2.8），字距 3.3px 把点距调到 7.0。 */
-.sv-more { position:absolute; z-index:2; top:0; left:0; width:44.7px; height:37.3px; border:0; border-radius:22.35px; background:transparent; box-shadow:none; color:#fff; font:700 9px/1 var(--font-stack); letter-spacing:3.3px; transition:color .16s ease; text-shadow:0 1px 2px rgba(0,0,0,.15); }
-.sv-more.inverted { color:#3482bb; text-shadow:none; }
-.sv-more.showing-value { color:#fff7ed; font-size:13px; letter-spacing:-.35px; }
+/* 「•••」：水平与垂直绝对居中，点径 Ø2.6，点心距 5.0，更加紧凑且左右绝对居中 */
+.sv-more {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  left: 0;
+  width: 44.7px;
+  height: 37.3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 22.35px;
+  background: transparent;
+  box-shadow: none;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 0;
+  transition: color .16s ease;
+}
+.sv-more-dots {
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+}
+.sv-more.inverted {
+  color: #3482bb;
+}
+.sv-more.inverted .sv-more-dots {
+  filter: none;
+}
+.sv-more-val {
+  color: #fff7ed;
+  font: 800 13px/1 var(--font-stack);
+  letter-spacing: -.35px;
+}
 /* 1px **透明**边框是留给 Plus 态琥珀环的槽位（.sv-track.is-plus 只改 border-color）。
    平时它完全不可见 ⇒ 满足「音量条不要多余描边」。宽度保持 1px，布局与改动前一致。
-   背景与控制中心音量条一致：复用 --glass-white-bar 与 --glass-white-blur。 */
-.sv-track { position:absolute; top:0; left:0; width:44.7px; height:159.7px; border-radius:22.35px; overflow:hidden; pointer-events:auto; touch-action:none; transition:width .3s cubic-bezier(.2,.8,.2,1), border-radius .3s, transform .3s, left .3s; border:1px solid transparent; background:var(--glass-white-bar); backdrop-filter:var(--glass-white-blur); -webkit-backdrop-filter:var(--glass-white-blur); box-shadow:0 2px 24px rgba(0,0,0,.18); }
+   未填充部分：更通透的透明混色质感 (alpha 0.28 + 饱和度 180% 混色)。 */
+.sv-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 44.7px;
+  height: 159.7px;
+  border-radius: 22.35px;
+  overflow: hidden;
+  pointer-events: auto;
+  touch-action: none;
+  transition: width .3s cubic-bezier(.2,.8,.2,1), border-radius .3s, transform .3s, left .3s;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.16);
+}
 .sv-track-bg-svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:0; }
 .side-volume-wrap.compact .sv-track-bg-svg { display:none; }
 .sv-fill { position:absolute; left:-1px; right:-1px; bottom:-1px; background:rgba(255,255,255,.95); border-radius:0 0 22.35px 22.35px; transition:height 110ms ease-out; z-index:1; }
@@ -383,9 +454,32 @@ const appMuteName = computed(() => NOTIF_ICONS?.youtube ? 'YouTube' : '')
 .custom-guide-enter-active,.custom-guide-leave-active { transition:opacity .18s ease,transform .22s cubic-bezier(.2,.8,.2,1); }
 .custom-guide-enter-from,.custom-guide-leave-to { opacity:0; transform:translate3d(-8px,0,0); }
 
-.side-volume-wrap.compact { left:17px; height:159.7px; width:10px; pointer-events:none; }
-.side-volume-wrap.compact .sv-track { top:0; left:0; width:10px; height:159.7px; border-radius:8px; }
-.side-volume-wrap.compact .sv-track { pointer-events:none; }
+/* 紧凑态小音量条：支持点击展开大音量条，并扩充响应热区 */
+.side-volume-wrap.compact {
+  left: 17px;
+  height: 159.7px;
+  width: 14px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.side-volume-wrap.compact .sv-track {
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 159.7px;
+  border-radius: 8px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.side-volume-wrap.compact .sv-track::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  left: -8px;
+  right: -14px;
+  pointer-events: auto;
+}
 .side-volume-wrap.compact .sv-speaker { display:none; }
 .side-volume-wrap.compact .sv-fill { border-radius:0 0 8px 0; }
 .side-volume-wrap.compact .sv-track.bounce-up { animation:compact-bounce-up 360ms cubic-bezier(.2,.9,.25,1); }
