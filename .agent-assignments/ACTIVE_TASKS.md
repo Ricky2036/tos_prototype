@@ -139,6 +139,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Add bottom adaptive protective scrim and lens contrast for LockScreen shortcut buttons across light and dark wallpapers | `antigravity/lane` | None (locks released) | `857b4f5` | `362c885` |
 | Merged | Antigravity | Replace LockScreen shortcut buttons background & border with Control Center 1x1 frosted glass and specular stroke | `antigravity/lane` | None (locks released) | `b23b0fc` | `aebcb54` |
 | Merged | Antigravity | Reuse Control Center volume bar card background and button background effect for SideVolumeOverlay | `antigravity/lane` | None (locks released) | `47829fe` | `f5fd4c3` |
+| Merged | Antigravity | Side volume 10s dismiss, centered compact dots, translucent color-blending track, and compact tap-to-expand | `antigravity/lane` | None (locks released) | `78528ae` | `93cffae` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
