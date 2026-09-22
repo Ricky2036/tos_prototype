@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音量 Plus / 超级省电 · 外部快照集成评估</title>
+<style>
+  :root{
+    --bg:#0a0c10; --panel:#14171d; --panel2:#191d24; --bd:#252b34; --bd2:#323a45;
+    --tx:#e8ecf1; --mu:#8b96a5; --mu2:#6b7683;
+    --cy:#4dd0e1; --am:#ffb300; --ok:#37d67a; --wn:#ffa726; --rd:#ff5d5d;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);
+    font:15px/1.65 -apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:56px 32px 96px}
+  header{border-bottom:1px solid var(--bd);padding-bottom:28px;margin-bottom:44px}
+  .kicker{font:600 12px/1 var(--mono);letter-spacing:.18em;color:var(--cy);text-transform:uppercase}
+  h1{font-size:34px;line-height:1.25;margin:14px 0 10px;letter-spacing:-.02em;font-weight:700}
+  h1 em{font-style:normal;color:var(--cy)}
+  .sub{color:var(--mu);font-size:15px;max-width:860px}
+  .meta{margin-top:18px;font:400 12.5px/1.6 var(--mono);color:var(--mu2)}
+  h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--cy);
+    font-weight:700;margin:52px 0 18px;display:flex;align-items:center;gap:12px}
+  h2::after{content:"";flex:1;height:1px;background:var(--bd)}
+  h3{font-size:17px;margin:30px 0 12px;font-weight:650}
+  h4{font-size:14.5px;margin:22px 0 10px;font-weight:650;color:#dfe6ee}
+  p{margin:12px 0;color:#cdd5df}
+  .muted{color:var(--mu)}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13.5px}
+  th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--bd);vertical-align:top}
+  th{font:600 11.5px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mu2);background:var(--panel2)}
+  td.mono,th.mono{font-family:var(--mono);font-size:12.5px}
+  tbody tr:last-child td{border-bottom:none}
+  .card{background:var(--panel);border:1px solid var(--bd);border-radius:14px;overflow:hidden;margin:18px 0}
+  .card > table{margin:0}
+  .pill{display:inline-block;padding:2px 9px;border-radius:99px;font:600 11px/1.7 var(--mono);letter-spacing:.03em;white-space:nowrap}
+  .pill.ok{background:rgba(55,214,122,.14);color:var(--ok);border:1px solid rgba(55,214,122,.32)}
+  .pill.wn{background:rgba(255,167,38,.14);color:var(--wn);border:1px solid rgba(255,167,38,.32)}
+  .pill.rd{background:rgba(255,93,93,.14);color:var(--rd);border:1px solid rgba(255,93,93,.32)}
+  .pill.cy{background:rgba(77,208,225,.13);color:var(--cy);border:1px solid rgba(77,208,225,.3)}
+  .pill.mu{background:rgba(139,150,165,.12);color:var(--mu);border:1px solid rgba(139,150,165,.28)}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:14px;margin:20px 0}
+  .kpi{background:var(--panel);border:1px solid var(--bd);border-radius:12px;padding:16px 18px}
+  .kpi .l{font:600 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mu2)}
+  .kpi .v{font-family:var(--mono);font-size:25px;font-weight:600;margin:9px 0 3px;font-variant-numeric:tabular-nums}
+  .kpi .d{font-size:12.5px;color:var(--mu)}
+  .kpi .v.g{color:var(--ok)}.kpi .v.a{color:var(--am)}.kpi .v.c{color:var(--cy)}
+  .note{background:linear-gradient(180deg,rgba(77,208,225,.06),rgba(77,208,225,.02));
+    border:1px solid rgba(77,208,225,.24);border-left:3px solid var(--cy);
+    border-radius:10px;padding:16px 20px;margin:18px 0}
+  .warn{background:linear-gradient(180deg,rgba(255,167,38,.07),rgba(255,167,38,.02));
+    border:1px solid rgba(255,167,38,.24);border-left:3px solid var(--wn);
+    border-radius:10px;padding:16px 20px;margin:18px 0}
+  .bad{background:linear-gradient(180deg,rgba(255,93,93,.07),rgba(255,93,93,.02));
+    border:1px solid rgba(255,93,93,.24);border-left:3px solid var(--rd);
+    border-radius:10px;padding:16px 20px;margin:18px 0}
+  .note p,.warn p,.bad p{margin:6px 0}
+  code{font:12.5px/1.5 var(--mono);background:var(--panel2);border:1px solid var(--bd);
+    border-radius:5px;padding:1.5px 6px;color:#a8e6f0}
+  pre{background:var(--panel2);border:1px solid var(--bd);border-radius:10px;
+    padding:16px 18px;overflow-x:auto;font:12.5px/1.7 var(--mono);color:#c9d4e0;margin:14px 0}
+  pre b{color:var(--am);font-weight:600}
+  pre i{color:var(--mu2);font-style:normal}
+  ul{margin:12px 0;padding-left:22px;color:#cdd5df}
+  li{margin:7px 0}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:820px){.two{grid-template-columns:1fr}.wrap{padding:32px 18px 64px}h1{font-size:26px}}
+  footer{margin-top:64px;padding-top:22px;border-top:1px solid var(--bd);
+    font:400 12.5px/1.7 var(--mono);color:var(--mu2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">tOS Prototype · 外部快照集成评估</div>
+  <h1>音量 Plus &amp; 超级省电 <em>·</em> 怎么并进来</h1>
+  <p class="sub">两份来自 <code>tos-skill-prototypes-ascii.zip</code> 的原型（<b>音量 Plus 模式</b>、<b>超级省电控制中心</b>）基于同一仓库的 <b>2026-08-20</b> 快照。结论先说：<b>两个功能都能进，但它们不是能 merge 的分支</b> —— 中间隔了一整代设计系统。可复用的「功能代码」本身很干净（7 个新组件 / 约 1035 行），真正的工作量在<b>把老尺子量出来的尺寸与材质换成最新那套</b>。</p>
+  <div class="meta">分析时间 2026-09-20 · 目标 HEAD <span class="num">f82bec3</span>（workbuddy/lane） · 快照基线 <span class="num">4150774</span>（2026-08-20）</div>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><div class="l">可直搬新增组件</div><div class="v g">7</div><div class="d">1035 行 · 零冲突</div></div>
+  <div class="kpi"><div class="l">被功能改到的共享文件</div><div class="v a">16</div><div class="d">全部需要「按新版重放」</div></div>
+  <div class="kpi"><div class="l">落后天数</div><div class="v c">31</div><div class="d">中间隔了一次设计系统换代</div></div>
+  <div class="kpi"><div class="l">可直接复用的测试</div><div class="v g">7 例</div><div class="d"><code>volumePlus.test.js</code></div></div>
+</div>
+
+<h2>① 结论：为什么不能直接 merge</h2>
+
+<div class="bad">
+  <p><b>两份快照的基线不是当前 HEAD 的祖先</b>（可追溯的历史起点就是 <code>4150774</code>，它是重写后的 root commit）。对 73 / 72 个 <code>src</code> 文件逐一比对历史里全部 <b>831 个提交</b>，最高命中只有 <b>57/73</b>。命中不满的那 16 个文件里，8 个是快照时代<b>根本还不存在</b>的文件（<code>DynamicIsland.vue</code>、<code>SettingsDND/Prayer/Sound.vue</code>、<code>PhotoWidget.vue</code>、<code>SmartSuggestionWidget.vue</code>、<code>i18nStore.js</code>、<code>prayerStore.js</code>）。</p>
+  <p>⇒ 没有共同祖先，<b>git merge 不可能</b>；只能按功能语义逐个重放。</p>
+</div>
+
+<h3>判定方法（可复用）</h3>
+<pre><i># 1. 在历史里反查快照基线</i>
+git hash-object &lt;快照文件&gt;                      <i># 得到坏对象未入库的 blob sha</i>
+git log --all --oneline --find-object=&lt;blob&gt;   <i># 该 blob 在哪个提交出现过</i>
+
+<i># 2. 对全部提交打分：快照里有多少文件恰好等于该提交的 blob</i>
+<i>#    （脚本见 skill: snapshot-fork-archaeology/scripts/find_fork.py）</i>
+
+<i># 3. 以最高分提交为近似基线，逐文件判定四类</i>
+<i>#    NEW / PURE-FEATURE / BOTH-CHANGED / BASE-DRIFT-ONLY</i></pre>
+
+<h2>② 真正的难点：设计系统换过代</h2>
+
+<p>这 31 天里仓库改的不只是功能，是<b>一整套度量与材质规范</b>。快照里所有硬编码的 px、颜色、图标来源，都建立在旧规范上。这是「最大限度复用最新设计风格」这句话的实际含义。</p>
+
+<div class="card">
+<table>
+<thead><tr><th style="width:15%">维度</th><th style="width:31%">快照（2026-08-20）</th><th style="width:31%">当前 HEAD</th><th>对集成的直接影响</th></tr></thead>
+<tbody>
+<tr><td><b>屏幕几何</b></td><td class="mono">389 × 848</td><td class="mono">360 × 788</td><td>全部内部尺寸要按 <span class="num">≈0.925</span> 重新标定。改于 <code>86696d4</code>（09-07）</td></tr>
+<tr><td><b>z-index 刻度</b></td><td class="mono">NC 72 / CC 74 / 亮度 100</td><td class="mono">NC 92 / CC 94 / 状态栏 90 / Home 96 / 亮度 71</td><td>新增的 <code>--z-volume-panel</code>、<code>--z-power-menu</code> 要重新插进新刻度，不能抄 98 / 73</td></tr>
+<tr><td><b>图标来源</b></td><td>组件里 <code>import 'lucide-static/icons/*.svg?raw'</code></td><td><b>手绘内联 SVG</b>，viewBox 逐个人工对齐（注释写着「1:1 正方形对齐」）</td><td>新图标必须按手绘规范补，<b>不能直接 import</b></td></tr>
+<tr><td><b>多语言</b></td><td>无（快照的 <code>WeatherWidget</code> 还是写死中文）</td><td><code>i18nStore</code> + <code>locales/{messages,cc-labels,app-names}.js</code>（zh/en/bn）</td><td>新组件的所有文案要进 <code>CC_LABELS</code> / <code>MESSAGES</code>，不能写死在模板里</td></tr>
+<tr><td><b>控制中心拖拽引擎</b></td><td><code>relocateMinimumItems</code> + 120ms 停滞雷达</td><td>swap / flow 双模式 + 垂直隧道打压 + 顶点防御（<code>normalizeSpan</code> / <code>MAX_GRID_ROWS</code>）</td><td>CC 只能挑功能 hunk，不能整文件替换</td></tr>
+<tr><td><b>CC 新增能力</b></td><td>无</td><td>微调模式（图标/底板尺寸覆盖）、布局预设、宫格整体缩放</td><td><b>超级省电换皮会绕过这些能力</b>，需先定策略</td></tr>
+<tr><td><b>设置页设计系统</b></td><td>手写深色卡片 + 自绘开关</td><td><code>ListCell.vue</code> / <code>ToggleSwitch.vue</code> / <code>SettingsSystemIcon.vue</code> / <code>assets/icons/settings/*.svg</code> / <code>--radius-cell-group</code></td><td>超级省电的 4 个页面应改写成这套语言</td></tr>
+<tr><td><b>锁屏时钟</b></td><td>系统字体</td><td>可变字体 <code>Transsion Tecno pnum</code>（<code>wght</code>/<code>ytde</code> 双轴）+ 玻璃质感</td><td>超级省电页那颗 68px 时钟应复用这套（加分项）</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>③ 功能足迹与逐文件判定</h2>
+
+<h3>功能 A · 超级省电控制中心</h3>
+<div class="card">
+<table>
+<thead><tr><th style="width:46%">文件</th><th style="width:10%">判定</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td class="mono">components/system/SuperPowerHome.vue</td><td><span class="pill ok">新增</span></td><td>120 行 · 超级省电主屏</td></tr>
+<tr><td class="mono">components/system/SuperConnectivitySettings.vue</td><td><span class="pill ok">新增</span></td><td>65 行 · WLAN / 蓝牙二级页</td></tr>
+<tr><td class="mono">components/system/SuperSimSettings.vue</td><td><span class="pill ok">新增</span></td><td>55 行 · SIM 与网络</td></tr>
+<tr><td class="mono">components/system/SuperNfcSettings.vue</td><td><span class="pill ok">新增</span></td><td>39 行 · NFC</td></tr>
+<tr><td class="mono">stores/controlStore.js</td><td><span class="pill wn">语义合并</span></td><td>+51 行：8 个 state + 8 个 action + <code>toggle()</code> 的飞行模式联动</td></tr>
+<tr><td class="mono">components/system/ControlCenter.vue</td><td><span class="pill rd">语义合并</span></td><td>+310/−11：<code>superPower</code> 变体裁剪 + <code>superDetail</code> 二级面板 + 入口</td></tr>
+<tr><td class="mono">components/system/cc/GridButton.vue</td><td><span class="pill mu">丢弃</span></td><td>−26 行，属基线漂移（新版 682 行已大幅重写）</td></tr>
+<tr><td class="mono">components/phone/StatusBar.vue</td><td><span class="pill ok">2 行</span></td><td>锁屏态时间透明度加 <code>&amp;&amp; !superPower</code></td></tr>
+<tr><td class="mono">assets/icons/lucide.js</td><td><span class="pill ok">1 图标</span></td><td>自绘 <code>superNfc</code>（lucide 的 nfc 形状不符）</td></tr>
+<tr><td class="mono">App.vue / ScreenView.vue / AppGrid / AppNavBar / WeatherWidget / SettingsApp / heroGeometry</td><td><span class="pill mu">丢弃</span></td><td>全部是基线漂移（例：快照的 WeatherWidget <b>反向删掉了 i18n</b>）</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>功能 B · 音量 Plus 模式</h3>
+<div class="card">
+<table>
+<thead><tr><th style="width:46%">文件</th><th style="width:10%">判定</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td class="mono">components/system/VolumePanel.vue</td><td><span class="pill ok">新增</span></td><td>274 行 · 全屏音量面板（锚点 FLIP 放大）</td></tr>
+<tr><td class="mono">components/system/SideVolumeOverlay.vue</td><td><span class="pill ok">新增</span></td><td>308 行 · 侧边音量浮层 / 系统面板 / 按应用面板</td></tr>
+<tr><td class="mono">components/system/PowerMenu.vue</td><td><span class="pill ok">新增</span></td><td>174 行 · 电源菜单（关机 / 重启 / SOS）</td></tr>
+<tr><td class="mono">tests/volumePlus.test.js</td><td><span class="pill ok">新增</span></td><td><b>7 个用例的行为契约，可直接搬</b></td></tr>
+<tr><td class="mono">stores/controlStore.js</td><td><span class="pill wn">语义合并</span></td><td>+113：13 个 state + 17 个 action。<b>唯一冲突点是现有 <code>setVolume</code></b></td></tr>
+<tr><td class="mono">components/system/ControlCenter.vue</td><td><span class="pill wn">语义合并</span></td><td>+139/−34：长按展开、Plus 态配色、<code>power</code> 磁贴</td></tr>
+<tr><td class="mono">styles/tokens.css</td><td><span class="pill wn">语义合并</span></td><td>+2 行，但值必须重算</td></tr>
+<tr><td class="mono">components/system/cc/ccLayout.js</td><td><span class="pill mu">丢弃</span></td><td>快照是<b>旧的</b>拖拽引擎，比当前版还老</td></tr>
+<tr><td class="mono">components/phone/PhoneFrame.vue / ScreenView.vue / AppGrid / AppNavBar / WeatherWidget / App.vue / SettingsApp / heroGeometry</td><td><span class="pill mu">丢弃</span></td><td>基线漂移</td></tr>
+<tr><td class="mono">config/apps.js</td><td><span class="pill cy">待定</span></td><td>+8 行加了一个 <code>youtube</code> 应用（给按应用音量当靶子）。当前仓库无此条目，是否要加取决于是否需要 YouTube 作为按应用音量样本</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>④ 功能一 · 音量 Plus 集成方案</h2>
+
+<h3>部件与依赖核对（已逐个查过）</h3>
+<div class="card">
+<table>
+<thead><tr><th style="width:38%">依赖</th><th style="width:12%">状态</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td class="mono">system.overlays.controlCenter.status</td><td><span class="pill ok">齐</span></td><td>当前 <code>systemStore.overlays</code> 结构一致，<code>requestCloseOverlay</code> / <code>closeOverlay</code> 均在</td></tr>
+<tr><td class="mono">system.powerOff() / powerOn()</td><td><span class="pill ok">齐</span></td><td><code>PowerMenu.vue</code> 可直接用（Antigravity 的三态电源已入库）</td></tr>
+<tr><td class="mono">NOTIF_ICONS</td><td><span class="pill ok">齐</span></td><td><code>tiktok</code> / <code>spotify</code> / <code>youtube</code> / <code>default</code> / <code>system</code> 全部存在</td></tr>
+<tr><td class="mono">LIcon + 音量图标</td><td><span class="pill rd">缺 7 个</span></td><td>需新增 <code>volumeX</code> / <code>bellDot</code> / <code>bellDotOff</code> / <code>alarmClock</code> / <code>alarmClockOff</code> / <code>mic</code> / <code>micOff</code>（<code>volume2</code> 与 <code>bell</code>/<code>bellOff</code> 已有）。<b>必须手绘，不能 import lucide-static</b>；<code>bellDotOff</code> 快照是程序合成的，需要重做成一致的笔画风格</td></tr>
+<tr><td class="mono">i18n 文案</td><td><span class="pill wn">缺</span></td><td>侧栏通道名「媒体 / 铃声 / 通知 / 闹钟 / 语音助手」、全屏面板的「Volume」、电源菜单的「Power Off / Restart」都要进 <code>locales</code></td></tr>
+<tr><td class="mono">useSpring / math.clamp</td><td><span class="pill ok">齐</span></td><td>—</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>store 增量（纯加法，只有一个冲突点）</h3>
+<pre><b>// 新增 state（13）</b>
+volumePlusLevel, volumePanelOpen, volumePanelAnchor, volumeAnchorHidden,
+sideVolumeMode, sideVolumePulse, sideVolumeBounceSeq, sideVolumeBounceDirection,
+sideVolumeChannel, currentAppMuteGuideSeq, auxiliaryVolumes, mediaVolumes, powerMenuOpen
+
+<b>// 新增 action（17）</b>
+volumeUp / volumeDown / stepVolumeTowardBoundary / openVolumePanel / closeVolumePanel /
+showSideVolume / compactSideVolume / closeSideVolume / touchSideVolume / openSideVolumePanel /
+triggerSideVolumeBounce / selectSideVolumeChannel / setAuxiliaryVolume / stepAuxiliaryVolume /
+setMediaVolume / showCurrentAppMuteGuide / openPowerMenu / closePowerMenu
+
+<b>// ⚠️ 唯一需要改的现有 action</b>
+setVolume(v) {                    <i>// 当前实现不重置 Plus 档</i>
+  this.volume = clamp(v, 0, 1)
++ this.volumePlusLevel = 0       <i>// 拖动滑块要退出 Plus（契约里有断言）</i>
+}</pre>
+
+<div class="note">
+  <p><b>好消息：<code>setSoundMode</code> / <code>cycleSoundMode</code> 当前仓库已经有了</b>，不需要重复引入。整个 store 改动是纯增量，不会碰到微调模式 / 布局预设那些现有逻辑。</p>
+</div>
+
+<h3>控制中心接入点</h3>
+<ol>
+  <li>把音量条的 <code>@pointerdown="sliderPointer($event,'volume')"</code> 换成 <code>volumeSliderPointer</code>：位移 &gt; 7px 算拖动（照常调音量）；<b>按住 500ms 不动</b> ⇒ <code>openVolumePanel(track)</code> 全屏面板。</li>
+  <li><code>volumePct</code> 改为 <code>volumePlusLevel ? 100 : volume * 100</code>，并新增 <code>volumeDisplayPct</code>（200 / 300 / 500%）与 <code>volumePlusActive</code>。</li>
+  <li>音量条加状态类 <code>.cc-volume-slider</code> + <code>is-plus</code> / <code>plus-200|300|500</code> / <code>anchor-hidden</code>，以及 <code>data-testid="volume-slider"</code>。</li>
+  <li>CC 磁贴表新增 <code>{ id:'power', icon:'power', label:'关机', activeColor:'#ef4444' }</code>，<code>onActivate('power')</code> 里开菜单并收起 CC。</li>
+</ol>
+
+<div class="bad">
+  <p><b>必须重推的几何：全屏面板的终态尺寸。</b></p>
+  <p>快照的假设是「控制中心音量条 = <b>88 × 138</b>」，于是终态取了 <code>width 88 × height 276</code>（宽度不变、高度 ×2）。</p>
+  <p>当前仓库的格子是 <code>BASE_CELL = 62</code> / <code>BASE_GAP = 14</code> ⇒ 音量条实际是 <b>62 × 138</b>（高 = 2 格 + 1 缝 = <span class="num">2×62+14</span>）。<b>高度 138 恰好没变，宽度 88 → 62。</b></p>
+  <p>所以终态 <code>width</code> 不能抄 88。建议改成从锚点运行时测量（<code>openVolumePanel(track)</code> 本来就传了真实 rect），终态宽度沿用该 rect 宽度，高度保持 <code>2 × rect.height</code> —— 这样也和宫格整体缩放（<code>gridScale</code> 0.9–1.24）天然兼容。</p>
+</div>
+
+<h3>可搬运的验收契约</h3>
+<p><code>tests/volumePlus.test.js</code> 里有 7 个用例，覆盖 Plus 阶梯（0→2→3→5→封顶）、下滑退出、滑块拖动退出、侧栏状态机（hidden/expanded/compact/panel/media 的跃迁与 pulse 计数）、通道切换与辅助音量步进、按应用静音引导。它只 import <code>controlStore</code>，<b>可以直接搬过来跑</b>，是这次集成里最值钱的资产。</p>
+
+<h2>⑤ 功能二 · 超级省电集成方案</h2>
+
+<h3>入口与渲染路径</h3>
+<p>快照的入口是 CC 里的 <code>boost</code> 磁贴：<code>onActivate('boost')</code> ⇒ <code>control.enterSuperPower()</code> + 收起 CC。之后 CC 用 <code>v-if="control.superPower"</code> 换一整套版式（<code>SUPER_CONNECTIVITY</code> + <code>SUPER_SHORTCUTS</code> 极简快捷卡），并支持长按磁贴弹出 <code>superDetail</code> 二级面板（带 <code>anchor-*</code> 类做锚点飞入）。主屏由 <code>ScreenView.vue</code> 里的 <code>&lt;SuperPowerHome v-if="control.superPower" /&gt;</code> 承载。</p>
+
+<div class="warn">
+  <p><b>入口语义要重选。</b>当前 <code>CC_LABELS</code> 里 <code>boost</code> 的中文是 <b>「灯效」</b>（英文 Light Effect）—— 拿它当超级省电入口属于语义劫持，三语文案会自相矛盾。</p>
+  <p>更自然的选择是 <code>batterySaver</code>（<code>batterySaver: '省电'</code>）：<b>短按 = 普通省电，长按 = 进超级省电</b>，这和快照里 A 改动 <code>batterySaver</code> 磁贴配色（白底蓝字）的意图也对得上。</p>
+</div>
+
+<div class="warn">
+  <p><b>换皮会绕过新能力。</b><code>superPower</code> 打开时 CC 整体改用另一套版式，会绕过微调模式（图标/底板尺寸覆盖）、布局预设（camon/note/gt）、宫格整体缩放与编辑模式。需要先定策略：<b>进入超级省电时把这些能力整体禁用并给一句解释</b>（推荐），还是在新版式里也兼容它们（成本高、收益低）。</p>
+</div>
+
+<h3>4 个页面必须按新版设计语言重写</h3>
+<div class="card">
+<table>
+<thead><tr><th style="width:24%">快照写法</th><th style="width:30%">当前仓库应当用的</th><th>动作</th></tr></thead>
+<tbody>
+<tr><td><code>background:#000</code> + 写死 hex（<code>#171918</code>、<code>#1684ff</code>…）</td><td><code>tokens.css</code> 的 <code>--bg-grouped</code> / <code>--bg-cell</code> / <code>--label*</code> / <code>--radius-cell-group</code></td><td>换成 token</td></tr>
+<tr><td>自绘开关 <code>.nfc-switch</code> / <code>.page-switch</code>（48×28）</td><td><code>ui/ToggleSwitch.vue</code></td><td>直接替换</td></tr>
+<tr><td>自绘行 <code>.setting-row</code> / 卡片 <code>.settings-card</code></td><td><code>ui/ListCell.vue</code> + 分组卡片样式</td><td>直接替换</td></tr>
+<tr><td>写死渐变 SVG 图标（电话/信息/相机…）</td><td><code>ui/SettingsSystemIcon.vue</code> + <code>assets/icons/settings/*.svg</code>，主屏图标走 <code>ui/AppIcon.vue</code> + <code>config/apps.js</code></td><td>重做</td></tr>
+<tr><td>全中文硬编码（含「中国电信」「18%」「5小时59分钟」）</td><td><code>locales/*</code>（zh/en/bn）+ store 里的真实电量</td><td>迁 i18n，假数据接真实状态</td></tr>
+<tr><td>主屏时钟 68px 系统字体</td><td>锁屏那套可变字体 <code>Transsion Tecno pnum</code>（<code>wght</code>/<code>ytde</code>）+ 玻璃质感</td><td>加分项，建议做</td></tr>
+<tr><td>页面写 <code>z-index:130</code></td><td>token 刻度（当前最高 96）</td><td>补 token 或复用 <code>--z-app-window</code> 之上的一档</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>⑥ 共享锁与协作边界</h2>
+
+<p>按 <code>AGENTS.md</code> 与角色文件，控制中心相关文件<b>本来就是 Workbuddy 的独占域</b>，所以这个任务的大部分文件不需要额外申请。</p>
+
+<div class="card">
+<table>
+<thead><tr><th style="width:34%">文件</th><th style="width:20%">归属</th><th>动作</th></tr></thead>
+<tbody>
+<tr><td class="mono">ControlCenter.vue / cc/** / controlStore.js / ControlCenterFineTunePanel.vue</td><td><span class="pill ok">Workbuddy 独占</span></td><td>直接改</td></tr>
+<tr><td class="mono">新增的 7 个组件 + volumePlus.test.js</td><td><span class="pill ok">新文件</span></td><td>直接加</td></tr>
+<tr><td class="mono">assets/icons/lucide.js</td><td><span class="pill cy">非共享</span></td><td>不在 AGENTS.md 清单里，但建议在同一任务里一次性补齐</td></tr>
+<tr><td class="mono">components/phone/ScreenView.vue</td><td><span class="pill rd">共享</span></td><td><b>要先登记独占锁</b>（挂载 4 个新组件）</td></tr>
+<tr><td class="mono">styles/tokens.css</td><td><span class="pill rd">共享</span></td><td><b>先登记锁</b>（新增 <code>--z-volume-panel</code> / <code>--z-power-menu</code>）</td></tr>
+<tr><td class="mono">App.vue / config/apps.js</td><td><span class="pill rd">共享</span></td><td>仅当确实需要（YouTube 靶子）才申请</td></tr>
+<tr><td class="mono">utils/heroGeometry.js</td><td><span class="pill mu">不动</span></td><td>快照那 2 行是基线漂移</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note">
+  <p><b>流程提醒：</b><code>AGENTS.md</code> 规则 6 写明「只有 Antigravity 从集成工作区把任务合进 <code>main</code>」。上一轮锁屏时钟是我按你的明确指示自己合的；这次如果照规矩走，应做到 <b>Workbuddy 提交 → 交给集成方</b> 为止。</p>
+</div>
+
+<h2>⑦ 分阶段落地计划</h2>
+
+<div class="card">
+<table>
+<thead><tr><th style="width:9%">阶段</th><th style="width:34%">内容</th><th style="width:23%">触碰文件</th><th>为什么这样切</th></tr></thead>
+<tbody>
+<tr>
+<td><span class="pill ok">P0</span></td>
+<td>音量 Plus 的「无界面部分」：store 增量 + <code>volumePlus.test.js</code> 移植 + 7 个图标补齐</td>
+<td>controlStore.js / 新测试 / lucide.js</td>
+<td><b>不碰任何共享文件</b>，可以立刻拿到 7 个绿灯用例，风险最低</td>
+</tr>
+<tr>
+<td><span class="pill ok">P1</span></td>
+<td>3 个音量组件 + CC 接入点（长按展开、Plus 配色、power 磁贴），终态尺寸改为运行时测量</td>
+<td>ControlCenter.vue / 3 个新组件</td>
+<td>仍在独占域内，可独立跑 e2e</td>
+</tr>
+<tr>
+<td><span class="pill wn">P2</span></td>
+<td>登记共享锁 → 在 <code>ScreenView.vue</code> 挂载 4 个组件 + <code>tokens.css</code> 补 2 个 z 变量</td>
+<td>ScreenView.vue / tokens.css</td>
+<td>这两个一动就要走协作流程，所以压到功能本身稳定之后再动</td>
+</tr>
+<tr>
+<td><span class="pill wn">P3</span></td>
+<td>超级省电：store 增量 + CC 变体裁剪 + <code>superDetail</code> 二级面板 + 入口改成 <code>batterySaver</code> 长按</td>
+<td>controlStore.js / ControlCenter.vue</td>
+<td>与 P1 同域，复用 P1 建立的模式</td>
+</tr>
+<tr>
+<td><span class="pill cy">P4</span></td>
+<td>4 个 Super 页面按新版设计语言重写（token / ListCell / ToggleSwitch / SettingsSystemIcon / i18n），主屏时钟接可变字体 + 玻璃</td>
+<td>4 个新组件 + locales</td>
+<td>纯呈现层，可并行，且是「复用最新设计风格」的主要落点</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<h3>建议的验收动作</h3>
+<ul>
+<li>P0 结束：<code>node --test tests/*.test.js</code> 全绿，且新增 7 个用例（当前 251 → 258）。</li>
+<li>P1 结束：Playwright 断言 —— 长按 500ms 后面板出现、锚点矩形与 CC 音量条 <code>getBoundingClientRect()</code> 逐点一致（沿用锁屏那次逆映射验收的写法）、拖动滑块后 <code>volumePlusLevel</code> 归 0。</li>
+<li>P2 结束：四组件挂载后 <code>z-index</code> 实测顺序正确（面板 > Home Indicator > CC > 状态栏）。</li>
+<li>P4 结束：三语扫描一次（现有仓库有「不要硬编码在模板里，否则三语扫描会挂」的注释，说明有扫描机制）。</li>
+</ul>
+
+<h2>⑧ 未决问题（需要你定）</h2>
+<ol>
+<li><b>超级省电的入口</b>：用 <code>batterySaver</code> 长按（推荐，语义对得上），还是沿用快照的 <code>boost</code> 磁贴（要一并改 <code>CC_LABELS</code> 里 boost 的文案）？</li>
+<li><b>超级省电下的新 CC 能力</b>：整体禁用（推荐）还是兼容？</li>
+<li><b>全屏音量面板的终态尺寸</b>：跟随锚点宽度（推荐）还是固定一个新值？</li>
+<li><b>要不要做 YouTube 应用条目</b>（<code>config/apps.js</code>，给按应用音量当靶子）？</li>
+<li><b>超级省电主屏的时钟</b>是否要接锁屏那套可变字体 + 玻璃（工作量小、观感提升大）？</li>
+<li><b>合并方式</b>：照 <code>AGENTS.md</code> 交给集成方，还是像上一轮那样由我直接合进 <code>main</code>？</li>
+</ol>
+
+<footer>
+  生成于 2026-09-20 · 源包 <code>tos-skill-prototypes-ascii.zip</code>（<code>super-power-saver-control-center</code> 114 文件 / <code>volume-plus-mode</code> 116 文件）<br>
+  判定依据：831 个历史提交的 blob 逐文件比对 + 16 个共享文件的三方 diff（快照 / 快照基线 <code>4150774</code> / 当前 HEAD）<br>
+  详细量测脚本：<code>/tmp/zipscan/{diffstat,findfork,footprint2,fork2}.py</code>
+</footer>
+
+</div>
+</body>
+</html>

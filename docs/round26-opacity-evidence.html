@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第二十六轮 · 「上滑卡片变透明」取证结论</title>
+<style>
+  :root{
+    --ink:#12161c; --ink2:#3d4653; --ink3:#6b7684;
+    --line:#e2e6ec; --line2:#eef1f5;
+    --bg:#f6f7f9; --card:#ffffff;
+    --brand:#1f5fd6; --brand-soft:#eaf1fd;
+    --warn:#c0392b; --warn-soft:#fdeceb;
+    --ok:#1a7f4b; --ok-soft:#e8f6ee;
+    --amber:#b7791f; --amber-soft:#fdf6e6;
+    --n1:#e0562e; --n2:#2f7bd4; --n3:#8a93a0;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:0 20px 80px;
+    background:var(--bg); color:var(--ink);
+    font:15px/1.65 -apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1020px;margin:0 auto}
+  header{padding:48px 0 26px;border-bottom:1px solid var(--line)}
+  .kicker{display:inline-block;font:600 11px/1 var(--mono);letter-spacing:.14em;
+    text-transform:uppercase;color:var(--brand);background:var(--brand-soft);
+    padding:6px 10px;border-radius:5px}
+  h1{margin:16px 0 10px;font-size:31px;line-height:1.25;letter-spacing:-.02em;font-weight:700}
+  .sub{color:var(--ink2);font-size:15px;margin:0;max-width:76ch}
+  .meta{margin:18px 0 0;font:12px/1.7 var(--mono);color:var(--ink3)}
+  .meta b{color:var(--ink2);font-weight:600}
+
+  h2{margin:46px 0 14px;font-size:19px;letter-spacing:-.01em;font-weight:680;
+     display:flex;align-items:center;gap:10px}
+  h2::before{content:"";width:3px;height:17px;background:var(--brand);border-radius:2px}
+
+  .verdict{
+    margin:26px 0 0;background:var(--card);border:1px solid var(--line);
+    border-left:4px solid var(--warn);border-radius:10px;padding:22px 24px;
+    box-shadow:0 1px 3px rgba(16,24,40,.05)
+  }
+  .verdict .tag{display:inline-block;font:700 11px/1 var(--mono);letter-spacing:.1em;
+    color:var(--warn);background:var(--warn-soft);padding:5px 9px;border-radius:4px}
+  .verdict p{margin:14px 0 0;font-size:15.5px}
+  .verdict p:first-of-type{margin-top:12px}
+
+  table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:14px;
+    box-shadow:0 1px 3px rgba(16,24,40,.05)}
+  th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line2);vertical-align:top}
+  th{background:#f9fafc;font:600 12px/1.4 var(--mono);letter-spacing:.04em;
+     color:var(--ink2);text-transform:uppercase;white-space:nowrap}
+  tr:last-child td{border-bottom:0}
+  td.num{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+  .pill{display:inline-block;font:600 11px/1 var(--mono);padding:4px 8px;border-radius:20px;white-space:nowrap}
+  .pill.clean{color:var(--ok);background:var(--ok-soft)}
+  .pill.bad{color:var(--warn);background:var(--warn-soft)}
+  .pill.note{color:var(--amber);background:var(--amber-soft)}
+  .pathname{font-weight:620;color:var(--ink)}
+  .pathdesc{color:var(--ink3);font-size:12.5px;margin-top:2px}
+  tr.hl td{background:#fffafa}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:22px;box-shadow:0 1px 3px rgba(16,24,40,.05)}
+  .legend{display:flex;gap:22px;flex-wrap:wrap;margin:0 0 6px 4px;font-size:12.5px;color:var(--ink2)}
+  .legend i{display:inline-block;width:22px;height:3px;border-radius:2px;margin-right:7px;vertical-align:middle}
+
+  .shot{display:block;width:100%;border:1px solid var(--line);border-radius:10px;background:#fff;
+    box-shadow:0 1px 3px rgba(16,24,40,.05)}
+  .strip{display:flex;gap:12px;overflow-x:auto;padding:6px 2px 14px}
+  .strip figure{margin:0;flex:0 0 auto;width:120px}
+  .strip img{width:100%;display:block;border:1px solid var(--line);border-radius:8px;background:#fff}
+  .strip figcaption{margin-top:8px;font:11px/1.55 var(--mono);color:var(--ink3)}
+  .strip figcaption b{display:block;color:var(--ink2);font-weight:600}
+  .strip figcaption em{font-style:normal;font-weight:600}
+  .g{color:var(--ok)} .r{color:var(--warn)} .a{color:var(--amber)}
+
+  .opts{margin:0;padding:0;list-style:none;display:grid;gap:12px}
+  .opts li{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:16px 18px;display:flex;gap:14px;align-items:flex-start}
+  .opts li.rec{border-color:#c7d9f7;background:#fbfcff}
+  .opts .k{flex:0 0 26px;height:26px;border-radius:7px;background:var(--brand-soft);
+    color:var(--brand);font:700 13px/26px var(--mono);text-align:center}
+  .opts b{display:block;margin-bottom:3px}
+  .opts span{color:var(--ink2);font-size:13.5px}
+  .opts .files{display:block;margin-top:7px;font:11.5px/1.6 var(--mono);color:var(--ink3)}
+  .badge{font:600 10.5px/1 var(--mono);color:var(--brand);background:var(--brand-soft);
+    padding:3px 7px;border-radius:20px;margin-left:8px;vertical-align:2px}
+
+  code{font:12.5px/1.5 var(--mono);background:#f1f3f7;padding:2px 5px;border-radius:4px;color:#2c3542}
+  footer{margin-top:46px;padding-top:20px;border-top:1px solid var(--line);
+    color:var(--ink3);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span class="kicker">App Switcher · Round 26</span>
+    <h1>「上滑过程中卡片变透明」——逐帧取证结论</h1>
+    <p class="sub">
+      把三条「上滑」路径各做了全 DOM 透明度穷举采样，再用 CDP screencast 把命中那条的
+      <b>飞行全过程逐帧抓下来</b>。结论：三条里只有一条真的会把正在飞的卡片内容淡到 0，
+      而且淡出<b>远远早于</b>外壳消失 —— 中间那一大段就是肉眼看到的「卡片变透明」。
+    </p>
+    <div class="meta">
+      探针：<b>probe-allop.mjs</b> · <b>probe-returnhome.mjs</b> · <b>shotflight2.mjs</b> &nbsp;·&nbsp;
+      样本：<b>A 101 帧 · B 137 帧 · C 100 帧 · 飞行段 25 帧 / screencast 108 帧</b> &nbsp;·&nbsp;
+      目标：<b>http://127.0.0.1:5555</b>
+    </div>
+  </header>
+
+  <div class="verdict">
+    <span class="tag">结论</span>
+    <p>
+      <b>命中：从应用内快滑上滑返回桌面（hero close）。</b>
+      窗口从 <code>430px</code> 收缩到 <code>58px</code> 落到桌面图标位置；其中
+      <b>内容层 <code>.aw-content</code> 在窗口还有 <span style="color:var(--warn)">315px</span>
+      时就开始淡，到 <span style="color:var(--warn)">114px</span> 已经全透明</b>；
+      而卡片实心底 <code>.aw-fill</code> 一直到 <b>82px 都还是完全不透明</b>，<b>71px</b> 才开始淡。
+    </p>
+    <p>
+      ⇒ <b>窗口从 315px 缩到 82px 这一整段（占整段行程的 64%），屏幕上是一张
+      「白底实心、里面什么都没有」的怪壳</b>。观感上就是「卡片变透明了、内容先没了」。
+    </p>
+    <p>
+      另外两条上滑路径（切换器里上滑删卡、桌面上滑进多任务）<b>完全清白</b>：
+      跟手卡片本体与卡体 <code>opacity</code> 逐帧恒为 <code>1</code>，0 例外。
+    </p>
+  </div>
+
+  <h2>三条路径对照</h2>
+  <table>
+    <thead>
+      <tr><th>路径</th><th>卡片本体 opacity</th><th>内容层 / 卡体 opacity</th><th>判定</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <div class="pathname">A · 切换器里上滑删除卡片</div>
+          <div class="pathdesc">停在多任务里，对顶卡上滑跟手 → 松手飞出</div>
+        </td>
+        <td class="num">恒 1（101/101 帧）</td>
+        <td class="num">跟手卡恒 1；仅退场卡 5 帧到 0（预期）</td>
+        <td><span class="pill clean">清白</span></td>
+      </tr>
+      <tr>
+        <td>
+          <div class="pathname">B · 桌面/应用上滑进入多任务</div>
+          <div class="pathdesc">底部上滑 → 跟手浮起 → 停驻进切换器</div>
+        </td>
+        <td class="num">恒 1（137/137 帧）</td>
+        <td class="num">follow 卡 op / bodyOp 恒 1<br><span style="color:var(--ink3)">背景遮罩 dim 0 → 1 是背景，不是卡</span></td>
+        <td><span class="pill clean">清白</span></td>
+      </tr>
+      <tr class="hl">
+        <td>
+          <div class="pathname">C · 应用内快滑上滑返回桌面</div>
+          <div class="pathdesc">在应用里从底部快滑 → 窗口收缩回桌面图标</div>
+        </td>
+        <td class="num">外层 win 恒 1</td>
+        <td class="num"><b style="color:var(--warn)">.aw-content 1 → 0</b>（315px 起淡 / 114px 归零）<br>
+          <span style="color:var(--warn)">.aw-fill 到 82px 仍为 1</span></td>
+        <td><span class="pill bad">命中</span></td>
+      </tr>
+      <tr>
+        <td>
+          <div class="pathname">对照 · 从切换器点卡进应用再返场</div>
+          <div class="pathdesc">同一条 hero 时间线的另一条分支</div>
+        </td>
+        <td class="num">—</td>
+        <td class="num">content 恒 1（<b>0</b>/118 帧非 1）</td>
+        <td><span class="pill note">不触发</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>命中路径的全程逐帧</h2>
+  <p class="sub" style="margin-bottom:16px">
+    下面这条是从 CDP screencast 逐帧抓回来的真实画面（不是截图拼接，没有丢帧）。
+    窗口一边缩小、一边平移到「文件」图标的位置；<b>注意从第 5 张起卡片里的画面开始明显虚掉，
+    第 7、8 张只剩一块白底，完全看不到内容</b>。
+  </p>
+  <img class="shot" src="assets/r26/flight-strip.jpg" alt="上滑返回桌面全过程逐帧：窗口从 430px 收缩到 58px，内容层逐步透明直到消失">
+
+  <div class="strip" style="margin-top:16px">
+    <figure><img src="assets/r26/fwf-0.jpg" alt="430px"><figcaption><b>430px</b>起始 · 满窗</figcaption><figcaption><em class="g">内容 1.00</em></figcaption></figure>
+    <figure><img src="assets/r26/fwf-1.jpg" alt="369px"><figcaption><b>369px</b>缩到 86%</figcaption><figcaption><em class="g">内容 1.00</em></figcaption></figure>
+    <figure><img src="assets/r26/fwf-2.jpg" alt="315px"><figcaption><b>315px</b>开始淡出</figcaption><figcaption><em class="a">内容 0.89</em></figcaption></figure>
+    <figure><img src="assets/r26/fwf-3.jpg" alt="259px"><figcaption><b>259px</b>明显发虚</figcaption><figcaption><em class="a">内容 0.64</em></figcaption></figure>
+    <figure><img src="assets/r26/fwf-4.jpg" alt="204px"><figcaption><b>204px</b>快要看不清</figcaption><figcaption><em class="r">内容 0.39</em></figcaption></figure>
+    <figure><img src="assets/r26/fwf-5.jpg" alt="155px"><figcaption><b>155px</b>内容几乎没了</figcaption><figcaption><em class="r">内容 0.13</em></figcaption></figure>
+    <figure><img src="assets/r26/fwf-6.jpg" alt="97px"><figcaption><b>97px</b>白底空壳</figcaption><figcaption><em class="r">内容 0.00</em></figcaption></figure>
+    <figure><img src="assets/r26/fwf-7.jpg" alt="63px"><figcaption><b>63px</b>空壳归位</figcaption><figcaption><em class="r">内容 0.00</em></figcaption></figure>
+  </div>
+
+  <h2>两条时间线的错位</h2>
+  <div class="panel">
+    <div class="legend">
+      <span><i style="background:var(--n1)"></i>内容层 <code>.aw-content</code> opacity</span>
+      <span><i style="background:var(--n2);height:0;border-top:2px dashed var(--n2)"></i>卡片实心底 <code>.aw-fill</code> opacity</span>
+      <span><i style="background:#f7c9c4"></i>错位区间：外壳还在、内容已空</span>
+    </div>
+    <svg viewBox="0 0 940 300" width="100%" role="img" aria-label="窗口收缩过程中内容层与卡片底色的透明度错位曲线">
+      <rect x="316.9" y="40" width="501.3" height="210" fill="#fdeceb" opacity="0.7"/>
+      <g stroke="#eef1f5" stroke-width="1">
+        <line x1="70" y1="50" x2="870" y2="50"/>
+        <line x1="70" y1="100" x2="870" y2="100"/>
+        <line x1="70" y1="150" x2="870" y2="150"/>
+        <line x1="70" y1="200" x2="870" y2="200"/>
+      </g>
+      <line x1="70" y1="250" x2="870" y2="250" stroke="#c9d0da" stroke-width="1.5"/>
+      <line x1="70" y1="40" x2="70" y2="250" stroke="#c9d0da" stroke-width="1.5"/>
+      <g font-family="ui-monospace,monospace" font-size="11" fill="#8a93a0">
+        <text x="58" y="54" text-anchor="end">1.0</text>
+        <text x="58" y="104" text-anchor="end">0.75</text>
+        <text x="58" y="154" text-anchor="end">0.5</text>
+        <text x="58" y="204" text-anchor="end">0.25</text>
+        <text x="58" y="254" text-anchor="end">0</text>
+      </g>
+      <g font-family="ui-monospace,monospace" font-size="11" fill="#8a93a0">
+        <text x="70" y="272" text-anchor="middle">430px</text>
+        <text x="257" y="272" text-anchor="middle">343px</text>
+        <text x="438" y="272" text-anchor="middle">259px</text>
+        <text x="608" y="272" text-anchor="middle">180px</text>
+        <text x="750" y="272" text-anchor="middle">114px</text>
+        <text x="870" y="272" text-anchor="end">58px</text>
+        <text x="470" y="292" text-anchor="middle" font-size="11" fill="#8a93a0">← 窗口宽度（收缩方向）</text>
+      </g>
+      <text x="580" y="34" font-size="11.5" fill="#c0392b" text-anchor="middle" font-weight="600">
+        错位区间：外壳实心、内容已空（约占行程 64%）
+      </text>
+      <!-- 卡片实心底 fill：到 82px 恒为 1 -->
+      <polyline fill="none" stroke="#2f7bd4" stroke-width="2.5" stroke-dasharray="6 4"
+        points="70,50 818.2,50 842.3,116 859.5,190.6 868.3,250"/>
+      <!-- 内容层 opacity -->
+      <polyline fill="none" stroke="#e0562e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"
+        points="70,50 316.9,71.2 373.9,95 438.4,122 497.9,147.4 555.6,172.8 607.2,196.8 661.2,223.6 708,249 750.2,250 870,250"/>
+      <circle cx="316.9" cy="71.2" r="4.5" fill="#e0562e" stroke="#fff" stroke-width="2"/>
+      <circle cx="750.2" cy="250" r="4.5" fill="#e0562e" stroke="#fff" stroke-width="2"/>
+      <circle cx="818.2" cy="50" r="4.5" fill="#2f7bd4" stroke="#fff" stroke-width="2"/>
+      <g font-family="ui-monospace,monospace" font-size="10.5">
+        <text x="322" y="64" fill="#c0392b">315px · 开始淡</text>
+        <text x="756" y="240" fill="#c0392b">114px · 归零</text>
+        <text x="700" y="42" fill="#2f7bd4">82px 之前 fill 恒为 1</text>
+      </g>
+    </svg>
+  </div>
+
+  <h2>如果这就是你说的，改法如下</h2>
+  <p class="sub" style="margin-bottom:14px">
+    三条时间线都在 hero close 这一处（<code>heroGeometry.js</code> 的 <code>CLOSE_TIMING.contentOutStart</code>）。
+    A / B 两种改法 <b>不动现有手感</b>，只是把「内容淡出」这件事挪到正确的位置；
+    C 是如果你说的其实是别的地方，我下一轮直接对那条路径取证。
+  </p>
+  <ul class="opts">
+    <li class="rec">
+      <span class="k">A</span>
+      <div>
+        <b>A · 内容层全程不淡出<span class="badge">推荐</span></b>
+        <span>把 <code>contentOutStart</code> 推到时间线末端，让 <code>.aw-content</code> 与外壳一起收敛，
+          只在真正与桌面图标交接的那一瞬间处理。飞行途中画面始终可见 ——
+          这就是「不要变透明」最直接的实现，且不改变现有的缩放与位移手感。</span>
+        <span class="files">heroGeometry.js · AppWindow.vue · useHeroTransition.js</span>
+      </div>
+    </li>
+    <li>
+      <span class="k">B</span>
+      <div>
+        <b>B · 保留淡出，但推迟到窗口 &lt; 60px</b>
+        <span>折中：最后 60px 做一次极短淡出（约 40ms）。保留「缩进图标里消失」的收尾感，
+          与 iOS 更接近，但需要重新调 timing 曲线。错位区间从 64% 降到约 5%。</span>
+        <span class="files">heroGeometry.js · useHeroTransition.js</span>
+      </div>
+    </li>
+    <li>
+      <span class="k">C</span>
+      <div>
+        <b>C · 我说的其实不是这个地方</b>
+        <span>切换器那两条路径已实测清白（逐帧 opacity 恒 1，0 例外）。麻烦说一句是哪个动作
+          （比如「锁屏上滑解锁」或「切换器往哪边滑」），我下一轮直接对那条路径取证。</span>
+        <span class="files">LockScreen.vue / 其他路径</span>
+      </div>
+    </li>
+  </ul>
+
+  <footer>
+    取证脚本与原始数据保留在 <code>/tmp/vwork/r28/</code>（<code>shotflight2.mjs</code>、
+    <code>flight-samples.json</code>、<code>fw-0..7.jpg</code>、<code>allop-A|B|C.json</code>、
+    <code>rh1.json</code>、<code>rh2.json</code>），未删除。
+    本页仅作证据呈现，<b>未改动任何源码</b>。
+  </footer>
+
+</div>
+</body>
+</html>
