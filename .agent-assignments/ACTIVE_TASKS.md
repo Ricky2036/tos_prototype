@@ -147,6 +147,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Restore badge anchor to top -4px right -5px and center number 1 vertically inside red background | `antigravity/lane` | None (locks released) | `58af722` | `d695442` |
 | Merged | Antigravity | Save persistent weekly update log archive system (docs portal, 2026-09-15 to 09-22 weekly report, sync previous 09-03 to 09-14 report, and WEEKLY_UPDATES.md) | `main` | `docs/**`; `.agent-assignments/ACTIVE_TASKS.md` | `0c8f8ff` | `9b6c38a` |
 | Merged | Antigravity | Fix production build depth wallpaper subject cutout loading (replace import.meta.glob runtime check with static new URL asset resolution and heal stale localStorage URLs) | `antigravity/lane` | None (locks released) | `9b6c38a` | `d9c6bb5` |
+| Merged | Antigravity | Scale mobile viewport (.mobile-screen) proportionally from 360px baseline width to 100vw x 100dvh so LockScreen depth effect, Control Center grid, and all system UI elements scale synchronously on mobile | `antigravity/lane` | None (locks released) | `7093b7b` | `a8934ff` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
