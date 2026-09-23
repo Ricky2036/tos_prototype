@@ -169,6 +169,152 @@ function setCaptureMode(on) {
   document.body.classList.toggle('is-capturing', !!on)
 }
 
+/** 带壳采集态开关：body.is-capturing-frame 剥离向机身外投射的黑色外阴影，保留 3D 内倒角与侧键 */
+function setFrameCaptureMode(on) {
+  document.body.classList.toggle('is-capturing-frame', !!on)
+}
+
+/**
+ * 计算带壳采集时「圆角金属机身 (.phone-frame) + 5 颗侧边实体按键 (.side-btn)」在画布上的精确联合轮廓，
+ * 用于把机身与按键以外的黑色背景 100% 抠成透明（Alpha = 0），同时完整保留金属边框与全部侧边按键。
+ */
+function buildFrameSilhouette(targetEl, canvasW, canvasH, cropped = false) {
+  if (!targetEl || !canvasW || !canvasH) return null
+  const bodyEl = targetEl.querySelector('.phone-frame')
+  if (!bodyEl) return null
+
+  const baseRect = targetEl.getBoundingClientRect()
+  if (!baseRect.width || !baseRect.height) return null
+
+  const dpr = window.devicePixelRatio || 1
+  const encLeft = Math.floor(baseRect.left * dpr) & ~1
+  const encTop = Math.floor(baseRect.top * dpr) & ~1
+  const encRight = (Math.ceil(baseRect.right * dpr) + 1) & ~1
+  const encBottom = (Math.ceil(baseRect.bottom * dpr) + 1) & ~1
+  const encW = encRight - encLeft
+  const encH = encBottom - encTop
+  const useEnclosing = cropped && Math.abs(encW - canvasW) <= 6 && Math.abs(encH - canvasH) <= 6
+
+  const toCanvasRect = (r) => {
+    if (useEnclosing) {
+      const sx = canvasW / encW
+      const sy = canvasH / encH
+      return {
+        x: (r.left * dpr - encLeft) * sx,
+        y: (r.top * dpr - encTop) * sy,
+        w: r.width * dpr * sx,
+        h: r.height * dpr * sy
+      }
+    }
+    return {
+      x: ((r.left - baseRect.left) / baseRect.width) * canvasW,
+      y: ((r.top - baseRect.top) / baseRect.height) * canvasH,
+      w: (r.width / baseRect.width) * canvasW,
+      h: (r.height / baseRect.height) * canvasH
+    }
+  }
+
+  const bodyRaw = toCanvasRect(bodyEl.getBoundingClientRect())
+  const bodyCssRadius = Number.parseFloat(getComputedStyle(bodyEl).borderTopLeftRadius) || 60
+  const scalePx = bodyRaw.w / (bodyEl.offsetWidth || 380)
+  // 内缩 1px 物理像素，消除机身最外圈与暗色背景的亚像素抗锯齿黑边
+  const bodyInset = Math.max(0.75, 0.5 * dpr)
+  const body = {
+    x: bodyRaw.x + bodyInset,
+    y: bodyRaw.y + bodyInset,
+    w: Math.max(1, bodyRaw.w - bodyInset * 2),
+    h: Math.max(1, bodyRaw.h - bodyInset * 2),
+    r: Math.max(0, bodyCssRadius * scalePx - bodyInset)
+  }
+
+  const buttons = []
+  const btnEls = targetEl.querySelectorAll('.side-btn')
+  btnEls.forEach((btnEl) => {
+    const br = btnEl.getBoundingClientRect()
+    if (!br.width || !br.height) return
+    const raw = toCanvasRect(br)
+    const isLeft = br.left < bodyEl.getBoundingClientRect().left + 4
+    const btnInset = Math.max(0.4, 0.25 * dpr)
+    const btnRadius = Math.max(1.5, 2 * scalePx)
+    // 向机身内侧延伸 6px 确保按键与机身圆角无缝焊接，外侧微缩消除黑底杂边
+    if (isLeft) {
+      buttons.push({
+        x: raw.x + btnInset,
+        y: raw.y + btnInset,
+        w: raw.w + 6 * scalePx,
+        h: Math.max(1, raw.h - btnInset * 2),
+        radii: [btnRadius, 0, 0, btnRadius]
+      })
+    } else {
+      buttons.push({
+        x: raw.x - 6 * scalePx,
+        y: raw.y + btnInset,
+        w: raw.w + 6 * scalePx - btnInset,
+        h: Math.max(1, raw.h - btnInset * 2),
+        radii: [0, btnRadius, btnRadius, 0]
+      })
+    }
+  })
+
+  // 计算联合外接包络（机身 + 左右突出侧键），用于紧致裁去四周多余空白
+  let minX = body.x
+  let minY = body.y
+  let maxX = body.x + body.w
+  let maxY = body.y + body.h
+  for (const b of buttons) {
+    minX = Math.min(minX, b.x)
+    minY = Math.min(minY, b.y)
+    maxX = Math.max(maxX, b.x + b.w)
+    maxY = Math.max(maxY, b.y + b.h)
+  }
+
+  return {
+    body,
+    buttons,
+    bounds: {
+      x: Math.max(0, Math.floor(minX)),
+      y: Math.max(0, Math.floor(minY)),
+      w: Math.min(canvasW, Math.ceil(maxX)) - Math.max(0, Math.floor(minX)),
+      h: Math.min(canvasH, Math.ceil(maxY)) - Math.max(0, Math.floor(minY))
+    }
+  }
+}
+
+/**
+ * 先在独立蒙版画布上用 source-over 绘出「圆角机身 ∪ 5 颗实体侧键」的完整并集轮廓，
+ * 再用单次 destination-in 合成把轮廓以外的黑色背景 100% 擦除为透明（Alpha = 0）。
+ */
+function applyFrameSilhouetteMask(ctx, silhouette, width, height) {
+  if (!ctx || !silhouette || !width || !height) return
+  if (!silhouette._maskCanvas || silhouette._maskCanvas.width !== width || silhouette._maskCanvas.height !== height) {
+    const mc = document.createElement('canvas')
+    mc.width = width
+    mc.height = height
+    const mctx = mc.getContext('2d', { alpha: true })
+    mctx.fillStyle = '#ffffff'
+
+    const { body, buttons } = silhouette
+    mctx.beginPath()
+    if (mctx.roundRect) mctx.roundRect(body.x, body.y, body.w, body.h, body.r)
+    else mctx.rect(body.x, body.y, body.w, body.h)
+    mctx.fill()
+
+    for (const b of buttons) {
+      mctx.beginPath()
+      if (mctx.roundRect) mctx.roundRect(b.x, b.y, b.w, b.h, b.radii)
+      else mctx.rect(b.x, b.y, b.w, b.h)
+      mctx.fill()
+    }
+
+    silhouette._maskCanvas = mc
+  }
+
+  ctx.save()
+  ctx.globalCompositeOperation = 'destination-in'
+  ctx.drawImage(silhouette._maskCanvas, 0, 0)
+  ctx.restore()
+}
+
 /** 屏幕本体（不含金属外壳与硬件遮罩）；优先取纯软件合成层 .screen-view */
 function resolveScreenEl() {
   return document.querySelector('.screen-view') || document.querySelector('.screen') || document.querySelector('.mobile-screen')
@@ -305,9 +451,11 @@ async function startRecording(opts = {}) {
   const captureRadiusRatio = shapeRadius / shapeWidth
 
   // 不带壳直录：先把屏幕圆角归零，否则外接矩形的四个角会录到黑色机身
+  // 带壳录制：开启 is-capturing-frame 剥离机身向外投射的黑影，保留金属 3D 内倒角与侧键
   const needCaptureMode = !withFrame && !rounded
   captureModeOn = needCaptureMode
   setCaptureMode(needCaptureMode)
+  setFrameCaptureMode(withFrame)
 
   let stream
   const t0 = (typeof performance !== 'undefined' ? performance : Date).now()
@@ -328,6 +476,7 @@ async function startRecording(opts = {}) {
     )
     captureModeOn = false
     setCaptureMode(false)
+    setFrameCaptureMode(false)
     return
   }
 
@@ -353,29 +502,49 @@ async function startRecording(opts = {}) {
     // Region Capture 没生效时，按屏幕元素在视频里的位置手动裁，避免录下整个窗口
     const src = cropped ? null : sourceRectFor(video, targetEl)
     if (src) console.info('[capture] Region Capture 不可用，已按屏幕元素手动裁剪')
-    canvas.width = Math.round(src ? src.w : video.videoWidth)
-    canvas.height = Math.round(src ? src.h : video.videoHeight)
+    const rawW = Math.round(src ? src.w : video.videoWidth)
+    const rawH = Math.round(src ? src.h : video.videoHeight)
+    const silhouette = withFrame ? buildFrameSilhouette(targetEl, rawW, rawH, cropped) : null
+
+    canvas.width = silhouette ? silhouette.bounds.w : rawW
+    canvas.height = silhouette ? silhouette.bounds.h : rawH
+
+    const workCanvas = silhouette ? document.createElement('canvas') : null
+    if (workCanvas) {
+      workCanvas.width = rawW
+      workCanvas.height = rawH
+    }
+    const workCtx = workCanvas ? workCanvas.getContext('2d', { alpha: true }) : null
 
     const drawFrame = () => {
       if (!isDrawing) return
       ctx.clearRect(0, 0, canvas.width, canvas.height)
-      ctx.save()
-      const radius = canvas.width * captureRadiusRatio
-      if (radius > 0) {
-        ctx.beginPath()
-        if (ctx.roundRect) ctx.roundRect(0, 0, canvas.width, canvas.height, radius)
-        else ctx.rect(0, 0, canvas.width, canvas.height)
-        ctx.clip()
-      }
-      if (src) {
-        ctx.drawImage(video, src.x, src.y, src.w, src.h, 0, 0, canvas.width, canvas.height)
-      } else if (!withFrame && video.videoWidth > 8 && video.videoHeight > 8) {
-        // 剥离 Region Capture 在非整数缩放下的 2px 偶对齐外扩边缘
-        ctx.drawImage(video, 2, 2, video.videoWidth - 4, video.videoHeight - 4, 0, 0, canvas.width, canvas.height)
+      if (silhouette && workCtx && workCanvas) {
+        workCtx.clearRect(0, 0, rawW, rawH)
+        if (src) workCtx.drawImage(video, src.x, src.y, src.w, src.h, 0, 0, rawW, rawH)
+        else workCtx.drawImage(video, 0, 0, rawW, rawH)
+        applyFrameSilhouetteMask(workCtx, silhouette, rawW, rawH)
+        const { x, y, w, h } = silhouette.bounds
+        ctx.drawImage(workCanvas, x, y, w, h, 0, 0, canvas.width, canvas.height)
       } else {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        ctx.save()
+        const radius = canvas.width * captureRadiusRatio
+        if (radius > 0) {
+          ctx.beginPath()
+          if (ctx.roundRect) ctx.roundRect(0, 0, canvas.width, canvas.height, radius)
+          else ctx.rect(0, 0, canvas.width, canvas.height)
+          ctx.clip()
+        }
+        if (src) {
+          ctx.drawImage(video, src.x, src.y, src.w, src.h, 0, 0, canvas.width, canvas.height)
+        } else if (!withFrame && video.videoWidth > 8 && video.videoHeight > 8) {
+          // 剥离 Region Capture 在非整数缩放下的 2px 偶对齐外扩边缘
+          ctx.drawImage(video, 2, 2, video.videoWidth - 4, video.videoHeight - 4, 0, 0, canvas.width, canvas.height)
+        } else {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        }
+        ctx.restore()
       }
-      ctx.restore()
       animationId = requestAnimationFrame(drawFrame)
     }
     isDrawing = true
@@ -407,11 +576,12 @@ async function onRecorderStop() {
   isRecording.value = false
   stopElapsed()
   teardownStream()
-  // 还原屏幕圆角（采集态只在录制期间生效）
+  // 还原屏幕圆角与带壳采集态（采集态只在录制期间生效）
   if (captureModeOn) {
     captureModeOn = false
     setCaptureMode(false)
   }
+  setFrameCaptureMode(false)
 
   const cfg = session || { mimeType: 'video/webm', transcode: false, captureRadiusRatio: 0 }
   session = null
@@ -460,7 +630,8 @@ function toggleRecording(opts = {}) {
 
 /**
  * 截图（控制台 / 控制中心共用）。两种效果：
- * - **带壳**（withFrame=true）：把金属外壳一起截进来，画布含 alpha，可做圆角透明裁切。
+ * - **带壳**（withFrame=true）：把金属外壳与全部侧边实体按键完整截进来，
+ *   并按「圆角金属机身 + 5 颗实体侧键」联合轮廓将外圈黑色背景 100% 抠成透明 Alpha。
  * - **不带壳**（withFrame=false，默认）：只截屏幕本体，**不做任何圆角裁切** ——
  *   先把屏幕圆角临时归零（body.is-capturing），外接矩形的四角才是壁纸而不是黑机身，
  *   输出是一张干干净净的直角矩形 PNG。
@@ -485,8 +656,9 @@ async function captureScreenshot(opts = {}) {
 
   const frameEl = withFrame ? resolveFrameEl() : null
   const targetEl = frameEl || resolveScreenEl()
-  // 与录屏同理：采外接矩形前先把圆角归零，四角才是壁纸而不是黑机身
+  // 不带壳把屏幕圆角归零；带壳开启 is-capturing-frame 剥离机身外投黑影
   setCaptureMode(!withFrame)
+  setFrameCaptureMode(withFrame)
 
   // 圆角裁切只在调用方显式要求时才做（带壳演示素材用）；不带壳一律不裁
   const shapeEl = rounded ? targetEl : null
@@ -512,31 +684,52 @@ async function captureScreenshot(opts = {}) {
 
     // 让调用方在「拿到画面」和「真正截图」之间插事（例如等控制中心收起动画播完）
     if (beforeGrab) await beforeGrab()
-    // 等三帧，确保首帧已解码且 body.is-capturing 无壳去圆角/去挖孔样式已完成重绘
+    // 等三帧，确保首帧已解码且采集态样式已完成重绘
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r))))
 
     const src = cropped ? null : sourceRectFor(video, targetEl)
+    const rawW = Math.round(src ? src.w : video.videoWidth)
+    const rawH = Math.round(src ? src.h : video.videoHeight)
+    const silhouette = withFrame ? buildFrameSilhouette(targetEl, rawW, rawH, cropped) : null
+
     const canvas = document.createElement('canvas')
-    canvas.width = Math.round(src ? src.w : video.videoWidth)
-    canvas.height = Math.round(src ? src.h : video.videoHeight)
-    const ctx = canvas.getContext('2d', { alpha: true })
-    const radius = canvas.width * captureRadiusRatio
-    ctx.save()
-    if (radius > 0) {
-      ctx.beginPath()
-      if (ctx.roundRect) ctx.roundRect(0, 0, canvas.width, canvas.height, radius)
-      else ctx.rect(0, 0, canvas.width, canvas.height)
-      ctx.clip()
-    }
-    if (src) {
-      ctx.drawImage(video, src.x, src.y, src.w, src.h, 0, 0, canvas.width, canvas.height)
-    } else if (!withFrame && video.videoWidth > 8 && video.videoHeight > 8) {
-      // 剥离 Region Capture 在非整数缩放下的 2px 偶对齐外扩边缘
-      ctx.drawImage(video, 2, 2, video.videoWidth - 4, video.videoHeight - 4, 0, 0, canvas.width, canvas.height)
+    if (silhouette) {
+      const workCanvas = document.createElement('canvas')
+      workCanvas.width = rawW
+      workCanvas.height = rawH
+      const workCtx = workCanvas.getContext('2d', { alpha: true })
+      if (src) workCtx.drawImage(video, src.x, src.y, src.w, src.h, 0, 0, rawW, rawH)
+      else workCtx.drawImage(video, 0, 0, rawW, rawH)
+      // 按「圆角金属机身 + 5 颗实体侧键」精确抠图，将外部黑色背景全部变为透明（Alpha=0）
+      applyFrameSilhouetteMask(workCtx, silhouette, rawW, rawH)
+
+      const { x, y, w, h } = silhouette.bounds
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d', { alpha: true })
+      ctx.drawImage(workCanvas, x, y, w, h, 0, 0, w, h)
     } else {
-      ctx.drawImage(video, 0, 0)
+      canvas.width = rawW
+      canvas.height = rawH
+      const ctx = canvas.getContext('2d', { alpha: true })
+      const radius = canvas.width * captureRadiusRatio
+      ctx.save()
+      if (radius > 0) {
+        ctx.beginPath()
+        if (ctx.roundRect) ctx.roundRect(0, 0, canvas.width, canvas.height, radius)
+        else ctx.rect(0, 0, canvas.width, canvas.height)
+        ctx.clip()
+      }
+      if (src) {
+        ctx.drawImage(video, src.x, src.y, src.w, src.h, 0, 0, canvas.width, canvas.height)
+      } else if (!withFrame && video.videoWidth > 8 && video.videoHeight > 8) {
+        // 剥离 Region Capture 在非整数缩放下的 2px 偶对齐外扩边缘
+        ctx.drawImage(video, 2, 2, video.videoWidth - 4, video.videoHeight - 4, 0, 0, canvas.width, canvas.height)
+      } else {
+        ctx.drawImage(video, 0, 0)
+      }
+      ctx.restore()
     }
-    ctx.restore()
 
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
     if (!blob) throw new Error('canvas.toBlob 返回空')
@@ -557,6 +750,7 @@ async function captureScreenshot(opts = {}) {
   } finally {
     stream?.getTracks().forEach((t) => t.stop())
     setCaptureMode(false)
+    setFrameCaptureMode(false)
     isCapturing.value = false
   }
 }
