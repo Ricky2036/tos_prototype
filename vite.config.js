@@ -357,6 +357,9 @@ export default defineConfig({
     strictPort: true
   },
   build: {
+    // 将 24KB 以下的小图标（18 个通知应用图标 4~19KB、控制中心快速分享掩膜 10.8KB 等）
+    // 直接内联为 Base64 Data URL，彻底消除下拉通知中心/控制中心时的并发网络请求与加载失败
+    assetsInlineLimit: 24576,
     // 出问题时要能对着真实源码定位，而不是对着压缩后的单行
     sourcemap: true,
     // 首屏只加载主包；Vue 运行时和调试控制台（体积大、只在演示时用）拆出去
