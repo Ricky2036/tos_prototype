@@ -169,9 +169,9 @@ function setCaptureMode(on) {
   document.body.classList.toggle('is-capturing', !!on)
 }
 
-/** 屏幕本体（不含金属外壳）；移动端是 .mobile-screen */
+/** 屏幕本体（不含金属外壳与硬件遮罩）；优先取纯软件合成层 .screen-view */
 function resolveScreenEl() {
-  return document.querySelector('.screen') || document.querySelector('.mobile-screen')
+  return document.querySelector('.screen-view') || document.querySelector('.screen') || document.querySelector('.mobile-screen')
 }
 
 /** 连外壳一起录时的外层容器 */
@@ -367,8 +367,14 @@ async function startRecording(opts = {}) {
         else ctx.rect(0, 0, canvas.width, canvas.height)
         ctx.clip()
       }
-      if (src) ctx.drawImage(video, src.x, src.y, src.w, src.h, 0, 0, canvas.width, canvas.height)
-      else ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+      if (src) {
+        ctx.drawImage(video, src.x, src.y, src.w, src.h, 0, 0, canvas.width, canvas.height)
+      } else if (!withFrame && video.videoWidth > 8 && video.videoHeight > 8) {
+        // 剥离 Region Capture 在非整数缩放下的 2px 偶对齐外扩边缘
+        ctx.drawImage(video, 2, 2, video.videoWidth - 4, video.videoHeight - 4, 0, 0, canvas.width, canvas.height)
+      } else {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+      }
       ctx.restore()
       animationId = requestAnimationFrame(drawFrame)
     }
@@ -506,8 +512,8 @@ async function captureScreenshot(opts = {}) {
 
     // 让调用方在「拿到画面」和「真正截图」之间插事（例如等控制中心收起动画播完）
     if (beforeGrab) await beforeGrab()
-    // 等两帧，确保首帧已解码，否则偶发截到黑屏
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    // 等三帧，确保首帧已解码且 body.is-capturing 无壳去圆角/去挖孔样式已完成重绘
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r))))
 
     const src = cropped ? null : sourceRectFor(video, targetEl)
     const canvas = document.createElement('canvas')
@@ -522,8 +528,14 @@ async function captureScreenshot(opts = {}) {
       else ctx.rect(0, 0, canvas.width, canvas.height)
       ctx.clip()
     }
-    if (src) ctx.drawImage(video, src.x, src.y, src.w, src.h, 0, 0, canvas.width, canvas.height)
-    else ctx.drawImage(video, 0, 0)
+    if (src) {
+      ctx.drawImage(video, src.x, src.y, src.w, src.h, 0, 0, canvas.width, canvas.height)
+    } else if (!withFrame && video.videoWidth > 8 && video.videoHeight > 8) {
+      // 剥离 Region Capture 在非整数缩放下的 2px 偶对齐外扩边缘
+      ctx.drawImage(video, 2, 2, video.videoWidth - 4, video.videoHeight - 4, 0, 0, canvas.width, canvas.height)
+    } else {
+      ctx.drawImage(video, 0, 0)
+    }
     ctx.restore()
 
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
