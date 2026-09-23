@@ -8,6 +8,41 @@ export const WALLPAPER_DEPTH_ENABLED_KEY = 'tos.personalization.wallpaper.depth_
 export const WALLPAPER_DEPTH_SUBJECT_KEY = 'tos.personalization.wallpaper.depth_subject.v1'
 export const WALLPAPER_DEPTH_OCCLUSION_KEY = 'tos.personalization.wallpaper.depth_occlusion.v1'
 export const DEFAULT_WALLPAPER = new URL('../assets/img/personalization/generated/abstract-geometric-cubes.png', import.meta.url).href
+export const PRESET_WALLPAPERS = {
+  'abstract-geometric-cubes': DEFAULT_WALLPAPER,
+  'person-field': new URL('../assets/img/personalization/generated/person-field.jpg', import.meta.url).href,
+  'nature-coast': new URL('../assets/img/personalization/generated/nature-coast.jpg', import.meta.url).href,
+  'wallpaper-lock': new URL('../assets/img/wallpaper-lock.jpg', import.meta.url).href
+}
+
+export function normalizeWallpaperUrl(url) {
+  if (!url || typeof url !== 'string') return ''
+  for (const [baseId, presetUrl] of Object.entries(PRESET_WALLPAPERS)) {
+    if (url.includes(baseId)) {
+      return presetUrl
+    }
+  }
+  if (url.startsWith('/src/') && !DEFAULT_WALLPAPER.includes('/src/')) {
+    return DEFAULT_WALLPAPER
+  }
+  return url
+}
+
+export function resolveDepthSubjectUrl(lockWallpaper, savedSubject) {
+  const presetForLock = lockWallpaper ? getPresetDepthSubject(lockWallpaper) : null
+  if (presetForLock) {
+    return presetForLock
+  }
+  if (!savedSubject || typeof savedSubject !== 'string') return ''
+  const presetForSaved = getPresetDepthSubject(savedSubject)
+  if (presetForSaved) {
+    return presetForSaved
+  }
+  if (savedSubject.startsWith('/src/') && !DEFAULT_WALLPAPER.includes('/src/')) {
+    return ''
+  }
+  return savedSubject
+}
 
 function getStorage() {
   try {
@@ -22,7 +57,7 @@ function readSavedWallpaper(key = WALLPAPER_STORAGE_KEY) {
   if (!storage) return ''
   try {
     const value = storage.getItem(key)
-    return typeof value === 'string' ? value : ''
+    return typeof value === 'string' ? normalizeWallpaperUrl(value) : ''
   } catch {
     return ''
   }
@@ -72,7 +107,7 @@ export const useWallpaperStore = defineStore('wallpaper', {
     const homeWallpaper = savedHome || active
 
     const savedSubject = readSavedDepthSubject()
-    const resolvedSubject = savedSubject || (lockWallpaper ? (getPresetDepthSubject(lockWallpaper) || '') : '')
+    const resolvedSubject = resolveDepthSubjectUrl(lockWallpaper, savedSubject)
 
     return {
       active,
@@ -176,8 +211,16 @@ export const useWallpaperStore = defineStore('wallpaper', {
 
       this.depthEnabled = readSavedDepthEnabled()
       const savedSubject = readSavedDepthSubject()
-      this.depthSubjectUrl = savedSubject || (this.lockWallpaper ? (getPresetDepthSubject(this.lockWallpaper) || '') : '')
+      const resolvedSubject = resolveDepthSubjectUrl(this.lockWallpaper, savedSubject)
+      this.depthSubjectUrl = resolvedSubject
       this.depthOcclusionRatio = readSavedDepthOcclusion()
+
+      if (resolvedSubject !== savedSubject) {
+        const storage = getStorage()
+        try {
+          storage?.setItem(WALLPAPER_DEPTH_SUBJECT_KEY, resolvedSubject)
+        } catch {}
+      }
     }
   }
 })
