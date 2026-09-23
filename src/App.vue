@@ -106,9 +106,10 @@ function toggleRecording() {
  * 且**不做圆角裁切**（四角为直角矩形）。移动端本来就没有外壳，一律按不带壳处理。
  */
 function takeScreenshot() {
+  const withFrame = !isMobile.value && screenshotWithFrame.value
   return runScreenshot({
-    withFrame: !isMobile.value && screenshotWithFrame.value,
-    rounded: false
+    withFrame,
+    rounded: withFrame
   })
 }
 </script>
@@ -357,5 +358,30 @@ body.is-capturing .side-btn {
 
 body.is-capturing:has(.app-window) .wallpaper {
   opacity: 0 !important;
+}
+
+/* 带壳采集态：保留完整金属机身 3D 内倒角高光与侧边实体按键，
+   仅剥离向机身外投射的黑色外阴影，配合轮廓透明抠图彻底消除四周黑底 */
+body.is-capturing-frame .phone-frame {
+  box-shadow:
+    inset 0 0 0.5px 0.5px #121317,
+    inset 0 0 1px 1.5px #262930,
+    inset 0 0 1.5px 2.5px #4a4f5c,
+    inset 0 0 1px 3.2px #606775,
+    inset 0 0 1.5px 4.2px #22242a,
+    inset 0 0 0.5px 5px #07080a,
+    inset 0 1px 1px rgba(255, 255, 255, 0.22),
+    inset 1px 0 1px rgba(255, 255, 255, 0.15),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.7) !important;
+}
+
+body.is-capturing-frame .action-btn,
+body.is-capturing-frame .volume-up,
+body.is-capturing-frame .volume-down,
+body.is-capturing-frame .power,
+body.is-capturing-frame .camera-control {
+  box-shadow:
+    inset 0 0.5px 0.5px rgba(255, 255, 255, 0.3),
+    inset 0 -0.5px 0.5px rgba(0, 0, 0, 0.8) !important;
 }
 </style>
