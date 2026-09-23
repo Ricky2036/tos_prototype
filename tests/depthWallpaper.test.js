@@ -139,4 +139,11 @@ test('SettingsPersonalization.vue provides depth toggle and gallery custom selec
   // 3. 景深推荐专区
   assert.match(settingsSource, /depthWallpapers/)
   assert.match(settingsSource, /chooseDepthTheme/)
+
+  // 4. 移动端视口基于 360px 基准宽度同步等比缩放，保证锁屏景深与控制中心在手机端 1:1 还原
+  const appSource = readFileSync(resolve(root, 'src/App.vue'), 'utf8')
+  const lockScreenSource = readFileSync(resolve(root, 'src/components/system/LockScreen.vue'), 'utf8')
+  assert.match(appSource, /const BASE_SCREEN_W = 360/)
+  assert.match(appSource, /transform:\s*`scale\(\$\{mobileScale\}\)`/)
+  assert.match(lockScreenSource, /height:\s*max\(788px,\s*100%\)/)
 })
