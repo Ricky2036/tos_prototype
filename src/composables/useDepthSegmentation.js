@@ -1,31 +1,14 @@
 import { ref } from 'vue'
 
-// 静态预置主体映射表（金毛犬、猫咪等零延迟瞬间渲染）
-const presetSubjectUrls = (typeof import.meta !== 'undefined' && typeof import.meta.glob === 'function')
-  ? import.meta.glob('../assets/img/personalization/generated/*-subject.png', {
-      eager: true,
-      query: '?url',
-      import: 'default'
-    })
-  : {}
-
-// 预置备用映射表（Node.js 测试环境回退）
-const FALLBACK_PRESETS = {
-  'abstract-geometric-cubes': '/src/assets/img/personalization/generated/abstract-geometric-cubes-subject.png',
-  'person-field': '/src/assets/img/personalization/generated/person-field-subject.png'
+// 静态预置主体映射表：采用标准 new URL(..., import.meta.url).href
+// 同时兼容 Vite 开发环境、Vite 生产构建（自动打包并重写为哈希资产路径）以及 Node.js 单元测试环境
+export const PRESET_SUBJECT_URLS = {
+  'abstract-geometric-cubes': new URL('../assets/img/personalization/generated/abstract-geometric-cubes-subject.png', import.meta.url).href,
+  'person-field': new URL('../assets/img/personalization/generated/person-field-subject.png', import.meta.url).href
 }
 
 // 缓存已解析的主体映射
-const subjectCache = new Map()
-
-// 初始化预置映射
-for (const [path, url] of Object.entries(presetSubjectUrls)) {
-  const match = path.match(/\/([^/]+)-subject\.png$/)
-  if (match) {
-    const baseId = match[1] // 例如 'pet-golden-retriever'
-    subjectCache.set(baseId, url)
-  }
-}
+const subjectCache = new Map(Object.entries(PRESET_SUBJECT_URLS))
 
 /**
  * 依据壁纸 URL 判断是否命中内置精装景深壁纸
@@ -35,11 +18,6 @@ for (const [path, url] of Object.entries(presetSubjectUrls)) {
 export function getPresetDepthSubject(wallpaperUrl) {
   if (!wallpaperUrl || typeof wallpaperUrl !== 'string') return null
   for (const [baseId, subjectUrl] of subjectCache.entries()) {
-    if (wallpaperUrl.includes(baseId)) {
-      return subjectUrl
-    }
-  }
-  for (const [baseId, subjectUrl] of Object.entries(FALLBACK_PRESETS)) {
     if (wallpaperUrl.includes(baseId)) {
       return subjectUrl
     }

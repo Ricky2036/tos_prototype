@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useClock } from '../../composables/useClock'
 import { useSpring } from '../../composables/useSpring'
 import { useSwipeGesture } from '../../composables/useSwipeGesture'
@@ -46,9 +46,19 @@ const wallpaperStore = useWallpaperStore()
 const { activeActivities } = useActiveActivities()
 const activeWallpaper = computed(() => wallpaperStore.lockWallpaper || wallpaperStore.active || wallpaper)
 
+const depthImgBroken = ref(false)
+
 const depthSubjectUrl = computed(() => {
   if (!wallpaperStore.depthEnabled) return ''
-  return wallpaperStore.depthSubjectUrl || getPresetDepthSubject(activeWallpaper.value) || ''
+  const customUrl = wallpaperStore.depthSubjectUrl || ''
+  if (customUrl.startsWith('data:') || customUrl.startsWith('blob:')) {
+    return customUrl
+  }
+  return getPresetDepthSubject(activeWallpaper.value) || getPresetDepthSubject(customUrl) || customUrl
+})
+
+watch(depthSubjectUrl, () => {
+  depthImgBroken.value = false
 })
 
 const depthSubjectStyle = computed(() => {
@@ -1408,12 +1418,12 @@ function notifStyle(i) {
 
       <!-- 景深前景主体：位于时钟之上、通知/播放器容器之下 -->
       <div
-        v-if="depthSubjectUrl"
+        v-if="depthSubjectUrl && !depthImgBroken"
         class="ls-depth-subject"
         :style="depthSubjectStyle"
         aria-hidden="true"
       >
-        <img :src="depthSubjectUrl" class="ls-depth-img" alt="" />
+        <img :src="depthSubjectUrl" class="ls-depth-img" alt="" @error="depthImgBroken = true" />
       </div>
 
       <!-- 裁剪容器：播放器 + 通知队列 -->

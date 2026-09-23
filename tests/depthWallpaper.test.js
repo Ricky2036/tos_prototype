@@ -3,8 +3,8 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createPinia, setActivePinia } from 'pinia'
-import { useWallpaperStore, WALLPAPER_DEPTH_ENABLED_KEY, WALLPAPER_DEPTH_SUBJECT_KEY } from '../src/stores/wallpaperStore.js'
-import { computeClockOcclusionRatio, getPresetDepthSubject } from '../src/composables/useDepthSegmentation.js'
+import { useWallpaperStore, normalizeWallpaperUrl, resolveDepthSubjectUrl } from '../src/stores/wallpaperStore.js'
+import { computeClockOcclusionRatio, getPresetDepthSubject, PRESET_SUBJECT_URLS } from '../src/composables/useDepthSegmentation.js'
 
 const root = resolve(import.meta.dirname, '..')
 
@@ -64,20 +64,34 @@ test('computeClockOcclusionRatio calculates accurate clock occlusion', () => {
   assert.equal(ratioFloat, 1)
 })
 
-test('getPresetDepthSubject identifies pre-rendered depth cutouts', () => {
+test('getPresetDepthSubject identifies pre-rendered depth cutouts without import.meta.glob trap', () => {
+  const depthSource = readFileSync(resolve(root, 'src/composables/useDepthSegmentation.js'), 'utf8')
+  assert.doesNotMatch(depthSource, /typeof import\.meta\.glob/, 'Must not use typeof import.meta.glob which evaluates to false in Vite production builds')
+  assert.match(depthSource, /new URL\('\.\.\/assets\/img\/personalization\/generated\/abstract-geometric-cubes-subject\.png',\s*import\.meta\.url\)\.href/)
+
   // 1. 命中人物壁纸（金色田野）
   const personFieldSubject = getPresetDepthSubject('some/path/person-field-123.png')
   assert.ok(personFieldSubject, 'Person field must have a preset subject')
-  assert.ok(personFieldSubject.includes('person-field-subject'))
+  assert.equal(personFieldSubject, PRESET_SUBJECT_URLS['person-field'])
 
   // 2. 命中建筑几何方块
   const cubesSubject = getPresetDepthSubject('some/path/abstract-geometric-cubes.png')
   assert.ok(cubesSubject, 'Geometric cubes must have a preset subject')
-  assert.ok(cubesSubject.includes('abstract-geometric-cubes-subject'))
+  assert.equal(cubesSubject, PRESET_SUBJECT_URLS['abstract-geometric-cubes'])
 
   // 3. 普通壁纸返回 null
   const nullSubject = getPresetDepthSubject('some/path/nature-forest.png')
   assert.equal(nullSubject, null)
+
+  // 4. 自愈旧版缓存路径
+  const healedSubject = resolveDepthSubjectUrl(
+    '/assets/abstract-geometric-cubes-C6g-auWu.png',
+    '/src/assets/img/personalization/generated/abstract-geometric-cubes-subject.png'
+  )
+  assert.equal(healedSubject, PRESET_SUBJECT_URLS['abstract-geometric-cubes'])
+
+  const normalizedWallpaper = normalizeWallpaperUrl('/src/assets/img/personalization/generated/abstract-geometric-cubes.png')
+  assert.ok(normalizedWallpaper.includes('abstract-geometric-cubes'))
 })
 
 test('LockScreen.vue renders depth subject in correct DOM stacking order and z-index hierarchy', () => {
@@ -102,9 +116,10 @@ test('LockScreen.vue renders depth subject in correct DOM stacking order and z-i
   assert.match(lockScreenSource, /\.ls-depth-subject\s*\{[^}]*z-index:\s*2/s)
   assert.match(lockScreenSource, /\.ls-clip\s*\{[^}]*z-index:\s*10/s)
 
-  // 4. 接触投影与逆映射防位移
+  // 4. 接触投影与逆映射防位移 + 错误容错
   assert.match(lockScreenSource, /drop-shadow\(0 6px 14px rgba\(0, 0, 0, 0\.35\)\)/)
   assert.match(lockScreenSource, /depthSubjectStyle/)
+  assert.match(lockScreenSource, /@error="depthImgBroken = true"/)
 })
 
 test('SettingsPersonalization.vue provides depth toggle and gallery custom selection', () => {
