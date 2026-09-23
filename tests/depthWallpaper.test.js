@@ -143,7 +143,14 @@ test('SettingsPersonalization.vue provides depth toggle and gallery custom selec
   // 4. 移动端视口基于 360px 基准宽度同步等比缩放，保证锁屏景深与控制中心在手机端 1:1 还原
   const appSource = readFileSync(resolve(root, 'src/App.vue'), 'utf8')
   const lockScreenSource = readFileSync(resolve(root, 'src/components/system/LockScreen.vue'), 'utf8')
+  const captureSource = readFileSync(resolve(root, 'src/composables/useCapture.js'), 'utf8')
   assert.match(appSource, /const BASE_SCREEN_W = 360/)
   assert.match(appSource, /transform:\s*`scale\(\$\{mobileScale\}\)`/)
   assert.match(lockScreenSource, /height:\s*max\(788px,\s*100%\)/)
+
+  // 5. 无壳截图/录屏时隐藏 BM 压边黑圈遮罩 (.frame-inner::after)、前置打孔摄像头 (.punch-hole) 与玻璃反光 (.glass-sheen)
+  assert.match(appSource, /body\.is-capturing \.frame-inner::after/)
+  assert.match(appSource, /body\.is-capturing \.punch-hole/)
+  assert.match(appSource, /body\.is-capturing \.glass-sheen/)
+  assert.match(captureSource, /document\.querySelector\('\.screen-view'\)/)
 })
