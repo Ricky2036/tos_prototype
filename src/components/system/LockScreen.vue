@@ -1163,6 +1163,7 @@ const glassRect = computed(() => {
   const ty = -p * 240
   const W = screenWidth.value
   const H = screenHeight.value
+  const wallH = Math.max(788, H)
   const svgW = W * (CLOCK_SVG_W / 360)   // = 85% 屏宽，与 CSS `.ls-clock svg { width: 85% }` 同源
   const kx = svgW / CLOCK_SVG_W          // user unit → CSS px（横向）
   const ky = 1                           // svg CSS 高恒为 CLOCK_SVG_H ⇒ 纵向 1:1
@@ -1173,7 +1174,7 @@ const glassRect = computed(() => {
     x: (xLocal - svgLeft) / kx,
     y: (yLocal - CLOCK_TOP) / ky,
     w: (W / s) / kx,
-    h: (H / s) / ky
+    h: (wallH / s) / ky
   }
 })
 const clipTop = computed(() => CLOCK_TOP + clockHeight.value + SAFE_GAP)
@@ -1863,7 +1864,11 @@ function notifStyle(i) {
 
 .ls-wallpaper {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: max(788px, 100%);
   background-size: cover;
   background-position: center;
 }
@@ -1943,9 +1948,11 @@ function notifStyle(i) {
 /* 景深主体前景层：严密对应壁纸视口，位于时钟之上，赋予细腻的真实接触微投影 */
 .ls-depth-subject {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   width: 100%;
-  height: 100%;
+  height: max(788px, 100%);
   pointer-events: none;
   z-index: 2;
 }
