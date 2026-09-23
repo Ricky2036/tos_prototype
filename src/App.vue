@@ -316,6 +316,13 @@ function takeScreenshot() {
      圆角外的黑色机身。移动端正是靠 border-radius:0 做到无边框满屏的，
      录/截时复用这个状态，四角自然就是壁纸，不需要任何后期修补。 -->
 <style>
+body.is-capturing .phone-frame,
+body.is-capturing .frame-inner {
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 body.is-capturing .screen,
 body.is-capturing .screen-view,
 body.is-capturing .mobile-screen,
@@ -323,6 +330,29 @@ body.is-capturing .app-window,
 body.is-capturing .aw-clip {
   border-radius: 0 !important;
   clip-path: none !important;
+}
+
+body.is-capturing .screen,
+body.is-capturing .screen-view {
+  overflow: visible !important;
+}
+
+body.is-capturing .wallpaper,
+body.is-capturing .ls-wallpaper,
+body.is-capturing .app-window {
+  inset: -3px !important;
+}
+
+body.is-capturing .frame-inner::after,
+body.is-capturing .punch-hole,
+body.is-capturing .glass-sheen,
+body.is-capturing .speaker-slit,
+body.is-capturing .antenna-band,
+body.is-capturing .side-btn {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  box-shadow: none !important;
 }
 
 body.is-capturing:has(.app-window) .wallpaper {
