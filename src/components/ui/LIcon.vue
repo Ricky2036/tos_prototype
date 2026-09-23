@@ -19,6 +19,9 @@ const props = defineProps({
   mono: { type: Boolean, default: false }
 })
 
+let lIconUidSeq = 0
+const instanceUid = ++lIconUidSeq
+
 const html = computed(() => {
   let svg = LUCIDE[props.name] || ''
   if (!svg) return ''
@@ -32,6 +35,13 @@ const html = computed(() => {
     if (/stroke-width="[^"]*"/.test(m)) m = m.replace(/stroke-width="[^"]*"/, `stroke-width="${props.strokeWidth}"`)
     return m
   })
+  // 为内联 SVG 内部的 <mask id="..."> / <linearGradient id="..."> 追加实例唯一后缀，
+  // 避免同一页面渲染多个相同图标（如控制中心网格与编辑抽屉）时发生 DOM ID 冲突导致掩膜失效空白
+  if (svg.includes('id="')) {
+    svg = svg
+      .replace(/\bid="([^"]+)"/g, `id="$1-${instanceUid}"`)
+      .replace(/url\(#([^)]+)\)/g, `url(#$1-${instanceUid})`)
+  }
   if (props.filled) {
     svg = svg.replace(/fill="none"/, 'fill="currentColor"')
   }

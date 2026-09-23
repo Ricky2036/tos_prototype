@@ -150,6 +150,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Scale mobile viewport (.mobile-screen) proportionally from 360px baseline width to 100vw x 100dvh so LockScreen depth effect, Control Center grid, and all system UI elements scale synchronously on mobile | `antigravity/lane` | None (locks released) | `7093b7b` | `a8934ff` |
 | Merged | Antigravity | Hide phone bezel mask (.frame-inner::after), camera punch-hole (.punch-hole), and glass sheen (.glass-sheen) during unframed screenshot/recording (body.is-capturing) | `antigravity/lane` | None (locks released) | `b72b30e` | `ac7f3f4` |
 | Merged | Antigravity | Cut out transparent background around phone frame + side buttons silhouette during framed screenshot/recording (withFrame=true) | `antigravity/lane` | None (locks released) | `2491eff` | `d95cd4a` |
+| Merged | Antigravity | Inline notification app icons and Quick Share mask via assetsInlineLimit (24KB), remove lazy loading on NotificationIcon, and deduplicate SVG mask/gradient IDs in LIcon | `antigravity/lane` | None (locks released) | `63f6e2d` | `fbc079c` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
