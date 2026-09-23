@@ -18,8 +18,12 @@ const stageRef = ref(null)
 const phoneScaleRef = ref(null)
 const system = useSystemStore()
 const control = useControlStore()
+const BASE_SCREEN_W = 360
+const BASE_SCREEN_H = 788
 const scale = ref(1)
 const isMobile = ref(false)
+const mobileScale = ref(1)
+const mobileLogicalHeight = ref(BASE_SCREEN_H)
 
 function checkMobile() {
   if (typeof window === 'undefined') return
@@ -29,25 +33,43 @@ function checkMobile() {
   isMobile.value = isMobileUA || (isSmallScreen && isTouchDevice) || isSmallScreen
 }
 
+function updateStageMetrics() {
+  if (typeof window === 'undefined') return
+  checkMobile()
+  if (isMobile.value) {
+    const vw = Math.max(280, window.visualViewport?.width || window.innerWidth || BASE_SCREEN_W)
+    const vh = Math.max(480, window.visualViewport?.height || window.innerHeight || BASE_SCREEN_H)
+    const s = vw / BASE_SCREEN_W
+    mobileScale.value = s
+    mobileLogicalHeight.value = Math.round((vh / s) * 100) / 100
+    scale.value = 1
+    return
+  }
+  const phoneH = (phoneScaleRef.value?.offsetHeight || 810) + 60
+  const s = Math.min(1, (window.innerHeight - 32) / phoneH)
+  scale.value = Math.max(0.62, s)
+}
+
+if (typeof window !== 'undefined') {
+  updateStageMetrics()
+}
+
 let fitStage = null
 
 onMounted(() => {
   fitStage = () => {
-    checkMobile()
-    if (isMobile.value) {
-      scale.value = 1
-      return
-    }
-    const phoneH = (phoneScaleRef.value?.offsetHeight || 810) + 60
-    const s = Math.min(1, (window.innerHeight - 32) / phoneH)
-    scale.value = Math.max(0.62, s)
+    updateStageMetrics()
   }
   fitStage()
   window.addEventListener('resize', fitStage)
+  window.visualViewport?.addEventListener('resize', fitStage)
 })
 
 onBeforeUnmount(() => {
-  if (fitStage) window.removeEventListener('resize', fitStage)
+  if (fitStage) {
+    window.removeEventListener('resize', fitStage)
+    window.visualViewport?.removeEventListener('resize', fitStage)
+  }
 })
 
 /* ================= 录屏 / 截图 ================= */
@@ -93,9 +115,17 @@ function takeScreenshot() {
 
 <template>
   <div class="stage" :class="{ 'is-mobile': isMobile }" ref="stageRef">
-    <!-- 移动端：直接无外壳全屏满铺 -->
+    <!-- 移动端：直接无外壳全屏满铺，基于 360px 标准宽度等比同步缩放所有 UI -->
     <div v-if="isMobile" class="mobile-screen-wrap">
-      <div class="screen mobile-screen">
+      <div
+        class="screen mobile-screen"
+        :style="{
+          width: `${BASE_SCREEN_W}px`,
+          height: `${mobileLogicalHeight}px`,
+          transform: `scale(${mobileScale})`,
+          transformOrigin: 'top left'
+        }"
+      >
         <ScreenView />
       </div>
     </div>
