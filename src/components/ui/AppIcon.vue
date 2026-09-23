@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { GLYPHS } from '../../assets/icons/glyphs'
+import { NOTIF_ICONS } from './notifIcons'
 import { useClock } from '../../composables/useClock'
 import { useHomeStore } from '../../stores/homeStore'
 import { useNotificationsStore } from '../../stores/notificationsStore'
@@ -90,6 +91,8 @@ const hidden = computed(
 const entering = computed(() => system.unlockProgress === 0 && system.baseLayer === 'lock')
 
 const resolvedImage = computed(() => {
+  const inlined = NOTIF_ICONS[props.app.id]?.image
+  if (inlined) return inlined
   if (!props.app.image) return null
   if (props.app.image.startsWith('http') || props.app.image.startsWith('data:')) return props.app.image
   const clean = props.app.image.replace(/^\/+/, '')

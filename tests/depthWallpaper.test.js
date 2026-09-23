@@ -158,4 +158,14 @@ test('SettingsPersonalization.vue provides depth toggle and gallery custom selec
   assert.match(appSource, /body\.is-capturing-frame \.phone-frame/)
   assert.match(captureSource, /function buildFrameSilhouette\(/)
   assert.match(captureSource, /function applyFrameSilhouetteMask\(/)
+
+  // 7. 通知中心应用图标与控制中心快速分享掩膜内联打包优化（24KB 内联阈值 + 去除 lazy 延迟加载 + SVG 掩膜 ID 去重）
+  const viteConfigSource = readFileSync(resolve(root, 'vite.config.js'), 'utf8')
+  const notifIconSource = readFileSync(resolve(root, 'src/components/ui/NotificationIcon.vue'), 'utf8')
+  const lIconSource = readFileSync(resolve(root, 'src/components/ui/LIcon.vue'), 'utf8')
+  const appIconSource = readFileSync(resolve(root, 'src/components/ui/AppIcon.vue'), 'utf8')
+  assert.match(viteConfigSource, /assetsInlineLimit:\s*24576/)
+  assert.doesNotMatch(notifIconSource, /loading="lazy"/)
+  assert.match(lIconSource, /instanceUid/)
+  assert.match(appIconSource, /NOTIF_ICONS\[props\.app\.id\]\?\.image/)
 })

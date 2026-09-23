@@ -1,6 +1,6 @@
 <script setup>
 /** 通知品牌图标：按 type 渲染对应应用图标（40px 默认，可调尺寸） */
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { NOTIF_ICONS } from './notifIcons'
 
 const props = defineProps({
@@ -8,9 +8,18 @@ const props = defineProps({
   size: { type: Number, default: 40 }
 })
 
+const imgBroken = ref(false)
+watch(() => props.type, () => {
+  imgBroken.value = false
+})
+
 /* 必须是 computed：在 setup 顶层直接取 NOTIF_ICONS[props.type] 只会求值一次，
    type 变化时图标不更新（通知列表切换分类时会停留在旧图标） */
-const entry = computed(() => NOTIF_ICONS[props.type] || NOTIF_ICONS.default)
+const entry = computed(() => {
+  const target = NOTIF_ICONS[props.type]
+  if (!target || (target.image && imgBroken.value)) return NOTIF_ICONS.default
+  return target
+})
 </script>
 
 <template>
@@ -29,8 +38,9 @@ const entry = computed(() => NOTIF_ICONS[props.type] || NOTIF_ICONS.default)
       :src="entry.image"
       class="notif-icon-img"
       :alt="type"
-      loading="lazy"
+      decoding="async"
       draggable="false"
+      @error="imgBroken = true"
     />
     <div v-else-if="entry.svg" class="notif-icon-svg" v-html="entry.svg"></div>
   </div>
