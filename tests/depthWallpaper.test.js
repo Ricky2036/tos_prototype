@@ -153,4 +153,9 @@ test('SettingsPersonalization.vue provides depth toggle and gallery custom selec
   assert.match(appSource, /body\.is-capturing \.punch-hole/)
   assert.match(appSource, /body\.is-capturing \.glass-sheen/)
   assert.match(captureSource, /document\.querySelector\('\.screen-view'\)/)
+
+  // 6. 带壳截图/录屏时按「圆角机身 + 5 颗实体侧键」联合轮廓将外圈黑色背景 100% 抠为透明 Alpha
+  assert.match(appSource, /body\.is-capturing-frame \.phone-frame/)
+  assert.match(captureSource, /function buildFrameSilhouette\(/)
+  assert.match(captureSource, /function applyFrameSilhouetteMask\(/)
 })
