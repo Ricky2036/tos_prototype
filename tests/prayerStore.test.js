@@ -49,6 +49,7 @@ test('prayerStore includes jumuah preset (12:30 to 13:45) and localized names in
 
   const jumuah = prayerStore.prayers.find((p) => p.id === 'jumuah')
   assert.ok(jumuah, 'jumuah prayer preset must exist in prayerStore.prayers')
+  assert.equal(prayerStore.prayers[prayerStore.prayers.length - 1].id, 'jumuah', 'jumuah must be at the end of the prayer list')
   assert.equal(jumuah.startTime, '12:30')
   assert.equal(jumuah.endTime, '13:45')
   assert.deepEqual(jumuah.repeatDays, [5])
@@ -66,16 +67,19 @@ test('prayerStore includes jumuah preset (12:30 to 13:45) and localized names in
   assert.equal(i18nStore.prayerFull('jumuah'), 'জুমার নামাজ')
 })
 
-test('SettingsPrayer merges repeat into the time settings card and uses Monday-to-Sunday checkbox bottom sheet modal', () => {
+test('SettingsPrayer merges repeat into the time settings card, uses full-width repeat modal, AI Answer subpage, and weekday marquee', () => {
   const compPath = new URL('../src/components/apps/settings/SettingsPrayer.vue', import.meta.url)
   const content = fs.readFileSync(compPath, 'utf8')
 
   assert.ok(!content.includes('selectRepeatPreset'), 'Must remove old separate repeat preset card')
   assert.ok(content.includes('openRepeatModal'), 'Must open repeat bottom sheet modal from inline repeat row')
   assert.ok(content.includes('MONDAY_TO_SUNDAY = [1, 2, 3, 4, 5, 6, 0]'), 'Must order weekdays Monday to Sunday')
-  assert.ok(content.includes('repeat-bottom-sheet'), 'Must render repeat bottom sheet modal')
+  assert.ok(content.includes('class="repeat-bottom-sheet"'), 'Must render dedicated full-width repeat bottom sheet modal')
   assert.ok(content.includes('repeat-checkbox'), 'Must render rounded-square checkboxes in repeat modal')
+  assert.ok(content.includes('openAiAnswerSubpage'), 'Must navigate to AI Answer subpage via chevron click')
+  assert.ok(content.includes('pic-repeat-marquee-track'), 'Must render marquee track when repeat days overflow')
 })
+
 
 
 

@@ -28,18 +28,6 @@ const DEFAULT_PRAYERS = [
     repeatDays: [0, 1, 2, 3, 4]
   },
   {
-    id: 'jumuah',
-    name: "Jumu'ah Prayer",
-    cnName: '主麻日礼拜',
-    standardTime: '13:00',
-    startTime: '12:30',
-    endTime: '13:45',
-    enabled: true,
-    repeatType: 'custom',
-    repeatLabel: '每周 五',
-    repeatDays: [5]
-  },
-  {
     id: 'asr',
     name: 'Asr',
     cnName: '晡礼',
@@ -74,6 +62,18 @@ const DEFAULT_PRAYERS = [
     repeatType: 'everyday',
     repeatLabel: '每天',
     repeatDays: [1, 2, 3, 4, 5, 6, 0]
+  },
+  {
+    id: 'jumuah',
+    name: "Jumu'ah Prayer",
+    cnName: '主麻日礼拜',
+    standardTime: '13:00',
+    startTime: '12:30',
+    endTime: '13:45',
+    enabled: true,
+    repeatType: 'custom',
+    repeatLabel: '每周 五',
+    repeatDays: [5]
   }
 ]
 
@@ -119,7 +119,7 @@ export const usePrayerStore = defineStore('prayer', {
 
       /* ---- 自动启用与AI自动接听 ---- */
       geoAutoEnable: true, // 进入、离开清真寺范围自动启用/退出勿扰模式
-      aiAutoAnswer: true,  // 指定联系人来电时自动启用AI接听回复
+      aiAutoAnswer: false, // 默认关闭，可在AI接听二级页面开启
       selectedContactIds: ['c1', 'c2', 'c3'], // 默认选择：老婆、老板、妈妈 (3人)
 
       /* ---- 闹钟与唤礼提醒联动 ---- */

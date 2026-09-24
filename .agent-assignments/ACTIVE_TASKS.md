@@ -153,6 +153,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Inline notification app icons and Quick Share mask via assetsInlineLimit (24KB), remove lazy loading on NotificationIcon, and deduplicate SVG mask/gradient IDs in LIcon | `antigravity/lane` | None (locks released) | `63f6e2d` | `fbc079c` |
 | Merged | Antigravity | Add Jumu'ah Prayer preset (`12:30` to `13:45`, zh/en/bn localization) to Prayer Mode | `antigravity/lane` | None (locks released) | `122af6d` | `23d6040` |
 | Merged | Antigravity | Remove separate repeat card in SettingsPrayer and replace with inline Repeat row + Monday-to-Sunday multi-select checkbox bottom sheet modal | `antigravity/lane` | None (locks released) | `e71a220` | `7f9a5a1` |
+| Merged | Antigravity | Fix repeat modal full-width layout, move Jumu'ah Prayer to end of list, add AI Answer subpage with chevron entry, and prevent time wrapping with weekday marquee | `antigravity/lane` | None (locks released) | `89465d0` | `b369428` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 

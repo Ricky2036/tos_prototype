@@ -223,6 +223,54 @@ function getShortRepeatTag(prayer) {
   return formatRepeatDaysSummary(prayer.repeatDays)
 }
 
+/* 判断重复标签是否过长需要启用跑马灯滚动（超过 3 个自定义星期时） */
+function isRepeatMarquee(prayer) {
+  const tag = getShortRepeatTag(prayer)
+  return typeof tag === 'string' && tag.length > 10
+}
+
+function isDaysMarquee(days) {
+  const tag = formatRepeatDaysSummary(days)
+  return typeof tag === 'string' && tag.length > 12
+}
+
+/* AI 接听二级设置页状态 */
+const aiVoiceMale = ref(true)
+const aiDndAutoAnswer = ref(false)
+const selectedHarassTypes = ref(['fraud'])
+const harassTypeOptions = [
+  { id: 'fraud', zh: '疑似诈骗', en: 'Suspected Fraud', bn: 'সন্দেহজনক প্রতারণা' },
+  { id: 'ads', zh: '广告推销', en: 'Telemarketing', bn: 'বিজ্ঞাপন প্রচার' },
+  { id: 'harass', zh: '骚扰电话', en: 'Harassment Calls', bn: 'হয়রানিমূলক কল' },
+  { id: 'agent', zh: '房产中介', en: 'Real Estate', bn: 'রিয়েল এস্টেট' },
+  { id: 'delivery', zh: '快递外卖', en: 'Delivery', bn: 'ডেলিভারি' }
+]
+
+function openAiAnswerSubpage() {
+  isBack.value = false
+  currentView.value = 'aiAnswer'
+}
+
+function handleAiAnswerBack() {
+  isBack.value = true
+  currentView.value = 'list'
+}
+
+function toggleAiVoice() {
+  if (!prayerStore.aiAutoAnswer) return
+  aiVoiceMale.value = !aiVoiceMale.value
+}
+
+function toggleHarassType(id) {
+  if (!prayerStore.aiAutoAnswer) return
+  const idx = selectedHarassTypes.value.indexOf(id)
+  if (idx > -1) {
+    selectedHarassTypes.value.splice(idx, 1)
+  } else {
+    selectedHarassTypes.value.push(id)
+  }
+}
+
 /* 进入全屏设置页面 */
 function openEdit(prayer) {
   isBack.value = false
@@ -253,6 +301,10 @@ function back() {
   }
   if (showTimePicker.value) {
     closeTimePicker()
+    return true
+  }
+  if (currentView.value === 'aiAnswer') {
+    handleAiAnswerBack()
     return true
   }
   if (currentView.value === 'reminder') {
@@ -386,7 +438,13 @@ function saveEdit() {
                 </div>
                 <div class="pic-window-row">
                   <span class="pic-window-time">{{ prayer.startTime }} - {{ prayer.endTime }}</span>
-                  <span class="pic-repeat-badge">{{ getShortRepeatTag(prayer) }}</span>
+                  <div v-if="isRepeatMarquee(prayer)" class="pic-repeat-marquee-mask">
+                    <div class="pic-repeat-marquee-track">
+                      <span class="pic-repeat-badge">{{ getShortRepeatTag(prayer) }}</span>
+                      <span class="pic-repeat-badge" aria-hidden="true">{{ getShortRepeatTag(prayer) }}</span>
+                    </div>
+                  </div>
+                  <span v-else class="pic-repeat-badge">{{ getShortRepeatTag(prayer) }}</span>
                 </div>
               </div>
 
@@ -417,10 +475,10 @@ function saveEdit() {
             </div>
           </template>
 
-          <!-- 功能：AI 自动接听 -->
+          <!-- 功能：AI 自动接听（右侧改为跳转箭头，点击进入 AI 接听设置页） -->
           <div class="group-header">{{ i18n.t('aiAnswerHeader') }}</div>
           <div class="cell-group">
-            <div class="list-cell">
+            <div class="list-cell clickable" @click="openAiAnswerSubpage">
               <div class="lc-icon" style="background: #5856D6;">
                 <svg width="17" height="17" viewBox="0 0 24 24">
                   <path :d="GLYPHS.sparklesPhone" fill="#fff" />
@@ -432,7 +490,9 @@ function saveEdit() {
                   <span class="lc-sub-desc">{{ i18n.t('aiAutoAnswerDesc') }}</span>
                 </div>
                 <div class="lc-right">
-                  <ToggleSwitch v-model="prayerStore.aiAutoAnswer" />
+                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+                    <path d="M1 1L6 6L1 11" stroke="#B8B8BE" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
                 </div>
               </div>
             </div>
@@ -475,7 +535,13 @@ function saveEdit() {
               <div class="lc-main no-sep">
                 <span class="lc-title">{{ i18n.t('repeat') }}</span>
                 <div class="lc-right repeat-val-right">
-                  <span class="ms-time-val repeat-summary-val">{{ formatRepeatDaysSummary(editForm.repeatDays) }}</span>
+                  <div v-if="isDaysMarquee(editForm.repeatDays)" class="repeat-edit-marquee-mask">
+                    <div class="pic-repeat-marquee-track">
+                      <span class="ms-time-val">{{ formatRepeatDaysSummary(editForm.repeatDays) }}</span>
+                      <span class="ms-time-val" aria-hidden="true">{{ formatRepeatDaysSummary(editForm.repeatDays) }}</span>
+                    </div>
+                  </div>
+                  <span v-else class="ms-time-val repeat-summary-val">{{ formatRepeatDaysSummary(editForm.repeatDays) }}</span>
                   <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
                     <path d="M1 1L6 6L1 11" stroke="#B8B8BE" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
@@ -514,12 +580,187 @@ function saveEdit() {
           </div>
         </div>
       </div>
+
+      <!-- ================= 4. AI 接听全屏设置页（对应图 2、图 3） ================= -->
+      <div v-else-if="currentView === 'aiAnswer'" key="aiAnswer" class="prayer-subpage">
+        <AppNavBar
+          :title="tr('aiAnswerNavTitle', 'AI接听', 'AI Answer', 'AI কল রিসিভ')"
+          :back-label="tr('prayerDnd', '礼拜模式', 'Prayer Mode', 'নামাজ মোড')"
+          @back="handleAiAnswerBack"
+        />
+
+        <div class="scrollable detail-body ai-answer-body">
+          <!-- 顶部手机示意图与说明文案 -->
+          <div class="ai-hero-banner">
+            <div class="ai-phone-illustration">
+              <div class="ai-phone-header-mock">
+                <div class="ai-mock-row">
+                  <span class="ai-mock-bar wide"></span>
+                  <span class="ai-mock-bar short"></span>
+                </div>
+                <div class="ai-mock-row">
+                  <span class="ai-mock-dot"></span>
+                  <span class="ai-mock-bar mid"></span>
+                  <span class="ai-mock-bar mid"></span>
+                </div>
+              </div>
+              <div class="ai-phone-bubble-mock">
+                <span class="ai-bubble-line l1"></span>
+                <span class="ai-bubble-line l2"></span>
+              </div>
+            </div>
+            <p class="ai-hero-desc">
+              {{ tr('aiHeroDesc', '当你不方便接电话时，AI会帮你接听并与对方进行对话，让你不错过任何重要来点。', 'When it is inconvenient to answer calls, AI will answer and converse with the caller so you never miss any important calls.', 'যখন আপনার ফোন রিসিভ করা অসুবিধাজনক হয়, তখন AI আপনার হয়ে কল রিসিভ করবে এবং কথা বলবে।') }}
+            </p>
+          </div>
+
+          <!-- 核心设置卡片 -->
+          <div class="cell-group">
+            <!-- 1. AI接听总开关 -->
+            <div class="list-cell">
+              <div class="lc-main">
+                <span class="lc-title ai-bold-title">{{ tr('aiAnswerNavTitle', 'AI接听', 'AI Answer', 'AI কল রিসিভ') }}</span>
+                <div class="lc-right">
+                  <ToggleSwitch v-model="prayerStore.aiAutoAnswer" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. 选择声音 -->
+            <div
+              class="list-cell clickable"
+              :class="{ 'is-row-disabled': !prayerStore.aiAutoAnswer }"
+              @click="toggleAiVoice"
+            >
+              <div class="lc-main">
+                <span class="lc-title">{{ tr('aiSelectVoice', '选择声音', 'Select Voice', 'ভয়েস নির্বাচন করুন') }}</span>
+                <div class="lc-right">
+                  <span class="ms-time-val">{{ aiVoiceMale ? tr('voiceMale', '男', 'Male', 'পুরুষ') : tr('voiceFemale', '女', 'Female', 'মহিলা') }}</span>
+                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+                    <path d="M1 1L6 6L1 11" stroke="#B8B8BE" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. 自定义设置 -->
+            <div
+              class="list-cell clickable"
+              :class="{ 'is-row-disabled': !prayerStore.aiAutoAnswer }"
+            >
+              <div class="lc-main">
+                <span class="lc-title">{{ tr('aiCustomSettings', '自定义设置', 'Custom Settings', 'কাস্টম সেটিংস') }}</span>
+                <div class="lc-right">
+                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+                    <path d="M1 1L6 6L1 11" stroke="#B8B8BE" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. 防漏接 -->
+            <div
+              class="list-cell clickable"
+              :class="{ 'is-row-disabled': !prayerStore.aiAutoAnswer }"
+            >
+              <div class="lc-main">
+                <div class="lc-title-col">
+                  <span class="lc-title">{{ tr('aiAntiMiss', '防漏接', 'Anti-Missed Call', 'মিসড কল প্রতিরোধ') }}</span>
+                  <span class="lc-sub-desc">{{ tr('aiAntiMissDesc', '防止电话遗漏，响铃一定时间后自动接听。', 'Prevent missed calls by answering automatically after ringing.', 'নির্দিষ্ট সময় রিং হওয়ার পর স্বয়ংক্রিয়ভাবে কল রিসিভ করুন।') }}</span>
+                </div>
+                <div class="lc-right">
+                  <span class="ms-time-val">{{ tr('aiAfter5s', '响铃5 s后', 'After 5 s', '৫ সেকেন্ড পর') }}</span>
+                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+                    <path d="M1 1L6 6L1 11" stroke="#B8B8BE" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. 免打扰 -->
+            <div
+              class="list-cell"
+              :class="{ 'is-row-disabled': !prayerStore.aiAutoAnswer }"
+            >
+              <div class="lc-main">
+                <div class="lc-title-col">
+                  <span class="lc-title">{{ tr('aiDndTitle', '免打扰', 'Do Not Disturb', 'ডু নট ডিস্টার্ব') }}</span>
+                  <span class="lc-sub-desc">{{ tr('aiDndDesc', '在勿扰模式下，AI助手帮你自动接听', 'AI assistant answers calls automatically during DND', 'ডিএনডি মোডে AI সহকারী স্বয়ংক্রিয়ভাবে কল রিসিভ করবে') }}</span>
+                </div>
+                <div class="lc-right">
+                  <ToggleSwitch v-model="aiDndAutoAnswer" :disabled="!prayerStore.aiAutoAnswer" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 6. 防骚扰 -->
+            <div
+              class="list-cell clickable"
+              :class="{ 'is-row-disabled': !prayerStore.aiAutoAnswer }"
+            >
+              <div class="lc-main no-sep">
+                <div class="lc-title-col">
+                  <span class="lc-title">{{ tr('aiAntiHarass', '防骚扰', 'Anti-Harassment', 'হয়রানি প্রতিরোধ') }}</span>
+                  <span class="lc-sub-desc">{{ tr('aiAntiHarassDesc', '骚扰电话，响铃一定时间后开启自动接听。', 'Auto-answer harassment calls after ringing for a period.', 'হয়রানিমূলক কল নির্দিষ্ট সময় রিং হওয়ার পর স্বয়ংক্রিয়ভাবে রিসিভ করুন।') }}</span>
+                </div>
+                <div class="lc-right">
+                  <span class="ms-time-val">{{ tr('off', '关闭', 'Off', 'বন্ধ') }}</span>
+                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+                    <path d="M1 1L6 6L1 11" stroke="#B8B8BE" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 选择防骚扰自动接听类型 -->
+          <div class="group-header ai-section-header">{{ tr('aiHarassTypeHeader', '选择防骚扰自动接听类型', 'Select Anti-Harassment Auto-Answer Types', 'হয়রানি প্রতিরোধের ধরন নির্বাচন করুন') }}</div>
+          <div class="cell-group ai-harass-card" :class="{ 'is-row-disabled': !prayerStore.aiAutoAnswer }">
+            <div class="ai-harass-grid">
+              <button
+                v-for="item in harassTypeOptions"
+                :key="item.id"
+                type="button"
+                class="ai-harass-pill"
+                :class="{ 'is-active': selectedHarassTypes.includes(item.id) }"
+                @click="toggleHarassType(item.id)"
+              >
+                {{ tr(item.id, item.zh, item.en, item.bn) }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 隐私政策与用户协议 -->
+          <div class="cell-group">
+            <div class="list-cell clickable">
+              <div class="lc-main">
+                <span class="lc-title">{{ tr('privacyPolicy', '隐私政策', 'Privacy Policy', 'গোপনীয়তা নীতি') }}</span>
+                <div class="lc-right">
+                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+                    <path d="M1 1L6 6L1 11" stroke="#B8B8BE" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div class="list-cell clickable">
+              <div class="lc-main no-sep">
+                <span class="lc-title">{{ tr('userAgreement', '用户协议', 'User Agreement', 'ব্যবহারকারীর চুক্তি') }}</span>
+                <div class="lc-right">
+                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+                    <path d="M1 1L6 6L1 11" stroke="#B8B8BE" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </Transition>
 
     <!-- ================= 重复星期多选底部弹窗（星期一至星期日复选框样式） ================= -->
     <Transition name="picker-bottom">
       <div v-if="showRepeatModal" class="picker-backdrop repeat-modal-backdrop" @click.self="closeRepeatModal">
-        <div class="picker-bottom-sheet repeat-bottom-sheet" @click.stop>
+        <div class="repeat-bottom-sheet" @click.stop>
           <div class="repeat-sheet-title">{{ i18n.t('repeat') }}</div>
           <div class="repeat-weekday-list">
             <div
@@ -796,6 +1037,9 @@ function saveEdit() {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .pic-window-time {
@@ -804,6 +1048,8 @@ function saveEdit() {
   font-weight: 500;
   color: #636366; /* 深灰色 */
   letter-spacing: 0.2px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .pic-repeat-badge {
@@ -811,6 +1057,42 @@ function saveEdit() {
   font-size: 12px;
   font-weight: 450;
   color: #8e8e93;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pic-repeat-marquee-mask {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 4%, #000 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 4%, #000 92%, transparent 100%);
+}
+
+.repeat-edit-marquee-mask {
+  max-width: 185px;
+  overflow: hidden;
+  white-space: nowrap;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 92%, transparent 100%);
+}
+
+.pic-repeat-marquee-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 24px;
+  width: max-content;
+  animation: prayerRepeatMarquee 7.5s linear infinite;
+}
+
+@keyframes prayerRepeatMarquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-50% - 12px));
+  }
 }
 
 .pic-right {
@@ -827,11 +1109,13 @@ function saveEdit() {
   font-weight: 400;
   color: #8E8E93;
   letter-spacing: 0.1px;
+  white-space: nowrap;
 }
 
 .repeat-val-right {
-  max-width: 72%;
+  max-width: 74%;
   min-width: 0;
+  overflow: hidden;
 }
 
 .repeat-summary-val {
@@ -845,7 +1129,20 @@ function saveEdit() {
   margin-left: 2px;
 }
 
-/* ================= 重复选择底部弹窗样式（对应参考图） ================= */
+/* ================= 重复选择底部弹窗样式（全宽修复） ================= */
+.picker-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 12px 24px;
+}
+
 .repeat-modal-backdrop {
   z-index: 400;
   background: rgba(0, 0, 0, 0.36);
@@ -861,10 +1158,14 @@ function saveEdit() {
   border-radius: 26px;
   padding: 18px 20px 18px;
   box-shadow: 0 8px 36px rgba(0, 0, 0, 0.18);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   align-items: stretch;
 }
 
 .repeat-sheet-title {
+  width: 100%;
   font-size: 17px;
   font-weight: 600;
   color: #1C1C1E;
@@ -874,15 +1175,19 @@ function saveEdit() {
 }
 
 .repeat-weekday-list {
+  width: 100%;
   display: flex;
   flex-direction: column;
 }
 
 .repeat-weekday-row {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 44px;
+  padding: 0 2px;
+  box-sizing: border-box;
   cursor: pointer;
   user-select: none;
 }
@@ -898,6 +1203,7 @@ function saveEdit() {
 }
 
 .repeat-checkbox {
+  flex: none;
   width: 20px;
   height: 20px;
   border-radius: 6px;
@@ -916,6 +1222,7 @@ function saveEdit() {
 }
 
 .repeat-sheet-actions {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -951,208 +1258,150 @@ function saveEdit() {
   color: #FFFFFF;
 }
 
-/* 图 2 样式：圆形星期按钮横排（仅在选择自定义时展开） */
-.weekday-circle-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 14px 18px;
-  border-top: 0.5px solid rgba(60, 60, 67, 0.08);
-  background: var(--bg-cell);
+/* ================= AI 接听设置页面样式（对应图 2、图 3） ================= */
+.ai-answer-body {
+  padding-top: 8px;
 }
 
-.wsc-circle-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: none;
-  background: #f2f2f7;
-  color: #636366;
-  font-size: 13.5px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
-  user-select: none;
-}
-
-.wsc-circle-btn.is-selected {
-  background: #007AFF; /* 图 2 经典天蓝色 */
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.35);
-}
-
-.wsc-circle-btn:active {
-  transform: scale(0.92);
-}
-
-/* 自定义周定制展开动画 */
-.expand-enter-active, .expand-leave-active {
-  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-  overflow: hidden;
-}
-.expand-enter-from, .expand-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
-  max-height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-.expand-enter-to, .expand-leave-from {
-  opacity: 1;
-  transform: translateY(0);
-  max-height: 80px;
-}
-
-/* ================= 图 1 时间滚轮弹窗（屏幕底部展示） ================= */
-.picker-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  z-index: 60;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 0 12px 24px;
-}
-
-.picker-bottom-sheet {
-  width: 100%;
-  max-width: 360px;
-  background: #ffffff;
-  border-radius: 28px;
-  padding: 22px 20px 20px;
-  box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.2);
+.ai-hero-banner {
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding: 14px 24px 20px;
 }
 
-.pd-header {
-  text-align: center;
-  margin-bottom: 8px;
-}
-
-.pd-type-label {
-  font-size: 15px;
-  font-weight: 400;
-  color: #8e8e93;
-}
-
-.pd-time-display {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  font-size: 24px;
-  font-weight: 700;
-  color: #000000;
-  margin-top: 4px;
-  letter-spacing: -0.2px;
-}
-
-.pd-wheel-container {
-  position: relative;
-  width: 100%;
-  height: 160px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 36px;
+.ai-phone-illustration {
+  width: 112px;
+  height: 186px;
+  border-radius: 16px;
+  border: 2px solid #7C7C80;
+  background: #F9F9FB;
   overflow: hidden;
-  user-select: none;
-  touch-action: none;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
 }
 
-.pd-wheel-highlight {
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  top: 64px;
-  height: 32px;
+.ai-phone-header-mock {
+  background: #E5E5EA;
+  padding: 10px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.ai-mock-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-mock-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #D1D1D6;
+  flex: none;
+}
+
+.ai-mock-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: #D1D1D6;
+}
+
+.ai-mock-bar.wide {
+  width: 64px;
+}
+
+.ai-mock-bar.short {
+  width: 18px;
+  margin-left: auto;
+}
+
+.ai-mock-bar.mid {
+  flex: 1;
+  height: 9px;
+}
+
+.ai-phone-bubble-mock {
+  margin: 12px 10px 0 auto;
+  width: 76px;
+  padding: 7px 8px;
+  border-radius: 8px 8px 3px 8px;
+  background: linear-gradient(135deg, #BBE7F6 0%, #FAD0C4 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ai-bubble-line {
+  height: 3px;
+  border-radius: 1.5px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.ai-bubble-line.l1 {
+  width: 92%;
+}
+
+.ai-bubble-line.l2 {
+  width: 70%;
+}
+
+.ai-hero-desc {
+  margin: 18px 0 0;
+  font-size: 12.5px;
+  line-height: 1.48;
+  color: #8E8E93;
+  text-align: center;
+}
+
+.ai-bold-title {
+  font-weight: 600;
+}
+
+.is-row-disabled {
+  opacity: 0.42;
   pointer-events: none;
 }
 
-.pd-wheel-column {
-  flex: 1;
-  max-width: 60px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: grab;
+.ai-section-header {
+  text-transform: none;
+  font-size: 12.5px;
+  color: #8E8E93;
+  margin: 16px 20px 8px;
 }
 
-.pd-wheel-column:active {
-  cursor: grabbing;
+.ai-harass-card {
+  padding: 16px 14px;
 }
 
-.wheel-item {
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  transition: all 0.1s ease;
-  cursor: pointer;
+.ai-harass-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
 }
 
-.wheel-item.center {
-  font-size: 24px;
-  font-weight: 700;
-  color: #000000;
-}
-
-.wheel-item.near {
-  font-size: 18px;
-  font-weight: 500;
-  color: #8e8e93;
-  opacity: 0.7;
-}
-
-.wheel-item.far {
-  font-size: 14px;
-  font-weight: 400;
-  color: #c7c7cc;
-  opacity: 0.4;
-}
-
-.pd-actions {
-  display: flex;
-  width: 100%;
-  gap: 12px;
-  margin-top: 18px;
-}
-
-.pd-btn {
-  flex: 1;
-  height: 44px;
-  border-radius: 22px;
+.ai-harass-pill {
+  height: 36px;
+  border-radius: 18px;
   border: none;
-  font-size: 15.5px;
-  font-weight: 600;
+  background: #F2F2F7;
+  color: #8E8E93;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.pd-cancel {
-  background: #f2f2f7;
-  color: #1c1c1e;
-}
-
-.pd-cancel:active {
-  background: #e5e5ea;
-}
-
-.pd-confirm {
-  background: #00C853; /* 图 1 鲜亮绿色 */
-  color: #ffffff;
-  box-shadow: 0 3px 10px rgba(0, 200, 83, 0.3);
-}
-
-.pd-confirm:active {
-  transform: scale(0.96);
-  opacity: 0.9;
+.ai-harass-pill.is-active {
+  background: rgba(52, 199, 89, 0.14);
+  color: #34C759;
+  font-weight: 600;
 }
 
 /* 弹窗底部滑入过渡 */
@@ -1166,21 +1415,16 @@ function saveEdit() {
   opacity: 0;
 }
 
-.picker-bottom-enter-active .picker-bottom-sheet {
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+.picker-bottom-enter-active .repeat-bottom-sheet {
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.picker-bottom-leave-active .picker-bottom-sheet {
-  transition: transform 0.25s cubic-bezier(0.8, 0, 0.8, 0.2);
+.picker-bottom-leave-active .repeat-bottom-sheet {
+  transition: transform 0.22s cubic-bezier(0.8, 0, 0.8, 0.2);
 }
 
-.picker-bottom-enter-from .picker-bottom-sheet {
+.picker-bottom-enter-from .repeat-bottom-sheet,
+.picker-bottom-leave-to .repeat-bottom-sheet {
   transform: translateY(100%);
 }
-
-.picker-bottom-leave-to .picker-bottom-sheet {
-  transform: translateY(100%);
-}
-
-
 </style>
