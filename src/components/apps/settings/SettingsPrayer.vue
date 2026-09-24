@@ -189,13 +189,28 @@ const showTimePicker = ref(false)
 const timePickerType = ref('start') // 'start' | 'end'
 const currentTimePickerVal = ref('05:15')
 
-/* 动态星期列表 */
-const weekDays = computed(() => {
-  return [0, 1, 2, 3, 4, 5, 6].map((day, idx) => ({
+/* 重复选择底部弹窗状态（周一至周日复选框样式） */
+const MONDAY_TO_SUNDAY = [1, 2, 3, 4, 5, 6, 0]
+const showRepeatModal = ref(false)
+const tempRepeatDays = ref([1, 2, 3, 4, 5, 6, 0])
+
+/* 底部弹窗星期列表（严格按星期一至星期日排序） */
+const modalWeekDays = computed(() => {
+  const longDays = i18n.longWeekDays || ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+  return MONDAY_TO_SUNDAY.map((day) => ({
     day,
-    label: i18n.currentWeekDays[idx]
+    label: longDays[day]
   }))
 })
+
+/* 格式化重复星期摘要（例如：每天 / 周一, 周二, 周四, 周五, 周日） */
+function formatRepeatDaysSummary(days) {
+  if (!Array.isArray(days) || days.length === 0) return i18n.t('repeatEveryday')
+  if (days.length === 7) return i18n.t('repeatEveryday')
+  const calDays = i18n.calWeekDays || ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  const ordered = MONDAY_TO_SUNDAY.filter((d) => days.includes(d))
+  return ordered.map((d) => calDays[d]).join(', ')
+}
 
 function getShortRepeatTag(prayer) {
   if (prayer.repeatType === 'weekday') return i18n.t('repeatWeekday')
@@ -205,7 +220,7 @@ function getShortRepeatTag(prayer) {
   if (prayer.repeatDays?.length === 5 && !prayer.repeatDays.includes(5) && !prayer.repeatDays.includes(6)) return i18n.t('repeatWeekday')
   if (prayer.repeatDays?.length === 2 && prayer.repeatDays.includes(5) && prayer.repeatDays.includes(6)) return i18n.t('repeatWeekend')
   if (prayer.repeatDays?.length === 1 && prayer.repeatDays[0] === 5) return tr('repeatFriday', '每周五', 'Fridays', 'প্রতি শুক্রবার')
-  return i18n.t('repeatCustom')
+  return formatRepeatDaysSummary(prayer.repeatDays)
 }
 
 /* 进入全屏设置页面 */
@@ -230,6 +245,10 @@ function handleEditBack() {
 function back() {
   if (showEnableMuslimAlarmModal.value) {
     cancelEnableMuslimAlarm()
+    return true
+  }
+  if (showRepeatModal.value) {
+    closeRepeatModal()
     return true
   }
   if (showTimePicker.value) {
@@ -267,51 +286,49 @@ function handleTimePickerConfirm(val) {
     editForm.value.endTime = val
   }
   showTimePicker.value = false
+  saveEdit()
 }
 
-/* 重复模式选择：只有选择「自定义」时才显示周定制控件 */
-function selectRepeatPreset(type) {
-  editForm.value.repeatType = type
-  if (type === 'everyday') {
-    editForm.value.repeatDays = [0, 1, 2, 3, 4, 5, 6]
-  } else if (type === 'weekday') {
-    editForm.value.repeatDays = [0, 1, 2, 3, 4] // 工作日 (周日至周四)
-  } else if (type === 'weekend') {
-    editForm.value.repeatDays = [5, 6] // 周末 (周五至周六)
-  } else if (type === 'custom') {
-    if (editForm.value.repeatDays.length === 7 || editForm.value.repeatDays.length === 0) {
-      editForm.value.repeatDays = [0, 1, 2, 3, 4] // 默认选中工作日
-    }
-  }
+/* 重复底部弹窗控制（星期一至星期日多选） */
+function openRepeatModal() {
+  tempRepeatDays.value = [...(editForm.value.repeatDays || MONDAY_TO_SUNDAY)]
+  showRepeatModal.value = true
 }
 
-function toggleWeekDay(day) {
-  const idx = editForm.value.repeatDays.indexOf(day)
+function closeRepeatModal() {
+  showRepeatModal.value = false
+}
+
+function toggleTempWeekDay(day) {
+  const idx = tempRepeatDays.value.indexOf(day)
   if (idx > -1) {
-    if (editForm.value.repeatDays.length > 1) {
-      editForm.value.repeatDays.splice(idx, 1)
+    if (tempRepeatDays.value.length > 1) {
+      tempRepeatDays.value.splice(idx, 1)
     }
   } else {
-    editForm.value.repeatDays.push(day)
-    editForm.value.repeatDays.sort((a, b) => a - b)
+    tempRepeatDays.value.push(day)
   }
+}
+
+function confirmRepeatModal() {
+  const ordered = MONDAY_TO_SUNDAY.filter((d) => tempRepeatDays.value.includes(d))
+  editForm.value.repeatDays = ordered
+  if (ordered.length === 7) {
+    editForm.value.repeatType = 'everyday'
+  } else if (ordered.length === 5 && !ordered.includes(5) && !ordered.includes(6)) {
+    editForm.value.repeatType = 'weekday'
+  } else if (ordered.length === 2 && ordered.includes(5) && ordered.includes(6)) {
+    editForm.value.repeatType = 'weekend'
+  } else {
+    editForm.value.repeatType = 'custom'
+  }
+  saveEdit()
+  showRepeatModal.value = false
 }
 
 function saveEdit() {
   if (!editingPrayer.value) return
-  // 这条 label 会存进 store 并显示在列表上，必须跟着语言走，否则切英文后这里仍是中文
-  let label = i18n.t('repeatEveryday')
-  if (editForm.value.repeatType === 'weekday') {
-    label = i18n.t('repeatWeekdayOn')
-  } else if (editForm.value.repeatType === 'weekend') {
-    label = i18n.t('repeatWeekendOnly')
-  } else if (editForm.value.repeatType === 'custom') {
-    if (editForm.value.repeatDays.length === 7) label = i18n.t('repeatEveryday')
-    else if (editForm.value.repeatDays.length === 5 && !editForm.value.repeatDays.includes(5) && !editForm.value.repeatDays.includes(6)) label = i18n.t('repeatWeekdayOn')
-    else label = i18n.t('repeatWeekly')(
-      editForm.value.repeatDays.map(d => weekDays.value.find(w => w.day === d)?.label).join(i18n.t('repeatDaySep'))
-    )
-  }
+  const label = formatRepeatDaysSummary(editForm.value.repeatDays)
 
   prayerStore.updatePrayer(editingPrayer.value.id, {
     startTime: editForm.value.startTime,
@@ -429,7 +446,7 @@ function saveEdit() {
         <AppNavBar :title="i18n.prayerName(editingPrayer.id)" :back-label="i18n.t('prayerDnd')" @back="handleEditBack" />
 
         <div class="scrollable detail-body">
-          <!-- 时间设置分组（深灰色字体，无背板，点击在屏幕底部呼出时间滚轮弹窗） -->
+          <!-- 时间与重复设置卡片（开始时间、结束时间、重复三行合一） -->
           <div class="group-header">{{ i18n.t('prayerTimeSettings') }}</div>
           <div class="cell-group">
             <div class="list-cell clickable" @click="openTimePicker('start')">
@@ -437,92 +454,34 @@ function saveEdit() {
                 <span class="lc-title">{{ i18n.t('startTime') }}</span>
                 <div class="lc-right">
                   <span class="ms-time-val">{{ editForm.startTime }}</span>
+                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+                    <path d="M1 1L6 6L1 11" stroke="#B8B8BE" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
                 </div>
               </div>
             </div>
             <div class="list-cell clickable" @click="openTimePicker('end')">
-              <div class="lc-main no-sep">
+              <div class="lc-main">
                 <span class="lc-title">{{ i18n.t('endTime') }}</span>
                 <div class="lc-right">
                   <span class="ms-time-val">{{ editForm.endTime }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 重复模式选择 -->
-          <div class="group-header">{{ i18n.t('repeat') }}</div>
-          <div class="cell-group">
-            <div
-              class="list-cell clickable"
-              @click="selectRepeatPreset('everyday')"
-            >
-              <div class="lc-main">
-                <span class="lc-title">{{ i18n.t('repeatEveryday') }}</span>
-                <div class="lc-right">
-                  <svg v-if="editForm.repeatType === 'everyday'" width="18" height="18" viewBox="0 0 24 24">
-                    <path :d="GLYPHS.check" fill="#007AFF" />
+                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+                    <path d="M1 1L6 6L1 11" stroke="#B8B8BE" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                 </div>
               </div>
             </div>
-
-            <div
-              class="list-cell clickable"
-              @click="selectRepeatPreset('weekday')"
-            >
-              <div class="lc-main">
-                <span class="lc-title">{{ i18n.t('repeatWeekdaySunThu') }}</span>
-                <div class="lc-right">
-                  <svg v-if="editForm.repeatType === 'weekday'" width="18" height="18" viewBox="0 0 24 24">
-                    <path :d="GLYPHS.check" fill="#007AFF" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            <div
-              class="list-cell clickable"
-              @click="selectRepeatPreset('weekend')"
-            >
-              <div class="lc-main" :class="{ 'no-sep': editForm.repeatType !== 'custom' }">
-                <span class="lc-title">{{ i18n.t('repeatWeekendFriSat') }}</span>
-                <div class="lc-right">
-                  <svg v-if="editForm.repeatType === 'weekend'" width="18" height="18" viewBox="0 0 24 24">
-                    <path :d="GLYPHS.check" fill="#007AFF" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            <div
-              class="list-cell clickable"
-              @click="selectRepeatPreset('custom')"
-            >
+            <div class="list-cell clickable" @click="openRepeatModal">
               <div class="lc-main no-sep">
-                <span class="lc-title">{{ i18n.t('repeatCustom') }}</span>
-                <div class="lc-right">
-                  <svg v-if="editForm.repeatType === 'custom'" width="18" height="18" viewBox="0 0 24 24">
-                    <path :d="GLYPHS.check" fill="#007AFF" />
+                <span class="lc-title">{{ i18n.t('repeat') }}</span>
+                <div class="lc-right repeat-val-right">
+                  <span class="ms-time-val repeat-summary-val">{{ formatRepeatDaysSummary(editForm.repeatDays) }}</span>
+                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+                    <path d="M1 1L6 6L1 11" stroke="#B8B8BE" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                 </div>
               </div>
             </div>
-
-            <!-- 自定义重复周几选择器（仅选中自定义时展示，水平排布） -->
-            <Transition name="expand">
-              <div v-if="editForm.repeatType === 'custom'" class="weekday-circle-row">
-                <button
-                  v-for="w in weekDays"
-                  :key="w.day"
-                  class="wsc-circle-btn"
-                  :class="{ 'is-selected': editForm.repeatDays.includes(w.day) }"
-                  @click="toggleWeekDay(w.day)"
-                >
-                  {{ w.label }}
-                </button>
-              </div>
-            </Transition>
           </div>
         </div>
       </div>
@@ -552,6 +511,53 @@ function saveEdit() {
           </div>
           <div class="group-footer">
             {{ tr('reminderDesc', '开启后将在设定的每个礼拜开始时间前启用穆斯林闹钟进行唤礼提醒。', 'Once enabled, Muslim alarm will be activated for adhan reminder before each scheduled prayer starts.', 'চালু করার পর প্রতিটি নির্ধারিত নামাজের সময় শুরু হওয়ার পূর্বে আযান স্মারকের জন্য মুসলিম অ্যালার্ম সক্রিয় হবে।') }}
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- ================= 重复星期多选底部弹窗（星期一至星期日复选框样式） ================= -->
+    <Transition name="picker-bottom">
+      <div v-if="showRepeatModal" class="picker-backdrop repeat-modal-backdrop" @click.self="closeRepeatModal">
+        <div class="picker-bottom-sheet repeat-bottom-sheet" @click.stop>
+          <div class="repeat-sheet-title">{{ i18n.t('repeat') }}</div>
+          <div class="repeat-weekday-list">
+            <div
+              v-for="item in modalWeekDays"
+              :key="item.day"
+              class="repeat-weekday-row"
+              @click="toggleTempWeekDay(item.day)"
+            >
+              <span class="repeat-weekday-label">{{ item.label }}</span>
+              <span
+                class="repeat-checkbox"
+                :class="{ 'is-checked': tempRepeatDays.includes(item.day) }"
+              >
+                <svg
+                  v-if="tempRepeatDays.includes(item.day)"
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <path
+                    d="M5 12.5l4.5 4.5L19 7.5"
+                    stroke="#FFFFFF"
+                    stroke-width="2.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+            </div>
+          </div>
+          <div class="repeat-sheet-actions">
+            <button type="button" class="repeat-sheet-btn is-cancel" @click="closeRepeatModal">
+              {{ i18n.t('cancel') }}
+            </button>
+            <button type="button" class="repeat-sheet-btn is-confirm" @click="confirmRepeatModal">
+              {{ i18n.t('confirm') }}
+            </button>
           </div>
         </div>
       </div>
@@ -817,10 +823,132 @@ function saveEdit() {
 /* 无背板深灰字体时间 */
 .ms-time-val {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  font-size: 16px;
+  font-size: 14.5px;
+  font-weight: 400;
+  color: #8E8E93;
+  letter-spacing: 0.1px;
+}
+
+.repeat-val-right {
+  max-width: 72%;
+  min-width: 0;
+}
+
+.repeat-summary-val {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cell-chevron {
+  flex: none;
+  margin-left: 2px;
+}
+
+/* ================= 重复选择底部弹窗样式（对应参考图） ================= */
+.repeat-modal-backdrop {
+  z-index: 400;
+  background: rgba(0, 0, 0, 0.36);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 0 12px 14px;
+}
+
+.repeat-bottom-sheet {
+  width: 100%;
+  max-width: 360px;
+  background: #FFFFFF;
+  border-radius: 26px;
+  padding: 18px 20px 18px;
+  box-shadow: 0 8px 36px rgba(0, 0, 0, 0.18);
+  align-items: stretch;
+}
+
+.repeat-sheet-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1C1C1E;
+  text-align: center;
+  margin-bottom: 10px;
+  letter-spacing: -0.2px;
+}
+
+.repeat-weekday-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.repeat-weekday-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.repeat-weekday-row:active {
+  opacity: 0.75;
+}
+
+.repeat-weekday-label {
+  font-size: 15.5px;
   font-weight: 500;
-  color: #636366; /* 深灰色 */
-  letter-spacing: 0.2px;
+  color: #1C1C1E;
+}
+
+.repeat-checkbox {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid #D1D1D6;
+  background: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transition: background 0.14s ease, border-color 0.14s ease, transform 0.1s ease;
+}
+
+.repeat-checkbox.is-checked {
+  background: #007AFF;
+  border-color: #007AFF;
+}
+
+.repeat-sheet-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.repeat-sheet-btn {
+  flex: 1;
+  height: 44px;
+  border-radius: 22px;
+  border: none;
+  font-size: 15.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+.repeat-sheet-btn:active {
+  transform: scale(0.98);
+  opacity: 0.88;
+}
+
+.repeat-sheet-btn.is-cancel {
+  background: #EAECEF;
+  color: #1C1C1E;
+}
+
+.repeat-sheet-btn.is-confirm {
+  background: #007AFF;
+  color: #FFFFFF;
 }
 
 /* 图 2 样式：圆形星期按钮横排（仅在选择自定义时展开） */
