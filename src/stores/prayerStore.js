@@ -259,6 +259,19 @@ export const usePrayerStore = defineStore('prayer', {
       }
     },
 
+    toggleRandomSimulatedPrayer(enabled) {
+      if (!enabled) {
+        this.closeIsland()
+        return
+      }
+      const pool = this.prayers.length > 0 ? this.prayers : DEFAULT_PRAYERS
+      const randomIndex = Math.floor(Math.random() * pool.length)
+      const chosen = pool[randomIndex] || pool[0]
+      if (chosen) {
+        this.setSimulatedPrayer(chosen.id)
+      }
+    },
+
     closeIsland() {
       this.dismissedIslandPrayerId = this.currentIslandPrayer?.id || this.simulatedPrayerId || null
       this.simulatedPrayerId = null

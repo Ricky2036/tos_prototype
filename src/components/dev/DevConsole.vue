@@ -250,6 +250,15 @@ function toggleMediaIsland() {
   }
 }
 
+function togglePrayerIslandSwitch(checked) {
+  if (checked) {
+    notificationsStore.setIslandEnabled('prayer', true)
+    prayerStore.toggleRandomSimulatedPrayer(true)
+  } else {
+    prayerStore.toggleRandomSimulatedPrayer(false)
+  }
+}
+
 /* ================= 移动端悬浮球与弹窗状态 ================= */
 const isDrawerOpen = ref(false)
 const fabPos = ref({ x: 0, y: 0 })
@@ -805,170 +814,35 @@ function onToggleFineTune(enabled) {
                 </button>
               </div>
             </div>
-
-            <!-- 虚线分割 -->
-            <div class="pc-divider-dashed"></div>
-
-            <!-- 区域 2：礼拜模式模拟 -->
-            <div class="pc-section">
-              <div class="pc-card-header">
-                <span class="pc-card-title">礼拜模式</span>
-                <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
-                  {{ i18n.prayerName(prayerStore.currentIslandPrayer.id) }}中
-                </span>
-              </div>
-              <div class="pc-sysapp-grid">
-                <button
-                  v-for="p in prayerStore.prayers"
-                  :key="p.id"
-                  class="pc-sysapp-btn"
-                  :class="{ on: prayerStore.currentIslandPrayer?.id === p.id }"
-                  @click="prayerStore.toggleSimulatedPrayer(p.id)"
-                >
-                  <!-- 晨礼：朝阳破晓 -->
-                  <svg
-                    v-if="p.id === 'fajr'"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path d="M12 2v6" />
-                    <path d="m4.93 10.93 2.83 2.83" />
-                    <path d="m19.07 10.93-2.83 2.83" />
-                    <path d="M2 18h20" />
-                    <path d="M6 18a6 6 0 0 1 12 0" />
-                  </svg>
-                  <!-- 晌礼：正午烈日 -->
-                  <svg
-                    v-else-if="p.id === 'dhuhr'"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <circle cx="12" cy="12" r="4" />
-                    <path d="M12 2v2" />
-                    <path d="M12 20v2" />
-                    <path d="m4.93 4.93 1.41 1.41" />
-                    <path d="m17.66 17.66 1.41 1.41" />
-                    <path d="M2 12h2" />
-                    <path d="M20 12h2" />
-                    <path d="m6.34 17.66-1.41 1.41" />
-                    <path d="m19.07 4.93-1.41 1.41" />
-                  </svg>
-                  <!-- 主麻日礼拜：清真寺穹顶与新月 -->
-                  <svg
-                    v-else-if="p.id === 'jumuah'"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path d="M12 3v3" />
-                    <path d="M6 14a6 6 0 0 1 12 0v6H6v-6Z" />
-                    <path d="M3 20h18" />
-                    <path d="M10 20v-3a2 2 0 0 1 4 0v3" />
-                  </svg>
-                  <!-- 哺礼：斜阳斜影 -->
-                  <svg
-                    v-else-if="p.id === 'asr'"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <circle cx="9" cy="9" r="3.5" />
-                    <path d="M9 2v2.5" />
-                    <path d="M2 9h2.5" />
-                    <path d="m4.05 4.05 1.77 1.77" />
-                    <path d="M13 13l6 6" />
-                    <path d="M20 16v4h-4" />
-                    <path d="M2 21h8" />
-                  </svg>
-                  <!-- 昏礼：落日余晖 -->
-                  <svg
-                    v-else-if="p.id === 'maghrib'"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path d="M12 10v6" />
-                    <path d="m9 13 3 3 3-3" />
-                    <path d="m4.93 10.93 2.83 2.83" />
-                    <path d="m19.07 10.93-2.83 2.83" />
-                    <path d="M2 18h20" />
-                    <path d="M6 18a6 6 0 0 1 12 0" />
-                  </svg>
-                  <!-- 宵礼：夜空星月 -->
-                  <svg
-                    v-else
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                    <path d="M19 4v3" />
-                    <path d="M17.5 5.5h3" />
-                  </svg>
-                  <span>{{ i18n.prayerName(p.id) }}</span>
-                </button>
-              </div>
-            </div>
           </div>
 
           <!-- 模块 3: 礼拜模式 -->
           <div v-else-if="selectedModule === 'muslim'" key="muslim" class="pc-module-section-group is-muslim">
-            <!-- 区域 1：智慧建议模式 -->
+            <!-- 区域 1：灵动岛 + 智慧建议（一行两列并排，样式复用控制中心隐私与双卡） -->
             <div class="pc-section">
-              <div class="pc-card-header">
-                <span class="pc-card-title">智慧建议</span>
-              </div>
-              <div class="pc-seg">
-                <div
-                  class="pc-seg-thumb"
-                  :style="{ transform: prayerStore.userMode === 'normal' ? 'translateX(0)' : 'translateX(100%)' }"
-                ></div>
-                <button
-                  class="pc-seg-btn"
-                  :class="{ on: prayerStore.userMode === 'normal' }"
-                  @click="prayerStore.setUserMode('normal')"
-                >
-                  普通用户
-                </button>
-                <button
-                  class="pc-seg-btn"
-                  :class="{ on: prayerStore.userMode === 'muslim' }"
-                  @click="prayerStore.setUserMode('muslim')"
-                >
-                  穆斯林用户
-                </button>
+              <div class="pc-duo-row">
+                <div class="pc-duo-item">
+                  <span class="pc-card-title">灵动岛</span>
+                  <label class="pc-switch-wrap">
+                    <input
+                      type="checkbox"
+                      :checked="Boolean(prayerStore.currentIslandPrayer)"
+                      @change="togglePrayerIslandSwitch($event.target.checked)"
+                    />
+                    <div class="pc-switch"></div>
+                  </label>
+                </div>
+                <div class="pc-duo-item">
+                  <span class="pc-card-title">智慧建议</span>
+                  <label class="pc-switch-wrap">
+                    <input
+                      type="checkbox"
+                      :checked="prayerStore.userMode === 'muslim'"
+                      @change="prayerStore.setUserMode($event.target.checked ? 'muslim' : 'normal')"
+                    />
+                    <div class="pc-switch"></div>
+                  </label>
+                </div>
               </div>
             </div>
 
@@ -1397,170 +1271,35 @@ function onToggleFineTune(enabled) {
                         </button>
                       </div>
                     </div>
-
-                    <!-- 虚线分割 -->
-                    <div class="pc-divider-dashed"></div>
-
-                    <!-- 区域 2：礼拜模式模拟 -->
-                    <div class="pc-section">
-                      <div class="pc-card-header">
-                        <span class="pc-card-title">礼拜模式</span>
-                        <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
-                          {{ i18n.prayerName(prayerStore.currentIslandPrayer.id) }}中
-                        </span>
-                      </div>
-                      <div class="pc-sysapp-grid">
-                        <button
-                          v-for="p in prayerStore.prayers"
-                          :key="p.id"
-                          class="pc-sysapp-btn"
-                          :class="{ on: prayerStore.currentIslandPrayer?.id === p.id }"
-                          @click="prayerStore.toggleSimulatedPrayer(p.id)"
-                        >
-                          <!-- 晨礼：朝阳破晓 -->
-                          <svg
-                            v-if="p.id === 'fajr'"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <path d="M12 2v6" />
-                            <path d="m4.93 10.93 2.83 2.83" />
-                            <path d="m19.07 10.93-2.83 2.83" />
-                            <path d="M2 18h20" />
-                            <path d="M6 18a6 6 0 0 1 12 0" />
-                          </svg>
-                          <!-- 晌礼：正午烈日 -->
-                          <svg
-                            v-else-if="p.id === 'dhuhr'"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <circle cx="12" cy="12" r="4" />
-                            <path d="M12 2v2" />
-                            <path d="M12 20v2" />
-                            <path d="m4.93 4.93 1.41 1.41" />
-                            <path d="m17.66 17.66 1.41 1.41" />
-                            <path d="M2 12h2" />
-                            <path d="M20 12h2" />
-                            <path d="m6.34 17.66-1.41 1.41" />
-                            <path d="m19.07 4.93-1.41 1.41" />
-                          </svg>
-                          <!-- 主麻日礼拜：清真寺穹顶与新月 -->
-                          <svg
-                            v-else-if="p.id === 'jumuah'"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <path d="M12 3v3" />
-                            <path d="M6 14a6 6 0 0 1 12 0v6H6v-6Z" />
-                            <path d="M3 20h18" />
-                            <path d="M10 20v-3a2 2 0 0 1 4 0v3" />
-                          </svg>
-                          <!-- 哺礼：斜阳斜影 -->
-                          <svg
-                            v-else-if="p.id === 'asr'"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <circle cx="9" cy="9" r="3.5" />
-                            <path d="M9 2v2.5" />
-                            <path d="M2 9h2.5" />
-                            <path d="m4.05 4.05 1.77 1.77" />
-                            <path d="M13 13l6 6" />
-                            <path d="M20 16v4h-4" />
-                            <path d="M2 21h8" />
-                          </svg>
-                          <!-- 昏礼：落日余晖 -->
-                          <svg
-                            v-else-if="p.id === 'maghrib'"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <path d="M12 10v6" />
-                            <path d="m9 13 3 3 3-3" />
-                            <path d="m4.93 10.93 2.83 2.83" />
-                            <path d="m19.07 10.93-2.83 2.83" />
-                            <path d="M2 18h20" />
-                            <path d="M6 18a6 6 0 0 1 12 0" />
-                          </svg>
-                          <!-- 宵礼：夜空星月 -->
-                          <svg
-                            v-else
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                            <path d="M19 4v3" />
-                            <path d="M17.5 5.5h3" />
-                          </svg>
-                          <span>{{ i18n.prayerName(p.id) }}</span>
-                        </button>
-                      </div>
-                    </div>
                   </div>
 
                   <!-- 模块 3: 礼拜模式 -->
                   <div v-else-if="selectedModule === 'muslim'" key="muslim" class="pc-module-section-group is-muslim">
-                    <!-- 区域 1：智慧建议模式 -->
+                    <!-- 区域 1：灵动岛 + 智慧建议（一行两列并排，样式复用控制中心隐私与双卡） -->
                     <div class="pc-section">
-                      <div class="pc-card-header">
-                        <span class="pc-card-title">智慧建议</span>
-                      </div>
-                      <div class="pc-seg">
-                        <div
-                          class="pc-seg-thumb"
-                          :style="{ transform: prayerStore.userMode === 'normal' ? 'translateX(0)' : 'translateX(100%)' }"
-                        ></div>
-                        <button
-                          class="pc-seg-btn"
-                          :class="{ on: prayerStore.userMode === 'normal' }"
-                          @click="prayerStore.setUserMode('normal')"
-                        >
-                          普通用户
-                        </button>
-                        <button
-                          class="pc-seg-btn"
-                          :class="{ on: prayerStore.userMode === 'muslim' }"
-                          @click="prayerStore.setUserMode('muslim')"
-                        >
-                          穆斯林用户
-                        </button>
+                      <div class="pc-duo-row">
+                        <div class="pc-duo-item">
+                          <span class="pc-card-title">灵动岛</span>
+                          <label class="pc-switch-wrap">
+                            <input
+                              type="checkbox"
+                              :checked="Boolean(prayerStore.currentIslandPrayer)"
+                              @change="togglePrayerIslandSwitch($event.target.checked)"
+                            />
+                            <div class="pc-switch"></div>
+                          </label>
+                        </div>
+                        <div class="pc-duo-item">
+                          <span class="pc-card-title">智慧建议</span>
+                          <label class="pc-switch-wrap">
+                            <input
+                              type="checkbox"
+                              :checked="prayerStore.userMode === 'muslim'"
+                              @change="prayerStore.setUserMode($event.target.checked ? 'muslim' : 'normal')"
+                            />
+                            <div class="pc-switch"></div>
+                          </label>
+                        </div>
                       </div>
                     </div>
 

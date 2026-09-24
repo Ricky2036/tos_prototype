@@ -87,7 +87,26 @@ test('SettingsPrayer merges repeat into the time settings card, uses full-width 
   assert.ok(content.includes('if (!prayerStore.masterEnabled || !prayer.enabled) return false'), 'Must disable repeat marquee when prayer mode or slot is disabled')
   assert.ok(!content.includes('prayerRepeatMarquee 7.5s linear infinite'), 'Marquee must not loop infinitely')
   assert.ok(content.includes('1 forwards'), 'Marquee must scroll once and stop cleanly')
+  assert.ok(content.includes('font-variant-numeric: tabular-nums'), 'Must use tabular-nums on pic-window-time so repeat texts start at the same left edge')
   assert.ok(content.includes('if (!prayerStore.masterEnabled || !prayer.enabled) return'), 'Must block entering time settings when Prayer Mode is off')
+})
+
+test('DevConsole places Prayer Dynamic Island switch and Smart Suggestion switch side-by-side in a duo row under Prayer Mode module', async () => {
+  const { setActivePinia, createPinia } = await import('pinia')
+  const { usePrayerStore } = await import('../src/stores/prayerStore.js')
+  setActivePinia(createPinia())
+  const prayerStore = usePrayerStore()
+
+  assert.equal(prayerStore.currentIslandPrayer, null, 'Prayer island must default to null')
+  prayerStore.toggleRandomSimulatedPrayer(true)
+  assert.ok(prayerStore.currentIslandPrayer, 'Turning on random simulated prayer switch must activate a prayer on the Dynamic Island')
+  prayerStore.toggleRandomSimulatedPrayer(false)
+  assert.equal(prayerStore.currentIslandPrayer, null, 'Turning off random simulated prayer switch must close the Dynamic Island')
+
+  const consolePath = new URL('../src/components/dev/DevConsole.vue', import.meta.url)
+  const consoleContent = fs.readFileSync(consolePath, 'utf8')
+  assert.ok(consoleContent.includes('togglePrayerIslandSwitch'), 'DevConsole must wire togglePrayerIslandSwitch to the island toggle switch')
+  assert.ok(!consoleContent.includes('prayerStore.toggleSimulatedPrayer(p.id)'), 'DevConsole must remove the multi-button prayer island grid from the island module')
 })
 
 

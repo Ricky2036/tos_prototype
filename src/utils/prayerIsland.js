@@ -3,14 +3,15 @@ export function resolveCurrentIslandPrayer({
   simulatedPrayerId,
   dismissedPrayerId,
   activePrayer,
-  userMode,
   prayers
 }) {
+  if (simulatedPrayerId) {
+    const simulated = prayers.find((item) => item.id === simulatedPrayerId) || null
+    return simulated?.id === dismissedPrayerId ? null : simulated
+  }
   if (!masterEnabled) return null
 
-  const prayer = simulatedPrayerId
-    ? prayers.find((item) => item.id === simulatedPrayerId) || null
-    : activePrayer || (userMode === 'muslim' ? prayers.find((item) => item.enabled) || prayers[0] : null)
+  const prayer = activePrayer || null
 
   return prayer?.id === dismissedPrayerId ? null : prayer
 }

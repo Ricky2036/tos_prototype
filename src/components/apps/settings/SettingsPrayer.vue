@@ -1020,9 +1020,18 @@ function saveEdit() {
   background: #EAEAEA;
 }
 
+.prayer-item-cell {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
 .prayer-item-cell.is-disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+.prayer-item-cell :deep(.toggle-switch.disabled) {
+  opacity: 1;
 }
 
 .prayer-item-cell.is-disabled:active {
@@ -1037,6 +1046,8 @@ function saveEdit() {
 .pic-name-row {
   display: flex;
   align-items: center;
+  height: 20px;
+  line-height: 20px;
 }
 
 .pic-name {
@@ -1048,6 +1059,8 @@ function saveEdit() {
 
 .pic-window-row {
   margin-top: 4px;
+  height: 18px;
+  line-height: 18px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1057,13 +1070,20 @@ function saveEdit() {
 }
 
 .pic-window-time {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
   font-size: 13.5px;
   font-weight: 500;
   color: #636366; /* 深灰色 */
   letter-spacing: 0.2px;
   white-space: nowrap;
   flex-shrink: 0;
+  width: 88px;
+  height: 18px;
+  line-height: 18px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .pic-repeat-badge {
@@ -1073,11 +1093,18 @@ function saveEdit() {
   color: #8e8e93;
   white-space: nowrap;
   flex-shrink: 0;
+  height: 18px;
+  line-height: 18px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .pic-window-row > .pic-repeat-badge {
   flex: 1;
   min-width: 0;
+  display: block;
+  height: 18px;
+  line-height: 18px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -1085,6 +1112,10 @@ function saveEdit() {
 .pic-repeat-marquee-mask {
   flex: 1;
   min-width: 0;
+  height: 18px;
+  line-height: 18px;
+  display: flex;
+  align-items: center;
   overflow: hidden;
   white-space: nowrap;
   mask-image: linear-gradient(90deg, #000 0%, #000 92%, transparent 100%);
@@ -1093,6 +1124,10 @@ function saveEdit() {
 
 .repeat-edit-marquee-mask {
   max-width: 185px;
+  height: 18px;
+  line-height: 18px;
+  display: flex;
+  align-items: center;
   overflow: hidden;
   white-space: nowrap;
   mask-image: linear-gradient(90deg, #000 0%, #000 92%, transparent 100%);
@@ -1102,6 +1137,8 @@ function saveEdit() {
 .pic-repeat-marquee-track {
   display: inline-flex;
   align-items: center;
+  height: 18px;
+  line-height: 18px;
   gap: 24px;
   width: max-content;
   animation: prayerRepeatMarquee 4.5s ease-in-out 0.35s 1 forwards;
