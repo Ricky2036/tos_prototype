@@ -47,6 +47,10 @@ test('prayerStore includes jumuah preset (12:30 to 13:45) and localized names in
   const prayerStore = usePrayerStore()
   const i18nStore = useI18nStore()
 
+  const dhuhr = prayerStore.prayers.find((p) => p.id === 'dhuhr')
+  assert.ok(dhuhr, 'dhuhr prayer preset must exist in prayerStore.prayers')
+  assert.deepEqual(dhuhr.repeatDays, [1, 2, 3, 4, 5, 0], 'dhuhr must default to all days except Saturday (6)')
+
   const jumuah = prayerStore.prayers.find((p) => p.id === 'jumuah')
   assert.ok(jumuah, 'jumuah prayer preset must exist in prayerStore.prayers')
   assert.equal(prayerStore.prayers[prayerStore.prayers.length - 1].id, 'jumuah', 'jumuah must be at the end of the prayer list')

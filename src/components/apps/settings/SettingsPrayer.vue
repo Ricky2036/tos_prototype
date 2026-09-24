@@ -213,12 +213,7 @@ function formatRepeatDaysSummary(days) {
 }
 
 function getShortRepeatTag(prayer) {
-  if (prayer.repeatType === 'weekday') return i18n.t('repeatWeekday')
-  if (prayer.repeatType === 'weekend') return i18n.t('repeatWeekend')
-  if (prayer.repeatType === 'everyday') return i18n.t('repeatEveryday')
-  if (prayer.repeatDays?.length === 7) return i18n.t('repeatEveryday')
-  if (prayer.repeatDays?.length === 5 && !prayer.repeatDays.includes(5) && !prayer.repeatDays.includes(6)) return i18n.t('repeatWeekday')
-  if (prayer.repeatDays?.length === 2 && prayer.repeatDays.includes(5) && prayer.repeatDays.includes(6)) return i18n.t('repeatWeekend')
+  if (prayer.repeatDays?.length === 7 || prayer.repeatType === 'everyday') return i18n.t('repeatEveryday')
   if (prayer.repeatDays?.length === 1 && prayer.repeatDays[0] === 5) return tr('repeatFriday', '每周五', 'Fridays', 'প্রতি শুক্রবার')
   return formatRepeatDaysSummary(prayer.repeatDays)
 }

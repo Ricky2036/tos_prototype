@@ -23,9 +23,9 @@ const DEFAULT_PRAYERS = [
     startTime: '12:15',
     endTime: '12:45',
     enabled: true,
-    repeatType: 'weekday',
-    repeatLabel: '工作日启用 · 周末关闭',
-    repeatDays: [0, 1, 2, 3, 4]
+    repeatType: 'custom',
+    repeatLabel: '周一, 周二, 周三, 周四, 周五, 周日',
+    repeatDays: [1, 2, 3, 4, 5, 0]
   },
   {
     id: 'asr',

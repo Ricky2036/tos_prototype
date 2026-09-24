@@ -154,6 +154,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Add Jumu'ah Prayer preset (`12:30` to `13:45`, zh/en/bn localization) to Prayer Mode | `antigravity/lane` | None (locks released) | `122af6d` | `23d6040` |
 | Merged | Antigravity | Remove separate repeat card in SettingsPrayer and replace with inline Repeat row + Monday-to-Sunday multi-select checkbox bottom sheet modal | `antigravity/lane` | None (locks released) | `e71a220` | `7f9a5a1` |
 | Merged | Antigravity | Fix repeat modal full-width layout, move Jumu'ah Prayer to end of list, add AI Answer subpage with chevron entry, and prevent time wrapping with weekday marquee | `antigravity/lane` | None (locks released) | `89465d0` | `b369428` |
+| Merged | Antigravity | Set Dhuhr (`晌礼`) default repeat days to all days except Saturday (`[1, 2, 3, 4, 5, 0]`) | `antigravity/lane` | None (locks released) | `650ba88` | `de726af` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
