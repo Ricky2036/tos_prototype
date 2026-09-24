@@ -84,6 +84,9 @@ test('SettingsPrayer merges repeat into the time settings card, uses full-width 
   assert.ok(content.includes('repeat-checkbox'), 'Must render rounded-square checkboxes in repeat modal')
   assert.ok(content.includes('openAiAnswerSubpage'), 'Must navigate to AI Answer subpage via chevron click')
   assert.ok(content.includes('pic-repeat-marquee-track'), 'Must render marquee track when repeat days overflow')
+  assert.ok(content.includes('if (!prayerStore.masterEnabled || !prayer.enabled) return false'), 'Must disable repeat marquee when prayer mode or slot is disabled')
+  assert.ok(!content.includes('prayerRepeatMarquee 7.5s linear infinite'), 'Marquee must not loop infinitely')
+  assert.ok(content.includes('1 forwards'), 'Marquee must scroll once and stop cleanly')
   assert.ok(content.includes('if (!prayerStore.masterEnabled || !prayer.enabled) return'), 'Must block entering time settings when Prayer Mode is off')
 })
 

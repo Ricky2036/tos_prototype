@@ -218,8 +218,9 @@ function getShortRepeatTag(prayer) {
   return formatRepeatDaysSummary(prayer.repeatDays)
 }
 
-/* 判断重复标签是否过长需要启用跑马灯滚动（超过 3 个自定义星期时） */
+/* 判断重复标签是否过长需要启用跑马灯滚动（仅在激活未置灰且超过 3 个自定义星期时滚动） */
 function isRepeatMarquee(prayer) {
+  if (!prayerStore.masterEnabled || !prayer.enabled) return false
   const tag = getShortRepeatTag(prayer)
   return typeof tag === 'string' && tag.length > 10
 }
@@ -1074,21 +1075,28 @@ function saveEdit() {
   flex-shrink: 0;
 }
 
+.pic-window-row > .pic-repeat-badge {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .pic-repeat-marquee-mask {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
-  mask-image: linear-gradient(90deg, transparent 0%, #000 4%, #000 92%, transparent 100%);
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 4%, #000 92%, transparent 100%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 92%, transparent 100%);
 }
 
 .repeat-edit-marquee-mask {
   max-width: 185px;
   overflow: hidden;
   white-space: nowrap;
-  mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 92%, transparent 100%);
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 92%, transparent 100%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 92%, transparent 100%);
 }
 
 .pic-repeat-marquee-track {
@@ -1096,7 +1104,7 @@ function saveEdit() {
   align-items: center;
   gap: 24px;
   width: max-content;
-  animation: prayerRepeatMarquee 7.5s linear infinite;
+  animation: prayerRepeatMarquee 4.5s ease-in-out 0.35s 1 forwards;
 }
 
 @keyframes prayerRepeatMarquee {
