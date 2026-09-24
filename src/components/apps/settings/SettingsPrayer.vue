@@ -266,8 +266,9 @@ function toggleHarassType(id) {
   }
 }
 
-/* 进入全屏设置页面 */
+/* 进入全屏设置页面（总开关或当前时段关闭时禁止点击进入） */
 function openEdit(prayer) {
+  if (!prayerStore.masterEnabled || !prayer.enabled) return
   isBack.value = false
   editingPrayer.value = prayer
   editForm.value = {
@@ -278,6 +279,17 @@ function openEdit(prayer) {
   }
   currentView.value = 'edit'
 }
+
+watch(
+  () => prayerStore?.masterEnabled,
+  (enabled) => {
+    if (!enabled && currentView.value === 'edit') {
+      showRepeatModal.value = false
+      showTimePicker.value = false
+      currentView.value = 'list'
+    }
+  }
+)
 
 function handleEditBack() {
   isBack.value = true
@@ -447,6 +459,7 @@ function saveEdit() {
               <div class="pic-right" @click.stop>
                 <ToggleSwitch
                   :model-value="prayer.enabled"
+                  :disabled="!prayerStore.masterEnabled"
                   @update:model-value="prayerStore.togglePrayer(prayer.id)"
                 />
               </div>
@@ -1007,7 +1020,12 @@ function saveEdit() {
 }
 
 .prayer-item-cell.is-disabled {
-  opacity: 0.5;
+  opacity: 0.45;
+  cursor: default;
+}
+
+.prayer-item-cell.is-disabled:active {
+  background: var(--bg-cell);
 }
 
 .pic-left {

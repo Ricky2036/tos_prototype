@@ -107,7 +107,7 @@ export const usePrayerStore = defineStore('prayer', {
   state: () => {
     const defaultFajr = DEFAULT_PRAYERS.find((p) => p.id === 'fajr')
     return {
-      masterEnabled: true,
+      masterEnabled: false,
       targetView: 'main', // 'main' | 'prayer'
       advanceMins: 15,
       extendMins: 15,
@@ -201,6 +201,7 @@ export const usePrayerStore = defineStore('prayer', {
     },
 
     togglePrayer(id) {
+      if (!this.masterEnabled) return
       const p = this.prayers.find((item) => item.id === id)
       if (p) p.enabled = !p.enabled
     },
@@ -314,7 +315,7 @@ export const usePrayerStore = defineStore('prayer', {
 
     resetDefaults() {
       this.prayers = JSON.parse(JSON.stringify(DEFAULT_PRAYERS))
-      this.masterEnabled = true
+      this.masterEnabled = false
       this.adhanReminderEnabled = false
       this.alarmLinkageEnabled = false
       this.alarmAdvanceMinutes = -1

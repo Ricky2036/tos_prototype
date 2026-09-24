@@ -47,6 +47,8 @@ test('prayerStore includes jumuah preset (12:30 to 13:45) and localized names in
   const prayerStore = usePrayerStore()
   const i18nStore = useI18nStore()
 
+  assert.equal(prayerStore.masterEnabled, false, 'Prayer Mode masterEnabled must default to false')
+
   const dhuhr = prayerStore.prayers.find((p) => p.id === 'dhuhr')
   assert.ok(dhuhr, 'dhuhr prayer preset must exist in prayerStore.prayers')
   assert.deepEqual(dhuhr.repeatDays, [1, 2, 3, 4, 5, 0], 'dhuhr must default to all days except Saturday (6)')
@@ -71,7 +73,7 @@ test('prayerStore includes jumuah preset (12:30 to 13:45) and localized names in
   assert.equal(i18nStore.prayerFull('jumuah'), 'জুমার নামাজ')
 })
 
-test('SettingsPrayer merges repeat into the time settings card, uses full-width repeat modal, AI Answer subpage, and weekday marquee', () => {
+test('SettingsPrayer merges repeat into the time settings card, uses full-width repeat modal, AI Answer subpage, weekday marquee, and blocks openEdit when disabled', () => {
   const compPath = new URL('../src/components/apps/settings/SettingsPrayer.vue', import.meta.url)
   const content = fs.readFileSync(compPath, 'utf8')
 
@@ -82,6 +84,7 @@ test('SettingsPrayer merges repeat into the time settings card, uses full-width 
   assert.ok(content.includes('repeat-checkbox'), 'Must render rounded-square checkboxes in repeat modal')
   assert.ok(content.includes('openAiAnswerSubpage'), 'Must navigate to AI Answer subpage via chevron click')
   assert.ok(content.includes('pic-repeat-marquee-track'), 'Must render marquee track when repeat days overflow')
+  assert.ok(content.includes('if (!prayerStore.masterEnabled || !prayer.enabled) return'), 'Must block entering time settings when Prayer Mode is off')
 })
 
 
