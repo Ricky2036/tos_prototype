@@ -1063,7 +1063,7 @@ function saveEdit() {
   line-height: 18px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: nowrap;
   min-width: 0;
   overflow: hidden;
@@ -1079,7 +1079,6 @@ function saveEdit() {
   letter-spacing: 0.2px;
   white-space: nowrap;
   flex-shrink: 0;
-  width: 88px;
   height: 18px;
   line-height: 18px;
   display: inline-flex;

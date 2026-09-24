@@ -159,6 +159,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Set Dhuhr (`晌礼`) default repeat days to all days except Friday (`[1, 2, 3, 4, 6, 0]`) | `antigravity/lane` | None (locks released) | `af33cc9` | `51c6142` |
 | Merged | Antigravity | Disable repeat weekday marquee when prayer item is dimmed/off and set marquee animation to run only once (`1 forwards`) | `antigravity/lane` | None (locks released) | `420fdea` | `6abef2f` |
 | Merged | Antigravity | Fix Prayer Mode master switch jitter & secondary text left alignment; move Prayer Dynamic Island control into Prayer Mode module as a random-prayer switch alongside Smart Suggestion switch in a duo row | `antigravity/lane` | None (locks released) | `73f3bea` | `2d55d31` |
+| Merged | Antigravity | Increase horizontal gap between prayer time range and repeat label while keeping tabular-nums alignment | `antigravity/lane` | None (locks released) | `61fa2dc` | `36e4f88` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
