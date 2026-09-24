@@ -157,7 +157,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Set Dhuhr (`晌礼`) default repeat days to all days except Saturday (`[1, 2, 3, 4, 5, 0]`) | `antigravity/lane` | None (locks released) | `650ba88` | `de726af` |
 | Merged | Antigravity | Default Prayer Mode (`masterEnabled`) to off (`false`) and disable clicking into prayer time settings when off | `antigravity/lane` | None (locks released) | `6dbf7c6` | `c64f9a0` |
 | Merged | Antigravity | Set Dhuhr (`晌礼`) default repeat days to all days except Friday (`[1, 2, 3, 4, 6, 0]`) | `antigravity/lane` | None (locks released) | `af33cc9` | `51c6142` |
-| Active | Antigravity | Disable repeat weekday marquee when prayer item is dimmed/off and set marquee animation to run only once (`1 forwards`) | `antigravity/lane` | `src/components/apps/settings/SettingsPrayer.vue`; `tests/prayerStore.test.js` | `420fdea` | — |
+| Merged | Antigravity | Disable repeat weekday marquee when prayer item is dimmed/off and set marquee animation to run only once (`1 forwards`) | `antigravity/lane` | None (locks released) | `420fdea` | `6abef2f` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
