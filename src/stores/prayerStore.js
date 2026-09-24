@@ -24,8 +24,8 @@ const DEFAULT_PRAYERS = [
     endTime: '12:45',
     enabled: true,
     repeatType: 'custom',
-    repeatLabel: '周一, 周二, 周三, 周四, 周五, 周日',
-    repeatDays: [1, 2, 3, 4, 5, 0]
+    repeatLabel: '周一, 周二, 周三, 周四, 周六, 周日',
+    repeatDays: [1, 2, 3, 4, 6, 0]
   },
   {
     id: 'asr',
