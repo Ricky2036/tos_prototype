@@ -151,6 +151,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Hide phone bezel mask (.frame-inner::after), camera punch-hole (.punch-hole), and glass sheen (.glass-sheen) during unframed screenshot/recording (body.is-capturing) | `antigravity/lane` | None (locks released) | `b72b30e` | `ac7f3f4` |
 | Merged | Antigravity | Cut out transparent background around phone frame + side buttons silhouette during framed screenshot/recording (withFrame=true) | `antigravity/lane` | None (locks released) | `2491eff` | `d95cd4a` |
 | Merged | Antigravity | Inline notification app icons and Quick Share mask via assetsInlineLimit (24KB), remove lazy loading on NotificationIcon, and deduplicate SVG mask/gradient IDs in LIcon | `antigravity/lane` | None (locks released) | `63f6e2d` | `fbc079c` |
+| Merged | Antigravity | Add Jumu'ah Prayer preset (`12:30` to `13:45`, zh/en/bn localization) to Prayer Mode | `antigravity/lane` | None (locks released) | `122af6d` | `23d6040` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 

@@ -28,6 +28,18 @@ const DEFAULT_PRAYERS = [
     repeatDays: [0, 1, 2, 3, 4]
   },
   {
+    id: 'jumuah',
+    name: "Jumu'ah Prayer",
+    cnName: '主麻日礼拜',
+    standardTime: '13:00',
+    startTime: '12:30',
+    endTime: '13:45',
+    enabled: true,
+    repeatType: 'custom',
+    repeatLabel: '每周 五',
+    repeatDays: [5]
+  },
+  {
     id: 'asr',
     name: 'Asr',
     cnName: '晡礼',

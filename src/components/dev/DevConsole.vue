@@ -865,6 +865,23 @@ function onToggleFineTune(enabled) {
                     <path d="m6.34 17.66-1.41 1.41" />
                     <path d="m19.07 4.93-1.41 1.41" />
                   </svg>
+                  <!-- 主麻日礼拜：清真寺穹顶与新月 -->
+                  <svg
+                    v-else-if="p.id === 'jumuah'"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M12 3v3" />
+                    <path d="M6 14a6 6 0 0 1 12 0v6H6v-6Z" />
+                    <path d="M3 20h18" />
+                    <path d="M10 20v-3a2 2 0 0 1 4 0v3" />
+                  </svg>
                   <!-- 哺礼：斜阳斜影 -->
                   <svg
                     v-else-if="p.id === 'asr'"
@@ -1439,6 +1456,23 @@ function onToggleFineTune(enabled) {
                             <path d="M20 12h2" />
                             <path d="m6.34 17.66-1.41 1.41" />
                             <path d="m19.07 4.93-1.41 1.41" />
+                          </svg>
+                          <!-- 主麻日礼拜：清真寺穹顶与新月 -->
+                          <svg
+                            v-else-if="p.id === 'jumuah'"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="M12 3v3" />
+                            <path d="M6 14a6 6 0 0 1 12 0v6H6v-6Z" />
+                            <path d="M3 20h18" />
+                            <path d="M10 20v-3a2 2 0 0 1 4 0v3" />
                           </svg>
                           <!-- 哺礼：斜阳斜影 -->
                           <svg

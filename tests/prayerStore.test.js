@@ -38,3 +38,32 @@ test('prayer and media dynamic island default to closed / inactive state', () =>
   assert.match(contentControl, /mediaActive:\s*false/, 'ControlStore mediaActive must default to false')
 })
 
+test('prayerStore includes jumuah preset (12:30 to 13:45) and localized names in zh, en, and bn', async () => {
+  const { setActivePinia, createPinia } = await import('pinia')
+  const { usePrayerStore } = await import('../src/stores/prayerStore.js')
+  const { useI18nStore } = await import('../src/stores/i18nStore.js')
+
+  setActivePinia(createPinia())
+  const prayerStore = usePrayerStore()
+  const i18nStore = useI18nStore()
+
+  const jumuah = prayerStore.prayers.find((p) => p.id === 'jumuah')
+  assert.ok(jumuah, 'jumuah prayer preset must exist in prayerStore.prayers')
+  assert.equal(jumuah.startTime, '12:30')
+  assert.equal(jumuah.endTime, '13:45')
+  assert.deepEqual(jumuah.repeatDays, [5])
+
+  i18nStore.setLocale('zh')
+  assert.equal(i18nStore.prayerName('jumuah'), '主麻日礼拜')
+  assert.equal(i18nStore.prayerFull('jumuah'), '主麻日礼拜')
+
+  i18nStore.setLocale('en')
+  assert.equal(i18nStore.prayerName('jumuah'), "Jumu'ah Prayer")
+  assert.equal(i18nStore.prayerFull('jumuah'), "Jumu'ah Prayer")
+
+  i18nStore.setLocale('bn')
+  assert.equal(i18nStore.prayerName('jumuah'), 'জুমার নামাজ')
+  assert.equal(i18nStore.prayerFull('jumuah'), 'জুমার নামাজ')
+})
+
+

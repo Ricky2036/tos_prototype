@@ -20,10 +20,11 @@ export const MESSAGES = {
     // 灵动岛
     islandActiveSub: (name) => `${name}勿扰已开启`,
 
-    // 5个礼拜
+    // 礼拜时段
     prayers: {
       fajr: { name: '晨礼', full: '晨礼' },
       dhuhr: { name: '晌礼', full: '晌礼' },
+      jumuah: { name: '主麻日礼拜', full: '主麻日礼拜' },
       asr: { name: '晡礼', full: '晡礼' },
       maghrib: { name: '昏礼', full: '昏礼' },
       isha: { name: '宵礼', full: '宵礼' }
@@ -407,6 +408,7 @@ export const MESSAGES = {
     prayers: {
       fajr: { name: 'Fajr', full: 'Fajr' },
       dhuhr: { name: 'Dhuhr', full: 'Dhuhr' },
+      jumuah: { name: "Jumu'ah Prayer", full: "Jumu'ah Prayer" },
       asr: { name: 'Asr', full: 'Asr' },
       maghrib: { name: 'Maghrib', full: 'Maghrib' },
       isha: { name: 'Isha', full: 'Isha' }
@@ -791,6 +793,7 @@ export const MESSAGES = {
     prayers: {
       fajr: { name: 'ফজর', full: 'ফজর' },
       dhuhr: { name: 'যোহর', full: 'যোহর' },
+      jumuah: { name: 'জুমার নামাজ', full: 'জুমার নামাজ' },
       asr: { name: 'আসর', full: 'আসর' },
       maghrib: { name: 'মাগরিব', full: 'মাগরিব' },
       isha: { name: 'ইশা', full: 'ইশা' }
