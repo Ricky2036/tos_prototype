@@ -142,6 +142,19 @@ export const DRAWER_APPS = [
     icon: '/icons/settings.png',
     page: 0
   },
+  {
+    /* AI Mate —— 智能设备管理中枢（10 类设备目录 / 增删 / 二级控制页）。
+       A-Z 索引桶按拼音取：aimate → A。不进 Dock，故无 pinned。 */
+    id: 'aimate',
+    name: 'AI Mate',
+    initial: 'A',
+    pinyin: 'aimate',
+    depth: 'core',
+    heroBackground: 'linear-gradient(180deg,#8E6BFF 0%,#5B34E8 100%)',
+    image: '/icons/aimate.png',
+    icon: '/icons/aimate.png',
+    page: 0
+  },
 
   // ── T ──
   {

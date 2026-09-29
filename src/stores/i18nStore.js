@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia'
 /* 词条数据 2026-09-11 起分包到 src/locales/，这里只做组装。
  * 新增应用词条：新建 src/locales/<app>.js 并在 loader 里注册，别往 messages.js 塞。 */
+import { AIMATE } from '../locales/aimate.js'
 import { APP_NAMES } from '../locales/app-names.js'
 import { CC_LABELS } from '../locales/cc-labels.js'
 import { CATEGORIES_NAMES } from '../locales/categories-names.js'
 import { MESSAGES } from '../locales/messages.js'
 
-export { APP_NAMES, CC_LABELS, CATEGORIES_NAMES, MESSAGES }
+export { AIMATE, APP_NAMES, CC_LABELS, CATEGORIES_NAMES, MESSAGES }
 
 export const useI18nStore = defineStore('i18n', {
   state: () => ({
@@ -32,6 +33,27 @@ export const useI18nStore = defineStore('i18n', {
     currentWeekDays: (s) => MESSAGES[s.locale]?.weekDays || MESSAGES.zh.weekDays || [],
     calWeekDays: (s) => MESSAGES[s.locale]?.calWeekDays || MESSAGES.zh.calWeekDays || [],
     appName: (s) => (appId) => APP_NAMES[s.locale]?.[appId] || APP_NAMES.zh[appId] || appId,
+    /**
+     * AI Mate 词条：路径式取用，缺项回落到中文。
+     * 例：am('fan.power') / am('home.group.wear') / am('fan.modes')（数组直接返回）
+     */
+    am: (s) => (path) => {
+      const walk = (obj) => {
+        if (!path) return obj
+        let cur = obj
+        for (const seg of String(path).split('.')) {
+          if (cur == null || typeof cur !== 'object') return undefined
+          cur = cur[seg]
+        }
+        return cur
+      }
+      const hit = walk(AIMATE[s.locale])
+      if (hit === undefined) {
+        const fb = walk(AIMATE.zh)
+        return fb === undefined ? path : fb
+      }
+      return hit
+    },
     categoryName: (s) => (catKey) => CATEGORIES_NAMES[s.locale]?.[catKey] || CATEGORIES_NAMES.zh[catKey] || catKey,
     notifAuthPrompt: (s) => (app) => {
       const fn = MESSAGES[s.locale]?.notifAuthPrompt || MESSAGES.zh.notifAuthPrompt

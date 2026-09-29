@@ -104,6 +104,18 @@ export const APPS = [
     page: 0
   },
   {
+    /* AI Mate —— 所有智能设备的管理专属 App（10 类设备目录 / 增删 / 二级控制页）。
+       与 OneLeap 分层共存：OneLeap 是控制中心里的设备连接与快捷调用入口（快捷层），
+       本应用是管理中枢。刻意不进 Dock（已决 D1），故只有 page 没有 dock。 */
+    id: 'aimate',
+    name: 'AI Mate',
+    depth: 'core',
+    /* hero 过渡底色取自归档快照 AI Mate 注册项（深蓝黑，此前写成紫罗兰是我自创的） */
+    heroBackground: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)',
+    image: '/icons/aimate.png',
+    page: 0
+  },
+  {
     id: 'calendar',
     name: '日历',
     depth: 'core',

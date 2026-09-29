@@ -27,7 +27,7 @@ If the directory name does not match one of these values, stop and ask which rol
 9. Use the development port assigned to your role with `--strictPort`:
    - `2026-08-02-23-04-06` (integration / `main`): `9999`
    - `tos-antigravity`: `1111`
-   - `tos-workbuddy`: `6666`
+   - `tos-workbuddy`: `5555`
    - `tos-codex`: `8888`
 10. If a task conflicts with these defaults, the written task assignment wins only for the files it names.
 

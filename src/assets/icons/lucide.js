@@ -12,6 +12,144 @@ import plus from 'lucide-static/icons/plus.svg?raw'
 import slidersHorizontal from 'lucide-static/icons/sliders-horizontal.svg?raw'
 import minus from 'lucide-static/icons/minus.svg?raw'
 
+/* ================= AI Mate 设备中枢所需的 lucide 图标 ================= */
+// -- 设备类型 --
+import audioLines from 'lucide-static/icons/audio-lines.svg?raw'
+import printer from 'lucide-static/icons/printer.svg?raw'
+import watch from 'lucide-static/icons/watch.svg?raw'
+import glasses from 'lucide-static/icons/glasses.svg?raw'
+import fan from 'lucide-static/icons/fan.svg?raw'
+import headphones from 'lucide-static/icons/headphones.svg?raw'
+import lightbulb from 'lucide-static/icons/lightbulb.svg?raw'
+import radioTower from 'lucide-static/icons/radio-tower.svg?raw'
+import lockKeyhole from 'lucide-static/icons/lock-keyhole.svg?raw'
+import plug from 'lucide-static/icons/plug.svg?raw'
+// -- 风扇档位与控制 --
+import wind from 'lucide-static/icons/wind.svg?raw'
+import gauge from 'lucide-static/icons/gauge.svg?raw'
+import leaf from 'lucide-static/icons/leaf.svg?raw'
+import moonStar from 'lucide-static/icons/moon-star.svg?raw'
+import baby from 'lucide-static/icons/baby.svg?raw'
+import sparkles from 'lucide-static/icons/sparkles.svg?raw'
+import rotateCw from 'lucide-static/icons/rotate-cw.svg?raw'
+import timer from 'lucide-static/icons/timer.svg?raw'
+import shieldCheck from 'lucide-static/icons/shield-check.svg?raw'
+import calendarClock from 'lucide-static/icons/calendar-clock.svg?raw'
+import atom from 'lucide-static/icons/atom.svg?raw'
+import waves from 'lucide-static/icons/waves.svg?raw'
+// -- 状态与规格 --
+import router from 'lucide-static/icons/router.svg?raw'
+import bluetoothSearching from 'lucide-static/icons/bluetooth-searching.svg?raw'
+import batteryCharging from 'lucide-static/icons/battery-charging.svg?raw'
+import signal from 'lucide-static/icons/signal.svg?raw'
+import thermometer from 'lucide-static/icons/thermometer.svg?raw'
+import activity from 'lucide-static/icons/activity.svg?raw'
+import hardDrive from 'lucide-static/icons/hard-drive.svg?raw'
+import cpu from 'lucide-static/icons/cpu.svg?raw'
+import packageBox from 'lucide-static/icons/package.svg?raw'
+import droplet from 'lucide-static/icons/droplet.svg?raw'
+import circleDot from 'lucide-static/icons/circle-dot.svg?raw'
+import circle from 'lucide-static/icons/circle.svg?raw'
+// -- 状态徽标 --
+import plusCircle from 'lucide-static/icons/plus-circle.svg?raw'
+import xCircle from 'lucide-static/icons/x-circle.svg?raw'
+import checkCircle from 'lucide-static/icons/check-circle.svg?raw'
+import alertCircle from 'lucide-static/icons/alert-circle.svg?raw'
+import alertTriangle from 'lucide-static/icons/alert-triangle.svg?raw'
+import info from 'lucide-static/icons/info.svg?raw'
+import helpCircle from 'lucide-static/icons/help-circle.svg?raw'
+import badgeCheck from 'lucide-static/icons/badge-check.svg?raw'
+import loaderCircle from 'lucide-static/icons/loader-circle.svg?raw'
+// -- 导航与列表 --
+import chevronRight from 'lucide-static/icons/chevron-right.svg?raw'
+import chevronLeft from 'lucide-static/icons/chevron-left.svg?raw'
+import chevronDown from 'lucide-static/icons/chevron-down.svg?raw'
+import chevronsRight from 'lucide-static/icons/chevrons-right.svg?raw'
+import chevronsLeft from 'lucide-static/icons/chevrons-left.svg?raw'
+import arrowLeft from 'lucide-static/icons/arrow-left.svg?raw'
+import arrowUp from 'lucide-static/icons/arrow-up.svg?raw'
+import arrowDown from 'lucide-static/icons/arrow-down.svg?raw'
+import x from 'lucide-static/icons/x.svg?raw'
+import search from 'lucide-static/icons/search.svg?raw'
+import filter from 'lucide-static/icons/filter.svg?raw'
+import list from 'lucide-static/icons/list.svg?raw'
+import layoutTemplate from 'lucide-static/icons/layout-template.svg?raw'
+import grid2x2 from 'lucide-static/icons/grid-2x2.svg?raw'
+import moreHorizontal from 'lucide-static/icons/more-horizontal.svg?raw'
+import moreVertical from 'lucide-static/icons/more-vertical.svg?raw'
+import pencilLine from 'lucide-static/icons/pencil-line.svg?raw'
+import trash2 from 'lucide-static/icons/trash-2.svg?raw'
+// -- 内容与文件 --
+import download from 'lucide-static/icons/download.svg?raw'
+import upload from 'lucide-static/icons/upload.svg?raw'
+import share from 'lucide-static/icons/share.svg?raw'
+import square from 'lucide-static/icons/square.svg?raw'
+import micVocal from 'lucide-static/icons/mic-vocal.svg?raw'
+import scanLine from 'lucide-static/icons/scan-line.svg?raw'
+import qrCode from 'lucide-static/icons/qr-code.svg?raw'
+import palette from 'lucide-static/icons/palette.svg?raw'
+import image from 'lucide-static/icons/image.svg?raw'
+import images from 'lucide-static/icons/images.svg?raw'
+import fileText from 'lucide-static/icons/file-text.svg?raw'
+import folder from 'lucide-static/icons/folder.svg?raw'
+import folderPlus from 'lucide-static/icons/folder-plus.svg?raw'
+import save from 'lucide-static/icons/save.svg?raw'
+import copy from 'lucide-static/icons/copy.svg?raw'
+import externalLink from 'lucide-static/icons/external-link.svg?raw'
+import send from 'lucide-static/icons/send.svg?raw'
+import rotateCcw from 'lucide-static/icons/rotate-ccw.svg?raw'
+import star from 'lucide-static/icons/star.svg?raw'
+import eye from 'lucide-static/icons/eye.svg?raw'
+import maximize from 'lucide-static/icons/maximize.svg?raw'
+import minimize from 'lucide-static/icons/minimize.svg?raw'
+import scanFace from 'lucide-static/icons/scan-face.svg?raw'
+import rotate3d from 'lucide-static/icons/rotate-3d.svg?raw'
+import layers from 'lucide-static/icons/layers.svg?raw'
+import box from 'lucide-static/icons/box.svg?raw'
+import blocks from 'lucide-static/icons/blocks.svg?raw'
+// -- 安全与连接 --
+import shield from 'lucide-static/icons/shield.svg?raw'
+import unlock from 'lucide-static/icons/unlock.svg?raw'
+import lockOpen from 'lucide-static/icons/lock-open.svg?raw'
+import key from 'lucide-static/icons/key.svg?raw'
+import fingerprint from 'lucide-static/icons/fingerprint.svg?raw'
+import link from 'lucide-static/icons/link.svg?raw'
+import cloud from 'lucide-static/icons/cloud.svg?raw'
+import cloudOff from 'lucide-static/icons/cloud-off.svg?raw'
+import globe from 'lucide-static/icons/globe.svg?raw'
+import locate from 'lucide-static/icons/locate.svg?raw'
+// -- 设备形态与账户 --
+import smartphone from 'lucide-static/icons/smartphone.svg?raw'
+import monitor from 'lucide-static/icons/monitor.svg?raw'
+import tablet from 'lucide-static/icons/tablet.svg?raw'
+import user from 'lucide-static/icons/user.svg?raw'
+import users from 'lucide-static/icons/users.svg?raw'
+import settings2 from 'lucide-static/icons/settings-2.svg?raw'
+import home from 'lucide-static/icons/home.svg?raw'
+import menu from 'lucide-static/icons/menu.svg?raw'
+// -- 录音与转写 --
+import captions from 'lucide-static/icons/captions.svg?raw'
+import languages from 'lucide-static/icons/languages.svg?raw'
+import fileAudio from 'lucide-static/icons/file-audio.svg?raw'
+import listMusic from 'lucide-static/icons/list-music.svg?raw'
+// -- 照片编辑与打印 --
+import crop from 'lucide-static/icons/crop.svg?raw'
+import frame from 'lucide-static/icons/frame.svg?raw'
+import film from 'lucide-static/icons/film.svg?raw'
+import shapes from 'lucide-static/icons/shapes.svg?raw'
+import move from 'lucide-static/icons/move.svg?raw'
+import moveHorizontal from 'lucide-static/icons/move-horizontal.svg?raw'
+import aperture from 'lucide-static/icons/aperture.svg?raw'
+import wand2 from 'lucide-static/icons/wand-2.svg?raw'
+import paintbrush from 'lucide-static/icons/paintbrush.svg?raw'
+// -- AI Mori --
+import bot from 'lucide-static/icons/bot.svg?raw'
+import wandSparkles from 'lucide-static/icons/wand-sparkles.svg?raw'
+import bookOpen from 'lucide-static/icons/book-open.svg?raw'
+import calendarDays from 'lucide-static/icons/calendar-days.svg?raw'
+import notebookPen from 'lucide-static/icons/notebook-pen.svg?raw'
+import sticker from 'lucide-static/icons/sticker.svg?raw'
+
 /* ================= 用户定制控制中心专属矢量图标 (100% 用户原版 SVG) ================= */
 
 // 1. 移动数据 / 蜂窝网络 (arrowDownUp)
@@ -381,5 +519,27 @@ export const LUCIDE = {
   layoutGrid, settings, pencil, check, plus, slidersHorizontal, minus,
   arrowDownUp, darkTheme, autoRotate, quickShare, headerEdit, headerSettings, headerPlus,
   bg1x1, bg2x1, mediaCast,
-  volumeX, bellDot, bellDotOff, alarmClock, alarmClockOff, mic, micOff, power, restart
+  volumeX, bellDot, bellDotOff, alarmClock, alarmClockOff, mic, micOff, power, restart,
+  /* 设备类型 */
+  audioLines, printer, watch, glasses, fan, headphones, lightbulb, radioTower, lockKeyhole, plug,
+  /* 风扇档位与控制 */
+  wind, gauge, leaf, moonStar, baby, sparkles, rotateCw, timer, shieldCheck, calendarClock, atom, waves,
+  /* 状态与规格 */
+  router, bluetoothSearching, batteryCharging, signal, thermometer, activity, hardDrive, cpu, packageBox, droplet, circleDot, circle,
+  /* 状态徽标 */
+  plusCircle, xCircle, checkCircle, alertCircle, alertTriangle, info, helpCircle, badgeCheck, loaderCircle,
+  /* 导航与列表 */
+  chevronRight, chevronLeft, chevronDown, chevronsRight, chevronsLeft, arrowLeft, arrowUp, arrowDown, x, search, filter, list, layoutTemplate, grid2x2, moreHorizontal, moreVertical, pencilLine, trash2,
+  /* 内容与文件 */
+  download, upload, share, square, micVocal, scanLine, qrCode, palette, image, images, fileText, folder, folderPlus, save, copy, externalLink, send, rotateCcw, star, eye, maximize, minimize, scanFace, rotate3d, layers, box, blocks,
+  /* 安全与连接 */
+  shield, unlock, lockOpen, key, fingerprint, link, cloud, cloudOff, globe, locate,
+  /* 设备形态与账户 */
+  smartphone, monitor, tablet, user, users, settings2, home, menu,
+  /* 录音与转写 */
+  captions, languages, fileAudio, listMusic,
+  /* 照片编辑与打印 */
+  crop, frame, film, shapes, move, moveHorizontal, aperture, wand2, paintbrush,
+  /* AI Mori */
+  bot, wandSparkles, bookOpen, calendarDays, notebookPen, sticker
 }

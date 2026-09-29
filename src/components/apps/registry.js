@@ -10,6 +10,7 @@ import CameraApp from './camera/CameraApp.vue'
 import VoiceMemosApp from './voicememos/VoiceMemosApp.vue'
 import ClockApp from './clock/ClockApp.vue'
 import OneLeapApp from './oneleap/OneLeapApp.vue'
+import AimateApp from './aimate/AimateApp.vue'
 
 export const appComponents = {
   phone: PhoneApp,
@@ -19,6 +20,7 @@ export const appComponents = {
   camera: CameraApp,
   voicememos: VoiceMemosApp,
   clock: ClockApp,
-  oneleap: OneLeapApp
+  oneleap: OneLeapApp,
+  aimate: AimateApp
 }
 

@@ -54,7 +54,8 @@ export const APP_NAMES = {
     telegram: 'Telegram',
     youtube: 'YouTube',
     linkedin: 'LinkedIn',
-    alipay: '支付宝'
+    alipay: '支付宝',
+    aimate: 'AI Mate'
   },
   en: {
     phone: 'Phone',
@@ -105,7 +106,8 @@ export const APP_NAMES = {
     telegram: 'Telegram',
     youtube: 'YouTube',
     linkedin: 'LinkedIn',
-    alipay: 'Alipay'
+    alipay: 'Alipay',
+    aimate: 'AI Mate'
   },
   bn: {
     phone: 'ফোন',
@@ -156,6 +158,7 @@ export const APP_NAMES = {
     telegram: 'টেলিগ্রাম',
     youtube: 'ইউটিউব',
     linkedin: 'লিঙ্কডইন',
-    alipay: 'আলিপে'
+    alipay: 'আলিপে',
+    aimate: 'AI Mate'
   }
 }
