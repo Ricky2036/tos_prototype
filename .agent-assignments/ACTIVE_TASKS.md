@@ -161,7 +161,10 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Fix Prayer Mode master switch jitter & secondary text left alignment; move Prayer Dynamic Island control into Prayer Mode module as a random-prayer switch alongside Smart Suggestion switch in a duo row | `antigravity/lane` | None (locks released) | `73f3bea` | `2d55d31` |
 | Merged | Antigravity | Increase horizontal gap between prayer time range and repeat label while keeping tabular-nums alignment | `antigravity/lane` | None (locks released) | `61fa2dc` | `36e4f88` |
 
+| Active | Antigravity | Integrate OneLeap multi-device spatial quick control & recording controller with Control Center Device Center entry | `antigravity/lane` | `src/components/apps/oneleap/**`; `src/components/system/ControlCenter.vue`; `src/components/apps/registry.js`; `src/config/apps.js`; `src/components/apps/settings/SettingsApp.vue`; `src/components/phone/ScreenView.vue`; `tests/oneleap.test.js` | `d0c55d5` | In progress |
+
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
+
 
 
 

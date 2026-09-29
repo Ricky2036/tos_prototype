@@ -292,8 +292,12 @@ function onPillClick(e, id) {
   if (editing.value) return
   if (id === 'wifi') control.toggle('wifi')
   else if (id === 'data') control.toggle('cellular')
-  else if (id === 'oneLeap') control.toggle('share')
+  else if (id === 'oneLeap') {
+    system.closeOverlay('controlCenter')
+    system.openApp('oneleap')
+  }
 }
+
 
 /* ================= 网格配置 ================= */
 

@@ -307,7 +307,16 @@ export const APPS = [
 
 import { DRAWER_APPS } from './drawerApps.js'
 
+export const ONELEAP_APP = {
+  id: 'oneleap',
+  name: 'OneLeap',
+  depth: 'core',
+  heroBackground: '#121826',
+  image: '/icons/settings.png'
+}
+
 export const getApp = (id) => {
+  if (id === 'oneleap') return ONELEAP_APP
   const primary = APPS.find((a) => a.id === id)
   if (primary) return primary
   const da = DRAWER_APPS?.find((a) => a.id === id)
@@ -322,6 +331,7 @@ export const getApp = (id) => {
   }
   return undefined
 }
+
 
 /** 桌面网格图标（非 Dock），按注册顺序 */
 export const gridApps = APPS.filter((a) => !a.dock)

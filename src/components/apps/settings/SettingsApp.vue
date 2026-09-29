@@ -145,7 +145,7 @@ const allSearchableItems = [
   { id: 'sim', title: 'SIM卡与网络设置', group: '网络与连接', action: () => pushUnimplemented('SIM卡与网络设置') },
   { id: 'wifi', title: 'WLAN', group: '网络与连接', value: 'Ricky_5G', action: () => push('wifi') },
   { id: 'bluetooth', title: '蓝牙', group: '网络与连接', action: () => pushUnimplemented('蓝牙') },
-  { id: 'multiDevice', title: '多设备连接', group: '网络与连接', action: () => pushUnimplemented('多设备连接') },
+  { id: 'multiDevice', title: '多设备连接', group: '网络与连接', action: () => system.openApp('oneleap') },
   { id: 'infinixAi', title: 'Infinix AI', group: '特色功能', action: () => pushUnimplemented('Infinix AI') },
   { id: 'wallpaper', title: '壁纸与个性化', group: '个性化', action: () => push('personalization') },
   { id: 'display', title: '显示与亮度', group: '显示', action: () => push('display') },
@@ -297,7 +297,7 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- 多设备连接 -->
-              <ListCell title="多设备连接" chevron last @click="pushUnimplemented('多设备连接')">
+              <ListCell title="多设备连接" chevron last @click="system.openApp('oneleap')">
                 <template #icon>
                   <div class="squircle-icon bg-multidevice">
                     <SettingsSystemIcon name="multi-device" :size="19" />
