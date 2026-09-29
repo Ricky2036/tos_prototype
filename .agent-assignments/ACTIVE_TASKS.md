@@ -163,7 +163,10 @@ Only the integration owner edits this table. Remove or mark a row complete after
 
 | Merged | Antigravity | Integrate OneLeap multi-device spatial quick control & recording controller with Control Center Device Center entry | `antigravity/lane` | None (locks released) | `db80d1b` | `71b2705` |
 
-| Active | Antigravity | Fix iOS Safari lock screen clock horizontal split artifact by rendering frost gradient within SVG clipPath group | `antigravity/lane` | `src/components/system/LockScreen.vue`; `tests/lockScreenClock.test.js` | `1c6ea76` | In progress |
+| Merged | Antigravity | Fix iOS Safari lock screen clock horizontal split artifact by rendering frost gradient within SVG clipPath group | `antigravity/lane` | None (locks released) | `3ae1f11` | `5a9b097` |
+
+| Active | Workbuddy | Reassign `tos-workbuddy` development port `6666` → `5555` (documented port unreachable on the host; canonical dev server runs on 5555) | `workbuddy/lane` | `AGENTS.md`; `.agent-assignments/workbuddy.md` | `1c6ea76` | pending |
+| Active | Workbuddy | Integrate AI Mate as a new desktop app (`aimate`): 10-type device catalog (reuses OneLeap's recorder/printer, adds fan/TWS/bulb/infrared/lock/socket), fan control panel, add-device scan flow. New files only (`src/stores/aiMateStore.js`, `src/locales/aimate.js`, `src/components/apps/aimate/**`, `tests/aiMateStore.test.js`); registry touches: `src/config/apps.js`, `src/components/apps/registry.js`, `src/assets/icons/lucide.js`, `src/components/phone/ScreenView.vue`, `public/icons/aimate.png`, `src/stores/i18nStore.js`, `src/locales/app-names.js` | `workbuddy/lane` | Excludes shared: `homeStore.js`, `systemStore.js`, `AppWindow.vue`, `heroGeometry.js`, `useHeroTransition.js`, `LockScreen.vue` | `1c6ea76` | pending |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
