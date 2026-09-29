@@ -163,6 +163,8 @@ Only the integration owner edits this table. Remove or mark a row complete after
 
 | Merged | Antigravity | Integrate OneLeap multi-device spatial quick control & recording controller with Control Center Device Center entry | `antigravity/lane` | None (locks released) | `db80d1b` | `71b2705` |
 
+| Active | Antigravity | Fix iOS Safari lock screen clock horizontal split artifact by rendering frost gradient within SVG clipPath group | `antigravity/lane` | `src/components/system/LockScreen.vue`; `tests/lockScreenClock.test.js` | `1c6ea76` | In progress |
+
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
 

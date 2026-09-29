@@ -1384,11 +1384,12 @@ function notifStyle(i) {
              y 同步下移使 ink 顶恒定（`clockTextY`）——数字顶部固定，不随挤压下沉、不压在日期上。
              letter-spacing:1 用于把展开态整串视觉宽从 276.7 补到参考图的 280.7（只加宽不加高）。
 
-             玻璃质感 = 三层（详见 CLOCK_GLASS_* 注释）：
-               ① clipPath 用同一套排版属性画出字形轮廓；
-               ② 字形内 = 【壁纸自身】经 feGaussianBlur 模糊后的那一片（= 真背景模糊，不是半透明白字）；
-               ③ 最上面再叠一层半透明白霜面（objectBoundingBox 渐变，随字形高度铺满）。
-             ⛔ 三层里的 <text> 排版属性必须逐字一致，否则轮廓与霜面会错位。 -->
+             玻璃质感（跨浏览器一致渲染规范）：
+               ① clipPath 用同一套排版属性画出字形轮廓（完整支持可变字体 ytde 轴垂直拉伸）；
+               ② 字形内图层全部收敛在 clip-path 下统一裁切渲染：
+                  - 底层：【壁纸自身】经 feGaussianBlur 模糊后的切片（真实背景模糊）；
+                  - 顶层：半透明白霜面矩形（objectBoundingBox 渐变覆盖全部字形高度）。
+               解决 WebKit/iOS Safari 在直接绘制可变字体 <text> 时因内部度量盒导致纵向切断的渲染异常。 -->
         <svg viewBox="0 0 306 305" preserveAspectRatio="none" style="overflow: visible;">
           <defs>
             <clipPath :id="glassUid + '-glyph'">
@@ -1410,10 +1411,9 @@ function notifStyle(i) {
                    :width="glassRect.w" :height="glassRect.h"
                    preserveAspectRatio="xMidYMid slice"
                    :filter="'url(#' + glassUid + '-blur)'" />
+            <rect x="0" y="0" :width="CLOCK_SVG_W" :height="CLOCK_SVG_H"
+                  :fill="'url(#' + glassUid + '-frost)'" />
           </g>
-          <text class="ls-clock-num" x="153" :y="clockTextY" :font-size="clockFontSize"
-                :style="{ fontVariationSettings: clockVariation }"
-                text-anchor="middle" :fill="'url(#' + glassUid + '-frost)'" letter-spacing="1">{{ timeShort }}</text>
         </svg>
       </div>
 
