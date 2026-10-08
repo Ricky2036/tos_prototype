@@ -13,12 +13,14 @@ import SettingsSound from './SettingsSound.vue'
 import SettingsDND from './SettingsDND.vue'
 import SettingsPrayer from './SettingsPrayer.vue'
 import SettingsPersonalization from './personalization/SettingsPersonalization.vue'
+import SettingsAccount from './SettingsAccount.vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
 import { useSystemStore } from '../../../stores/systemStore'
 import { useI18nStore } from '../../../stores/i18nStore'
+import { useAccountStore } from '../../../stores/accountStore'
 import { GLYPHS } from '../../../assets/icons/glyphs'
-import accountAvatar from '../../../assets/img/account-avatar.jpg'
+import accountAvatar from '../../../assets/img/infinix-id-avatar.png'
 import { clamp } from '../../../utils/math'
 
 /**
@@ -31,6 +33,7 @@ const prayerStore = usePrayerStore()
 const notificationsStore = useNotificationsStore()
 const system = useSystemStore()
 const i18n = useI18nStore()
+const accountStore = useAccountStore()
 const { timeShort } = useClock()
 
 /* 内部导航栈：支持从礼拜卡片、通知灵动岛直接深链跳转 */
@@ -106,6 +109,7 @@ const viewTitles = computed(() => ({
   dnd: i18n.t('dnd') || '勿扰模式',
   prayer: i18n.t('prayerDnd') || '礼拜模式',
   personalization: '主题与个性化',
+  account: 'Infinix ID',
   placeholder: placeholderTitle.value || '设置'
 }))
 
@@ -161,7 +165,8 @@ const allSearchableItems = [
   { id: 'storage', title: '存储', group: '系统', action: () => pushUnimplemented('存储') },
   { id: 'digitalHealth', title: '数字健康与家长控制', group: '数字健康', action: () => pushUnimplemented('数字健康与家长控制') },
   { id: 'emergency', title: '安全和紧急情况', group: '安全', action: () => pushUnimplemented('安全和紧急情况') },
-  { id: 'account', title: '用户与账号', group: '账号', action: () => pushUnimplemented('用户与账号') },
+  { id: 'account', title: '用户与账号', group: '账号', action: () => push('account') },
+  { id: 'infinixId', title: 'Infinix ID', group: '账号', action: () => push('account') },
   { id: 'google', title: 'Google', group: '服务', action: () => pushUnimplemented('Google') },
   { id: 'system', title: '系统', group: '系统', action: () => push('general') },
   { id: 'language', title: '系统语言与输入法', group: '系统', action: () => push('language') },
@@ -229,12 +234,12 @@ const filteredSearchResults = computed(() => {
           <!-- 默认标准 8 组卡片列表 -->
           <template v-else>
             <!-- ================= 卡片 1: 个人账号卡 ================= -->
-            <div class="settings-card account-card" @click="pushUnimplemented('Ricky 账号')">
+            <div class="settings-card account-card" @click="push('account')">
               <div class="account-avatar">
-                <img class="account-avatar-img" :src="accountAvatar" alt="Ricky" />
+                <img class="account-avatar-img" :src="accountStore.avatar" alt="Ricky" />
               </div>
               <div class="account-info">
-                <div class="account-name">Ricky</div>
+                <div class="account-name">{{ accountStore.isLoggedIn ? accountStore.username : '登录 Infinix ID' }}</div>
                 <div class="account-sub">使用云服务、查找等</div>
               </div>
               <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
@@ -534,6 +539,11 @@ const filteredSearchResults = computed(() => {
       <!-- ================= 主题与个性化 ================= -->
       <div v-else-if="view === 'personalization'" key="personalization" class="settings-page">
         <SettingsPersonalization ref="personalizationRef" @back="pop" />
+      </div>
+
+      <!-- ================= 账号中心 (Infinix ID) ================= -->
+      <div v-else-if="view === 'account'" key="account" class="settings-page">
+        <SettingsAccount @back="pop" />
       </div>
 
       <!-- ================= 其他二级页 ================= -->
