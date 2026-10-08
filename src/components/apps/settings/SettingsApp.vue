@@ -14,6 +14,7 @@ import SettingsDND from './SettingsDND.vue'
 import SettingsPrayer from './SettingsPrayer.vue'
 import SettingsPersonalization from './personalization/SettingsPersonalization.vue'
 import SettingsAccount from './SettingsAccount.vue'
+import SettingsWallet from './SettingsWallet.vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
 import { useSystemStore } from '../../../stores/systemStore'
@@ -110,6 +111,7 @@ const viewTitles = computed(() => ({
   prayer: i18n.t('prayerDnd') || '礼拜模式',
   personalization: '主题与个性化',
   account: 'Infinix ID',
+  wallet: '卡包',
   placeholder: placeholderTitle.value || '设置'
 }))
 
@@ -160,6 +162,7 @@ const allSearchableItems = [
   { id: 'appManage', title: '应用管理', group: '应用', action: () => pushUnimplemented('应用管理') },
   { id: 'location', title: '位置信息', group: '安全与隐私', action: () => pushUnimplemented('位置信息') },
   { id: 'gtZone', title: 'GT Zone', group: '特色功能', action: () => pushUnimplemented('GT Zone') },
+  { id: 'wallet', title: '钱包', group: '特色功能', action: () => push('wallet') },
   { id: 'accessibility', title: '辅助功能', group: '系统', action: () => pushUnimplemented('辅助功能') },
   { id: 'battery', title: '电池与省电', group: '电量', action: () => pushUnimplemented('电池与省电') },
   { id: 'storage', title: '存储', group: '系统', action: () => pushUnimplemented('存储') },
@@ -543,7 +546,12 @@ const filteredSearchResults = computed(() => {
 
       <!-- ================= 账号中心 (Infinix ID) ================= -->
       <div v-else-if="view === 'account'" key="account" class="settings-page">
-        <SettingsAccount @back="pop" />
+        <SettingsAccount @back="pop" @open-wallet="push('wallet')" />
+      </div>
+
+      <!-- ================= 卡包页面 (Wallet) ================= -->
+      <div v-else-if="view === 'wallet'" key="wallet" class="settings-page">
+        <SettingsWallet @back="pop" />
       </div>
 
       <!-- ================= 其他二级页 ================= -->

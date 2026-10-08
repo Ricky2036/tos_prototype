@@ -25,7 +25,7 @@ test('accountStore manages user profile, feature cards, and 3-device list correc
 
   // 设备列表仅保留顶部三个设备
   assert.equal(store.devices.length, 3, 'devices list must retain only the top 3 devices')
-  assert.equal(store.devices[0].name, 'Infinix NOTE 60 Pro')
+  assert.equal(store.devices[0].name, 'Infinix NOTE 50S 5G')
   assert.equal(store.devices[0].subtitle, '本设备')
   assert.equal(store.devices[0].isCurrent, true)
   assert.equal(store.devices[1].name, 'Infinix GT 50 Pro')
@@ -61,6 +61,12 @@ test('SettingsAccount.vue contains all UI elements matching reference specificat
   assert.ok(content.includes('帮助中心'), 'Must contain 帮助中心')
   assert.ok(content.includes('版本'), 'Must contain 版本')
 
+  // 钱包入口卡片
+  assert.ok(content.includes('wallet-entry-card'), 'Must contain wallet entry card')
+  assert.ok(content.includes('钱包'), 'Must contain 钱包 title')
+  assert.ok(content.includes('发现专属优惠福利'), 'Must contain 发现专属优惠福利 subtitle')
+  assert.ok(content.includes("emit('open-wallet')"), 'Must emit open-wallet event on click')
+
   // 设备列表与退出按钮
   assert.ok(content.includes('device-phone-icon'), 'Must render realistic phone icons')
   assert.ok(content.includes('logout-btn'), 'Must render logout button')
@@ -75,4 +81,8 @@ test('SettingsApp.vue properly integrates account page routing and home entry ca
   assert.ok(content.includes("view === 'account'"), "Settings router must render account view")
   assert.ok(content.includes('SettingsAccount'), "SettingsApp must import and render SettingsAccount")
   assert.ok(content.includes("account: 'Infinix ID'"), "viewTitles must include Infinix ID")
+  assert.ok(content.includes("push('wallet')"), "SettingsAccount must connect to push('wallet')")
+  assert.ok(content.includes("view === 'wallet'"), "Settings router must render wallet view")
+  assert.ok(content.includes('SettingsWallet'), "SettingsApp must import and render SettingsWallet")
+  assert.ok(content.includes("wallet: '卡包'"), "viewTitles must include wallet: 卡包")
 })

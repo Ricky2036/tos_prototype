@@ -24,8 +24,8 @@ export const useAccountStore = defineStore('account', () => {
   // 设备列表（顶部 3 个设备）
   const devices = ref([
     {
-      id: 'note60',
-      name: 'Infinix NOTE 60 Pro',
+      id: 'note50s',
+      name: 'Infinix NOTE 50S 5G',
       subtitle: '本设备',
       isCurrent: true,
       color: 'cyan'

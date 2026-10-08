@@ -1,8 +1,9 @@
 <script setup>
 import { ref } from 'vue'
 import { useAccountStore } from '../../../stores/accountStore'
+import walletIcon from '../../../assets/icons/wallet-entry-icon.png'
 
-const emit = defineEmits(['back'])
+const emit = defineEmits(['back', 'open-wallet'])
 const account = useAccountStore()
 
 // 退出确认对话框与提示反馈
@@ -213,6 +214,24 @@ function handleRelogin() {
             <div class="cell-col">
               <div class="cell-title">版本</div>
               <div class="cell-sub">{{ account.version }}</div>
+            </div>
+            <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
+              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- 钱包入口卡片（位于系统设置与设备列表之间） -->
+      <div class="section-card wallet-entry-card" @click="emit('open-wallet')">
+        <div class="cell-row no-border">
+          <div class="wallet-icon-wrap">
+            <img class="wallet-icon-img" :src="walletIcon" alt="钱包" />
+          </div>
+          <div class="cell-main">
+            <div class="cell-col">
+              <div class="cell-title">钱包</div>
+              <div class="cell-sub">发现专属优惠福利</div>
             </div>
             <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
               <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -553,6 +572,33 @@ function handleRelogin() {
 .chevron-icon {
   flex: none;
   margin-left: 8px;
+}
+
+/* 钱包入口独立卡片 */
+.wallet-entry-card {
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.wallet-entry-card:active {
+  transform: scale(0.99);
+  background: #FAFAFC;
+}
+
+.wallet-icon-wrap {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  margin-right: 14px;
+}
+
+.wallet-icon-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
 }
 
 /* 设备拟真小手机图标 */
