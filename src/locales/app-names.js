@@ -55,7 +55,8 @@ export const APP_NAMES = {
     youtube: 'YouTube',
     linkedin: 'LinkedIn',
     alipay: '支付宝',
-    aimate: 'AI Mate'
+    aimate: 'AI Mate',
+    infinix: 'Infinix ID'
   },
   en: {
     phone: 'Phone',
@@ -107,7 +108,8 @@ export const APP_NAMES = {
     youtube: 'YouTube',
     linkedin: 'LinkedIn',
     alipay: 'Alipay',
-    aimate: 'AI Mate'
+    aimate: 'AI Mate',
+    infinix: 'Infinix ID'
   },
   bn: {
     phone: 'ফোন',
@@ -159,6 +161,7 @@ export const APP_NAMES = {
     youtube: 'ইউটিউব',
     linkedin: 'লিঙ্কডইন',
     alipay: 'আলিপে',
-    aimate: 'AI Mate'
+    aimate: 'AI Mate',
+    infinix: 'Infinix ID'
   }
 }

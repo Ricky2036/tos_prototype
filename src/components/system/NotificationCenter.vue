@@ -617,7 +617,7 @@ onBeforeUnmount(() => {
 const weekday = computed(() => (i18n.calWeekDays || [])[now.value.getDay()] || '')
 const monthDay = computed(() => i18n.t('monthDay')(i18n.monthNames[now.value.getMonth()] || now.value.getMonth() + 1, now.value.getDate()))
 
-/* 卡片点击展开描述 */
+/* 卡片点击展开描述 / 点击系统引导通知跳转对应功能 */
 const expandedId = ref(null)
 function toggleExpand(id) {
   if (isSwipingCard) return
@@ -632,6 +632,27 @@ function toggleExpand(id) {
     return
   }
   expandedId.value = expandedId.value === id ? null : id
+}
+
+function onNotifCardClick(n) {
+  if (isSwipingCard) return
+  if (justSwipedId === n.id) {
+    justSwipedId = null
+    return
+  }
+  if (swipeOffsets.value[n.id]) {
+    const next = { ...swipeOffsets.value }
+    delete next[n.id]
+    swipeOffsets.value = next
+    return
+  }
+  if (n.appId === 'infinix') {
+    notifications.setTargetView('account')
+    system.requestCloseOverlay('notificationCenter')
+    system.openApp('settings')
+    return
+  }
+  toggleExpand(n.id)
 }
 
 watch(expandedId, async () => {
@@ -927,7 +948,7 @@ watch(expandedId, async () => {
               @pointermove="onCardPointerMove($event, n.id)"
               @pointerup="onCardPointerUp($event, n.id)"
               @pointercancel="onCardPointerUp($event, n.id)"
-              @click.stop="toggleExpand(n.id)"
+              @click.stop="onNotifCardClick(n)"
             >
               <NotificationIcon :type="n.iconType" />
               <div class="nc-card-body">
@@ -1384,6 +1405,7 @@ watch(expandedId, async () => {
   color: rgba(255, 255, 255, 0.72);
   font: 400 14px/1.45 var(--font-stack);
   margin-top: 2px;
+  text-wrap: pretty;
 }
 .nc-card-desc.line-clamp-2 {
   display: -webkit-box;

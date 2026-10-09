@@ -90,6 +90,7 @@ export const MESSAGES = {
     goHomeHint: '底部上滑或点击横条返回桌面',
     allDay: '全天',
     demoNotifTitles: {
+      infinix: '完成账号登录',
       whatsapp: 'WhatsApp', facebook: 'Facebook', tiktok: 'TikTok', spotify: 'Spotify',
       gmail: 'Gmail', amazon: 'Amazon', snapchat: 'Snapchat', uber: 'Uber', google: 'Google',
       pinterest: 'Pinterest', wechat: '微信', instagram: 'Instagram', x: 'X', netflix: 'Netflix',
@@ -97,6 +98,7 @@ export const MESSAGES = {
       linkedin: 'LinkedIn', alipay: '支付宝'
     },
     demoNotifBodies: {
+      infinix: '登录INFINIX ID,即可享受更多个性化服务',
       recorder: '录音已就绪，可在后台实时收音。',
       voicememos: '录音已就绪，可在后台实时收音。',
       whatsapp: '周末有空聚聚吗？想带你去那家新餐厅。',
@@ -474,6 +476,7 @@ export const MESSAGES = {
     goHomeHint: 'Swipe up from bottom to return home',
     allDay: 'All day',
     demoNotifTitles: {
+      infinix: 'Complete Account Login',
       whatsapp: 'WhatsApp', facebook: 'Facebook', tiktok: 'TikTok', spotify: 'Spotify',
       gmail: 'Gmail', amazon: 'Amazon', snapchat: 'Snapchat', uber: 'Uber', google: 'Google',
       pinterest: 'Pinterest', wechat: 'WeChat', instagram: 'Instagram', x: 'X', netflix: 'Netflix',
@@ -481,6 +484,7 @@ export const MESSAGES = {
       linkedin: 'LinkedIn', alipay: 'Alipay'
     },
     demoNotifBodies: {
+      infinix: 'Sign in to INFINIX ID to enjoy more personalized services',
       recorder: 'Voice Memos is ready for background recording.',
       voicememos: 'Voice Memos is ready for background recording.',
       whatsapp: 'Free this weekend? Want to take you to that new restaurant.',
@@ -859,6 +863,7 @@ export const MESSAGES = {
     goHomeHint: 'হোমে ফিরতে নিচে থেকে সোয়াইপ করুন',
     allDay: 'সারাদিন',
     demoNotifTitles: {
+      infinix: 'অ্যাকাউন্ট লগইন সম্পন্ন করুন',
       whatsapp: 'WhatsApp', facebook: 'Facebook', tiktok: 'TikTok', spotify: 'Spotify',
       gmail: 'Gmail', amazon: 'Amazon', snapchat: 'Snapchat', uber: 'Uber', google: 'Google',
       pinterest: 'Pinterest', wechat: 'WeChat', instagram: 'Instagram', x: 'X', netflix: 'Netflix',
@@ -866,6 +871,7 @@ export const MESSAGES = {
       linkedin: 'LinkedIn', alipay: 'Alipay'
     },
     demoNotifBodies: {
+      infinix: 'আরও ব্যক্তিগতকৃত সেবা উপভোগ করতে INFINIX ID-তে লগইন করুন',
       recorder: 'ব্যাকগ্রাউন্ড রেকর্ডিংয়ের জন্য প্রস্তুত।',
       voicememos: 'ভয়েস মেমো প্রস্তুত।',
       whatsapp: 'সপ্তাহান্তে ফ্রি আছো? সেই নতুন রেস্তোরাঁয় নিয়ে যাব।',

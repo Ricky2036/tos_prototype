@@ -23,11 +23,13 @@ import whatsapp from '../../assets/icons/notification-apps/whatsapp.png'
 import x from '../../assets/icons/notification-apps/x.png'
 import youtube from '../../assets/icons/notification-apps/youtube.png'
 import recorder from '../../assets/icons/notification-apps/recorder.png'
+import infinix from '../../assets/icons/notification-apps/infinix.png'
 
 const IC_IMG = (img) => ({ image: img })
 const IC_SVG = (bg, svg, style = '') => ({ bg, svg, style })
 
 export const NOTIF_ICONS = {
+  infinix: IC_IMG(infinix),
   recorder: IC_IMG(recorder),
   voicememos: IC_IMG(recorder),
   wechat: IC_IMG(wechat),

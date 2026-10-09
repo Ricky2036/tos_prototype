@@ -20,7 +20,8 @@ export function seedNotifications() {
   })
 
   return [
-    make('whatsapp', 0),
+    make('infinix', 0, 'infinix'),
+    make('whatsapp', 2),
     make('facebook', 12),
     make('tiktok', 18),
     make('spotify', 28),

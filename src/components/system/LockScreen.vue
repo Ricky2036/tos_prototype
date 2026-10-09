@@ -1046,6 +1046,16 @@ function handleCardClick(item) {
     handleActivityCardClick(item.activity)
     return
   }
+  if (item.raw?.appId === 'infinix') {
+    if (isCollapsed.value) {
+      handleExpand()
+      return
+    }
+    notifications.setTargetView('account')
+    system.unlock()
+    system.openApp('settings')
+    return
+  }
   handleExpand()
 }
 
@@ -1747,10 +1757,10 @@ function notifStyle(i) {
               <NotificationIcon :type="item.raw.iconType" :size="38" />
               <div class="ls-notif-body">
                 <div class="ls-notif-head">
-                  <span class="ls-notif-title">{{ i18n.notifTitle(item.raw.appId) }}</span>
+                  <span class="ls-notif-title">{{ item.raw.title || i18n.notifTitle(item.raw.appId) }}</span>
                   <span class="ls-notif-time">{{ formatRelativeTime(item.raw.time, i18n.t) }}</span>
                 </div>
-                <p class="ls-notif-desc">{{ i18n.notifBody(item.raw.appId) }}</p>
+                <p class="ls-notif-desc">{{ item.raw.body || i18n.notifBody(item.raw.appId) }}</p>
               </div>
             </template>
           </div>
@@ -2316,6 +2326,7 @@ function notifStyle(i) {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-wrap: pretty;
   padding-right: 8px;
 }
 

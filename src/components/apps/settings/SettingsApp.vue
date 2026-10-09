@@ -37,13 +37,16 @@ const i18n = useI18nStore()
 const accountStore = useAccountStore()
 const { timeShort } = useClock()
 
-/* 内部导航栈：支持从礼拜卡片、通知灵动岛直接深链跳转 */
+/* 内部导航栈：支持从礼拜卡片、通知灵动岛、账号引导通知直接深链跳转 */
 let initialStack = ['main']
 if (prayerStore.targetView === 'prayer') {
   initialStack = ['main', 'sound', 'prayer']
   prayerStore.setTargetView('main')
 } else if (notificationsStore.targetView === 'notifications') {
   initialStack = ['main', 'notifications']
+} else if (notificationsStore.targetView === 'account') {
+  initialStack = ['main', 'account']
+  notificationsStore.targetView = null
 }
 const stack = ref(initialStack)
 const view = computed(() => stack.value[stack.value.length - 1])
@@ -66,6 +69,10 @@ watch(
     if (newTarget === 'notifications') {
       isBack.value = false
       stack.value = ['main', 'notifications']
+    } else if (newTarget === 'account') {
+      isBack.value = false
+      stack.value = ['main', 'account']
+      notificationsStore.targetView = null
     }
   }
 )
