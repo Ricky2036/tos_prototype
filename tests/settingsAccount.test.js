@@ -49,6 +49,11 @@ test('SettingsAccount.vue contains all UI elements matching reference specificat
   assert.ok(content.includes('Infinix ID'), 'Navbar must contain Infinix ID title')
   assert.ok(content.includes('nav-round-btn'), 'Navbar must contain circular action buttons')
 
+  // 头像圆形样式
+  assert.ok(content.includes('border-radius: 50%'), 'Profile avatar wrap must have circular border-radius')
+  assert.ok(content.includes('overflow: hidden'), 'Profile avatar wrap must clip with overflow hidden')
+  assert.ok(content.includes('object-fit: cover'), 'Profile avatar image must use object-fit cover')
+
   // 4 张功能卡片
   assert.ok(content.includes('Infinix Cloud'), 'Must contain Infinix Cloud card')
   assert.ok(content.includes('查找我的设备'), 'Must contain 查找我的设备 card')
