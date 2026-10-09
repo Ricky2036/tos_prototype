@@ -37,15 +37,11 @@ await page.evaluate(() => window.__system.openApp('aimate'))
 await page.waitForTimeout(900)
 await shot('00-home')
 
-/* 1. 入口：首页 → 口袋打印机控制页 → 照片打印 */
+/* 1. 入口：首页设备卡**直达**打印流程（已去掉中间控制页） */
 await page.locator('[data-device-card="AM-Printer-01"]').click()
 await page.waitForTimeout(700)
-const entry = page.locator('[data-open-print]')
-check('打印机控制页有照片打印入口', await entry.count() === 1)
-check('入口文案为流程名', /照片打印/.test((await entry.textContent() || '')), (await entry.textContent() || '').trim())
-
-await entry.click()
-await page.waitForTimeout(700)
+check('卡片直达流程（无中间控制页）', await page.locator('[data-open-print]').count() === 0)
+check('打印流程已挂载', await page.locator('[data-flow-root="printer"]').count() === 1)
 await shot('01-source')
 const sources = await page.locator('.pf-source').count()
 check('来源屏 3 张卡', sources === 3, `${sources} 张`)
@@ -152,13 +148,13 @@ const doneStage = await page.locator('.pf-job-stage').first().textContent()
 check('打印可跑到完成', /完成/.test(doneStage || ''), (doneStage || '').trim())
 await shot('08-done')
 
-/* 6. AR 屏：队列屏返回 → 关掉流程回到控制页 → 重新进流程 → 选 AR 来源 */
+/* 6. AR 屏：队列屏返回 → 关掉流程回到首页 → 重新进流程 → 选 AR 来源 */
 await page.locator('.pf-head .pf-back').click()
 await page.waitForTimeout(700)
 // 队列屏的返回语义是「关闭整个打印流程」（Arch 归档同款：队列是最后一屏）
 check('队列屏返回关闭流程', await page.locator('.pf-source').count() === 0)
-check('回到设备控制页', await page.locator('[data-open-print]').count() === 1)
-await page.locator('[data-open-print]').click()
+check('回到首页', await page.locator('[data-device-card="AM-Printer-01"]').count() === 1)
+await page.locator('[data-device-card="AM-Printer-01"]').click()
 await page.waitForTimeout(700)
 const arCard = page.locator('.pf-source').nth(2)
 await arCard.click()
@@ -195,12 +191,9 @@ await page.waitForTimeout(600)
 check('AR → 来源屏', await page.locator('.pf-source').count() === 3)
 await page.locator('.pf-head .pf-back').click()
 await page.waitForTimeout(600)
-check('来源屏 → 关闭回打印机控制页', await page.locator('[data-open-print]').count() === 1)
+check('来源屏 → 关闭回首页', await page.locator('[data-add-entry]').count() === 1)
 
-/* 8. 控制页 → 首页：设备照样在目录里 */
-await page.locator('[data-nav-back]').click()
-await page.waitForTimeout(700)
-check('控制页可退回首页', await page.locator('[data-add-entry]').count() === 1)
+/* 8. 设备照样在目录里（关闭流程不摘设备） */
 check('打印机设备卡仍在首页', await page.locator('[data-device-card="AM-Printer-01"]').count() === 1)
 
 check('无控制台报错', errors.length === 0, errors.slice(0, 3).join(' | '))

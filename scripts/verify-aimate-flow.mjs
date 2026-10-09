@@ -49,18 +49,90 @@ async function run() {
   check('打开 AI Mate', appId === 'aimate', String(appId))
   await shot(page, '10-home')
 
-  /* ---------- 1. 首页 ---------- */
-  const bannerText = await txtOf(page.locator('.banner'))
-  check('首页 banner 文案', bannerText.includes('添加智能设备') && bannerText.includes('扫描发现附近蓝牙设备'), bannerText.replace(/\n/g, ' / '))
+  /* ---------- 1. 首页（首页 Tab） ---------- */
+  const summary = await txtOf(page.locator('[data-device-summary]'))
+  check('首页设备统计（4 台 · 全部在线）', /4\s*台设备/.test(summary) && /4\s*台在线/.test(summary), summary)
+
   const cards = await page.locator('[data-device-card]').count()
-  check('首页设备卡数量', cards === 12, `${cards} 张`)
+  check('首页设备卡 = 四份归档的并集（4 张）', cards === 4, `${cards} 张`)
   const initialCards = cards
-  const emptyHidden = await page.locator('.empty-state').count()
-  check('有设备时不显示空状态', emptyHidden === 0, `${emptyHidden} 个`)
-  const gearSegs = await page.locator('[data-device-card="DAEWOO-Fan-A1"] .dc-gear-seg').count()
-  check('风扇卡有 12 段档位条', gearSegs === 12, `${gearSegs} 段`)
+  const ids = ['DAEWOO-Fan-A1', 'AM-Printer-01', 'AM-Recorder-01', 'AM-Mori-01']
+  let unionOk = true
+  for (const id of ids) unionOk = unionOk && (await page.locator(`[data-device-card="${id}"]`).count()) === 1
+  check('并集四台齐全：风扇 / 口袋打印机 / 录音充电宝 / AI Mori', unionOk)
+
+  const names = await page.locator('.mcard .mc-name').allTextContents()
+  check(
+    '「添加设备」目录里的通用品类不得预置进「我的设备」',
+    !names.some((t) => /灯泡|插座|门锁|红外|耳机|手表|眼镜/.test(t.trim())),
+    names.map((t) => t.trim()).join(' / ')
+  )
+
+  const printerMeta = await txtOf(page.locator('[data-device-meta="AM-Printer-01"]'))
+  check('打印机卡副行含相纸余量与电量', /相纸/.test(printerMeta) && /电量/.test(printerMeta), printerMeta)
   const gearTxt = await txtOf(page.locator('[data-gear-value="DAEWOO-Fan-A1"]'))
-  check('档位文案与 12 档同源', /3\s*\/\s*12/.test(gearTxt), gearTxt)
+  check('风扇卡内联档位与 12 档同源', /3\s*\/\s*12/.test(gearTxt), gearTxt)
+
+  const others = await page.locator('[data-other]').count()
+  check('「其他设备」3 台（两份 Demo 并集）', others === 3, `${others} 台`)
+  const glassStatus = await txtOf(page.locator('[data-other="AI-Glass"] .or-status'))
+  check('其他设备里眼镜是未连接（归档如此）', glassStatus.trim() === '未连接', glassStatus)
+  check('有「添加新设备」行', (await page.locator('[data-add-new]').count()) === 1)
+  check('添加入口唯一（避免 strict mode 撞车）', (await page.locator('[data-add-entry]').count()) === 1)
+
+  /* ---------- 1b. 底部 Tab（首页 / 我的） ---------- */
+  check('底部 Tab 已挂载（本仓惯例组件）', (await page.locator('.floating-tab-bar').count()) === 1)
+  const tabLabels = (await page.locator('.floating-tab-bar .tab-label-text').allTextContents()).map((t) => t.trim())
+  check('底部 Tab 两项：首页 / 我的', JSON.stringify(tabLabels) === JSON.stringify(['首页', '我的']), JSON.stringify(tabLabels))
+
+  /* 悬浮导航几何：必须与本仓标准控件默认值一致（对齐时钟页 ClockApp） */
+  const barGeo = await page.evaluate(() => {
+    const bar = document.querySelector('.floating-tab-bar')
+    const sr = document.querySelector('.screen-view').getBoundingClientRect()
+    const br = bar.getBoundingClientRect()
+    const cs = getComputedStyle(bar)
+    return { cssHeight: cs.height, cssBottom: cs.bottom, 距屏底: +(sr.bottom - br.bottom).toFixed(1) }
+  })
+  check(
+    '悬浮导航尺寸走标准控件（高 62px / 贴底 22px）',
+    barGeo.cssHeight === '62px' && barGeo.cssBottom === '22px',
+    JSON.stringify(barGeo)
+  )
+  check(
+    '悬浮导航实测距屏底 22px（不再被 home-indicator 顶高 34px）',
+    Math.abs(barGeo.距屏底 - 22) < 1,
+    `${barGeo.距屏底}px`
+  )
+
+  /* 底部渐隐遮罩：三个锚点必须与上面的底栏几何自洽 */
+  const fadeOf = (sel) => page.evaluate((s) => {
+    const el = document.querySelector(s)
+    const cs = getComputedStyle(el)
+    const v = cs.maskImage && cs.maskImage !== 'none' ? cs.maskImage : cs.webkitMaskImage || ''
+    return String(v).replace(/\s+/g, '')
+  }, sel)
+  const fade = await fadeOf('.home-scroll')
+  const barBottom = parseFloat(barGeo.cssBottom)
+  const barTop = barBottom + parseFloat(barGeo.cssHeight)
+  check(
+    '首页滚动容器有底部渐隐遮罩，且锚点与底栏几何自洽',
+    fade.includes(`calc(100%-${barTop + 8}px)`) &&
+      fade.includes(`calc(100%-${barBottom}px)`) &&
+      fade.includes('calc(100%-55px)'),
+    fade.slice(0, 110)
+  )
+  const mineFade = await fadeOf('.mine-scroll')
+  check('「我的」页滚动容器同样有底部渐隐遮罩', /linear-gradient/.test(mineFade), mineFade.slice(0, 80))
+  await page.locator('[data-go-mine]').click()
+  await page.waitForTimeout(700)
+  const mineRows = await page.locator('[data-mine-row]').count()
+  check('「我的」页 6 个设置入口（两份 Demo 并集去重）', mineRows === 6, `${mineRows} 个`)
+  const mineHero = (await txtOf(page.locator('.mine-hero'))).replace(/\s+/g, ' ')
+  check('「我的」头像卡带已连接台数', /已连接\s*4\s*台设备/.test(mineHero), mineHero)
+  await shot(page, '10b-mine')
+  await page.locator('.floating-tab-bar .floating-tab-item').first().click()
+  await page.waitForTimeout(700)
+  check('底部 Tab 可切回首页', (await page.locator('[data-device-card]').count()) === 4)
 
   /* 首页开关：关→开（1200ms 回执后翻转） */
   const sw = page.locator('[data-device-switch="DAEWOO-Fan-A1"]')
@@ -254,16 +326,50 @@ async function run() {
   const remaining = await page.locator('[data-device-card]').count()
   check('仍有其它设备', remaining > 0, `剩 ${remaining} 台`)
 
-  /* ---------- 10. 打印机流程从设备控制页进入 ---------- */
+  /* ---------- 10. 三台集成设备：卡片直达功能页（不经控制页） ---------- */
   await page.locator('[data-device-card="AM-Printer-01"]').click()
-  await page.waitForTimeout(800)
-  check('打印机控制页有「照片打印」入口', (await page.locator('[data-open-print]').count()) === 1)
-  await shot(page, '23-printer-control')
-  await page.locator('[data-open-print]').click()
-  await page.waitForTimeout(800)
-  check('进入打印机流程', (await page.locator('.pf-source').count()) === 3, `${await page.locator('.pf-source').count()} 张卡`)
+  await page.waitForTimeout(900)
+  check('打印机卡直达打印流', (await page.locator('.pf').count()) === 1)
+  check('没有经过控制页（无电源大按钮）', (await page.locator('[data-power-btn]').count()) === 0)
+  const srcCards = await page.locator('.pf-source').count()
+  check('打印流来源卡 3 张', srcCards === 3, `${srcCards} 张`)
+  await shot(page, '23-printer-direct')
   await page.locator('.pf-head [data-nav-back], .pf-head button').first().click()
+  await page.waitForTimeout(800)
+  check('打印流关闭后回到首页', (await page.locator('[data-device-card]').count()) === 4)
+
+  await page.locator('[data-device-card="AM-Recorder-01"]').click()
+  await page.waitForTimeout(900)
+  check('录音充电宝卡直达录音流', (await page.locator('[data-flow-root="recorder"]').count()) === 1)
+  check('录音流里也没有中间页', (await page.locator('[data-power-btn]').count()) === 0)
+  await shot(page, '24-recorder-direct')
+  await page.locator('[data-flow-root="recorder"] [data-nav-back]').first().click()
+  await page.waitForTimeout(800)
+
+  await page.locator('[data-device-card="AM-Mori-01"]').click()
+  await page.waitForTimeout(900)
+  check('AI Mori 卡直达 Mori 流', (await page.locator('[data-flow-root="mori"]').count()) === 1)
+  check('Mori 流里也没有中间页', (await page.locator('[data-power-btn]').count()) === 0)
+  await shot(page, '25-mori-direct')
+  await page.locator('[data-flow-root="mori"] [data-nav-back]').first().click()
+  await page.waitForTimeout(800)
+  check('Mori 流关闭后回到首页', (await page.locator('[data-device-card]').count()) === 4)
+
+  /* ---------- 10b. 卡片 `···` 进设备详情，返回回首页 ---------- */
+  await page.locator('[data-device-more="AM-Printer-01"]').click()
   await page.waitForTimeout(700)
+  check('卡片 `···` 进设备详情', (await page.locator('[data-info-mac]').count()) === 1)
+  await shot(page, '26-info-from-home')
+  await page.locator('[data-nav-back]').click()
+  await page.waitForTimeout(700)
+  check('从首页进的详情，返回回首页', (await page.locator('[data-device-card]').count()) === 4)
+
+  /* ---------- 10c. 其他设备行给 toast ---------- */
+  await page.locator('[data-other="AI-Buds-Pro"]').click()
+  await page.waitForTimeout(600)
+  const otherToast = await txtOf(page.locator('[data-toast]'))
+  check('其他设备给状态 toast', otherToast.includes('智能耳机') && otherToast.includes('64%'), otherToast)
+  await page.waitForTimeout(2200)
 
   /* ---------- 11. 返回链路 ---------- */
   await page.evaluate(() => window.__system.goHome())

@@ -13,17 +13,41 @@ export const AIMATE = {
   zh: {
     appName: 'AI Mate',
     home: {
-      title: 'AI Mate',
-      subtitle: '设备管理',
-      addTitle: '添加智能设备',
-      addSub: '扫描发现附近蓝牙设备',
       myDevices: '我的设备',
-      catalog: '设备目录',
       empty: '还没有设备',
+      greeting: '下午好，Ling',
+      greetingSub: '让每一次对话都有迹可循',
+      addDeviceAction: '＋ 添加设备',
+      summary: '{n} 台设备 · {m} 台在线',
+      otherDevices: '其他设备',
+      otherSub: '集中管理你的 AI Mate 设备',
+      addNew: '添加新设备',
+      addNewSub: '蓝牙 / NFC / 扫码',
       group: { carry: '随身', wear: '穿戴', appliance: '家电', home: '家居' }
     },
+    tab: { home: '首页', mine: '我的', aria: 'AI Mate 底部导航' },
+    action: {
+      quickPrint: '快速打印',
+      record: '录音', recordSub: '设备拾音',
+      shoot: '拍摄', shootSub: '随身影音',
+      enter: '进入'
+    },
+    deviceMeta: { battery: '电量 {n}%', paper: '相纸 {n} / {max} 张', used: '已用 {n} GB', shots: '{n} 张素材' },
+    deviceTitle: { printer: '我的口袋打印机', recorder: '我的录音充电宝', mori: 'AI Mori' },
+    other: {
+      watch: 'AI 运动手表', watchModel: 'Mate Watch S2', watchMeta: '电量 72% · 今日已同步',
+      buds: '智能耳机', budsModel: 'Mate Buds Pro', budsMeta: '电量 64% · 降噪已开启',
+      glass: 'AI 眼镜', glassModel: 'Mate Glass', glassMeta: '上次在线：昨天 21:38',
+      notConnected: '未连接', connect: '连接'
+    },
+    mine: {
+      title: '我的', role: 'AI Mate 探索者', connected: '已连接 {n} 台设备',
+      email: 'ling.kong@aimate.com', plan: 'AI Mate Pro',
+      account: '账号与安全', notify: '通知设置', notifyValue: '已开启',
+      general: '通用设置', privacy: '隐私与数据', help: '帮助与反馈',
+      about: '关于 AI Mate', version: 'v3.6.0'
+    },
     status: { online: '已连接', offline: '已离线', offlineShort: '离线' },
-    count: { devices: '台设备', online: '台在线' },
     type: {
       recorder: '录音充电宝', printer: '口袋打印机', watch: '手表', glasses: '眼镜',
       fan: '风扇', tws: '耳机', bulbs: '灯泡', infrared: '红外', locks: '门锁', socket: '插座',
@@ -123,13 +147,12 @@ export const AIMATE = {
       tapConnect: '点击下方按钮开始连接'
     },
     control: {
-      connected: '已连接', powerOn: '开启', powerOff: '已关机',
+      powerOn: '开启', powerOff: '已关机',
       speedTitle: '风速档位', speedValue: '当前档位：{n} / {max}',
       modeTitle: '模式', swing: '摇头',
       timerOff: '定时关机', timerOn: '预约开机', notSet: '未设置',
       plasma: '等离子', plasmaOff: '关闭', plasmaOn: '开启',
       more: '更多', childLock: '童锁', manual: '产品说明书', firmware: '固件升级',
-      emptyTitle: '暂无设备', emptySub: '点击上方卡片添加你的风扇'
     },
     info: {
       title: '设备详情', mac: 'Mac 地址', firmwareVer: '固件版本',
@@ -145,6 +168,8 @@ export const AIMATE = {
       timerOffCleared: '已取消定时关机',
       timerOnCleared: '已取消预约开机',
       notFound: '设备不存在',
+      deviceStatus: '{name} · {meta}',
+      mineWip: '演示原型：该入口暂未展开',
       firmwareUpgraded: '固件已升级至 v{v}',
       printMaxPick: '一次最多选择 {n} 张',
       printNoPhoto: '请先选择照片',
@@ -161,17 +186,41 @@ export const AIMATE = {
   en: {
     appName: 'AI Mate',
     home: {
-      title: 'AI Mate',
-      subtitle: 'Device Manager',
-      addTitle: 'Add Smart Device',
-      addSub: 'Scan for nearby Bluetooth devices',
       myDevices: 'My Devices',
-      catalog: 'Device Catalog',
       empty: 'No devices yet',
+      greeting: 'Good afternoon, Ling',
+      greetingSub: 'Every conversation, on the record',
+      addDeviceAction: '+ Add device',
+      summary: '{n} devices · {m} online',
+      otherDevices: 'Other devices',
+      otherSub: 'Keep all your AI Mate devices in one place',
+      addNew: 'Add a new device',
+      addNewSub: 'Bluetooth / NFC / QR code',
       group: { carry: 'Carry', wear: 'Wearables', appliance: 'Appliances', home: 'Home' }
     },
+    tab: { home: 'Home', mine: 'Me', aria: 'AI Mate bottom navigation' },
+    action: {
+      quickPrint: 'Quick print',
+      record: 'Record', recordSub: 'Device microphone',
+      shoot: 'Capture', shootSub: 'Pocket camera',
+      enter: 'Open'
+    },
+    deviceMeta: { battery: '{n}% battery', paper: 'Paper {n} / {max}', used: '{n} GB used', shots: '{n} items' },
+    deviceTitle: { printer: 'My Pocket Printer', recorder: 'My Recorder Power Bank', mori: 'AI Mori' },
+    other: {
+      watch: 'AI Sports Watch', watchModel: 'Mate Watch S2', watchMeta: '72% battery · Synced today',
+      buds: 'Smart Earbuds', budsModel: 'Mate Buds Pro', budsMeta: '64% battery · ANC on',
+      glass: 'AI Glasses', glassModel: 'Mate Glass', glassMeta: 'Last online: yesterday 21:38',
+      notConnected: 'Not connected', connect: 'Connect'
+    },
+    mine: {
+      title: 'Me', role: 'AI Mate explorer', connected: '{n} devices connected',
+      email: 'ling.kong@aimate.com', plan: 'AI Mate Pro',
+      account: 'Account & Security', notify: 'Notifications', notifyValue: 'On',
+      general: 'General', privacy: 'Privacy & Data', help: 'Help & Feedback',
+      about: 'About AI Mate', version: 'v3.6.0'
+    },
     status: { online: 'Connected', offline: 'Disconnected', offlineShort: 'Offline' },
-    count: { devices: 'devices', online: 'online' },
     type: {
       recorder: 'Recorder Power Bank', printer: 'Pocket Printer', watch: 'Watch', glasses: 'Glasses',
       fan: 'Fan', tws: 'Earbuds', bulbs: 'Bulb', infrared: 'IR Remote', locks: 'Door Lock', socket: 'Smart Plug',
@@ -274,13 +323,12 @@ export const AIMATE = {
       tapConnect: 'Tap the button below to start connecting'
     },
     control: {
-      connected: 'Connected', powerOn: 'On', powerOff: 'Off',
+      powerOn: 'On', powerOff: 'Off',
       speedTitle: 'Fan speed', speedValue: 'Current level: {n} / {max}',
       modeTitle: 'Mode', swing: 'Oscillate',
       timerOff: 'Sleep timer', timerOn: 'Turn-on timer', notSet: 'Not set',
       plasma: 'Plasma', plasmaOff: 'Off', plasmaOn: 'On',
       more: 'More', childLock: 'Child lock', manual: 'User manual', firmware: 'Firmware update',
-      emptyTitle: 'No devices yet', emptySub: 'Tap the card above to add your fan'
     },
     info: {
       title: 'Device details', mac: 'MAC address', firmwareVer: 'Firmware',
@@ -296,6 +344,8 @@ export const AIMATE = {
       timerOffCleared: 'Sleep Timer cleared',
       timerOnCleared: 'Schedule On cleared',
       notFound: 'Device not found',
+      deviceStatus: '{name} · {meta}',
+      mineWip: 'Prototype: this entry is not built out yet',
       firmwareUpgraded: 'Firmware updated to v{v}',
       printMaxPick: 'Up to {n} photos at a time',
       printNoPhoto: 'Select a photo first',
@@ -312,17 +362,41 @@ export const AIMATE = {
   bn: {
     appName: 'AI Mate',
     home: {
-      title: 'AI Mate',
-      subtitle: 'ডিভাইস ম্যানেজার',
-      addTitle: 'স্মার্ট ডিভাইস যোগ করুন',
-      addSub: 'কাছাকাছি ব্লুটুথ ডিভাইস স্ক্যান করুন',
       myDevices: 'আমার ডিভাইস',
-      catalog: 'ডিভাইস ক্যাটালগ',
       empty: 'এখনো কোনো ডিভাইস নেই',
+      greeting: 'শুভ অপরাহ্ন, Ling',
+      greetingSub: 'প্রতিটি কথোপকথন থাকে সংরক্ষিত',
+      addDeviceAction: '+ ডিভাইস যোগ করুন',
+      summary: '{n}টি ডিভাইস · {m}টি অনলাইন',
+      otherDevices: 'অন্যান্য ডিভাইস',
+      otherSub: 'আপনার সব AI Mate ডিভাইস এক জায়গায় রাখুন',
+      addNew: 'নতুন ডিভাইস যোগ করুন',
+      addNewSub: 'ব্লুটুথ / NFC / QR কোড',
       group: { carry: 'সাথে', wear: 'পরিধেয়', appliance: 'গৃহস্থালি যন্ত্র', home: 'বাসগৃহ' }
     },
+    tab: { home: 'হোম', mine: 'আমার', aria: 'AI Mate নিচের নেভিগেশন' },
+    action: {
+      quickPrint: 'দ্রুত প্রিন্ট',
+      record: 'রেকর্ড', recordSub: 'ডিভাইসের মাইক',
+      shoot: 'ছবি তুলুন', shootSub: 'পকেট ক্যামেরা',
+      enter: 'খুলুন'
+    },
+    deviceMeta: { battery: 'ব্যাটারি {n}%', paper: 'কাগজ {n} / {max}', used: '{n} GB ব্যবহৃত', shots: '{n}টি আইটেম' },
+    deviceTitle: { printer: 'আমার পকেট প্রিন্টার', recorder: 'আমার রেকর্ডার পাওয়ার ব্যাংক', mori: 'AI Mori' },
+    other: {
+      watch: 'AI স্পোর্টস ওয়াচ', watchModel: 'Mate Watch S2', watchMeta: 'ব্যাটারি ৭২% · আজ সিঙ্ক হয়েছে',
+      buds: 'স্মার্ট ইয়ারবাড', budsModel: 'Mate Buds Pro', budsMeta: 'ব্যাটারি ৬৪% · নয়েজ ক্যান্সেল চালু',
+      glass: 'AI চশমা', glassModel: 'Mate Glass', glassMeta: 'শেষ অনলাইন: গতকাল ২১:৩৮',
+      notConnected: 'সংযুক্ত নয়', connect: 'সংযুক্ত করুন'
+    },
+    mine: {
+      title: 'আমার', role: 'AI Mate অন্বেষক', connected: '{n}টি ডিভাইস সংযুক্ত',
+      email: 'ling.kong@aimate.com', plan: 'AI Mate Pro',
+      account: 'অ্যাকাউন্ট ও নিরাপত্তা', notify: 'নোটিফিকেশন', notifyValue: 'চালু',
+      general: 'সাধারণ সেটিংস', privacy: 'গোপনীয়তা ও ডেটা', help: 'সহায়তা ও মতামত',
+      about: 'AI Mate সম্পর্কে', version: 'v3.6.0'
+    },
     status: { online: 'সংযুক্ত', offline: 'সংযোগবিহীন', offlineShort: 'অফলাইন' },
-    count: { devices: 'ডিভাইস', online: 'অনলাইন' },
     type: {
       recorder: 'রেকর্ডার পাওয়ার ব্যাংক', printer: 'পকেট প্রিন্টার', watch: 'ঘড়ি', glasses: 'চশমা',
       fan: 'ফ্যান', tws: 'ইয়ারবাড', bulbs: 'বাল্ব', infrared: 'আইআর রিমোট', locks: 'দরজার তালা', socket: 'স্মার্ট প্লাগ',
@@ -425,13 +499,12 @@ export const AIMATE = {
       tapConnect: 'সংযোগ করতে নিচের বোতামে চাপুন'
     },
     control: {
-      connected: 'সংযুক্ত', powerOn: 'চালু', powerOff: 'বন্ধ',
+      powerOn: 'চালু', powerOff: 'বন্ধ',
       speedTitle: 'ফ্যান গতি', speedValue: 'বর্তমান লেভেল: {n} / {max}',
       modeTitle: 'মোড', swing: 'ওসিলেশন',
       timerOff: 'স্লীপ টাইমার', timerOn: 'টার্ন-অন টাইমার', notSet: 'সেট করা হয়নি',
       plasma: 'প্লাজ্মা', plasmaOff: 'বন্ধ', plasmaOn: 'চালু',
       more: 'আরও', childLock: 'চাইল্ড লক', manual: 'ব্যবহার নির্দেশিকা', firmware: 'ফার্মওয়ার আপডেট',
-      emptyTitle: 'কোনো ডিভাইস নেই', emptySub: 'উপরের কার্ডে চাপ করে ফ্যান যোগ করুন'
     },
     info: {
       title: 'ডিভাইস বিবরণ', mac: 'MAC ঠিকানা', firmwareVer: 'ফার্মওয়ার',
@@ -447,6 +520,8 @@ export const AIMATE = {
       timerOffCleared: 'টাইমার বন্ধ বাতিল হয়েছে',
       timerOnCleared: 'নির্ধারিত চালু বাতিল হয়েছে',
       notFound: 'ডিভাইস পাওয়া যায়নি',
+      deviceStatus: '{name} · {meta}',
+      mineWip: 'প্রোটোটাইপ: এই এন্ট্রি এখনো তৈরি হয়নি',
       firmwareUpgraded: 'ফার্মওয়্যার v{v} এ আপডেট হয়েছে',
       printMaxPick: 'একবারে সর্বোচ্চ {n}টি ছবি',
       printNoPhoto: 'আগে একটি ছবি বাছুন',

@@ -29,6 +29,8 @@ import { RECORDER_FLOW } from '../../../locales/recorder-flow'
 import { useAiMateStore, PICKUP_MODES } from '../../../stores/aiMateStore'
 import { useRecorderFlowStore, TRANSLATE_TARGETS, TICK, makeWave } from '../../../stores/recorderFlowStore'
 import LIcon from '../../ui/LIcon.vue'
+import AppNavBar from '../../ui/AppNavBar.vue'
+import ListCell from '../../ui/ListCell.vue'
 
 const emit = defineEmits(['close'])
 const i18n = useI18nStore()
@@ -38,6 +40,9 @@ const am = (p) => i18n.am(p)
 
 /** ⚠️ 本仓 i18n 没有插值机制；`{n}` 占位符在调用点自行替换 */
 const t = (k) => RECORDER_FLOW[i18n.locale]?.[k] ?? RECORDER_FLOW.zh[k] ?? k
+
+/** 标题栏文案（顶部标准导航栏与各屏共用） */
+const flowTitle = computed(() => (store.screen === 'detail' ? t('detail.title') : t('files.title')))
 
 /* 波形：条数与高度逐条照抄归档 §4.9 */
 const WAVE8 = makeWave(8)
@@ -204,25 +209,24 @@ function signalText(excellent) {
 
 <template>
   <div class="rf-root" data-flow-root="recorder" role="region" :aria-label="t('title')">
-    <!-- ==================== 头部（对齐归档 .page-head 的 52px 行） ==================== -->
-    <header class="rf-head">
-      <button class="rf-back" data-nav-back :aria-label="t('files.back')" @click="onBack">
-        <LIcon name="arrowLeft" :size="18" />
-      </button>
-      <h1 class="rf-title">{{ store.screen === 'detail' ? t('detail.title') : t('files.title') }}</h1>
-      <button
-        v-if="store.screen === 'files'"
-        class="rf-head-action"
-        data-rec-manage
-        @click="store.toggleManage()"
-      >{{ store.managing ? t('files.manageDone') : t('files.manage') }}</button>
-      <button
-        v-else
-        class="rf-head-action"
-        data-rec-export
-        @click="store.toastExport()"
-      >{{ t('files.export') }}</button>
-    </header>
+    <!-- ==================== 标题栏：本仓标准控件 AppNavBar ==================== -->
+    <AppNavBar :title="flowTitle" @back="onBack">
+      <template #title><span class="rf-title">{{ flowTitle }}</span></template>
+      <template #right>
+        <button
+          v-if="store.screen === 'files'"
+          class="rf-head-action"
+          data-rec-manage
+          @click="store.toggleManage()"
+        >{{ store.managing ? t('files.manageDone') : t('files.manage') }}</button>
+        <button
+          v-else
+          class="rf-head-action"
+          data-rec-export
+          @click="store.toastExport()"
+        >{{ t('files.export') }}</button>
+      </template>
+    </AppNavBar>
 
     <!-- ==================== 屏 1：全部录音 ==================== -->
     <div v-if="store.screen === 'files'" key="files" class="rf-body" data-rec-screen="files">
@@ -244,22 +248,26 @@ function signalText(excellent) {
       </div>
 
       <div class="rf-list" :class="{ managing: store.managing }" data-rec-list>
-        <button
-          v-for="r in store.fileList"
+        <ListCell
+          v-for="(r, ri) in store.fileList"
           :key="r.id"
-          class="rf-row"
+          :class="'rf-tone-' + (ri % 4)"
           :data-rec-file="r.id"
+          :last="ri === store.fileList.length - 1"
+          :chevron="!store.managing"
+          clickable
           @click="store.openFile(r.id)"
         >
-          <span class="rf-check" :class="{ checked: store.isSelected(r.id) }" :data-rec-check="r.id">{{ store.isSelected(r.id) ? '✓' : '' }}</span>
-          <span class="rf-wave"><i v-for="(h, i) in WAVE8" :key="i" :style="{ height: h }" /></span>
-          <span class="rf-copy">
-            <b>{{ r.title }}</b>
-            <small>{{ r.time }} · {{ r.duration }} · {{ r.size }}</small>
-          </span>
-          <em class="rf-pill" :class="r.status">{{ t('status.' + r.status) }}</em>
-          <span class="rf-chevron">›</span>
-        </button>
+          <template #icon>
+            <span class="rf-check" :class="{ checked: store.isSelected(r.id) }" :data-rec-check="r.id">{{ store.isSelected(r.id) ? '✓' : '' }}</span>
+            <span class="rf-wave"><i v-for="(h, i) in WAVE8" :key="i" :style="{ height: h }" /></span>
+          </template>
+          <template #title><b class="rf-row-title">{{ r.title }}</b></template>
+          <template #subtitle><small class="rf-row-sub">{{ r.time }} · {{ r.duration }} · {{ r.size }}</small></template>
+          <template #right>
+            <em class="rf-pill" :class="r.status">{{ t('status.' + r.status) }}</em>
+          </template>
+        </ListCell>
         <div v-if="!store.fileList.length" class="rf-empty" data-rec-empty>{{ t('files.empty') }}</div>
       </div>
 
@@ -777,42 +785,20 @@ function signalText(excellent) {
 .rf-root input:focus-visible { outline: 3px solid rgba(103, 72, 238, 0.25); outline-offset: 2px; }
 
 /* ============================================================
- * 头部：对齐归档 .page-head（52px 行 / 34px 圆角返回 / 10px 紫色动作）
- * 🔴 必须 ≥ safe-top + 52，否则落在顶部 64px 边缘手势热区里点不动
+ * 标题栏：走本仓标准控件 `AppNavBar`
+ *   · 它自带 `height: calc(var(--safe-top) + 48px)`，已经让开顶部 64px 边缘手势热区
+ *   · 返回键是它内部的 36px 圆形 `[data-nav-back]`，不再是自绘的描边方块
+ *   这里只补流程自己的两个钩子：标题（e2e 读它）与右侧动作
  * ============================================================ */
-.rf-head {
-  flex: none;
-  height: calc(var(--safe-top, 44px) + 52px);
-  padding: var(--safe-top, 44px) 18px 0;
-  display: grid;
-  grid-template-columns: 52px 1fr 52px;
-  align-items: center;
-  background: var(--bg);
-}
-.rf-back {
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--line) !important;
-  border-radius: 11px;
-  background: #fff !important;
-  display: grid;
-  place-items: center;
-}
-.rf-back:active { background: #f7f6fa !important; }
-.rf-title {
-  margin: 0;
-  text-align: center;
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
+.rf-title { letter-spacing: -0.01em; }
 .rf-head-action {
-  justify-self: end;
-  font-size: 10px;
-  font-weight: 750;
+  font-size: 15px;
+  font-weight: 500;
   color: var(--purple);
   white-space: nowrap;
-  padding: 6px 0;
+  padding: 4px 0;
+  background: none;
+  border: 0;
 }
 
 /* ============================================================
@@ -833,16 +819,16 @@ function signalText(excellent) {
  * 全部录音页（§4.5）
  * ============================================================ */
 .rf-intro {
-  margin: -8px 2px 14px;
+  margin: 0 2px 12px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
   line-height: 1.45;
   text-align: center;
 }
 .rf-search {
-  height: 40px;
-  background: #ecebf0;
-  border-radius: 13px;
+  height: 36px;
+  background: rgba(118, 118, 128, 0.12);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -873,7 +859,7 @@ function signalText(excellent) {
   outline: 0;
   flex: 1;
   min-width: 0;
-  font-size: 10.5px;
+  font: var(--text-body);
   color: var(--ink);
 }
 .rf-count {
@@ -881,51 +867,43 @@ function signalText(excellent) {
   justify-content: space-between;
   align-items: center;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
   margin: 4px 2px 8px;
 }
-.rf-count button { color: var(--purple); font-size: 9px; }
+.rf-count button { color: var(--purple); font-size: 13px; font-weight: 500; }
 
+/* 列表：行用本仓标准控件 `ListCell`（36px 圆角图标 / 15.5px 标题 / 13px 副标题 /
+   自绘 chevron），容器对齐设置 App 的分组卡片规格 */
 .rf-list {
   background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 17px;
+  border-radius: 24px;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
-.rf-row {
-  width: 100%;
-  min-height: 78px;
-  border-top: 1px solid #f0eef3 !important;
-  background: #fff !important;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-align: left;
-  padding: 11px;
-}
-.rf-row:first-child { border-top: 0 !important; }
-.rf-row:active { background: #faf9ff !important; }
 
+/* 勾选框：批量管理态才出现 */
 /* 勾选框：批量管理态才出现 */
 .rf-check {
   display: none;
-  width: 17px;
-  height: 17px;
-  border: 1px solid #cac6d1;
-  border-radius: 5px;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid #cac6d1;
+  border-radius: 6px;
   place-items: center;
   color: #fff;
-  font-size: 8px;
+  font-size: 12px;
   flex: none;
+  margin-right: 8px;
 }
 .rf-list.managing .rf-check { display: grid; }
 .rf-check.checked { background: var(--purple); border-color: var(--purple); }
 
-/* 行首波形块；颜色按行序循环（归档行为，unshift 后整列位移） */
+/* 行首波形块：尺寸对齐 ListCell 的标准图标（36px / 10px 圆角 / 右 14px）
+   颜色按行序循环（归档行为，unshift 后整列位移） */
 .rf-wave {
-  width: 43px;
-  height: 43px;
-  border-radius: 13px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   background: #efecff;
   color: var(--purple);
   display: flex;
@@ -933,31 +911,40 @@ function signalText(excellent) {
   justify-content: center;
   gap: 2px;
   flex: none;
+  margin-right: 14px;
 }
 .rf-wave i { width: 2px; background: currentColor; border-radius: 2px; }
-.rf-row:nth-child(2) .rf-wave { background: #e9f5ff; color: var(--blue); }
-.rf-row:nth-child(3) .rf-wave { background: #fff1e7; color: #df8c4d; }
-.rf-row:nth-child(4) .rf-wave { background: #eaf8f2; color: var(--green); }
+.rf-tone-1 .rf-wave { background: #e9f5ff; color: var(--blue); }
+.rf-tone-2 .rf-wave { background: #fff1e7; color: #df8c4d; }
+.rf-tone-3 .rf-wave { background: #eaf8f2; color: var(--green); }
 
-.rf-copy { flex: 1; min-width: 0; }
-.rf-copy b {
-  font-size: 10.5px;
-  line-height: 1.35;
+/* 行内文案：字号取标准列表规格（对齐 ListCell 的 15.5 / 13） */
+.rf-row-title {
   display: block;
+  font: 450 15.5px/1.3 var(--font-stack);
+  color: #111;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.rf-copy small { font-size: 8px; line-height: 1.4; color: var(--muted); display: block; margin-top: 4px; }
-.rf-chevron { font-size: 13px; color: #b4afba; flex: none; }
-.rf-empty { text-align: center; padding: 35px 10px; color: var(--muted); font-size: 9px; }
+.rf-row-sub {
+  display: block;
+  font: 400 13px/1.35 var(--font-stack);
+  color: var(--muted);
+  /* 标准列表行的行高应当一致：超长时省略，不折行（否则第 4/5 行会比别的行高一截） */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rf-chevron { font-size: 15px; color: #b4afba; flex: none; }
+.rf-empty { text-align: center; padding: 35px 10px; color: var(--muted); font-size: 15px; }
 
-/* 状态胶囊（§4.2） */
+/* 状态胶囊（§4.2）：字号同步到标准列表规格 */
 .rf-pill {
   font-style: normal;
-  font-size: 8px;
-  padding: 4px 7px;
-  border-radius: 7px;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 8px;
   white-space: nowrap;
   flex: none;
 }
@@ -989,18 +976,23 @@ function signalText(excellent) {
   padding: 17px;
   overflow: hidden;
 }
+/* 字号一律对齐本仓系统控件规范（`ListCell` 档 / 设置 App 的分组标题档）。
+   ⛔ 这里原本是归档遗留的 14px / 8.5px 魔法数字（Ricky 2026-10-08 报「字号太小」）。
+   卡片标题走 `--text-headline` 档（17px），右上说明走 `--text-footnote` 档（13px）。 */
 .rf-panel-title {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 11px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
-.rf-panel-title h3 { font-size: 14px; line-height: 1.3; margin: 0; }
-.rf-panel-title span { font-size: 8.5px; color: var(--muted); }
+.rf-panel-title h3 { font-size: 17px; font-weight: 600; line-height: 1.3; margin: 0; }
+.rf-panel-title span { font-size: 13px; line-height: 1.35; color: var(--muted); }
 
 .rf-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+/* 磁贴：字号提到 15 / 12 后至少需要 ~132px 行高（图标 42 + 主文字 19.5 + 副文字两行 33.6 + 内边距） */
 .rf-abtn {
-  min-height: 114px;
+  min-height: 132px;
   border-radius: 17px !important;
   background: #f5f2ff !important;
   padding: 12px 7px;
@@ -1011,8 +1003,10 @@ function signalText(excellent) {
   text-align: center;
 }
 .rf-abtn:active { background: #ece7ff !important; }
-.rf-abtn b { font-size: 11px; line-height: 1.3; margin-top: 9px; }
-.rf-abtn small { font-size: 8px; line-height: 1.45; color: var(--muted); margin-top: 4px; }
+.rf-abtn b { font-size: 15px; font-weight: 600; line-height: 1.3; margin-top: 9px; }
+/* `word-break: keep-all`：CJK 不在字与字之间断行，于是「实时转写 / 翻译」断在空格处
+   而不是把「翻译」拆成「翻 / 译」（默认 `normal` 会逐字断）。 */
+.rf-abtn small { font-size: 12px; line-height: 1.4; color: var(--muted); margin-top: 5px; word-break: keep-all; }
 
 .rf-ficon {
   width: 32px;
@@ -1046,17 +1040,18 @@ function signalText(excellent) {
 }
 .rf-manage-row:last-child { border-bottom: 0 !important; }
 .rf-manage-row:active { background: #faf9ff !important; }
-.rf-manage-row .rf-ficon { width: 36px; height: 36px; border-radius: 11px; }
+.rf-manage-row .rf-ficon { width: 36px; height: 36px; border-radius: 10px; }
 .rf-manage-copy { flex: 1; min-width: 0; }
-.rf-manage-copy b { display: block; font-size: 11px; line-height: 1.35; }
-.rf-manage-copy small { display: block; font-size: 8.5px; line-height: 1.45; color: var(--muted); margin-top: 4px; }
+/* 行主/副文字取 `ListCell` 的标准值（15.5 / 13），与文件列表行同一套字号 */
+.rf-manage-copy b { display: block; font-size: 15.5px; font-weight: 450; line-height: 1.3; }
+.rf-manage-copy small { display: block; font-size: 13px; line-height: 1.4; color: var(--muted); margin-top: 3px; }
 .rf-sync-summary {
   font-style: normal;
-  font-size: 8.5px;
+  font-size: 12px;
   color: var(--muted);
   background: #f0eff3;
-  padding: 5px 7px;
-  border-radius: 7px;
+  padding: 4px 10px;
+  border-radius: 8px;
   white-space: nowrap;
   flex: none;
 }
@@ -1069,14 +1064,16 @@ function signalText(excellent) {
   text-align: left;
   padding: 0;
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  /* 图标列 = 行内图标的 36px（与 `ListCell` 同规格），否则图标会压到文字上 */
+  grid-template-columns: 36px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
 }
+.rf-entry .rf-ficon { width: 36px; height: 36px; border-radius: 10px; }
 .rf-entry-copy { min-width: 0; }
-.rf-entry b { display: block; font-size: 10.5px; line-height: 1.35; }
-.rf-entry small { display: block; color: var(--muted); font-size: 8px; line-height: 1.45; margin-top: 3px; }
-.rf-entry .rf-chevron { font-size: 13px; color: #aaa5b1; }
+.rf-entry b { display: block; font-size: 15.5px; font-weight: 450; line-height: 1.3; }
+.rf-entry small { display: block; color: var(--muted); font-size: 13px; line-height: 1.4; margin-top: 3px; }
+.rf-entry .rf-chevron { font-size: 15px; color: #b4afba; }
 
 /* ============================================================
  * 录音详情（§4.6）

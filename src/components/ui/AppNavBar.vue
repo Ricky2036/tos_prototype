@@ -11,14 +11,15 @@ const emit = defineEmits(['back'])
 
 <template>
   <div class="app-nav-bar" :class="{ 'is-sticky': sticky }">
-    <button v-if="showBack" class="anb-back-btn" @click="emit('back')">
+    <button v-if="showBack" class="anb-back-btn" data-nav-back @click="emit('back')">
       <!-- 极简返回箭头（不显示上级文字，参考图 1/图 2 样式） -->
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path d="M20 12H4M4 12L11 5M4 12L11 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
-    <!-- 当前菜单名称，左对齐 -->
-    <div class="anb-title">{{ title }}</div>
+    <!-- 当前菜单名称，左对齐。`#title` 插槽让调用方塞自定义内容（并保留自己的 e2e 钩子），
+         未传时行为与原来完全一致。 -->
+    <div class="anb-title"><slot name="title">{{ title }}</slot></div>
     <div class="anb-right"><slot name="right"></slot></div>
   </div>
 </template>

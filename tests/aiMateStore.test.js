@@ -10,7 +10,7 @@ import {
   TYPE_MODELS, FIRMWARE_UPGRADE_MS,
   PHOTO_GROUPS, PRINTER_PHOTOS, PRINT_LAYOUTS, PRINT_FILTERS, EDIT_TOOLS,
   PRINT_QUALITIES, PRINT_COLORS, PRINT_MAX_PICKS, PAPER_MAX, PAPER_PACK, AR_VIDEO,
-  PAGES, DEVICE_MODELS, PAIR_STEPS, GEAR_SEGMENTS
+  PAGES, DEVICE_MODELS, PAIR_STEPS, OTHER_DEVICES
 } from '../src/stores/aiMateStore.js'
 
 const store = () => {
@@ -19,6 +19,18 @@ const store = () => {
 }
 const ROOT = process.cwd()
 const read = (p) => fs.readFileSync(path.resolve(ROOT, p), 'utf-8')
+
+/**
+ * 离线拦截分支需要一个离线设备，而并集种子的 4 台全部在线
+ * （归档里离线的是「其他设备」里的 AI 眼镜，它不在 `devices` 里）。
+ * 这里显式把种子风扇置离线当夹具 —— 测的是**拦截规则**，不是种子本身。
+ */
+const OFFLINE_ID = 'DAEWOO-Fan-A1'
+const storeWithOffline = () => {
+  const s = store()
+  s.getDevice(OFFLINE_ID).online = false
+  return s
+}
 
 /* ================= 设备目录 ================= */
 
@@ -70,15 +82,23 @@ test('风扇档位常量与归档一致：6 档模式 / 3 档摇头角', () => {
   assert.equal(FAN_SMART_MODE_INDEX, 5, '智能风应是第 6 档（索引 5）')
 })
 
-test('风扇设备实例：两台 DAEWOO，A1 在线、A2 离线，字段与归档一致', () => {
+test('并集种子：四份归档各一台主设备（风扇 / 口袋打印机 / 录音充电宝 / AI Mori）', () => {
   const s = store()
-  const a1 = s.getDevice('DAEWOO-Fan-A1')
-  const a2 = s.getDevice('DAEWOO-Fan-A2')
-  assert.ok(a1 && a2, '应存在归档里的两台风扇')
-  assert.equal(a1.online, true)
-  assert.equal(a2.online, false, 'A2 用于覆盖离线拦截分支')
+  assert.deepEqual(
+    s.devices.map((d) => d.id),
+    ['DAEWOO-Fan-A1', 'AM-Printer-01', 'AM-Recorder-01', 'AM-Mori-01']
+  )
+  assert.deepEqual(s.devices.map((d) => d.type), ['fan', 'printer', 'recorder', 'mori'])
+  assert.equal(s.devices.every((d) => d.online), true, '并集种子的 4 台都在线')
 
-  // 归档初始状态：speed=3, mode=0, power=false, childLock=false, temp=26
+  // 归档「添加设备」目录里的通用品类**不得**预置进「我的设备」
+  // （对应「多出来的奇奇怪怪的设备」这条反馈）
+  for (const t of ['bulbs', 'socket', 'locks', 'infrared', 'tws', 'watch', 'glasses']) {
+    assert.equal(s.devices.filter((d) => d.type === t).length, 0, `${t} 不应被预置进「我的设备」`)
+  }
+
+  // 风扇字段与归档一致（归档初始状态：speed=3, mode=0, power=false, childLock=false, temp=26）
+  const a1 = s.getDevice('DAEWOO-Fan-A1')
   for (const key of ['power', 'speed', 'mode', 'swing', 'swingAngle', 'timerOff', 'timerOn', 'plasma', 'childLock', 'temp', 'nick']) {
     assert.ok(key in a1, `风扇状态应包含归档字段 ${key}`)
   }
@@ -87,22 +107,36 @@ test('风扇设备实例：两台 DAEWOO，A1 在线、A2 离线，字段与归�
   assert.equal(a1.power, false)
   assert.equal(a1.childLock, false)
   assert.equal(a1.temp, 26)
+  assert.equal(a1.titleKey, undefined, '风扇的显示名就是归档设备名，不该套 Demo 的「我的 XX」')
+})
+
+test('卡片副行数据齐备：三台集成设备各有 titleKey / 电量 / 余量，且必有一台「已是最新」', () => {
+  const s = store()
+  for (const d of s.devices) assert.equal(typeof d.battery, 'number', `${d.id} 缺电量`)
+  assert.equal(s.getDevice('AM-Printer-01').titleKey, 'deviceTitle.printer')
+  assert.equal(s.getDevice('AM-Recorder-01').titleKey, 'deviceTitle.recorder')
+  assert.equal(s.getDevice('AM-Mori-01').titleKey, 'deviceTitle.mori')
+  assert.equal(typeof s.getDevice('AM-Printer-01').paper, 'number')
+  assert.equal(typeof s.getDevice('AM-Recorder-01').storageUsed, 'number')
+  assert.equal(typeof s.getDevice('AM-Mori-01').shots, 'number')
+  // 非空性判据：必须存在一台「在线且没有新固件」，否则升级的「无新版本」分支验不到
+  assert.ok(s.devices.some((d) => d.online && !d.fwNext), '种子里应有「已是最新」的在线设备')
 })
 
 /* ================= 拦截规则（归档语义） ================= */
 
 test('离线设备：任何控制都被拦下且状态不变，notice.code = offline', () => {
-  const s = store()
-  const before = JSON.stringify(s.getDevice('DAEWOO-Fan-A2'))
+  const s = storeWithOffline()
+  const before = JSON.stringify(s.getDevice(OFFLINE_ID))
 
-  assert.equal(s.toggleFanPower('DAEWOO-Fan-A2', { immediate: true }), false)
-  assert.equal(s.setFanSpeed('DAEWOO-Fan-A2', 5), false)
-  assert.equal(s.setFanMode('DAEWOO-Fan-A2', 3), false)
-  assert.equal(s.toggleSwing('DAEWOO-Fan-A2'), false)
-  assert.equal(s.toggleChildLock('DAEWOO-Fan-A2'), false)
+  assert.equal(s.toggleFanPower(OFFLINE_ID, { immediate: true }), false)
+  assert.equal(s.setFanSpeed(OFFLINE_ID, 5), false)
+  assert.equal(s.setFanMode(OFFLINE_ID, 3), false)
+  assert.equal(s.toggleSwing(OFFLINE_ID), false)
+  assert.equal(s.toggleChildLock(OFFLINE_ID), false)
   assert.equal(s.notice.code, 'offline')
 
-  assert.equal(JSON.stringify(s.getDevice('DAEWOO-Fan-A2')), before, '离线设备的状态不能被动过')
+  assert.equal(JSON.stringify(s.getDevice(OFFLINE_ID)), before, '离线设备的状态不能被动过')
 })
 
 test('童锁：普通控制被拦下（childLock），但童锁自身可关闭', () => {
@@ -470,13 +504,13 @@ test('固件升级：完成后版本落地、待升级标记清空、回执期�
 })
 
 test('固件升级：离线设备被拦截；已是最新的设备不启动升级', () => {
-  const s = store()
+  const s = storeWithOffline()
 
-  // A2 离线 —— 与开关走同一道门禁
-  assert.equal(s.hasUpgrade('DAEWOO-Fan-A2'), false, '离线设备不应出现在可升级列表')
-  assert.equal(s.upgradeFirmware('DAEWOO-Fan-A2'), false, '离线设备升级应被拦截')
+  // 离线 —— 与开关走同一道门禁
+  assert.equal(s.hasUpgrade(OFFLINE_ID), false, '离线设备不应出现在可升级列表')
+  assert.equal(s.upgradeFirmware(OFFLINE_ID), false, '离线设备升级应被拦截')
   assert.equal(s.notice?.code, 'offline', '应给出离线原因码')
-  assert.equal(s.isPending('DAEWOO-Fan-A2'), false, '被拦截时不得进入 pending')
+  assert.equal(s.isPending(OFFLINE_ID), false, '被拦截时不得进入 pending')
 
   // 在线但没有新版本：目录里必然存在这样一台（非空性判据）
   const plain = s.devices.find((x) => x.online && !x.fwNext)
@@ -845,7 +879,7 @@ test('打印域不污染设备域：设备目录与风扇状态不受影响', ()
   s.startPrint()
   for (let i = 0; i < 60; i += 1) s.tickPrint()
   assert.equal(JSON.stringify(s.devices), before, '打印流程不得改动任何设备状态')
-  assert.equal(s.devices.length, 12)  // 归档 8 类 + 集成 3 台（录音充电宝 / 打印机 / AI Mori）
+  assert.equal(s.devices.length, 4)  // 四份归档的并集：风扇 / 口袋打印机 / 录音充电宝 / AI Mori
 })
 
 
@@ -927,9 +961,8 @@ test('配对 3 步文案三语齐备（归档：通电 → 长按配对键 → �
   }
 })
 
-test('档位条段数与风速上限同源：改一个必须改另一个', () => {
-  assert.equal(GEAR_SEGMENTS, 12, '归档 .dc-gear-seg 实测 12 段')
-  assert.equal(GEAR_SEGMENTS, FAN_SPEED_MAX, '段数与风速上限脱钩会让第 N 段对不上第 N 档')
+test('风速上限与归档一致（12 档），控制页点阵据此渲染', () => {
+  assert.equal(FAN_SPEED_MAX, 12, '归档控制页 12 档风速')
 })
 
 test('归档 8 类打头（风扇第一），集成进来的 3 台设备只能排在它们之后', () => {
@@ -1122,9 +1155,14 @@ test('集成进来的 2 台（录音充电宝 / 口袋打印机）也走得通�
 
 /* ---------- 返回链路 ---------- */
 
-test('back() 层级回退：info→control→home，search→guide→add→home', () => {
+test('back() 层级回退：control→home，search→guide→add→home；详情页跟着来路走', () => {
   const s = store()
-  s.gotoPage('info'); assert.equal(s.back(), true); assert.equal(s.page, 'control')
+  // 详情页的返回目标由 infoFrom 决定：默认（未设）回首页 —— 首页卡片 `···` 就是这条路
+  s.gotoPage('info'); assert.equal(s.back(), true); assert.equal(s.page, 'home')
+
+  // 控制页那条路：openInfo() 会把 infoFrom 记成 control
+  s.openControl('DAEWOO-Fan-A1'); s.openInfo()
+  assert.equal(s.back(), true); assert.equal(s.page, 'control')
   assert.equal(s.back(), true); assert.equal(s.page, 'home')
 
   s.openAdd(); s.pickType('fan'); s.startSearch()
@@ -1163,15 +1201,18 @@ test('back() 在首页返回 false，交给系统去处理（回桌面）', () =
 
 /* ---------- 详情页 / 删除 ---------- */
 
-test('openControl 只认存在的设备；openInfo 进详情页', () => {
+test('openControl 只认存在的设备；openInfo 从控制页进详情，返回目标是控制页', () => {
   const s = store()
-  assert.equal(s.openControl('AM-Bulb-01'), true)
-  assert.equal(s.activeDeviceId, 'AM-Bulb-01')
+  assert.equal(s.openControl('AM-Printer-01'), true)
+  assert.equal(s.activeDeviceId, 'AM-Printer-01')
   assert.equal(s.page, 'control')
   assert.equal(s.openControl('没有这台'), false)
-  assert.equal(s.activeDeviceId, 'AM-Bulb-01', '非法 id 不得改选中项')
+  assert.equal(s.activeDeviceId, 'AM-Printer-01', '非法 id 不得改选中项')
   assert.equal(s.openInfo(), true)
   assert.equal(s.page, 'info')
+  assert.equal(s.infoFrom, 'control', '从控制页进详情，返回应回控制页')
+  assert.equal(s.back(), true)
+  assert.equal(s.page, 'control')
 })
 
 test('openTimerSheet 只认 timerOff / timerOn', () => {
@@ -1187,15 +1228,15 @@ test('openTimerSheet 只认 timerOff / timerOn', () => {
 
 test('confirmRemove 删除当前设备并回首页，选中项顺移', () => {
   const s = store()
-  s.openControl('AM-Socket-01')
+  s.openControl('AM-Recorder-01')
   const before = s.devices.length
   s.openDeleteConfirm()
   assert.equal(s.confirmDelete, true)
   assert.equal(s.confirmRemove(), true)
   assert.equal(s.devices.length, before - 1)
-  assert.equal(s.getDevice('AM-Socket-01'), null)
+  assert.equal(s.getDevice('AM-Recorder-01'), null)
   assert.equal(s.page, 'home')
-  assert.notEqual(s.activeDeviceId, 'AM-Socket-01', '选中项必须顺移，不能指向已删设备')
+  assert.notEqual(s.activeDeviceId, 'AM-Recorder-01', '选中项必须顺移，不能指向已删设备')
 })
 
 test('删到一台不剩时选中项置 null（首页空状态）', () => {
@@ -1212,7 +1253,7 @@ test('删到一台不剩时选中项置 null（首页空状态）', () => {
 
 test('confirmRemove 在没有可删设备时返回 false，只关浮层不跳页', () => {
   const s = store()
-  s.openControl('AM-Bulb-01')
+  s.openControl('AM-Recorder-01')
   s.activeDeviceId = '不存在'          // 模拟「选中项已被别处删掉」
   s.openDeleteConfirm()
   assert.equal(s.confirmRemove(), false)
@@ -1223,9 +1264,9 @@ test('confirmRemove 在没有可删设备时返回 false，只关浮层不跳页
 test('归档控制页文案键齐备（三语），控制页不会渲染出 undefined', async () => {
   const { AIMATE } = await import('../src/locales/aimate.js')
   const KEYS = [
-    'connected', 'powerOn', 'powerOff', 'speedTitle', 'speedValue', 'modeTitle',
+    'powerOn', 'powerOff', 'speedTitle', 'speedValue', 'modeTitle',
     'swing', 'timerOff', 'timerOn', 'notSet', 'plasma', 'plasmaOff', 'plasmaOn',
-    'more', 'childLock', 'manual', 'firmware', 'emptyTitle', 'emptySub'
+    'more', 'childLock', 'manual', 'firmware'
   ]
   for (const loc of ['zh', 'en', 'bn']) {
     for (const k of KEYS) {
@@ -1269,4 +1310,162 @@ test('notice 码表覆盖 store 全部赋值点，且三语键集一致', async 
   assert.deepEqual(bn, zh, 'notice 的 bn 键集必须与 zh 完全一致')
   for (const c of used) assert.ok(zh.includes(c), `store 会抛 notice.${c}，但三语里没有这个键`)
   assert.ok(used.size >= 10, `只认出 ${used.size} 个 notice 码，正则可能没跟上代码`)
+})
+
+
+/* ================= 底部 Tab / 首页卡片直达（四份归档取并集后的导航） ================= */
+
+test('setTab 只认 home / mine，切 Tab 时把子页与浮层一并复位', () => {
+  const s = store()
+  assert.equal(s.tab, 'home', '默认在首页')
+  assert.equal(s.setTab('mine'), true)
+  assert.equal(s.tab, 'mine')
+
+  s.gotoPage('info')
+  s.openTimerSheet('timerOff')
+  assert.equal(s.setTab('mine'), true, '切 Tab 必须离开子页，否则会停在半路的流程里')
+  assert.equal(s.page, 'home')
+  assert.equal(s.timerSheet, null)
+
+  assert.equal(s.setTab('add'), false, '非白名单值不得改 Tab')
+  assert.equal(s.tab, 'mine')
+})
+
+test('openDevice 直达功能页：风扇进控制页，其余三台直接进各自流程（无中间页）', () => {
+  const s = store()
+
+  assert.equal(s.openDevice('DAEWOO-Fan-A1'), true)
+  assert.equal(s.page, 'control', '风扇的功能页就是控制页')
+  assert.equal(s.printScreen, null)
+
+  assert.equal(s.openDevice('AM-Printer-01'), true)
+  assert.equal(s.printScreen, 'source', '打印机卡必须直接进打印流')
+  assert.equal(s.deviceFlow, null)
+  s.closePrint()
+
+  assert.equal(s.openDevice('AM-Recorder-01'), true)
+  assert.equal(s.deviceFlow, 'recorder')
+  s.closeDeviceFlow()
+
+  assert.equal(s.openDevice('AM-Mori-01'), true)
+  assert.equal(s.deviceFlow, 'mori')
+  s.closeDeviceFlow()
+
+  assert.equal(s.openDevice('没有这台'), false, '未知设备不得改变任何状态')
+})
+
+test('详情页返回目标跟着来路走：首页卡片 `···` → 首页；控制页 `···` → 控制页', () => {
+  const s = store()
+  assert.equal(s.openInfoOf('AM-Printer-01'), true)
+  assert.equal(s.activeDeviceId, 'AM-Printer-01')
+  assert.equal(s.page, 'info')
+  assert.equal(s.infoFrom, 'home')
+  assert.equal(s.back(), true)
+  assert.equal(s.page, 'home', '从首页进来的详情，返回必须回首页')
+
+  assert.equal(s.openInfoOf('没有这台'), false)
+
+  s.openControl('DAEWOO-Fan-A1')
+  s.openInfo()
+  assert.equal(s.infoFrom, 'control')
+  assert.equal(s.back(), true)
+  assert.equal(s.page, 'control', '从控制页进来的详情，返回必须回控制页')
+})
+
+test('back() 在「我的」Tab 上先回首页，再交给系统回桌面', () => {
+  const s = store()
+  s.setTab('mine')
+  assert.equal(s.back(), true)
+  assert.equal(s.tab, 'home')
+  assert.equal(s.back(), false, '首页再返回应交给系统')
+})
+
+test('「其他设备」= 两份 Demo 的并集（手表 / 耳机 / 眼镜），文案全走 i18n 键', async () => {
+  const { AIMATE } = await import('../src/locales/aimate.js')
+  assert.equal(OTHER_DEVICES.length, 3)
+  assert.deepEqual(OTHER_DEVICES.map((o) => o.id), ['AI-Watch-S2', 'AI-Buds-Pro', 'AI-Glass'])
+
+  // 眼镜是唯一「未连接」的一台（归档两份 Demo 都把它标成未连接）
+  assert.equal(OTHER_DEVICES.filter((o) => !o.online).length, 1)
+  assert.equal(OTHER_DEVICES.find((o) => !o.online).id, 'AI-Glass')
+
+  for (const o of OTHER_DEVICES) {
+    assert.ok(DEVICE_TYPES.some((t) => t.id === o.type), `${o.id} 的 type 必须在统一目录里`)
+    for (const loc of ['zh', 'en', 'bn']) {
+      for (const k of [o.nameKey, o.modelKey, o.metaKey]) {
+        const v = k.split('.').reduce((a, p) => (a ? a[p] : undefined), AIMATE[loc])
+        assert.ok(v && String(v).trim().length > 0, `${loc} 缺 ${k}`)
+      }
+    }
+  }
+})
+
+test('notifyOther 只回一条 toast，参数是 i18n 键（store 不持有文案）', () => {
+  const s = store()
+  assert.equal(s.notifyOther('AI-Watch-S2'), true)
+  assert.equal(s.notice.code, 'deviceStatus')
+  assert.equal(s.notice.params.nameKey, 'other.watch')
+  assert.equal(s.notice.params.metaKey, 'other.watchMeta')
+  assert.equal(s.notifyOther('不存在'), false)
+})
+
+test('首页 / 我的 新增文案键三语齐备，且插值键的占位符跨语言一致', async () => {
+  const { AIMATE } = await import('../src/locales/aimate.js')
+  const KEYS = [
+    'tab.home', 'tab.mine', 'tab.aria',
+    'home.greeting', 'home.greetingSub', 'home.addDeviceAction', 'home.summary',
+    'home.otherDevices', 'home.otherSub', 'home.addNew', 'home.addNewSub',
+    'deviceTitle.printer', 'deviceTitle.recorder', 'deviceTitle.mori',
+    'deviceMeta.battery', 'deviceMeta.paper', 'deviceMeta.used', 'deviceMeta.shots',
+    'other.watch', 'other.watchModel', 'other.watchMeta',
+    'other.buds', 'other.budsModel', 'other.budsMeta',
+    'other.glass', 'other.glassModel', 'other.glassMeta', 'other.notConnected', 'other.connect',
+    'mine.title', 'mine.role', 'mine.connected', 'mine.email', 'mine.plan',
+    'mine.account', 'mine.notify', 'mine.notifyValue', 'mine.general', 'mine.privacy',
+    'mine.help', 'mine.about', 'mine.version',
+    'action.quickPrint', 'action.record', 'action.recordSub',
+    'action.shoot', 'action.shootSub', 'action.enter',
+    'notice.deviceStatus', 'notice.mineWip'
+  ]
+  for (const loc of ['zh', 'en', 'bn']) {
+    for (const p of KEYS) {
+      const v = p.split('.').reduce((a, k) => (a ? a[k] : undefined), AIMATE[loc])
+      assert.ok(v && String(v).trim().length > 0, `${loc} 缺 ${p}`)
+    }
+    // 同一键三种语言必须用同一组占位符，否则切语言会漏出裸 {xxx}
+    for (const k of ['home.summary', 'deviceMeta.battery', 'deviceMeta.paper', 'deviceMeta.used', 'mine.connected']) {
+      const pick = (obj) => k.split('.').reduce((a, x) => (a ? a[x] : undefined), obj)
+      const need = new Set((pick(AIMATE.zh).match(/\{(\w+)\}/g) || []))
+      const got = new Set((pick(AIMATE[loc]).match(/\{(\w+)\}/g) || []))
+      assert.deepEqual([...got].sort(), [...need].sort(), `${loc}.${k} 占位符应与 zh 一致`)
+    }
+  }
+})
+
+test('已删掉的首屏词条不得复活（首页已改成 Demo 的 greeting + section head）', async () => {
+  const { AIMATE } = await import('../src/locales/aimate.js')
+  for (const loc of ['zh', 'en', 'bn']) {
+    for (const k of ['title', 'subtitle', 'addTitle', 'addSub', 'catalog']) {
+      assert.equal(AIMATE[loc].home[k], undefined, `${loc}.home.${k} 已不再被任何组件引用`)
+    }
+    assert.equal(AIMATE[loc].count, undefined, `${loc}.count 已不再被任何组件引用`)
+    for (const k of ['connected', 'emptyTitle', 'emptySub']) {
+      assert.equal(AIMATE[loc].control[k], undefined, `${loc}.control.${k} 已不再被任何组件引用`)
+    }
+  }
+})
+
+test('AimateApp 模板不再引用已删词条 / 已删类名（防回归）', () => {
+  const src = read('src/components/apps/aimate/AimateApp.vue')
+  for (const bad of ["am('home.title')", "am('home.subtitle')", "am('home.addTitle')",
+    "am('home.catalog')", "am('control.emptyTitle')", "am('control.connected')",
+    'class="banner', 'dc-gear-seg', 'empty-state']) {
+    assert.ok(!src.includes(bad), `AimateApp 仍引用 ${bad}`)
+  }
+  // 底部 Tab 与首页三段结构必须在
+  assert.ok(src.includes('FloatingTabBar'), '首页必须挂底部 Tab（本仓惯例组件）')
+  assert.ok(src.includes("data-device-card"), '首页必须有设备卡')
+  assert.ok(src.includes('data-other'), '首页必须有「其他设备」行')
+  assert.ok(src.includes('data-mine-row'), '必须新增「我的」页')
+  assert.ok(src.includes("mate.openDevice(d.id)"), '设备卡必须直达功能页')
 })

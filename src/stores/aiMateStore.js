@@ -161,12 +161,6 @@ export const DEVICE_MODELS = {
  */
 export const PAIR_STEPS = ['power', 'pairKey', 'tapConnect']
 /**
- * 设备卡档位条的分段数。归档 `.dc-gear-seg` 实测 12 段，
- * 与 `FAN_SPEED_MAX` 同源 —— 改一个必须改另一个。
- */
-export const GEAR_SEGMENTS = 12
-
-/**
  * 由设备 id 推导 MAC。真机读的是蓝牙地址，这里做成
  * 「同 id 永远同值」的确定性映射，避免每次渲染抖动。
  */
@@ -212,22 +206,42 @@ function createSimpleDevice(id, type, name, subtitle, online = true, fw = '1.0.3
 }
 
 export function createDeviceCatalog() {
+  // 归档四份文件各对应一台主设备，首页取并集：
+  //   tOS Prototype_aimate_fan.html      → 风扇（首页只管理单台 DAEWOO-Fan-A1）
+  //   ai-mate-printer-demo.html          → 口袋打印机
+  //   ai-mate-recording-powerbank-demo.html → 录音充电宝
+  //   ai_mori_interactive_prototype(3).html → AI Mori
+  // ⚠️ 归档的 AI Mate 首页其实是「0 台 + 空状态」；这里**刻意不从空开始**，
+  //    否则四份文件的功能面在首页一个都摸不到。预置集合严格等于四份文件的并集，
+  //    不再预置归档「添加设备」目录里的通用品类（灯泡/插座/门锁/红外/耳机/手表/眼镜）。
+  const fan = createFan('DAEWOO-Fan-A1', 'DAEWOO-Fan-A1', '无叶风扇 · 蓝牙', true, '1.4.2', '1.5.0')
+  const printer = createSimpleDevice('AM-Printer-01', 'printer', 'AM-Printer-01', '口袋打印机 · 蓝牙', true, '2.1.0', '2.2.0')
+  // 录音充电宝刻意**不给新版固件** —— 种子里必须有一台「已是最新」，
+  // 否则升级流程的「无新版本」分支与详情页的两种形态都验不到（非空性判据）
+  const recorder = createSimpleDevice('AM-Recorder-01', 'recorder', 'AM-Recorder-01', '录音充电宝 · 蓝牙', true, '3.0.4')
+  const mori = createSimpleDevice('AM-Mori-01', 'mori', 'AM-Mori-01', '随身 AI 相机 · 蓝牙', true, '1.2.0', '1.3.0')
   return [
-    createFan('DAEWOO-Fan-A1', 'DAEWOO-Fan-A1', '无叶风扇 · 蓝牙', true, '1.4.2', '1.5.0'),
-    createFan('DAEWOO-Fan-A2', 'DAEWOO-Fan-A2', '循环扇 · 蓝牙', false, '1.4.0'),
-    createSimpleDevice('AM-Bulb-01', 'bulbs', 'AM-Bulb-01', '智能灯泡 · Wi-Fi', true, '1.0.3', '1.1.0'),
-    createSimpleDevice('AM-Socket-01', 'socket', 'AM-Socket-01', '智能插座 · Wi-Fi'),
-    createSimpleDevice('AM-Lock-01', 'locks', 'AM-Lock-01', '智能门锁 · 蓝牙', false),
-    createSimpleDevice('AM-TWS-01', 'tws', 'AM-TWS-01', '真无线耳机 · 蓝牙'),
-    createSimpleDevice('AM-IR-01', 'infrared', 'AM-IR-01', '红外遥控 · 蓝牙'),
-    // OneLeap 已接管的四台：aimate 显示同一份设备，控制动作复用其语义
-    createSimpleDevice('AM-Recorder-01', 'recorder', 'AM-Recorder-01', '录音充电宝 · 蓝牙'),
-    createSimpleDevice('AM-Printer-01', 'printer', 'AM-Printer-01', '口袋打印机 · 蓝牙'),
-    createSimpleDevice('AM-Mori-01', 'mori', 'AM-Mori-01', '随身影音 · 蓝牙'),
-    createSimpleDevice('AM-Watch-01', 'watch', 'AM-Watch-01', '智能手表 · 蓝牙'),
-    createSimpleDevice('AM-Glasses-01', 'glasses', 'AM-Glasses-01', '智能眼镜 · 蓝牙')
+    // 风扇卡显示名照抄归档（`DAEWOO-Fan-A1`），不套用 Demo 的「我的 XX」措辞
+    { ...fan, battery: 62 },
+    // 其余三台的显示名取自 Demo 首屏（`device.title.*`），型号与电量/余量亦为 Demo 实测
+    { ...printer, battery: 78, titleKey: 'deviceTitle.printer', paper: 8, inCups: true },
+    { ...recorder, battery: 86, titleKey: 'deviceTitle.recorder', storageUsed: 18.6 },
+    { ...mori, battery: 92, titleKey: 'deviceTitle.mori', shots: 128 }
   ]
 }
+
+/**
+ * 首页「其他设备」——两份 Demo 的「其他设备」段取并集：
+ *   录音充电宝 Demo：AI 运动手表 / 智能耳机 / AI 眼镜（未连接）
+ *   口袋打印机 Demo：AI Audio Glasses（未连接）
+ * 二者说的是同一类可穿戴（`AI 眼镜` ≈ `AI Audio Glasses`），按概念并成 1 条。
+ * 名称/型号/副文案全部走 i18n（`other.*`），store 不持有文案。
+ */
+export const OTHER_DEVICES = [
+  { id: 'AI-Watch-S2', type: 'watch', nameKey: 'other.watch', modelKey: 'other.watchModel', metaKey: 'other.watchMeta', online: true },
+  { id: 'AI-Buds-Pro', type: 'tws', nameKey: 'other.buds', modelKey: 'other.budsModel', metaKey: 'other.budsMeta', online: true },
+  { id: 'AI-Glass', type: 'glasses', nameKey: 'other.glass', modelKey: 'other.glassModel', metaKey: 'other.glassMeta', online: false }
+]
 
 /**
  * 「添加设备」扫描结果（归档首页 banner：「添加智能设备 / 扫描发现附近蓝牙设备」）。
@@ -246,7 +260,7 @@ export const POWER_ACK_MS = 1200
 /** 固件升级的回执延迟（升级本身是个过程，比开关略长） */
 export const FIRMWARE_UPGRADE_MS = 1500
 
-/** 归档五屏流程 + 控制/详情页 */
+/** 归档五屏流程 + 控制/详情页（底部 Tab 不走 page，走 `tab`） */
 export const PAGES = ['home', 'add', 'guide', 'search', 'center', 'control', 'info']
 
 const findType = (typeId) => DEVICE_TYPES.find((t) => t.id === typeId) || null
@@ -280,6 +294,10 @@ export const useAiMateStore = defineStore('aiMate', {
      * search 搜索设备 / center 连接中→成功 / control 设备控制 / info 设备详情
      */
     page: 'home',
+    /** 底部 Tab：home 首页 / mine 我的（归档两份 Demo 的 bottomnav 都只有这两个语义层） */
+    tab: 'home',
+    /** 设备详情页的返回目标（首页卡片与风扇控制页都能进详情，回退目标不同） */
+    infoFrom: 'home',
     /** guide 页选中的类别 id（null = 还没选） */
     addType: null,
     /** guide 页选中的型号下标 */
@@ -510,18 +528,53 @@ export const useAiMateStore = defineStore('aiMate', {
         }
         this.devices.push(d)
       }
-      this.activeDeviceId = d.id
-      this.page = 'control'
+      // 新增设备后同样直达功能页（新增打印机就直接进打印流）
+      return this.openDevice(d.id)
+    },
+    /**
+     * 切底部 Tab。切回首页时把子页一并复位，避免从「我的」回到一半的添加流程。
+     */
+    setTab(t) {
+      if (!['home', 'mine'].includes(t)) return false
+      this.tab = t
+      this.page = 'home'
+      this.timerSheet = null
+      this.renaming = false
+      this.confirmDelete = false
       return true
     },
-    /** 首页点设备卡 / 搜索结果 → 进控制页 */
     openControl(id) {
       if (!this.getDevice(id)) return false
       this.activeDeviceId = id
       this.page = 'control'
       return true
     },
+    /**
+     * 首页设备卡**直达功能页**（去掉「控制页」这一层中间页）：
+     *   风扇 → 控制页（控制页本身就是风扇的功能页）
+     *   口袋打印机 / 录音充电宝 / AI Mori → 各自的专属流程层
+     * 返回是否消费。设备详情（MAC / 固件 / 重命名 / 删除）走卡片右上角 `···`。
+     */
+    openDevice(id) {
+      const d = this.getDevice(id)
+      if (!d) return false
+      this.activeDeviceId = id
+      if (d.type === 'printer') return this.openPrint()
+      if (d.type === 'recorder' || d.type === 'mori') return this.openDeviceFlow(d.type)
+      this.page = 'control'
+      return true
+    },
+    /** 首页设备卡右上角 `···`：详情页（需要先选中该设备） */
+    openInfoOf(id) {
+      if (!this.getDevice(id)) return false
+      this.activeDeviceId = id
+      // 详情页的返回目标取决于从哪来：首页卡片 `···` → 回首页；控制页 `···` → 回控制页
+      this.infoFrom = 'home'
+      this.page = 'info'
+      return true
+    },
     openInfo() {
+      this.infoFrom = this.page === 'control' ? 'control' : 'home'
       this.page = 'info'
       return true
     },
@@ -554,9 +607,10 @@ export const useAiMateStore = defineStore('aiMate', {
      */
     back() {
       if (this.timerSheet) { this.timerSheet = null; return true }
+      if (this.page === 'home' && this.tab === 'mine') { this.tab = 'home'; return true }
       if (this.renaming) { this.renaming = false; return true }
       if (this.confirmDelete) { this.confirmDelete = false; return true }
-      const chain = { info: 'control', control: 'home', search: 'guide', guide: 'add', center: 'search', add: 'home' }
+      const chain = { info: this.infoFrom, control: 'home', search: 'guide', guide: 'add', center: 'search', add: 'home' }
       const to = chain[this.page]
       if (to) { this.page = to; return true }
       return false
@@ -678,6 +732,14 @@ export const useAiMateStore = defineStore('aiMate', {
       const d = this.getDevice(id)
       if (!this._guard(d)) return false
       d.power = !d.power
+      return true
+    },
+
+    /** 首页「其他设备」行：Demo 里这些行只回一条状态提示，不跳页 */
+    notifyOther(id) {
+      const o = OTHER_DEVICES.find((x) => x.id === id)
+      if (!o) return false
+      this.notice = { code: 'deviceStatus', params: { nameKey: o.nameKey, metaKey: o.metaKey } }
       return true
     },
 

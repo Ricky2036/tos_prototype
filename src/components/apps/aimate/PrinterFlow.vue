@@ -103,7 +103,7 @@ const arScanText = computed(() => {
 </script>
 
 <template>
-  <div class="pf">
+  <div class="pf" data-flow-root="printer">
     <!-- ================= 来源 ================= -->
     <template v-if="mate.printScreen === 'source'">
       <header class="pf-head">

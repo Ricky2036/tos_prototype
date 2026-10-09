@@ -357,6 +357,13 @@ useSwipeGesture(sideEdgeRef, {
   inset: 0;
   overflow: hidden;
   border-radius: var(--screen-radius);
+  /* 🔴 `overflow: hidden` + `border-radius` 的圆角裁剪在**合成层**上会丢：
+     应用根一旦被提升为独立合成层（transform / will-change / filter 等），
+     Chrome 会把它的方形纹理整块贴上，**不套父级圆角** ⇒ 屏幕四角会戳出方形直角，
+     在机身圆弧之外露出一块页面底色（实测于有头 Chrome；无头软件合成不复现）。
+     `clip-path` 是**绘制期**裁剪，合成时按路径生效，不会再丢。
+     与 border-radius 同值，视觉不变。 */
+  clip-path: inset(0 round var(--screen-radius));
   background: #000;
 }
 

@@ -85,13 +85,11 @@ await wait(500)
 await p.evaluate(() => window.__system.openApp('aimate'))
 await wait(900)
 
-head('0. 从设备卡进流程')
+head('0. 从设备卡直达流程')
 assert('设备卡存在', await visible('[data-device-card="AM-Recorder-01"]'))
 await click('[data-device-card="AM-Recorder-01"]', '录音充电宝设备卡')
 await wait(700)
-assert('入口 [data-open-recorder] 存在', await visible('[data-open-recorder]'))
-await click('[data-open-recorder]', '流程入口')
-await wait(700)
+assert('卡片直达流程（无中间控制页）', !(await visible('[data-open-recorder]')))
 assert('流程挂载', await visible('[data-flow-root="recorder"]'))
 assert('首屏 = 全部录音', (await txt('.rf-title')) === '全部录音', await txt('.rf-title'))
 await shot('01-files')
@@ -100,8 +98,8 @@ head('1. 全部录音列表')
 assert('引导语', (await txt('.rf-intro')) === '已同步到 AI Mate 的录音文件', await txt('.rf-intro'))
 assert('计数 = 5 条录音', (await txt('[data-rec-count]')) === '5 条录音', await txt('[data-rec-count]'))
 assert('列表 5 行', (await n('[data-rec-file]')) === 5, await n('[data-rec-file]'))
-assert('首行标题', (await txt('[data-rec-file="1"] .rf-copy b')) === 'Q3 产品规划会')
-assert('首行副标题含时间/时长/容量', (await txt('[data-rec-file="1"] .rf-copy small')).includes('今天 10:30 · 42:18 · 38.2 MB'), await txt('[data-rec-file="1"] .rf-copy small'))
+assert('首行标题', (await txt('[data-rec-file="1"] .rf-row-title')) === 'Q3 产品规划会')
+assert('首行副标题含时间/时长/容量', (await txt('[data-rec-file="1"] .rf-row-sub')).includes('今天 10:30 · 42:18 · 38.2 MB'), await txt('[data-rec-file="1"] .rf-row-sub'))
 const pills = await p.locator('[data-rec-file] .rf-pill').allInnerTexts()
 assert('状态胶囊 = 已转写/转写中/未转写', pills.join(',') === '已转写,转写中,已转写,未转写,未转写', pills)
 assert('搜索框 placeholder', (await p.locator('[data-rec-search]').getAttribute('placeholder')) === '搜索录音名称')
@@ -110,6 +108,46 @@ assert('设备功能三入口', (await n('[data-rec-open-record]')) === 1 && (aw
 assert('录音同步入口 + 未配置徽标', (await txt('[data-rec-sync-summary]')) === '去设置', await txt('[data-rec-sync-summary]'))
 assert('降噪行', (await txt('[data-rec-noise]')).includes('智能 · 会议拾音'), await txt('[data-rec-noise]'))
 assert('录音参数行', (await txt('[data-rec-params]')).includes('WAV · 48kHz · 高品质'))
+
+/* ---------- 设备功能 / 设备管理 两张卡片的字号必须走系统控件规范 ----------
+   ⛔ 归档重放时曾整段照抄它的魔法数字（8 / 8.5 / 10.5 / 11 / 14px），肉眼几乎读不清。
+   这里把「不低于规范」写成断言，防止日后有人再抄回去。 */
+const fsOf = (sel) => p.evaluate((s) => {
+  const el = document.querySelector(s)
+  return el ? parseFloat(getComputedStyle(el).fontSize) : null
+}, sel)
+const panelFonts = {
+  卡片标题: await fsOf('.rf-panel-title h3'),
+  卡片右上说明: await fsOf('.rf-panel-title span'),
+  磁贴主文字: await fsOf('.rf-abtn b'),
+  磁贴副文字: await fsOf('.rf-abtn small'),
+  管理行主文字: await fsOf('.rf-manage-copy b'),
+  管理行副文字: await fsOf('.rf-manage-copy small'),
+  徽标: await fsOf('.rf-sync-summary'),
+  入口行主文字: await fsOf('.rf-entry b'),
+  入口行副文字: await fsOf('.rf-entry small'),
+}
+assert('设备面板卡片标题 ≥ 17px（系统分组标题档）', panelFonts.卡片标题 >= 17, JSON.stringify(panelFonts))
+assert('设备面板无 <12px 文字（归档遗留的 8~10.5px 已清）', Math.min(...Object.values(panelFonts)) >= 12, JSON.stringify(panelFonts))
+assert(
+  '设备管理行主/副文字对齐 ListCell（15.5 / 13）',
+  panelFonts.管理行主文字 === 15.5 && panelFonts.管理行副文字 === 13,
+  JSON.stringify(panelFonts)
+)
+assert(
+  '功能磁贴主/副文字 ≥ 15 / 12',
+  panelFonts.磁贴主文字 >= 15 && panelFonts.磁贴副文字 >= 12,
+  JSON.stringify(panelFonts)
+)
+
+/* ⚠️ 这里**故意不放**「放大字号后有没有被裁掉」的几何守卫：
+   三种直觉写法实测都打不红，属哑弹，按仓库规矩不留 ——
+     · `scrollWidth > clientWidth`：文字默认换行，恒为假（顶到 30px 也不红）；
+     · `scrollHeight > clientHeight`：盒子 `overflow: visible` 时 Chrome 不计溢出；
+     · 手算「子元素高度 + 内外边距 > 盒高」：磁贴是 flex 列，子项会自行收缩、布局自愈
+       （实测把磁贴钉成 `height: 114px` 且清掉 `min-height` 仍判不出裁切）。
+   字号本身由上面 4 条守卫钉住，就不再补一条不会红的了。 */
+await shot('01b-device-panel')
 
 head('2. 搜索')
 await p.locator('[data-rec-search]').fill('Q3')
@@ -310,7 +348,7 @@ await click('[data-rec-close="record"]', '关闭录音 sheet')
 await wait(500)
 assert('sheet 已关', !(await visible('[data-rec-overlay="record"]')))
 assert(`列表多出 1 条（${beforeRows} → 6）`, (await n('[data-rec-file]')) === 6, await n('[data-rec-file]'))
-assert('新录音在队首且已转写', (await txt('[data-rec-file] .rf-copy b')).startsWith('新录音'), await txt('[data-rec-file] .rf-copy b'))
+assert('新录音在队首且已转写', (await txt('[data-rec-file] .rf-row-title')).startsWith('新录音'), await txt('[data-rec-file] .rf-row-title'))
 assert('计数 = 6 条录音', (await txt('[data-rec-count]')) === '6 条录音', await txt('[data-rec-count]'))
 await shot('20-files-after-record')
 
@@ -478,11 +516,11 @@ assert('参数 toast', (await txt('[data-rec-toast]')).includes('录音参数：
 await click(BACK, '返回（关闭流程）')
 await wait(600)
 assert('流程已卸载', !(await visible('[data-flow-root="recorder"]')))
-assert('回到设备控制页', await visible('[data-open-recorder]'))
-await shot('36-closed-back-to-device')
+assert('回到首页', await visible('[data-device-card="AM-Recorder-01"]'))
+await shot('36-closed-back-to-home')
 
 head('19. 再进一次（验证关闭后无残留 / 无重复字幕流）')
-await click('[data-open-recorder]', '再次进入流程')
+await click('[data-device-card="AM-Recorder-01"]', '再次进入流程')
 await wait(700)
 // 再进一次时，上一轮录的那条应该已经落库 → 5 + 1 = 6 条
 const recountOk = await waitText('[data-rec-count]', '6 条录音')
