@@ -37,11 +37,23 @@ async function run() {
   })
   await page.waitForTimeout(800)
 
+  // 截取设置首页（验证头像恢复）
+  await page.screenshot({
+    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_settings_home_restored_avatar.png'
+  })
+  console.log('Saved verify_settings_home_restored_avatar.png')
+
   // 3. 点击账号卡片进入 Infinix ID 账号中心
   console.log('Clicking account card...')
   const accountCard = page.locator('.account-card').first()
   await accountCard.click()
   await page.waitForTimeout(800)
+
+  // 截取账号中心顶部（验证头像、查找图标、面形图标）
+  await page.screenshot({
+    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_account_top_restored.png'
+  })
+  console.log('Saved verify_account_top_restored.png')
 
   // 4. 滚动查看设备列表与新添加的钱包入口卡片
   console.log('Scrolling down to view wallet entry card...')

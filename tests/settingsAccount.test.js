@@ -14,6 +14,7 @@ test('accountStore manages user profile, feature cards, and 3-device list correc
   assert.equal(store.username, 'Ricky')
   assert.equal(store.phone, '+86 181****8993')
   assert.ok(store.avatar, 'avatar asset must be defined')
+  assert.ok(store.avatar.includes('account-avatar.jpg'), 'avatar must be restored to account-avatar.jpg')
 
   // 云存储与服务状态
   assert.equal(store.cloudStorage.used, '23.37 MB')
@@ -54,12 +55,16 @@ test('SettingsAccount.vue contains all UI elements matching reference specificat
   assert.ok(content.includes('电子保卡'), 'Must contain 电子保卡 card')
   assert.ok(content.includes('AI Credits'), 'Must contain AI Credits card')
 
-  // 设置列表项
+  // 设置列表项及面形图标与 #B1B6C2 背景
   assert.ok(content.includes('个人信息'), 'Must contain 个人信息')
   assert.ok(content.includes('账号安全'), 'Must contain 账号安全')
   assert.ok(content.includes('隐私与协议'), 'Must contain 隐私与协议')
   assert.ok(content.includes('帮助中心'), 'Must contain 帮助中心')
   assert.ok(content.includes('版本'), 'Must contain 版本')
+  assert.ok(content.includes('#B1B6C2'), 'Must use #B1B6C2 background for cell icons matching reference')
+
+  // 查找我的设备雷达图标
+  assert.ok(content.includes('#6FA6FF') && content.includes('#0E6DF9'), 'Find device icon must render authentic radar scanner')
 
   // 钱包入口卡片
   assert.ok(content.includes('wallet-entry-card'), 'Must contain wallet entry card')

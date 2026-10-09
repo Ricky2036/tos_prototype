@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-export const DEFAULT_AVATAR = new URL('../assets/img/infinix-id-avatar.png', import.meta.url).href
+export const DEFAULT_AVATAR = new URL('../assets/img/account-avatar.jpg', import.meta.url).href
 
 export const useAccountStore = defineStore('account', () => {
   const isLoggedIn = ref(true)

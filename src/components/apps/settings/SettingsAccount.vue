@@ -95,10 +95,15 @@ function handleRelogin() {
         <!-- 卡片 2: 查找我的设备 -->
         <div class="feature-card find-card" @click="showToast('查找我的设备已开启保护')">
           <div class="card-icon-wrap icon-find">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="9" stroke="#FFFFFF" stroke-width="2.2"/>
-              <path d="M12 7v5l3.5 3.5" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
-              <circle cx="12" cy="12" r="2.5" fill="#FFFFFF"/>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <!-- 外层半透浅蓝雷达面 -->
+              <circle cx="14" cy="14" r="10" fill="#6FA6FF"/>
+              <!-- 内层淡色探测圆心 -->
+              <circle cx="14" cy="14" r="5.6" fill="#E3F1FD"/>
+              <!-- 探测扫描指针，指向右上约 45 度 -->
+              <line x1="14" y1="14" x2="20.2" y2="7.8" stroke="#0E6DF9" stroke-width="2.8" stroke-linecap="round"/>
+              <!-- 顶部雷达信号点 -->
+              <circle cx="14.6" cy="6.2" r="1.3" fill="#FFFFFF"/>
             </svg>
           </div>
           <div class="card-title">查找我的设备</div>
@@ -134,9 +139,9 @@ function handleRelogin() {
         <!-- 个人信息 -->
         <div class="cell-row" @click="showToast('个人信息详情')">
           <div class="cell-icon-wrap">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
-              <circle cx="12" cy="7" r="4" stroke="#FFFFFF" stroke-width="2.2"/>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="7.2" r="3.4" fill="#FFFFFF"/>
+              <path d="M4.8 18.2c0-3.3 3.2-5 7.2-5s7.2 1.7 7.2 5c0 .6-.4 1-.9 1H5.7c-.5 0-.9-.4-.9-1z" fill="#FFFFFF"/>
             </svg>
           </div>
           <div class="cell-main">
@@ -150,9 +155,9 @@ function handleRelogin() {
         <!-- 账号安全 -->
         <div class="cell-row" @click="showToast('账号安全设置')">
           <div class="cell-icon-wrap">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#FFFFFF" stroke-width="2.2" stroke-linejoin="round"/>
-              <path d="M9 12l2 2 4-4" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3.4c3.8 1.4 7 1.8 7 6.6 0 5.2-3.8 8.8-7 10.8-3.2-2-7-5.6-7-10.8 0-4.8 3.2-5.2 7-6.6z" fill="#FFFFFF"/>
+              <path d="M9 12.2l2.2 2.2 4-4" fill="none" stroke="#B1B6C2" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <div class="cell-main">
@@ -169,11 +174,10 @@ function handleRelogin() {
         <!-- 隐私与协议 -->
         <div class="cell-row" @click="showToast('隐私与用户服务协议')">
           <div class="cell-icon-wrap">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#FFFFFF" stroke-width="2.2" stroke-linejoin="round"/>
-              <polyline points="14 2 14 8 20 8" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="8" y1="13" x2="16" y2="13" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
-              <line x1="8" y1="17" x2="13" y2="17" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <rect x="5.5" y="3.8" width="13" height="16.4" rx="3.2" fill="#FFFFFF"/>
+              <rect x="8.5" y="8" width="7" height="2" rx="1" fill="#B1B6C2"/>
+              <rect x="8.5" y="12" width="4.5" height="2" rx="1" fill="#B1B6C2"/>
             </svg>
           </div>
           <div class="cell-main">
@@ -187,10 +191,10 @@ function handleRelogin() {
         <!-- 帮助中心 -->
         <div class="cell-row" @click="showToast('帮助中心')">
           <div class="cell-icon-wrap">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="#FFFFFF" stroke-width="2.2"/>
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
-              <circle cx="12" cy="17" r="1" fill="#FFFFFF"/>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="8.5" fill="#FFFFFF"/>
+              <path d="M10.2 9.5a2 2 0 0 1 3.5 1c0 1.2-1.7 1.5-1.7 2.7" fill="none" stroke="#B1B6C2" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="12" cy="16.2" r="1.1" fill="#B1B6C2"/>
             </svg>
           </div>
           <div class="cell-main">
@@ -204,10 +208,10 @@ function handleRelogin() {
         <!-- 版本 -->
         <div class="cell-row no-border" @click="showToast('已是最新版本 20.0.0.178')">
           <div class="cell-icon-wrap">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="#FFFFFF" stroke-width="2.2"/>
-              <line x1="12" y1="16" x2="12" y2="12" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
-              <circle cx="12" cy="8" r="1.2" fill="#FFFFFF"/>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="8.5" fill="#FFFFFF"/>
+              <circle cx="12" cy="7.8" r="1.1" fill="#B1B6C2"/>
+              <line x1="12" y1="10.8" x2="12" y2="16.2" stroke="#B1B6C2" stroke-width="2.2" stroke-linecap="round"/>
             </svg>
           </div>
           <div class="cell-main">
@@ -452,7 +456,7 @@ function handleRelogin() {
 }
 
 .icon-find {
-  background: linear-gradient(135deg, #007AFF 0%, #0056D2 100%);
+  background: #0E6DF9;
 }
 
 .icon-warranty {
@@ -519,7 +523,7 @@ function handleRelogin() {
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  background: #8E8E93;
+  background: #B1B6C2;
   display: flex;
   align-items: center;
   justify-content: center;

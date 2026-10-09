@@ -21,7 +21,7 @@ import { useSystemStore } from '../../../stores/systemStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import { useAccountStore } from '../../../stores/accountStore'
 import { GLYPHS } from '../../../assets/icons/glyphs'
-import accountAvatar from '../../../assets/img/infinix-id-avatar.png'
+import accountAvatar from '../../../assets/img/account-avatar.jpg'
 import { clamp } from '../../../utils/math'
 
 /**
