@@ -172,6 +172,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Restore cartoon boy account avatar, optimize Find My Device radar icon, and redesign SettingsAccount list icons to solid shape glyphs with #B1B6C2 background matching reference | `antigravity/lane` | None (locks released) | `1dda3a6` | `588abee` |
 | Merged | Antigravity | Make account detail page avatar circular (border-radius: 50%, overflow: hidden, object-fit: cover) matching OS round avatar standards | `antigravity/lane` | None (locks released) | `e5074cd` | `6b0115e` |
 | Merged | Antigravity | Notification Center Infinix ID login guide notification (Infinix icon asset, localization, seed notifications, and account page direct jump) | `antigravity/lane` | None (locks released) | `f1ddc35` | `7357971` |
+| Merged | Antigravity | Develop Account Security page (SettingsAccountSecurity) matching reference specification and implement comprehensive password recovery flow | `antigravity/lane` | None (locks released) | `092d392` | `5f5874b` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
