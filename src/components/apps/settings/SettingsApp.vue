@@ -14,6 +14,7 @@ import SettingsDND from './SettingsDND.vue'
 import SettingsPrayer from './SettingsPrayer.vue'
 import SettingsPersonalization from './personalization/SettingsPersonalization.vue'
 import SettingsAccount from './SettingsAccount.vue'
+import SettingsAccountLogin from './SettingsAccountLogin.vue'
 import SettingsAccountSecurity from './SettingsAccountSecurity.vue'
 import SettingsWallet from './SettingsWallet.vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
@@ -48,6 +49,9 @@ if (prayerStore.targetView === 'prayer') {
 } else if (notificationsStore.targetView === 'account') {
   initialStack = ['main', 'account']
   notificationsStore.targetView = null
+} else if (notificationsStore.targetView === 'accountLogin') {
+  initialStack = ['main', 'accountLogin']
+  notificationsStore.targetView = null
 }
 const stack = ref(initialStack)
 const view = computed(() => stack.value[stack.value.length - 1])
@@ -73,6 +77,10 @@ watch(
     } else if (newTarget === 'account') {
       isBack.value = false
       stack.value = ['main', 'account']
+      notificationsStore.targetView = null
+    } else if (newTarget === 'accountLogin') {
+      isBack.value = false
+      stack.value = ['main', 'accountLogin']
       notificationsStore.targetView = null
     }
   }
@@ -119,6 +127,7 @@ const viewTitles = computed(() => ({
   prayer: i18n.t('prayerDnd') || '礼拜模式',
   personalization: '主题与个性化',
   account: 'Infinix ID',
+  accountLogin: 'INFINIX ID',
   accountSecurity: '账号安全',
   wallet: '卡包',
   placeholder: placeholderTitle.value || '设置'
@@ -246,7 +255,7 @@ const filteredSearchResults = computed(() => {
           <!-- 默认标准 8 组卡片列表 -->
           <template v-else>
             <!-- ================= 卡片 1: 个人账号卡 ================= -->
-            <div class="settings-card account-card" @click="push('account')">
+            <div class="settings-card account-card" @click="accountStore.isLoggedIn ? push('account') : push('accountLogin')">
               <div class="account-avatar">
                 <img class="account-avatar-img" :src="accountStore.avatar" alt="Ricky" />
               </div>
@@ -559,6 +568,18 @@ const filteredSearchResults = computed(() => {
           @back="pop"
           @open-wallet="push('wallet')"
           @open-security="push('accountSecurity')"
+          @open-login="push('accountLogin')"
+        />
+      </div>
+
+      <!-- ================= 账号登录 (Account Login) ================= -->
+      <div v-else-if="view === 'accountLogin'" key="accountLogin" class="settings-page">
+        <SettingsAccountLogin
+          @back="pop"
+          @login-success="() => {
+            pop()
+            push('account')
+          }"
         />
       </div>
 

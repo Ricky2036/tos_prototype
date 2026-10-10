@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useAccountStore } from '../../../stores/accountStore'
 import walletIcon from '../../../assets/icons/wallet-entry-icon.png'
 
-const emit = defineEmits(['back', 'open-wallet', 'open-security'])
+const emit = defineEmits(['back', 'open-wallet', 'open-security', 'open-login'])
 const account = useAccountStore()
 
 // 退出确认对话框与提示反馈
@@ -29,8 +29,7 @@ function handleConfirmLogout() {
 }
 
 function handleRelogin() {
-  account.login('Ricky')
-  showToast('登录成功')
+  emit('open-login')
 }
 </script>
 

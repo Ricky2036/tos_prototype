@@ -1051,7 +1051,7 @@ function handleCardClick(item) {
       handleExpand()
       return
     }
-    notifications.setTargetView('account')
+    notifications.setTargetView('accountLogin')
     system.unlock()
     system.openApp('settings')
     return

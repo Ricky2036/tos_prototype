@@ -52,19 +52,32 @@ test('Infinix app name is registered in APP_NAMES', () => {
   assert.equal(APP_NAMES.bn.infinix, 'Infinix ID')
 })
 
-test('NotificationCenter and SettingsApp handle jumping to account page on infinix notification click', () => {
+test('NotificationCenter and SettingsApp handle jumping to account login page on infinix notification click', () => {
   const ncPath = path.resolve(rootDir, 'src/components/system/NotificationCenter.vue')
   const ncContent = fs.readFileSync(ncPath, 'utf8')
   assert.match(ncContent, /if \(n\.appId === 'infinix'\)/, 'NotificationCenter must detect infinix appId')
-  assert.match(ncContent, /notifications\.setTargetView\('account'\)/, 'NotificationCenter must set targetView to account')
+  assert.match(ncContent, /notifications\.setTargetView\('accountLogin'\)/, 'NotificationCenter must set targetView to accountLogin')
   assert.match(ncContent, /system\.openApp\('settings'\)/, 'NotificationCenter must open settings app')
 
   const settingsAppPath = path.resolve(rootDir, 'src/components/apps/settings/SettingsApp.vue')
   const settingsContent = fs.readFileSync(settingsAppPath, 'utf8')
-  assert.match(settingsContent, /notificationsStore\.targetView === 'account'/, 'SettingsApp must handle targetView account')
-  assert.match(settingsContent, /newTarget === 'account'/, 'SettingsApp watch must react to targetView account')
+  assert.match(settingsContent, /notificationsStore\.targetView === 'accountLogin'/, 'SettingsApp must handle targetView accountLogin')
+  assert.match(settingsContent, /newTarget === 'accountLogin'/, 'SettingsApp watch must react to targetView accountLogin')
 
   const lockScreenPath = path.resolve(rootDir, 'src/components/system/LockScreen.vue')
   const lockScreenContent = fs.readFileSync(lockScreenPath, 'utf8')
   assert.match(lockScreenContent, /item\.raw\?\.appId === 'infinix'/, 'LockScreen must handle clicking infinix notification')
+  assert.match(lockScreenContent, /notifications\.setTargetView\('accountLogin'\)/, 'LockScreen must set targetView to accountLogin')
 })
+
+test('Infinix notification icon preserves safe horizontal margins on left and right', () => {
+  const assetPath = path.resolve(rootDir, 'src/assets/icons/notification-apps/infinix.png')
+  const buffer = fs.readFileSync(assetPath)
+  // Verify PNG header
+  assert.equal(buffer[0], 0x89)
+  assert.equal(buffer[1], 0x50) // 'P'
+  assert.equal(buffer[2], 0x4E) // 'N'
+  assert.equal(buffer[3], 0x47) // 'G'
+  assert.ok(buffer.length > 1000, 'infinix.png must have valid file size')
+})
+

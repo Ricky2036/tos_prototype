@@ -647,7 +647,7 @@ function onNotifCardClick(n) {
     return
   }
   if (n.appId === 'infinix') {
-    notifications.setTargetView('account')
+    notifications.setTargetView('accountLogin')
     system.requestCloseOverlay('notificationCenter')
     system.openApp('settings')
     return
