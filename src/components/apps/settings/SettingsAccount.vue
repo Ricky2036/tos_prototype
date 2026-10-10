@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useAccountStore } from '../../../stores/accountStore'
 import walletIcon from '../../../assets/icons/wallet-entry-icon.png'
 
-const emit = defineEmits(['back', 'open-wallet'])
+const emit = defineEmits(['back', 'open-wallet', 'open-security'])
 const account = useAccountStore()
 
 // 退出确认对话框与提示反馈
@@ -153,7 +153,7 @@ function handleRelogin() {
         </div>
 
         <!-- 账号安全 -->
-        <div class="cell-row" @click="showToast('账号安全设置')">
+        <div class="cell-row" @click="emit('open-security')">
           <div class="cell-icon-wrap">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M12 3.4c3.8 1.4 7 1.8 7 6.6 0 5.2-3.8 8.8-7 10.8-3.2-2-7-5.6-7-10.8 0-4.8 3.2-5.2 7-6.6z" fill="#FFFFFF"/>

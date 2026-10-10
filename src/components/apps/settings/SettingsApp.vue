@@ -14,6 +14,7 @@ import SettingsDND from './SettingsDND.vue'
 import SettingsPrayer from './SettingsPrayer.vue'
 import SettingsPersonalization from './personalization/SettingsPersonalization.vue'
 import SettingsAccount from './SettingsAccount.vue'
+import SettingsAccountSecurity from './SettingsAccountSecurity.vue'
 import SettingsWallet from './SettingsWallet.vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
@@ -118,6 +119,7 @@ const viewTitles = computed(() => ({
   prayer: i18n.t('prayerDnd') || '礼拜模式',
   personalization: '主题与个性化',
   account: 'Infinix ID',
+  accountSecurity: '账号安全',
   wallet: '卡包',
   placeholder: placeholderTitle.value || '设置'
 }))
@@ -553,7 +555,16 @@ const filteredSearchResults = computed(() => {
 
       <!-- ================= 账号中心 (Infinix ID) ================= -->
       <div v-else-if="view === 'account'" key="account" class="settings-page">
-        <SettingsAccount @back="pop" @open-wallet="push('wallet')" />
+        <SettingsAccount
+          @back="pop"
+          @open-wallet="push('wallet')"
+          @open-security="push('accountSecurity')"
+        />
+      </div>
+
+      <!-- ================= 账号安全 (Account Security) ================= -->
+      <div v-else-if="view === 'accountSecurity'" key="accountSecurity" class="settings-page">
+        <SettingsAccountSecurity @back="pop" />
       </div>
 
       <!-- ================= 卡包页面 (Wallet) ================= -->
