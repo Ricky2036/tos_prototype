@@ -173,6 +173,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Make account detail page avatar circular (border-radius: 50%, overflow: hidden, object-fit: cover) matching OS round avatar standards | `antigravity/lane` | None (locks released) | `e5074cd` | `6b0115e` |
 | Merged | Antigravity | Notification Center Infinix ID login guide notification (Infinix icon asset, localization, seed notifications, and account page direct jump) | `antigravity/lane` | None (locks released) | `f1ddc35` | `7357971` |
 | Merged | Antigravity | Develop Account Security page (SettingsAccountSecurity) matching reference specification and implement comprehensive password recovery flow | `antigravity/lane` | None (locks released) | `092d392` | `5f5874b` |
+| Merged | Antigravity | Refine Infinix notification icon with safe horizontal margins, implement Account Login page matching reference design Image 2, and link account notification click to login page | `antigravity/lane` | None (locks released) | `3239bdb` | `20ff8c6` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
