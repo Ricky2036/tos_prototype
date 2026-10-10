@@ -28,8 +28,11 @@ test('SettingsAccountLogin.vue matches Image 2 reference layout and components',
   assert.ok(content.includes('nav-capsule-group'), 'Must have capsule button group on right')
   assert.ok(content.includes('capsule-icon-btn'), 'Must have capsule icon buttons')
 
-  // 2. 品牌区：蓝色圆角矩形图标 + INFINIX ID 标题 + 提示文案
+  // 2. 品牌区：品牌图标使用对应的通知图标 + INFINIX ID 标题 + 提示文案
   assert.ok(content.includes('brand-logo-squircle'), 'Must have squircle brand logo')
+  assert.ok(content.includes('infinixNotificationIcon'), 'Must import infinix notification icon')
+  assert.ok(content.includes('assets/icons/notification-apps/infinix.png'), 'Must reference notification infinix icon')
+  assert.ok(content.includes('brand-logo-img'), 'Must render image element with brand-logo-img class')
   assert.ok(content.includes('Infinix'), 'Brand logo must contain Infinix')
   assert.ok(content.includes('INFINIX ID'), 'Title must be INFINIX ID')
   assert.ok(content.includes('登录即可享受更多个性化服务'), 'Must have subtitle')

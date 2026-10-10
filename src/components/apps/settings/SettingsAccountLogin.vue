@@ -2,6 +2,7 @@
 import { ref, computed, onBeforeUnmount } from 'vue'
 import { useAccountStore } from '../../../stores/accountStore'
 import { useI18nStore } from '../../../stores/i18nStore'
+import infinixNotificationIcon from '../../../assets/icons/notification-apps/infinix.png'
 
 const emit = defineEmits(['back', 'login-success'])
 const account = useAccountStore()
@@ -169,9 +170,14 @@ onBeforeUnmount(() => {
     <div class="login-body-content scrollable">
       <!-- 品牌 Logo 与标题区域 -->
       <div class="login-brand-section">
-        <!-- 品牌方形圆角图标 (Blue squircle matching Image 2 reference) -->
+        <!-- 品牌方形圆角图标 (使用对应的 Infinix 通知图标) -->
         <div class="brand-logo-squircle">
-          <span class="brand-logo-text">Infinix</span>
+          <img
+            class="brand-logo-img"
+            :src="infinixNotificationIcon"
+            alt="Infinix"
+            draggable="false"
+          />
         </div>
 
         <div class="brand-title">INFINIX ID</div>
@@ -575,12 +581,21 @@ onBeforeUnmount(() => {
 .brand-logo-squircle {
   width: 72px;
   height: 72px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #0077FF 0%, #0091FF 100%);
+  border-radius: 18px;
+  background: #000000;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(0, 119, 255, 0.28);
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.brand-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: inherit;
 }
 
 .brand-logo-text {
