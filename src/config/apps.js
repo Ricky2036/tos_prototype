@@ -126,7 +126,7 @@ export const APPS = [
   {
     id: 'photos',
     name: '照片',
-    depth: 'placeholder',
+    depth: 'core',
     heroBackground: '#F5F5F7',
     image: '/icons/photos.png',
     page: 0

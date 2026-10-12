@@ -19,6 +19,7 @@ import AppSwitcher from '../system/AppSwitcher.vue'
 import VolumePanel from '../system/VolumePanel.vue'
 import SideVolumeOverlay from '../system/SideVolumeOverlay.vue'
 import PowerMenu from '../system/PowerMenu.vue'
+import ShareSheet from '../system/ShareSheet.vue'
 import { registerDriver } from '../../composables/driverRegistry'
 import { runBackHandler } from '../../composables/backRegistry'
 import wallpaper from '../../assets/img/wallpaper-lock.jpg'
@@ -319,6 +320,7 @@ useSwipeGesture(sideEdgeRef, {
     <VolumePanel />
     <SideVolumeOverlay />
     <PowerMenu />
+    <ShareSheet />
 
     <!-- 顶部边缘手势热区：左/中 = 通知中心，右 1/4 = 控制中心 (当叠层打开时禁用热区避免遮挡头部按钮) -->
     <div
