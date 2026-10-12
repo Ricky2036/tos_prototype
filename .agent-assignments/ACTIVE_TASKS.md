@@ -176,6 +176,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Refine Infinix notification icon with safe horizontal margins, implement Account Login page matching reference design Image 2, and link account notification click to login page | `antigravity/lane` | None (locks released) | `3239bdb` | `20ff8c6` |
 | Merged | Antigravity | Use notification icon for brand logo on login page | `antigravity/lane` | None (locks released) | `7477385` | `4235d44` |
 | Merged | Workbuddy | Polish AI Mate printer and recorder flows, rich photo/record editing & printing, locales, and recorderFlowStore suite | `workbuddy/lane` | None (locks released) | `092d392` | `5c6c95e` |
+| Merged | Antigravity | Add high-fidelity Settings Search page with suggestions, history editing, and single/all deletion matching reference design | `antigravity/lane` | None (locks released) | `720ca2b` | `4195a62` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
