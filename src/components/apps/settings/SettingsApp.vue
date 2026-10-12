@@ -17,6 +17,7 @@ import SettingsAccount from './SettingsAccount.vue'
 import SettingsAccountLogin from './SettingsAccountLogin.vue'
 import SettingsAccountSecurity from './SettingsAccountSecurity.vue'
 import SettingsWallet from './SettingsWallet.vue'
+import SettingsSearch from './SettingsSearch.vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
 import { useSystemStore } from '../../../stores/systemStore'
@@ -93,6 +94,7 @@ function pushUnimplemented(name) {
 }
 
 function push(v) {
+  if (stack.value[stack.value.length - 1] === v) return
   isBack.value = false
   stack.value.push(v)
 }
@@ -130,6 +132,7 @@ const viewTitles = computed(() => ({
   accountLogin: 'INFINIX ID',
   accountSecurity: '账号安全',
   wallet: '卡包',
+  search: '搜索',
   placeholder: placeholderTitle.value || '设置'
 }))
 
@@ -191,8 +194,20 @@ const allSearchableItems = [
   { id: 'google', title: 'Google', group: '服务', action: () => pushUnimplemented('Google') },
   { id: 'system', title: '系统', group: '系统', action: () => push('general') },
   { id: 'language', title: '系统语言与输入法', group: '系统', action: () => push('language') },
-  { id: 'navigation', title: '系统导航方式', group: '系统', action: () => push('navigation') }
+  { id: 'navigation', title: '系统导航方式', group: '系统', action: () => push('navigation') },
+  { id: 'dns', title: '专用 DNS', group: '网络与连接', action: () => pushUnimplemented('专用 DNS') },
+  { id: 'dateTime', title: '日期与时间', group: '系统', action: () => pushUnimplemented('日期与时间') },
+  { id: 'screenTime', title: '屏幕使用时间', group: '数字健康', action: () => pushUnimplemented('屏幕使用时间') },
+  { id: 'lockScreen', title: '锁屏设置', group: '个性化', action: () => push('personalization') },
+  { id: 'smallWindow', title: '小窗模式', group: '特色功能', action: () => pushUnimplemented('小窗模式') },
+  { id: 'darkMode', title: '深色主题（黑夜模式）', group: '显示', action: () => push('display') }
 ]
+
+function handleSearchNavigate(item) {
+  if (typeof item?.action === 'function') {
+    item.action()
+  }
+}
 
 const filteredSearchResults = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
@@ -526,15 +541,23 @@ const filteredSearchResults = computed(() => {
         </div>
 
         <!-- ================= 底部悬浮搜索栏控件 ================= -->
-        <div class="settings-floating-search">
+        <div class="settings-floating-search" @click="push('search')">
           <SettingsSearchBar
             v-model="searchQuery"
             placeholder="搜索"
-            @focus="searchActive = true"
-            @blur="searchActive = false"
+            @focus="push('search')"
             @clear="searchQuery = ''"
           />
         </div>
+      </div>
+
+      <!-- ================= 设置搜索界面（参考图 1 与图 2） ================= -->
+      <div v-else-if="view === 'search'" key="search" class="settings-page">
+        <SettingsSearch
+          :searchable-items="allSearchableItems"
+          @back="pop"
+          @navigate="handleSearchNavigate"
+        />
       </div>
 
       <!-- ================= 声音与振动 ================= -->
