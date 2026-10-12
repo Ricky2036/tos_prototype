@@ -16,9 +16,11 @@ test('SettingsSearch.vue matches reference design specification in Image 1 and I
   assert.ok(content.includes('屏幕使用时间'), 'Must include 屏幕使用时间 suggestion')
   assert.ok(content.includes('锁屏设置'), 'Must include 锁屏设置 suggestion')
 
-  // 2. 搜索历史模块与垃圾桶图标（图 1）
+  // 2. 搜索历史模块与垃圾桶图标（图 1，包含两条竖线标准设计）
   assert.ok(content.includes('搜索历史'), 'Must contain 搜索历史 title')
   assert.ok(content.includes('history-action-btn'), 'Must have history action button with trash icon')
+  assert.ok(content.includes('<line x1="10" y1="11" x2="10" y2="17"/>'), 'Trash icon must include left vertical line')
+  assert.ok(content.includes('<line x1="14" y1="11" x2="14" y2="17"/>'), 'Trash icon must include right vertical line')
   assert.ok(content.includes('小窗'), 'Must have default history items')
   assert.ok(content.includes('隐私'), 'Must have default history items')
   assert.ok(content.includes('黑'), 'Must have default history items')
