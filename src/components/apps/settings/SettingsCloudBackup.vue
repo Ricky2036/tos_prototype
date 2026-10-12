@@ -14,6 +14,8 @@ const GLYPHS = {
   info: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z',
   check: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z',
   cloud: 'M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z',
+  cloudUpload: 'M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z',
+  restore: 'M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z',
   cloudOff: 'M19.35 10.04C18.67 6.59 15.64 4 12 4c-1.48 0-2.85.43-4.01 1.17l1.46 1.46C10.21 6.23 11.08 6 12 6c3.04 0 5.5 2.46 5.5 5.5v.5H19c1.66 0 3 1.34 3 3 0 .84-.35 1.6-.91 2.14l1.45 1.45C23.42 17.2 24 16.18 24 15c0-2.64-2.05-4.78-4.65-4.96zM3 5.27l2.75 2.74C2.56 8.97 0 11.23 0 14.5 0 18.09 2.91 21 6.5 21H18.73l2 2 1.27-1.27L4.27 4 3 5.27z'
 }
 
@@ -38,7 +40,7 @@ const state = reactive({
   spaceTotal: 5,
   spaceUsedOther: 1.6,
   cloudBackup: {
-    device: 'Infinix NOTE 50S 5G',
+    device: 'CAMON 40 Premier',
     size: 2.9,
     date: '2026/08/10',
     mine: true
@@ -302,6 +304,39 @@ function handleRenewOrExpand(type) {
   showToast(type === 'renew' ? '续费成功（演示），已刷新权益与容量' : '扩容成功（演示），已刷新空间容量')
 }
 
+// 演示状态切换（对齐图 2 原型第二行开关）
+function toggleCloudBackupDemo() {
+  state.cloudBackup = state.cloudBackup ? null : {
+    device: 'CAMON 40 Premier',
+    size: 2.9,
+    date: '2026/08/10',
+    mine: true
+  }
+}
+
+function toggleRemoteDemo() {
+  state.showRemote = !state.showRemote
+  if (state.showRemote && !state.remoteBackup) {
+    state.remoteBackup = {
+      device: 'CAMON 40 Premier',
+      size: 1.8,
+      date: '2026/08/09',
+      source: '查找手机 · Web 端提交'
+    }
+  }
+}
+
+function toggleOtherDeviceDemo() {
+  state.showOtherDevice = !state.showOtherDevice
+  if (state.showOtherDevice && !state.otherDeviceBackup) {
+    state.otherDeviceBackup = {
+      device: 'CAMON 30',
+      size: 2.4,
+      date: '2026/07/28'
+    }
+  }
+}
+
 // 左滑手势删除
 const swipeState = reactive({
   id: null,
@@ -419,76 +454,148 @@ function selectFreq(val) {
   state.autoFreq = val
   activeModal.value = null
 }
-
-const showDemoToolbar = ref(false)
 </script>
 
 <template>
   <div class="cb-app">
     <!-- ================= 页面 1: 云备份首页 ================= -->
-    <div v-if="currentPage === 'home'" class="cb-page">
-      <AppNavBar title="云备份" back-label="账号" @back="emit('back')" />
-
-      <div class="cb-sub-body scrollable">
-        <!-- 权益过期横幅 -->
-        <div v-if="state.scenario === 'expired'" class="cb-banner warn">
-          <svg class="cb-banner-icon" width="20" height="20" viewBox="0 0 24 24">
-            <path :d="GLYPHS.info" fill="#FF7A1A" />
+    <div v-if="currentPage === 'home'" class="cb-page scrollable">
+      <div class="cb-navbar">
+        <button
+          type="button"
+          class="cb-nav-back"
+          aria-label="返回账号"
+          @click="emit('back')"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 19l-7-7 7-7" />
           </svg>
-          <div class="cb-banner-text">
-            <div class="cb-banner-title">云空间权益已过期</div>
-            <div class="cb-banner-sub">历史备份仍保留，可随时恢复</div>
-          </div>
-          <button type="button" class="cb-banner-btn" @click="handleRenewOrExpand('renew')">去续费</button>
-        </div>
+        </button>
+        <span class="cb-nav-title">云备份</span>
+      </div>
 
-        <!-- 空间不足横幅 -->
-        <div v-else-if="state.scenario === 'nospace'" class="cb-banner warn">
-          <svg class="cb-banner-icon" width="20" height="20" viewBox="0 0 24 24">
-            <path :d="GLYPHS.info" fill="#FF7A1A" />
+      <!-- 权益过期横幅（仅 expired 场景） -->
+      <div v-if="state.scenario === 'expired'" class="cb-banner">
+        <svg width="20" height="20" viewBox="0 0 24 24">
+          <path :d="GLYPHS.info" fill="#FF7A1A" />
+        </svg>
+        <div class="cb-banner-text">
+          <div class="cb-banner-title">云空间权益已过期</div>
+          <div class="cb-banner-sub">历史备份仍保留，可随时恢复；续费后可继续备份</div>
+        </div>
+        <button type="button" class="cb-banner-btn" @click="handleRenewOrExpand('renew')">续费</button>
+      </div>
+
+      <!-- Hero 大卡片（包含云朵图标、大标题、副标题、云空间进度条及立即备份按钮） -->
+      <div class="card cb-hero">
+        <div class="cb-hero-icon">
+          <svg width="34" height="34" viewBox="0 0 24 24">
+            <path :d="GLYPHS.cloudUpload" fill="#fff" />
           </svg>
-          <div class="cb-banner-text">
-            <div class="cb-banner-title">云空间不足</div>
-            <div class="cb-banner-sub">扩容云空间后即可继续备份</div>
-          </div>
-          <button type="button" class="cb-banner-btn" @click="handleRenewOrExpand('expand')">去扩容</button>
         </div>
+        <div class="cb-hero-title">云备份</div>
+        <div class="cb-hero-sub">备份数据保存在你的云空间，权益过期后历史备份仍保留，可随时恢复</div>
 
-        <!-- 空间容量统计卡片 -->
-        <div class="card cb-space">
+        <div class="cb-space">
           <div class="cb-space-row">
-            <span class="cb-space-title">云空间</span>
+            <span>云空间</span>
             <span class="cb-space-num">{{ spaceUsedTotal.toFixed(1) }} GB / {{ state.spaceTotal }} GB</span>
           </div>
           <div class="cb-space-bar">
             <div
-              class="cb-space-fill"
-              :class="{ warn: state.scenario === 'nospace' || spaceRemaining <= 0.4 }"
-              :style="{ width: Math.min(100, (spaceUsedTotal / state.spaceTotal) * 100) + '%' }"
+              class="cb-space-fill other"
+              :style="{ width: (state.spaceUsedOther / state.spaceTotal * 100) + '%' }"
+            ></div>
+            <div
+              class="cb-space-fill backup"
+              :style="{ width: (totalBackupUsed / state.spaceTotal * 100) + '%' }"
             ></div>
           </div>
           <div class="cb-space-legend">
-            <span>备份数据占用 {{ totalBackupUsed.toFixed(1) }} GB</span>
-            <span v-if="spaceRemaining > 0">剩余 {{ spaceRemaining.toFixed(1) }} GB</span>
-            <span v-else class="cb-expire">已用尽</span>
+            <span><i class="dot backup"></i>云备份 {{ totalBackupUsed.toFixed(1) }} GB</span>
+            <span><i class="dot other"></i>其他 {{ state.spaceUsedOther.toFixed(1) }} GB</span>
           </div>
         </div>
 
-        <!-- 本机备份 -->
-        <div class="cb-section-title">本机备份</div>
+        <button type="button" class="cb-primary" @click="handleStartBackupClick">
+          立即备份
+        </button>
+      </div>
+
+      <!-- 自动备份卡片（紧贴 Hero 大卡片下方！） -->
+      <div class="card cb-cell" @click="pushPage('auto')">
+        <div class="cb-cell-icon" style="background: linear-gradient(180deg, #4E9AF8, #1E6FF2);">
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path :d="GLYPHS.restore" fill="#fff" />
+          </svg>
+        </div>
+        <div class="cb-cell-main">
+          <div class="cb-cell-title">自动备份</div>
+          <div class="cb-cell-sub">
+            每 {{ state.autoFreq }} 天 · WLAN · 锁定充电
+          </div>
+        </div>
+        <span class="cb-cell-state" :class="{ on: state.autoBackupOn }">
+          {{ state.autoBackupOn ? '已开启' : '已关闭' }}
+        </span>
+        <svg width="8" height="13" viewBox="0 0 8 13">
+          <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+
+      <!-- 本机备份 -->
+      <div class="cb-section-title">本机备份</div>
+      <div class="card cb-list">
+        <div
+          v-if="state.cloudBackup"
+          class="cb-swipe"
+          @pointerdown="e => onSwipePointerDown(e, 'cloud')"
+          @pointermove="onSwipePointerMove"
+          @pointerup="onSwipePointerUp"
+          @pointercancel="onSwipePointerUp"
+        >
+          <div class="cb-swipe-actions">
+            <button type="button" class="cb-del" @click.stop="triggerDeleteBackup('cloud')">删除</button>
+          </div>
+          <div class="cb-swipe-inner cb-backup-row" :style="getSwipeStyle('cloud')" @click="handleBackupRowClick">
+            <div class="cb-device-icon">
+              <svg width="16" height="22" viewBox="0 0 16 22">
+                <rect x="1" y="1" width="14" height="20" rx="2.5" fill="none" stroke="#8E8E93" stroke-width="1.6" />
+                <circle cx="8" cy="18" r="1.2" fill="#8E8E93" />
+              </svg>
+            </div>
+            <div class="cb-cell-main">
+              <div class="cb-cell-title">
+                {{ state.cloudBackup.device }}
+                <span class="cb-tag">本机</span>
+              </div>
+              <div class="cb-cell-sub">{{ state.cloudBackup.size }} GB | {{ state.cloudBackup.date }}</div>
+            </div>
+            <span class="cb-restore">恢复</span>
+            <svg width="8" height="13" viewBox="0 0 8 13">
+              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+        </div>
+        <div v-else class="cb-empty">暂无本机备份</div>
+      </div>
+
+      <!-- 远程备份 -->
+      <template v-if="state.showRemote">
+        <div class="cb-section-title">远程备份</div>
         <div class="card cb-list">
           <div
-            v-if="state.cloudBackup"
+            v-if="state.remoteBackup"
             class="cb-swipe"
-            @pointerdown="e => onSwipePointerDown(e, 'cloud')"
+            @pointerdown="e => onSwipePointerDown(e, 'remote')"
             @pointermove="onSwipePointerMove"
             @pointerup="onSwipePointerUp"
             @pointercancel="onSwipePointerUp"
           >
             <div class="cb-swipe-actions">
-              <button type="button" class="cb-del" @click.stop="triggerDeleteBackup('cloud')">删除</button>
+              <button type="button" class="cb-del" @click.stop="triggerDeleteBackup('remote')">删除</button>
             </div>
-            <div class="cb-swipe-inner cb-backup-row" :style="getSwipeStyle('cloud')" @click="handleBackupRowClick">
+            <div class="cb-swipe-inner cb-backup-row" :style="getSwipeStyle('remote')" @click="handleBackupRowClick">
               <div class="cb-device-icon">
                 <svg width="16" height="22" viewBox="0 0 16 22">
                   <rect x="1" y="1" width="14" height="20" rx="2.5" fill="none" stroke="#8E8E93" stroke-width="1.6" />
@@ -497,10 +604,12 @@ const showDemoToolbar = ref(false)
               </div>
               <div class="cb-cell-main">
                 <div class="cb-cell-title">
-                  {{ state.cloudBackup.device }}
-                  <span class="cb-tag mine">本机</span>
+                  {{ state.remoteBackup.device }}
+                  <span class="cb-tag remote">远程</span>
                 </div>
-                <div class="cb-cell-sub">{{ state.cloudBackup.size }} GB | {{ state.cloudBackup.date }}</div>
+                <div class="cb-cell-sub">
+                  {{ state.remoteBackup.size }} GB | {{ state.remoteBackup.date }} · {{ state.remoteBackup.source }}
+                </div>
               </div>
               <span class="cb-restore">恢复</span>
               <svg width="8" height="13" viewBox="0 0 8 13">
@@ -508,185 +617,150 @@ const showDemoToolbar = ref(false)
               </svg>
             </div>
           </div>
-          <div v-else class="cb-empty">暂无本机备份</div>
         </div>
+      </template>
 
-        <!-- 远程备份 -->
-        <template v-if="state.showRemote && state.remoteBackup">
-          <div class="cb-section-title">远程备份</div>
-          <div class="card cb-list">
-            <div
-              class="cb-swipe"
-              @pointerdown="e => onSwipePointerDown(e, 'remote')"
-              @pointermove="onSwipePointerMove"
-              @pointerup="onSwipePointerUp"
-              @pointercancel="onSwipePointerUp"
-            >
-              <div class="cb-swipe-actions">
-                <button type="button" class="cb-del" @click.stop="triggerDeleteBackup('remote')">删除</button>
-              </div>
-              <div class="cb-swipe-inner cb-backup-row" :style="getSwipeStyle('remote')" @click="handleBackupRowClick">
-                <div class="cb-device-icon">
-                  <svg width="16" height="22" viewBox="0 0 16 22">
-                    <rect x="1" y="1" width="14" height="20" rx="2.5" fill="none" stroke="#8E8E93" stroke-width="1.6" />
-                    <circle cx="8" cy="18" r="1.2" fill="#8E8E93" />
-                  </svg>
-                </div>
-                <div class="cb-cell-main">
-                  <div class="cb-cell-title">
-                    {{ state.remoteBackup.device }}
-                    <span class="cb-tag remote">远程</span>
-                  </div>
-                  <div class="cb-cell-sub">{{ state.remoteBackup.size }} GB | {{ state.remoteBackup.date }} · {{ state.remoteBackup.source }}</div>
-                </div>
-                <span class="cb-restore">恢复</span>
-                <svg width="8" height="13" viewBox="0 0 8 13">
-                  <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+      <!-- 其他设备备份 -->
+      <template v-if="state.showOtherDevice">
+        <div class="cb-section-title">其他设备备份</div>
+        <div class="card cb-list">
+          <div
+            v-if="state.otherDeviceBackup"
+            class="cb-swipe"
+            @pointerdown="e => onSwipePointerDown(e, 'other')"
+            @pointermove="onSwipePointerMove"
+            @pointerup="onSwipePointerUp"
+            @pointercancel="onSwipePointerUp"
+          >
+            <div class="cb-swipe-actions">
+              <button type="button" class="cb-del" @click.stop="triggerDeleteBackup('other')">删除</button>
+            </div>
+            <div class="cb-swipe-inner cb-backup-row" :style="getSwipeStyle('other')" @click="handleBackupRowClick">
+              <div class="cb-device-icon">
+                <svg width="16" height="22" viewBox="0 0 16 22">
+                  <rect x="1" y="1" width="14" height="20" rx="2.5" fill="none" stroke="#8E8E93" stroke-width="1.6" />
+                  <circle cx="8" cy="18" r="1.2" fill="#8E8E93" />
                 </svg>
               </div>
-            </div>
-          </div>
-        </template>
-
-        <!-- 其他设备备份 -->
-        <template v-if="state.showOtherDevice && state.otherDeviceBackup">
-          <div class="cb-section-title">其他设备备份</div>
-          <div class="card cb-list">
-            <div
-              class="cb-swipe"
-              @pointerdown="e => onSwipePointerDown(e, 'other')"
-              @pointermove="onSwipePointerMove"
-              @pointerup="onSwipePointerUp"
-              @pointercancel="onSwipePointerUp"
-            >
-              <div class="cb-swipe-actions">
-                <button type="button" class="cb-del" @click.stop="triggerDeleteBackup('other')">删除</button>
-              </div>
-              <div class="cb-swipe-inner cb-backup-row" :style="getSwipeStyle('other')" @click="handleBackupRowClick">
-                <div class="cb-device-icon">
-                  <svg width="16" height="22" viewBox="0 0 16 22">
-                    <rect x="1" y="1" width="14" height="20" rx="2.5" fill="none" stroke="#8E8E93" stroke-width="1.6" />
-                    <circle cx="8" cy="18" r="1.2" fill="#8E8E93" />
-                  </svg>
+              <div class="cb-cell-main">
+                <div class="cb-cell-title">
+                  {{ state.otherDeviceBackup.device }}
+                  <span class="cb-tag other">其他设备</span>
                 </div>
-                <div class="cb-cell-main">
-                  <div class="cb-cell-title">
-                    {{ state.otherDeviceBackup.device }}
-                    <span class="cb-tag other">其他设备</span>
-                  </div>
-                  <div class="cb-cell-sub">{{ state.otherDeviceBackup.size }} GB | {{ state.otherDeviceBackup.date }}</div>
+                <div class="cb-cell-sub">
+                  {{ state.otherDeviceBackup.size }} GB | {{ state.otherDeviceBackup.date }}
                 </div>
-                <span class="cb-restore">恢复</span>
-                <svg width="8" height="13" viewBox="0 0 8 13">
-                  <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
               </div>
+              <span class="cb-restore">恢复</span>
+              <svg width="8" height="13" viewBox="0 0 8 13">
+                <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
             </div>
-          </div>
-        </template>
-
-        <!-- 历史备份 -->
-        <template v-if="state.showLegacy && state.legacyBackup">
-          <div class="cb-section-title">历史备份</div>
-          <div class="card cb-list">
-            <div
-              class="cb-swipe"
-              @pointerdown="e => onSwipePointerDown(e, 'legacy')"
-              @pointermove="onSwipePointerMove"
-              @pointerup="onSwipePointerUp"
-              @pointercancel="onSwipePointerUp"
-            >
-              <div class="cb-swipe-actions">
-                <button type="button" class="cb-del" @click.stop="triggerDeleteBackup('legacy')">删除</button>
-              </div>
-              <div class="cb-swipe-inner cb-backup-row" :style="getSwipeStyle('legacy')" @click="handleBackupRowClick">
-                <div class="cb-device-icon">
-                  <svg width="16" height="22" viewBox="0 0 16 22">
-                    <rect x="1" y="1" width="14" height="20" rx="2.5" fill="none" stroke="#8E8E93" stroke-width="1.6" />
-                    <circle cx="8" cy="18" r="1.2" fill="#8E8E93" />
-                  </svg>
-                </div>
-                <div class="cb-cell-main">
-                  <div class="cb-cell-title">
-                    {{ state.legacyBackup.device }}
-                    <span class="cb-tag legacy">临时备份</span>
-                  </div>
-                  <div class="cb-cell-sub">
-                    {{ state.legacyBackup.size }} GB | <span class="cb-expire">{{ state.legacyBackup.expireDays }} 天后过期</span>
-                  </div>
-                </div>
-                <span class="cb-restore">恢复</span>
-                <svg width="8" height="13" viewBox="0 0 8 13">
-                  <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </template>
-
-        <!-- 自动备份设置入口 -->
-        <div class="card cb-list" style="margin-top: 14px;">
-          <div class="cb-check-row cb-tappable" @click="pushPage('auto')">
-            <div class="cb-cell-main">
-              <div class="cb-cell-title">自动备份</div>
-              <div class="cb-cell-sub">
-                {{ state.autoBackupOn ? `每 ${state.autoFreq} 天 · WLAN · 锁定充电` : '已关闭' }}
-              </div>
-            </div>
-            <svg width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
           </div>
         </div>
+      </template>
 
-        <!-- 原型演示控制抽屉入口 -->
-        <div class="cb-demo-wrap">
-          <button type="button" class="cb-demo-toggle" @click="showDemoToolbar = !showDemoToolbar">
-            {{ showDemoToolbar ? '隐藏演示场景配置 ▲' : '原型演示场景配置 ▼' }}
+      <!-- 历史备份 -->
+      <template v-if="state.showLegacy">
+        <div class="cb-section-title">历史备份</div>
+        <div class="card cb-list">
+          <div
+            v-if="state.legacyBackup"
+            class="cb-swipe"
+            @pointerdown="e => onSwipePointerDown(e, 'legacy')"
+            @pointermove="onSwipePointerMove"
+            @pointerup="onSwipePointerUp"
+            @pointercancel="onSwipePointerUp"
+          >
+            <div class="cb-swipe-actions">
+              <button type="button" class="cb-del" @click.stop="triggerDeleteBackup('legacy')">删除</button>
+            </div>
+            <div class="cb-swipe-inner cb-backup-row" :style="getSwipeStyle('legacy')" @click="handleBackupRowClick">
+              <div class="cb-device-icon">
+                <svg width="16" height="22" viewBox="0 0 16 22">
+                  <rect x="1" y="1" width="14" height="20" rx="2.5" fill="none" stroke="#8E8E93" stroke-width="1.6" />
+                  <circle cx="8" cy="18" r="1.2" fill="#8E8E93" />
+                </svg>
+              </div>
+              <div class="cb-cell-main">
+                <div class="cb-cell-title">
+                  {{ state.legacyBackup.device }}
+                  <span class="cb-tag legacy">临时备份</span>
+                </div>
+                <div class="cb-cell-sub">
+                  {{ state.legacyBackup.size }} GB | <span class="cb-expire">{{ state.legacyBackup.expireDays }} 天后过期</span>
+                </div>
+              </div>
+              <span class="cb-restore">恢复</span>
+              <svg width="8" height="13" viewBox="0 0 8 13">
+                <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- 原型演示场景（常驻虚线框卡片，完全与图 2 一致） -->
+      <div class="cb-demo">
+        <div class="cb-demo-title">原型演示场景</div>
+        <!-- 第一行：状态场景 -->
+        <div class="cb-demo-row">
+          <button
+            v-for="item in demoScenarios"
+            :key="item.id"
+            type="button"
+            class="cb-chip"
+            :class="{ active: state.scenario === item.id }"
+            @click="switchScenario(item.id)"
+          >
+            {{ item.label }}
           </button>
-          <div v-if="showDemoToolbar" class="cb-demo">
-            <div class="cb-demo-title">演示场景切换</div>
-            <div class="cb-demo-row">
-              <button
-                v-for="item in demoScenarios"
-                :key="item.id"
-                type="button"
-                class="cb-chip"
-                :class="{ active: state.scenario === item.id }"
-                @click="switchScenario(item.id)"
-              >
-                {{ item.label }}
-              </button>
-            </div>
-            <div class="cb-demo-row">
-              <button
-                type="button"
-                class="cb-chip"
-                :class="{ active: state.showLegacy }"
-                @click="state.showLegacy = !state.showLegacy"
-              >
-                {{ state.showLegacy ? '关闭历史存量包' : '开启历史存量包' }}
-              </button>
-              <button
-                type="button"
-                class="cb-chip"
-                :class="{ active: state.localLowSpace }"
-                @click="state.localLowSpace = !state.localLowSpace"
-              >
-                {{ state.localLowSpace ? '本机空间充足' : '本机空间不足(恢复校验)' }}
-              </button>
-            </div>
-          </div>
         </div>
-      </div>
-
-      <!-- 底部立即备份按钮与提示 -->
-      <div class="cb-footer">
-        <button type="button" class="cb-primary" @click="handleStartBackupClick">
-          立即备份
-        </button>
-        <div class="cb-footer-sub">
-          备份数据保存在你的云空间，权益过期后历史备份仍保留，可随时恢复
+        <!-- 第二行：数据类别开关 -->
+        <div class="cb-demo-row">
+          <button
+            type="button"
+            class="cb-chip"
+            :class="{ active: !!state.cloudBackup }"
+            @click="toggleCloudBackupDemo"
+          >
+            本机备份
+          </button>
+          <button
+            type="button"
+            class="cb-chip"
+            :class="{ active: state.showRemote }"
+            @click="toggleRemoteDemo"
+          >
+            远程备份
+          </button>
+          <button
+            type="button"
+            class="cb-chip"
+            :class="{ active: state.showOtherDevice }"
+            @click="toggleOtherDeviceDemo"
+          >
+            其他设备
+          </button>
+          <button
+            type="button"
+            class="cb-chip"
+            :class="{ active: state.showLegacy }"
+            @click="state.showLegacy = !state.showLegacy"
+          >
+            历史存量包
+          </button>
+        </div>
+        <!-- 第三行：校验开关 -->
+        <div class="cb-demo-row">
+          <button
+            type="button"
+            class="cb-chip"
+            :class="{ active: state.localLowSpace }"
+            @click="state.localLowSpace = !state.localLowSpace"
+          >
+            本机空间不足（恢复校验）
+          </button>
         </div>
       </div>
     </div>
@@ -1087,36 +1161,98 @@ const showDemoToolbar = ref(false)
   box-sizing: border-box;
 }
 
+.cb-page.scrollable {
+  display: block;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(var(--safe-bottom, 34px) + 24px);
+  box-sizing: border-box;
+}
+
+/* 顶部导航栏（原版大标题） */
+.cb-navbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: calc(var(--safe-top, 24px) + 8px) 18px 12px;
+  flex: none;
+}
+
+.cb-nav-back {
+  background: none;
+  border: none;
+  padding: 4px;
+  margin-left: -4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1C1C1E;
+}
+
+.cb-nav-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1C1C1E;
+}
+
 /* 卡片基类 */
 .card {
   background: #FFFFFF;
   border-radius: 16px;
-  margin-bottom: 12px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-  border: 0.5px solid rgba(0, 0, 0, 0.04);
+  margin: 10px 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  flex: none;
+}
+
+/* 顶部 Hero 大卡片（图 1 核心卡片） */
+.cb-hero {
+  padding: 26px 20px 22px;
+  text-align: center;
+}
+
+.cb-hero-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 12px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #56CCF2, #2F80ED);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(47, 128, 237, 0.35);
+}
+
+.cb-hero-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1C1C1E;
+}
+
+.cb-hero-sub {
+  font-size: 13px;
+  color: #8E8E93;
+  line-height: 1.6;
+  margin: 8px 4px 0;
 }
 
 /* 顶部横幅 */
 .cb-banner {
   border-radius: 14px;
   padding: 12px 14px;
-  margin-bottom: 12px;
+  margin: 4px 14px 2px;
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.cb-banner.warn {
-  background: #FFF4E5;
-  border: 0.5px solid #FFE2B8;
+  background: #FFF4EA;
+  border: 1px solid #FFE0C2;
 }
 
 .cb-banner.inline {
   background: #FFF8E6;
   border-radius: 14px;
   padding: 10px 14px;
-  margin-bottom: 12px;
+  margin: 2px 0 10px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1134,23 +1270,24 @@ const showDemoToolbar = ref(false)
 .cb-banner-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1C1C1E;
+  color: #D4560A;
 }
 
 .cb-banner-sub {
   font-size: 12px;
-  color: #8E8E93;
+  color: #A86A3B;
   margin-top: 2px;
+  line-height: 1.4;
 }
 
 .cb-banner-btn {
   background: #FF7A1A;
   color: #FFFFFF;
   border: none;
-  border-radius: 14px;
-  padding: 5px 12px;
+  border-radius: 16px;
+  padding: 6px 14px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   flex: none;
 }
@@ -1159,53 +1296,67 @@ const showDemoToolbar = ref(false)
   opacity: 0.85;
 }
 
-/* 空间容量进度条卡片 */
+/* 空间容量进度条（内嵌于 Hero 卡片） */
 .cb-space {
-  padding: 16px;
-  box-sizing: border-box;
+  margin: 18px 2px 16px;
+  text-align: left;
 }
 
 .cb-space-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.cb-space-title {
-  color: #1C1C1E;
+  font-size: 12px;
+  color: #8E8E93;
 }
 
 .cb-space-num {
-  color: #8E8E93;
-  font-variant-numeric: tabular-nums;
+  color: #1C1C1E;
+  font-weight: 600;
 }
 
 .cb-space-bar {
+  position: relative;
   height: 8px;
-  background: #ECEEF2;
+  margin-top: 8px;
   border-radius: 4px;
+  background: #ECECF0;
+  display: flex;
   overflow: hidden;
-  margin: 12px 0 8px 0;
 }
 
-.cb-space-fill {
+.cb-space-fill.other {
+  background: #C7C7CC;
   height: 100%;
-  background: linear-gradient(90deg, #0A84FF 0%, #007AFF 100%);
-  border-radius: 4px;
-  transition: width 0.3s ease;
 }
 
-.cb-space-fill.warn {
-  background: linear-gradient(90deg, #FF9F0A 0%, #FF3B30 100%);
+.cb-space-fill.backup {
+  background: linear-gradient(90deg, #56CCF2, #2F80ED);
+  height: 100%;
 }
 
 .cb-space-legend {
   display: flex;
-  justify-content: space-between;
-  font-size: 11.5px;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 11px;
   color: #8E8E93;
+}
+
+.cb-space-legend .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 4px;
+}
+
+.cb-space-legend .dot.backup {
+  background: #2F80ED;
+}
+
+.cb-space-legend .dot.other {
+  background: #C7C7CC;
 }
 
 /* 分组标题 */
@@ -1459,12 +1610,32 @@ const showDemoToolbar = ref(false)
 .cb-cell {
   display: flex;
   align-items: center;
+  gap: 12px;
   padding: 14px 16px;
   cursor: pointer;
 }
 
 .cb-cell:active {
   background: #F7F8FA;
+}
+
+.cb-cell-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.cb-cell-state {
+  font-size: 12px;
+  color: #8E8E93;
+}
+
+.cb-cell-state.on {
+  color: #2F7CF6;
 }
 
 /* 统计卡片 */
@@ -1825,58 +1996,48 @@ const showDemoToolbar = ref(false)
   border-bottom: none;
 }
 
-/* 演示场景工具栏 */
-.cb-demo-wrap {
-  margin-top: 24px;
-  margin-bottom: 16px;
-}
-
-.cb-demo-toggle {
-  background: transparent;
-  border: none;
-  color: #8E8E93;
-  font-size: 12px;
-  cursor: pointer;
-  width: 100%;
-  text-align: center;
-  padding: 6px;
-}
-
+/* 原型演示场景（1:1 对齐图 2 虚线外框与微圆角胶囊） */
 .cb-demo {
-  background: #ECEEF2;
-  border-radius: 12px;
-  padding: 12px;
-  margin-top: 8px;
+  margin: 22px 14px 28px;
+  padding: 14px;
+  border: 1px dashed #C7C7CC;
+  border-radius: 14px;
+  background: transparent;
 }
 
 .cb-demo-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #8E8E93;
-  margin-bottom: 8px;
+  font-size: 11px;
+  color: #AEAEB2;
+  margin-bottom: 10px;
 }
 
 .cb-demo-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cb-demo-row:last-child {
+  margin-bottom: 0;
 }
 
 .cb-chip {
-  padding: 5px 10px;
-  border-radius: 8px;
-  background: #FFFFFF;
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  flex: 1;
+  padding: 8px 0;
   font-size: 12px;
-  color: #3A3A3C;
+  color: #636366;
+  background: #ECECF0;
+  border-radius: 18px;
+  border: none;
   cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
 }
 
 .cb-chip.active {
-  background: #007AFF;
+  background: #2F7CF6;
   color: #FFFFFF;
-  border-color: #007AFF;
+  font-weight: 600;
 }
 
 /* 浮动提示 */

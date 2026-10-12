@@ -37,6 +37,17 @@ test('SettingsCloudBackup.vue matches specification from 云备份原型.html', 
   assert.ok(content.includes('云空间不足'), 'Must handle no space scenario sheet')
   assert.ok(content.includes('替换当前云备份？'), 'Must handle overwrite confirmation sheet')
   assert.ok(content.includes('删除该'), 'Must handle delete backup confirmation sheet')
+
+  // 5. 对齐图 1 与图 2 结构特征
+  assert.ok(content.includes('card cb-hero'), 'Must include Hero card on home page')
+  assert.ok(content.includes('cb-hero-icon'), 'Must include Hero cloud upload gradient icon')
+  assert.ok(content.includes('card cb-cell'), 'Must place auto backup cell card directly under hero card')
+  assert.ok(content.includes('cb-demo'), 'Must include permanent demo panel matching image 2')
+  assert.ok(content.includes('toggleCloudBackupDemo'), 'Must support toggling cloudBackup')
+  assert.ok(content.includes('toggleRemoteDemo'), 'Must support toggling remoteBackup')
+  assert.ok(content.includes('toggleOtherDeviceDemo'), 'Must support toggling otherDeviceBackup')
+  assert.ok(content.includes('历史存量包'), 'Must include 历史存量包 demo toggle')
+  assert.ok(content.includes('本机空间不足（恢复校验）'), 'Must include 本机空间不足（恢复校验） demo toggle')
 })
 
 test('SettingsCloudHome.vue matches reference specification from Infinix Cloud.mp4', () => {
