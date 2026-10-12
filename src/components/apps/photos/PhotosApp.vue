@@ -19,6 +19,7 @@
  */
 import { computed, onMounted, watch } from 'vue'
 import { usePhotosStore } from '../../../stores/photosStore.js'
+import { useShareStore } from '../../../stores/shareStore.js'
 import { useI18nStore } from '../../../stores/i18nStore.js'
 import { useSystemChrome } from '../../../composables/useSystemChrome.js'
 import { useLargeTitle, largeTitleVars } from '../../../composables/useLargeTitle.js'
@@ -30,6 +31,7 @@ import ActionSheetModal from '../../ui/ActionSheetModal.vue'
 defineProps({ app: { type: Object, default: () => ({}) } })
 
 const store = usePhotosStore()
+const shareStore = useShareStore()
 const i18n = useI18nStore()
 const ph = (path) => i18n.ph(path)
 
@@ -120,7 +122,7 @@ function onStep(delta) {
 function onViewerAction(key) {
   const v = store.viewer
   if (!v) return
-  if (key === 'share') store.report('shared')
+  if (key === 'share') shareStore.openShare({ currentPhotoId: v.id })
   else if (key === 'favorite') store.toggleFavorite(v.id)
   else if (key === 'edit') store.report('edit')
   else if (key === 'delete') store.askDelete(v.id)

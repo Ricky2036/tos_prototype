@@ -178,7 +178,18 @@ export const useShareStore = defineStore('share', {
 
   actions: {
     openShare(options = {}) {
-      if (options.photoIds && Array.isArray(options.photoIds)) {
+      if (options.currentPhotoId) {
+        const target = this.photos.find((p) => {
+          if (p.id === options.currentPhotoId) return true
+          const key = options.currentPhotoId.replace(/^p-/, '')
+          return p.url.includes(key) || p.id.includes(key)
+        })
+        if (target) {
+          this.photos.forEach((p) => {
+            p.selected = p.id === target.id
+          })
+        }
+      } else if (options.photoIds && Array.isArray(options.photoIds)) {
         this.photos.forEach((p) => {
           p.selected = options.photoIds.includes(p.id)
         })

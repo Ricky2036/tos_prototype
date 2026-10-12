@@ -53,15 +53,16 @@ test('PhotosApp gallery component matches photo browsing and share flow specific
   const photosAppPath = path.resolve(__dirname, '../src/components/apps/photos/PhotosApp.vue')
   const content = fs.readFileSync(photosAppPath, 'utf8')
 
-  // 1. 顶部导航与选择状态
-  assert.ok(content.includes('<AppNavBar'), 'Must use standard AppNavBar component')
-  assert.ok(content.includes('photos-body scrollable'), 'Must have scrollable body')
-  assert.ok(content.includes('photos-grid'), 'Must have photo grid')
+  // 1. 顶部大标题折叠与照片网格
+  assert.ok(content.includes('LargeTitleHeader'), 'Must mount LargeTitleHeader component')
+  assert.ok(content.includes('data-photos-grid'), 'Must have photo grid')
+  assert.ok(content.includes('store.openViewer'), 'Must open fullscreen viewer when photo is clicked')
 
-  // 2. 底部操作栏与分享入口
-  assert.ok(content.includes('photos-bottom-bar'), 'Must have bottom action bar')
-  assert.ok(content.includes('handleOpenShare'), 'Must trigger share sheet on share action')
-  assert.ok(content.includes('photos-guide-banner'), 'Must have guide banner for share sheet')
+  // 2. 全屏照片查看器与分享入口
+  assert.ok(content.includes('data-photos-viewer'), 'Must have full screen photo viewer')
+  assert.ok(content.includes('data-photos-viewer-bar'), 'Must have bottom viewer action bar')
+  assert.ok(content.includes("key === 'share'"), 'Must handle share action in viewer')
+  assert.ok(content.includes('shareStore.openShare'), 'Must trigger share sheet on share action')
 })
 
 test('shareStore manages photos selection, channels, and share actions correctly', () => {
