@@ -24,9 +24,9 @@ const suggestions = [
   '锁屏设置'
 ]
 
-// 搜索历史（默认参考图 1：小窗、隐私、黑）
-const STORAGE_KEY = 'tos_settings_search_history'
-const defaultHistory = ['小窗', '隐私', '黑']
+// 搜索历史（默认参考图 2 扩充至两行：声音、通用、Apple 账户、电池、隐私）
+const STORAGE_KEY = 'tos_settings_search_history_v2'
+const defaultHistory = ['声音', '通用', 'Apple 账户', '电池', '隐私']
 
 function loadHistory() {
   try {
@@ -197,7 +197,7 @@ onMounted(() => {
               @click="isHistoryEditing ? null : selectKeyword(item)"
             >
               <span class="chip-text">{{ item }}</span>
-              <!-- 编辑模式下展示单独删除的小圆叉按钮（参考图 2） -->
+              <!-- 编辑模式下展示单独删除的叉号按钮（参考图 2：无背景） -->
               <button
                 v-if="isHistoryEditing"
                 type="button"
@@ -205,7 +205,7 @@ onMounted(() => {
                 :aria-label="`删除 ${item}`"
                 @click.stop="deleteHistoryItem(idx)"
               >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
@@ -420,7 +420,7 @@ onMounted(() => {
 }
 
 .history-chip.is-editing {
-  padding-right: 8px;
+  padding-right: 10px;
   background: #ECEEF2;
   cursor: default;
 }
@@ -433,31 +433,30 @@ onMounted(() => {
   line-height: 1;
 }
 
-/* 单独删除小圆叉按钮（图 2） */
+/* 单独删除叉号按钮（参考图 2：无背景） */
 .chip-delete-btn {
   width: 18px;
   height: 18px;
-  border-radius: 50%;
-  background: #D1D4DC;
-  color: #48484A;
+  background: transparent;
+  color: #8E8E93;
   border: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-left: 6px;
+  margin-left: 4px;
   padding: 0;
   cursor: pointer;
   outline: none;
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition: color 0.15s ease, transform 0.15s ease;
 }
 
 .chip-delete-btn:hover {
-  background: #C4C7D0;
   color: #1C1C1E;
 }
 
 .chip-delete-btn:active {
-  transform: scale(0.88);
+  transform: scale(0.85);
+  color: #FF3B30;
 }
 
 /* 搜索结果展示 */

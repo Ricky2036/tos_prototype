@@ -21,15 +21,19 @@ test('SettingsSearch.vue matches reference design specification in Image 1 and I
   assert.ok(content.includes('history-action-btn'), 'Must have history action button with trash icon')
   assert.ok(content.includes('<line x1="10" y1="11" x2="10" y2="17"/>'), 'Trash icon must include left vertical line')
   assert.ok(content.includes('<line x1="14" y1="11" x2="14" y2="17"/>'), 'Trash icon must include right vertical line')
-  assert.ok(content.includes('小窗'), 'Must have default history items')
-  assert.ok(content.includes('隐私'), 'Must have default history items')
-  assert.ok(content.includes('黑'), 'Must have default history items')
+  // 参考图 2 扩充至两行：声音、通用、Apple 账户、电池、隐私
+  assert.ok(content.includes('声音'), 'Must have 声音 in default history')
+  assert.ok(content.includes('通用'), 'Must have 通用 in default history')
+  assert.ok(content.includes('Apple 账户'), 'Must have Apple 账户 in default history')
+  assert.ok(content.includes('电池'), 'Must have 电池 in default history')
+  assert.ok(content.includes('隐私'), 'Must have 隐私 in default history')
 
-  // 3. 点击删除后变为“全部删除”与单项删除小叉号（图 2 重点）
+  // 3. 点击删除后变为“全部删除”与单项删除小叉号（图 2 重点：去底色）
   assert.ok(content.includes('isHistoryEditing'), 'Must have isHistoryEditing state')
   assert.ok(content.includes('全部删除'), 'Delete button must become 全部删除 in editing mode')
   assert.ok(content.includes('deleteHistoryItem'), 'Must have function to delete individual history record')
   assert.ok(content.includes('chip-delete-btn'), 'Must render chip delete button with cross icon')
+  assert.ok(content.includes('background: transparent;'), 'Chip delete button must have transparent background without gray circle')
   assert.ok(content.includes('clearAllHistory'), 'Must support clear all history action')
 
   // 4. 底部操作栏（图 1）
