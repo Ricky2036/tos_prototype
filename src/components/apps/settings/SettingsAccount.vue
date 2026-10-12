@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useAccountStore } from '../../../stores/accountStore'
 import walletIcon from '../../../assets/icons/wallet-entry-icon.png'
 
-const emit = defineEmits(['back', 'open-wallet', 'open-security', 'open-login'])
+const emit = defineEmits(['back', 'open-wallet', 'open-security', 'open-login', 'open-cloud', 'open-backup'])
 const account = useAccountStore()
 
 // 退出确认对话框与提示反馈
@@ -69,7 +69,7 @@ function handleRelogin() {
       <!-- 四张功能卡片 (2x2 网格) -->
       <div class="feature-grid">
         <!-- 卡片 1: Infinix Cloud -->
-        <div class="feature-card cloud-card" @click="showToast(`云存储已用 ${account.cloudStorage.used} / ${account.cloudStorage.total}`)">
+        <div class="feature-card cloud-card" @click="emit('open-cloud')">
           <div class="card-icon-wrap icon-cloud">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="url(#cloudGrad)"/>
@@ -133,8 +133,27 @@ function handleRelogin() {
         </div>
       </div>
 
-      <!-- 分组 1: 个人信息、安全、协议、帮助、版本 -->
+      <!-- 分组 1: 云备份、个人信息、安全、协议、帮助、版本 -->
       <div class="section-card">
+        <!-- 云备份（核心入口） -->
+        <div class="cell-row" @click="emit('open-backup')">
+          <div class="cell-icon-wrap icon-backup-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="#007AFF"/>
+              <path d="M9 13.5a3 3 0 0 1 3-3c1.2 0 2.2.7 2.7 1.8l-1.2.7" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" />
+              <path d="M15 14.5a3 3 0 0 1-3 3c-1.2 0-2.2-.7-2.7-1.8l1.2-.7" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div class="cell-main">
+            <div class="cell-col">
+              <div class="cell-title">云备份</div>
+              <div class="cell-sub">设备数据备份、恢复与自动备份</div>
+            </div>
+            <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
+              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
         <!-- 个人信息 -->
         <div class="cell-row" @click="showToast('个人信息详情')">
           <div class="cell-icon-wrap">
@@ -456,6 +475,10 @@ function handleRelogin() {
 
 .icon-cloud {
   background: #EDF5FF;
+}
+
+.icon-backup-wrap {
+  background: #EDF5FF !important;
 }
 
 .icon-find {

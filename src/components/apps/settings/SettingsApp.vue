@@ -18,6 +18,8 @@ import SettingsAccountLogin from './SettingsAccountLogin.vue'
 import SettingsAccountSecurity from './SettingsAccountSecurity.vue'
 import SettingsWallet from './SettingsWallet.vue'
 import SettingsSearch from './SettingsSearch.vue'
+import SettingsCloudHome from './SettingsCloudHome.vue'
+import SettingsCloudBackup from './SettingsCloudBackup.vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
 import { useSystemStore } from '../../../stores/systemStore'
@@ -131,6 +133,8 @@ const viewTitles = computed(() => ({
   account: 'Infinix ID',
   accountLogin: 'INFINIX ID',
   accountSecurity: '账号安全',
+  cloudHome: '云服务',
+  cloudBackup: '云备份',
   wallet: '卡包',
   search: '搜索',
   placeholder: placeholderTitle.value || '设置'
@@ -190,6 +194,8 @@ const allSearchableItems = [
   { id: 'digitalHealth', title: '数字健康与家长控制', group: '数字健康', action: () => pushUnimplemented('数字健康与家长控制') },
   { id: 'emergency', title: '安全和紧急情况', group: '安全', action: () => pushUnimplemented('安全和紧急情况') },
   { id: 'account', title: '用户与账号', group: '账号', action: () => push('account') },
+  { id: 'cloudHome', title: '云服务（Infinix Cloud）', group: '账号', action: () => push('cloudHome') },
+  { id: 'cloudBackup', title: '云备份', group: '账号', action: () => push('cloudBackup') },
   { id: 'appleAccount', title: 'Apple 账户', group: '账号', action: () => push('account') },
   { id: 'infinixId', title: 'Infinix ID', group: '账号', action: () => push('account') },
   { id: 'google', title: 'Google', group: '服务', action: () => pushUnimplemented('Google') },
@@ -594,7 +600,22 @@ const filteredSearchResults = computed(() => {
           @open-wallet="push('wallet')"
           @open-security="push('accountSecurity')"
           @open-login="push('accountLogin')"
+          @open-cloud="push('cloudHome')"
+          @open-backup="push('cloudBackup')"
         />
+      </div>
+
+      <!-- ================= 云服务首页 (Infinix Cloud) ================= -->
+      <div v-else-if="view === 'cloudHome'" key="cloudHome" class="settings-page">
+        <SettingsCloudHome
+          @back="pop"
+          @open-backup="push('cloudBackup')"
+        />
+      </div>
+
+      <!-- ================= 云备份 (Cloud Backup) ================= -->
+      <div v-else-if="view === 'cloudBackup'" key="cloudBackup" class="settings-page">
+        <SettingsCloudBackup @back="pop" />
       </div>
 
       <!-- ================= 账号登录 (Account Login) ================= -->
