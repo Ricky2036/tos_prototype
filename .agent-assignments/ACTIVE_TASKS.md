@@ -177,7 +177,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Use notification icon for brand logo on login page | `antigravity/lane` | None (locks released) | `7477385` | `4235d44` |
 | Merged | Workbuddy | Polish AI Mate printer and recorder flows, rich photo/record editing & printing, locales, and recorderFlowStore suite | `workbuddy/lane` | None (locks released) | `092d392` | `5c6c95e` |
 | Merged | Antigravity | Add high-fidelity Settings Search page with suggestions, history editing, and single/all deletion matching reference design | `antigravity/lane` | None (locks released) | `720ca2b` | `4195a62` |
-| Active | Antigravity | Develop ShareSheet matching latest screenshot & requirements with album photos, desktop app icons, channel popovers, and PhotosApp gallery | `antigravity/lane` | `src/components/system/ShareSheet.vue`; `src/stores/shareStore.js`; `src/components/apps/photos/**`; `src/components/phone/ScreenView.vue`; `src/config/apps.js`; `src/components/apps/registry.js` | `65cac6d` | pending |
+| Merged | Antigravity | Develop ShareSheet matching latest screenshot & requirements with album photos, desktop app icons, channel popovers, and PhotosApp gallery | `antigravity/lane` | None (locks released) | `65cac6d` | `2bf0ee6` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
