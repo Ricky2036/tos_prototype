@@ -7,7 +7,6 @@ import { useClockStore } from '../../stores/clockStore'
 import { useI18nStore } from '../../stores/i18nStore'
 import { useRecorderStore } from '../../stores/recorderStore'
 import { useNotificationsStore } from '../../stores/notificationsStore'
-import { useShareStore } from '../../stores/shareStore'
 import { useCapture } from '../../composables/useCapture'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import { GLYPHS } from '../../assets/icons/glyphs'
@@ -60,7 +59,6 @@ const prayerStore = usePrayerStore()
 const clockStore = useClockStore()
 const recorderStore = useRecorderStore()
 const notificationsStore = useNotificationsStore()
-const shareStore = useShareStore()
 const i18n = useI18nStore()
 
 if (typeof window !== 'undefined') {
@@ -562,40 +560,6 @@ function onToggleFineTune(enabled) {
       </div>
     </div>
 
-    <!-- 系统特性：分享面板与照片应用 -->
-    <div class="pc-card">
-      <div class="pc-card-header">
-        <span class="pc-card-title">分享与相册</span>
-      </div>
-      <div class="pc-btn-group-2">
-        <button
-          class="pc-btn pc-btn-secondary"
-          @click="shareStore.openShare()"
-          title="打开分享面板"
-        >
-          <svg class="pc-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-            <polyline points="16 6 12 2 8 6" />
-            <line x1="12" y1="2" x2="12" y2="15" />
-          </svg>
-          <span>分享面板</span>
-        </button>
-
-        <button
-          class="pc-btn pc-btn-secondary"
-          @click="system.openApp('photos')"
-          title="打开照片应用"
-        >
-          <svg class="pc-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <polyline points="21 15 16 10 5 21" />
-          </svg>
-          <span>照片图库</span>
-        </button>
-      </div>
-    </div>
-
     <!-- 常用功能：截屏录屏合一卡片（带壳作为通用选项置于标题右侧，按钮精简） -->
     <div class="pc-card">
       <div class="pc-card-header">
@@ -1049,40 +1013,6 @@ function onToggleFineTune(enabled) {
                     <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
                   </svg>
                   <span>{{ system.powerButtonText }}</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- 系统特性：分享面板与照片应用 -->
-            <div class="pc-card">
-              <div class="pc-card-header">
-                <span class="pc-card-title">分享与相册</span>
-              </div>
-              <div class="pc-btn-group-2">
-                <button
-                  class="pc-btn pc-btn-secondary"
-                  @click="shareStore.openShare()"
-                  title="打开分享面板"
-                >
-                  <svg class="pc-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                    <polyline points="16 6 12 2 8 6" />
-                    <line x1="12" y1="2" x2="12" y2="15" />
-                  </svg>
-                  <span>分享面板</span>
-                </button>
-
-                <button
-                  class="pc-btn pc-btn-secondary"
-                  @click="system.openApp('photos')"
-                  title="打开照片应用"
-                >
-                  <svg class="pc-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21 15 16 10 5 21" />
-                  </svg>
-                  <span>照片图库</span>
                 </button>
               </div>
             </div>
