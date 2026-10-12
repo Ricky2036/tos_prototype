@@ -1202,6 +1202,7 @@ function selectFreq(val) {
   border-radius: 16px;
   margin: 10px 14px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
   flex: none;
 }
 
@@ -1359,12 +1360,13 @@ function selectFreq(val) {
   background: #C7C7CC;
 }
 
-/* 分组标题 */
+/* 分组标题（左右安全边距 20px，与卡片内容视觉垂直对齐） */
 .cb-section-title {
   font-size: 13px;
   color: #8E8E93;
   font-weight: 500;
-  margin: 14px 4px 6px 4px;
+  margin: 18px 20px 6px 20px;
+  flex: none;
 }
 
 /* 列表行与条目 */
@@ -1517,6 +1519,7 @@ function selectFreq(val) {
   position: relative;
   overflow: hidden;
   touch-action: pan-y;
+  border-radius: 16px;
 }
 
 .cb-swipe-actions {
@@ -1529,6 +1532,7 @@ function selectFreq(val) {
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 0 16px 16px 0;
 }
 
 .cb-del {
@@ -1547,6 +1551,7 @@ function selectFreq(val) {
   position: relative;
   z-index: 2;
   will-change: transform;
+  border-radius: 16px;
 }
 
 .cb-backup-row {
