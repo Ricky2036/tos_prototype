@@ -1,7 +1,8 @@
 /**
  * AI Mate · 录音充电宝流程 e2e（依据归档 ai-mate-recording-powerbank-demo.html）
  * ============================================================================
- * 覆盖：进流程 → 全部录音（搜索 / 批量管理）→ 录音详情（音频·转写·AI 纪要 三 tab）
+ * 覆盖：进流程 → **设备详情（二级菜单：hero 三格 / 设备功能 / 最近录音 / 设备管理 / 固件升级）**
+ *      → 全部录音（搜索 / 批量管理）→ 录音详情（音频·转写·AI 纪要 三 tab）
  *      → 录音 sheet（录制/暂停/继续/实时转写/实时翻译/完成）→ AI 处理（转写·翻译）
  *      → 听译（换语言 / 暂停继续）→ 面对面翻译 → 录音同步（Wi-Fi / 蓝牙）
  *      → 贴底元素不压手势区 → 关闭后无残留（再进一次只有单条字幕流）→ 返回链
@@ -75,6 +76,28 @@ async function aboveIndicator(sel, label) {
 }
 // 底部 sheet 一旦内容超过 max-height 就会可滚；Playwright 点下半部分的按钮时会把它滚到底，
 // 截图前把 sheet 归位到顶部，否则画面里标题被切掉（看着像 bug，其实是「需要滚动」的正常态）
+
+/**
+ * 归档是「首页卡 → 设备详情（二级菜单）→ 全部录音」的层级：
+ * 流程挂载后落在**设备详情**，两屏之间靠「查看全部」/ 返回键来回。
+ * 设备功能 / 设备管理两张卡片在归档里属于设备详情页 —— 本仓同理，所以凡是
+ * 要点 `[data-rec-open-*]` / `[data-rec-noise]` 的地方都得先在设备详情页。
+ */
+const onScreen = async (name) => (await n(`[data-rec-screen="${name}"]`)) > 0
+async function goDevice(msg = '回设备详情') {
+  if (await onScreen('device')) return true
+  await click(BACK, msg)
+  await wait(400)
+  assert('回到设备详情', await onScreen('device'))
+  return true
+}
+async function goFiles(msg = '进全部录音') {
+  if (await onScreen('files')) return true
+  await click('[data-rec-view-all]', msg)
+  await wait(400)
+  assert('进入全部录音', await onScreen('files'))
+  return true
+}
 const sheetTop = () => p.evaluate(() => {
   document.querySelectorAll('.rf-sheet').forEach((s) => { s.scrollTop = 0 })
 })
@@ -87,27 +110,51 @@ await wait(900)
 
 head('0. 从设备卡直达流程')
 assert('设备卡存在', await visible('[data-device-card="AM-Recorder-01"]'))
+assert(
+  '首页卡是归档的紫色 hero 形态（归档 .device-card）',
+  (await p.locator('[data-device-card="AM-Recorder-01"]').getAttribute('class')).includes('mcard-rec')
+)
+const cardMeta = await txt('[data-device-card="AM-Recorder-01"] [data-device-meta]')
+assert('卡上两枚 meta 药丸（▰ 86% / ◴ 已用 18.6GB）', cardMeta.includes('86%') && cardMeta.includes('18.6GB'), cardMeta)
+// ⚠️ `data-device-action` 现在两张卡都在用（录音充电宝 record/face/listen，
+//    AI Mori photo/video/audio）⇒ 必须限定到本卡，全局计数会变成 6
+assert(
+  '卡上三枚磁贴',
+  (await n('[data-device-card="AM-Recorder-01"] [data-device-action]')) === 3,
+  await n('[data-device-card="AM-Recorder-01"] [data-device-action]')
+)
+assert('卡上实物图点阵 24 点', (await n('[data-device-card="AM-Recorder-01"] .rp-grille i')) === 24)
 await click('[data-device-card="AM-Recorder-01"]', '录音充电宝设备卡')
 await wait(700)
 assert('卡片直达流程（无中间控制页）', !(await visible('[data-open-recorder]')))
 assert('流程挂载', await visible('[data-flow-root="recorder"]'))
-assert('首屏 = 全部录音', (await txt('.rf-title')) === '全部录音', await txt('.rf-title'))
-await shot('01-files')
+assert('首屏 = 设备详情（归档首页卡 data-go="device"）', (await txt('.rf-title')) === '设备详情', await txt('.rf-title'))
+assert('落在 device 屏', await visible('[data-rec-screen="device"]'))
+await shot('01-device')
 
-head('1. 全部录音列表')
-assert('引导语', (await txt('.rf-intro')) === '已同步到 AI Mate 的录音文件', await txt('.rf-intro'))
-assert('计数 = 5 条录音', (await txt('[data-rec-count]')) === '5 条录音', await txt('[data-rec-count]'))
-assert('列表 5 行', (await n('[data-rec-file]')) === 5, await n('[data-rec-file]'))
-assert('首行标题', (await txt('[data-rec-file="1"] .rf-row-title')) === 'Q3 产品规划会')
-assert('首行副标题含时间/时长/容量', (await txt('[data-rec-file="1"] .rf-row-sub')).includes('今天 10:30 · 42:18 · 38.2 MB'), await txt('[data-rec-file="1"] .rf-row-sub'))
-const pills = await p.locator('[data-rec-file] .rf-pill').allInnerTexts()
-assert('状态胶囊 = 已转写/转写中/未转写', pills.join(',') === '已转写,转写中,已转写,未转写,未转写', pills)
-assert('搜索框 placeholder', (await p.locator('[data-rec-search]').getAttribute('placeholder')) === '搜索录音名称')
-assert('时间倒序按钮存在', await visible('[data-rec-sort]'))
+head('1. 设备详情（二级菜单，归档 data-screen="device"）')
+assert('连接胶囊 = 设备已连接', (await txt('.rf-online')) === '设备已连接', await txt('.rf-online'))
+assert('设备名', (await txt('.rf-hero h2')) === '我的录音充电宝', await txt('.rf-hero h2'))
+assert('型号 = AI Mate PowerRec S1（归档原文，不是 AM-RC1 短代号）', (await txt('.rf-hero p')) === 'AI Mate PowerRec S1', await txt('.rf-hero p'))
+assert('实物图点阵 24 点（归档 JS 灌点）', (await n('.rf-grille i')) === 24, await n('.rf-grille i'))
+assert('录音指示灯在位（订阅流程层录音态）', await visible('[data-rec-redlight]'))
+const stats = (await p.locator('.rf-stats > div').allInnerTexts()).map((s) => s.replace(/\s+/g, ' ').trim())
+assert('三格参数', stats.length === 3, stats)
+assert('电量格：设备电量 / 86% / 约可录 18 小时', stats[0].includes('设备电量') && stats[0].includes('86%') && stats[0].includes('约可录 18 小时'), stats[0])
+assert('存储格：存储空间 / 18.6GB / 总容量 64GB', stats[1].includes('存储空间') && stats[1].includes('18.6GB') && stats[1].includes('总容量 64GB'), stats[1])
+assert('固件格：固件 / v2.3.1 / 可升级', stats[2].includes('固件') && stats[2].includes('v2.3.1') && stats[2].includes('可升级'), stats[2])
+assert('右上角 = •••（归档设备管理菜单）', (await txt('[data-rec-head-menu]')) === '•••', await txt('[data-rec-head-menu]'))
 assert('设备功能三入口', (await n('[data-rec-open-record]')) === 1 && (await n('[data-rec-open-face]')) === 1 && (await n('[data-rec-open-listen]')) === 1)
+assert('设备录音行 = 5 条（归档 #deviceRecordingCount）', (await txt('[data-rec-manage-records]')).includes('5 条'), await txt('[data-rec-manage-records]'))
 assert('录音同步入口 + 未配置徽标', (await txt('[data-rec-sync-summary]')) === '去设置', await txt('[data-rec-sync-summary]'))
 assert('降噪行', (await txt('[data-rec-noise]')).includes('智能 · 会议拾音'), await txt('[data-rec-noise]'))
 assert('录音参数行', (await txt('[data-rec-params]')).includes('WAV · 48kHz · 高品质'))
+assert('设备名称行（归档第 3 行 entry）', (await txt('[data-rec-name]')).includes('我的录音充电宝'), await txt('[data-rec-name]'))
+assert('最近录音 3 行', (await n('[data-rec-recent]')) === 3, await n('[data-rec-recent]'))
+assert('最近录音首行 = Q3 产品规划会', (await txt('[data-rec-recent="1"] .rf-row-title')) === 'Q3 产品规划会', await txt('[data-rec-recent="1"] .rf-row-title'))
+assert('固件条 = 新版本 v2.4.0 可用', (await txt('[data-rec-ota-text]')) === '新版本 v2.4.0 可用', await txt('[data-rec-ota-text]'))
+assert('固件按钮 = 立即升级', (await txt('[data-rec-ota-btn]')) === '立即升级', await txt('[data-rec-ota-btn]'))
+assert('固件进度槽初始 0%', (await p.locator('[data-rec-ota-bar]').getAttribute('style')).includes('0%'), await p.locator('[data-rec-ota-bar]').getAttribute('style'))
 
 /* ---------- 设备功能 / 设备管理 两张卡片的字号必须走系统控件规范 ----------
    ⛔ 归档重放时曾整段照抄它的魔法数字（8 / 8.5 / 10.5 / 11 / 14px），肉眼几乎读不清。
@@ -148,6 +195,51 @@ assert(
        （实测把磁贴钉成 `height: 114px` 且清掉 `min-height` 仍判不出裁切）。
    字号本身由上面 4 条守卫钉住，就不再补一条不会红的了。 */
 await shot('01b-device-panel')
+
+head('1b. 固件升级（归档 #otaButton：120ms 一跳 +5，到 100 收尾）')
+await click('[data-rec-ota-btn]', '立即升级')
+await wait(300)
+assert('升级中文案', (await txt('[data-rec-ota-text]')).startsWith('正在升级 · '), await txt('[data-rec-ota-text]'))
+assert('按钮变「升级中」', (await txt('[data-rec-ota-btn]')) === '升级中', await txt('[data-rec-ota-btn]'))
+await shot('01c-ota-upgrading')
+await wait(2700)
+assert('完成后文案 = 当前已是最新版本', (await txt('[data-rec-ota-text]')) === '当前已是最新版本', await txt('[data-rec-ota-text]'))
+assert('按钮变「已完成」', (await txt('[data-rec-ota-btn]')) === '已完成', await txt('[data-rec-ota-btn]'))
+assert('进度槽 100%', (await p.locator('[data-rec-ota-bar]').getAttribute('style')).includes('100%'))
+assert('固件格副行跟着变「已是最新」', (await txt('.rf-stats > div:nth-child(3) small')) === '已是最新', await txt('.rf-stats > div:nth-child(3) small'))
+assert('升级完成 toast', (await txt('[data-rec-toast]')).includes('固件升级完成'), await txt('[data-rec-toast]'))
+await shot('01d-ota-done')
+
+head('1c. 最近录音 → 详情 → 返回链（归档 openDetail / #filesBack）')
+await click('[data-rec-recent="1"]', '最近录音首行')
+await wait(500)
+assert('最近录音行直达详情（不经过全部录音）', await visible('[data-rec-screen="detail"]'))
+assert('详情标题', (await txt('[data-rec-detail-title]')) === 'Q3 产品规划会', await txt('[data-rec-detail-title]'))
+await shot('01e-recent-detail')
+await click(BACK, '详情返回')
+await wait(400)
+assert('详情返回落在全部录音（归档 data-go="files"）', await visible('[data-rec-screen="files"]'))
+await click(BACK, '全部录音返回')
+await wait(400)
+assert('再返回落在设备详情（归档 #filesBack 回 filesReturnScreen）', await visible('[data-rec-screen="device"]'))
+await shot('01f-back-to-device')
+
+head('1d. 全部录音列表')
+await goFiles('查看全部 → 全部录音')
+await wait(400)
+
+head('1. 全部录音列表')
+assert('引导语', (await txt('.rf-intro')) === '已同步到 AI Mate 的录音文件', await txt('.rf-intro'))
+assert('计数 = 5 条录音', (await txt('[data-rec-count]')) === '5 条录音', await txt('[data-rec-count]'))
+assert('列表 5 行', (await n('[data-rec-file]')) === 5, await n('[data-rec-file]'))
+assert('首行标题', (await txt('[data-rec-file="1"] .rf-row-title')) === 'Q3 产品规划会')
+assert('首行副标题含时间/时长/容量', (await txt('[data-rec-file="1"] .rf-row-sub')).includes('今天 10:30 · 42:18 · 38.2 MB'), await txt('[data-rec-file="1"] .rf-row-sub'))
+const pills = await p.locator('[data-rec-file] .rf-pill').allInnerTexts()
+assert('状态胶囊 = 已转写/转写中/未转写', pills.join(',') === '已转写,转写中,已转写,未转写,未转写', pills)
+assert('搜索框 placeholder', (await p.locator('[data-rec-search]').getAttribute('placeholder')) === '搜索录音名称')
+assert('时间倒序按钮存在', await visible('[data-rec-sort]'))
+
+
 
 head('2. 搜索')
 await p.locator('[data-rec-search]').fill('Q3')
@@ -273,6 +365,7 @@ await wait(400)
 assert('该条状态已变已转写', (await txt('[data-rec-file="4"] .rf-pill')) === '已转写', await txt('[data-rec-file="4"] .rf-pill'))
 
 head('9. 录音浮层（录制 / 暂停 / 电平条 / 拾音模式 / 事后动作）')
+await goDevice()
 await click('[data-rec-open-record]', '设备功能·录音')
 await wait(500)
 assert('录音 sheet 打开', await visible('[data-rec-overlay="record"]'))
@@ -347,12 +440,14 @@ await shot('19-record-finished')
 await click('[data-rec-close="record"]', '关闭录音 sheet')
 await wait(500)
 assert('sheet 已关', !(await visible('[data-rec-overlay="record"]')))
+await goFiles('查看全部 → 全部录音（看新录音落库）')
 assert(`列表多出 1 条（${beforeRows} → 6）`, (await n('[data-rec-file]')) === 6, await n('[data-rec-file]'))
 assert('新录音在队首且已转写', (await txt('[data-rec-file] .rf-row-title')).startsWith('新录音'), await txt('[data-rec-file] .rf-row-title'))
 assert('计数 = 6 条录音', (await txt('[data-rec-count]')) === '6 条录音', await txt('[data-rec-count]'))
 await shot('20-files-after-record')
 
 head('12. 更多语言 → AI 翻译：不伪造译文')
+await goDevice()
 await click('[data-rec-open-record]', '再次进录音 sheet')
 await wait(400)
 assert('新一轮计时复位 00:00', (await txt('[data-rec-timer]')) === '00:00', await txt('[data-rec-timer]'))
@@ -380,6 +475,7 @@ await wait(400)
 assert('浮层已关', !(await visible('[data-rec-overlay="process"]')))
 
 head('13. 听译（持续双语字幕 + 语言条 + 暂停/继续）')
+await goDevice()
 await click('[data-rec-open-listen]', '设备功能·听译')
 await wait(600)
 assert('听译浮层打开', await visible('[data-rec-overlay="listen"]'))
@@ -420,6 +516,7 @@ await wait(400)
 assert('听译浮层已关', !(await visible('[data-rec-overlay="listen"]')))
 
 head('15. 面对面翻译（2.2s 假识别 + 双人分区）')
+await goDevice()
 await click('[data-rec-open-face]', '设备功能·面对面翻译')
 await wait(600)
 assert('浮层打开', await visible('[data-rec-overlay="face"]'))
@@ -449,6 +546,7 @@ await click('[data-rec-close="face"]', '关闭面对面翻译')
 await wait(400)
 
 head('16. 录音同步 · Wi-Fi pane（扫描 → 选网 → 密码 → 成功卡）')
+await goDevice()
 await click('[data-rec-open-sync]', '设备管理·录音同步')
 await wait(500)
 assert('同步 sheet 打开', await visible('[data-rec-overlay="sync"]'))
@@ -501,9 +599,9 @@ await aboveIndicator('[data-rec-bt-success]', '同步·蓝牙成功卡')
 await shot('34-sync-bluetooth-done')
 await click('[data-rec-close="sync"]', '关闭同步 sheet')
 await wait(500)
-assert('回列表', await visible('[data-rec-screen="files"]'))
-assert('同步摘要回写到设备管理行', (await txt('[data-rec-sync-summary]')) === '已开启', await txt('[data-rec-sync-summary]'))
-assert('摘要徽标不再是去设置', (await txt('[data-rec-manage]')) === '批量管理')
+assert('回设备详情（同步是从设备管理行进去的）', await visible('[data-rec-screen="device"]'))
+assert('同步摘要回写到「录音同步」行', (await txt('[data-rec-sync-summary]')) === '已开启', await txt('[data-rec-sync-summary]'))
+assert('右上角仍是 •••（设备详情页没有「批量管理」）', (await txt('[data-rec-head-menu]')) === '•••', await txt('[data-rec-head-menu]'))
 await shot('35-files-sync-summary')
 
 head('18. 设置行 toast + 关闭流程')
@@ -513,7 +611,8 @@ assert('降噪 toast', (await txt('[data-rec-toast]')).includes('降噪已设置
 await click('[data-rec-params]', '录音参数行')
 await wait(300)
 assert('参数 toast', (await txt('[data-rec-toast]')).includes('录音参数：WAV · 48kHz'), await txt('[data-rec-toast]'))
-await click(BACK, '返回（关闭流程）')
+assert('收尾前仍在设备详情', await visible('[data-rec-screen="device"]'))
+await click(BACK, '设备详情返回 = 回首页（关闭流程）')
 await wait(600)
 assert('流程已卸载', !(await visible('[data-flow-root="recorder"]')))
 assert('回到首页', await visible('[data-device-card="AM-Recorder-01"]'))
@@ -522,11 +621,13 @@ await shot('36-closed-back-to-home')
 head('19. 再进一次（验证关闭后无残留 / 无重复字幕流）')
 await click('[data-device-card="AM-Recorder-01"]', '再次进入流程')
 await wait(700)
+await goFiles('查看全部 → 全部录音（再看一次条数）')
 // 再进一次时，上一轮录的那条应该已经落库 → 5 + 1 = 6 条
 const recountOk = await waitText('[data-rec-count]', '6 条录音')
 assert('再进一次仍是 6 条录音（上一轮的录音没丢、也没重复录）', recountOk, await txt('[data-rec-count]'))
 assert('没有录音 sheet 残留', !(await visible('[data-rec-overlay="record"]')))
 assert('没有定时器残留在跑（计时仍是未开始态）', !(await visible('[data-rec-timer]')))
+await goDevice()
 await click('[data-rec-open-listen]', '听译（第二次进）')
 await wait(600)
 assert('听译只补 1 条（不会两条流同时跑）', (await n('.rf-subline')) === 1, await n('.rf-subline'))

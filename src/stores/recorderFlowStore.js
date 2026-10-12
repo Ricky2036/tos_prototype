@@ -110,8 +110,30 @@ export const WIFI_NETWORKS = [
   { ssid: 'Guest_WiFi', excellent: false }
 ]
 
+/**
+ * 录音充电宝的**设备档案**（归档 `data-screen="device"` 的 hero 三格、
+ * 固件条与首页卡的实测值）。型号是固定字符串，不随 App 语言变化。
+ *
+ * ⚠️ 刻意**不**复用 `aiMateStore` 里那台 `AM-Recorder-01` 的 `firmware`：
+ *    那边为了让「已是最新固件」分支可验，把这台种子钉在 `3.0.4`（无新版本）；
+ *    而归档的设备详情页明确写的是「固件 v2.3.1 / 可升级 → 新版本 v2.4.0 可用」。
+ *    两者是同一台设备的两个不同出处，这里按归档取值，互不干扰。
+ */
+export const DEVICE_PROFILE = {
+  model: 'AI Mate PowerRec S1',
+  battery: 86,
+  recordHours: 18,
+  storageUsed: 18.6,
+  storageTotal: 64,
+  firmware: 'v2.3.1',
+  firmwareNext: 'v2.4.0'
+}
+
+/** 固件升级步长（归档 `#otaButton`：每跳 +5，到 100 清表） */
+export const FIRMWARE_STEP = 5
+
 /** 5 处计时器的节拍（归档 §5.12），组件按这些值排 setTimeout/setInterval */
-export const TICK = { record: 1000, liveAi: 1450, listen: 1700, processStart: 700, processGap: 1050, processTail: 700, wifiScan: 900, sendPassword: 1200, faceRecognition: 2200, toast: 2100 }
+export const TICK = { record: 1000, liveAi: 1450, listen: 1700, processStart: 700, processGap: 1050, processTail: 700, wifiScan: 900, sendPassword: 1200, faceRecognition: 2200, toast: 2100, firmware: 120 }
 
 /* ============================================================
  * 工具
@@ -170,6 +192,7 @@ function resolveRow(tx, r) {
   }
 }
 
+const FIRMWARE_INIT = () => ({ progress: 0, upgrading: false, done: false })
 const PROCESS_INIT = () => ({ open: false, runId: 0, mode: null, target: '', progress: 6, segments: [], done: false, fileId: null })
 const LISTEN_INIT = () => ({ open: false, on: false, source: 'en', target: 'zh', index: 0, tick: 0, subtitles: [] })
 const FACE_INIT = () => ({ open: false, talking: null, cnKey: 'face.cnIdle', enKey: 'face.enIdle', cnLabelKey: 'face.cnStart', enLabelKey: 'face.enStart' })
@@ -184,8 +207,15 @@ export const useRecorderFlowStore = defineStore('recorderFlow', {
      *  ⚠️ 不能叫 open：Pinia 里 state 的 open 会和 action open() 撞名，
      *  `this.open = true` 会把 action 覆盖成布尔值，重进流程时 store.open() 就变成 not a function。 */
     active: false,
-    /** 当前屏：files 全部录音 / detail 录音详情 */
-    screen: 'files',
+    /** 当前屏：device 设备详情（二级菜单）/ files 全部录音 / detail 录音详情
+     *  归档的入口屏就是 `device`（首页卡 `data-go="device"`），这里保持一致 */
+    screen: 'device',
+    /** 「全部录音」的返回目标（归档 `filesReturnScreen`；默认回设备详情） */
+    filesReturn: 'device',
+    /** 首页卡三枚磁贴的直达意图：流程挂载时消费一次（归档里首页与浮层同文档，可直接开） */
+    pendingOpen: null,
+    /** 固件升级进度 */
+    firmware: FIRMWARE_INIT(),
     /** 设备里的录音（新建录音会 unshift） */
     recordings: RECORDINGS_SEED.map((r) => ({ ...r })),
     /** 搜索词（按标题，不区分大小写） */
@@ -377,6 +407,28 @@ export const useRecorderFlowStore = defineStore('recorderFlow', {
     syncConfigured() {
       return Boolean(this.syncSummary)
     },
+    /** 设备档案（归档 hero 三格 / 固件条 / 首页卡的实测值） */
+    device() {
+      return DEVICE_PROFILE
+    },
+    /** 固件升级态：idle 未开始 / upgrading 升级中 / done 已完成 */
+    firmwareState() {
+      if (this.firmware.done) return 'done'
+      return this.firmware.upgrading ? 'upgrading' : 'idle'
+    },
+    firmwareText() {
+      if (this.firmware.done) return this.tx('device.firmwareLatest')
+      if (this.firmware.upgrading) return this.tx('device.firmwareUpgrading', { n: this.firmware.progress })
+      return this.tx('device.firmwareNew', { v: DEVICE_PROFILE.firmwareNext })
+    },
+    firmwareButtonKey() {
+      if (this.firmware.done) return 'device.firmwareDone'
+      return this.firmware.upgrading ? 'device.firmwareUpgradingBtn' : 'device.firmwareUpgrade'
+    },
+    /** hero 固件格右下：升级完改成「已是最新」（归档只改 otaText，这里顺手把那一格也对齐） */
+    firmwareSubKey() {
+      return this.firmware.done ? 'device.statFirmwareLatest' : 'device.statFirmwareSub'
+    },
     /** 跨屏耦合：设备首页设备卡的红灯订阅这个（组件已暴露，宿主未接线，见报告） */
     isRecording() {
       return this.recording
@@ -397,20 +449,40 @@ export const useRecorderFlowStore = defineStore('recorderFlow', {
     },
 
     /* ---------------- 流程开关 ---------------- */
-    /** 进流程：一律回到「全部录音」首屏并复位所有浮层（归档关闭后重进会残留状态） */
+    /** 进流程：一律回到「设备详情」首屏并复位所有浮层（归档关闭后重进会残留状态） */
     open() {
+      // 首页卡磁贴的直达意图：`requestOverlay()` 先记下，挂载时消费一次
+      const pending = this.pendingOpen
       this.reset()
       this.active = true
+      if (pending === 'record') this.openRecordSheet()
+      else if (pending === 'face') this.openFace()
+      else if (pending === 'listen') this.openListen()
+      this.pendingOpen = null
       return true
     },
     close() {
       this.active = false
       this.reset()
+      this.pendingOpen = null
+      return true
+    },
+    /**
+     * 首页卡磁贴（录音 / 面对面翻译 / 听译）的直达入口。
+     * 归档里首页与浮层在同一个文档，磁贴直接 `openOverlay()`；本仓首页卡在
+     * `AimateApp`、浮层在流程层里，所以记一个意图交给 `open()` 消费。
+     * ⚠️ 刻意**不**写进 `reset()`：`open()` 是先 `reset()` 再消费，写进去就被自己擦了。
+     */
+    requestOverlay(name) {
+      if (!['record', 'face', 'listen'].includes(name)) return false
+      this.pendingOpen = name
       return true
     },
     /** 复位所有瞬态；录音资产（recordings）保留 */
     reset() {
-      this.screen = 'files'
+      this.screen = 'device'
+      this.filesReturn = 'device'
+      this.firmware = FIRMWARE_INIT()
       this.query = ''
       this.managing = false
       this.selected = []
@@ -437,13 +509,62 @@ export const useRecorderFlowStore = defineStore('recorderFlow', {
     },
 
     setScreen(name) {
-      if (!['files', 'detail'].includes(name)) return false
+      if (!['device', 'files', 'detail'].includes(name)) return false
       if (name !== 'files') this.managing = false
       this.screen = name
       return true
     },
 
     /* ---------------- 全部录音 ---------------- */
+    /* ---------------- 设备详情（二级菜单，归档 data-screen="device"） ---------------- */
+    openDeviceScreen() {
+      this.managing = false
+      this.playing = false
+      this.screen = 'device'
+      return true
+    },
+    /** 归档 `[data-go="files"]`（查看全部 / 设备录音）：先记住来处再切屏 */
+    openFiles() {
+      if (this.screen !== 'files' && this.screen !== 'detail') this.filesReturn = this.screen
+      this.managing = false
+      this.playing = false
+      this.screen = 'files'
+      return true
+    },
+    /** 归档 `#filesBack`：回设备详情（`filesReturn` 就是 files 时兜到设备页，不出死循环） */
+    backFromFiles() {
+      this.managing = false
+      this.playing = false
+      this.screen = this.filesReturn === 'files' ? 'device' : this.filesReturn
+      return true
+    },
+    toastDeviceMenu() {
+      return this.notify('device.menu')
+    },
+    toastDeviceName(name) {
+      return this.notify('toast.deviceName', { name })
+    },
+
+    /* ---------------- 固件升级（归档 #otaButton） ---------------- */
+    startFirmwareUpgrade() {
+      const f = this.firmware
+      if (f.upgrading || f.done) return false
+      f.upgrading = true
+      f.progress = 0
+      return true
+    },
+    /** 组件每 `TICK.firmware` 调一次；到 100 停表并弹「固件升级完成」 */
+    tickFirmware() {
+      const f = this.firmware
+      if (!f.upgrading) return false
+      f.progress = Math.min(100, f.progress + FIRMWARE_STEP)
+      if (f.progress >= 100) {
+        f.upgrading = false
+        f.done = true
+        this.notify('toast.firmwareDone')
+      }
+      return f.progress
+    },
     setQuery(q) {
       this.query = String(q ?? '')
       return true

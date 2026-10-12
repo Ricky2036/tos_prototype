@@ -11,6 +11,10 @@
  *   center 连接中→成功 / control 设备控制 / info 设备详情
  * 三个浮层：定时（xsheet）/ 重命名（modal）/ 删除确认（modal）
  *
+ * ⚠️ 首页顶栏（`AI Mate` 眉标 / `下午好，Ling` / 副标题 / `LK` 头像）已按要求整体删掉，
+ *   只留 `.home-statusbar` 那一条**状态栏留白（透明，不填色）**；「我的」改由底部 Tab 进入。
+ * 🔴 应用默认背景色 = **#F4F5F7**，与设置页 `SettingsApp.vue` 的 `.settings-app` 同值
+ *   （Ricky 2026-10-12「应用默认背景色改为与设置页面一致」）。
  * ⚠️ 头部几何：`ScreenView.vue` 顶部 64px 是 `--z-edge-zone` 手势热区。
  * 控制页用 `.nav-bar.transparent`（绝对定位在顶部），所以 `.control-scroll` 必须
  * 自己留出 `calc(var(--safe-top) + 56px)` 顶部内边距，否则产品图被热区盖住、
@@ -23,10 +27,14 @@ import {
   FAN_TIMER_STEPS, FAN_SPEED_MAX, FAN_SWING_ANGLES, OTHER_DEVICES, PAPER_MAX
 } from '../../../stores/aiMateStore'
 import { useBackHandler } from '../../../composables/backRegistry'
+import { useRecorderFlowStore, DEVICE_PROFILE as RECORDER_PROFILE } from '../../../stores/recorderFlowStore'
 import LIcon from '../../ui/LIcon.vue'
 import FloatingTabBar from '../../ui/FloatingTabBar.vue'
 import PrinterFlow from './PrinterFlow.vue'
 import RecorderFlow from './RecorderFlow.vue'
+
+/** 首页录音充电宝卡的红灯订阅流程层的录音态（归档 `#homeRecordLight` 同源） */
+const rec = useRecorderFlowStore()
 import MoriFlow from './MoriFlow.vue'
 
 const i18n = useI18nStore()
@@ -36,6 +44,8 @@ const am = (p) => i18n.am(p)
 const fill = (s, o) => String(s ?? '').replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''))
 
 const typeOf = (id) => DEVICE_TYPES.find((t) => t.id === id) || null
+/** 「其他设备」卡的 CSS 手绘图形（归档 `.watch-shape` / `.buds-shape` / `.glasses-shape`） */
+const shapeOf = (t) => (t === 'watch' ? 'watch-shape' : t === 'tws' ? 'buds-shape' : 'glasses-shape')
 const dev = computed(() => mate.getDevice(mate.activeDeviceId))
 const addType = computed(() => typeOf(mate.addType))
 const models = computed(() => DEVICE_MODELS[mate.addType] || [])
@@ -70,6 +80,38 @@ const CARD_ACTIONS = {
   mori: { icon: 'aperture', label: 'action.shoot', sub: 'action.shootSub' }
 }
 const cardAction = (d) => CARD_ACTIONS[d.type] || { icon: 'chevronRight', label: 'action.enter' }
+/**
+ * 打印机 hero 卡的副行。归档首页写的是「电量 78% · 相纸 5 / 5 张」，
+ * 而本仓通用 `metaOf` 是「特有项 · 电量」—— 这里只给这一张按归档顺序排，
+ * 不动其余三台的通用顺序（e2e 对「相纸」「电量」都只做包含判断，顺序无关）。
+ */
+const heroMeta = (d) => [
+  d.battery != null ? fill(am('deviceMeta.battery'), { n: d.battery }) : '',
+  fill(am('deviceMeta.paper'), { n: d.paper, max: PAPER_MAX })
+].filter(Boolean).join(' · ')
+/**
+ * 录音充电宝 hero 卡的两枚 meta 药丸。归档原文是 `▰ 86%` / `◴ 已用 18.6GB`
+ * —— 两个图形前缀是排版记号（不是文案），所以不进 i18n；数值取设备实测。
+ */
+/**
+ * 卡上的型号：录音充电宝归档首屏写的是 `AI Mate PowerRec S1`（设备详情页同值），
+ * 而设备目录里的 `model` 是给「添加设备 / 设备详情」用的短代号 `AM-RC1`。
+ * 这一张卡按归档取值，其余设备仍读 `d.model`。
+ */
+const modelOf = (d) => (d.type === 'recorder' ? RECORDER_PROFILE.model : d.model)
+const recorderMeta = (d) => [
+  d.battery != null ? fill(am('deviceMetaRec.battery'), { n: d.battery }) : '',
+  d.storageUsed != null ? fill(am('deviceMetaRec.storage'), { n: d.storageUsed }) : ''
+].filter(Boolean)
+/**
+ * 首页卡三枚磁贴（录音 / 面对面翻译 / 听译）：
+ * 归档里首页与浮层同文档，磁贴 `stopPropagation` 后直接 `openOverlay()`；
+ * 本仓首页卡在 `AimateApp`、浮层在流程层里，所以先记意图，再由 `store.open()` 消费。
+ */
+function openRecorderWith(intent, id) {
+  rec.requestOverlay(intent)
+  mate.openDevice(id)
+}
 
 /* ---------------- 底部 Tab（首页 / 我的） ---------------- */
 /**
@@ -109,7 +151,6 @@ function beginLink() {
 
 /* ---------------- 风扇档位：12 段点阵，点第 n 个即设为 n 档 ---------------- */
 const fanSpeed = computed(() => (dev.value ? dev.value.speed : 0))
-const speedFill = computed(() => `${(fanSpeed.value / FAN_SPEED_MAX) * 100}%`)
 
 /* ---------------- 定时：秒 ←→ 小时 ---------------- */
 const timerHours = (sec) => (sec ? sec / 3600 : 0)
@@ -147,7 +188,19 @@ const noticeText = computed(() => {
   if (params.metaKey) params.meta = am(params.metaKey)
   return fill(raw, params)
 })
-watch(() => mate.notice, (n) => { if (n) later(() => mate.clearNotice(), 2400) })
+/**
+ * 归档 `toast()` 是「先 `clearTimeout(window._t)` 再挂新定时器」⇒ 连弹两条时，
+ * 后一条不会被前一条的定时器提前收走。
+ * ⚠️ 原来走 `later()` 只 push 不清 ⇒ 快速连点两个动作（AI Mori 卡的录像/录音恰是
+ *    连点场景）时，第二条提示条会被第一条剩下的时间**提前擦掉**。
+ */
+let noticeTimer = null
+watch(() => mate.notice, (n) => {
+  if (!n) return
+  if (noticeTimer) clearTimeout(noticeTimer)
+  noticeTimer = setTimeout(() => mate.clearNotice(), 2400)
+})
+onBeforeUnmount(() => { if (noticeTimer) clearTimeout(noticeTimer) })
 
 useBackHandler(() => mate.back())
 
@@ -162,14 +215,14 @@ const canUseFan = computed(() => !!dev.value && dev.value.online && !dev.value.c
     <div v-if="mate.page === 'home'" class="page home-page">
       <!-- ---------------- Tab 1 · 首页 ---------------- -->
       <div v-show="mate.tab === 'home'" class="tabview">
-        <div class="home-head">
-          <div class="hh-left">
-            <span class="hh-eyebrow">{{ am('appName') }}</span>
-            <div class="hh-title">{{ am('home.greeting') }}</div>
-            <div class="hh-sub">{{ am('home.greetingSub') }}</div>
-          </div>
-          <button class="hh-avatar" data-go-mine @click="mate.setTab('mine')">LK</button>
-        </div>
+        <!-- 首页顶栏（AI Mate 眉标 / 下午好，Ling / 副标题 / LK 头像）已按要求整体去掉。
+             这里只留状态栏高度的白底，有两个作用：
+             ① 首屏内容不钻到状态栏里；
+             ② 卡片滚动时不从状态栏文字后面穿过去（原来就是靠顶栏的白底挡住的）。
+             ⚠️ 这 64px 同时是 `ScreenView` 的边缘手势热区（`.edge-zone` z 85）⇒
+                里面不能放任何可点元素，`.section-head` 的「＋ 添加设备」必须落在它下面。
+             进「我的」不再有头像入口，走底部 Tab。 -->
+        <div class="home-statusbar" />
 
         <div class="home-scroll">
           <div class="section-head">
@@ -189,10 +242,19 @@ const canUseFan = computed(() => !!dev.value && dev.value.online && !dev.value.c
             v-for="d in mate.devices"
             :key="d.id"
             class="mcard"
-            :class="{ offline: !d.online }"
+            :class="{
+              offline: !d.online,
+              'mcard-hero': d.type === 'printer',
+              'mcard-rec': d.type === 'recorder',
+              'mcard-mori': d.type === 'mori',
+              'mcard-fan': d.type === 'fan'
+            }"
             :data-device-card="d.id"
             @click="mate.openDevice(d.id)"
           >
+            <!-- 四张卡共用同一行顶部状态（状态胶囊 + `···` 进设备详情）。
+                 风扇卡原来照归档把这一行整个去掉了，结果与其余三张卡版式不一致 ——
+                 2026-10-12 按「卡片一致性」改回与 AI Mori 同构。 -->
             <div class="mc-top">
               <span class="mc-status" :class="d.online ? 'on' : 'off'">
                 <i class="mc-dot" />{{ d.online ? am('status.online') : am('status.offline') }}
@@ -202,81 +264,261 @@ const canUseFan = computed(() => !!dev.value && dev.value.online && !dev.value.c
               </span>
             </div>
 
-            <div class="mc-body">
-              <div class="mc-art" :style="{ background: typeOf(d.type)?.bg, color: typeOf(d.type)?.color }">
-                <LIcon :name="typeOf(d.type)?.icon || 'circle'" :size="30" />
+            <!-- ===== 口袋打印机：照归档首页卡（深色大卡 + CSS 实物图形 + 右下白底药丸）=====
+                 归档 `ai-mate-printer-demo.html` 的 `home-screen` 里这张卡是一套**独立的视觉语言**
+                 （深色 #172332 / 圆角 28px / min-height 264px / 中央实物图形 / 右下白色药丸），
+                 与其余设备的浅色小卡不同 —— 只此一张走 hero 形态，其余三台保持原结构。 -->
+            <template v-if="d.type === 'printer'">
+              <span class="hp-stage">
+                <span class="hp-printer"><i class="hp-dot" /></span>
+              </span>
+              <div class="mc-bottom">
+                <span class="hp-copy">
+                  <b class="hp-name">{{ titleOf(d) }}</b>
+                  <small class="hp-meta" :data-device-meta="d.id">{{ heroMeta(d) }}</small>
+                </span>
+                <span
+                  class="hp-quick"
+                  role="button"
+                  :data-device-enter="d.id"
+                  @click.stop="mate.quickPrint(d.id)"
+                >{{ am(cardAction(d).label) }}</span>
               </div>
-              <div class="mc-info">
-                <div class="mc-name">{{ titleOf(d) }}</div>
-                <div class="mc-model">{{ d.model }}</div>
-                <div class="mc-meta" :data-device-meta="d.id">{{ metaOf(d) }}</div>
-              </div>
-            </div>
+            </template>
 
-            <!-- 风扇：归档首页卡内联的开关 + 档位（两件事都不该逼用户跳页） -->
-            <div v-if="d.type === 'fan'" class="mc-fan" @click.stop>
-              <div class="mf-info">
-                <span class="mf-label">{{ am('control.speedTitle') }}</span>
-                <span class="mf-value" :data-gear-value="d.id">
-                  {{ fill(am('control.speedValue'), { n: d.speed, max: FAN_SPEED_MAX }) }}
+            <!-- ===== 录音充电宝：照归档首页卡（紫色渐变大卡 + CSS 实物图形 + 底部三磁贴）=====
+                 归档 `.device-card`：底 = radial(90% 10% 淡紫) + linear(145deg #28205f→#4936a5 54%→#624aca)，
+                 圆角 25px / padding 20px / min-height 276px / `::before` 一圈 190px 描边圆环；
+                 实物图 133×75 绝对定位在右上（13 / 55 / rotate(-7deg)）；
+                 底部一条毛玻璃托盘里并排三枚磁贴（录音 / 面对面翻译 / 听译）。
+                 与打印机那张 hero 卡并列 —— 归档两份 Demo 的首屏大卡就是这两种形态。 -->
+            <template v-else-if="d.type === 'recorder'">
+              <div class="rp-head">
+                <b class="rp-name">{{ titleOf(d) }}</b>
+                <small class="rp-model">{{ modelOf(d) }}</small>
+                <span class="rp-meta" :data-device-meta="d.id">
+                  <span v-for="(m, mi) in recorderMeta(d)" :key="mi">{{ m }}</span>
                 </span>
               </div>
+
+              <span class="rp-art">
+                <i class="rp-art-side" />
+                <span class="rp-art-face">
+                  <span class="rp-grille"><i v-for="n in 24" :key="n" /></span>
+                  <i class="rp-redlight" :class="{ on: rec.recording }" data-home-record-light />
+                  <small>AI Mate</small>
+                </span>
+              </span>
+
+              <span class="rp-actions">
+                <span
+                  class="rp-action"
+                  role="button"
+                  tabindex="0"
+                  data-device-action="record"
+                  @click.stop="openRecorderWith('record', d.id)"
+                >
+                  <span class="rp-glyph"><LIcon name="mic" :size="14" /></span>
+                  <b>{{ am('action.record') }}</b>
+                  <small>{{ am('action.recordSub') }}</small>
+                </span>
+                <span
+                  class="rp-action"
+                  role="button"
+                  tabindex="0"
+                  data-device-action="face"
+                  @click.stop="openRecorderWith('face', d.id)"
+                >
+                  <span class="rp-glyph"><LIcon name="users" :size="14" /></span>
+                  <b>{{ am('action.face') }}</b>
+                  <small>{{ am('action.faceSub') }}</small>
+                </span>
+                <span
+                  class="rp-action"
+                  role="button"
+                  tabindex="0"
+                  data-device-action="listen"
+                  @click.stop="openRecorderWith('listen', d.id)"
+                >
+                  <span class="rp-glyph"><LIcon name="languages" :size="14" /></span>
+                  <b>{{ am('action.listen') }}</b>
+                  <small>{{ am('action.listenSub') }}</small>
+                </span>
+              </span>
+            </template>
+
+            <!-- ===== AI Mori：照归档首页卡（白卡 + 52px 紫渐变图标 + 右侧电量 + 底部三枚动作）=====
+                 归档 `ai_mori_interactive_prototype(3).html` 的 `#home` 里这张 `.dev-card`：
+                 一行设备信息（`.dev-main`）+ 一条分隔线下的三枚等宽动作（拍照 / 录像 / 录音）。
+                 录像与录音是**可切换的录制态且互斥**（开一个自动关掉另一个），
+                 录制态按钮转红并跟一颗脉冲圆点 —— 归档 `toggleRec()`；
+                 拍照只发指令再弹提示条 —— 归档 `doAction('photo')`。
+                 点卡片主体仍是「进 Mori 流程」（= 归档点 `.dev-main` 进 detail），行为不变。 -->
+            <template v-else-if="d.type === 'mori'">
+              <div class="mm-main">
+                <span class="mm-art"><LIcon name="aperture" :size="26" /></span>
+                <span class="mm-info">
+                  <b class="mm-name">{{ titleOf(d) }}</b>
+                  <small class="mm-model">{{ d.model }}</small>
+                </span>
+                <b class="mm-batt" :data-device-meta="d.id">{{ fill(am('deviceMeta.battery'), { n: d.battery }) }}</b>
+              </div>
+
+              <span class="mm-actions">
+                <span
+                  class="mm-act"
+                  role="button"
+                  tabindex="0"
+                  data-device-action="photo"
+                  @click.stop="mate.moriPhoto()"
+                >
+                  <LIcon name="camera" :size="15" />
+                  <b>{{ am('moriCard.photo') }}</b>
+                </span>
+                <span
+                  class="mm-act"
+                  :class="{ 'active-rec': mate.moriRec.video }"
+                  role="button"
+                  tabindex="0"
+                  data-device-action="video"
+                  @click.stop="mate.moriToggleRec('video')"
+                >
+                  <LIcon name="video" :size="15" />
+                  <i v-if="mate.moriRec.video" class="mm-rec-dot" data-device-rec-dot="video" />
+                  <b>{{ mate.moriRec.video ? am('moriCard.videoOn') : am('moriCard.video') }}</b>
+                </span>
+                <span
+                  class="mm-act"
+                  :class="{ 'active-rec': mate.moriRec.audio }"
+                  role="button"
+                  tabindex="0"
+                  data-device-action="audio"
+                  @click.stop="mate.moriToggleRec('audio')"
+                >
+                  <LIcon name="mic" :size="15" />
+                  <i v-if="mate.moriRec.audio" class="mm-rec-dot" data-device-rec-dot="audio" />
+                  <b>{{ mate.moriRec.audio ? am('moriCard.audioOn') : am('moriCard.audio') }}</b>
+                </span>
+              </span>
+            </template>
+
+            <!-- ===== 风扇：版式对齐 AI Mori 卡（Ricky 2026-10-12）=====
+                 骨架与 Mori 卡逐段同构：
+                 ① `.mc-top`（四张卡共用）：状态胶囊 + `···` 进设备详情
+                 ② `.dc-main`：52×52 图标盒 + 名称/型号 + 右侧竖排开关块（开关 + 「开关」字样）
+                 ③ `.dc-gear-row`：整宽区块（上边 1px 分隔线）——「档位调节」+「当前档位：n / 12」
+                    + **12 段可点轨道**（点第 n 段 = 设到 n 档）
+                 ⚠️ 归档原卡**没有顶部状态行**、图标盒是 **72×52** —— 这两点按「卡片一致性」刻意偏离归档；
+                    开关 1200ms（pending 时滑块来回蹭）与档位 900ms（值显「下发中…」）两个回执窗口仍照归档。 -->
+            <template v-else-if="d.type === 'fan'">
+              <div class="dc-main">
+                <span class="dc-art"><LIcon name="fanDisc" :size="40" /></span>
+                <span class="dc-info">
+                  <b class="dc-name">{{ titleOf(d) }}</b>
+                  <small class="dc-model" :data-device-meta="d.id">{{ d.model }}</small>
+                </span>
+                <span class="dc-power" @click.stop>
+                  <button
+                    class="dc-switch"
+                    :class="{ on: d.power, pending: mate.pending[d.id], disabled: switchDisabled(d) }"
+                    :data-device-switch="d.id"
+                    :disabled="switchDisabled(d) || !!mate.pending[d.id]"
+                    @click="mate.toggleFanPower(d.id)"
+                  >
+                    <span class="dc-switch-knob" />
+                  </button>
+                  <span class="dc-switch-label">{{ am('fanCard.power') }}</span>
+                </span>
+              </div>
+
+              <div class="dc-gear-row" :class="{ disabled: !d.online }" @click.stop>
+                <div class="dc-gear-info">
+                  <span class="dc-gear-label">{{ am('fanCard.speedTitle') }}</span>
+                  <span
+                    class="dc-gear-value"
+                    :class="{ pending: mate.speedPending[d.id] }"
+                    :data-gear-value="d.id"
+                  >{{ mate.speedPending[d.id]
+                    ? am('fanCard.speedPending')
+                    : fill(am('control.speedValue'), { n: d.speed, max: FAN_SPEED_MAX }) }}</span>
+                </div>
+                <div class="dc-gear-track" data-gear-track>
+                  <span
+                    v-for="n in FAN_SPEED_MAX"
+                    :key="n"
+                    class="dc-gear-seg"
+                    :class="{ active: d.speed >= n, pending: mate.speedPending[d.id] }"
+                    :data-gear-seg="n"
+                    @click="mate.requestFanSpeed(d.id, n)"
+                  />
+                </div>
+              </div>
+            </template>
+
+            <template v-else>
+              <div class="mc-body">
+                <div class="mc-art" :style="{ background: typeOf(d.type)?.bg, color: typeOf(d.type)?.color }">
+                  <LIcon :name="typeOf(d.type)?.icon || 'circle'" :size="30" />
+                </div>
+                <div class="mc-info">
+                  <div class="mc-name">{{ titleOf(d) }}</div>
+                  <div class="mc-model">{{ d.model }}</div>
+                  <div class="mc-meta" :data-device-meta="d.id">{{ metaOf(d) }}</div>
+                </div>
+              </div>
+
+              <!-- 其余设备（添加设备目录里还能配到的品类）：一行「点进去会发生什么」 -->
+              <div class="mc-enter" :data-device-enter="d.id">
+                <LIcon :name="cardAction(d).icon" :size="16" />
+                <span class="mce-label">{{ am(cardAction(d).label) }}</span>
+                <small v-if="cardAction(d).sub" class="mce-sub">{{ am(cardAction(d).sub) }}</small>
+                <LIcon name="chevronRight" :size="16" />
+              </div>
+            </template>
+          </button>
+
+          <!-- 其他设备：照归档 `ai-mate-recording-powerbank-demo.html` 的
+               `.device-wall` / `.other-device-card` 重放。
+               图形是 CSS 手绘形状（不是图标），右上角带 115px 圆装饰。 -->
+          <div class="device-wall">
+            <div class="section-head">
+              <div class="sh-copy">
+                <h2 class="sh-title">{{ am('home.otherDevices') }}</h2>
+                <p class="sh-sub">{{ am('home.otherSub') }}</p>
+              </div>
+            </div>
+
+            <div class="device-stack">
               <button
-                class="mf-switch"
-                :class="{ on: d.power, pending: mate.pending[d.id], disabled: switchDisabled(d) }"
-                :data-device-switch="d.id"
-                :disabled="switchDisabled(d) || !!mate.pending[d.id]"
-                @click="mate.toggleFanPower(d.id)"
+                v-for="o in OTHER_DEVICES"
+                :key="o.id"
+                class="other-device-card"
+                :class="{ offline: !o.online }"
+                :data-other="o.id"
+                @click="mate.notifyOther(o.id)"
               >
-                <span class="mf-knob" />
+                <span class="large-visual">
+                  <span :class="shapeOf(o.type)"></span>
+                </span>
+                <span class="large-device-copy">
+                  <span v-if="o.online" class="online"><i></i>{{ am('status.online') }}</span>
+                  <em v-else class="status-pill pending">{{ am('other.notConnected') }}</em>
+                  <h3>{{ am(o.nameKey) }}</h3>
+                  <p>{{ am(o.modelKey) }}</p>
+                  <small>{{ am(o.metaKey) }}</small>
+                </span>
+                <LIcon class="row-chevron" name="chevronRight" :size="16" />
+              </button>
+
+              <button class="other-device-card add-device-card" data-add-new @click="mate.openAdd()">
+                <span class="add-orb">＋</span>
+                <span class="large-device-copy">
+                  <h3>{{ am('home.addNew') }}</h3>
+                  <p>{{ am('home.addNewSub') }}</p>
+                </span>
               </button>
             </div>
-
-            <!-- 其余三台：一行「点进去会发生什么」（动作名 + 该设备的语境） -->
-            <div v-else class="mc-enter" :data-device-enter="d.id">
-              <LIcon :name="cardAction(d).icon" :size="16" />
-              <span class="mce-label">{{ am(cardAction(d).label) }}</span>
-              <small v-if="cardAction(d).sub" class="mce-sub">{{ am(cardAction(d).sub) }}</small>
-              <LIcon name="chevronRight" :size="16" />
-            </div>
-          </button>
-
-          <!-- 其他设备（两份 Demo 的「其他设备」并集） -->
-          <div class="section-head">
-            <div class="sh-copy">
-              <h2 class="sh-title">{{ am('home.otherDevices') }}</h2>
-              <p class="sh-sub">{{ am('home.otherSub') }}</p>
-            </div>
           </div>
-
-          <button
-            v-for="o in OTHER_DEVICES"
-            :key="o.id"
-            class="orow"
-            :class="{ offline: !o.online }"
-            :data-other="o.id"
-            @click="mate.notifyOther(o.id)"
-          >
-            <span class="or-art" :style="{ background: typeOf(o.type)?.bg, color: typeOf(o.type)?.color }">
-              <LIcon :name="typeOf(o.type)?.icon || 'circle'" :size="22" />
-            </span>
-            <span class="or-copy">
-              <span class="or-status" :class="o.online ? 'on' : 'off'">
-                {{ o.online ? am('status.online') : am('other.notConnected') }}
-              </span>
-              <b class="or-name">{{ am(o.nameKey) }}</b>
-              <small class="or-meta">{{ am(o.modelKey) }} · {{ am(o.metaKey) }}</small>
-            </span>
-            <span class="or-tail">{{ o.online ? '›' : am('other.connect') }}</span>
-          </button>
-
-          <button class="orow add-row" data-add-new @click="mate.openAdd()">
-            <span class="or-art add-art"><LIcon name="plus" :size="22" /></span>
-            <span class="or-copy">
-              <b class="or-name">{{ am('home.addNew') }}</b>
-              <small class="or-meta">{{ am('home.addNewSub') }}</small>
-            </span>
-          </button>
 
           <div class="home-pad" />
         </div>
@@ -516,23 +758,26 @@ const canUseFan = computed(() => !!dev.value && dev.value.online && !dev.value.c
         </div>
 
         <template v-if="isFan">
+          <!-- 风速档位：改用**首页风扇卡那套档位设计**（`.dc-gear-*` 分段条），
+               档位值挪到标题同一行 —— 与卡片 `.dc-gear-info` 同构。 -->
           <div class="control-card">
-            <div class="card-title">{{ am('control.speedTitle') }}</div>
-            <div class="speed-slider">
-              <div class="speed-track"><div class="speed-fill" :style="{ width: speedFill }" /></div>
-              <div class="speed-steps">
-                <button
-                  v-for="n in FAN_SPEED_MAX"
-                  :key="n"
-                  class="speed-dot"
-                  :class="{ active: n <= fanSpeed }"
-                  :data-speed-dot="n"
-                  @click="mate.setFanSpeed(dev.id, n)"
-                />
-              </div>
+            <div class="speed-head">
+              <div class="card-title">{{ am('control.speedTitle') }}</div>
+              <span
+                class="dc-gear-value"
+                :class="{ pending: mate.pending[dev.id] }"
+                data-speed-label
+              >{{ fill(am('control.speedValue'), { n: fanSpeed, max: FAN_SPEED_MAX }) }}</span>
             </div>
-            <div class="speed-label" data-speed-label>
-              {{ fill(am('control.speedValue'), { n: fanSpeed, max: FAN_SPEED_MAX }) }}
+            <div class="dc-gear-track" data-speed-track>
+              <button
+                v-for="n in FAN_SPEED_MAX"
+                :key="n"
+                class="dc-gear-seg"
+                :class="{ active: n <= fanSpeed, pending: mate.pending[dev.id] }"
+                :data-speed-seg="n"
+                @click="mate.setFanSpeed(dev.id, n)"
+              />
             </div>
           </div>
 
@@ -768,7 +1013,8 @@ const canUseFan = computed(() => !!dev.value && dev.value.online && !dev.value.c
   overflow: hidden;
   position: relative;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background: #f2f2f7;
+  /* 应用默认背景色 = 设置页 `.settings-app` 的 #F4F5F7（Ricky 2026-10-12） */
+  background: #F4F5F7;
   color: #111;
   -webkit-tap-highlight-color: transparent;
 }
@@ -861,7 +1107,7 @@ const canUseFan = computed(() => !!dev.value && dev.value.online && !dev.value.c
 .category-item-v2:active { transform: scale(0.96); }
 
 /* ---- 选型号 + 配对步骤 ---- */
-.guide-page { background: #f2f2f7; }
+.guide-page { background: #F4F5F7; }
 .guide-scroll { flex: 1; overflow-y: auto; }
 .model-select { padding: 8px 16px; }
 .model-option {
@@ -889,7 +1135,7 @@ const canUseFan = computed(() => !!dev.value && dev.value.online && !dev.value.c
 .guide-action { padding: 0 16px calc(20px + var(--home-indicator-zone, 34px)); }
 
 /* ---- 搜索设备 ---- */
-.search-page { background: #f2f2f7; }
+.search-page { background: #F4F5F7; }
 .search-body { padding: 16px; }
 .searching-state { display: flex; flex-direction: column; align-items: center; padding: 48px 16px; text-align: center; }
 .scan-ring {
@@ -918,7 +1164,7 @@ const canUseFan = computed(() => !!dev.value && dev.value.online && !dev.value.c
 }
 
 /* ---- 连接中 / 连接成功 ---- */
-.center-page { align-items: center; justify-content: center; background: #f2f2f7; padding-bottom: 80px; }
+.center-page { align-items: center; justify-content: center; background: #F4F5F7; padding-bottom: 80px; }
 .connecting-ring {
   width: 90px; height: 90px; border-radius: 50%;
   border: 4px solid #7b5cff; border-color: #7b5cff transparent transparent;
@@ -968,19 +1214,16 @@ const canUseFan = computed(() => !!dev.value && dev.value.online && !dev.value.c
 .mode-display { font-size: 20px; font-weight: 700; color: #111; }
 .control-card { background: #f2f2f7; border-radius: 18px; margin: 0 16px 14px; padding: 16px; border: none; }
 .card-title { font-size: 14px; font-weight: 600; color: #555; margin-bottom: 12px; }
-.speed-slider { position: relative; padding: 8px 0; }
-.speed-track { height: 6px; background: #dcdce4; border-radius: 3px; overflow: hidden; }
-.speed-fill {
-  height: 100%; background: linear-gradient(90deg, #7b5cff, #9b82ff);
-  border-radius: 3px; transition: width 0.2s;
+/* 风速档位：旧圆形滑轨（`.speed-*`）已整体删除，改用**首页风扇卡那套档位设计**
+   （`.dc-gear-track` / `.dc-gear-seg` / `.dc-gear-value`，规则本体在风扇卡那一段）。
+   这里只补「标题与档位值同一行」的容器 —— 对应卡片里的 `.dc-gear-info`。
+   ⛔ 不要在这里重复定义 `.dc-gear-*`：同文件重复的类选择器会被单测守卫判红，
+      而且两处定义迟早漂移（当年 `.mh-name` 就是这么翻车的）。 */
+.speed-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px;
 }
-.speed-steps { display: flex; justify-content: space-between; margin-top: -9px; padding: 0 1px; }
-.speed-dot {
-  width: 16px; height: 16px; border-radius: 50%; background: #dcdce4;
-  border: 2px solid #fff; padding: 0;
-}
-.speed-dot.active { background: #7b5cff; }
-.speed-label { text-align: center; font-size: 13px; color: #666; margin-top: 10px; }
+.speed-head .card-title { margin-bottom: 0; }
 .mode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .mode-chip {
   background: #fff; border: 1px solid #e5e5ea; border-radius: 12px;
@@ -1032,7 +1275,7 @@ const canUseFan = computed(() => !!dev.value && dev.value.online && !dev.value.c
 .fw-pending { font-size: 13px; color: #7b5cff; }
 
 /* ---- 设备详情 ---- */
-.device-info-page { background: #f2f2f7; }
+.device-info-page { background: #F4F5F7; }
 .device-info-scroll { flex: 1; overflow-y: auto; padding: 20px 16px 40px; }
 .device-info-hero { display: flex; flex-direction: column; align-items: center; padding: 24px 0 32px; }
 .device-info-name { margin-top: 16px; font-size: 18px; font-weight: 600; color: #111; }
@@ -1093,18 +1336,12 @@ const canUseFan = computed(() => !!dev.value && dev.value.online && !dev.value.c
 .modal-actions .btn-primary, .modal-actions .btn-ghost { flex: 1; }
 /* ===== 底部 Tab 层（首页 / 我的）：结构取自两份 Demo 的 shell ===== */
 .tabview { position: absolute; inset: 0; display: flex; flex-direction: column; }
-.home-head {
-  padding: calc(var(--safe-top, 44px) + 10px) 18px 12px;
-  background: #fff;
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-}
-.hh-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #7b5cff; }
-.hh-title { font-size: 22px; font-weight: 700; color: #111; margin-top: 4px; }
-.hh-sub { font-size: 12px; color: #8e8ea3; margin-top: 3px; }
-.hh-avatar {
-  width: 38px; height: 38px; border-radius: 50%; border: none; flex: none;
-  background: #7b5cff; color: #fff; font-size: 12px; font-weight: 700;
-}
+/* 顶栏去掉后只留状态栏留白：高度取原 `.home-head` 的 padding-top
+   （`--safe-top` + 10px = 64px），保证首屏首个可点元素仍在手势热区之下。
+   🔴 2026-10-12（Ricky「去掉状态栏底部的背景」）：**不再填色** —— 留白只负责占位，
+   透明后露出的是 `.aimate` 的根底色，状态栏那一条于是与下方内容区**同色**、白带消失。
+   ⛔ 别再给它加 background —— 一加就回到「顶部一条异色带」。 */
+.home-statusbar { height: calc(var(--safe-top, 44px) + 10px); flex: none; }
 /* 底部渐隐遮罩（规格对齐时钟页 `.alarm-list`）：挂在**滚动容器自身的盒子**上 ⇒ 不随内容滚动，
    于是卡片滚过底栏那一段时不透明度递减、而不是被硬生生截断。
    三段锚点与底栏几何同源：bottom 22px + 高 62px ⇒ 底栏占 100%-84px ~ 100%-22px，
@@ -1131,7 +1368,7 @@ const canUseFan = computed(() => !!dev.value && dev.value.online && !dev.value.c
 .mcard:active { transform: scale(0.985); }
 .mcard.offline { opacity: 0.92; }
 .mc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.mc-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; }
+.mc-status { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; }
 .mc-status.on { color: #34c759; }
 .mc-status.off { color: #9a9aa5; }
 .mc-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; display: block; }
@@ -1145,50 +1382,401 @@ const canUseFan = computed(() => !!dev.value && dev.value.online && !dev.value.c
 .mc-name { font-size: 17px; font-weight: 600; color: #111; }
 .mc-model { font-size: 12px; color: #8e8ea3; margin-top: 2px; }
 .mc-meta { font-size: 12px; color: #6b6b76; margin-top: 4px; }
-.mc-fan {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  margin-top: 12px; padding-top: 11px; border-top: 1px solid #f2f2f7;
+/* ==================================================================
+ * 风扇卡：**版式对齐 AI Mori 卡**（Ricky 2026-10-12「卡片一致性较差」）
+ * 骨架与 Mori 卡逐段同构：
+ *   `.mc-top`（四张卡共用的状态行）→ `.dc-main`（52×52 图标盒 + 名称/型号 + 右侧开关）
+ *   → `.dc-gear-row`（整宽区块，上边 1px 分隔线）。
+ * 卡框与 Mori 卡**共用同一条规则**（`.mcard-mori, .mcard-fan`，见下）⇒ 不会漂移。
+ * 单测有一条 parity 守卫逐条比对 `.mm-*` 与 `.dc-*` 的对应规则，改一边不改另一边会红。
+ * ⚠️ 刻意偏离归档的两点：归档原卡**没有顶部状态行**、图标盒是 **72×52**。
+ *    开关 1200ms / 档位 900ms 两个回执窗口、以及 `.dc-switch` / `.dc-gear-*` 的数值仍照归档。
+ * ================================================================== */
+.dc-main { display: flex; align-items: center; padding: 8px 14px 14px; }
+.dc-art {
+  width: 52px; height: 52px; border-radius: 14px; flex: none; margin-right: 14px;
+  background: #f2f2f7; color: #7b5cff;
+  display: flex; align-items: center; justify-content: center;
 }
-.mf-info { display: flex; flex-direction: column; gap: 2px; }
-.mf-label { font-size: 12px; color: #111; font-weight: 500; }
-.mf-value { font-size: 11px; color: #8e8ea3; }
-.mf-switch {
+.dc-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.dc-name { font-size: 17px; font-weight: 700; color: #111; }
+.dc-model { font-size: 12px; color: #8e8ea3; }
+.dc-power { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.dc-switch {
   width: 48px; height: 28px; border-radius: 14px; background: #e5e5ea;
-  border: none; padding: 0; position: relative; flex: none; transition: background 0.25s;
+  border: none; padding: 0; position: relative; transition: background 0.25s ease;
 }
-.mf-switch.on { background: #34c759; }
-.mf-switch.pending { opacity: 0.7; }
-.mf-switch.disabled { opacity: 0.4; background: #e5e5ea !important; }
-.mf-knob {
+.dc-switch.on { background: #34c759; }
+.dc-switch.pending { opacity: 0.7; }
+.dc-switch.disabled { opacity: 0.4; background: #e5e5ea !important; }
+.dc-switch-knob {
   position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 50%;
-  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); transition: transform 0.25s;
+  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); transition: transform 0.25s ease;
 }
-.mf-switch.on .mf-knob { transform: translateX(20px); }
+.dc-switch.on .dc-switch-knob { transform: translate(20px); }
+/* 归档：回执等待期里滑块自己来回蹭（关态 0→4px / 开态 20→16px），
+   比单纯降透明度更能表达「指令已下发、在等设备回执」 */
+.dc-switch.pending .dc-switch-knob { animation: dc-knob-pulse 1s ease-in-out infinite; }
+@keyframes dc-knob-pulse { 0%, 100% { transform: translate(0); } 50% { transform: translate(4px); } }
+.dc-switch.on.pending .dc-switch-knob { animation: dc-knob-pulse-on 1s ease-in-out infinite; }
+@keyframes dc-knob-pulse-on { 0%, 100% { transform: translate(20px); } 50% { transform: translate(16px); } }
+/* ⚠️ 归档 11px —— 本仓排版阶梯下限是 12px（11px 在真机读不清，Ricky 已反馈过一次） */
+.dc-switch-label { font-size: 12px; color: #666; }
+
+/* 整宽区块：与 Mori 卡 `.mm-actions` 同一手法 —— 上边 1px 分隔线 + 自己的内边距 */
+.dc-gear-row { padding: 13px 14px 14px; border-top: 1px solid #e9ecef; }
+.dc-gear-row.disabled { opacity: 0.45; pointer-events: none; }
+.dc-gear-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.dc-gear-label { font-size: 13px; color: #111; font-weight: 500; }
+.dc-gear-value { font-size: 12px; color: #666; }
+.dc-gear-value.pending { color: #7b5cff; }
+.dc-gear-track { display: flex; align-items: center; gap: 5px; height: 22px; }
+.dc-gear-seg {
+  flex: 1; height: 8px; border-radius: 4px; background: #e5e5ea;
+  transition: background 0.2s ease; cursor: pointer;
+}
+.dc-gear-seg.active { background: #7b5cff; }
+.dc-gear-seg.pending { animation: dc-seg-pulse 0.9s ease-in-out infinite; }
+@keyframes dc-seg-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 .mc-enter {
   display: flex; align-items: center; gap: 6px; margin-top: 12px; padding-top: 11px;
   border-top: 1px solid #f2f2f7; color: #7b5cff; font-size: 13px; font-weight: 600;
 }
 .mc-enter .mce-label { flex: 1; }
-.mc-enter .mce-sub { font-size: 11px; font-weight: 500; color: #9a9aa5; flex: none; }
+/* 12px 是排版阶梯的最小档：11px 的副文案在真机上读不清（Ricky 已反馈过一次） */
+.mc-enter .mce-sub { font-size: 12px; font-weight: 500; color: #9a9aa5; flex: none; }
 
-.orow {
-  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
-  background: #fff; border: none; border-radius: 16px; padding: 12px 14px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05); margin-bottom: 10px;
+/* ==================================================================
+ * 打印机卡：照归档 `home-screen` 重放（深色大卡 + CSS 实物图形 + 白底药丸）
+ * 数值全部取自归档：底 #172332 · 圆角 28px · padding 23px · min-height 264px ·
+ * 机身 124×76（圆角 25/25/21/21）· 药丸 padding 11px 14px / 圆角 14px。
+ * 只有这一张走 hero 形态，其余设备仍是上面的浅色小卡。
+ * ================================================================== */
+.mcard-hero {
+  display: flex; flex-direction: column;
+  background: #172332; color: #fff;
+  border-radius: 28px; padding: 23px; min-height: 264px;
+  box-shadow: 0 20px 40px rgba(23, 35, 50, 0.22);
+  position: relative; overflow: hidden;
 }
-.orow:active { transform: scale(0.985); }
-.orow.offline { opacity: 0.9; }
-.or-art { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex: none; }
-.add-art { background: #f0ecff; color: #7b5cff; }
-.or-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.or-status { font-size: 10.5px; font-weight: 600; margin-bottom: 2px; }
-.or-status.on { color: #34c759; }
-.or-status.off { color: #9a9aa5; }
-.or-name { font-size: 15px; font-weight: 600; color: #111; }
-.or-meta { font-size: 11.5px; color: #8e8ea3; margin-top: 2px; }
-.or-tail { font-size: 12px; color: #7b5cff; font-weight: 600; flex: none; }
+/* 归档 `.device-card::after`：右上角一圈白色光晕 */
+.mcard-hero::after {
+  content: ''; position: absolute; width: 230px; height: 230px;
+  right: -80px; top: -105px; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0) 68%);
+}
+.mcard-hero .mc-top { position: relative; z-index: 2; margin-bottom: 0; }
+.mcard-hero .mc-status { font-size: 12px; font-weight: 700; }
+/* 归档 `#dce8e5` + `#66ddc5` 圆点；`.mc-status` 基础档 2026-10-12 已从 11px 抬到 12px
+   （本仓排版下限，四张卡同值），此处保持同值不再单独抬。 */
+.mcard-hero .mc-status.on { color: #dce8e5; }
+.mcard-hero .mc-status.on .mc-dot { background: #66ddc5; box-shadow: 0 0 0 4px rgba(102, 221, 197, 0.13); }
+.mcard-hero .mc-status.off { color: #9aa4ae; }
+.mcard-hero .mc-status.off .mc-dot { box-shadow: none; }
+.mcard-hero .mc-more { color: rgba(255, 255, 255, 0.72); background: rgba(255, 255, 255, 0.1); }
 
-.mine-head { padding: calc(var(--safe-top, 44px) + 14px) 18px 10px; background: #fff; }
+/* 中央舞台：归档 `.printer-wrap` 是 116px 固定高，这里用 flex 撑满卡片中段 */
+.hp-stage { flex: 1; min-height: 116px; display: grid; place-items: center; position: relative; z-index: 1; }
+
+/* 归档 `.printer`：白色圆角机身 + 出纸口 + 一张伸出来的照片 + 右下状态灯 */
+.hp-printer {
+  position: relative; width: 124px; height: 76px; border-radius: 25px 25px 21px 21px;
+  background: linear-gradient(145deg, #fff, #e6e9e8 78%);
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.25), inset -8px -8px 18px rgba(84, 96, 98, 0.08);
+}
+.hp-printer::before {
+  content: ''; position: absolute; left: 18px; right: 18px; top: 12px; height: 9px;
+  border-radius: 5px; background: #b4bbb9; box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.2);
+}
+.hp-printer::after {
+  content: ''; position: absolute; left: 27px; top: -46px; width: 70px; height: 68px;
+  background: linear-gradient(135deg, #ffb27a 0 26%, #e46852 26% 43%, #6eb7bd 43% 68%, #273e58 68%);
+  border: 5px solid #fff; border-bottom-width: 9px;
+  box-shadow: 0 7px 14px rgba(0, 0, 0, 0.18);
+}
+.hp-dot {
+  position: absolute; z-index: 2; right: 16px; bottom: 15px;
+  width: 7px; height: 7px; border-radius: 50%; background: #54d2ba;
+}
+
+/* 底部：归档 `.device-card-bottom`（`align-items: end` + 两端对齐） */
+.mc-bottom {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 14px;
+  position: relative; z-index: 2;
+}
+.hp-copy { display: flex; flex-direction: column; min-width: 0; }
+/* 归档原值 20px / 780；本仓排版阶梯最大档是 headline 17px —— 英雄卡按原型保留 20px */
+.hp-name { font-size: 20px; font-weight: 780; letter-spacing: -0.03em; color: #fff; }
+.hp-meta { margin-top: 6px; color: #aeb7c1; font-size: 12px; }
+/* 归档 `.quick`：白底深字药丸；`nowrap` 防「快速打印」折行 */
+.hp-quick {
+  flex: 0 0 auto; white-space: nowrap; text-align: center;
+  background: #fff; color: #172332; border-radius: 14px;
+  padding: 11px 14px; font-size: 12px; font-weight: 800;
+  cursor: pointer; transition: transform 0.15s;
+}
+.hp-quick:active { transform: scale(0.96); }
+/* 打印机的这一行是入口本身（`quickPrint()` 直达相册），不是说明文字 */
+
+/* ==================================================================
+ * 录音充电宝卡：照归档 `home-screen` 的 `.device-card` 重放
+ * 数值全部取自归档：底 = radial(circle at 90% 10%, rgba(167,150,255,.43) → transparent 32%)
+ *   + linear(145deg,#28205f,#4936a5 54%,#624aca)；圆角 25px · padding 20px · min-height 276px；
+ *  `::before` 是一圈 190px 的描边圆环（right -26 / top -30）；
+ *  实物图 133×75（right 13 / top 55 / rotate(-7deg)）；侧条 12px、面板圆角 20px、
+ *  点阵 6 列 2px（24 点）、指示灯 5px、图形字样「AI Mate」；
+ *  底部托盘 left/right 14 / bottom 14，圆角 18px，三列 7px 间距，磁贴 69px。
+ *
+ * 🔴 字号：归档卡内是 8 / 9 / 6.5 / 6px，本仓统一抬到 ≥12px
+ *    （设备名 17px · 型号/药丸/磁贴文字 12px）。标题块留出右侧 148px 让开实物图，
+ *    否则英文长名会压到机身上。
+ * ================================================================== */
+.mcard-rec {
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(167, 150, 255, 0.43), transparent 32%),
+    linear-gradient(145deg, #28205f, #4936a5 54%, #624aca);
+  color: #fff;
+  border-radius: 25px;
+  padding: 20px 20px 14px;
+  min-height: 276px;
+  box-shadow: 0 18px 36px rgba(61, 45, 144, 0.24);
+  position: relative;
+  overflow: hidden;
+}
+.mcard-rec::before {
+  content: ''; position: absolute; width: 190px; height: 190px;
+  border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 50%;
+  right: -26px; top: -30px; pointer-events: none;
+}
+.mcard-rec .mc-top { position: relative; z-index: 2; margin-bottom: 0; }
+.mcard-rec .mc-status {
+  font-size: 12px; font-weight: 700; padding: 5px 9px; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.14); color: #dce8e5;
+}
+.mcard-rec .mc-status.on .mc-dot { background: #69e4a6; box-shadow: 0 0 0 3px rgba(105, 228, 166, 0.13); }
+.mcard-rec .mc-status.off { color: #9aa4ae; background: rgba(255, 255, 255, 0.08); }
+.mcard-rec .mc-status.off .mc-dot { box-shadow: none; }
+.mcard-rec .mc-more { color: rgba(255, 255, 255, 0.72); background: rgba(255, 255, 255, 0.1); }
+
+.rp-head { position: relative; z-index: 2; padding-right: 148px; }
+.rp-name { display: block; font-size: 17px; font-weight: 700; letter-spacing: -0.03em; margin: 13px 0 3px; }
+.rp-model { display: block; font-size: 12px; color: rgba(255, 255, 255, 0.6); }
+.rp-meta {
+  display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px;
+  font-size: 12px; color: rgba(255, 255, 255, 0.76);
+}
+
+/* 实物图：归档 `.device-art`（右侧深色侧条 + 渐变面板 + 点阵 + 指示灯） */
+.rp-art {
+  position: absolute; z-index: 1;
+  width: 133px; height: 75px; right: 13px; top: 55px;
+  transform: rotate(-7deg);
+  filter: drop-shadow(0 16px 12px rgba(9, 6, 27, 0.34));
+}
+.rp-art-side {
+  position: absolute; right: 0; top: 8px; bottom: 8px; width: 12px;
+  background: linear-gradient(90deg, #111117, #43434c); border-radius: 0 10px 10px 0;
+}
+.rp-art-face {
+  position: absolute; inset: 0 7px 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 20px;
+  background: linear-gradient(145deg, #414149, #15151b 55%, #2e2e35);
+}
+.rp-grille {
+  position: absolute; left: 15px; top: 14px; width: 32px;
+  display: grid; grid-template-columns: repeat(6, 2px); gap: 3px;
+}
+.rp-grille i { width: 2px; height: 2px; background: #73737c; border-radius: 50%; }
+.rp-redlight { position: absolute; right: 17px; top: 15px; width: 5px; height: 5px; border-radius: 50%; background: #53535c; }
+.rp-redlight.on {
+  background: #ff5262;
+  box-shadow: 0 0 0 4px rgba(255, 82, 98, 0.15), 0 0 8px #ff5262;
+  animation: rp-rec-pulse 1.2s infinite;
+}
+@keyframes rp-rec-pulse { 50% { opacity: 0.35; } }
+.rp-art-face small { position: absolute; left: 15px; bottom: 11px; color: #9999a2; font-size: 12px; }
+
+/* 底部磁贴托盘：归档 `.card-actions`（毛玻璃 + 三列） */
+.rp-actions {
+  margin: auto -6px 0;
+  padding: 12px;
+  background: rgba(18, 13, 52, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 18px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px;
+  position: relative; z-index: 2;
+}
+.rp-action {
+  min-height: 69px; border-radius: 13px; background: rgba(255, 255, 255, 0.1);
+  color: #fff; padding: 8px 4px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 5px; text-align: center; cursor: pointer; transition: background 0.15s;
+}
+.rp-action:active { background: rgba(255, 255, 255, 0.18); }
+.rp-glyph {
+  width: 27px; height: 27px; border-radius: 9px;
+  display: grid; place-items: center;
+  background: rgba(255, 255, 255, 0.14); color: #fff;
+}
+.rp-action b { font-size: 12px; font-weight: 600; line-height: 1.2; }
+.rp-action small { font-size: 12px; line-height: 1.2; color: rgba(255, 255, 255, 0.6); }
+
+/* ==================================================================
+ * AI Mori 卡：照归档 `#home` 的 `.dev-card` 重放
+ * 归档数值：白底 · 圆角 16px · 阴影 `0 2px 12px rgba(0,0,0,.08)` ·
+ *   `.dev-main` padding 16px · `.icon` 52×52 / 圆角 14px / 紫渐变 `135deg #6C5CE7→#A29BFE` ·
+ *   `.dev-name` 16px/700 · 右侧电量 14px/700 `#00B894` ·
+ *   `.dev-actions` 上边 1px `#E9ECEF` · `.dev-act` 等宽 13px `#636E72` ·
+ *   录制态 `.active-rec` → `#E17055` + 700 + 8px 脉冲圆点（`@keyframes pulse` 1s）
+ * ================================================================== */
+/* 风扇卡与 Mori 卡**共用同一套卡框**：padding 0 + 内部分段 + 16px 圆角 + 同一投影。
+   两个选择器写在同一条规则里 ⇒ 改一处必然同时改到另一处。 */
+.mcard-mori, .mcard-fan {
+  padding: 0; border-radius: 16px; overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+.mcard-mori .mc-top, .mcard-fan .mc-top { margin-bottom: 0; padding: 14px 14px 0; }
+.mm-main { display: flex; align-items: center; padding: 8px 14px 14px; }
+.mm-art {
+  width: 52px; height: 52px; border-radius: 14px; flex: none; margin-right: 14px;
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.mm-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.mm-name { font-size: 17px; font-weight: 700; color: #111; }
+.mm-model { font-size: 12px; color: #8e8ea3; }
+.mm-batt { font-size: 14px; font-weight: 700; color: #00b894; flex: none; }
+
+/* 归档 `.dev-actions`：一条上分隔线 + 三枚等宽按钮，按钮之间竖分隔线 */
+.mm-actions { display: flex; border-top: 1px solid #e9ecef; }
+.mm-act {
+  flex: 1; min-width: 0; padding: 13px 2px;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  font-size: 13px; color: #636e72; cursor: pointer; transition: color 0.15s;
+}
+.mm-act + .mm-act { border-left: 1px solid #e9ecef; }
+.mm-act:active { background: #f5f5f5; }
+.mm-act b { font-weight: 500; white-space: nowrap; }
+/* 归档 `.dev-act.active-rec`：录制态转红加重，并跟一颗 8px 脉冲圆点 */
+.mm-act.active-rec { color: #e17055; }
+.mm-act.active-rec b { font-weight: 700; }
+.mm-rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #e17055; animation: mm-rec-pulse 1s infinite; }
+@keyframes mm-rec-pulse { 50% { opacity: 0.3; } }
+
+
+/* ================= 其他设备卡：照归档 `ai-mate-recording-powerbank-demo.html` 的
+   `.device-wall` / `.other-device-card` 重放 =================
+   结构 / 色彩 / 圆角 / 投影 / 间距 / 图形几何 **逐值照抄归档**；
+   字号 **刻意不照抄**：归档是 8~15px，本仓排版阶梯下限 12px ⇒ 整体抬到 >=12px
+   （卡片名对齐本仓其它首页卡的 17px/600，型号 13px，元信息 12px）。
+   ⚠️ `.online` 必须作用域到 `.other-device-card`：本仓风扇卡的 `.dc-sub-text.online`
+   与详情页 `.product-status.online` 都是 **裸 `online` 类**，写全局 `.online` 会把它们变成药丸。 */
+.device-wall { margin-top: 19px; }
+.device-wall > .section-head { margin-top: 0; margin-bottom: 10px; }
+.device-stack { display: flex; flex-direction: column; gap: 11px; margin-top: 16px; }
+
+.other-device-card {
+  width: 100%; min-height: 128px; border: 1px solid #ece9f2; border-radius: 21px;
+  background: #fff; padding: 16px 17px; display: flex; align-items: center; gap: 15px;
+  text-align: left; position: relative; overflow: hidden;
+  box-shadow: 0 7px 18px rgba(34, 29, 67, 0.045);
+}
+/* 右上角 115px 圆装饰（归档卡片的标志性元素，离线态转灰） */
+.other-device-card:after {
+  content: ''; position: absolute; width: 115px; height: 115px; border-radius: 50%;
+  right: -35px; top: -39px; background: #f1eeff;
+}
+.other-device-card.offline:after { background: #f0f0f3; }
+.other-device-card:hover { border-color: #d8d1fa; }
+.other-device-card:active { transform: scale(0.985); }
+
+.large-visual {
+  width: 91px; height: 91px; border-radius: 20px; flex: none;
+  background: linear-gradient(145deg, #f0edff, #e2dcff);
+  display: grid; place-items: center; position: relative; z-index: 1;
+}
+.other-device-card.offline .large-visual { background: #f1f1f4; }
+
+.large-device-copy { flex: 1; position: relative; z-index: 1; min-width: 0; }
+.large-device-copy h3 { font-size: 17px; font-weight: 600; color: #171526; line-height: 1.25; margin: 10px 0 3px; }
+.large-device-copy p { font-size: 13px; color: #7c788c; margin: 0; }
+.large-device-copy small { display: block; font-size: 12px; color: #7c788c; margin-top: 9px; }
+
+/* 在线药丸：归档 8~9px ⇒ 12px */
+.other-device-card .online {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700;
+  padding: 5px 8px; border-radius: 10px; color: #23aa71; background: #eaf8f2;
+}
+.other-device-card .online i {
+  width: 5px; height: 5px; background: #69e4a6; border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(105, 228, 166, 0.13);
+}
+/* 离线 pill：归档 7~8px ⇒ 12px；radius 由 7px 匀到 10px，与在线药丸同形 */
+.status-pill.pending {
+  font-style: normal; font-size: 12px; font-weight: 600; white-space: nowrap;
+  padding: 4px 9px; border-radius: 10px; color: #837d8d; background: #f0eff3;
+}
+/* 行尾箭头：归档用字符 `›`，且 `z-index:auto` ⇒ 实测被那枚 115px 圆装饰整块盖住（归档里其实看不见）。
+   本仓换成标准控件 LIcon 并抬到装饰圆之上，让箭头永远可见。 */
+.row-chevron { position: relative; z-index: 2; color: #b4afba; }
+
+/* 「添加新设备」：虚线卡 + 居中 `＋` */
+.add-device-card { min-height: 88px; border-style: dashed; justify-content: center; text-align: center; }
+.add-device-card:after { display: none; }
+.add-device-card .large-device-copy { flex: none; }
+.add-device-card .large-device-copy h3 { margin: 0 0 4px; }
+.add-orb {
+  width: 38px; height: 38px; border-radius: 13px; flex: none; display: grid; place-items: center;
+  background: #f2efff; color: #6748ee; font-size: 20px;
+}
+.add-device-card .add-orb { margin: 0; }
+
+/* ---- CSS 手绘设备图形（逐值照抄归档）----
+   ⚠️ `.watch-shape` 自身没写 `position`，靠 `transform` 才同时成为伪元素的
+   包含块 + 层叠上下文 ⇒ `z-index:-1` 是**局部**的、表带可见（已开归档截图确认）。
+   别顺手给它加 `position: relative` 或把 z-index 改成 0 —— 表带会跑到表盘前面。 */
+.watch-shape {
+  width: 31px; height: 38px; border: 5px solid #24232a; border-radius: 10px;
+  background: linear-gradient(145deg, #7660e4, #332881);
+  box-shadow: 0 5px 10px rgba(32, 27, 58, 0.2); transform: scale(1.45);
+}
+.watch-shape:before, .watch-shape:after {
+  content: ''; position: absolute; left: 50%; transform: translateX(-50%);
+  width: 16px; height: 15px; background: #37363d; z-index: -1;
+}
+.watch-shape:before { top: -8px; border-radius: 5px 5px 0 0; }
+.watch-shape:after { bottom: -8px; border-radius: 0 0 5px 5px; }
+
+.buds-shape {
+  position: relative; width: 49px; height: 34px; border-radius: 17px 17px 13px 13px;
+  background: linear-gradient(145deg, #fefefe, #d7d8de);
+  box-shadow: inset 0 0 0 1px #c9cad1, 0 6px 10px rgba(30, 28, 46, 0.12);
+  transform: scale(1.35);
+}
+.buds-shape:before, .buds-shape:after {
+  content: ''; position: absolute; width: 9px; height: 20px; border-radius: 7px;
+  background: #fff; border: 1px solid #d7d7dd; top: -5px;
+}
+.buds-shape:before { left: 9px; transform: rotate(-12deg); }
+.buds-shape:after { right: 9px; transform: rotate(12deg); }
+
+.glasses-shape {
+  position: relative; width: 62px; height: 22px; border-top: 5px solid #29282f;
+  transform: scale(1.15);
+}
+.glasses-shape:before, .glasses-shape:after {
+  content: ''; position: absolute; top: -2px; width: 23px; height: 17px;
+  border: 4px solid #29282f; border-radius: 7px;
+}
+.glasses-shape:before { left: 1px; }
+.glasses-shape:after { right: 1px; }
+
+/* 首页那条留白的同构物：同样不填色，标题直接坐在应用底色上（对齐设置页的大标题） */
+.mine-head { padding: calc(var(--safe-top, 44px) + 14px) 18px 10px; }
 .mine-title { font-size: 22px; font-weight: 700; color: #111; }
 .mine-scroll { flex: 1; overflow-y: auto; padding: 16px; -webkit-mask-image: var(--tabbar-fade); mask-image: var(--tabbar-fade); }
 .mine-hero {

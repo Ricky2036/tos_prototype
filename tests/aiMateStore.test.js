@@ -5,12 +5,12 @@ import path from 'node:path'
 import { setActivePinia, createPinia } from 'pinia'
 import {
   useAiMateStore, DEVICE_TYPES, DEVICE_GROUPS, FAN_MODES, FAN_SWING_ANGLES,
-  PICKUP_MODES, RECORDER_TABS, LISTEN_LANGS, SCAN_CANDIDATES, POWER_ACK_MS,
+  PICKUP_MODES, RECORDER_TABS, LISTEN_LANGS, SCAN_CANDIDATES, POWER_ACK_MS, SPEED_ACK_MS,
   FAN_SMART_MODE_INDEX, FAN_SPEED_MIN, FAN_SPEED_MAX, createDeviceCatalog,
   TYPE_MODELS, FIRMWARE_UPGRADE_MS,
-  PHOTO_GROUPS, PRINTER_PHOTOS, PRINT_LAYOUTS, PRINT_FILTERS, EDIT_TOOLS,
-  PRINT_QUALITIES, PRINT_COLORS, PRINT_MAX_PICKS, PAPER_MAX, PAPER_PACK, AR_VIDEO,
-  PAGES, DEVICE_MODELS, PAIR_STEPS, OTHER_DEVICES
+  PHOTO_GROUPS, PRINTER_PHOTOS, EDIT_CROPS, EDIT_LAYOUTS, EDIT_FRAMES, PRINT_FILTERS,
+  EDIT_TOOLS, PRINT_QUALITIES, PRINT_COLORS, QUEUE_MAX, PAPER_MAX, AR_VIDEO,
+  PRINT_STAGE_BOUNDS, CAMERA_MODES, PAGES, DEVICE_MODELS, PAIR_STEPS, OTHER_DEVICES
 } from '../src/stores/aiMateStore.js'
 
 const store = () => {
@@ -82,13 +82,14 @@ test('风扇档位常量与归档一致：6 档模式 / 3 档摇头角', () => {
   assert.equal(FAN_SMART_MODE_INDEX, 5, '智能风应是第 6 档（索引 5）')
 })
 
-test('并集种子：四份归档各一台主设备（风扇 / 口袋打印机 / 录音充电宝 / AI Mori）', () => {
+test('并集种子：四份归档各一台主设备（打印机 / 录音充电宝 / 风扇 / AI Mori）', () => {
   const s = store()
+  // 首页顺序（Ricky 2026-10-12 定）：口袋打印机 → 录音充电宝 → **风扇（第三位）** → AI Mori
   assert.deepEqual(
     s.devices.map((d) => d.id),
-    ['DAEWOO-Fan-A1', 'AM-Printer-01', 'AM-Recorder-01', 'AM-Mori-01']
+    ['AM-Printer-01', 'AM-Recorder-01', 'DAEWOO-Fan-A1', 'AM-Mori-01']
   )
-  assert.deepEqual(s.devices.map((d) => d.type), ['fan', 'printer', 'recorder', 'mori'])
+  assert.deepEqual(s.devices.map((d) => d.type), ['printer', 'recorder', 'fan', 'mori'])
   assert.equal(s.devices.every((d) => d.online), true, '并集种子的 4 台都在线')
 
   // 归档「添加设备」目录里的通用品类**不得**预置进「我的设备」
@@ -239,6 +240,81 @@ test('电源切换：1200ms 回执期内 pending，且抑制重复触发', async
   await new Promise((r) => setTimeout(r, POWER_ACK_MS + 120))
   assert.equal(s.getDevice(id).power, true, '回执到达后应真正翻转')
   assert.equal(s.isPending(id), false)
+})
+
+/* ================= 风扇首页卡（版式对齐 AI Mori 卡 · Ricky 2026-10-12） =================
+ * 归档 `tOS Prototype_aimate_fan.html` 的 `.device-card` 本来没有顶部状态行、图标盒是 72×52；
+ * 2026-10-12 按「卡片一致性较差」把这套版式改成与 AI Mori 卡**逐段同构**：
+ *   `.mc-top`（四张卡共用的状态行 + `···`）→ `.dc-main`（52×52 图标盒 + 名称/型号 + 右侧开关）
+ *   → `.dc-gear-row`（整宽区块，上边 1px 分隔线）。
+ * 行为不变：开关与 12 段档位**各持一个回执窗口**（归档两个变量 `b` / `w`），
+ * 且两者都不是当即落值 —— 开关 1200ms、档位 900ms 后才改状态。
+ */
+
+test('首页卡点档位：900ms 回执后才落值，窗口内重复点被抑制（归档 oe）', async () => {
+  const s = store()
+  const id = 'DAEWOO-Fan-A1'
+  assert.equal(s.getDevice(id).speed, 3, '归档初值 3 档')
+  assert.equal(s.getDevice(id).power, false)
+
+  assert.equal(s.requestFanSpeed(id, 7), true)
+  assert.equal(s.isSpeedPending(id), true, '回执期内应为 speedPending')
+  assert.equal(s.getDevice(id).speed, 3, '回执期内档位还没落值 —— 卡上这期间显「下发中…」')
+  assert.equal(s.requestFanSpeed(id, 9), false, '回执期内重复点应被抑制（归档 if (w) return）')
+  assert.equal(s.getDevice(id).speed, 3)
+
+  await new Promise((r) => setTimeout(r, SPEED_ACK_MS + 120))
+  assert.equal(s.getDevice(id).speed, 7, '回执到达后才落到第 7 档')
+  assert.equal(s.getDevice(id).power, true, '归档：调档会把风扇一并打开')
+  assert.equal(s.isSpeedPending(id), false)
+})
+
+test('首页卡点档位：非法档位 / 离线 / 童锁 / 不存在的设备一律拦下且不留痕', () => {
+  const s = store()
+  const id = 'DAEWOO-Fan-A1'
+
+  for (const bad of [0, FAN_SPEED_MAX + 1, -1, 'abc', null, undefined, NaN, Infinity]) {
+    assert.equal(s.requestFanSpeed(id, bad), false, `档位 ${bad} 应被拒`)
+  }
+  assert.equal(s.getDevice(id).speed, 3, '被拒后档位不应改变')
+  assert.equal(s.isSpeedPending(id), false, '被拒不应留下 pending 标记')
+
+  const off = storeWithOffline()
+  assert.equal(off.requestFanSpeed(OFFLINE_ID, 5), false, '离线设备不能调档')
+  assert.equal(off.notice.code, 'offline')
+  assert.equal(off.isSpeedPending(OFFLINE_ID), false)
+
+  const lock = store()
+  assert.equal(lock.toggleChildLock(id), true)
+  assert.equal(lock.requestFanSpeed(id, 5), false, '童锁下不能调档')
+  assert.equal(lock.notice.code, 'childLock')
+  assert.equal(lock.getDevice(id).speed, 3)
+
+  assert.equal(lock.requestFanSpeed('NOPE', 5), false)
+  assert.equal(lock.notice.code, 'notFound')
+})
+
+test('首页卡的开关与档位是两个独立回执窗口（归档两个变量 b / w）', async () => {
+  const s = store()
+  const id = 'DAEWOO-Fan-A1'
+
+  // 若两者共用同一个 pending，后点的会把前一个的标记顶掉 ——
+  // 开关会提前解禁、档位会提前落值，两个控件互相干扰。
+  assert.equal(s.toggleFanPower(id), true)
+  assert.equal(s.requestFanSpeed(id, 5), true)
+  assert.equal(s.isPending(id), true, '开关的窗口仍在')
+  assert.equal(s.isSpeedPending(id), true, '档位的窗口也仍在')
+
+  await new Promise((r) => setTimeout(r, SPEED_ACK_MS + 150))
+  assert.equal(s.isSpeedPending(id), false, '900ms 档位先到')
+  assert.equal(s.getDevice(id).speed, 5)
+  assert.equal(s.isPending(id), true, '1200ms 的开关窗口还没结束 —— 两个标记必须各活各的')
+
+  // 1200ms 的开关回执随后到达。归档语义是「翻当前位置」，而调档已把电源推成 true
+  // ⇒ 这一翻反而成了「关」，所以这里只验证两个窗口互不干扰，不对最终电源值下判断。
+  await new Promise((r) => setTimeout(r, POWER_ACK_MS - SPEED_ACK_MS + 250))
+  assert.equal(s.isPending(id), false)
+  assert.equal(s.isSpeedPending(id), false)
 })
 
 test('显示名：有昵称用昵称（归档 x = nick || name）', () => {
@@ -567,7 +643,17 @@ test('新配对设备同样带规格字段（型号 / MAC / 固件）', () => {
 })
 
 
-/* ================= P3a · 口袋打印机（归档 ai-mate-printer-demo.html） ================= */
+/* ============================================================================
+ * P3a · 口袋打印机（归档 `ai-mate-printer-demo.html`，800 行单文件原型）
+ * ----------------------------------------------------------------------------
+ * 归档是 7 屏 + 1 个 `progress-modal`：
+ *   home / device / gallery / editor / ar / camera / my
+ * 其中 home 与 my 是本 App 的外壳（首页 / 我的），打印流只负责：
+ *   device（设备页，打印段 + 设备管理段同屏平铺）
+ *   gallery（4 个相册分组 + 单选）/ editor（暗色舞台 + 5 个工具面板）
+ *   ar（三步向导）/ camera（拍照 / AR 扫描）
+ * 下面按「屏」分组，数值全部来自归档实测；改之前先回归档复核。
+ * ==========================================================================*/
 
 test('打印机素材：6 张照片、分组合法、路径指向 /photos/、每组非空', () => {
   assert.equal(PRINTER_PHOTOS.length, 6, '归档提供 6 张相册素材')
@@ -583,11 +669,11 @@ test('打印机素材：6 张照片、分组合法、路径指向 /photos/、每
     assert.match(p.src, /^\/photos\/[\w-]+\.jpg$/, `${p.id} 的素材路径应为 /photos/*.jpg`)
   }
 
-  // 非空性：四个分组都必须有照片，否则对应 tab 是死的
+  // 非空性：四个分组都必须有照片，否则对应的 album-tab 点了是空的
   for (const g of PHOTO_GROUPS) {
     assert.ok(PRINTER_PHOTOS.some((p) => p.groups.includes(g)), `分组「${g}」没有任何照片`)
   }
-  // 「最近项目」是全集（归档的默认视图）
+  // 「最近项目」是全集（归档进相册的默认视图）
   assert.equal(
     PRINTER_PHOTOS.filter((p) => p.groups.includes('recent')).length,
     PRINTER_PHOTOS.length,
@@ -595,310 +681,613 @@ test('打印机素材：6 张照片、分组合法、路径指向 /photos/、每
   )
 })
 
-test('多选上限必须可达（≤ 素材总数），否则超限分支是死代码', () => {
-  assert.ok(
-    PRINT_MAX_PICKS <= PRINTER_PHOTOS.length,
-    `PRINT_MAX_PICKS=${PRINT_MAX_PICKS} 大于素材数 ${PRINTER_PHOTOS.length}，上限永远触发不到`
-  )
-})
-
-test('打印机常量与归档对齐：6 版式 / 4 滤镜 / 5 工具 / 2 质量 / 3 色彩 / AR 18 秒', () => {
-  assert.deepEqual(PRINT_LAYOUTS, ['square', 'border', 'full', 'coral', 'film', 'handwrite'])
+test('打印机常量与归档对齐：裁剪 3 / 版式 4 / 相框 4 / 滤镜 4 / 工具 5 / 质量 2 / 色彩 3', () => {
+  // 归档 crop pane 前三项是单选；第 4 项「旋转」是动作，单独走 rotateEditPhoto()
+  assert.deepEqual(EDIT_CROPS, ['original', 'ratio34', 'square'])
+  assert.deepEqual(EDIT_LAYOUTS, ['border', 'full', 'grid2', 'grid4'])
+  assert.deepEqual(EDIT_FRAMES, ['none', 'dot', 'film', 'handwrite'])
   assert.deepEqual(PRINT_FILTERS, ['original', 'sunny', 'oldfilm', 'mono'])
   assert.deepEqual(EDIT_TOOLS, ['crop', 'layout', 'frame', 'filter', 'adjust'])
-  assert.deepEqual(PRINT_QUALITIES, ['hd', 'standard'])
-  assert.deepEqual(PRINT_COLORS, ['vivid', 'retro', 'natural'])
+  // 归档 segments 的书写顺序（标准在前）
+  assert.deepEqual(PRINT_QUALITIES, ['standard', 'hd'])
+  assert.deepEqual(PRINT_COLORS, ['natural', 'vivid', 'retro'])
+
+  // 归档首页卡与设备管理页都写死「相纸 5 / 5 张 · 纸仓已满」，队列 badge 写「N / 5」
+  assert.equal(PAPER_MAX, 5, '归档相纸容量是 5')
+  assert.equal(QUEUE_MAX, PAPER_MAX, '队列上限 = 纸仓容量')
+
   assert.equal(AR_VIDEO.name, '岛屿漫游.mov')
   assert.equal(AR_VIDEO.duration, 18)
-  assert.ok(AR_VIDEO.trimStart < AR_VIDEO.trimEnd, 'AR 默认裁剪区间必须有效')
+  assert.deepEqual(
+    [AR_VIDEO.trimStart, AR_VIDEO.trimEnd], [4, 13],
+    '归档时间轴实测 00:04 → 00:13、「已裁剪至 9 秒」'
+  )
+
+  // 归档 renderProgress 的三阶段分界：<35 传输 / <80 显影 / 其余裁切
+  assert.deepEqual(PRINT_STAGE_BOUNDS, [35, 80])
 })
 
-test('选图：多选 / 再点取消 / 非法 id 被拒 / 超上限被拦并提示 / 可清空', () => {
+test('openPrint 进设备页（不是自造的「选来源」中间页）并复位上一轮编辑状态', () => {
   const s = store()
-  assert.equal(s.pickedCount, 0)
+  s.setEditCrop('square')
+  s.setEditFilter('mono')
+  s.setEditBrightness(130)
+  s.setEditStrength(0)
+  s.pickGalleryPhoto('p6')
 
-  assert.equal(s.togglePhoto('p1'), true)
-  assert.equal(s.togglePhoto('p2'), true)
-  assert.equal(s.pickedCount, 2)
+  assert.equal(s.openPrint('AM-Printer-01'), true)
+  assert.equal(s.printScreen, 'device')
+  assert.equal(s.printDeviceId, 'AM-Printer-01')
 
-  // 再点一次是取消
-  assert.equal(s.togglePhoto('p1'), true)
-  assert.deepEqual(s.pickedIds, ['p2'], '再点应取消选中')
+  assert.equal(s.editTool, 'filter', '归档进编辑器默认打开滤镜面板')
+  assert.equal(s.editCrop, 'original')
+  assert.equal(s.editFilter, 'sunny', '归档初始滤镜是晴日')
+  assert.equal(s.editBrightness, 100)
+  assert.equal(s.editStrength, 70)
+  assert.equal(s.editWhiteBorder, true)
+  assert.equal(s.editLayout, 'border')
+  assert.equal(s.editFrame, 'none')
+  assert.equal(s.editRotate, 0)
 
-  assert.equal(s.togglePhoto('不存在'), false, '非法 id 应被拒')
+  assert.equal(s.selectedPhotoId, 'p1', '归档进相册有默认选中')
+  assert.equal(s.photoGroup, 'recent')
+  assert.equal(s.galleryMode, 'photo')
+  assert.equal(s.arStep, 1)
+  assert.equal(s.arVideoSelected, false)
+  assert.equal(s.arCoverSelected, false)
+  assert.equal(s.printModalOpen, false)
 
-  // 填到上限
-  s.clearPicks()
-  const all = PRINTER_PHOTOS.map((p) => p.id)
-  for (let i = 0; i < PRINT_MAX_PICKS; i += 1) assert.equal(s.togglePhoto(all[i]), true)
-  assert.equal(s.pickedCount, PRINT_MAX_PICKS)
-
-  // 上限之上再加一个：拒绝 + 给出提示码
-  const overflow = all[PRINT_MAX_PICKS]
-  assert.ok(overflow, '素材数应大于上限（由前一条用例保证）')
-  assert.equal(s.togglePhoto(overflow), false, '超上限应被拒')
-  assert.equal(s.notice?.code, 'printMaxPick')
-  assert.equal(s.notice?.params?.n, PRINT_MAX_PICKS)
-  assert.equal(s.pickedCount, PRINT_MAX_PICKS, '被拒时计数不得变化')
-
-  assert.equal(s.clearPicks(), true)
-  assert.equal(s.pickedCount, 0)
+  assert.equal(s.openPrint('不存在的设备'), false, '非法设备应被拒')
 })
 
-test('编辑：工具 / 版式 / 滤镜走白名单，非法值被拒', () => {
+test('quickPrint 直达相册，但返回目标仍是设备页', () => {
   const s = store()
-  assert.equal(s.setEditTool('layout'), true)
-  assert.equal(s.setEditTool('不存在'), false)
-  assert.equal(s.editTool, 'layout')
+  assert.equal(s.quickPrint('AM-Printer-01'), true)
+  assert.equal(s.printScreen, 'gallery', '归档 quickPrint 跳过设备页')
+  assert.equal(s.galleryMode, 'photo')
+  assert.equal(s.galleryReturn, 'device', '相册点「取消」要回设备页')
 
-  assert.equal(s.setEditLayout('film'), true)
-  assert.equal(s.setEditLayout('xxx'), false)
-  assert.equal(s.editLayout, 'film')
-
-  assert.equal(s.setEditFilter('mono'), true)
-  assert.equal(s.setEditFilter('xxx'), false)
-  assert.equal(s.editFilter, 'mono')
+  assert.equal(s.quickPrint('不存在的设备'), false)
 })
 
-test('编辑：亮度夹到 ±50、旋转按 90 递增循环、可恢复默认', () => {
+test('gotoPrintScreen 只认五屏；旧屏名 source / picker / queue 一律被拒', () => {
   const s = store()
+  s.openPrint()
+  for (const p of ['device', 'gallery', 'editor', 'ar', 'camera']) {
+    assert.equal(s.gotoPrintScreen(p), true, `${p} 应可切`)
+    assert.equal(s.printScreen, p)
+  }
+  for (const p of ['source', 'picker', 'queue', 'bogus', null]) {
+    assert.equal(s.gotoPrintScreen(p), false, `${p} 不是打印流的屏`)
+  }
+  assert.equal(s.printScreen, 'camera', '非法屏名不得改变当前屏')
+})
 
+test('相册：分组切换 + 单选（后选的覆盖前一个）+ 非法 id 被拒', () => {
+  const s = store()
+  s.openPrint()
+
+  assert.equal(s.photoGroup, 'recent')
+  assert.equal(s.setPhotoGroup('camera'), true)
+  assert.equal(s.photoGroup, 'camera')
+  assert.equal(s.setPhotoGroup('nope'), false)
+  assert.equal(s.photoGroup, 'camera', '非法分组不得改变当前分组')
+  assert.deepEqual(s.photosInGroup.map((p) => p.id), ['p5'], '「相机」分组只有宠物那一张')
+
+  // 归档 `selectGallery` 先清掉所有 `.active` 再点亮当前格 ⇒ 单选
+  assert.equal(s.pickGalleryPhoto('p1'), true)
+  assert.equal(s.selectedPhotoId, 'p1')
+  assert.equal(s.pickGalleryPhoto('p5'), true)
+  assert.equal(s.selectedPhotoId, 'p5', '单选 —— 后选的覆盖前一个')
+  assert.equal(s.pickGalleryPhoto('不存在'), false)
+  assert.equal(s.selectedPhotoId, 'p5', '非法 id 不得改变选中项')
+})
+
+test('相册的返回目标跟着来源走（设备页 / AR）', () => {
+  const s = store()
+  s.openPrint()
+  s.openGallery('photo')
+  assert.equal(s.printScreen, 'gallery')
+  assert.equal(s.galleryReturn, 'device')
+  assert.equal(s.closeGallery(), true)
+  assert.equal(s.printScreen, 'device')
+
+  s.openAR()
+  s.openGallery('ar')
+  assert.equal(s.galleryReturn, 'ar', '从 AR 进的相册要回 AR')
+  assert.equal(s.galleryMode, 'ar')
+  assert.equal(s.closeGallery(), true)
+  assert.equal(s.printScreen, 'ar')
+})
+
+test('goEditor：editMode 跟着相册来源；AR 来的顺手标好封面并静默复位', () => {
+  const s = store()
+  s.openPrint()
+  s.openGallery('photo')
+  s.setEditFilter('mono')
+  s.setEditBrightness(80)
+
+  assert.equal(s.goEditor(), true)
+  assert.equal(s.printScreen, 'editor')
+  assert.equal(s.editMode, 'photo')
+  assert.equal(s.arCoverSelected, false)
+  assert.equal(s.editFilter, 'sunny', '进编辑器时归档静默调用 resetEditor(false)')
+  assert.equal(s.editBrightness, 100)
+
+  s.openAR()
+  s.openGallery('ar')
+  assert.equal(s.goEditor(), true)
+  assert.equal(s.editMode, 'ar')
+  assert.equal(s.arCoverSelected, true, 'AR 来源进编辑器时封面已定')
+})
+
+test('编辑器：白名单 + 白边 toggle + 亮度 70–130 + 强度 0–100 + 旋转', () => {
+  const s = store()
+  s.openPrint()
+
+  for (const t of EDIT_TOOLS) assert.equal(s.setEditTool(t), true, `工具 ${t}`)
+  assert.equal(s.setEditTool('nope'), false)
+  for (const c of EDIT_CROPS) assert.equal(s.setEditCrop(c), true, `裁剪 ${c}`)
+  assert.equal(s.setEditCrop('nope'), false)
+  for (const l of EDIT_LAYOUTS) assert.equal(s.setEditLayout(l), true, `版式 ${l}`)
+  assert.equal(s.setEditLayout('nope'), false)
+  for (const f of EDIT_FRAMES) assert.equal(s.setEditFrame(f), true, `相框 ${f}`)
+  assert.equal(s.setEditFrame('nope'), false)
+  for (const f of PRINT_FILTERS) assert.equal(s.setEditFilter(f), true, `滤镜 ${f}`)
+  assert.equal(s.setEditFilter('nope'), false)
+
+  // 归档「保留白边」是 toggle
+  assert.equal(s.editWhiteBorder, true)
+  assert.equal(s.toggleEditBorder(), false)
+  assert.equal(s.toggleEditBorder(), true)
+  assert.equal(s.setEditWhiteBorder(false), false)
+  assert.equal(s.editWhiteBorder, false)
+
+  // 亮度：归档 range `min=70 max=130 value=100`
+  assert.equal(s.setEditBrightness(130), true)
+  assert.equal(s.editBrightness, 130)
   assert.equal(s.setEditBrightness(999), true)
-  assert.equal(s.editBrightness, 50, '超上限应夹到 50')
-  assert.equal(s.setEditBrightness(-999), true)
-  assert.equal(s.editBrightness, -50, '超下限应夹到 -50')
-  assert.equal(s.setEditBrightness('abc'), false, '非数字应被拒')
+  assert.equal(s.editBrightness, 130, '超出上限应被夹到 130')
+  assert.equal(s.setEditBrightness(0), true)
+  assert.equal(s.editBrightness, 70, '低于下限应被夹到 70')
+  assert.equal(s.setEditBrightness('x'), false)
+  assert.equal(s.editBrightness, 70, '非法值不得改变状态')
+
+  // 强度：归档第二条 range `min=0 max=100 value=70`
+  assert.equal(s.setEditStrength(100), true)
+  assert.equal(s.editStrength, 100)
+  assert.equal(s.setEditStrength(-5), true)
+  assert.equal(s.editStrength, 0)
+  assert.equal(s.setEditStrength(999), true)
+  assert.equal(s.editStrength, 100)
+  assert.equal(s.setEditStrength('x'), false)
 
   assert.equal(s.rotateEditPhoto(), 90)
   assert.equal(s.rotateEditPhoto(), 180)
   assert.equal(s.rotateEditPhoto(), 270)
-  assert.equal(s.rotateEditPhoto(), 0, '360 应回到 0')
+  assert.equal(s.rotateEditPhoto(), 0, '转满一圈回到 0')
 
-  s.setEditLayout('coral')
-  s.setEditFilter('sunny')
-  s.setEditBrightness(20)
+  // 恢复：归档头部没有「恢复」按钮，但 resetEdit 是真的存在
+  s.clearNotice()
+  assert.equal(s.resetEdit(false), true)
+  assert.equal(s.notice, null, '静默复位不得弹提示')
+  assert.equal(s.editFilter, 'sunny')
+  s.setEditFilter('mono')
   assert.equal(s.resetEdit(), true)
-  assert.equal(s.editLayout, 'border')
-  assert.equal(s.editFilter, 'original')
-  assert.equal(s.editBrightness, 0)
-  assert.equal(s.editRotate, 0)
+  assert.equal(s.notice?.code, 'printEditReset')
 })
 
-test('打印设置：质量与色彩走白名单', () => {
+test('编辑器「取消 / 完成」按 editMode 分流（归档 confirmEditor / cancelEditor）', () => {
+  // photo：取消回设备页，完成入队
   const s = store()
-  assert.equal(s.setPrintQuality('standard'), true)
-  assert.equal(s.setPrintQuality('xxx'), false)
-  assert.equal(s.printQuality, 'standard')
+  s.openPrint()
+  s.openGallery('photo')
+  s.goEditor()
+  assert.equal(s.cancelEditor(), true)
+  assert.equal(s.printScreen, 'device')
 
-  assert.equal(s.setPrintColor('vivid'), true)
-  assert.equal(s.setPrintColor('xxx'), false)
-  assert.equal(s.printColor, 'vivid')
+  s.openGallery('photo')
+  s.goEditor()
+  assert.equal(s.confirmEditor(), true)
+  assert.equal(s.queueCount, 1)
+  assert.equal(s.printScreen, 'device')
+  assert.equal(s.notice?.code, 'printQueued')
+
+  // ar：取消回 AR，完成进第 3 步确认
+  const t = store()
+  t.openPrint()
+  t.openAR()
+  t.openGallery('ar')
+  t.goEditor()
+  assert.equal(t.cancelEditor(), true)
+  assert.equal(t.printScreen, 'ar')
+
+  t.openGallery('ar')
+  t.goEditor()
+  assert.equal(t.confirmEditor(), true)
+  assert.equal(t.arStep, 3)
+  assert.equal(t.printScreen, 'ar')
+  assert.equal(t.queueCount, 0, 'AR 的完成不进普通队列')
 })
 
-test('耗材：购纸累加、夹到 PAPER_MAX、满仓时提示', () => {
+test('打印队列：可累积到上限；超限被拒并提示；移除即清零', () => {
   const s = store()
-  const start = s.paper
-  assert.equal(s.buyPaper(PAPER_PACK), true)
-  assert.equal(s.paper, Math.min(PAPER_MAX, start + PAPER_PACK))
-  assert.equal(s.notice?.code, 'paperBought')
+  s.openPrint()
+  assert.equal(s.queueCount, 0)
+  assert.equal(s.queueFull, false)
 
-  s.paper = PAPER_MAX
-  assert.equal(s.paperFull, true)
-  assert.equal(s.buyPaper(), false, '满仓不应继续加')
-  assert.equal(s.notice?.code, 'paperFull')
-  assert.equal(s.paper, PAPER_MAX, '被拒时余量不得变化')
-})
-
-test('开始打印：无照片被拦；相纸不足被拦；成功则入队、扣纸、进队列屏', () => {
-  const s = store()
-
-  // 无照片
-  assert.equal(s.startPrint(), false)
-  assert.equal(s.notice?.code, 'printNoPhoto')
-
-  // 相纸不足
-  s.togglePhoto('p1')
-  s.togglePhoto('p2')
-  s.paper = 1
-  assert.equal(s.startPrint(), false, '两张照片只有一张相纸时应被拦')
-  assert.equal(s.notice?.code, 'printNoPaper')
-  assert.equal(s.notice?.params?.n, 1)
-  assert.equal(s.queue.length, 0, '被拦时不得入队')
-  assert.equal(s.pickedCount, 2, '被拦时不得清空选择')
-
-  // 正常
-  s.paper = 8
-  assert.equal(s.startPrint(), true)
-  assert.equal(s.queue.length, 2)
-  assert.equal(s.paper, 6, '应扣掉两张相纸')
-  assert.equal(s.printScreen, 'queue')
-  assert.equal(s.pickedCount, 0, '入队后应清空选择')
-  assert.equal(s.notice?.code, 'printSent')
-  for (const j of s.queue) {
-    assert.equal(j.stage, 'sending')
-    assert.equal(j.progress, 0)
-    assert.equal(j.paused, false)
-    assert.equal(j.quality, s.printQuality)
-    assert.equal(j.color, s.printColor)
+  for (let i = 0; i < QUEUE_MAX; i += 1) {
+    assert.equal(s.addToQueue(), true, `第 ${i + 1} 张应可入队`)
+    assert.equal(s.queueCount, i + 1)
+    assert.equal(s.printScreen, 'device', '归档入队后回设备页')
   }
+  assert.equal(s.queueFull, true)
+
+  assert.equal(s.addToQueue(), false, '超上限应被拒')
+  assert.equal(s.notice?.code, 'printQueueFull')
+  assert.equal(s.notice?.params?.n, QUEUE_MAX)
+  assert.equal(s.queueCount, QUEUE_MAX, '被拒时计数不得变化')
+
+  assert.equal(s.removeQueue(), true)
+  assert.equal(s.queueCount, 0)
+  assert.equal(s.notice?.code, 'printRemoved')
+  assert.equal(s.removeQueue(), false, '空队列移除应被拒')
 })
 
-test('队列：进度推进并按 30/70/100 跨阶段；暂停时不推进；完成后 activeJobs 归零', () => {
+test('打印：开始打印打开进度模态、队列进 sending，进度按 35 / 80 跨三阶段', () => {
   const s = store()
-  s.togglePhoto('p1')
-  s.startPrint()
-  const job = s.queue[0]
+  s.openPrint()
+  s.addToQueue()
 
-  assert.equal(job.stage, 'sending')
-  assert.equal(s.activeJobs.length, 1)
+  assert.equal(s.startPrint('photo'), true)
+  assert.equal(s.printModalOpen, true, '归档漏加的 `open` 类在这里补上')
+  assert.equal(s.queueSending, true)
+  assert.equal(s.queuePhase, 'printing')
+  assert.equal(s.queueKind, 'photo')
+  assert.equal(s.printProgress, 0)
+  assert.equal(s.printPaused, false)
+  assert.equal(s.printDone, false)
+  assert.equal(s.printScreen, 'device', '归档 startPrint 第一件事是回设备页')
+  assert.equal(s.notice?.code, 'printStarted')
+  assert.equal(s.startPrint('nope'), false, '非法品类应被拒')
 
-  // 推进到显影
+  // AR 那一单的启动提示与完成提示都不一样
+  const t = store()
+  t.openPrint()
+  t.addToQueue()
+  t.startPrint('ar')
+  assert.equal(t.notice?.code, 'printArStarted')
+  assert.equal(t.queueKind, 'ar')
+
+  // 归档 renderProgress 的进度驱动（1.5 / tick）
+  for (let i = 0; i < 10; i += 1) s.tickPrint()
+  assert.ok(s.printProgress < PRINT_STAGE_BOUNDS[0], '前段应是「传输打印数据」')
   for (let i = 0; i < 20; i += 1) s.tickPrint()
-  assert.equal(job.stage, 'developing', `progress=${job.progress}`)
+  assert.ok(
+    s.printProgress >= PRINT_STAGE_BOUNDS[0] && s.printProgress < PRINT_STAGE_BOUNDS[1],
+    '中段应是「照片正在显影」'
+  )
+  for (let i = 0; i < 25; i += 1) s.tickPrint()
+  assert.ok(s.printProgress >= PRINT_STAGE_BOUNDS[1], '尾段应是「正在完成裁切」')
+})
 
-  // 暂停后不再推进
-  const snap = job.progress
-  assert.equal(s.pauseJob(job.id), true)
+test('打印：暂停不推进；取消连队列一起撤；完成后按 kind 分流', () => {
+  const s = store()
+  s.openPrint()
+  s.addToQueue()
+  s.startPrint('photo')
+  for (let i = 0; i < 10; i += 1) s.tickPrint()
+  const at = s.printProgress
+
+  assert.equal(s.togglePrintPause(), true)
+  assert.equal(s.printPaused, true)
   assert.equal(s.notice?.code, 'printPaused')
   for (let i = 0; i < 10; i += 1) s.tickPrint()
-  assert.equal(job.progress, snap, '暂停期间进度不得变化')
-
-  // 恢复
-  assert.equal(s.resumeJob(job.id), true)
+  assert.equal(s.printProgress, at, '暂停期间不得推进')
+  assert.equal(s.togglePrintPause(), true)
   assert.equal(s.notice?.code, 'printResumed')
-  s.tickPrint()
-  assert.ok(job.progress > snap, '恢复后应继续推进')
 
-  // 跑到完成
-  for (let i = 0; i < 200; i += 1) s.tickPrint()
-  assert.equal(job.stage, 'done')
-  assert.equal(job.progress, 100)
-  assert.equal(s.activeJobs.length, 0, '完成后不应再有活跃任务')
-})
-
-test('队列：取消任务会退还相纸并提示；清理只删已完成', () => {
-  const s = store()
-  s.togglePhoto('p1')
-  s.togglePhoto('p2')
-  const paperAfterPrint = (() => {
-    s.startPrint()
-    return s.paper
-  })()
-  const [j1, j2] = s.queue
-
-  assert.equal(s.cancelJob(j1.id), true)
+  assert.equal(s.cancelPrint(), true)
+  assert.equal(s.printModalOpen, false)
+  assert.equal(s.printProgress, 0)
+  assert.equal(s.queueCount, 0, '取消要连后台那一单一起撤（归档的死代码缝）')
+  assert.equal(s.queueSending, false)
   assert.equal(s.notice?.code, 'printCanceled')
-  assert.equal(s.queue.length, 1)
-  assert.equal(s.paper, paperAfterPrint + 1, '取消应退还一张相纸')
-  assert.equal(s.cancelJob('不存在'), false)
 
-  // 完成后清理
-  for (let i = 0; i < 200; i += 1) s.tickPrint()
-  assert.equal(s.queue[0].stage, 'done')
-  assert.equal(s.clearDoneJobs(), true)
-  assert.equal(s.queue.length, 0, '清理后应只剩未完成的（这里为空）')
+  // 跑到 100：归档 completePrint
+  const t = store()
+  t.openPrint()
+  t.addToQueue()
+  t.startPrint('photo')
+  for (let i = 0; i < 200; i += 1) t.tickPrint()
+  assert.equal(t.printDone, true)
+  assert.equal(t.printProgress, 100)
+  assert.equal(t.queuePhase, 'done')
+  assert.equal(t.queueSending, false)
+  assert.equal(t.tickPrint(), false, '完成后不再推进')
+  assert.equal(t.togglePrintPause(), false, '完成后不能暂停')
+  assert.equal(t.settleQueue(), false, '已结算过再调应为空操作')
+
+  assert.equal(t.finishPrint(), true)
+  assert.equal(t.printScreen, 'device', '普通照片完成 → 回设备页')
+  assert.equal(t.queueCount, 0)
+  assert.equal(t.printModalOpen, false)
+
+  // AR 完成 → 去相机的 AR 扫描模式（归档 finishPrint）
+  const u = store()
+  u.openPrint()
+  u.addToQueue()
+  u.startPrint('ar')
+  for (let i = 0; i < 200; i += 1) u.tickPrint()
+  assert.equal(u.finishPrint(), true)
+  assert.equal(u.printScreen, 'camera')
+  assert.equal(u.cameraMode, 'scan')
+  assert.equal(u.cameraPlaying, false)
+
+  // 后台结算：归档 startPrint 里 4.8 秒后才把队列项翻成完成文案
+  const v = store()
+  v.openPrint()
+  v.addToQueue()
+  v.startPrint('photo')
+  assert.equal(v.settleQueue(), true)
+  assert.equal(v.queuePhase, 'done')
+  assert.equal(v.notice?.code, 'printDone')
+
+  const w = store()
+  w.openPrint()
+  w.addToQueue()
+  w.startPrint('ar')
+  w.settleQueue()
+  assert.equal(w.notice?.code, 'printArDone')
 })
 
-test('流程导航：openPrint 进来源屏并重置编辑状态；closePrint 退出', () => {
+test('设备管理：质量 / 色彩白名单、改名同步昵称、固件 0–100、购买相纸只提示', () => {
   const s = store()
-  s.setEditLayout('film')
-  s.setEditFilter('mono')
-  s.setEditBrightness(30)
+  s.openPrint()
+  assert.equal(s.printQuality, 'standard', '归档 segments 默认「标准」')
+  assert.equal(s.printColor, 'natural')
 
-  assert.equal(s.openPrint('gallery'), true)
-  assert.equal(s.printScreen, 'source')
-  assert.equal(s.pickedCount, 0, '进入打印流应清空上次选择')
-  assert.equal(s.editLayout, 'border', '进入时应重置版式')
-  assert.equal(s.editFilter, 'original')
-  assert.equal(s.editBrightness, 0)
+  for (const q of PRINT_QUALITIES) assert.equal(s.setPrintQuality(q), true)
+  assert.equal(s.setPrintQuality('nope'), false)
+  assert.equal(s.notice?.code, 'printSettingSaved')
+  for (const c of PRINT_COLORS) assert.equal(s.setPrintColor(c), true)
+  assert.equal(s.setPrintColor('nope'), false)
 
-  assert.equal(s.gotoPrintScreen('editor'), true)
-  assert.equal(s.printScreen, 'editor')
-  assert.equal(s.gotoPrintScreen('不存在'), false, '非法屏名应被拒')
-  assert.equal(s.printScreen, 'editor', '被拒时屏不变')
+  // 改名写进设备昵称 —— 首页卡 / 迷你设备卡 / AR 确认卡共用一个来源
+  assert.equal(s.printDevice.id, 'AM-Printer-01')
+  assert.equal(s.renamePrinter('  客厅打印机  '), true)
+  assert.equal(s.printDevice.nick, '客厅打印机', '应去掉首尾空格')
+  assert.equal(s.notice?.code, 'printRenamed')
+  assert.equal(s.renamePrinter('   '), true)
+  assert.equal(s.printDevice.nick, '', '清空昵称 → 回落到 deviceTitle.printer')
 
-  assert.equal(s.closePrint(), true)
-  assert.equal(s.printScreen, null)
+  // 固件：归档 `upgradeFirmware` 0 → 100、每档 20（节奏在组件里）
+  assert.equal(s.fwProgress, null)
+  assert.equal(s.setFwProgress(0), true)
+  assert.equal(s.setFwProgress(20), true)
+  assert.equal(s.fwProgress, 20)
+  assert.equal(s.setFwProgress(120), false, '超出 0–100 应被拒')
+  assert.equal(s.setFwProgress(-1), false)
+  assert.equal(s.fwProgress, 20, '被拒时不得变化')
+  assert.equal(s.setFwProgress(100), true)
+  assert.equal(s.notice?.code, 'printFwDone')
+
+  // 购买相纸：归档只弹一条提示，**没有**补充逻辑
+  const before = s.paper
+  assert.equal(s.buyPaper(), true)
+  assert.equal(s.notice?.code, 'paperGuide')
+  assert.equal(s.paper, before, '归档不改余量')
+  assert.equal(s.paperFull, true, '归档恒「纸仓已满」（5 / 5）')
 })
 
-test('照片分组：切换分组只接受 PHOTO_GROUPS 内的值', () => {
+test('相机：来源记忆 + 模式白名单 + 拍照 / 扫描两条路', () => {
   const s = store()
-  assert.equal(s.setPhotoGroup('travel'), true)
-  assert.equal(s.photoGroup, 'travel')
-  assert.equal(s.photosInGroup.length, 3, 'travel 分组有 3 张')
-  assert.equal(s.setPhotoGroup('xxx'), false)
-  assert.equal(s.photoGroup, 'travel')
+  s.openPrint()
+  assert.equal(s.openCamera(), true)
+  assert.equal(s.printScreen, 'camera')
+  assert.equal(s.cameraReturn, 'device')
+  assert.equal(s.cameraMode, 'photo')
+  assert.equal(s.editMode, 'photo')
+  assert.equal(s.cameraPlaying, false)
 
-  s.setPhotoGroup('recent')
-  assert.equal(s.photosInGroup.length, PRINTER_PHOTOS.length, 'recent 是全集')
+  for (const m of CAMERA_MODES) assert.equal(s.setCameraMode(m), true, `模式 ${m}`)
+  assert.equal(s.setCameraMode('nope'), false)
+  assert.equal(s.closeCamera(), true)
+  assert.equal(s.printScreen, 'device')
+
+  // 从 AR 第 2 步进相机：回 AR，且编辑去向也是 AR
+  const t = store()
+  t.openPrint()
+  t.openAR()
+  assert.equal(t.openARCamera(), true)
+  assert.equal(t.cameraReturn, 'ar')
+  assert.equal(t.editMode, 'ar')
+  assert.equal(t.closeCamera(), true)
+  assert.equal(t.printScreen, 'ar')
+
+  // 拍照：提示 → 组件延迟 500ms 后进编辑器
+  t.openARCamera()
+  assert.equal(t.shootPhoto(), true)
+  assert.equal(t.notice?.code, 'printShot')
+  assert.equal(t.arCoverSelected, true, 'AR 流程里拍照即选定封面')
+  assert.equal(t.enterEditorFromCamera(), true)
+  assert.equal(t.printScreen, 'editor')
+  assert.equal(t.editFilter, 'sunny', '回编辑器时静默复位')
+
+  // AR 扫描：先提示，450ms 后才进播放（归档 simulateScan）
+  const u = store()
+  u.openPrint()
+  u.openCamera()
+  u.setCameraMode('scan')
+  assert.equal(u.cameraPlaying, false)
+  assert.equal(u.beginArScan(), true)
+  assert.equal(u.notice?.code, 'printArLocked')
+  assert.equal(u.cameraPlaying, false, '归档是提示之后 450ms 才播放')
+  assert.equal(u.setCameraPlaying(true), true)
+  assert.equal(u.cameraPlaying, true)
+  assert.equal(u.setCameraMode('photo'), true)
+  assert.equal(u.cameraPlaying, false, '切模式应退出播放')
 })
 
-test('AR：裁剪区间校验（最小时长 1 秒、夹到视频时长内）', () => {
+test('AR 三步向导：门槛、播放切换、裁剪区间边界', () => {
   const s = store()
-  assert.equal(s.setArTrim(2, 10), true)
-  assert.equal(s.arTrimStart, 2)
-  assert.equal(s.arTrimEnd, 10)
-  assert.equal(s.arTrimSeconds, 8)
+  s.openPrint()
+  assert.equal(s.openAR(), true)
+  assert.equal(s.printScreen, 'ar')
+  assert.equal(s.arStep, 1)
+  assert.equal(s.arVideoSelected, false)
+  assert.equal(s.arCoverSelected, false)
+  assert.equal(s.arNextEnabled, false)
+  assert.equal(s.arNextLabel, 'arNextVideo')
+  assert.equal(s.nextARStep(), false, '没选视频不得进第 2 步')
+  assert.equal(s.arStep, 1)
 
-  // 反序输入会被规整
-  assert.equal(s.setArTrim(10, 2), true)
-  assert.equal(s.arTrimStart, 2)
-  assert.equal(s.arTrimEnd, 10)
+  assert.equal(s.selectArVideo(), true)
+  assert.equal(s.notice?.code, 'printVideoPicked')
+  assert.equal(s.arNextEnabled, true)
+  assert.equal(s.arNextLabel, 'arNextPhoto')
+  assert.equal(s.nextARStep(), true)
+  assert.equal(s.arStep, 2)
 
-  // 区间不足 1 秒被拒
-  assert.equal(s.setArTrim(5, 5.5), false)
-  assert.equal(s.arTrimStart, 2, '被拒时区间不得变化')
+  assert.equal(s.arNextEnabled, false, '第 2 步必须先选照片')
+  assert.equal(s.arNextLabel, 'arNextNeedPhoto')
+  assert.equal(s.nextARStep(), false)
 
-  // 超出视频时长会被夹取
-  assert.equal(s.setArTrim(-5, 999), true)
-  assert.equal(s.arTrimStart, 0)
-  assert.equal(s.arTrimEnd, AR_VIDEO.duration)
+  assert.equal(s.changeArVideo(), true)
+  assert.equal(s.arVideoSelected, false, '归档「重新选择视频」会退回未选状态')
+  assert.equal(s.selectArVideo(), true)
 
-  assert.equal(s.setArTrim('a', 'b'), false, '非数字应被拒')
+  assert.equal(s.selectArCover('p3'), true)
+  assert.equal(s.selectedPhotoId, 'p3')
+  assert.equal(s.arCoverSelected, true)
+  assert.equal(s.selectArCover('不存在'), false)
+  assert.equal(s.arNextLabel, 'arNextEdit')
+  assert.equal(s.nextARStep(), true)
+  assert.equal(s.printScreen, 'editor', '第 2 步 → 完整照片编辑器')
+  assert.equal(s.editMode, 'ar')
+
+  assert.equal(s.confirmEditor(), true)
+  assert.equal(s.arStep, 3)
+  assert.equal(s.printScreen, 'ar')
+  assert.equal(s.arNextLabel, 'arConfirm')
+  assert.equal(s.arNextEnabled, true)
+  assert.equal(s.nextARStep(), true, '第 3 步 → 开始 AR 打印')
+  assert.equal(s.printModalOpen, true)
+  assert.equal(s.queueKind, 'ar')
+  assert.equal(s.notice?.code, 'printArStarted')
+
+  // 播放切换
+  assert.equal(s.toggleArPlay(), true)
+  assert.equal(s.arVideoPlaying, true)
+  assert.equal(s.notice?.code, 'printVideoPlaying')
+  assert.equal(s.toggleArPlay(), true)
+  assert.equal(s.notice?.code, 'printVideoPaused')
+
+  // 裁剪区间
+  assert.equal(s.setArTrim(6, 12), true)
+  assert.deepEqual([s.arTrimStart, s.arTrimEnd], [6, 12])
+  assert.equal(s.arTrimSeconds, 6)
+  assert.equal(s.setArTrim(12, 6), true, '两端反了应自动归一')
+  assert.deepEqual([s.arTrimStart, s.arTrimEnd], [6, 12])
+  assert.equal(s.setArTrim(4, 4.5), false, '不足 1 秒应被拒')
+  assert.equal(s.setArTrim(0, 99), true)
+  assert.deepEqual([s.arTrimStart, s.arTrimEnd], [0, 18], '右端应被夹到视频时长')
+  assert.equal(s.setArTrim('x', 5), false)
+
+  assert.equal(s.closeAR(), true)
+  assert.equal(s.printScreen, 'device')
 })
 
-test('AR：扫描回放状态机只接受 4 个值', () => {
+test('AR 底部按钮的五档文案键都能在归档语义里走到', () => {
   const s = store()
-  assert.equal(s.arScan, null)
-  assert.equal(s.setArScan('scanning'), true)
-  assert.equal(s.arScan, 'scanning')
-  assert.equal(s.setArScan('locked'), true)
-  assert.equal(s.setArScan('playing'), true)
-  assert.equal(s.setArScan('bogus'), false)
-  assert.equal(s.arScan, 'playing', '非法值不得改变状态')
-  assert.equal(s.setArScan(null), true)
-  assert.equal(s.arScan, null)
+  const codes = new Set()
+  s.openPrint()
+  s.openAR()
+  codes.add(s.arNextLabel)
+  s.selectArVideo()
+  codes.add(s.arNextLabel)
+  s.nextARStep()
+  codes.add(s.arNextLabel)
+  s.selectArCover('p1')
+  codes.add(s.arNextLabel)
+  s.nextARStep()
+  s.confirmEditor()
+  codes.add(s.arNextLabel)
+  assert.equal(codes.size, 5, `归档 5 档文案应都覆盖到，实得 ${[...codes].join(', ')}`)
 })
 
-test('打印域不污染设备域：设备目录与风扇状态不受影响', () => {
+test('打印域不污染设备域：打印全流程走完，设备目录逐字不变', () => {
   const s = store()
   const before = JSON.stringify(s.devices)
   s.openPrint()
-  s.togglePhoto('p1')
-  s.setEditLayout('coral')
-  s.startPrint()
-  for (let i = 0; i < 60; i += 1) s.tickPrint()
+  s.pickGalleryPhoto('p3')
+  s.setEditFilter('mono')
+  s.addToQueue()
+  s.startPrint('photo')
+  for (let i = 0; i < 200; i += 1) s.tickPrint()
+  s.finishPrint()
   assert.equal(JSON.stringify(s.devices), before, '打印流程不得改动任何设备状态')
-  assert.equal(s.devices.length, 4)  // 四份归档的并集：风扇 / 口袋打印机 / 录音充电宝 / AI Mori
+  assert.equal(s.devices.length, 4) // 四份归档的并集：风扇 / 口袋打印机 / 录音充电宝 / AI Mori
 })
 
-
-test('选图提示里的数字不得与真实上限脱钩（归档单张语义的残留守卫）', async () => {
-  // 归档是「单张打印」，提示写死「请选择 1 张」；本仓放开为多选后若忘了改文案，
-  // 就会出现「右上角 0/4、下方写着 1 张」的自相矛盾。这里用单边契约兜住：
-  // 提示里没有数字 -> 放过；有数字 -> 必须恰好等于 PRINT_MAX_PICKS。
+test('打印机用到的提示码在三语里都有词条（防止改名 / 改文案后静默无提示）', async () => {
   const { AIMATE } = await import('../src/locales/aimate.js')
+  const storeSrc = read('src/stores/aiMateStore.js')
+  const flowSrc = read('src/components/apps/aimate/PrinterFlow.vue')
+
+  // 只扫打印域：从 `口袋打印机（归档语义）` 那段开始到文件尾
+  const from = storeSrc.indexOf('/* ---------------- 口袋打印机（归档语义） ---------------- */')
+  assert.ok(from > 0, '找不到打印域的分节标记')
+  const scanned = storeSrc.slice(from) + '\n' + flowSrc
+
+  const codes = new Set()
+  // 先剔除 `kind === 'ar'` / `x !== 'y'` 这类比较串，否则会把比较值误当提示码
+  const noCmp = scanned.replace(/[!=]==\s*'[^']*'/g, '')
+  // `notice = { code: 'x' }` 与三元形式 `code: cond ? 'a' : 'b'`
+  for (const m of noCmp.matchAll(/code:\s*([^,}\n]+)/g)) {
+    for (const q of m[1].matchAll(/'([A-Za-z0-9_]+)'/g)) codes.add(q[1])
+  }
+  // 组件里的 `mate.toast('x')`
+  for (const m of noCmp.matchAll(/toast\(\s*'([A-Za-z0-9_]+)'/g)) codes.add(m[1])
+  // 组件里三元写法 `mate.toast(a === 'x' ? 'A' : 'B')` 的多档也要扫到
+  for (const m of noCmp.matchAll(/toast\(\s*\(?[^)]*?\)?\s*\)/g)) {
+    for (const q of m[0].matchAll(/'([A-Za-z0-9_]+)'/g)) {
+      if (q[1] !== 'start' && q[1] !== 'end') codes.add(q[1])
+    }
+  }
+
+  assert.ok(codes.size >= 20, `打印域的提示码只有 ${codes.size} 个，扫描规则可能失效了`)
   for (const loc of ['zh', 'en', 'bn']) {
-    const raw = AIMATE[loc]?.printer?.pickHint
-    assert.ok(raw, `${loc} 缺 printer.pickHint`)
-    const rendered = String(raw).replace('{n}', String(PRINT_MAX_PICKS))
-    // 去掉正确的那一个数字后，不应残留任何其他数字（含孟加拉数字 ০-৯）
-    const residue = rendered.replace(new RegExp(String(PRINT_MAX_PICKS), 'g'), '')
-    assert.doesNotMatch(
-      residue,
-      /[0-9\u09E6-\u09EF]/,
-      `${loc} 的选图提示「${raw}」里的数字与上限 ${PRINT_MAX_PICKS} 不一致`
-    )
+    for (const c of codes) {
+      const hit = AIMATE[loc]?.notice?.[c]
+      assert.ok(hit, `${loc} 缺 notice.${c}`)
+      if (c === 'printQueueFull') {
+        assert.ok(String(hit).includes('{n}'), `${loc} 的 notice.${c} 丢了 {n} 占位符`)
+      }
+    }
+  }
+})
+
+test('词条守卫：printer 段三语键集合一致，album-tabs 的四组齐备', async () => {
+  const { AIMATE } = await import('../src/locales/aimate.js')
+  const keysOf = (loc) => Object.keys(AIMATE[loc].printer).sort()
+  const base = keysOf('zh')
+  for (const loc of ['en', 'bn']) {
+    assert.deepEqual(keysOf(loc), base, `${loc} 的 printer 键与 zh 不一致`)
+  }
+  for (const loc of ['zh', 'en', 'bn']) {
+    for (const g of PHOTO_GROUPS) {
+      assert.ok(AIMATE[loc].printer.group?.[g], `${loc} 缺 printer.group.${g}`)
+    }
+    // 归档编辑器 5 个工具面板各自都有标题（工具条用小字号标签，面板头用全称）
+    for (const t of EDIT_TOOLS) {
+      assert.ok(AIMATE[loc].printer.tool?.[t], `${loc} 缺 printer.tool.${t}`)
+      assert.ok(AIMATE[loc].printer.toolTitle?.[t], `${loc} 缺 printer.toolTitle.${t}`)
+    }
+    for (const c of EDIT_CROPS) assert.ok(AIMATE[loc].printer.crop?.[c], `${loc} 缺 printer.crop.${c}`)
+    for (const l of EDIT_LAYOUTS) assert.ok(AIMATE[loc].printer.layout?.[l], `${loc} 缺 printer.layout.${l}`)
+    for (const f of EDIT_FRAMES) assert.ok(AIMATE[loc].printer.frame?.[f], `${loc} 缺 printer.frame.${f}`)
+    for (const f of PRINT_FILTERS) assert.ok(AIMATE[loc].printer.filter?.[f], `${loc} 缺 printer.filter.${f}`)
   }
 })
 
@@ -1339,7 +1728,7 @@ test('openDevice 直达功能页：风扇进控制页，其余三台直接进各
   assert.equal(s.printScreen, null)
 
   assert.equal(s.openDevice('AM-Printer-01'), true)
-  assert.equal(s.printScreen, 'source', '打印机卡必须直接进打印流')
+  assert.equal(s.printScreen, 'device', '打印机卡直达设备页（首屏，无中间页）')
   assert.equal(s.deviceFlow, null)
   s.closePrint()
 
@@ -1409,17 +1798,72 @@ test('notifyOther 只回一条 toast，参数是 i18n 键（store 不持有文�
   assert.equal(s.notifyOther('不存在'), false)
 })
 
+test('「其他设备」卡：模板照归档 `.other-device-card` 在位 + 字号不低于 12px', () => {
+  const src = read('src/components/apps/aimate/AimateApp.vue')
+  for (const cls of ['device-wall', 'device-stack', 'other-device-card', 'large-visual',
+    'large-device-copy', 'add-device-card', 'add-orb', 'row-chevron',
+    'watch-shape', 'buds-shape', 'glasses-shape']) {
+    assert.ok(src.includes(cls), `「其他设备」卡缺 ${cls}（归档 .device-wall / .other-device-card 结构）`)
+  }
+  // 类名出现在模板里还不够 —— 样式表规则本体也必须在（只删 CSS 规则同样得红）
+  for (const sel of ['.device-wall {', '.device-stack {', '.other-device-card {',
+    '.large-visual {', '.add-device-card {', '.add-orb {',
+    '.watch-shape {', '.buds-shape {', '.glasses-shape {']) {
+    assert.ok(src.includes(sel), `样式表缺规则 ${sel}`)
+  }
+  // 归档关键规格逐值照抄：改小/改没都得红
+  const between = (a, b) => src.slice(src.indexOf(a), src.indexOf(b))
+  const cardRule = between('.other-device-card {', '.other-device-card:after')
+  for (const v of ['min-height: 128px', 'border-radius: 21px', 'padding: 16px 17px', 'gap: 15px']) {
+    assert.ok(cardRule.includes(v), `.other-device-card 缺归档规格 ${v}`)
+  }
+  const shadeRule = between('.other-device-card:after', '.other-device-card.offline:after')
+  assert.ok(shadeRule.includes('width: 115px') && shadeRule.includes('height: 115px')
+    && shadeRule.includes('border-radius: 50%'), '右上角装饰圆必须是归档的 115×115 圆形')
+  const visRule = between('.large-visual {', '.other-device-card.offline .large-visual')
+  for (const v of ['width: 91px', 'height: 91px', 'border-radius: 20px']) {
+    assert.ok(visRule.includes(v), `.large-visual 缺归档规格 ${v}`)
+  }
+  const watchRule = between('.watch-shape {', '.watch-shape:before')
+  for (const v of ['width: 31px', 'height: 38px', 'border: 5px solid #24232a', 'transform: scale(1.45)']) {
+    assert.ok(watchRule.includes(v), `.watch-shape 缺归档规格 ${v}`)
+  }
+  // 🔴 表带靠 `.watch-shape` 的 transform 成为包含块 + 层叠上下文，`z-index:-1` 才「局部且可见」。
+  //    谁把它改成 0 或给 .watch-shape 补 position，表带就会跑到表盘前面 —— 钉死。
+  const strapRule = between('.watch-shape:before, .watch-shape:after', '.watch-shape:before {')
+  assert.ok(strapRule.includes('z-index: -1'), '表带伪元素必须保持 z-index: -1（见上方注释）')
+  // 三套图形是 CSS 手绘形状，必须由设备 type 映射出来（归档里没有图标，只有形状）
+  assert.ok(src.includes("t === 'watch' ? 'watch-shape'"), 'watch 必须映射到 .watch-shape')
+  assert.ok(src.includes("'buds-shape'") && src.includes("'glasses-shape'"),
+    'tws / glasses 必须映射到对应形状')
+  assert.ok(!src.includes('or-art') && !src.includes('class="orow'),
+    '卡片图形是 CSS 手绘形状，不得退回 LIcon 图标块')
+  // 行尾箭头走本仓标准控件（归档是字符 ›）
+  assert.ok(src.includes('class="row-chevron" name="chevronRight"'),
+    '行尾箭头必须用 LIcon chevronRight')
+  // 离线态只换「状态药丸」，不换结构
+  assert.ok(src.includes('class="status-pill pending"'), '离线卡必须用 .status-pill.pending')
+  assert.ok(src.includes('v-if="o.online" class="online"'), '在线卡必须用 .online 药丸')
+  const i = src.indexOf('其他设备卡：照归档')
+  const j = src.indexOf('.mine-head {', i)
+  assert.ok(i > 0 && j > i, '找不到「其他设备」卡的样式块')
+  const sizes = [...src.slice(i, j).matchAll(/font-size:\s*([\d.]+)px/g)].map((m) => Number(m[1]))
+  assert.ok(sizes.length >= 4, `「其他设备」卡字号只扫到 ${sizes.length} 处，规则可能失效`)
+  const bad = sizes.filter((n) => n < 12)
+  assert.deepEqual(bad, [], `「其他设备」卡出现 <12px 字号：${bad.join(', ')}`)
+})
+
 test('首页 / 我的 新增文案键三语齐备，且插值键的占位符跨语言一致', async () => {
   const { AIMATE } = await import('../src/locales/aimate.js')
   const KEYS = [
     'tab.home', 'tab.mine', 'tab.aria',
-    'home.greeting', 'home.greetingSub', 'home.addDeviceAction', 'home.summary',
+    'home.addDeviceAction', 'home.summary',
     'home.otherDevices', 'home.otherSub', 'home.addNew', 'home.addNewSub',
     'deviceTitle.printer', 'deviceTitle.recorder', 'deviceTitle.mori',
     'deviceMeta.battery', 'deviceMeta.paper', 'deviceMeta.used', 'deviceMeta.shots',
     'other.watch', 'other.watchModel', 'other.watchMeta',
     'other.buds', 'other.budsModel', 'other.budsMeta',
-    'other.glass', 'other.glassModel', 'other.glassMeta', 'other.notConnected', 'other.connect',
+    'other.glass', 'other.glassModel', 'other.glassMeta', 'other.notConnected',
     'mine.title', 'mine.role', 'mine.connected', 'mine.email', 'mine.plan',
     'mine.account', 'mine.notify', 'mine.notifyValue', 'mine.general', 'mine.privacy',
     'mine.help', 'mine.about', 'mine.version',
@@ -1442,16 +1886,174 @@ test('首页 / 我的 新增文案键三语齐备，且插值键的占位符跨�
   }
 })
 
-test('已删掉的首屏词条不得复活（首页已改成 Demo 的 greeting + section head）', async () => {
+test('已删掉的首屏词条不得复活（首页顶栏 + 首屏旧结构）', async () => {
   const { AIMATE } = await import('../src/locales/aimate.js')
   for (const loc of ['zh', 'en', 'bn']) {
-    for (const k of ['title', 'subtitle', 'addTitle', 'addSub', 'catalog']) {
+    // greeting / greetingSub 随首页顶栏（`AI Mate` 眉标 +「下午好，Ling」+ 副标题）一起删掉
+    for (const k of ['title', 'subtitle', 'addTitle', 'addSub', 'catalog', 'greeting', 'greetingSub']) {
       assert.equal(AIMATE[loc].home[k], undefined, `${loc}.home.${k} 已不再被任何组件引用`)
     }
     assert.equal(AIMATE[loc].count, undefined, `${loc}.count 已不再被任何组件引用`)
     for (const k of ['connected', 'emptyTitle', 'emptySub']) {
       assert.equal(AIMATE[loc].control[k], undefined, `${loc}.control.${k} 已不再被任何组件引用`)
     }
+    // other.connect 随「其他设备」离线卡重放一起删掉（归档离线卡只有行尾箭头，没有「连接」按钮）
+    assert.equal(AIMATE[loc].other.connect, undefined, `${loc}.other.connect 已不再被任何组件引用`)
+  }
+})
+
+test('样式表不得有完全重复的类选择器（防「新类与既有类撞名后被静默覆盖」）', () => {
+  // 实测踩过：首页 hero 卡先用了 `.mh-name`，与「我的」页（mine-hero）的 `.mh-name` 撞名，
+  // 后定义的那条（18px / 700 / #111）静默盖掉了归档值（20px / 780 / #fff）——
+  // 页面上「设备名是灰的」，但所有文本类断言全绿，只能靠这条守卫兜住。
+  const src = read('src/components/apps/aimate/AimateApp.vue')
+  const style = src.slice(src.indexOf('<style scoped>'))
+  // 只扫「顶层」规则头：`@media` 内的同名覆盖是合法用法（缩进不为 0）
+  const pat = /^(\.[A-Za-z][\w-]*(?:(?:::?|\.)[A-Za-z][\w-]*(?:\([^)]*\))?)*)\s*\{/
+  const seen = new Set()
+  const dups = []
+  for (const line of style.split('\n')) {
+    const m = line.match(pat)
+    if (!m) continue
+    if (seen.has(m[1])) dups.push(m[1])
+    else seen.add(m[1])
+  }
+  assert.ok(seen.size >= 150, `只扫到 ${seen.size} 个顶层类选择器，扫描规则可能失效`)
+  assert.deepEqual(dups, [], `同文件内重复的类选择器：${dups.join(', ')}`)
+})
+
+test('首页打印机 hero 卡：归档结构在位 + 字号不低于 12px', () => {
+  const src = read('src/components/apps/aimate/AimateApp.vue')
+  for (const cls of ['mcard-hero', 'hp-stage', 'hp-printer', 'hp-dot', 'hp-copy',
+    'hp-name', 'hp-meta', 'hp-quick']) {
+    assert.ok(src.includes(cls), `hero 卡缺 ${cls}（归档首页卡结构）`)
+  }
+  assert.ok(src.includes('heroMeta(d)'), 'hero 副行必须走 heroMeta（归档顺序是「电量 → 相纸」）')
+  assert.ok(src.includes('mate.quickPrint(d.id)'), 'hero 右下药丸必须直达快速打印')
+  const i = src.indexOf('打印机卡：照归档')
+  const j = src.indexOf('.hp-quick:active')
+  assert.ok(i > 0 && j > i, '找不到 hero 卡的样式块')
+  const sizes = [...src.slice(i, j).matchAll(/font-size:\s*([\d.]+)px/g)].map((m) => Number(m[1]))
+  assert.ok(sizes.length >= 4, `hero 字号只扫到 ${sizes.length} 处，规则可能失效`)
+  const bad = sizes.filter((n) => n < 12)
+  assert.deepEqual(bad, [], `hero 卡出现 <12px 字号：${bad.join(', ')}`)
+})
+
+/* ================= AI Mori 首页卡（归档 `#home` 的 `.dev-card`） ================= */
+
+test('AI Mori 首页卡：录像 / 录音互斥，拍照不参与（归档 toggleRec / doAction）', () => {
+  const s = store()
+  assert.deepEqual(s.moriRec, { video: false, audio: false }, '初始两个开关都关')
+
+  // 归档 doAction('photo')：只发指令 + 提示条，不碰开关、不参与互斥
+  assert.equal(s.moriPhoto(), true)
+  assert.equal(s.notice.code, 'moriPhotoSent')
+  assert.deepEqual(s.moriRec, { video: false, audio: false }, '拍照不得改动录制态')
+
+  // 开录像
+  assert.equal(s.moriToggleRec('video'), true)
+  assert.deepEqual(s.moriRec, { video: true, audio: false })
+  assert.equal(s.notice.code, 'moriVideoStart')
+
+  // 开录音 ⇒ 录像被互斥关掉（归档 toggleRec 里的 other 分支）
+  assert.equal(s.moriToggleRec('audio'), true)
+  assert.deepEqual(s.moriRec, { video: false, audio: true }, '开录音必须关掉录像')
+  assert.equal(s.notice.code, 'moriAudioStart')
+
+  // 反向互斥
+  assert.equal(s.moriToggleRec('video'), true)
+  assert.deepEqual(s.moriRec, { video: true, audio: false }, '开录像必须关掉录音')
+
+  // 关录像 ⇒ 「已保存」
+  assert.equal(s.moriToggleRec('video'), false)
+  assert.deepEqual(s.moriRec, { video: false, audio: false })
+  assert.equal(s.notice.code, 'moriVideoSaved')
+
+  // 关录音
+  assert.equal(s.moriToggleRec('audio'), true)
+  assert.equal(s.notice.code, 'moriAudioStart')
+  assert.equal(s.moriToggleRec('audio'), false)
+  assert.equal(s.notice.code, 'moriAudioSaved')
+
+  // 非法 kind：必须原样返回 null 且不碰状态
+  assert.equal(s.moriToggleRec('photo'), null)
+  assert.equal(s.moriToggleRec(''), null)
+  assert.equal(s.moriToggleRec(), null)
+  assert.deepEqual(s.moriRec, { video: false, audio: false }, '非法入参不得改状态')
+})
+
+test('AI Mori 首页卡：录制态不随流程开关复位（归档从不重置 recState）', () => {
+  const s = store()
+  assert.equal(s.moriToggleRec('video'), true)
+  assert.equal(s.openDevice('AM-Mori-01'), true)
+  assert.equal(s.deviceFlow, 'mori')
+  assert.equal(s.closeDeviceFlow(), true)
+  assert.deepEqual(s.moriRec, { video: true, audio: false }, '关流程不得把首页卡的录制态擦掉')
+  s.moriToggleRec('video')
+})
+
+
+test('首页卡的修饰类必须在模板 :class 里注册（样式表写了不注册 = 静默失效）', () => {
+  const src = read('src/components/apps/aimate/AimateApp.vue')
+  // ⚠️ 2026-10-12 修扫描规则：`.mcard-mori, .mcard-fan { … }` 是**合写选择器**。
+  //    旧正则 `/^\.(mcard-[a-z]+)\s*\{/gm` 只认「行首单个选择器 + 紧跟 {」，
+  //    合写后 mcard-mori 直接漏掉 ⇒ 守卫静默退化成只扫 hero / rec（实测 decl.length === 2）。
+  //    改为：先取「从行首开始的选择器行」，再在该行里抓出**全部** .mcard-*（含合写与后代选择器）。
+  const decl = [...new Set(
+    src.split('\n')
+      .filter((l) => /^[.#][^{}]*\{/.test(l))
+      .flatMap((l) => [...l.matchAll(/\.(mcard-[a-z]+)\b/g)].map((m) => m[1]))
+  )]
+  assert.ok(decl.length >= 4, `只扫到 ${decl.length} 个 .mcard-* 修饰类，扫描规则可能失效`)
+  assert.ok(['mcard-hero', 'mcard-rec', 'mcard-mori', 'mcard-fan'].every((c) => decl.includes(c)),
+    `四张卡的修饰类必须都在：${decl.join(', ')}`)
+  for (const c of decl) {
+    assert.ok(src.includes(`'${c}':`),
+      `样式表定义了 .${c}，但模板 :class 没注册它 —— 该卡会静默退回 .mcard 的基础值`)
+  }
+})
+
+test('AI Mori 首页卡：模板照归档 `.dev-card` 在位 + 字号不低于 12px', () => {
+  const src = read('src/components/apps/aimate/AimateApp.vue')
+  for (const cls of ['mcard-mori', 'mm-main', 'mm-art', 'mm-name', 'mm-batt',
+    'mm-actions', 'mm-act', 'mm-rec-dot']) {
+    assert.ok(src.includes(cls), `Mori 卡缺 ${cls}（归档 .dev-card 结构）`)
+  }
+  for (const act of ['photo', 'video', 'audio']) {
+    assert.ok(src.includes(`data-device-action="${act}"`),
+      `Mori 卡缺 ${act} 动作（归档 .dev-actions 三枚等宽按钮）`)
+  }
+  assert.ok(src.includes("mate.moriToggleRec('video')") && src.includes("mate.moriToggleRec('audio')"),
+    '录像 / 录音必须走 moriToggleRec（归档 toggleRec）')
+  assert.ok(src.includes('mate.moriPhoto()'), '拍照必须走 moriPhoto（归档 doAction）')
+  assert.ok(src.includes('mate.moriRec.video') && src.includes('mate.moriRec.audio'),
+    '录制态必须读 store，模板里不得各持一份')
+  assert.ok(src.includes("name=\"camera\""), '拍照按钮用 camera 图标（归档 📷）')
+  assert.ok(src.includes("'mcard-mori': d.type === 'mori'"),
+    'mori 卡必须在 :class 里注册 mcard-mori —— 只写样式表不注册，归档的圆角 16px / 零内边距全部失效')
+  const i = src.indexOf('AI Mori 卡：照归档')
+  const j = src.indexOf('.mm-rec-dot {', i)
+  assert.ok(i > 0 && j > i, '找不到 Mori 卡的样式块')
+  const sizes = [...src.slice(i, j).matchAll(/font-size:\s*([\d.]+)px/g)].map((m) => Number(m[1]))
+  assert.ok(sizes.length >= 3, `Mori 卡字号只扫到 ${sizes.length} 处，规则可能失效`)
+  const bad = sizes.filter((n) => n < 12)
+  assert.deepEqual(bad, [], `Mori 卡出现 <12px 字号：${bad.join(', ')}`)
+})
+
+test('AI Mori 卡动作词条：三语各五枚齐全，notice 五条三语齐全', () => {
+  const m = read('src/locales/aimate.js')
+  const cards = m.split('moriCard: {').slice(1)
+  assert.equal(cards.length, 3, `moriCard 应有三语各一份，实测 ${cards.length}`)
+  for (const blk of cards) {
+    const line = blk.split('}')[0]
+    for (const k of ['photo:', 'video:', 'audio:', 'videoOn:', 'audioOn:']) {
+      assert.ok(line.includes(k), `moriCard 缺 ${k} → ${line}`)
+    }
+  }
+  for (const k of ['moriPhotoSent', 'moriVideoStart', 'moriAudioStart',
+    'moriVideoSaved', 'moriAudioSaved']) {
+    const n = m.split(`${k}:`).length - 1
+    assert.equal(n, 3, `notice.${k} 应有三语，实测 ${n}`)
   }
 })
 
@@ -1459,7 +2061,11 @@ test('AimateApp 模板不再引用已删词条 / 已删类名（防回归）', (
   const src = read('src/components/apps/aimate/AimateApp.vue')
   for (const bad of ["am('home.title')", "am('home.subtitle')", "am('home.addTitle')",
     "am('home.catalog')", "am('control.emptyTitle')", "am('control.connected')",
-    'class="banner', 'dc-gear-seg', 'empty-state']) {
+    'class="banner', 'empty-state',
+    // 旧风扇卡（`.mc-fan` / `.mf-*`）已按归档整体删除 —— 这套类名不得复活
+    'mc-fan', 'mf-info', 'mf-label', 'mf-value', 'mf-switch', 'mf-knob',
+    // 旧「其他设备」行（`.orow` / `.or-*` / `.add-art`）已按归档换成 `.other-device-card`
+    'orow', 'or-art', 'add-art', 'or-copy', 'or-status', 'or-name', 'or-meta', 'or-tail']) {
     assert.ok(!src.includes(bad), `AimateApp 仍引用 ${bad}`)
   }
   // 底部 Tab 与首页三段结构必须在
@@ -1468,4 +2074,148 @@ test('AimateApp 模板不再引用已删词条 / 已删类名（防回归）', (
   assert.ok(src.includes('data-other'), '首页必须有「其他设备」行')
   assert.ok(src.includes('data-mine-row'), '必须新增「我的」页')
   assert.ok(src.includes("mate.openDevice(d.id)"), '设备卡必须直达功能页')
+})
+
+
+/* ================= 控制页「风速档位」（改用首页卡的档位条设计） ================= */
+
+test('控制页「风速档位」用首页卡的档位条设计，旧圆形滑轨不得复活', () => {
+  const src = read('src/components/apps/aimate/AimateApp.vue')
+  // ⚠️ 不能只查全文件 includes('dc-gear-seg') —— 首页风扇卡本身就有这个类，
+  //    控制页哪怕原样退回旧滑轨也照样「通过」。必须**切到控制页那张卡内部**再断言。
+  const i = src.indexOf('class="speed-head"')
+  const j = src.indexOf('control.modeTitle', i)
+  assert.ok(i > 0 && j > i, '找不到控制页「风速档位」卡片块（.speed-head → 模式卡）')
+  const block = src.slice(i, j)
+  for (const need of ['class="dc-gear-track" data-speed-track', 'class="dc-gear-seg"',
+    ':data-speed-seg="n"', 'class="dc-gear-value"', 'data-speed-label',
+    "mate.setFanSpeed(dev.id, n)", 'class="card-title"']) {
+    assert.ok(block.includes(need), `控制页档位卡内缺 ${need}`)
+  }
+  // 旧圆形滑轨整体删除（⚠️ 必须带前导点：`data-speed-track` 里含 `speed-track` 子串，
+  // 直接 includes('speed-track') 会被自己的钩子名误伤）
+  for (const bad of ['.speed-dot', '.speed-fill', '.speed-slider', '.speed-steps', '.speed-track']) {
+    assert.ok(!src.includes(bad), `旧滑轨 ${bad} 不得复活`)
+  }
+  assert.ok(!src.includes('speedFill'), 'speedFill 已随进度条一起删掉')
+  // ⛔ 控制页不得「另抄一份」档位样式 —— 每个 .dc-gear-* 顶层规则只应出现一次
+  for (const sel of ['.dc-gear-track {', '.dc-gear-seg {', '.dc-gear-value {', '.dc-gear-info {']) {
+    assert.equal(src.split(sel).length - 1, 1, `${sel} 在同文件里只应定义一次`)
+  }
+})
+
+/* ================= 风扇首页卡（归档 `tOS Prototype_aimate_fan.html` 的 `.device-card`） ================= */
+
+test('风扇首页卡：版式与 AI Mori 卡同构 + 字号不低于 12px', () => {
+  const src = read('src/components/apps/aimate/AimateApp.vue')
+  for (const cls of ['mcard-fan', 'dc-main', 'dc-art', 'dc-info', 'dc-name', 'dc-model',
+    'dc-power', 'dc-switch', 'dc-switch-knob', 'dc-switch-label',
+    'dc-gear-row', 'dc-gear-info', 'dc-gear-label', 'dc-gear-value', 'dc-gear-track',
+    'dc-gear-seg']) {
+    assert.ok(src.includes(cls), `风扇卡缺 ${cls}`)
+  }
+  assert.ok(src.includes("'mcard-fan': d.type === 'fan'"),
+    '风扇卡必须在 :class 里注册 mcard-fan —— 不注册则 padding 0 / 圆角 16px 全部失效')
+  assert.ok(src.includes('name="fanDisc"'), '图标盒里必须是那枚手绘风扇（fanDisc）')
+  assert.ok(src.includes('mate.toggleFanPower(d.id)'), '卡上开关必须走 toggleFanPower')
+  assert.ok(src.includes('mate.requestFanSpeed(d.id, n)'), '12 段必须走 requestFanSpeed')
+  assert.ok(src.includes('mate.speedPending[d.id]'),
+    '档位值与 12 段的 pending 态必须读 speedPending（与开关的 pending 分开）')
+  assert.ok(src.includes('data-gear-track') && src.includes(':data-gear-seg="n"'),
+    '档位轨道与分段必须带取证钩子（e2e 靠它读数）')
+  assert.ok(src.includes('v-for="n in FAN_SPEED_MAX"'),
+    '段数必须由 FAN_SPEED_MAX 决定 —— 写死 12 会让「12 档」这个常量失去约束')
+
+  // 🔴 顶部状态行：四张卡必须共用同一行
+  //（风扇卡曾经照归档把这一行整个去掉，结果与其余三张卡版式不一致）
+  assert.ok(!src.includes("d.type !== 'fan'"),
+    '顶部状态行不得再对风扇关掉 —— 四张卡必须共用 `.mc-top`')
+
+  // 🔴 与 Mori 卡的版式 parity：两张卡的骨架规则必须逐值一致，改一边不改另一边就红
+  const rule = (sel) => {
+    const i = src.indexOf(sel + ' {')
+    assert.ok(i > 0, `找不到规则 ${sel}`)
+    return src.slice(i, src.indexOf('}', i))
+  }
+  assert.ok(src.includes('padding: 0; border-radius: 16px; overflow: hidden;'),
+    '风扇卡与 Mori 卡必须共用同一套卡框（padding 0 / 圆角 16px / overflow hidden）')
+  assert.ok(src.includes('.mcard-mori .mc-top, .mcard-fan .mc-top'),
+    '顶部状态行也必须对两张卡共用同一条规则 —— 一旦风扇卡退回 `.mc-top` 的基础内边距，' +
+    '状态胶囊就不再与卡内 14px 对齐，版式又漂回去')
+  for (const [mm, dc, toks] of [
+    ['.mm-main', '.dc-main', ['padding: 8px 14px 14px']],
+    ['.mm-art', '.dc-art', ['width: 52px', 'height: 52px', 'border-radius: 14px', 'margin-right: 14px']],
+    ['.mm-info', '.dc-info', ['flex-direction: column', 'gap: 3px']],
+    ['.mm-name', '.dc-name', ['font-size: 17px', 'font-weight: 700']],
+    ['.mm-model', '.dc-model', ['font-size: 12px', 'color: #8e8ea3']]
+  ]) {
+    const a = rule(mm)
+    const b = rule(dc)
+    for (const t of toks) {
+      assert.ok(a.includes(t), `${mm} 缺 ${t}`)
+      assert.ok(b.includes(t), `${dc} 缺 ${t}（与 ${mm} 的版式 parity 被破坏）`)
+    }
+  }
+  // 底部区块：两张卡都是「上边 1px 分隔线 + 自己的内边距」的手法
+  assert.ok(src.includes('.mm-actions { display: flex; border-top: 1px solid #e9ecef; }'),
+    'Mori 卡底部区块的上分隔线不能动')
+  assert.ok(rule('.dc-gear-row').includes('border-top: 1px solid #e9ecef'),
+    '风扇卡档位区块必须与 Mori 卡底部区块同一手法（上边 1px #E9ECEF 分隔线）')
+
+  const i = src.indexOf('风扇卡：**版式对齐')
+  const j = src.indexOf('.mc-enter {', i)
+  assert.ok(i > 0 && j > i, '找不到风扇卡的样式块')
+  const sizes = [...src.slice(i, j).matchAll(/font-size:\s*([\d.]+)px/g)].map((m) => Number(m[1]))
+  assert.ok(sizes.length >= 4, `风扇卡字号只扫到 ${sizes.length} 处，规则可能失效`)
+  const bad = sizes.filter((n) => n < 12)
+  assert.deepEqual(bad, [], `风扇卡出现 <12px 字号：${bad.join(', ')}`)
+})
+
+test('风扇卡词条三语齐备（开关 / 档位调节 / 下发中）', () => {
+  const m = read('src/locales/aimate.js')
+  const blocks = m.split('fanCard: {').slice(1)
+  assert.equal(blocks.length, 3, `fanCard 应有三语各一份，实测 ${blocks.length}`)
+  for (const blk of blocks) {
+    const line = blk.split('}')[0]
+    for (const k of ['power:', 'speedTitle:', 'speedPending:']) {
+      assert.ok(line.includes(k), `fanCard 缺 ${k} → ${line}`)
+    }
+  }
+})
+
+
+/* ================= 首页顶栏已删 + 卡片顺序（Ricky 2026-10-12） ================= */
+
+test('首页顶栏（眉标 / 问候语 / 头像）已整体删除，只留状态栏留白（不填色）', () => {
+  const src = read('src/components/apps/aimate/AimateApp.vue')
+  for (const bad of ['class="home-head"', 'home-head {', 'hh-eyebrow', 'hh-title', 'hh-sub',
+    'hh-avatar', 'data-go-mine', "am('home.greeting')", "am('home.greetingSub')"]) {
+    assert.ok(!src.includes(bad), `AimateApp 仍引用 ${bad}（首页顶栏已删）`)
+  }
+  assert.ok(src.includes('class="home-statusbar"'),
+    '顶栏去掉后必须留状态栏留白，否则首屏内容会钻到状态栏 / 顶部手势热区（64px）里')
+  // 🔴 Ricky 2026-10-12「去掉状态栏底部的背景」：留白只占位、不填色。
+  //    透明后露出应用根底色 ⇒ 状态栏那一条与下方内容区同色，白带消失。
+  assert.ok(!/\.home-statusbar\s*\{[^}]*background/.test(src),
+    '状态栏留白不得再填色（白底已按要求去掉；一填就回到「顶部一条异色带」）')
+  assert.ok(!/\.mine-head\s*\{[^}]*background/.test(src),
+    '「我的」页标题区同样不得填色 —— 它是首页那条留白的同构物，跨 Tab 必须一致')
+  // 「应用默认背景色改为与设置页面一致」= SettingsApp.vue 的 `.settings-app` 用的 #F4F5F7
+  assert.ok(/\.aimate\s*\{[^}]*background:\s*#F4F5F7/i.test(src),
+    '应用默认背景色必须与设置页一致（#F4F5F7）')
+  for (const page of ['.guide-page', '.search-page', '.center-page', '.device-info-page']) {
+    assert.ok(new RegExp('\\' + page + '\\s*\\{[^}]*background:\\s*#F4F5F7', 'i').test(src),
+      `${page} 的整页底色必须跟随应用默认背景（#F4F5F7），否则与设置页不一致`)
+  }
+  assert.ok(/\.home-statusbar\s*\{[^}]*height:\s*calc\(var\(--safe-top/.test(src),
+    '状态栏留白高度必须跟随 --safe-top，否则不同机型上要么露底要么过高')
+})
+
+test('首页设备顺序：口袋打印机 → 录音充电宝 → 风扇 → AI Mori（风扇第三位）', () => {
+  const s = store()
+  assert.deepEqual(s.devices.map((d) => d.type), ['printer', 'recorder', 'fan', 'mori'])
+  assert.equal(s.devices[2].id, 'DAEWOO-Fan-A1', '风扇卡必须在第三位')
+  // 顺序与「选中项」是两回事：activeDeviceId 仍是控制页的默认设备，不该被排序带着走
+  assert.equal(s.activeDeviceId, 'DAEWOO-Fan-A1')
+  assert.equal(s.devices.every((d) => d.online), true)
 })

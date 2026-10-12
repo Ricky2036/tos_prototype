@@ -27,7 +27,9 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18nStore } from '../../../stores/i18nStore'
 import { RECORDER_FLOW } from '../../../locales/recorder-flow'
 import { useAiMateStore, PICKUP_MODES } from '../../../stores/aiMateStore'
-import { useRecorderFlowStore, TRANSLATE_TARGETS, TICK, makeWave } from '../../../stores/recorderFlowStore'
+import {
+  useRecorderFlowStore, TRANSLATE_TARGETS, DEVICE_PROFILE, TICK, makeWave
+} from '../../../stores/recorderFlowStore'
 import LIcon from '../../ui/LIcon.vue'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import ListCell from '../../ui/ListCell.vue'
@@ -41,8 +43,15 @@ const am = (p) => i18n.am(p)
 /** ⚠️ 本仓 i18n 没有插值机制；`{n}` 占位符在调用点自行替换 */
 const t = (k) => RECORDER_FLOW[i18n.locale]?.[k] ?? RECORDER_FLOW.zh[k] ?? k
 
-/** 标题栏文案（顶部标准导航栏与各屏共用） */
-const flowTitle = computed(() => (store.screen === 'detail' ? t('detail.title') : t('files.title')))
+/**
+ * 标题栏文案（顶部标准导航栏与各屏共用）。
+ * 归档三屏各有自己的 `h1`：设备详情 / 全部录音 / 录音详情 —— 这里按屏切。
+ */
+const flowTitle = computed(() => {
+  if (store.screen === 'detail') return t('detail.title')
+  if (store.screen === 'files') return t('files.title')
+  return t('device.title')
+})
 
 /* 波形：条数与高度逐条照抄归档 §4.9 */
 const WAVE8 = makeWave(8)
@@ -68,6 +77,7 @@ let wifiScanTimer = null
 let sendPwdTimer = null
 let faceTimer = null
 let toastTimer = null
+let firmwareTimer = null
 
 function clearAllTimers() {
   clearInterval(recordTimer); recordTimer = null
@@ -78,6 +88,7 @@ function clearAllTimers() {
   clearTimeout(sendPwdTimer); sendPwdTimer = null
   clearTimeout(faceTimer); faceTimer = null
   clearTimeout(toastTimer); toastTimer = null
+  clearInterval(firmwareTimer); firmwareTimer = null
 }
 
 onMounted(() => {
@@ -134,6 +145,14 @@ watch(() => store.sync.sending, (on) => {
   if (on) sendPwdTimer = setTimeout(() => store.finishSendPassword(), TICK.sendPassword)
 })
 
+/* 固件升级：120ms 一跳 +5（归档 #otaButton 的 setInterval） */
+watch(() => store.firmware.upgrading, (on) => {
+  clearInterval(firmwareTimer)
+  firmwareTimer = null
+  if (on) firmwareTimer = setInterval(() => store.tickFirmware(), TICK.firmware)
+})
+
+
 /* toast 2100ms 自动消失 */
 watch(() => store.toast, (msg) => {
   clearTimeout(toastTimer)
@@ -161,7 +180,11 @@ watch(() => store.listen.subtitles.length, () => {
  * 交互
  * ============================================================ */
 function onBack() {
+  // 归档导航链：详情 → 全部录音（`data-go="files"`）
+  //             全部录音 → 设备详情（`#filesBack` 回 `filesReturnScreen`）
+  //             设备详情 → 首页（`data-go="home"`，即关掉流程层）
   if (store.screen === 'detail') store.backToFiles()
+  else if (store.screen === 'files') store.backFromFiles()
   else emit('close')
 }
 
@@ -213,8 +236,16 @@ function signalText(excellent) {
     <AppNavBar :title="flowTitle" @back="onBack">
       <template #title><span class="rf-title">{{ flowTitle }}</span></template>
       <template #right>
+        <!-- 设备详情：归档右上角是 `•••`（设备管理菜单） -->
         <button
-          v-if="store.screen === 'files'"
+          v-if="store.screen === 'device'"
+          class="rf-head-action"
+          data-rec-head-menu
+          :aria-label="t('device.menu')"
+          @click="store.toastDeviceMenu()"
+        >•••</button>
+        <button
+          v-else-if="store.screen === 'files'"
           class="rf-head-action"
           data-rec-manage
           @click="store.toggleManage()"
@@ -228,8 +259,176 @@ function signalText(excellent) {
       </template>
     </AppNavBar>
 
+    <!-- ==================== 屏 0：设备详情（二级菜单，归档 data-screen="device"） ====================
+         归档这一屏就是「首页卡点进来」的落地页：hero（连接态 + 名称型号 + 实物图 + 三格参数）
+         → 设备功能三磁贴 → 最近录音 → 设备管理 → 固件升级。
+         本仓把它做成**流程的首屏**（`openDeviceFlow` 后落在这里），原先混在「全部录音」页里的
+         设备功能 / 设备管理两张卡片整体搬到这里，与归档的层级一致。 -->
+    <div v-if="store.screen === 'device'" key="device" class="rf-body" data-rec-screen="device">
+      <!-- hero：归档 `.hero`（深紫渐变 + 右上实物图 + 底部三格参数） -->
+      <section class="rf-hero">
+        <div class="rf-hero-top">
+          <span class="rf-online"><i />{{ t('device.connected') }}</span>
+          <h2>{{ am('deviceTitle.recorder') }}</h2>
+          <p>{{ DEVICE_PROFILE.model }}</p>
+          <span class="rf-art">
+            <i class="rf-art-side" />
+            <span class="rf-art-face">
+              <span class="rf-grille"><i v-for="n in 24" :key="n" /></span>
+              <i class="rf-redlight" :class="{ on: store.recording }" data-rec-redlight />
+              <small>AI Mate</small>
+            </span>
+          </span>
+        </div>
+        <div class="rf-stats">
+          <div>
+            <span>{{ t('device.statBattery') }}</span>
+            <b data-rec-stat="battery">{{ DEVICE_PROFILE.battery }}%</b>
+            <small>{{ t('device.statBatterySub').replace('{n}', DEVICE_PROFILE.recordHours) }}</small>
+          </div>
+          <div>
+            <span>{{ t('device.statStorage') }}</span>
+            <b data-rec-stat="storage">{{ DEVICE_PROFILE.storageUsed }}GB</b>
+            <small>{{ t('device.statStorageSub').replace('{n}', DEVICE_PROFILE.storageTotal + 'GB') }}</small>
+          </div>
+          <div>
+            <span>{{ t('device.statFirmware') }}</span>
+            <b data-rec-stat="firmware">{{ DEVICE_PROFILE.firmware }}</b>
+            <small>{{ t(store.firmwareSubKey) }}</small>
+          </div>
+        </div>
+      </section>
+
+      <!-- 设备能力入口（归档设备详情页「设备功能」三宫格） -->
+      <section class="rf-panel">
+        <div class="rf-panel-title">
+          <h3>{{ t('device.features') }}</h3>
+          <span>{{ t('device.featuresHint') }}</span>
+        </div>
+        <div class="rf-grid3">
+          <button class="rf-abtn" data-rec-open-record @click="store.openRecordSheet()">
+            <span class="rf-ficon lg"><LIcon name="mic" :size="20" /></span>
+            <b>{{ t('device.featRecord') }}</b>
+            <small>{{ t('device.featRecordSub') }}</small>
+          </button>
+          <button class="rf-abtn" data-rec-open-face @click="store.openFace()">
+            <span class="rf-ficon lg"><LIcon name="users" :size="20" /></span>
+            <b>{{ t('device.featFace') }}</b>
+            <small>{{ t('device.featFaceSub') }}</small>
+          </button>
+          <button class="rf-abtn" data-rec-open-listen @click="store.openListen()">
+            <span class="rf-ficon lg"><LIcon name="languages" :size="20" /></span>
+            <b>{{ t('device.featListen') }}</b>
+            <small>{{ t('device.featListenSub') }}</small>
+          </button>
+        </div>
+      </section>
+
+      <!-- 设备管理（归档「设备录音」行 +「录音同步」行 + 智能降噪 / 录音参数 / 设备名称 三行设置） -->
+      <section class="rf-panel">
+        <div class="rf-panel-title">
+          <h3>{{ t('device.manage') }}</h3>
+          <span>{{ t('device.manageHint') }}</span>
+        </div>
+        <div class="rf-manage-list">
+          <!-- 归档 `[data-go="files"]`：设备录音行 → 全部录音，右侧是条数 -->
+          <button class="rf-manage-row" data-rec-manage-records @click="store.openFiles()">
+            <span class="rf-ficon"><LIcon name="fileAudio" :size="17" /></span>
+            <span class="rf-manage-copy">
+              <b>{{ t('device.manageRecords') }}</b>
+              <small>{{ t('device.manageRecordsSub') }}</small>
+            </span>
+            <em class="rf-manage-meta" data-rec-records-count>{{ t('device.manageRecordsCount').replace('{n}', store.recordingCount) }}</em>
+            <span class="rf-chevron">›</span>
+          </button>
+          <button class="rf-manage-row" data-rec-open-sync @click="store.openSync()">
+            <span class="rf-ficon"><LIcon name="wifi" :size="17" /></span>
+            <span class="rf-manage-copy">
+              <b>{{ t('device.manageSync') }}</b>
+              <small>{{ store.syncSummaryText }}</small>
+            </span>
+            <em class="rf-sync-summary" :class="{ on: store.syncConfigured }" data-rec-sync-summary>{{ store.syncSummaryBadge }}</em>
+            <span class="rf-chevron">›</span>
+          </button>
+        </div>
+        <button class="rf-entry" data-rec-noise @click="store.toastNoiseCancel()">
+          <span class="rf-ficon"><LIcon name="waves" :size="16" /></span>
+          <span class="rf-entry-copy">
+            <b>{{ t('device.noiseCancel') }}</b>
+            <small>{{ t('device.noiseCancelValue') }}</small>
+          </span>
+          <span class="rf-chevron">›</span>
+        </button>
+        <button class="rf-entry" data-rec-params @click="store.toastAudioParams()">
+          <span class="rf-ficon"><LIcon name="audioLines" :size="16" /></span>
+          <span class="rf-entry-copy">
+            <b>{{ t('device.audioParams') }}</b>
+            <small>{{ t('device.audioParamsValue') }}</small>
+          </span>
+          <span class="rf-chevron">›</span>
+        </button>
+        <!-- 归档 `data-toast="设备名称：我的录音充电宝"`（设备名走 app 级词条，单一事实源） -->
+        <button class="rf-entry" data-rec-name @click="store.toastDeviceName(am('deviceTitle.recorder'))">
+          <span class="rf-ficon"><LIcon name="pencil" :size="16" /></span>
+          <span class="rf-entry-copy">
+            <b>{{ t('device.name') }}</b>
+            <small>{{ am('deviceTitle.recorder') }}</small>
+          </span>
+          <span class="rf-chevron">›</span>
+        </button>
+      </section>
+
+      <!-- 最近录音（归档 `.panel` + `#deviceRecentList`，行用标准控件 ListCell） -->
+      <section class="rf-panel">
+        <div class="rf-panel-title">
+          <div>
+            <h3>{{ t('device.recent') }}</h3>
+            <span>{{ t('device.recentHint') }}</span>
+          </div>
+          <button class="rf-link" data-rec-view-all @click="store.openFiles()">{{ t('device.viewAll') }}</button>
+        </div>
+        <div class="rf-recent" data-rec-recent-list>
+          <ListCell
+            v-for="(r, ri) in store.recentList"
+            :key="r.id"
+            :class="'rf-tone-' + (ri % 4)"
+            :data-rec-recent="r.id"
+            :last="ri === store.recentList.length - 1"
+            chevron
+            clickable
+            @click="store.openDetail(r.id)"
+          >
+            <template #icon>
+              <span class="rf-wave"><i v-for="(h, i) in WAVE8" :key="i" :style="{ height: h }" /></span>
+            </template>
+            <template #title><b class="rf-row-title">{{ r.title }}</b></template>
+            <template #subtitle><small class="rf-row-sub">{{ r.time }} · {{ r.duration }}</small></template>
+            <template #right>
+              <em class="rf-pill" :class="r.status">{{ t('status.' + r.status) }}</em>
+            </template>
+          </ListCell>
+        </div>
+      </section>
+
+      <!-- 固件升级（归档 `.panel.firmware`：图标 + 文案 + 4px 进度槽 + 立即升级） -->
+      <section class="rf-panel rf-firmware" :class="store.firmwareState">
+        <span class="rf-ficon"><LIcon name="rotateCw" :size="16" /></span>
+        <div class="rf-firmware-main">
+          <h3>{{ t('device.firmwareTitle') }}</h3>
+          <p data-rec-ota-text>{{ store.firmwareText }}</p>
+          <div class="rf-ota-bar"><i :style="{ width: store.firmware.progress + '%' }" data-rec-ota-bar /></div>
+        </div>
+        <button
+          class="rf-ota-btn"
+          data-rec-ota-btn
+          :disabled="store.firmware.upgrading"
+          @click="store.startFirmwareUpgrade()"
+        >{{ t(store.firmwareButtonKey) }}</button>
+      </section>
+    </div>
+
     <!-- ==================== 屏 1：全部录音 ==================== -->
-    <div v-if="store.screen === 'files'" key="files" class="rf-body" data-rec-screen="files">
+    <div v-else-if="store.screen === 'files'" key="files" class="rf-body" data-rec-screen="files">
       <p class="rf-intro">{{ t('files.intro') }}</p>
 
       <label class="rf-search">
@@ -270,66 +469,6 @@ function signalText(excellent) {
         </ListCell>
         <div v-if="!store.fileList.length" class="rf-empty" data-rec-empty>{{ t('files.empty') }}</div>
       </div>
-
-      <!-- 设备能力入口（归档设备详情页「设备功能」三宫格） -->
-      <section class="rf-panel">
-        <div class="rf-panel-title">
-          <h3>{{ t('device.features') }}</h3>
-          <span>{{ t('device.featuresHint') }}</span>
-        </div>
-        <div class="rf-grid3">
-          <button class="rf-abtn" data-rec-open-record @click="store.openRecordSheet()">
-            <span class="rf-ficon lg"><LIcon name="mic" :size="20" /></span>
-            <b>{{ t('device.featRecord') }}</b>
-            <small>{{ t('device.featRecordSub') }}</small>
-          </button>
-          <button class="rf-abtn" data-rec-open-face @click="store.openFace()">
-            <span class="rf-ficon lg"><LIcon name="users" :size="20" /></span>
-            <b>{{ t('device.featFace') }}</b>
-            <small>{{ t('device.featFaceSub') }}</small>
-          </button>
-          <button class="rf-abtn" data-rec-open-listen @click="store.openListen()">
-            <span class="rf-ficon lg"><LIcon name="languages" :size="20" /></span>
-            <b>{{ t('device.featListen') }}</b>
-            <small>{{ t('device.featListenSub') }}</small>
-          </button>
-        </div>
-      </section>
-
-      <!-- 设备管理（归档「录音同步」行 + 智能降噪 / 录音参数两行设置） -->
-      <section class="rf-panel">
-        <div class="rf-panel-title">
-          <h3>{{ t('device.manage') }}</h3>
-          <span>{{ t('device.manageHint') }}</span>
-        </div>
-        <div class="rf-manage-list">
-          <button class="rf-manage-row" data-rec-open-sync @click="store.openSync()">
-            <span class="rf-ficon"><LIcon name="wifi" :size="17" /></span>
-            <span class="rf-manage-copy">
-              <b>{{ t('device.manageSync') }}</b>
-              <small>{{ store.syncSummaryText }}</small>
-            </span>
-            <em class="rf-sync-summary" :class="{ on: store.syncConfigured }" data-rec-sync-summary>{{ store.syncSummaryBadge }}</em>
-            <span class="rf-chevron">›</span>
-          </button>
-        </div>
-        <button class="rf-entry" data-rec-noise @click="store.toastNoiseCancel()">
-          <span class="rf-ficon"><LIcon name="waves" :size="16" /></span>
-          <span class="rf-entry-copy">
-            <b>{{ t('device.noiseCancel') }}</b>
-            <small>{{ t('device.noiseCancelValue') }}</small>
-          </span>
-          <span class="rf-chevron">›</span>
-        </button>
-        <button class="rf-entry" data-rec-params @click="store.toastAudioParams()">
-          <span class="rf-ficon"><LIcon name="audioLines" :size="16" /></span>
-          <span class="rf-entry-copy">
-            <b>{{ t('device.audioParams') }}</b>
-            <small>{{ t('device.audioParamsValue') }}</small>
-          </span>
-          <span class="rf-chevron">›</span>
-        </button>
-      </section>
     </div>
 
     <!-- ==================== 屏 2：录音详情 ==================== -->
@@ -814,6 +953,178 @@ function signalText(excellent) {
 }
 .rf-body::-webkit-scrollbar { display: none; }
 @keyframes screenin { from { opacity: 0; transform: translateX(8px); } }
+/* ============================================================
+ * 设备详情（二级菜单，归档 `data-screen="device"` / 归档 §4.3 ~ §4.4）
+ * 几何与配色逐条取自归档：
+ *   .hero        padding 18 / 圆角 21 / radial+linear 深紫渐变 / 阴影 rgba(66,47,157,.2)
+ *   .hero-top    高 96，实物图绝对定位（宽 133 高 75 / scale(.85) rotate(-7deg)）
+ *   .device-art  .side 右侧 12px 深色侧条 / .face 渐变面板 / .grille 6 列 2px 点阵（24 点）
+ *                .redlight 5px 指示灯 / small「AI Mate」
+ *   .device-stats 三格等分 + 白色细分割 + 顶边 1px
+ *   .ota-bar     高 4 槽 + 绿色进度条，transition .2s
+ *
+ * 🔴 字号：归档这一屏通篇 6~11px（stats span 7px / stats small 6px / 面板说明 7px /
+ *    按钮 8px / 图形上的字样 6px），照抄在真机上读不清（Ricky 已为此报过两次）。
+ *    这里按本仓排版阶梯整体抬到 ≥12px：说明与徽标 12~13px、行主文字 15.5px、
+ *    三格数字 15px、卡片标题 17px。守卫见 `tests/aiMateStore.test.js`。
+ * ============================================================ */
+.rf-hero {
+  padding: 18px;
+  border-radius: 21px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 85% 0, rgba(169, 151, 255, 0.45), transparent 35%),
+    linear-gradient(145deg, #292064, #4c38aa);
+  box-shadow: 0 13px 25px rgba(66, 47, 157, 0.2);
+}
+.rf-hero-top { height: 96px; position: relative; }
+.rf-online {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 9px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #dce8e5;
+}
+.rf-online i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #69e4a6;
+  box-shadow: 0 0 0 3px rgba(105, 228, 166, 0.13);
+}
+.rf-hero h2 { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; margin: 12px 0 3px; }
+.rf-hero p { font-size: 12px; color: rgba(255, 255, 255, 0.62); margin: 0; }
+
+/* 实物图：归档 `.device-art`，hero 里额外 `scale(.85) rotate(-7deg)` */
+.rf-art {
+  position: absolute;
+  width: 133px;
+  height: 75px;
+  right: -4px;
+  top: 8px;
+  transform: scale(0.85) rotate(-7deg);
+  filter: drop-shadow(0 16px 12px rgba(9, 6, 27, 0.34));
+}
+.rf-art-side {
+  position: absolute;
+  right: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 12px;
+  background: linear-gradient(90deg, #111117, #43434c);
+  border-radius: 0 10px 10px 0;
+}
+.rf-art-face {
+  position: absolute;
+  inset: 0 7px 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 20px;
+  background: linear-gradient(145deg, #414149, #15151b 55%, #2e2e35);
+}
+/* 拾音孔点阵：归档 `.grille`（6 列 2px）由 JS 灌 24 个 `<i>` */
+.rf-grille {
+  position: absolute;
+  left: 15px;
+  top: 14px;
+  width: 32px;
+  display: grid;
+  grid-template-columns: repeat(6, 2px);
+  gap: 3px;
+}
+.rf-grille i { width: 2px; height: 2px; background: #73737c; border-radius: 50%; }
+/* 录音指示灯：与首页卡同一个红灯（归档 `#homeRecordLight` / `.redlight.on`） */
+.rf-redlight {
+  position: absolute;
+  right: 17px;
+  top: 15px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #53535c;
+}
+.rf-redlight.on {
+  background: #ff5262;
+  box-shadow: 0 0 0 4px rgba(255, 82, 98, 0.15), 0 0 8px #ff5262;
+  animation: rf-rec-pulse 1.2s infinite;
+}
+@keyframes rf-rec-pulse { 50% { opacity: 0.35; } }
+.rf-art-face small {
+  position: absolute;
+  left: 15px;
+  bottom: 11px;
+  color: #9999a2;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+/* 三格参数：等分 + 白色细分割（归档 `.device-stats`） */
+.rf-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid rgba(255, 255, 255, 0.13);
+  padding-top: 13px;
+}
+.rf-stats > div { border-right: 1px solid rgba(255, 255, 255, 0.12); padding: 0 8px; min-width: 0; }
+.rf-stats > div:first-child { padding-left: 0; }
+.rf-stats > div:last-child { border-right: 0; padding-right: 0; }
+.rf-stats span { display: block; font-size: 12px; color: rgba(255, 255, 255, 0.6); }
+.rf-stats b { display: block; font-size: 15px; font-weight: 650; margin-top: 4px; letter-spacing: -0.01em; }
+.rf-stats small { display: block; font-size: 12px; color: rgba(255, 255, 255, 0.48); margin-top: 3px; }
+
+/* 面板标题里带副标题的一栏（归档「最近录音」用了 div 包 h3 + span） */
+.rf-panel-title > div { min-width: 0; }
+.rf-link {
+  border: 0;
+  background: transparent;
+  color: var(--purple);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: none;
+  padding: 4px 0;
+}
+
+/* 最近录音：行用标准控件 ListCell，作用域内把它的左右内边距归零，
+   使图标与卡片标题 / 管理行的图标同一条竖线（归档 `.device-recent-row` 亦如此） */
+.rf-recent { border-top: 1px solid #f0eef3; }
+.rf-recent :deep(.list-cell) { background: transparent; padding-left: 0; min-height: 64px; }
+.rf-recent :deep(.lc-main) { padding-right: 0; }
+
+/* 「设备录音」行右侧的条数（归档 `.manage-meta`） */
+.rf-manage-meta { font-size: 13px; color: var(--muted); white-space: nowrap; flex: none; }
+
+/* 固件升级条（归档 `.panel.firmware` + `.ota-bar` + 立即升级按钮） */
+.rf-firmware { display: flex; align-items: center; gap: 12px; }
+.rf-firmware-main { flex: 1; min-width: 0; }
+.rf-firmware-main h3 { font-size: 15.5px; font-weight: 450; line-height: 1.3; margin: 0; }
+.rf-firmware-main p { font-size: 13px; line-height: 1.4; color: var(--muted); margin: 4px 0 0; }
+.rf-ota-bar {
+  height: 4px;
+  background: #e7e4ec;
+  border-radius: 4px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.rf-ota-bar i { display: block; height: 100%; width: 0; background: var(--green); transition: width 0.2s; }
+.rf-ota-btn {
+  border: 0;
+  border-radius: 10px;
+  background: var(--soft);
+  color: var(--purple);
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex: none;
+}
+.rf-ota-btn:disabled { opacity: 0.72; }
+
 
 /* ============================================================
  * 全部录音页（§4.5）

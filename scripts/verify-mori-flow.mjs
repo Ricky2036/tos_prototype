@@ -90,6 +90,79 @@ await p.evaluate(() => window.__system.unlock())
 await wait(500)
 await p.evaluate(() => window.__system.openApp('aimate'))
 await wait(900)
+
+/* ---- 1a. 首页卡「功能布局」：照归档 `#home` 的 `.dev-card`
+        一行设备信息 + 一条分隔线下的三枚等宽动作（拍照 / 录像 / 录音），
+        录像与录音是可切换且**互斥**的录制态（归档 toggleRec），
+        拍照只发指令 + 提示条（归档 doAction） ---- */
+const CARD = '[data-device-card="AM-Mori-01"]'
+const cardCls = (act) => p.locator(`${CARD} [data-device-action="${act}"]`).getAttribute('class')
+assert('Mori 卡挂归档样式类 mcard-mori', (await p.locator(CARD).getAttribute('class')).includes('mcard-mori'))
+assert('  卡上三枚动作（拍照 / 录像 / 录音）', (await n(`${CARD} [data-device-action]`)) === 3)
+assert('  进设备详情的 `···` 仍在（归档没有这一枚，本仓靠它进详情）',
+  (await n(`${CARD} [data-device-more="AM-Mori-01"]`)) === 1)
+const moriBatt = await txt(`${CARD} [data-device-meta="AM-Mori-01"]`)
+assert('  右侧电量读得到（归档 🔋 90%）', /92%/.test(moriBatt), moriBatt)
+assert('  图标块 52×52（归档 `.dev-main .icon`）', (await cssNum(`${CARD} .mm-art`, 'width')) === 52)
+assert('  图标块圆角 14px', (await cssNum(`${CARD} .mm-art`, 'borderRadius')) === 14)
+assert('  动作行带上分隔线（归档 `.dev-actions`）',
+  (await cssNum(`${CARD} .mm-actions`, 'borderTopWidth')) === 1)
+const actW = await p.locator(`${CARD} .mm-act`).evaluateAll((els) =>
+  els.map((e) => Math.round(e.getBoundingClientRect().width * 100) / 100))
+assert('  三枚动作等宽（归档 `.dev-act{flex:1}`）',
+  actW.length === 3 && Math.max(...actW) - Math.min(...actW) <= 1.5, actW)
+assert('  按钮字号 13px（归档 `.dev-act`）', (await cssNum(`${CARD} .mm-act`, 'fontSize')) === 13)
+await shot('01a-home-card')
+
+// 拍照：只发指令 + 提示条，不碰任何开关（归档 doAction('photo')）
+await tap(`${CARD} [data-device-action="photo"]`)
+const photoToast = await txt('[data-toast]')
+assert('拍照给提示条', photoToast.length > 0, photoToast)
+assert('  文案 = 拍照指令已发送', photoToast.includes('拍照指令已发送'), photoToast)
+assert('  拍照不改任何录制态', (await n(`${CARD} .mm-act.active-rec`)) === 0)
+await wait(2500)
+
+// 录像开
+await tap(`${CARD} [data-device-action="video"]`)
+assert('点录像 → 文案变「录像中」',
+  (await txt(`${CARD} [data-device-action="video"]`)).includes('录像中'),
+  await txt(`${CARD} [data-device-action="video"]`))
+assert('  按钮转红（归档 `.dev-act.active-rec`）', (await cardCls('video')).includes('active-rec'))
+assert('  录音按钮没跟着红', !(await cardCls('audio')).includes('active-rec'))
+assert('  录制态带脉冲圆点（归档 `.rec-dot`）',
+  (await n(`${CARD} [data-device-rec-dot="video"]`)) === 1)
+const recToast = await txt('[data-toast]')
+assert('  提示条 = 录像已开始…', recToast.includes('录像已开始'), recToast)
+await wait(2500)
+
+// 开录音 ⇒ 录像被互斥关掉
+await tap(`${CARD} [data-device-action="audio"]`)
+assert('开录音 → 文案变「录音中」',
+  (await txt(`${CARD} [data-device-action="audio"]`)).includes('录音中'))
+assert('  录像被互斥关掉：文案回「录像」',
+  (await txt(`${CARD} [data-device-action="video"]`)).trim() === '录像',
+  await txt(`${CARD} [data-device-action="video"]`))
+assert('  录像的红态同时去掉', !(await cardCls('video')).includes('active-rec'))
+assert('  录像的脉冲圆点同时消失', (await n(`${CARD} [data-device-rec-dot="video"]`)) === 0)
+const audioToast = await txt('[data-toast]')
+assert('  提示条 = 录音已开始…', audioToast.includes('录音已开始'), audioToast)
+await wait(2500)
+
+// 再点录音 ⇒ 关
+await tap(`${CARD} [data-device-action="audio"]`)
+assert('再点录音 → 文案回「录音」',
+  (await txt(`${CARD} [data-device-action="audio"]`)).trim() === '录音',
+  await txt(`${CARD} [data-device-action="audio"]`))
+assert('  红态去掉', !(await cardCls('audio')).includes('active-rec'))
+const savedToast = await txt('[data-toast]')
+assert('  提示条 = 录音已保存', savedToast.includes('录音已保存'), savedToast)
+await wait(2500)
+
+// 动作行不得横向溢出（录制态文案是这一行最长的一档）
+assert('动作行无横向溢出（录制态文案不撑破按钮）', await p.evaluate((sel) =>
+  [...document.querySelectorAll(sel + ' .mm-act')].every((e) => e.scrollWidth <= e.clientWidth + 1), CARD))
+await shot('01b-home-card-rec')
+
 await tap('[data-device-card="AM-Mori-01"]')
 assert('卡片直达流程（无中间控制页）', !(await visible('[data-open-mori]')))
 assert('AI Mori 流程已打开', await visible('[data-flow-root="mori"]'))

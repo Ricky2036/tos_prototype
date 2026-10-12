@@ -140,6 +140,7 @@ import shapes from 'lucide-static/icons/shapes.svg?raw'
 import move from 'lucide-static/icons/move.svg?raw'
 import moveHorizontal from 'lucide-static/icons/move-horizontal.svg?raw'
 import aperture from 'lucide-static/icons/aperture.svg?raw'
+import camera from 'lucide-static/icons/camera.svg?raw'
 import wand2 from 'lucide-static/icons/wand-2.svg?raw'
 import paintbrush from 'lucide-static/icons/paintbrush.svg?raw'
 // -- AI Mori --
@@ -298,6 +299,21 @@ const alarmClockOff = `<svg width="26" height="26" viewBox="0 0 24 24" fill="non
 <path d="m2 2 20 20"/>
 <path d="M4 4 2 6"/>
 </svg>`
+
+/** AI Mate 首页风扇卡的实物图标（取自归档 `DeviceIcon` 组件，`small` 档 40×40）。
+    64×64 视框：外圈圆环 + 三片渐次透明度的扇叶 + 白色轴心。
+    ⚠️ 颜色走 `currentColor`（卡上取归档的 #7B5CFF），**轴心固定白** ——
+    所以这里把颜色直接写成 currentColor，不能再加 `<LIcon mono />`
+    （mono 会把 `#fff` 一起染掉、轴心消失）。 */
+const fanDisc = `<svg width="40" height="40" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">`
+  + `<circle cx="32" cy="32" r="30" fill="none" stroke="currentColor" stroke-width="2.5"/>`
+  + `<g fill="currentColor">`
+  + `<path d="M32 32 L32 14 A18 18 0 0 1 47.6 24.4 Z" opacity="0.95"/>`
+  + `<path d="M32 32 L47.6 39.6 A18 18 0 0 1 32 50 Z" opacity="0.85"/>`
+  + `<path d="M32 32 L16.4 39.6 A18 18 0 0 1 16.4 24.4 Z" opacity="0.75"/>`
+  + `</g>`
+  + `<circle cx="32" cy="32" r="5" fill="#fff"/>`
+  + `</svg>`
 
 const mic = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
 <path d="M12 19v3"/>
@@ -524,6 +540,7 @@ export const LUCIDE = {
   audioLines, printer, watch, glasses, fan, headphones, lightbulb, radioTower, lockKeyhole, plug,
   /* 风扇档位与控制 */
   wind, gauge, leaf, moonStar, baby, sparkles, rotateCw, timer, shieldCheck, calendarClock, atom, waves,
+  fanDisc,
   /* 状态与规格 */
   router, bluetoothSearching, batteryCharging, signal, thermometer, activity, hardDrive, cpu, packageBox, droplet, circleDot, circle,
   /* 状态徽标 */
@@ -541,5 +558,7 @@ export const LUCIDE = {
   /* 照片编辑与打印 */
   crop, frame, film, shapes, move, moveHorizontal, aperture, wand2, paintbrush,
   /* AI Mori */
-  bot, wandSparkles, bookOpen, calendarDays, notebookPen, sticker
+  bot, wandSparkles, bookOpen, calendarDays, notebookPen, sticker,
+  /* 首页卡动作（AI Mori 卡：拍照） */
+  camera
 }
