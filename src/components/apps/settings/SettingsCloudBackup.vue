@@ -459,20 +459,10 @@ function selectFreq(val) {
 <template>
   <div class="cb-app">
     <!-- ================= 页面 1: 云备份首页 ================= -->
-    <div v-if="currentPage === 'home'" class="cb-page scrollable">
-      <div class="cb-navbar">
-        <button
-          type="button"
-          class="cb-nav-back"
-          aria-label="返回账号"
-          @click="emit('back')"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <span class="cb-nav-title">云备份</span>
-      </div>
+    <div v-if="currentPage === 'home'" class="cb-page">
+      <AppNavBar title="云备份" @back="emit('back')" />
+
+      <div class="cb-sub-body scrollable">
 
       <!-- 权益过期横幅（仅 expired 场景） -->
       <div v-if="state.scenario === 'expired'" class="cb-banner">
@@ -764,6 +754,7 @@ function selectFreq(val) {
         </div>
       </div>
     </div>
+  </div>
 
     <!-- ================= 页面 2: 选择备份数据 / 选择恢复数据 ================= -->
     <div v-else-if="currentPage === 'select' || currentPage === 'restore-select'" class="cb-page cb-sub">
@@ -1157,43 +1148,9 @@ function selectFreq(val) {
 .cb-sub-body {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 16px 120px 16px;
-  box-sizing: border-box;
-}
-
-.cb-page.scrollable {
-  display: block;
-  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(var(--safe-bottom, 34px) + 24px);
+  padding: 12px 0 calc(var(--safe-bottom, 34px) + 24px);
   box-sizing: border-box;
-}
-
-/* 顶部导航栏（原版大标题） */
-.cb-navbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: calc(var(--safe-top, 24px) + 8px) 18px 12px;
-  flex: none;
-}
-
-.cb-nav-back {
-  background: none;
-  border: none;
-  padding: 4px;
-  margin-left: -4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #1C1C1E;
-}
-
-.cb-nav-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1C1C1E;
 }
 
 /* 卡片基类 */

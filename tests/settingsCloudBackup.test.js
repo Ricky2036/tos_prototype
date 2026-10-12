@@ -39,6 +39,7 @@ test('SettingsCloudBackup.vue matches specification from 云备份原型.html', 
   assert.ok(content.includes('删除该'), 'Must handle delete backup confirmation sheet')
 
   // 5. 对齐图 1 与图 2 结构特征
+  assert.ok(content.includes('<AppNavBar title="云备份"'), 'Must use standard AppNavBar component for home header')
   assert.ok(content.includes('card cb-hero'), 'Must include Hero card on home page')
   assert.ok(content.includes('cb-hero-icon'), 'Must include Hero cloud upload gradient icon')
   assert.ok(content.includes('card cb-cell'), 'Must place auto backup cell card directly under hero card')
