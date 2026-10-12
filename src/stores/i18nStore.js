@@ -6,8 +6,9 @@ import { APP_NAMES } from '../locales/app-names.js'
 import { CC_LABELS } from '../locales/cc-labels.js'
 import { CATEGORIES_NAMES } from '../locales/categories-names.js'
 import { MESSAGES } from '../locales/messages.js'
+import { PHOTOS } from '../locales/photos.js'
 
-export { AIMATE, APP_NAMES, CC_LABELS, CATEGORIES_NAMES, MESSAGES }
+export { AIMATE, APP_NAMES, CC_LABELS, CATEGORIES_NAMES, MESSAGES, PHOTOS }
 
 export const useI18nStore = defineStore('i18n', {
   state: () => ({
@@ -50,6 +51,27 @@ export const useI18nStore = defineStore('i18n', {
       const hit = walk(AIMATE[s.locale])
       if (hit === undefined) {
         const fb = walk(AIMATE.zh)
+        return fb === undefined ? path : fb
+      }
+      return hit
+    },
+    /**
+     * 相册词条：路径式取用，缺项回落到中文。
+     * 例：ph('viewer.share') / ph('tab.photos') / ph('count')
+     */
+    ph: (s) => (path) => {
+      const walk = (obj) => {
+        if (!path) return obj
+        let cur = obj
+        for (const seg of String(path).split('.')) {
+          if (cur == null || typeof cur !== 'object') return undefined
+          cur = cur[seg]
+        }
+        return cur
+      }
+      const hit = walk(PHOTOS[s.locale])
+      if (hit === undefined) {
+        const fb = walk(PHOTOS.zh)
         return fb === undefined ? path : fb
       }
       return hit

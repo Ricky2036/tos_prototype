@@ -179,6 +179,8 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Add high-fidelity Settings Search page with suggestions, history editing, and single/all deletion matching reference design | `antigravity/lane` | None (locks released) | `720ca2b` | `4195a62` |
 | Merged | Antigravity | Develop ShareSheet matching latest screenshot & requirements with album photos, desktop app icons, channel popovers, and PhotosApp gallery | `antigravity/lane` | None (locks released) | `65cac6d` | `2bf0ee6` |
 
+| Active | Workbuddy | Add Photos app: date-grouped album home, fullscreen viewer with action bar, reuse system wallpapers | `workbuddy/lane` | `src/components/apps/photos/**`; `src/stores/photosStore.js`; `src/locales/photos.js`; `tests/photosStore.test.js`; `scripts/verify-photos-flow.mjs`; shared registration files (`src/config/apps.js`; `src/config/drawerApps.js`; `src/components/apps/registry.js`; `src/stores/i18nStore.js`) | `092d392` | — |
+
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
 

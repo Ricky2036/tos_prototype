@@ -72,15 +72,46 @@ test('SettingsApp includes floating search bar and standardized card styling', (
   assert.match(content, /SettingsSearchBar/, 'Should mount SettingsSearchBar component')
   assert.match(content, /settings-floating-search/, 'Should have floating container for search bar')
   assert.match(content, /scroll-bottom-spacer/, 'Should include scroll spacer to prevent content cutoff')
-  assert.match(content, /--title-size/, 'The same title node should resize continuously while scrolling')
-  assert.doesNotMatch(content, /settings-compact-header/, 'Settings title must not cross-fade between duplicate nodes')
-  assert.match(content, /titleCollapseProgress/, 'Title size transition should follow scroll progress')
-  assert.match(content, /36 - 14 \* titleCollapseProgress\.value/, 'Title should scale between the measured reference sizes')
-  assert.match(content, /22 - 44 \* titleCollapseProgress\.value/, 'Title should travel vertically between the measured reference positions')
-  assert.match(content, /72 - 8 \* titleCollapseProgress\.value/, 'Title region should match the measured title-to-card spacing')
-  assert.match(content, /@scroll\.passive="onSettingsScroll"/, 'Settings home should track native scrolling')
+  // 大标题：2026-10-12 起**拆到通用件**（`composables/useLargeTitle.js` + `ui/LargeTitleHeader.vue`），
+  // 设置页只负责「接线」。所以这里断言的是**接线**；曲线数值由 tests/largeTitle.test.js 守。
+  // 🔴 剥掉注释再断言：teeth 实测「把声明注释掉」会让 includes/match 仍然为真 ⇒ 假绿。
+  const body = content.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/<!--[\s\S]*?-->/g, ' ')
+  assert.match(
+    body,
+    /const \{ progress: titleProgress, onScroll: onTitleScroll \} = useLargeTitle\(\)/,
+    'Title progress must come from the shared composable, and must be DESTRUCTURED (not `lt.progress`)'
+  )
+  assert.match(
+    body,
+    /import LargeTitleHeader from '\.\.\/\.\.\/ui\/LargeTitleHeader\.vue'/,
+    'Settings must mount the shared LargeTitleHeader'
+  )
+  assert.match(
+    body,
+    /<LargeTitleHeader title="设置" :progress="titleProgress" \/>/,
+    'The same title node should collapse continuously while scrolling'
+  )
+  assert.equal(
+    (body.match(/useLargeTitle\(\)/g) || []).length,
+    1,
+    'Only one useLargeTitle() call site is allowed (writing `const lt = useLargeTitle()` silently degrades to 0)'
+  )
+  assert.doesNotMatch(body, /settings-compact-header/, 'Settings title must not cross-fade between duplicate nodes')
+  assert.doesNotMatch(
+    body,
+    /--title-size\s*:/,
+    'Title curve values must not be re-declared in the page (single source of truth)'
+  )
+  assert.doesNotMatch(body, /position:\s*sticky/, 'Settings must not style the sticky bar itself (shared component owns it)')
+  assert.match(body, /@scroll\.passive="onTitleScroll"/, 'Settings home should track native scrolling')
   assert.match(content, /settings-floating-search::before/, 'Floating search should mask content scrolling behind it')
-  assert.match(content, /rgba\(244, 245, 247, 0\.24\)/, 'Title mask should fade smoothly into the list')
+  const largeTitleHeader = fs.readFileSync(path.resolve('src/components/ui/LargeTitleHeader.vue'), 'utf-8')
+  assert.match(
+    largeTitleHeader,
+    /--title-scrim, 244, 245, 247\)/,
+    'Title scrim default must match the tOS neutral tone #F4F5F7'
+  )
+  assert.match(largeTitleHeader, /0\.24\)/, 'Title mask should fade smoothly into the list')
 
   // Card border-radius 24px and pure white background
   assert.match(content, /border-radius:\s*24px/, 'Cards should have standardized 24px border radius')

@@ -428,6 +428,39 @@ useSwipeGesture(sideEdgeRef, {
   width: 26%;
 }
 
+/* 🔴 右上角应用控件让位区（Rect Yield）
+   `LargeTitleHeader` 的 `#accessory` 槽（相册右上胶囊）按参考图落在
+   y 44.65–85.14、右内缩 17px、宽 144px ⇒ 与上面 64px 高的热区重叠 **44.65–64**。
+   不让位的话按钮上半部的点击会被热区截走（点齿轮会翻出控制中心，点列表会拉下通知中心）。
+   `.edge-cc` 压到 44px 高；`.edge-nc` 在 y≥44px 处只保留 x < 199px 的部分
+   （199 = 360 机身宽 − 17 右内缩 − 144 胶囊宽）。
+   ⚠️ 只在真的存在 accessory 时生效 —— 桌面 / 锁屏 / 其余应用仍是完整 64px 全宽热区。 */
+.screen-view:has([data-large-title-accessory]) {
+  --edge-yield-top: 44px;
+  --edge-yield-left: 199px;
+}
+.screen-view:has([data-large-title-accessory]) .edge-nc {
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% var(--edge-yield-top),
+    var(--edge-yield-left) var(--edge-yield-top),
+    var(--edge-yield-left) 100%,
+    0 100%
+  );
+}
+.screen-view:has([data-large-title-accessory]) .edge-cc {
+  height: var(--edge-yield-top);
+}
+
+/* 🔴 沉浸态（Immersive Chrome Yield）
+   应用在全屏查看时可以在自己的子树里挂 `data-immersive-chrome`，声明「请把系统状态栏也藏起来」。
+   必要性：`StatusBar` 挂在本组件里（应用树之外），`--z-status-bar`(90) > `--z-app-window`(30)
+   ⇒ 应用**无论怎么调 z-index 都盖不住它**，只能由这里用 `:has()` 响应。
+   ⚠️ 任何应用都可以用这个钩子（不是相册专用）；只在属性真的存在时生效。
+   ⚠️ 属性必须用 `|| null` 绑定 —— `false` 会让属性以 "false" 存在，`:has()` 会命中。 */
+.screen-view:has([data-immersive-chrome]) .status-bar { opacity: 0; }
+
 /* 左侧边缘返回热区：窄条全高，不遮挡内容交互 */
 .side-edge {
   position: absolute;

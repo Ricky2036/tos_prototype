@@ -28,6 +28,8 @@ import { useAccountStore } from '../../../stores/accountStore'
 import { GLYPHS } from '../../../assets/icons/glyphs'
 import accountAvatar from '../../../assets/img/account-avatar.jpg'
 import { clamp } from '../../../utils/math'
+import LargeTitleHeader from '../../ui/LargeTitleHeader.vue'
+import { useLargeTitle } from '../../../composables/useLargeTitle'
 
 /**
  * 设置：8组规范卡片 + 底部悬浮搜索控件 + 二级页完整导航。
@@ -160,16 +162,12 @@ const networks = ['Ricky_5G', 'Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G']
 /* 搜索功能 */
 const searchQuery = ref('')
 const searchActive = ref(false)
-const settingsScrollTop = ref(0)
-const titleCollapseProgress = computed(() => clamp(settingsScrollTop.value / 72, 0, 1))
-const titleSize = computed(() => 36 - 14 * titleCollapseProgress.value)
-const titleInset = computed(() => 30 - 8 * titleCollapseProgress.value)
-const titleTopInset = computed(() => 22 - 44 * titleCollapseProgress.value)
-const titleHeight = computed(() => 72 - 8 * titleCollapseProgress.value)
-
-function onSettingsScroll(event) {
-  settingsScrollTop.value = event.currentTarget.scrollTop
-}
+/* 大标题折叠：走通用件（曲线常量在 composables/useLargeTitle.js，全仓唯一来源）。
+   ⚠️ 必须**解构出 ref** 再传给模板 —— `<script setup>` 只自动解包顶层 ref；
+   若保留 `const lt = useLargeTitle()` 再写 `:progress="lt.progress"`，传下去的是
+   ComputedRef 本身，会静默退化成恒 0（且不报错，2026-10-12 踩过）。
+   ⚠️ 也别在本页复写折叠曲线 —— 会让设置页与相册页的手感漂开。 */
+const { progress: titleProgress, onScroll: onTitleScroll } = useLargeTitle()
 
 const allSearchableItems = [
   { id: 'flight', title: '飞行模式', group: '网络与连接', action: () => {}, isToggle: true },
@@ -232,18 +230,9 @@ const filteredSearchResults = computed(() => {
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <!-- ================= 首页 ================= -->
       <div v-if="view === 'main'" key="main" class="settings-page">
-        <div class="settings-scroll-container scrollable" @scroll.passive="onSettingsScroll">
-          <!-- 顶部大标题 -->
-          <div
-            class="large-title"
-            :style="{
-              '--title-progress': titleCollapseProgress,
-              '--title-size': `${titleSize}px`,
-              '--title-inset': `${titleInset}px`,
-              '--title-top-inset': `${titleTopInset}px`,
-              '--title-height': `${titleHeight}px`
-            }"
-          ><span>设置</span></div>
+        <div class="settings-scroll-container scrollable" @scroll.passive="onTitleScroll">
+          <!-- 顶部大标题（通用件：sticky + 随滚动折叠 + 底色底幕挡住穿过底部的内容） -->
+          <LargeTitleHeader title="设置" :progress="titleProgress" />
 
           <!-- 搜索结果列表（当有输入时激活） -->
           <div v-if="searchQuery.trim()" class="search-results-wrap">
@@ -829,46 +818,8 @@ const filteredSearchResults = computed(() => {
   -webkit-overflow-scrolling: touch;
 }
 
-/* ================= 顶层大标题 ================= */
-.large-title {
-  position: sticky;
-  top: 0;
-  height: calc(var(--safe-top, 20px) + var(--title-height));
-  z-index: 12;
-  display: flex;
-  align-items: flex-start;
-  box-sizing: border-box;
-  padding: calc(var(--safe-top, 20px) + var(--title-top-inset)) var(--title-inset) 0;
-  isolation: isolate;
-}
-
-.large-title::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(244, 245, 247, 0.99) 0%,
-    rgba(244, 245, 247, 0.99) 62%,
-    rgba(244, 245, 247, 0.7) 76%,
-    rgba(244, 245, 247, 0.24) 90%,
-    rgba(244, 245, 247, 0) 100%
-  );
-  opacity: var(--title-progress);
-  pointer-events: none;
-}
-
-.large-title > span {
-  display: block;
-  color: #111111;
-  font-size: var(--title-size);
-  line-height: 1.15;
-  font-weight: 700;
-  letter-spacing: -0.7px;
-  transform-origin: left top;
-  will-change: font-size;
-}
+/* 顶层大标题的样式已搬进通用件 `components/ui/LargeTitleHeader.vue`
+   （sticky + 折叠曲线 + 底色底幕）。改视觉请改那里，别在本页重画一份。 */
 
 /* ================= 统一卡片规范 ================= */
 .settings-card {

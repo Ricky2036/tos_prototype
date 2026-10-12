@@ -227,7 +227,7 @@ export const DRAWER_APPS = [
     name: '照片',
     initial: 'Z',
     pinyin: 'zhaopian',
-    depth: 'placeholder',
+    depth: 'core',
     heroBackground: '#F5F5F7',
     special: 'photos',
     image: '/icons/photos.png',
