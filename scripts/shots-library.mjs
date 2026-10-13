@@ -1,5 +1,5 @@
 /* M6 视觉校验：应用抽屉 + 搜索 */
-import { chromium } from 'file:///Users/jingzhan.chen/.workbuddy/binaries/node/workspace/node_modules/playwright/index.mjs'
+import { chromium } from 'playwright'
 import { mkdirSync } from 'fs'
 
 const PAGE_URL = process.env.PROTO_URL || 'http://127.0.0.1:5173/'

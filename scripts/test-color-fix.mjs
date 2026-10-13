@@ -1,4 +1,4 @@
-import { chromium } from 'file:///Users/jingzhan.chen/.workbuddy/binaries/node/workspace/node_modules/playwright/index.mjs'
+import { chromium } from 'playwright'
 
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 800, height: 600 } })

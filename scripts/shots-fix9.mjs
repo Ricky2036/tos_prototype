@@ -1,5 +1,5 @@
 /* 9 项修复回归：叠层退出三手势 / fab 层级 / 锁屏 Home 解锁 / CC 删除徽标 / 时钟 / 分页 / 挖孔 / 控制台 / 亮灭屏 */
-import { chromium } from 'file:///Users/jingzhan.chen/.workbuddy/binaries/node/workspace/node_modules/playwright/index.mjs'
+import { chromium } from 'playwright'
 
 const BASE = process.env.PROTO_URL || 'http://127.0.0.1:5175/'
 const OUT = new URL('../shots/', import.meta.url).pathname
