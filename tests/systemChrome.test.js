@@ -37,3 +37,34 @@ test('systemStore manages dynamic chromeStyleOverride correctly', () => {
   system.lock()
   assert.equal(system.chromeStyleOverride, null)
 })
+
+test('resumeApp cleans up switcherProgress, dwell, closing and drag states', () => {
+  setActivePinia(createPinia())
+  const system = useSystemStore()
+
+  system.unlock()
+  system.openApp('settings')
+  system.openSwitcher()
+  system.setSwitcherProgress(1)
+  system.setSwitcherDrag(20, -50, 100)
+  system.switcherDwell = true
+  system.beginSwitcherClose()
+
+  assert.equal(system.appSwitcherOpen, true)
+  assert.equal(system.switcherProgress, 1)
+  assert.equal(system.switcherDwell, true)
+  assert.equal(system.switcherClosing, true)
+  assert.equal(system.switcherDragX, 20)
+
+  system.resumeApp('settings')
+
+  assert.equal(system.activeAppId, 'settings')
+  assert.equal(system.baseLayer, 'app')
+  assert.equal(system.appSwitcherOpen, false)
+  assert.equal(system.switcherProgress, 0)
+  assert.equal(system.switcherDwell, false)
+  assert.equal(system.switcherClosing, false)
+  assert.equal(system.switcherDragX, 0)
+  assert.equal(system.switcherDragY, 0)
+  assert.equal(system.switcherDragV, 0)
+})

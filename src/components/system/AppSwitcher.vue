@@ -453,6 +453,12 @@ const linger = ref(false)
 let lingerTimer = null
 const exitedHome = ref(false)
 
+function clearLinger() {
+  clearTimeout(lingerTimer)
+  lingerTimer = null
+  linger.value = false
+}
+
 /* ---- 点卡恢复的「交接保持」窗口（第十四轮·需求①）----
  *
  * Ricky 原话：「点击多任务卡片进入全屏时会卡和闪一下，而且很高的概率会出现
@@ -480,7 +486,10 @@ const expandHold = ref(false)
 let expandHoldTimer = null
 const visible = computed(
   () =>
-    (system.appSwitcherOpen || system.switcherProgress > 0 || linger.value || expandHold.value) &&
+    (system.appSwitcherOpen ||
+      system.switcherProgress > 0 ||
+      (linger.value && !system.activeAppId) ||
+      expandHold.value) &&
     !exitedHome.value
 )
 
@@ -498,7 +507,10 @@ watch(
        成因：exitedHome 原本只在 appSwitcherOpen 的【打开】分支复位，而手势期
        open 仍是 false，于是 visible 恒假。 */
     if (p > 0.001) exitedHome.value = false
-    if (system.activeAppId || system.appSwitcherOpen) return
+    if (system.activeAppId || system.appSwitcherOpen) {
+      if (p <= 0.001) clearLinger()
+      return
+    }
     if (p > 0.001) {
       clearTimeout(lingerTimer)
       linger.value = true
@@ -850,12 +862,14 @@ watch(
   (open) => {
     clearTimeout(dwellTimer)
     clearTimeout(settleTimer)
+    clearLinger()
     if (!open) {
       /* 关闭时必须【停掉进场弹簧 + 进度归零】。
          历史 bug（2026-09-12 修复）：resumeApp/dismissAll 只置 appSwitcherOpen=false，
          而 openP 已停在 1 且 watch(openP) 会把进度写回 1 → visible 恒为 true →
          遮罩（含 backdrop-filter 模糊）永久糊在屏幕上，切回应用后整屏发虚。 */
       openStop()
+      openSnap(0)
       system.setSwitcherProgress(0)
       system.switcherDwell = false
       neighborsIn.value = false
@@ -1604,6 +1618,7 @@ function onPointerDown(e) {
    * ⚠️ 不要写成「drag.value 存在就 return」的粗暴版：那正是上面那条死锁。
    * ⚠️ 也不要在 owner 不匹配时「先结束旧 drag 再新建」：每根手指各接管一次 = 每帧一次
    *    瞬写，那就是抖动本身。 */
+  if (expanding.value || expandHold.value || closing.value) return
   if (drag.value && drag.value.pointerId !== e.pointerId) {
     if (!e.isPrimary) return
     drag.value = null
@@ -1826,6 +1841,7 @@ const TAP_MS_MAX = 500
  * 而真正的横滑、上滑删卡与快甩完全不受影响。 */
 
 function onPointerUp(e) {
+  if (expanding.value || expandHold.value || closing.value) return
   const d = drag.value
   if (!d) return
   /* 第二十轮·需求（双指横滑抖动）：只有所有者抬起才算松手 ——
@@ -2304,6 +2320,7 @@ function resumeWithExpand(appId) {
      漏判了（比如未来新增手势入口），也不能让「刚删掉的 app」借由残留节点被拉回全屏。
      正常路径下这个 early-return 永不触发（hitCardId 已在上游挡掉）。 */
   if (flying.value.some((x) => x.id === appId)) return
+  clearLinger()
   expanding.value = appId
   expandTo.value = false
   // 先渲染「起始态」，两帧后再切目标态，浏览器才会跑过渡
@@ -2328,6 +2345,7 @@ function resumeWithExpand(appId) {
       expanding.value = null
       expandTo.value = false
       expandHold.value = false
+      clearLinger()
     }, swap ? HERO_OPEN_DURATION + EXPAND_HOLD_MARGIN_MS : EXPAND_HOLD_SAME_MS)
   }, RESUME_MS + 72)
 }
@@ -2418,6 +2436,7 @@ function clearingStyle(i) {
 /* 底部垃圾桶：清空最近任务回桌面（第七轮·批次 4：补上逐卡上滑飞出） */
 function clearAll() {
   if (clearing.value || dismissing.value || expanding.value) return
+  clearLinger()
   const n = renderedCards.value.length
   if (!n) {
     /* 第十五轮：dismissAll 同样是硬切（activeAppId 置空 + baseLayer='home'），
@@ -2450,6 +2469,7 @@ function clearAll() {
  *  同样拿不到 AppWindow 的 hero 收尾钩子 ⇒ 必须在切状态【之前】归还桌面图标隐藏态。
  *  本函数是「点空白」的唯一漏斗（退场动画播完由它落定终态）。 */
 function exitSwitcherToHome() {
+  clearLinger()
   releaseHiddenIcon(system.activeAppId)
   system.exitSwitcherToHome()
 }
@@ -2469,6 +2489,7 @@ function exitSwitcherToHome() {
 const closing = computed(() => system.switcherClosing)
 
 function exitWithAnimation() {
+  clearLinger()
   if (!system.beginSwitcherClose()) return
   clearTimeout(closeTimer)
   closeTimer = setTimeout(() => {
@@ -2613,7 +2634,7 @@ onBeforeUnmount(() => {
     v-if="visible"
     ref="rootRef"
     class="app-switcher"
-    :class="{ 'is-dragging': !!drag, 'is-focus-moving': focusMoving, 'is-home-entrance': homeEntranceFollowing, 'is-home-retreat': homeRetreat, 'is-dismissing': !!dismissing || !!expanding, 'is-closing': closing }"
+    :class="{ 'is-dragging': !!drag, 'is-focus-moving': focusMoving, 'is-home-entrance': homeEntranceFollowing, 'is-home-retreat': homeRetreat, 'is-dismissing': !!dismissing || !!expanding, 'is-closing': closing, 'is-resuming': !!expanding || expandHold }"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
@@ -2732,6 +2753,10 @@ onBeforeUnmount(() => {
   touch-action: none;
   user-select: none;
   overflow: hidden;
+}
+
+.app-switcher.is-resuming {
+  pointer-events: none;
 }
 
 .switcher-dim {

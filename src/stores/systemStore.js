@@ -277,6 +277,10 @@ export const useSystemStore = defineStore('system', {
       this.baseLayer = 'app'
       this.touchRecent(appId)
       this.appSwitcherOpen = false
+      this.switcherProgress = 0
+      this.switcherDwell = false
+      this.switcherClosing = false
+      this.resetSwitcherDrag()
     },
 
     /** 返回桌面：app → home（hero 收缩完成后由 AppWindow 调用 finishGoHome） */
