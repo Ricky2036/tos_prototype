@@ -45,7 +45,7 @@ function escapeRegExp(s) {
  *  杜绝原先 `[\s\S]*?` 越过闭合 `}` 匹配到后面对象的问题。 */
 function findObjectBody(content, name) {
   const head = new RegExp(`(?:export\\s+)?const\\s+${name}\\s*=\\s*\\{`)
-  const m = head.exec(content)
+  const m = content.match(head)
   if (!m) return null
   const open = m.index + m[0].length - 1 // 指向 '{'
   let depth = 0
