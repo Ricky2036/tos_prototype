@@ -46,7 +46,7 @@ const SETTINGS = code(read('src/components/apps/settings/SettingsApp.vue'))
 
 function rule(css, selector) {
   const esc = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const m = new RegExp(`${esc}\\s*\\{([^}]*)\\}`).exec(css)
+  const m = css.match(new RegExp(`${esc}\\s*\\{([^}]*)\\}`))
   return m ? m[1] : ''
 }
 
@@ -327,7 +327,7 @@ test('CSS 解析卫生：style 块内无游离反引号、花括号配平', () =
 })
 
 test('静态几何 = 同一条曲线（端点算术 + 右上让位矩形复核）', () => {
-  const safeTop = Number(/--safe-top\s*:\s*([\d.]+)px/.exec(read('src/styles/tokens.css'))[1])
+  const safeTop = Number(read('src/styles/tokens.css').match(/--safe-top\s*:\s*([\d.]+)px/)[1])
   assert.equal(safeTop, 54, '--safe-top 变了，条高算式要跟着改')
   // 条总高 = --safe-top + --title-height ⇒ p=0: 159px / p=1: 118px（参考图同尺实测）
   assert.equal(safeTop + LARGE_TITLE.fromHeight, 159, 'p=0 条总高应为 159px（内容首行「今天」落 163.4px，参考图 163.7）')
@@ -342,7 +342,7 @@ test('静态几何 = 同一条曲线（端点算术 + 右上让位矩形复核�
   /* ---- 右上让位矩形：热区必须在 accessory 的矩形里让位，否则按钮上半部点不动 ---- */
   // ⚠️ 必须剥注释后再读 —— 否则在注释里写一份同样的数值就能假绿（teeth 负向对照守着）
   const sv = code(read('src/components/phone/ScreenView.vue'))
-  const zoneH = Number(/\.edge-zone\s*\{[^}]*height:\s*([\d.]+)px/.exec(sv)[1])
+  const zoneH = Number(sv.match(/\.edge-zone\s*\{[^}]*height:\s*([\d.]+)px/)[1])
   assert.equal(zoneH, 64, '手势热区高度变了，让位算式要跟着改')
 
   const accCenter = accessoryCenter()
@@ -352,12 +352,12 @@ test('静态几何 = 同一条曲线（端点算术 + 右上让位矩形复核�
     accTop < zoneH,
     `前提失效：accessory 上缘 ${accTop}px 已不在 ${zoneH}px 热区内，让位矩形可以撤了`
   )
-  const yieldTop = Number(/--edge-yield-top:\s*([\d.]+)px/.exec(sv)[1])
+  const yieldTop = Number(sv.match(/--edge-yield-top:\s*([\d.]+)px/)[1])
   assert.ok(
     yieldTop <= accTop,
     `让位上缘 ${yieldTop}px 必须 ≤ accessory 上缘 ${accTop.toFixed(2)}px，否则按钮顶部仍被热区截走`
   )
-  const yieldLeft = Number(/--edge-yield-left:\s*([\d.]+)px/.exec(sv)[1])
+  const yieldLeft = Number(sv.match(/--edge-yield-left:\s*([\d.]+)px/)[1])
   const pillW = 144 // 相册胶囊渲染宽（3 按钮 44 + gap 2×2 + padding 6 + 边框）
   assert.equal(
     yieldLeft,
@@ -392,10 +392,10 @@ test('accessoryCenter：= toTopInset + toSize×lineHeight/2，取整到 2 位，
   const header = code(read('src/components/ui/LargeTitleHeader.vue'))
   const rule = (css, sel) => {
     const esc = sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const m = new RegExp(`${esc}\\s*\\{([^}]*)\\}`).exec(css)
+    const m = css.match(new RegExp(`${esc}\\s*\\{([^}]*)\\}`))
     return m ? m[1] : ''
   }
-  const lh = Number(/line-height:\s*([\d.]+)/.exec(rule(header, '.lt-title'))[1])
+  const lh = Number(rule(header, '.lt-title').match(/line-height:\s*([\d.]+)/)[1])
   assert.equal(lh, TITLE_LINE_HEIGHT, '.lt-title 的 line-height 必须等于 TITLE_LINE_HEIGHT（JS 用它算 accessory 锚点）')
   // 落点自检：54 + 10.65 = 64.65px ⇒ 折叠态菜单图标墨迹中心（参考图 63.65 ± 1）
   assert.ok(Math.abs(54 + accessoryCenter() - 64.65) < 0.01)
