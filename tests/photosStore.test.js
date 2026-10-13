@@ -47,7 +47,7 @@ const store = () => {
 /** 取出某条规则块（首个匹配）；取不到返回 '' */
 function rule(css, selector) {
   const esc = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const m = new RegExp(`${esc}\\s*\\{([^}]*)\\}`).exec(css)
+  const m = css.match(new RegExp(`${esc}\\s*\\{([^}]*)\\}`))
   return m ? m[1] : ''
 }
 
@@ -329,10 +329,10 @@ test('浮层一律 position:absolute（禁用 fixed —— 包含块会落到外
 
 test('顶部按钮避让 64px 边缘手势热区（.edge-zone z 85）', () => {
   const tokens = read('src/styles/tokens.css')
-  const safeTop = Number(/--safe-top\s*:\s*([\d.]+)px/.exec(tokens)[1])
+  const safeTop = Number(tokens.match(/--safe-top\s*:\s*([\d.]+)px/)[1])
   const screenView = read('src/components/phone/ScreenView.vue')
   const svCode = code(screenView) // ⚠️ 剥注释后再读让位数值（注释里写同值不许算数）
-  const zoneH = Number(/\.edge-zone\s*\{[^}]*height:\s*([\d.]+)px/.exec(svCode)[1])
+  const zoneH = Number(svCode.match(/\.edge-zone\s*\{[^}]*height:\s*([\d.]+)px/)[1])
   assert.equal(zoneH, 64, '热区高度变了，下面的算式要跟着改')
 
   // 首页胶囊：位置交给通用件的 `#accessory` 槽（top 由折叠契约算出、right 走 --title-accessory-right）。
@@ -357,15 +357,15 @@ test('顶部按钮避让 64px 边缘手势热区（.edge-zone z 85）', () => {
      正确解法不是把胶囊推下去（那就不是参考图的位置了），而是让热区在这块矩形里让位
      —— 由 ScreenView 的 `:has([data-large-title-accessory])` 规则保证。
      这里守住三件事：让位规则还在 / 覆盖整颗胶囊 / 按钮整体落在让位上缘之下。 */
-  const yieldTop = Number(/--edge-yield-top:\s*([\d.]+)px/.exec(svCode)[1])
-  const yieldLeft = Number(/--edge-yield-left:\s*([\d.]+)px/.exec(svCode)[1])
+  const yieldTop = Number(svCode.match(/--edge-yield-top:\s*([\d.]+)px/)[1])
+  const yieldLeft = Number(svCode.match(/--edge-yield-left:\s*([\d.]+)px/)[1])
   // 胶囊尺寸**从本页 CSS 反解**（不写死）⇒ 改按钮尺寸这里立刻红
   const headRule = rule(STYLE, '.pv-head')
   const btnRule = rule(STYLE, '.pv-head-btn')
-  const btnW = Number(/width:\s*([\d.]+)px/.exec(btnRule)[1])
-  const btnH = Number(/height:\s*([\d.]+)px/.exec(btnRule)[1])
-  const pillPad = Number(/padding:\s*([\d.]+)px/.exec(headRule)[1])
-  const pillGap = Number(/gap:\s*([\d.]+)px/.exec(headRule)[1])
+  const btnW = Number(btnRule.match(/width:\s*([\d.]+)px/)[1])
+  const btnH = Number(btnRule.match(/height:\s*([\d.]+)px/)[1])
+  const pillPad = Number(headRule.match(/padding:\s*([\d.]+)px/)[1])
+  const pillGap = Number(headRule.match(/gap:\s*([\d.]+)px/)[1])
   const btnCount = (APP_SRC.match(/data-photos-head-\w+/g) || []).length
   assert.equal(btnCount, 3, '胶囊里应有 3 颗按钮')
   assert.equal(btnW, 44, '按钮宽 44（参考图反解：图标中心距 46.35px = 44 + gap 2）')
@@ -391,8 +391,8 @@ test('顶部按钮避让 64px 边缘手势热区（.edge-zone z 85）', () => {
   // 全屏：.pv-v-head 高 = --safe-top + 56px、padding-top = --safe-top ⇒ 内容区 56px，
   // 返回键 38px 垂直居中 ⇒ 中心 = 54 + (56-38)/2 + 19 = 82px（判据取中心：点得着与否看中心）
   const vhead = rule(STYLE, '.pv-v-head')
-  const vheadH = Number(/height\s*:\s*calc\(\s*var\(--safe-top[^)]*\)\s*\+\s*([\d.]+)px\s*\)/.exec(vhead)[1])
-  const backH = Number(/height\s*:\s*([\d.]+)px/.exec(rule(STYLE, '.pv-v-back'))[1])
+  const vheadH = Number(vhead.match(/height\s*:\s*calc\(\s*var\(--safe-top[^)]*\)\s*\+\s*([\d.]+)px\s*\)/)[1])
+  const backH = Number(rule(STYLE, '.pv-v-back').match(/height\s*:\s*([\d.]+)px/)[1])
   const backCenter = safeTop + (vheadH - backH) / 2 + backH / 2
   assert.ok(backCenter > zoneH, `全屏返回键中心 ${backCenter}px 落进手势热区 ⇒ 点不动`)
   assert.ok(
@@ -403,8 +403,8 @@ test('顶部按钮避让 64px 边缘手势热区（.edge-zone z 85）', () => {
 
 test('全屏：图片在屏幕里垂直居中（舞台铺满整屏）+ 点屏幕切换 chrome（缺一即残）', () => {
   const tokens = read('src/styles/tokens.css')
-  const screenH = Number(/--screen-h\s*:\s*([\d.]+)px/.exec(tokens)[1])
-  const safeTop = Number(/--safe-top\s*:\s*([\d.]+)px/.exec(tokens)[1])
+  const screenH = Number(tokens.match(/--screen-h\s*:\s*([\d.]+)px/)[1])
+  const safeTop = Number(tokens.match(/--safe-top\s*:\s*([\d.]+)px/)[1])
 
   /* ---- ① 舞台必须铺满整屏 ⇒ 图片居中点 = 屏幕中心 ----
      🔴 旧实现 `.pv-v-stage { flex: 1 }` 是 flex 子项：盒子 y = safeTop+56 → screenH，
@@ -426,7 +426,7 @@ test('全屏：图片在屏幕里垂直居中（舞台铺满整屏）+ 点屏幕
   assert.notEqual(oldCenter, screenH / 2, '基准：旧实现的居中点确实不等于屏幕中心')
 
   /* 顶栏 / 操作栏 / 扫描钮改成浮层后必须真压在舞台之上，否则「看得见点不到」 */
-  const z = (sel) => Number(/z-index:\s*(\d+)/.exec(rule(STYLE, sel))?.[1] ?? 0)
+  const z = (sel) => Number(rule(STYLE, sel).match(/z-index:\s*(\d+)/)?.[1] ?? 0)
   assert.ok(z('.pv-v-stage') > 0, '舞台要有自己的层（否则浮层 z 无从比较）')
   for (const sel of ['.pv-v-head', '.pv-v-scan', '.pv-v-bar']) {
     assert.ok(z(sel) > z('.pv-v-stage'), `${sel} 的 z 必须大于舞台 z`)
@@ -548,13 +548,13 @@ test('底栏 / 搜索圆钮 / 渐隐遮罩三者几何配对', () => {
 
 test('全屏竖向栈：操作栏 / 扫描钮 / toast 三段不重叠，且操作栏对齐标准底栏位', () => {
   const px = (re, src, what) => {
-    const m = re.exec(src)
+    const m = src.match(re)
     assert.ok(m, `取不到 ${what}`)
     return Number(m[1])
   }
   /** 把 `calc(22px + 56px + 10px)` 求和（比 eval 安全，且锚点一变立刻报错） */
   const calcSum = (src, what) => {
-    const m = /bottom\s*:\s*calc\(([^)]*)\)/.exec(src)
+    const m = src.match(/bottom\s*:\s*calc\(([^)]*)\)/)
     assert.ok(m, `${what} 的 bottom 必须写成可推导的 calc 串`)
     const terms = m[1].split('+').map((t) => t.trim())
     for (const t of terms) assert.match(t, /^[\d.]+px$/, `${what} 的 calc 项 ${t} 应为纯 px`)
@@ -575,7 +575,7 @@ test('全屏竖向栈：操作栏 / 扫描钮 / toast 三段不重叠，且操�
   //    否则「全屏操作栏」比「首页底栏」高出一截 —— 切进切出会跳，且犯「位置太高」
   assert.equal(barBottom, 22, '全屏操作栏 bottom 必须与首页底栏同值 22px')
   assert.equal(
-    Number(/bottom="22px"/.exec(APP_SRC)[0].replace(/\D/g, '')),
+    Number(APP_SRC.match(/bottom="22px"/)[0].replace(/\D/g, '')),
     22,
     '首页底栏也必须是 22px（两处同源）'
   )
@@ -684,7 +684,7 @@ test('分组标题与大标题同一条竖线（左缘基准只有 --title-inset
   /* ⚠️ 不能把锚点写成 `<div class="pv-scroll" :style=...>` 的**紧邻**匹配 ——
      在同一个标签上加一个别的属性（合理改动）就会假红。牙齿测试实测抓到过。
      只要求「:style 在这个标签里」，属性顺序与额外属性都不影响。 */
-  const scrollTag = (/<div[^>]*class="pv-scroll"[^>]*>/.exec(code(APP_SRC)) || [''])[0]
+  const scrollTag = (code(APP_SRC).match(/<div[^>]*class="pv-scroll"[^>]*>/) || [''])[0]
   assert.ok(
     scrollTag.includes(':style="titleVars"'),
     `.pv-scroll 必须绑 :style="titleVars"，否则 --title-inset 传不到分组标题（实际标签：${scrollTag}）`
@@ -747,7 +747,7 @@ test('注册表：photos 已映射到 PhotosApp，且 depth 升为 core（apps.j
 
 test('photos 不进 DARK_BG_APPS（首页是浅底，进应用后状态栏走深色图标）', () => {
   const screenView = read('src/components/phone/ScreenView.vue')
-  const m = /DARK_BG_APPS\s*=\s*\[([^\]]*)\]/.exec(screenView)
+  const m = screenView.match(/DARK_BG_APPS\s*=\s*\[([^\]]*)\]/)
   assert.ok(m, '找不到 DARK_BG_APPS')
   assert.equal(
     /photos/.test(m[1]),
