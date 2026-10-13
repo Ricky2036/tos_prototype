@@ -182,6 +182,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Workbuddy | Add Photos app: date-grouped album home, fullscreen viewer with action bar, reuse system wallpapers | `workbuddy/lane` | None (locks released) | `092d392` | `afd6772` |
 | Merged | Antigravity | Connect full PhotosApp viewer share action with ShareSheet modal and verify end-to-end photo sharing flow | `antigravity/lane` | None (locks released) | `afd6772` | `4332088` |
 | Merged | Antigravity | Remove temporary share panel and photos trigger card from DevConsole | `antigravity/lane` | None (locks released) | `473e4b9` | `a0194aa` |
+| Merged | Antigravity | Update Infinix account login notification and brand icon to new fluorescent green design matching asset | `antigravity/lane` | None (locks released) | `1d14a0f` | `2c35899` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
