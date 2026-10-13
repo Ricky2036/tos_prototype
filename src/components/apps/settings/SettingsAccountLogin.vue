@@ -582,7 +582,7 @@ onBeforeUnmount(() => {
   width: 72px;
   height: 72px;
   border-radius: 18px;
-  background: #000000;
+  background: #64FF01;
   display: flex;
   align-items: center;
   justify-content: center;
