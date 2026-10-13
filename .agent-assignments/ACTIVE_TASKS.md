@@ -185,7 +185,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Update Infinix account login notification and brand icon to new fluorescent green design matching asset | `antigravity/lane` | None (locks released) | `1d14a0f` | `2c35899` |
 | Merged | Antigravity | Reset clip-path in mobile screen layout to prevent black rounded corners on mobile viewport resize | `antigravity/lane` | None (locks released) | `73981dc` | `1c25ebf` |
 | Merged | Antigravity | Optimize high-resolution wallpapers, sample photos, and avatars to significantly slim down repository size | `antigravity/lane` | None (locks released) | `4bb1573` | `78aaedf` |
-| Active | Antigravity | Fix app switcher resume state leak where lingering switcher overlay causes tapping resumed app to return to home screen | `antigravity/lane` | `src/components/system/AppSwitcher.vue`; `src/stores/systemStore.js` | `06f2077` | Pending |
+| Merged | Antigravity | Fix app switcher resume state leak where lingering switcher overlay causes tapping resumed app to return to home screen | `antigravity/lane` | None (locks released) | `06f2077` | `2b6d45c` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
