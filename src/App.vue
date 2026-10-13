@@ -209,6 +209,7 @@ function takeScreenshot() {
   width: 100%;
   height: 100%;
   border-radius: 0 !important;
+  clip-path: none !important;
   overflow: hidden;
   background: #000;
   container-type: size;
@@ -216,6 +217,7 @@ function takeScreenshot() {
 
 .mobile-screen :deep(.screen-view) {
   border-radius: 0 !important;
+  clip-path: none !important;
 }
 
 .phone-scale {
