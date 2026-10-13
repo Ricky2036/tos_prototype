@@ -1,5 +1,5 @@
 /* 调试：抽屉右滑关闭链路 */
-import { chromium } from 'file:///Users/jingzhan.chen/.workbuddy/binaries/node/workspace/node_modules/playwright/index.mjs'
+import { chromium } from 'playwright'
 
 const PAGE_URL = process.env.PROTO_URL || 'http://127.0.0.1:5173/'
 const browser = await chromium.launch()

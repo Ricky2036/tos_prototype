@@ -1,5 +1,5 @@
 /* 视觉校验脚本：对原型各状态截图（lock / home / 交互后） */
-import { chromium } from 'file:///Users/jingzhan.chen/.workbuddy/binaries/node/workspace/node_modules/playwright/index.mjs'
+import { chromium } from 'playwright'
 import { mkdirSync } from 'fs'
 
 const PAGE_URL = process.env.PROTO_URL || 'http://127.0.0.1:5173/'

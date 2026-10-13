@@ -1,5 +1,5 @@
 /* 三个 TSX 移植回归：锁屏新界面 / 通知中心 / 设置通知页 */
-import { chromium } from 'file:///Users/jingzhan.chen/.workbuddy/binaries/node/workspace/node_modules/playwright/index.mjs'
+import { chromium } from 'playwright'
 
 const BASE = process.env.PROTO_URL || 'http://127.0.0.1:5175/'
 const OUT = new URL('../shots/', import.meta.url).pathname
