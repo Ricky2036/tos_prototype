@@ -184,6 +184,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Remove temporary share panel and photos trigger card from DevConsole | `antigravity/lane` | None (locks released) | `473e4b9` | `a0194aa` |
 | Merged | Antigravity | Update Infinix account login notification and brand icon to new fluorescent green design matching asset | `antigravity/lane` | None (locks released) | `1d14a0f` | `2c35899` |
 | Merged | Antigravity | Reset clip-path in mobile screen layout to prevent black rounded corners on mobile viewport resize | `antigravity/lane` | None (locks released) | `73981dc` | `1c25ebf` |
+| Merged | Antigravity | Optimize high-resolution wallpapers, sample photos, and avatars to significantly slim down repository size | `antigravity/lane` | None (locks released) | `4bb1573` | `78aaedf` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
