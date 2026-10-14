@@ -186,7 +186,14 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Reset clip-path in mobile screen layout to prevent black rounded corners on mobile viewport resize | `antigravity/lane` | None (locks released) | `73981dc` | `1c25ebf` |
 | Merged | Antigravity | Optimize high-resolution wallpapers, sample photos, and avatars to significantly slim down repository size | `antigravity/lane` | None (locks released) | `4bb1573` | `78aaedf` |
 | Merged | Antigravity | Fix app switcher resume state leak where lingering switcher overlay causes tapping resumed app to return to home screen | `antigravity/lane` | None (locks released) | `06f2077` | `2b6d45c` |
-| Active | Workbuddy | Adopt `scripts/run-e2e.mjs` as the single regression entry (daily = `--changed`, delivery = `--all --jobs 4`); document the cadence in `AGENTS.md`; fix the 6 verify scripts whose default port is the stale `5678` | `workbuddy/lane` | `scripts/run-e2e.mjs`; `AGENTS.md` (add-only section); `scripts/verify-cc-row.mjs`; `scripts/verify-cc-status-bar.mjs`; `scripts/verify-status-bar.mjs`; `scripts/verify-status-bar-camera.mjs`; `scripts/verify-status-bluetooth.mjs`; `scripts/verify-status-icon-size.mjs` | `68f7c50` | (pending) |
+| Review | Workbuddy | Adopt `scripts/run-e2e.mjs` as the single regression entry (daily = `--changed`, delivery = `--all --jobs 4`); document the cadence in `AGENTS.md`; fix the 6 verify scripts whose default port is the stale `5678` | `workbuddy/lane` | `scripts/run-e2e.mjs`; `AGENTS.md` (add-only section); `scripts/verify-cc-row.mjs`; `scripts/verify-cc-status-bar.mjs`; `scripts/verify-status-bar.mjs`; `scripts/verify-status-bar-camera.mjs`; `scripts/verify-status-bluetooth.mjs`; `scripts/verify-status-icon-size.mjs` | `68f7c50` | `93a6caa` |
+
+> Leftover after `93a6caa` (three verify scripts still red, root causes already identified, NOT fixed in that commit) —
+> `verify-status-bar.mjs` and `verify-status-icon-size.mjs`: `.status-bar .sb-ind` is now always rendered as 5 slots
+> with `display: none` controlling visibility, so counting `querySelectorAll().length` is a false FAIL; count the
+> visible slots (`rect.width/height > 0`) instead, and re-derive the "all off" expectation (one slot is still
+> visible there, likely Bluetooth default-on). `verify-cc-row.mjs`: `.pc-tab-btn` no longer exists (DevConsole was
+> refactored into a dropdown module switcher) and the script needs rewriting against the new structure.
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
