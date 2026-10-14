@@ -186,7 +186,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Reset clip-path in mobile screen layout to prevent black rounded corners on mobile viewport resize | `antigravity/lane` | None (locks released) | `73981dc` | `1c25ebf` |
 | Merged | Antigravity | Optimize high-resolution wallpapers, sample photos, and avatars to significantly slim down repository size | `antigravity/lane` | None (locks released) | `4bb1573` | `78aaedf` |
 | Merged | Antigravity | Fix app switcher resume state leak where lingering switcher overlay causes tapping resumed app to return to home screen | `antigravity/lane` | None (locks released) | `06f2077` | `2b6d45c` |
-| Active | Antigravity | Correct clock edit button visibility, replace photo favorite icon with pure heart, and bind sharesheet to global navigation bar | `antigravity/lane` | None (locks released) | `2b6d45c` | `308a745` |
+| Active | Antigravity | Correct clock edit button visibility, replace photo favorite icon with pure heart, and bind sharesheet to global navigation bar | `antigravity/lane` | None (locks released) | `2b6d45c` | `ad06b92` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
