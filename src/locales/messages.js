@@ -350,6 +350,8 @@ export const MESSAGES = {
     aiAnswerHeader: 'AI 通话助理',
     aiAutoAnswerDesc: '礼拜中来电，自动启用AI接听并语音回复。',
     aiAutoAnswerTitle: 'AI自动接听',
+    aiAutoAnswerEnabled: '已启用',
+    aiAutoAnswerDisabled: '未启用',
     aiDesignatedContacts: '选择联系人',
     aiContactsCount: '老婆、老板等3人',
 
@@ -736,6 +738,8 @@ export const MESSAGES = {
     aiAnswerHeader: 'AI CALL ASSISTANT',
     aiAutoAnswerDesc: 'Automatically answer and reply to incoming calls with AI during prayer',
     aiAutoAnswerTitle: 'AI Auto-Answer',
+    aiAutoAnswerEnabled: 'Enabled',
+    aiAutoAnswerDisabled: 'Disabled',
     aiDesignatedContacts: 'Select Contacts',
     aiContactsCount: 'Wife, Boss & 1 other',
 
@@ -1123,6 +1127,8 @@ export const MESSAGES = {
     aiAnswerHeader: 'এআই কল সহকারী',
     aiAutoAnswerDesc: 'নামাজের সময় ইনকামিং কলে এআই স্বয়ংক্রিয়ভাবে উত্তর দেবে',
     aiAutoAnswerTitle: 'এআই স্বয়ংক্রিয় উত্তর',
+    aiAutoAnswerEnabled: 'সক্রিয়',
+    aiAutoAnswerDisabled: 'নিষ্ক্রিয়',
     aiDesignatedContacts: 'পরিচিতি নির্বাচন',
     aiContactsCount: 'স্ত্রী, বসসহ ৩ জন',
 

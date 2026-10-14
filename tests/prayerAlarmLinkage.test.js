@@ -67,7 +67,9 @@ test('i18nStore defines all required keys across zh, en, and bn locales', () => 
     'advance5Min',
     'advance10Min',
     'advance15Min',
-    'reminderDesc'
+    'reminderDesc',
+    'aiAutoAnswerEnabled',
+    'aiAutoAnswerDisabled'
   ]
 
   for (const locale of ['zh', 'en', 'bn']) {
@@ -279,6 +281,34 @@ test('SmartSuggestionWidget has click handling for prayer card to jump to settin
   assert.ok(content.includes('@click="onPrayerClick"'), 'prayer-card must bind @click="onPrayerClick"')
   assert.ok(content.includes("prayerStore.setTargetView('prayer')"), 'Must set targetView to prayer on click')
   assert.ok(content.includes("system.openApp('settings')"), 'Must open settings on click')
+})
+
+test('SettingsPrayer displays synchronized 已启用/未启用 state on AI auto answer menu item', () => {
+  const componentPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsPrayer.vue')
+  const content = fs.readFileSync(componentPath, 'utf-8')
+
+  assert.ok(content.includes('ai-auto-answer-status'), 'Must have ai-auto-answer-status class on right status element')
+  assert.ok(content.includes('aiAutoAnswerStatusText'), 'Must bind aiAutoAnswerStatusText computed property')
+  assert.ok(content.includes("tr('aiAutoAnswerEnabled'"), 'Must support localized aiAutoAnswerEnabled')
+  assert.ok(content.includes("tr('aiAutoAnswerDisabled'"), 'Must support localized aiAutoAnswerDisabled')
+
+  setActivePinia(createPinia())
+  const prayerStore = usePrayerStore()
+  const i18n = useI18nStore()
+  i18n.setLocale('zh')
+
+  assert.equal(prayerStore.aiAutoAnswer, false)
+  // Check translation outputs
+  assert.equal(i18n.t('aiAutoAnswerDisabled'), '未启用')
+  assert.equal(i18n.t('aiAutoAnswerEnabled'), '已启用')
+
+  i18n.setLocale('en')
+  assert.equal(i18n.t('aiAutoAnswerDisabled'), 'Disabled')
+  assert.equal(i18n.t('aiAutoAnswerEnabled'), 'Enabled')
+
+  i18n.setLocale('bn')
+  assert.equal(i18n.t('aiAutoAnswerDisabled'), 'নিষ্ক্রিয়')
+  assert.equal(i18n.t('aiAutoAnswerEnabled'), 'সক্রিয়')
 })
 
 

@@ -51,6 +51,12 @@ const currentReminderLabel = computed(() => {
   return tr('noReminder', '不提醒', 'None', 'কোনোটি নয়')
 })
 
+const aiAutoAnswerStatusText = computed(() => {
+  return prayerStore.aiAutoAnswer
+    ? tr('aiAutoAnswerEnabled', '已启用', 'Enabled', 'সক্রিয়')
+    : tr('aiAutoAnswerDisabled', '未启用', 'Disabled', 'নিষ্ক্রিয়')
+})
+
 function openReminderSubpage() {
   isBack.value = false
   currentView.value = 'reminder'
@@ -499,6 +505,7 @@ function saveEdit() {
                   <span class="lc-sub-desc">{{ i18n.t('aiAutoAnswerDesc') }}</span>
                 </div>
                 <div class="lc-right">
+                  <span class="ms-time-val ai-auto-answer-status">{{ aiAutoAnswerStatusText }}</span>
                   <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
                     <path d="M1 1L6 6L1 11" stroke="#B8B8BE" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
