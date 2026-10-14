@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import ListCell from '../../ui/ListCell.vue'
+import LIcon from '../../ui/LIcon.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 
 const emit = defineEmits(['back', 'navigate'])
@@ -80,10 +81,7 @@ defineExpose({ back })
         <ListCell title="录屏" chevron @click="handleItemTap('录屏')">
           <template #icon>
             <div class="squircle-icon bg-red-record">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="6" width="12" height="12" rx="3" fill="#FFFFFF"/>
-                <path d="M15 10L20 7V17L15 14V10Z" fill="#FFFFFF"/>
-              </svg>
+              <LIcon name="video" :size="20" />
             </div>
           </template>
         </ListCell>
@@ -92,9 +90,7 @@ defineExpose({ back })
         <ListCell title="截屏" chevron @click="handleItemTap('截屏')">
           <template #icon>
             <div class="squircle-icon bg-amber-crop">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M6 3V17C6 17.55 6.45 18 7 18H21M18 21V7C18 6.45 17.55 6 17 6H3" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
-              </svg>
+              <LIcon name="scissors" :size="20" />
             </div>
           </template>
         </ListCell>
@@ -205,17 +201,7 @@ defineExpose({ back })
         >
           <template #icon>
             <div class="squircle-icon bg-blue-access">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <circle cx="7" cy="7" r="1.8" fill="#FFFFFF"/>
-                <circle cx="12" cy="7" r="1.8" fill="#FFFFFF"/>
-                <circle cx="17" cy="7" r="1.8" fill="#FFFFFF"/>
-                <circle cx="7" cy="12" r="1.8" fill="#FFFFFF"/>
-                <circle cx="12" cy="12" r="1.8" fill="#FFFFFF"/>
-                <circle cx="17" cy="12" r="1.8" fill="#FFFFFF"/>
-                <circle cx="7" cy="17" r="1.8" fill="#FFFFFF"/>
-                <circle cx="12" cy="17" r="1.8" fill="#FFFFFF"/>
-                <circle cx="17" cy="17" r="1.8" fill="#FFFFFF"/>
-              </svg>
+              <LIcon name="motionComfort" :size="20" />
             </div>
           </template>
         </ListCell>
@@ -390,6 +376,7 @@ defineExpose({ back })
   justify-content: center;
   flex: none;
   margin-right: 14px;
+  color: #FFFFFF;
 }
 
 .squircle-icon {
@@ -401,6 +388,7 @@ defineExpose({ back })
   justify-content: center;
   flex: none;
   margin-right: 14px;
+  color: #FFFFFF;
 }
 
 .settings-entry-icon-img {

@@ -36,7 +36,7 @@ const modes = [
   {
     id: 'mute',
     name: '静音模式',
-    iconName: 'bellOffLucide',
+    iconName: 'bellOff',
     glowColor: 'rgba(245, 158, 11, 0.45)',
     buttonBg: 'linear-gradient(180deg, #FBBF24 0%, #D97706 100%)',
     subtitles: ['长按切换响铃/静音'],
@@ -45,7 +45,7 @@ const modes = [
   {
     id: 'flashlight',
     name: '手电筒',
-    iconName: 'flashlightLucide',
+    iconName: 'flashlight',
     glowColor: 'rgba(250, 204, 21, 0.45)',
     buttonBg: 'linear-gradient(180deg, #FDE047 0%, #CA8A04 100%)',
     subtitles: ['长按开启/关闭手电筒'],
