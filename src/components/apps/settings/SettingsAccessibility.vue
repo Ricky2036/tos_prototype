@@ -388,6 +388,8 @@ defineExpose({ back })
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: none;
+  margin-right: 14px;
 }
 
 .squircle-icon {
@@ -397,6 +399,8 @@ defineExpose({ back })
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: none;
+  margin-right: 14px;
 }
 
 .settings-entry-icon-img {
@@ -405,6 +409,8 @@ defineExpose({ back })
   border-radius: 9px;
   object-fit: contain;
   display: block;
+  flex: none;
+  margin-right: 14px;
 }
 
 .bg-blue-access { background: #1877F2; }

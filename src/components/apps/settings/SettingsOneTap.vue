@@ -1,14 +1,15 @@
 <script setup>
 import { ref, computed } from 'vue'
+import LIcon from '../../ui/LIcon.vue'
 
 const emit = defineEmits(['back', 'navigate'])
 
-// 预设模式列表（完全对齐真机 One-Tap Button 轮播项与实机截图）
+// 预设模式列表（完全对齐真机 One-Tap Button 轮播项与实机截图，全量复用系统标准 Lucide 矢量）
 const modes = [
   {
     id: 'custom',
     name: '自定义',
-    iconType: 'pencil',
+    iconName: 'pencil',
     glowColor: 'rgba(139, 144, 246, 0.45)',
     buttonBg: 'linear-gradient(180deg, #9FA5F8 0%, #7B81EA 100%)',
     subtitles: ['长按静音', '单击唤起一键闪记', '双击打开手电筒'],
@@ -17,7 +18,7 @@ const modes = [
   {
     id: 'shortcut_app',
     name: '快捷应用',
-    iconType: 'grid',
+    iconName: 'layoutGrid',
     glowColor: 'rgba(77, 141, 254, 0.45)',
     buttonBg: 'linear-gradient(180deg, #60A5FA 0%, #3B82F6 100%)',
     subtitles: ['长按快启应用'],
@@ -26,7 +27,7 @@ const modes = [
   {
     id: 'translate',
     name: '翻译助手',
-    iconType: 'translate',
+    iconName: 'languages',
     glowColor: 'rgba(168, 85, 247, 0.45)',
     buttonBg: 'linear-gradient(180deg, #C084FC 0%, #9333EA 100%)',
     subtitles: ['长按实时翻译'],
@@ -35,7 +36,7 @@ const modes = [
   {
     id: 'mute',
     name: '静音模式',
-    iconType: 'bell-slash',
+    iconName: 'bellOffLucide',
     glowColor: 'rgba(245, 158, 11, 0.45)',
     buttonBg: 'linear-gradient(180deg, #FBBF24 0%, #D97706 100%)',
     subtitles: ['长按切换响铃/静音'],
@@ -44,7 +45,7 @@ const modes = [
   {
     id: 'flashlight',
     name: '手电筒',
-    iconType: 'flashlight',
+    iconName: 'flashlightLucide',
     glowColor: 'rgba(250, 204, 21, 0.45)',
     buttonBg: 'linear-gradient(180deg, #FDE047 0%, #CA8A04 100%)',
     subtitles: ['长按开启/关闭手电筒'],
@@ -53,7 +54,7 @@ const modes = [
   {
     id: 'camera',
     name: '相机',
-    iconType: 'camera',
+    iconName: 'camera',
     glowColor: 'rgba(16, 185, 129, 0.45)',
     buttonBg: 'linear-gradient(180deg, #34D399 0%, #059669 100%)',
     subtitles: ['长按快速打开相机'],
@@ -62,7 +63,7 @@ const modes = [
   {
     id: 'none',
     name: '无操作',
-    iconType: 'ban',
+    iconName: 'ban',
     glowColor: 'none',
     buttonBg: 'linear-gradient(180deg, #6B7280 0%, #4B5563 100%)',
     subtitles: [],
@@ -161,38 +162,7 @@ defineExpose({ back })
     <div class="onetap-stage">
       <!-- 左侧预览图标 -->
       <button class="flank-icon-btn left-icon" :aria-label="prevMode.name" @click="prevSlide">
-        <!-- 铅笔 -->
-        <svg v-if="prevMode.iconType === 'pencil'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <path d="M3 21H7.5L19 9.5L14.5 5L3 16.5V21Z" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <!-- 四宫格 -->
-        <svg v-else-if="prevMode.iconType === 'grid'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <rect x="4" y="4" width="6" height="6" rx="2" fill="rgba(255,255,255,0.4)"/>
-          <rect x="14" y="4" width="6" height="6" rx="2" fill="rgba(255,255,255,0.4)"/>
-          <rect x="4" y="14" width="6" height="6" rx="2" fill="rgba(255,255,255,0.4)"/>
-          <rect x="14" y="14" width="6" height="6" rx="2" fill="rgba(255,255,255,0.4)"/>
-        </svg>
-        <!-- 翻译 -->
-        <svg v-else-if="prevMode.iconType === 'translate'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <path d="M4 6H14M9 3V6M6 14C8 12 10 9 10 6M5 10C7.5 10 10.5 12 12 15M14 20L18 10L22 20M15.5 17H20.5" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <!-- 静音 -->
-        <svg v-else-if="prevMode.iconType === 'bell-slash'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <path d="M18 16V10C18 6.7 15.3 4 12 4M6 6L18 18M6.5 16H18M10 20C10 21.1 10.9 22 12 22C13.1 22 14 21.1 14 20" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <!-- 手电筒 -->
-        <svg v-else-if="prevMode.iconType === 'flashlight'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <path d="M8 2H16V6L14 10V22H10V10L8 6V2ZM8 6H16" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <!-- 相机 -->
-        <svg v-else-if="prevMode.iconType === 'camera'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <path d="M23 19C23 20.1 22.1 21 21 21H3C1.9 21 1 20.1 1 19V8C1 6.9 1.9 6 3 6H7L9 3H15L17 6H21C22.1 6 23 6.9 23 8V19Z" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <!-- 禁用 -->
-        <svg v-else width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
-          <line x1="6" y1="6" x2="18" y2="18" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
-        </svg>
+        <LIcon :name="prevMode.iconName" :size="30" :stroke-width="2" />
       </button>
 
       <!-- 手机侧轨与动作按键 -->
@@ -211,41 +181,7 @@ defineExpose({ back })
                   : 'none'
               }"
             >
-              <!-- 键内图案 -->
-              <!-- 铅笔 -->
-              <svg v-if="currentMode.iconType === 'pencil'" width="42" height="42" viewBox="0 0 24 24" fill="none">
-                <path d="M3 21H7.5L19 9.5L14.5 5L3 16.5V21Z" fill="#FFFFFF"/>
-                <line x1="13.5" y1="6" x2="18" y2="10.5" stroke="rgba(0,0,0,0.2)" stroke-width="1.5"/>
-              </svg>
-              <!-- 四宫格 -->
-              <svg v-else-if="currentMode.iconType === 'grid'" width="42" height="42" viewBox="0 0 24 24" fill="none">
-                <rect x="4" y="4" width="6.5" height="6.5" rx="2" fill="#FFFFFF"/>
-                <rect x="13.5" y="4" width="6.5" height="6.5" rx="2" fill="#FFFFFF"/>
-                <rect x="4" y="13.5" width="6.5" height="6.5" rx="2" fill="#FFFFFF"/>
-                <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2" fill="#FFFFFF"/>
-              </svg>
-              <!-- 翻译 -->
-              <svg v-else-if="currentMode.iconType === 'translate'" width="42" height="42" viewBox="0 0 24 24" fill="none">
-                <path d="M4 6H14M9 3V6M6 14C8 12 10 9 10 6M5 10C7.5 10 10.5 12 12 15M14 20L18 10L22 20M15.5 17H20.5" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <!-- 静音 -->
-              <svg v-else-if="currentMode.iconType === 'bell-slash'" width="42" height="42" viewBox="0 0 24 24" fill="none">
-                <path d="M18 16V10C18 6.7 15.3 4 12 4M6 6L18 18M6.5 16H18M10 20C10 21.1 10.9 22 12 22C13.1 22 14 21.1 14 20" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
-              </svg>
-              <!-- 手电筒 -->
-              <svg v-else-if="currentMode.iconType === 'flashlight'" width="42" height="42" viewBox="0 0 24 24" fill="none">
-                <path d="M8 2H16V6L14 10V22H10V10L8 6V2ZM8 6H16" fill="#FFFFFF"/>
-              </svg>
-              <!-- 相机 -->
-              <svg v-else-if="currentMode.iconType === 'camera'" width="42" height="42" viewBox="0 0 24 24" fill="none">
-                <path d="M23 19C23 20.1 22.1 21 21 21H3C1.9 21 1 20.1 1 19V8C1 6.9 1.9 6 3 6H7L9 3H15L17 6H21C22.1 6 23 6.9 23 8V19Z" fill="#FFFFFF"/>
-                <circle cx="12" cy="13" r="3.5" fill="rgba(0,0,0,0.2)"/>
-              </svg>
-              <!-- 禁用 -->
-              <svg v-else width="42" height="42" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="9" stroke="#FFFFFF" stroke-width="2.5"/>
-                <line x1="6" y1="6" x2="18" y2="18" stroke="#FFFFFF" stroke-width="2.5"/>
-              </svg>
+              <LIcon :name="currentMode.iconName" :size="42" :stroke-width="2.2" />
             </div>
           </div>
         </div>
@@ -253,38 +189,7 @@ defineExpose({ back })
 
       <!-- 右侧预览图标 -->
       <button class="flank-icon-btn right-icon" :aria-label="nextMode.name" @click="nextSlide">
-        <!-- 铅笔 -->
-        <svg v-if="nextMode.iconType === 'pencil'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <path d="M3 21H7.5L19 9.5L14.5 5L3 16.5V21Z" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <!-- 四宫格 -->
-        <svg v-else-if="nextMode.iconType === 'grid'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <rect x="4" y="4" width="6" height="6" rx="2" fill="rgba(255,255,255,0.4)"/>
-          <rect x="14" y="4" width="6" height="6" rx="2" fill="rgba(255,255,255,0.4)"/>
-          <rect x="4" y="14" width="6" height="6" rx="2" fill="rgba(255,255,255,0.4)"/>
-          <rect x="14" y="14" width="6" height="6" rx="2" fill="rgba(255,255,255,0.4)"/>
-        </svg>
-        <!-- 翻译 -->
-        <svg v-else-if="nextMode.iconType === 'translate'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <path d="M4 6H14M9 3V6M6 14C8 12 10 9 10 6M5 10C7.5 10 10.5 12 12 15M14 20L18 10L22 20M15.5 17H20.5" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <!-- 静音 -->
-        <svg v-else-if="nextMode.iconType === 'bell-slash'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <path d="M18 16V10C18 6.7 15.3 4 12 4M6 6L18 18M6.5 16H18M10 20C10 21.1 10.9 22 12 22C13.1 22 14 21.1 14 20" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <!-- 手电筒 -->
-        <svg v-else-if="nextMode.iconType === 'flashlight'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <path d="M8 2H16V6L14 10V22H10V10L8 6V2ZM8 6H16" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <!-- 相机 -->
-        <svg v-else-if="nextMode.iconType === 'camera'" width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <path d="M23 19C23 20.1 22.1 21 21 21H3C1.9 21 1 20.1 1 19V8C1 6.9 1.9 6 3 6H7L9 3H15L17 6H21C22.1 6 23 6.9 23 8V19Z" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <!-- 禁用 -->
-        <svg v-else width="32" height="32" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
-          <line x1="6" y1="6" x2="18" y2="18" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
-        </svg>
+        <LIcon :name="nextMode.iconName" :size="30" :stroke-width="2" />
       </button>
     </div>
 

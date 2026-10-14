@@ -11,6 +11,9 @@ import check from 'lucide-static/icons/check.svg?raw'
 import plus from 'lucide-static/icons/plus.svg?raw'
 import slidersHorizontal from 'lucide-static/icons/sliders-horizontal.svg?raw'
 import minus from 'lucide-static/icons/minus.svg?raw'
+import ban from 'lucide-static/icons/ban.svg?raw'
+import bellOffLucide from 'lucide-static/icons/bell-off.svg?raw'
+import flashlightLucide from 'lucide-static/icons/flashlight.svg?raw'
 
 /* ================= AI Mate 设备中枢所需的 lucide 图标 ================= */
 // -- 设备类型 --
@@ -561,5 +564,7 @@ export const LUCIDE = {
   /* AI Mori */
   bot, wandSparkles, bookOpen, calendarDays, notebookPen, sticker,
   /* 首页卡动作（AI Mori 卡：拍照） */
-  camera
+  camera,
+  /* One-Tap / 设置通用标准图标 */
+  ban, bellOffLucide, flashlightLucide
 }

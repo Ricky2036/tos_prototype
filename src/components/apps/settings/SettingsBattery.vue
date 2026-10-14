@@ -711,6 +711,8 @@ defineExpose({ back })
   border-radius: 9px;
   object-fit: contain;
   display: block;
+  flex: none;
+  margin-right: 14px;
 }
 
 .bottom-spacer {
