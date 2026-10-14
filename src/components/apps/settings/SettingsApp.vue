@@ -21,6 +21,9 @@ import SettingsSearch from './SettingsSearch.vue'
 import SettingsCloudHome from './SettingsCloudHome.vue'
 import SettingsCloudBackup from './SettingsCloudBackup.vue'
 import SettingsAboutPhone from './SettingsAboutPhone.vue'
+import SettingsSim from './SettingsSim.vue'
+import SettingsBluetooth from './SettingsBluetooth.vue'
+import SettingsSatellite from './SettingsSatellite.vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
 import { useSystemStore } from '../../../stores/systemStore'
@@ -115,8 +118,14 @@ const notifRef = ref(null)
 const prayerRef = ref(null)
 const personalizationRef = ref(null)
 const aboutPhoneRef = ref(null)
+const simRef = ref(null)
+const bluetoothRef = ref(null)
+const satelliteRef = ref(null)
 useBackHandler(() => {
-  if (view.value === 'about' && aboutPhoneRef.value?.back()) return true
+  if (view.value === 'about' && aboutPhoneRef.value?.back?.()) return true
+  if (view.value === 'sim' && simRef.value?.back?.()) return true
+  if (view.value === 'bluetooth' && bluetoothRef.value?.back?.()) return true
+  if (view.value === 'satellite' && satelliteRef.value?.back?.()) return true
   if (view.value === 'personalization' && personalizationRef.value?.back()) return true
   if (view.value === 'prayer' && prayerRef.value?.back()) return true
   if (view.value === 'notifications' && notifRef.value?.back()) return true
@@ -136,6 +145,9 @@ const viewTitles = computed(() => ({
   prayer: i18n.t('prayerDnd') || '礼拜模式',
   personalization: '主题与个性化',
   about: '我的手机',
+  sim: 'SIM 卡与网络设置',
+  bluetooth: '蓝牙',
+  satellite: '星链卫星网络',
   account: 'Infinix ID',
   accountLogin: 'INFINIX ID',
   accountSecurity: '账号安全',
@@ -178,9 +190,11 @@ const allSearchableItems = [
   { id: 'aboutDevice', title: '关于手机', group: '系统', value: 'Infinix NOTE 60 Pro', action: () => push('about') },
   { id: 'deviceModel', title: 'Infinix NOTE 60 Pro', group: '系统', action: () => push('about') },
   { id: 'flight', title: '飞行模式', group: '网络与连接', action: () => {}, isToggle: true },
-  { id: 'sim', title: 'SIM卡与网络设置', group: '网络与连接', action: () => pushUnimplemented('SIM卡与网络设置') },
-  { id: 'wifi', title: 'WLAN', group: '网络与连接', value: 'Ricky_5G', action: () => push('wifi') },
-  { id: 'bluetooth', title: '蓝牙', group: '网络与连接', action: () => pushUnimplemented('蓝牙') },
+  { id: 'sim', title: 'SIM 卡与网络设置', group: '网络与连接', action: () => push('sim') },
+  { id: 'wifi', title: 'WLAN', group: '网络与连接', value: 'Transsion_Holdings', action: () => push('wifi') },
+  { id: 'bluetooth', title: '蓝牙', group: '网络与连接', action: () => push('bluetooth') },
+  { id: 'satellite', title: '星链卫星网络', group: '网络与连接', action: () => push('satellite') },
+  { id: 'satelliteAlt', title: '卫星网络', group: '网络与连接', action: () => push('satellite') },
   { id: 'multiDevice', title: '多设备连接', group: '网络与连接', action: () => system.openApp('oneleap') },
   { id: 'infinixAi', title: 'Infinix AI', group: '特色功能', action: () => pushUnimplemented('Infinix AI') },
   { id: 'wallpaper', title: '壁纸与个性化', group: '个性化', action: () => push('personalization') },
@@ -298,7 +312,7 @@ const filteredSearchResults = computed(() => {
               </ListCell>
             </div>
 
-            <!-- ================= 卡片 3: 网络与连接 (5项) ================= -->
+            <!-- ================= 卡片 3: 网络与连接 (6项) ================= -->
             <div class="settings-card">
               <!-- 飞行模式 -->
               <ListCell title="飞行模式">
@@ -315,7 +329,7 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- SIM卡与网络设置 -->
-              <ListCell title="SIM卡与网络设置" chevron @click="pushUnimplemented('SIM卡与网络设置')">
+              <ListCell title="SIM 卡与网络设置" chevron @click="push('sim')">
                 <template #icon>
                   <div class="squircle-icon bg-sim">
                     <SettingsSystemIcon name="sim" />
@@ -324,7 +338,7 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- WLAN -->
-              <ListCell title="WLAN" value="Ricky_5G" chevron @click="push('wifi')">
+              <ListCell title="WLAN" value="Transsion_Holdings" chevron @click="push('wifi')">
                 <template #icon>
                   <div class="squircle-icon bg-wifi">
                     <SettingsSystemIcon name="wifi" />
@@ -333,10 +347,25 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- 蓝牙 -->
-              <ListCell title="蓝牙" chevron @click="pushUnimplemented('蓝牙')">
+              <ListCell title="蓝牙" chevron @click="push('bluetooth')">
                 <template #icon>
                   <div class="squircle-icon bg-bluetooth">
                     <SettingsSystemIcon name="bluetooth" />
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 卫星网络 -->
+              <ListCell title="卫星网络" chevron @click="push('satellite')">
+                <template #icon>
+                  <div class="squircle-icon bg-satellite">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 10a7.3 7.3 0 0 0 10 10l1-1a3 3 0 0 0-4-4l-1 1" />
+                      <path d="m14 15 6 6" />
+                      <path d="m17 12 3 3" />
+                      <path d="m9 4a12 12 0 0 1 11 11" />
+                      <path d="m8 7a8 8 0 0 1 8 8" />
+                    </svg>
                   </div>
                 </template>
               </ListCell>
@@ -640,6 +669,21 @@ const filteredSearchResults = computed(() => {
         <SettingsAboutPhone ref="aboutPhoneRef" @back="pop" />
       </div>
 
+      <!-- ================= SIM 卡与网络设置 ================= -->
+      <div v-else-if="view === 'sim'" key="sim" class="settings-page">
+        <SettingsSim ref="simRef" @back="pop" />
+      </div>
+
+      <!-- ================= 蓝牙 ================= -->
+      <div v-else-if="view === 'bluetooth'" key="bluetooth" class="settings-page">
+        <SettingsBluetooth ref="bluetoothRef" @back="pop" />
+      </div>
+
+      <!-- ================= 星链卫星网络 ================= -->
+      <div v-else-if="view === 'satellite'" key="satellite" class="settings-page">
+        <SettingsSatellite ref="satelliteRef" @back="pop" />
+      </div>
+
       <!-- ================= 其他二级页 ================= -->
       <div v-else :key="view" class="settings-page">
         <AppNavBar :title="viewTitles[view]" :back-label="'设置'" @back="pop" />
@@ -916,6 +960,7 @@ const filteredSearchResults = computed(() => {
 .bg-sim { background: #22C55E; }
 .bg-wifi { background: #0088FF; }
 .bg-bluetooth { background: #0088FF; }
+.bg-satellite { background: #22C55E; }
 .bg-multidevice { background: #10B981; }
 
 .bg-infinix-ai { background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 50%, #EC4899 100%); }
