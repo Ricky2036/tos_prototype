@@ -33,7 +33,7 @@ defineExpose({ back })
 
 <template>
   <div class="settings-accessibility-page">
-    <!-- 顶部导航栏 -->
+    <!-- 顶部导航栏：左对齐大标题 -->
     <div class="accessibility-nav-bar">
       <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -41,19 +41,16 @@ defineExpose({ back })
         </svg>
       </button>
       <div class="nav-title">辅助功能</div>
-      <div class="nav-placeholder"></div>
     </div>
 
     <!-- 滚动内容区 -->
     <div class="accessibility-scroll-body scrollable">
-      <!-- 顶部特性卡片 -->
+      <!-- 顶部特性大卡片：真机悬浮特色晶核徽标 -->
       <div class="accessibility-hero-card">
         <div class="hero-icon-wrap">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-            <rect width="24" height="24" rx="6" fill="#3B82F6"/>
-            <!-- 人形微标 -->
-            <circle cx="12" cy="7" r="2.2" fill="#FFFFFF"/>
-            <path d="M7 11.5C8.5 11 10.2 10.5 12 10.5C13.8 10.5 15.5 11 17 11.5M12 11V15M9.5 20L11.5 15H12.5L14.5 20" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2.5L20 7.2V16.8L12 21.5L4 16.8V7.2L12 2.5Z" stroke="#FFFFFF" stroke-width="2.2" stroke-linejoin="round"/>
+            <path d="M12 12V21.5M12 12L20 7.2M12 12L4 7.2" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
         <div class="hero-title">辅助功能</div>
@@ -62,15 +59,15 @@ defineExpose({ back })
         </div>
       </div>
 
-      <!-- 无障碍卡片 -->
+      <!-- 无障碍单项卡片：圆形无障碍徽标 -->
       <div class="settings-card">
         <ListCell title="无障碍" chevron last @click="handleItemTap('无障碍')">
           <template #icon>
-            <div class="squircle-icon bg-blue-access">
+            <div class="circle-icon bg-blue-access">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="#FFFFFF" stroke-width="2"/>
-                <circle cx="12" cy="7.5" r="1.8" fill="#FFFFFF"/>
-                <path d="M7.5 11.5H16.5M12 11.5V16M9.5 20L12 16L14.5 20" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="12" r="10" stroke="#FFFFFF" stroke-width="1.8"/>
+                <circle cx="12" cy="7" r="1.8" fill="#FFFFFF"/>
+                <path d="M7 11.5H17M12 11.5V16M9.5 20L12 16L14.5 20" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
           </template>
@@ -82,10 +79,10 @@ defineExpose({ back })
         <!-- 录屏 -->
         <ListCell title="录屏" chevron @click="handleItemTap('录屏')">
           <template #icon>
-            <div class="squircle-icon bg-coral-record">
+            <div class="squircle-icon bg-red-record">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="6" width="13" height="12" rx="3" fill="#FFFFFF"/>
-                <path d="M16 10L21 7V17L16 14V10Z" fill="#FFFFFF"/>
+                <rect x="3" y="6" width="12" height="12" rx="3" fill="#FFFFFF"/>
+                <path d="M15 10L20 7V17L15 14V10Z" fill="#FFFFFF"/>
               </svg>
             </div>
           </template>
@@ -96,7 +93,7 @@ defineExpose({ back })
           <template #icon>
             <div class="squircle-icon bg-amber-crop">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M6 3V17C6 17.5523 6.44772 18 7 18H21M18 21V7C18 6.44772 17.5523 6 17 6H3" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+                <path d="M6 3V17C6 17.55 6.45 18 7 18H21M18 21V7C18 6.45 17.55 6 17 6H3" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
               </svg>
             </div>
           </template>
@@ -118,8 +115,8 @@ defineExpose({ back })
           <template #icon>
             <div class="squircle-icon bg-purple-grip">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <rect x="7" y="3" width="10" height="18" rx="2.5" stroke="#FFFFFF" stroke-width="2"/>
-                <path d="M4 8H5M4 12H5M4 16H5M19 8H20M19 12H20M19 16H20" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+                <rect x="7" y="3" width="10" height="18" rx="2.5" stroke="#FFFFFF" stroke-width="1.8"/>
+                <path d="M4 8.5C3.2 10 3.2 14 4 15.5M20 8.5C20.8 10 20.8 14 20 15.5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
               </svg>
             </div>
           </template>
@@ -138,7 +135,7 @@ defineExpose({ back })
           <template #icon>
             <div class="squircle-icon bg-pink-float">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="4" width="18" height="16" rx="3" stroke="#FFFFFF" stroke-width="2"/>
+                <rect x="3" y="4" width="18" height="16" rx="3" stroke="#FFFFFF" stroke-width="1.8"/>
                 <rect x="11" y="10" width="8" height="8" rx="2" fill="#FFFFFF"/>
               </svg>
             </div>
@@ -171,9 +168,9 @@ defineExpose({ back })
           @click="handleItemTap('智能侧边栏')"
         >
           <template #icon>
-            <div class="squircle-icon bg-indigo-sidebar">
+            <div class="squircle-icon bg-purple-grip">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="4" width="18" height="16" rx="3" stroke="#FFFFFF" stroke-width="2"/>
+                <rect x="3" y="4" width="18" height="16" rx="3" stroke="#FFFFFF" stroke-width="1.8"/>
                 <line x1="16" y1="4" x2="16" y2="20" stroke="#FFFFFF" stroke-width="2"/>
               </svg>
             </div>
@@ -193,7 +190,7 @@ defineExpose({ back })
           <template #icon>
             <div class="squircle-icon bg-sky-outdoor">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M3 19L9 9L14 16L17 12L21 19H3Z" fill="#FFFFFF"/>
+                <path d="M4 18L9 11L13 16L16 12L20 18H4Z" fill="#FFFFFF"/>
               </svg>
             </div>
           </template>
@@ -207,23 +204,23 @@ defineExpose({ back })
           @click="handleItemTap('晕动舒缓显示')"
         >
           <template #icon>
-            <div class="squircle-icon bg-royal-motion">
+            <div class="squircle-icon bg-blue-access">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <circle cx="7" cy="7" r="2" fill="#FFFFFF"/>
-                <circle cx="12" cy="7" r="2" fill="#FFFFFF"/>
-                <circle cx="17" cy="7" r="2" fill="#FFFFFF"/>
-                <circle cx="7" cy="12" r="2" fill="#FFFFFF"/>
-                <circle cx="12" cy="12" r="2" fill="#FFFFFF"/>
-                <circle cx="17" cy="12" r="2" fill="#FFFFFF"/>
-                <circle cx="7" cy="17" r="2" fill="#FFFFFF"/>
-                <circle cx="12" cy="17" r="2" fill="#FFFFFF"/>
-                <circle cx="17" cy="17" r="2" fill="#FFFFFF"/>
+                <circle cx="7" cy="7" r="1.8" fill="#FFFFFF"/>
+                <circle cx="12" cy="7" r="1.8" fill="#FFFFFF"/>
+                <circle cx="17" cy="7" r="1.8" fill="#FFFFFF"/>
+                <circle cx="7" cy="12" r="1.8" fill="#FFFFFF"/>
+                <circle cx="12" cy="12" r="1.8" fill="#FFFFFF"/>
+                <circle cx="17" cy="12" r="1.8" fill="#FFFFFF"/>
+                <circle cx="7" cy="17" r="1.8" fill="#FFFFFF"/>
+                <circle cx="12" cy="17" r="1.8" fill="#FFFFFF"/>
+                <circle cx="17" cy="17" r="1.8" fill="#FFFFFF"/>
               </svg>
             </div>
           </template>
         </ListCell>
 
-        <!-- 游戏模式 -->
+        <!-- 游戏模式：全面复用现有真实游戏模式官方图标资产 -->
         <ListCell
           title="游戏模式"
           subtitle="提升游戏体验。"
@@ -232,12 +229,7 @@ defineExpose({ back })
           @click="handleItemTap('游戏模式')"
         >
           <template #icon>
-            <div class="squircle-icon bg-mint-game">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <rect x="2" y="6" width="20" height="12" rx="4" fill="#FFFFFF"/>
-                <path d="M7 10V14M5 12H9M15 12H15.01M17 10H17.01M17 14H17.01M19 12H19.01" stroke="#10B981" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </div>
+            <img class="settings-entry-icon-img" src="/icons/games.png" alt="游戏模式" />
           </template>
         </ListCell>
       </div>
@@ -252,8 +244,8 @@ defineExpose({ back })
           <template #icon>
             <div class="squircle-icon bg-coral-mistouch">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="9" stroke="#FFFFFF" stroke-width="2"/>
-                <path d="M8 8L16 16M12 7V12M10 16H14" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+                <path d="M12 3C8 3 5 6 5 10V14C5 18 8 21 12 21C16 21 19 18 19 14V10C19 6 16 3 12 3Z" stroke="#FFFFFF" stroke-width="1.8"/>
+                <line x1="4" y1="4" x2="20" y2="20" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
               </svg>
             </div>
           </template>
@@ -273,7 +265,6 @@ defineExpose({ back })
         </div>
       </div>
 
-      <!-- 底部安全间距 -->
       <div class="bottom-spacer"></div>
     </div>
 
@@ -296,11 +287,11 @@ defineExpose({ back })
   user-select: none;
 }
 
-/* 导航栏 */
+/* 导航栏：左对齐大标题 */
 .accessibility-nav-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   height: calc(var(--safe-top, 0px) + 52px);
   padding: var(--safe-top, 0px) 16px 0 16px;
   background: #F2F2F7;
@@ -327,14 +318,10 @@ defineExpose({ back })
 }
 
 .nav-title {
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 600;
   color: #1C1C1E;
-  letter-spacing: -0.2px;
-}
-
-.nav-placeholder {
-  width: 36px;
+  letter-spacing: -0.3px;
 }
 
 /* 滚动区域 */
@@ -359,15 +346,15 @@ defineExpose({ back })
 }
 
 .hero-icon-wrap {
-  width: 68px;
-  height: 68px;
-  border-radius: 20px;
-  background: #3B82F6;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: #3898FC;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 14px;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 4px 12px rgba(56, 152, 252, 0.25);
 }
 
 .hero-title {
@@ -393,30 +380,42 @@ defineExpose({ back })
   border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
-/* 图标样式 */
-.squircle-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
+/* 圆形与圆角矩形图标基类 */
+.circle-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.bg-blue-access { background: #3B82F6; }
-.bg-coral-record { background: #EF4444; }
-.bg-amber-crop { background: #F59E0B; }
-.bg-blue-gesture { background: #2563EB; }
-.bg-purple-grip { background: #8B5CF6; }
+.squircle-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-.bg-pink-float { background: #EC4899; }
-.bg-green-split { background: #10B981; }
-.bg-indigo-sidebar { background: #6366F1; }
+.settings-entry-icon-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  object-fit: contain;
+  display: block;
+}
 
-.bg-sky-outdoor { background: #0EA5E9; }
-.bg-royal-motion { background: #3B82F6; }
-.bg-mint-game { background: #10B981; }
-.bg-coral-mistouch { background: #F97316; }
+.bg-blue-access { background: #1877F2; }
+.bg-red-record { background: #F44336; }
+.bg-amber-crop { background: #FF9800; }
+.bg-blue-gesture { background: #2196F3; }
+.bg-purple-grip { background: #5C6BC0; }
+.bg-pink-float { background: #E91E63; }
+.bg-green-split { background: #4CAF50; }
+.bg-sky-outdoor { background: #03A9F4; }
+.bg-coral-mistouch { background: #FF5722; }
 
 /* 你可能想找 */
 .relative-links-box {
