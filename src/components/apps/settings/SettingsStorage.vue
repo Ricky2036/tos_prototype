@@ -485,11 +485,12 @@ defineExpose({ back })
 
 /* 分类圆点指示器 */
 .color-dot-wrap {
-  width: 24px;
+  width: 20px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  flex-shrink: 0;
+  flex: none;
+  margin-right: 14px;
 }
 
 .color-dot-wrap.top-align {

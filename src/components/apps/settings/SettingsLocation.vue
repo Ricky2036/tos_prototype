@@ -240,6 +240,8 @@ defineExpose({ back })
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  flex: none;
+  margin-right: 14px;
 }
 
 .bg-folax {

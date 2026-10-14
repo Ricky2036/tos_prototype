@@ -74,6 +74,13 @@ const emit = defineEmits(['click'])
   justify-content: center;
   margin-right: 14px;
 }
+
+/* 保护所有自定义 slot="icon" 图标项：统一间距与防止 flex 挤压 */
+:deep(.list-cell > *:not(.lc-main)) {
+  flex: none;
+  margin-right: 14px;
+}
+
 .lc-icon-text {
   color: #fff;
   font: 600 15px/1 var(--font-stack);
@@ -93,8 +100,10 @@ const emit = defineEmits(['click'])
 .lc-title-col {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-width: 0;
   gap: 2px;
+  margin-right: 8px;
 }
 
 .lc-title {
