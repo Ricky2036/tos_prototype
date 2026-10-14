@@ -99,6 +99,7 @@ import externalLink from 'lucide-static/icons/external-link.svg?raw'
 import send from 'lucide-static/icons/send.svg?raw'
 import rotateCcw from 'lucide-static/icons/rotate-ccw.svg?raw'
 import star from 'lucide-static/icons/star.svg?raw'
+import heart from 'lucide-static/icons/heart.svg?raw'
 import eye from 'lucide-static/icons/eye.svg?raw'
 import maximize from 'lucide-static/icons/maximize.svg?raw'
 import minimize from 'lucide-static/icons/minimize.svg?raw'
@@ -403,8 +404,8 @@ const cast = `<svg width="32" height="32" viewBox="0 0 292 292" fill="none" xmln
 <rect width="292" height="292" fill="currentColor" mask="url(#lucide-cast-mask)"/>
 </svg>`
 
-// 21. 健康 / 爱心 (heart)
-const heart = `<svg width="24" height="24" viewBox="7 7 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+// 21. 控制中心健康 (health)
+const health = `<svg width="24" height="24" viewBox="7 7 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M23.4814 10.2009C26.84 10.2011 29.5625 13.6199 29.5625 16.7117C29.5624 19.8034 28.1222 21.7243 25.7217 24.1248C24.9008 24.9455 21.8325 27.2808 20.1396 28.5535C19.4636 29.0617 18.5364 29.0617 17.8604 28.5535C16.1674 27.2808 13.0992 24.9455 12.2783 24.1248C9.87782 21.7243 8.43758 19.8034 8.4375 16.7117C8.4375 13.6199 11.1601 10.2011 14.5186 10.2009C15.3902 10.2009 16.2192 10.3808 16.9688 10.7039L20.7627 14.4802C21.0472 14.7634 21.5072 14.7642 21.793 14.4822C22.082 14.1966 22.0829 13.7298 21.7949 13.4431L19.7754 11.4333C20.8014 10.6609 22.0866 10.2009 23.4814 10.2009ZM18.1299 16.0164C17.9059 15.9965 17.6863 16.0799 17.5322 16.239L17.4707 16.3113L15.8203 18.5271H14.3203C13.9117 18.5271 13.5803 18.8587 13.5801 19.2673C13.5803 19.6759 13.9117 20.0076 14.3203 20.0076H16.1924C16.4261 20.0075 16.6465 19.8962 16.7861 19.7087L17.9395 18.1599L19.7422 21.7644C19.8609 22.0019 20.0981 22.1578 20.3633 22.1726C20.6283 22.1872 20.8811 22.0584 21.0254 21.8357L22.2109 20.0076H23.6807C24.089 20.0072 24.4207 19.6757 24.4209 19.2673C24.4207 18.8589 24.089 18.5274 23.6807 18.5271H21.8086C21.5892 18.5271 21.3827 18.6247 21.2432 18.7898L21.1875 18.865L20.4873 19.9441L18.7266 16.4226C18.6117 16.193 18.3855 16.0392 18.1299 16.0164Z" fill="white"/>
 </svg>`
 
@@ -529,7 +530,7 @@ const vpn = `<svg width="32" height="32" viewBox="0 0 84 84" fill="none" xmlns="
 export const LUCIDE = {
   wifi, bluetooth, plane, mapPin, moon, rotationLock, lock: rotationLock,
   battery, share2: quickShare, refreshCw: cast, wallet, scan, zap,
-  play, pause, skipBack, skipForward, cast, sun, volume2, link2, heart,
+  play, pause, skipBack, skipForward, cast, sun, volume2, link2, heart, health,
   flashlight, flashlightOn, bell, bellOff, vibrate, radio, video, scissors, motionComfort, motionComfortOff, liquidCooling,
   shoulderKey, jbl, vpn,
   layoutGrid, settings, pencil, check, plus, slidersHorizontal, minus,

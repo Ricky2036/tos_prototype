@@ -110,3 +110,19 @@ test('SettingsPrayer component unifies time setting using TimePickerModal', () =
   assert.ok(content.includes('TimePickerModal'), 'SettingsPrayer must import and use TimePickerModal')
   assert.ok(content.includes('handleTimePickerConfirm'), 'Must handle TimePickerModal confirm')
 })
+
+test('ClockApp and clockStore hide FloatingTabBar when editing alarm to prevent button obstruction', () => {
+  setActivePinia(createPinia())
+  const clock = useClockStore()
+
+  assert.strictEqual(clock.isEditingAlarm, false, 'isEditingAlarm defaults to false')
+  clock.setEditingAlarm(true)
+  assert.strictEqual(clock.isEditingAlarm, true, 'isEditingAlarm switches to true when editing alarm')
+  clock.setEditingAlarm(false)
+  assert.strictEqual(clock.isEditingAlarm, false, 'isEditingAlarm resets to false on close')
+
+  const clockAppPath = path.resolve(__dirname, '../src/components/apps/clock/ClockApp.vue')
+  const appContent = fs.readFileSync(clockAppPath, 'utf-8')
+  assert.ok(appContent.includes('!clock.isEditingAlarm'), 'ClockApp must hide FloatingTabBar when editing alarm')
+})
+

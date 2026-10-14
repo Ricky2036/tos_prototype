@@ -253,6 +253,8 @@ export const useClockStore = defineStore('clock', {
     // 穆斯林闹钟时间模式：'default' (默认时间) | 'custom' (设定时间)
     muslimTimeMode: 'default',
     subpage: null,
+    // 闹钟编辑弹窗激活状态（用于在编辑时收起底部浮动导航栏）
+    isEditingAlarm: false,
 
     // 设置项
     settings: {
@@ -651,6 +653,10 @@ export const useClockStore = defineStore('clock', {
 
     setIslandExpanded(val) {
       this.islandExpanded = val
+    },
+
+    setEditingAlarm(val) {
+      this.isEditingAlarm = Boolean(val)
     }
   }
 })

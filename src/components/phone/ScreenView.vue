@@ -24,6 +24,7 @@ import { registerDriver } from '../../composables/driverRegistry'
 import { runBackHandler } from '../../composables/backRegistry'
 import wallpaper from '../../assets/img/wallpaper-lock.jpg'
 import { useWallpaperStore } from '../../stores/wallpaperStore'
+import { useShareStore } from '../../stores/shareStore'
 
 /**
  * 屏幕容器（OS 合成器）：
@@ -32,6 +33,7 @@ import { useWallpaperStore } from '../../stores/wallpaperStore'
 const control = useControlStore()
 const system = useSystemStore()
 const wallpaperStore = useWallpaperStore()
+const shareStore = useShareStore()
 const activeWallpaper = computed(() => wallpaperStore.homeWallpaper || wallpaperStore.active || wallpaper)
 const heroVisual = ref(null)
 
@@ -88,6 +90,12 @@ const chromeLight = computed(() => {
   if (system.chromeStyleOverride === 'dark') return false
   if (system.baseLayer === 'app') return DARK_BG_APPS.includes(system.activeAppId)
   return true
+})
+
+/** 底部导航栏自适应深色（白色分享面板或浅色页面使用深色导航条） */
+const navDark = computed(() => {
+  if (shareStore.isOpen) return true
+  return !chromeLight.value
 })
 
 /* ================= 叠层手势驱动（NC / CC） ================= */
@@ -348,8 +356,8 @@ useSwipeGesture(sideEdgeRef, {
     <DynamicIsland v-if="!system.anyOverlayOpen() && system.baseLayer !== 'lock'" />
     <StatusBar v-if="!system.anyOverlayOpen()" :light="chromeLight" />
     <!-- 底部导航栏：支持手势条 (HomeIndicator) 与三键导航 (ThreeButtonNav) 切换 -->
-    <HomeIndicator v-if="system.navigationMode === 'gesture'" :dark="!chromeLight" />
-    <ThreeButtonNav v-else :dark="!chromeLight" />
+    <HomeIndicator v-if="system.navigationMode === 'gesture'" :dark="navDark" />
+    <ThreeButtonNav v-else :dark="navDark" />
   </div>
 </template>
 
