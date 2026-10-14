@@ -187,6 +187,9 @@ let startClientY = 0
 let isHorizontalDrag = false
 
 function onPointerDown(e) {
+  try {
+    e.currentTarget.setPointerCapture(e.pointerId)
+  } catch {}
   startClientX = e.clientX
   startClientY = e.clientY
   isDragging.value = true
@@ -200,9 +203,9 @@ function onPointerMove(e) {
   const dy = e.clientY - startClientY
 
   if (!isHorizontalDrag) {
-    if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) {
+    if (Math.abs(dx) > 4 && Math.abs(dx) > Math.abs(dy)) {
       isHorizontalDrag = true
-    } else if (Math.abs(dy) > 10) {
+    } else if (Math.abs(dy) > 12) {
       isDragging.value = false
       return
     }
@@ -214,7 +217,7 @@ function onPointerMove(e) {
       (currentIndex.value === 0 && dx > 0) ||
       (currentIndex.value === modes.length - 1 && dx < 0)
     ) {
-      dragX.value = dx * 0.28
+      dragX.value = dx * 0.25
     } else {
       dragX.value = dx
     }
@@ -224,16 +227,17 @@ function onPointerMove(e) {
 function onPointerUp(e) {
   if (!isDragging.value) return
   isDragging.value = false
+  try {
+    e.currentTarget.releasePointerCapture(e.pointerId)
+  } catch {}
 
-  const dx = dragX.value
+  const finalDx = dragX.value || (isHorizontalDrag ? e.clientX - startClientX : 0)
   dragX.value = 0
 
-  if (Math.abs(dx) > 42) {
-    if (dx > 0 && currentIndex.value > 0) {
-      currentIndex.value--
-    } else if (dx < 0 && currentIndex.value < modes.length - 1) {
-      currentIndex.value++
-    }
+  if (finalDx > 28 && currentIndex.value > 0) {
+    currentIndex.value--
+  } else if (finalDx < -28 && currentIndex.value < modes.length - 1) {
+    currentIndex.value++
   }
 }
 
@@ -289,6 +293,10 @@ defineExpose({ back })
         class="flank-icon-btn left-flank"
         :class="{ hidden: !prevMode }"
         aria-label="上一项"
+        :style="{
+          transform: `translateY(-50%) translateX(${dragX * 0.45}px)`,
+          transition: isDragging ? 'none' : 'transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease'
+        }"
         @click.stop="goToPrev"
       >
         <img
@@ -309,21 +317,15 @@ defineExpose({ back })
           draggable="false"
         />
 
-        <!-- 药丸按键发光与实体按键组（跟随拖拽平滑平移） -->
-        <div
-          class="button-capsule-wrap button-cavity"
-          :style="{
-            transform: `translate(calc(-50% + ${dragX}px), -50%)`,
-            transition: isDragging ? 'none' : 'transform 0.36s cubic-bezier(0.22, 1, 0.36, 1)'
-          }"
-        >
-          <!-- 径向光晕溢出 -->
+        <!-- 药丸按键发光与实体按键组（物理按键完全固定在机身中央，绝不位移） -->
+        <div class="button-capsule-wrap button-cavity">
+          <!-- 径向光晕溢出（固定在按键背后） -->
           <div
             class="capsule-glow"
             :style="{ background: currentMode.glowColor }"
           ></div>
 
-          <!-- 3D 实体按键跑道药丸 -->
+          <!-- 3D 实体按键跑道药丸（固定背景，不随拖拽跑动） -->
           <div
             class="capsule-button active-capsule-button"
             :style="{ background: currentMode.buttonBg }"
@@ -331,13 +333,49 @@ defineExpose({ back })
             <!-- 按键内层凸面微高光 -->
             <div class="capsule-specular"></div>
 
-            <!-- 图标呈现 -->
-            <img
-              :src="currentMode.icon"
-              class="capsule-icon-img"
-              alt=""
-              draggable="false"
-            />
+            <!-- 图标滑动轨道（仅图标在物理键帽内平滑跟手滑动） -->
+            <div class="capsule-icons-viewport">
+              <!-- 当前中心图标 -->
+              <img
+                :src="currentMode.icon"
+                class="capsule-icon-img center-icon"
+                :style="{
+                  transform: `translateX(${dragX}px)`,
+                  opacity: Math.max(0.15, 1 - Math.abs(dragX) / 80),
+                  transition: isDragging ? 'none' : 'transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease'
+                }"
+                alt=""
+                draggable="false"
+              />
+
+              <!-- 滑动时从右侧滑入的下一个图标 -->
+              <img
+                v-if="nextMode && dragX < 0"
+                :src="nextMode.icon"
+                class="capsule-icon-img incoming-icon"
+                :style="{
+                  transform: `translateX(${110 + dragX}px)`,
+                  opacity: Math.min(1, Math.abs(dragX) / 80),
+                  transition: isDragging ? 'none' : 'transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease'
+                }"
+                alt=""
+                draggable="false"
+              />
+
+              <!-- 滑动时从左侧滑入的上一个图标 -->
+              <img
+                v-if="prevMode && dragX > 0"
+                :src="prevMode.icon"
+                class="capsule-icon-img incoming-icon"
+                :style="{
+                  transform: `translateX(${-110 + dragX}px)`,
+                  opacity: Math.min(1, Math.abs(dragX) / 80),
+                  transition: isDragging ? 'none' : 'transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease'
+                }"
+                alt=""
+                draggable="false"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -347,6 +385,10 @@ defineExpose({ back })
         class="flank-icon-btn right-flank"
         :class="{ hidden: !nextMode }"
         aria-label="下一项"
+        :style="{
+          transform: `translateY(-50%) translateX(${dragX * 0.45}px)`,
+          transition: isDragging ? 'none' : 'transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease'
+        }"
         @click.stop="goToNext"
       >
         <img
@@ -550,11 +592,12 @@ defineExpose({ back })
   display: block;
 }
 
-/* 实体药丸按键容器：精确对齐底图凹槽几何中心 (Y ≈ 49.6%) */
+/* 实体药丸按键容器：精确对齐底图凹槽几何中心 (Y ≈ 49.6%)，固定居中绝不位移 */
 .button-capsule-wrap {
   position: absolute;
   left: 50%;
   top: 49.6%;
+  transform: translate(-50%, -50%);
   width: 110px;
   height: 240px;
   display: flex;
@@ -571,10 +614,10 @@ defineExpose({ back })
   filter: blur(32px);
   opacity: 0.85;
   pointer-events: none;
-  transition: background 0.32s ease;
+  transition: background 0.35s ease;
 }
 
-/* 3D 药丸按键本体 */
+/* 3D 药丸按键本体：固定背景，不随拖拽跑动 */
 .capsule-button {
   width: 108px;
   height: 236px;
@@ -586,8 +629,8 @@ defineExpose({ back })
   box-shadow:
     inset 0 1px 1.5px rgba(255, 255, 255, 0.45),
     inset 0 -1.5px 3px rgba(0, 0, 0, 0.4),
-    0 2px 12px rgba(0, 0, 0, 0.55);
-  transition: background 0.32s ease;
+    0 2px 14px rgba(0, 0, 0, 0.6);
+  transition: background 0.35s ease;
   overflow: hidden;
 }
 
@@ -599,11 +642,26 @@ defineExpose({ back })
   pointer-events: none;
 }
 
+/* 图标滑动视口 */
+.capsule-icons-viewport {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 54px;
+}
+
 .capsule-icon-img {
   width: 50px;
   height: 50px;
   object-fit: contain;
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: -25px;
+  margin-left: -25px;
   z-index: 2;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
   pointer-events: none;
