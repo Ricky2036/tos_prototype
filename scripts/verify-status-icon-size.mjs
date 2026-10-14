@@ -19,6 +19,28 @@ const boxOf = (sel) => page.evaluate((s) => {
   return els.map((e) => { const r = e.getBoundingClientRect(); return { w: +r.width.toFixed(1), h: +r.height.toFixed(1) } })
 }, sel)
 
+/* 🔴 「主屏状态栏的指示器」必须按**可见槽**取，不能按 DOM 节点取。
+   主屏 `.status-bar .sb-ind` 是**恒渲染的 5 个固定槽**，显隐靠 `display: none`
+   （vibrate20 / mute30 / hotspot40 / bluetooth50 / dnd60）⇒ 隐藏槽的 rect 是 **0×0**。
+   直接 `querySelectorAll('.sb-ind svg')` 会把隐藏槽的 0 高度当成「指示器偏小」，
+   于是得到 `indH=0 natH=15.5` 这种**假 FAIL**（2026-10-14 实测）。
+   只统计可见槽（rect w/h > 0）—— 与 `verify-status-bar.mjs` 同一判据。
+   注：控制中心那一行 `.cc-status .cc-ind` 是条件渲染（不是恒 5 槽），暂不需要这层过滤。 */
+const visibleIndBoxes = (scope) => page.evaluate((s) => {
+  const root = document.querySelector(s)
+  if (!root) return []
+  const out = []
+  for (const el of root.querySelectorAll('.sb-ind')) {
+    const r = el.getBoundingClientRect()
+    if (!(r.width > 0 && r.height > 0)) continue
+    const svg = el.querySelector('svg')
+    if (!svg) continue
+    const sr = svg.getBoundingClientRect()
+    out.push({ w: +sr.width.toFixed(1), h: +sr.height.toFixed(1) })
+  }
+  return out
+}, scope)
+
 let ok = true
 const check = (name, cond, detail) => { if (!cond) ok = false; console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`) }
 
@@ -49,7 +71,7 @@ await page.mouse.move(vw / 2, 5); await page.mouse.down(); await page.mouse.move
 await page.waitForTimeout(400)
 await page.evaluate(() => { const c = window.__control; c.dnd = true; c.hotspot = true })
 await page.waitForTimeout(300)
-let sbInds = await boxOf('.status-bar .sb-ind svg')
+let sbInds = await visibleIndBoxes('.status-bar')
 let sbNatives = await boxOf('.status-bar .sb-icon')
 console.log('\n[主屏] 指示图标 svg 尺寸:', JSON.stringify(sbInds))
 console.log('[主屏] 原生图标 svg 尺寸:', JSON.stringify(sbNatives))
