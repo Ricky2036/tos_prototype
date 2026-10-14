@@ -1,121 +1,239 @@
 <script setup>
 import { ref, computed } from 'vue'
-import LIcon from '../../ui/LIcon.vue'
+import phoneBodyImg from '../../../assets/img/onetap/phone_body.webp'
+import icMute from '../../../assets/img/onetap/ic_mute.webp'
+import icCamera from '../../../assets/img/onetap/ic_camera.webp'
+import icFlashlight from '../../../assets/img/onetap/ic_flashlight.webp'
+import icFolax from '../../../assets/img/onetap/ic_folax.webp'
+import icFlashNote from '../../../assets/img/onetap/ic_flash_note.webp'
+import icDisturb from '../../../assets/img/onetap/ic_disturb.webp'
+import icHealth from '../../../assets/img/onetap/ic_health.webp'
+import icScreenRecord from '../../../assets/img/onetap/ic_screen_record.webp'
+import icRecord from '../../../assets/img/onetap/ic_record.webp'
+import icNote from '../../../assets/img/onetap/ic_note.webp'
+import icTranslate from '../../../assets/img/onetap/ic_translate.webp'
+import icShortcutApp from '../../../assets/img/onetap/ic_shortcut_app.webp'
+import icCustom from '../../../assets/img/onetap/ic_custom.webp'
+import icNone from '../../../assets/img/onetap/ic_none.webp'
 
 const emit = defineEmits(['back', 'navigate'])
 
-// 预设模式列表（完全对齐真机 One-Tap Button 轮播项与实机截图，全量复用系统标准 Lucide 矢量）
+// 完整对齐真机 14 项功能模式（提取自真机 TranssionFlexButton 与界面 hierarchy）
 const modes = [
   {
-    id: 'custom',
-    name: '自定义',
-    iconName: 'pencil',
-    glowColor: 'rgba(139, 144, 246, 0.45)',
-    buttonBg: 'linear-gradient(180deg, #9FA5F8 0%, #7B81EA 100%)',
-    subtitles: ['长按静音', '单击唤起一键闪记', '双击打开手电筒'],
-    actionBtn: { text: '去修改', type: 'secondary' }
-  },
-  {
-    id: 'shortcut_app',
-    name: '快捷应用',
-    iconName: 'layoutGrid',
-    glowColor: 'rgba(77, 141, 254, 0.45)',
-    buttonBg: 'linear-gradient(180deg, #60A5FA 0%, #3B82F6 100%)',
-    subtitles: ['长按快启应用'],
-    actionBtn: { text: '去设置', type: 'primary' }
-  },
-  {
-    id: 'translate',
-    name: '翻译助手',
-    iconName: 'languages',
-    glowColor: 'rgba(168, 85, 247, 0.45)',
-    buttonBg: 'linear-gradient(180deg, #C084FC 0%, #9333EA 100%)',
-    subtitles: ['长按实时翻译'],
-    actionBtn: null
-  },
-  {
     id: 'mute',
-    name: '静音模式',
-    iconName: 'bellOff',
-    glowColor: 'rgba(245, 158, 11, 0.45)',
-    buttonBg: 'linear-gradient(180deg, #FBBF24 0%, #D97706 100%)',
-    subtitles: ['长按切换响铃/静音'],
-    actionBtn: null
-  },
-  {
-    id: 'flashlight',
-    name: '手电筒',
-    iconName: 'flashlight',
-    glowColor: 'rgba(250, 204, 21, 0.45)',
-    buttonBg: 'linear-gradient(180deg, #FDE047 0%, #CA8A04 100%)',
-    subtitles: ['长按开启/关闭手电筒'],
+    name: '静音',
+    alias: '静音模式',
+    icon: icMute,
+    glowColor: 'rgba(240, 110, 30, 0.45)',
+    buttonBg: 'linear-gradient(180deg, #FA9434 0%, #E36418 100%)',
+    subtitles: ['长按静音'],
     actionBtn: null
   },
   {
     id: 'camera',
     name: '相机',
-    iconName: 'camera',
-    glowColor: 'rgba(16, 185, 129, 0.45)',
-    buttonBg: 'linear-gradient(180deg, #34D399 0%, #059669 100%)',
-    subtitles: ['长按快速打开相机'],
+    icon: icCamera,
+    glowColor: 'rgba(240, 190, 50, 0.45)',
+    buttonBg: 'linear-gradient(180deg, #F3C34E 0%, #D89F2A 100%)',
+    subtitles: ['长按打开相机'],
     actionBtn: null
+  },
+  {
+    id: 'flashlight',
+    name: '手电筒',
+    icon: icFlashlight,
+    glowColor: 'rgba(100, 130, 245, 0.45)',
+    buttonBg: 'linear-gradient(180deg, #8DA4F8 0%, #6380F0 100%)',
+    subtitles: ['长按打开手电筒'],
+    actionBtn: null
+  },
+  {
+    id: 'folax',
+    name: 'Folax',
+    icon: icFolax,
+    glowColor: 'rgba(60, 180, 215, 0.45)',
+    buttonBg: 'linear-gradient(180deg, #66D0E6 0%, #36A7C0 100%)',
+    subtitles: ['长按唤醒Folax'],
+    actionBtn: null
+  },
+  {
+    id: 'flash_note',
+    name: '一键闪记',
+    icon: icFlashNote,
+    glowColor: 'rgba(110, 135, 205, 0.45)',
+    buttonBg: 'linear-gradient(180deg, #8AA1DE 0%, #6B82C4 100%)',
+    subtitles: ['长按触发一键闪记'],
+    actionBtn: null
+  },
+  {
+    id: 'disturb',
+    name: '勿扰',
+    icon: icDisturb,
+    glowColor: 'rgba(120, 105, 220, 0.45)',
+    buttonBg: 'linear-gradient(180deg, #8B81E2 0%, #6C61CF 100%)',
+    subtitles: ['长按打开勿扰'],
+    actionBtn: null
+  },
+  {
+    id: 'health',
+    name: '健康',
+    icon: icHealth,
+    glowColor: 'rgba(235, 155, 40, 0.45)',
+    buttonBg: 'linear-gradient(180deg, #F1AE3C 0%, #D48E22 100%)',
+    subtitles: ['长按打开健康'],
+    actionBtn: null
+  },
+  {
+    id: 'screen_record',
+    name: '屏幕录制',
+    icon: icScreenRecord,
+    glowColor: 'rgba(230, 80, 70, 0.45)',
+    buttonBg: 'linear-gradient(180deg, #EC6058 0%, #D7433B 100%)',
+    subtitles: ['长按打开屏幕录制'],
+    actionBtn: null
+  },
+  {
+    id: 'sound_record',
+    name: '录音',
+    icon: icRecord,
+    glowColor: 'rgba(230, 70, 110, 0.45)',
+    buttonBg: 'linear-gradient(180deg, #E65A84 0%, #CF3B6A 100%)',
+    subtitles: ['长按打开录音'],
+    actionBtn: null
+  },
+  {
+    id: 'note',
+    name: '笔记速记',
+    icon: icNote,
+    glowColor: 'rgba(235, 155, 45, 0.45)',
+    buttonBg: 'linear-gradient(180deg, #EEAA44 0%, #D28F2A 100%)',
+    subtitles: ['长按打开笔记速记'],
+    actionBtn: null
+  },
+  {
+    id: 'translate',
+    name: '翻译',
+    alias: '翻译助手',
+    icon: icTranslate,
+    glowColor: 'rgba(90, 150, 230, 0.45)',
+    buttonBg: 'linear-gradient(180deg, #74A8EB 0%, #4D87D3 100%)',
+    subtitles: ['长按打开翻译'],
+    actionBtn: null
+  },
+  {
+    id: 'shortcut_app',
+    name: '快捷应用',
+    icon: icShortcutApp,
+    glowColor: 'rgba(50, 130, 245, 0.45)',
+    buttonBg: 'linear-gradient(180deg, #5196F5 0%, #2E7CF0 100%)',
+    subtitles: ['长按快启应用'],
+    actionBtn: { text: '去设置', type: 'primary' }
+  },
+  {
+    id: 'custom',
+    name: '自定义',
+    icon: icCustom,
+    glowColor: 'rgba(125, 130, 235, 0.45)',
+    buttonBg: 'linear-gradient(180deg, #9196EE 0%, #6E74DF 100%)',
+    subtitles: ['长按静音', '单击唤起一键闪记', '双击打开手电筒'],
+    actionBtn: { text: '去修改', type: 'secondary' }
   },
   {
     id: 'none',
     name: '无操作',
-    iconName: 'ban',
-    glowColor: 'none',
-    buttonBg: 'linear-gradient(180deg, #6B7280 0%, #4B5563 100%)',
+    icon: icNone,
+    glowColor: 'transparent',
+    buttonBg: 'linear-gradient(180deg, #828489 0%, #636569 100%)',
     subtitles: [],
     actionBtn: null
   }
 ]
 
-// 当前选中的模式索引，以及系统当前生效的模式 ID
-const currentIndex = ref(0)
+// 默认激活项对齐真机为自定义 (索引 12)
+const currentIndex = ref(12)
 const activeModeId = ref('custom')
 
 const currentMode = computed(() => modes[currentIndex.value])
 const isCurrentActive = computed(() => currentMode.value.id === activeModeId.value)
 
-// 左右预览项
-const prevMode = computed(() => {
-  const idx = (currentIndex.value - 1 + modes.length) % modes.length
-  return modes[idx]
-})
+// 左右相邻项（无循环循环溢出，端点处自然隐去）
+const prevMode = computed(() => (currentIndex.value > 0 ? modes[currentIndex.value - 1] : null))
+const nextMode = computed(() => (currentIndex.value < modes.length - 1 ? modes[currentIndex.value + 1] : null))
 
-const nextMode = computed(() => {
-  const idx = (currentIndex.value + 1) % modes.length
-  return modes[idx]
-})
-
-function prevSlide() {
-  currentIndex.value = (currentIndex.value - 1 + modes.length) % modes.length
+function goToPrev() {
+  if (currentIndex.value > 0) {
+    currentIndex.value--
+  }
 }
 
-function nextSlide() {
-  currentIndex.value = (currentIndex.value + 1) % modes.length
+function goToNext() {
+  if (currentIndex.value < modes.length - 1) {
+    currentIndex.value++
+  }
 }
 
 function goToIndex(idx) {
-  if (idx < modes.length) {
+  if (idx >= 0 && idx < modes.length) {
     currentIndex.value = idx
   }
 }
 
-// 触摸滑动手势
-let touchStartX = 0
-function handleTouchStart(e) {
-  touchStartX = e.touches[0].clientX
+// 拖拽与跟手滑动手势
+const dragX = ref(0)
+const isDragging = ref(false)
+let startClientX = 0
+let startClientY = 0
+let isHorizontalDrag = false
+
+function onPointerDown(e) {
+  startClientX = e.clientX
+  startClientY = e.clientY
+  isDragging.value = true
+  isHorizontalDrag = false
+  dragX.value = 0
 }
 
-function handleTouchEnd(e) {
-  const touchEndX = e.changedTouches[0].clientX
-  const diff = touchEndX - touchStartX
-  if (diff > 45) {
-    prevSlide()
-  } else if (diff < -45) {
-    nextSlide()
+function onPointerMove(e) {
+  if (!isDragging.value) return
+  const dx = e.clientX - startClientX
+  const dy = e.clientY - startClientY
+
+  if (!isHorizontalDrag) {
+    if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) {
+      isHorizontalDrag = true
+    } else if (Math.abs(dy) > 10) {
+      isDragging.value = false
+      return
+    }
+  }
+
+  if (isHorizontalDrag) {
+    // 边界阻尼
+    if (
+      (currentIndex.value === 0 && dx > 0) ||
+      (currentIndex.value === modes.length - 1 && dx < 0)
+    ) {
+      dragX.value = dx * 0.28
+    } else {
+      dragX.value = dx
+    }
+  }
+}
+
+function onPointerUp(e) {
+  if (!isDragging.value) return
+  isDragging.value = false
+
+  const dx = dragX.value
+  dragX.value = 0
+
+  if (Math.abs(dx) > 42) {
+    if (dx > 0 && currentIndex.value > 0) {
+      currentIndex.value--
+    } else if (dx < 0 && currentIndex.value < modes.length - 1) {
+      currentIndex.value++
+    }
   }
 }
 
@@ -148,88 +266,147 @@ defineExpose({ back })
 </script>
 
 <template>
-  <div class="settings-onetap-page" aria-label="One-Tap Button" @touchstart="handleTouchStart" @touchend="handleTouchEnd">
-    <!-- 顶部导航栏：真机无中间标题，仅左上角圆形返回键 -->
-    <div class="onetap-nav-bar">
-      <button class="nav-round-btn-dark" aria-label="返回" data-nav-back @click="emit('back')">
+  <div class="onetap-page" aria-label="One-Tap Button">
+    <!-- 顶部导航栏: One-Tap Button -->
+    <div class="onetap-nav-bar" aria-label="One-Tap Button">
+      <button class="nav-round-btn" aria-label="返回" data-nav-back @click="back">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
           <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
     </div>
 
-    <!-- 舞台主体：机身侧轨与按键微光投影 -->
-    <div class="onetap-stage">
-      <!-- 左侧预览图标 -->
-      <button class="flank-icon-btn left-icon" :aria-label="prevMode.name" @click="prevSlide">
-        <LIcon :name="prevMode.iconName" :size="30" :stroke-width="2" />
+    <!-- 主展示舞台：高精度手机侧边中框 + 真实物理按键与左右预告 -->
+    <div
+      class="onetap-stage"
+      @pointerdown="onPointerDown"
+      @pointermove="onPointerMove"
+      @pointerup="onPointerUp"
+      @pointercancel="onPointerUp"
+    >
+      <!-- 左侧预告图标 -->
+      <button
+        class="flank-icon-btn left-flank"
+        :class="{ hidden: !prevMode }"
+        aria-label="上一项"
+        @click.stop="goToPrev"
+      >
+        <img
+          v-if="prevMode"
+          :src="prevMode.icon"
+          class="flank-icon-img"
+          alt=""
+          draggable="false"
+        />
       </button>
 
-      <!-- 手机侧轨与动作按键 -->
-      <div class="phone-rail-container">
-        <!-- 磨砂金属侧边中框 -->
-        <div class="phone-rail">
-          <!-- 凹槽基座 -->
-          <div class="button-cavity">
-            <!-- 发光胶囊按键 -->
-            <div
-              class="active-capsule-button"
-              :style="{
-                background: currentMode.buttonBg,
-                boxShadow: currentMode.glowColor !== 'none'
-                  ? `0 0 45px ${currentMode.glowColor}, inset 0 2px 4px rgba(255, 255, 255, 0.45)`
-                  : 'none'
-              }"
-            >
-              <LIcon :name="currentMode.iconName" :size="42" :stroke-width="2.2" />
-            </div>
+      <!-- 手机侧边金属中框整体（自带物理凹槽与上下自然渐隐） -->
+      <div class="chassis-column phone-rail">
+        <img
+          :src="phoneBodyImg"
+          class="chassis-bg-img"
+          alt=""
+          draggable="false"
+        />
+
+        <!-- 药丸按键发光与实体按键组（跟随拖拽平滑平移） -->
+        <div
+          class="button-capsule-wrap button-cavity"
+          :style="{
+            transform: `translate(calc(-50% + ${dragX}px), -50%)`,
+            transition: isDragging ? 'none' : 'transform 0.36s cubic-bezier(0.22, 1, 0.36, 1)'
+          }"
+        >
+          <!-- 径向光晕溢出 -->
+          <div
+            class="capsule-glow"
+            :style="{ background: currentMode.glowColor }"
+          ></div>
+
+          <!-- 3D 实体按键跑道药丸 -->
+          <div
+            class="capsule-button active-capsule-button"
+            :style="{ background: currentMode.buttonBg }"
+          >
+            <!-- 按键内层凸面微高光 -->
+            <div class="capsule-specular"></div>
+
+            <!-- 图标呈现 -->
+            <img
+              :src="currentMode.icon"
+              class="capsule-icon-img"
+              alt=""
+              draggable="false"
+            />
           </div>
         </div>
       </div>
 
-      <!-- 右侧预览图标 -->
-      <button class="flank-icon-btn right-icon" :aria-label="nextMode.name" @click="nextSlide">
-        <LIcon :name="nextMode.iconName" :size="30" :stroke-width="2" />
+      <!-- 右侧预告图标 -->
+      <button
+        class="flank-icon-btn right-flank"
+        :class="{ hidden: !nextMode }"
+        aria-label="下一项"
+        @click.stop="goToNext"
+      >
+        <img
+          v-if="nextMode"
+          :src="nextMode.icon"
+          class="flank-icon-img"
+          alt=""
+          draggable="false"
+        />
       </button>
     </div>
 
-    <!-- 模式文案与操作 -->
-    <div class="onetap-info-container">
-      <div class="mode-title">{{ currentMode.name }}</div>
+    <!-- 模式说明与操作区域（高精度锁定固定高度，彻底杜绝切换时上下跳行） -->
+    <div class="onetap-info-deck">
+      <div class="mode-title-box">
+        <span class="mode-title">{{ currentMode.name }}</span>
+      </div>
 
-      <div class="mode-subtitles">
-        <div v-for="(sub, i) in currentMode.subtitles" :key="i" class="subtitle-line">
+      <!-- 固定 56px 高度容器，无论单行/三行/空行均不发生布局位移 -->
+      <div class="mode-subtitles-box">
+        <div
+          v-for="(sub, idx) in currentMode.subtitles"
+          :key="idx"
+          class="mode-sub-line"
+        >
           {{ sub }}
         </div>
       </div>
 
-      <!-- 调整修改胶囊按钮 -->
-      <div class="action-btn-row">
+      <!-- 固定 38px 操作按钮插槽，无按钮时留空占位，保证下方指示点与底栏绝不位移 -->
+      <div class="mode-action-slot">
         <button
           v-if="currentMode.actionBtn"
-          class="sub-action-pill"
-          :class="currentMode.actionBtn.type"
+          class="action-pill-btn"
+          :class="`btn-${currentMode.actionBtn.type}`"
           @click="handleActionBtn(currentMode.actionBtn)"
         >
           {{ currentMode.actionBtn.text }}
         </button>
       </div>
+    </div>
 
-      <!-- 底部指示圆点（真机 10 点指示器） -->
-      <div class="carousel-dots-row pagination-dots">
-        <span
-          v-for="(_, idx) in 10"
-          :key="idx"
-          class="carousel-dot"
+    <!-- 底部控制栏：14 个页面指示点 + 设定/使用中按钮 -->
+    <div class="onetap-bottom-bar">
+      <!-- 14 项点阵指示器 -->
+      <div class="dots-row pagination-dots">
+        <button
+          v-for="(m, idx) in modes"
+          :key="m.id"
+          class="dot-node"
           :class="{ active: idx === currentIndex }"
+          :aria-label="m.name"
           @click="goToIndex(idx)"
-        ></span>
+        ></button>
       </div>
 
-      <!-- 底部主设定按钮：使用中 / 设定 -->
+      <!-- 底部主操作按钮 -->
       <button
-        class="bottom-apply-btn"
-        :class="{ applied: isCurrentActive }"
+        class="apply-btn"
+        :class="{ 'is-active': isCurrentActive }"
         :disabled="isCurrentActive"
         @click="applyActive"
       >
@@ -237,281 +414,360 @@ defineExpose({ back })
       </button>
     </div>
 
-    <!-- 浮动提示 Toast -->
+    <!-- 浮层 Toast -->
     <transition name="toast-fade">
-      <div v-if="toastText" class="settings-toast-dark">{{ toastText }}</div>
+      <div v-if="toastText" class="onetap-toast">
+        {{ toastText }}
+      </div>
     </transition>
   </div>
 </template>
 
 <style scoped>
-.settings-onetap-page {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
+.onetap-page {
+  width: 100%;
+  height: 100%;
   background: #000000;
   color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  position: relative;
   overflow: hidden;
   user-select: none;
+  -webkit-user-select: none;
 }
 
-/* 顶部导航：无中间标题 */
+/* 顶部导航返回 */
 .onetap-nav-bar {
+  height: calc(var(--safe-top, 44px) + 52px);
+  padding-top: var(--safe-top, 44px);
   display: flex;
   align-items: center;
-  height: calc(var(--safe-top, 0px) + 52px);
-  padding: var(--safe-top, 0px) 16px 0 16px;
-  background: transparent;
-  flex-shrink: 0;
+  padding-left: 16px;
+  padding-right: 16px;
+  flex: none;
   z-index: 10;
+  box-sizing: border-box;
 }
 
-.nav-round-btn-dark {
+.nav-round-btn {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
   border: none;
-  outline: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.2s ease;
+  touch-action: manipulation;
 }
 
-.nav-round-btn-dark:active {
-  background: rgba(255, 255, 255, 0.25);
+.nav-round-btn:active {
+  background: rgba(255, 255, 255, 0.16);
 }
 
-/* 舞台布局：机身侧轨贯穿上半部 */
+/* 主展示舞台 */
 .onetap-stage {
   flex: 1;
+  min-height: 350px;
+  max-height: 490px;
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  max-height: 420px;
-  position: relative;
+  justify-content: center;
+  touch-action: pan-y;
+  cursor: grab;
 }
 
+.onetap-stage:active {
+  cursor: grabbing;
+}
+
+/* 侧边预告图标 */
 .flank-icon-btn {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: transparent;
+  position: absolute;
+  top: 49.6%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  background: none;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   opacity: 0.35;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.25s ease, transform 0.2s ease;
+  cursor: pointer;
   z-index: 5;
+  touch-action: manipulation;
 }
 
-.flank-icon-btn:hover {
-  opacity: 0.7;
+.flank-icon-btn.left-flank {
+  left: 22px;
+}
+
+.flank-icon-btn.right-flank {
+  right: 22px;
+}
+
+.flank-icon-btn.hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .flank-icon-btn:active {
-  transform: scale(0.92);
+  opacity: 0.7;
+  transform: translateY(-50%) scale(1.1);
 }
 
-/* 手机侧轨 */
-.phone-rail-container {
+.flank-icon-img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  pointer-events: none;
+  filter: brightness(0.9);
+}
+
+/* 手机侧边金属中框柱：添加上下平滑渐隐 Mask，彻底消除硬切边缘 */
+.chassis-column {
+  width: 216px;
+  height: 100%;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1;
-  height: 100%;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
 }
 
-.phone-rail {
-  width: 190px;
+.chassis-bg-img {
+  width: 100%;
   height: 100%;
-  max-height: 380px;
-  border-radius: 44px;
-  background: linear-gradient(90deg, #18191B 0%, #2C2D31 20%, #45474D 48%, #4A4C52 50%, #45474D 52%, #2C2D31 80%, #18191B 100%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow:
-    inset -3px 0 6px rgba(255, 255, 255, 0.08),
-    inset 3px 0 6px rgba(0, 0, 0, 0.6),
-    0 12px 40px rgba(0, 0, 0, 0.85);
+  object-fit: fill;
+  display: block;
+}
+
+/* 实体药丸按键容器：精确对齐底图凹槽几何中心 (Y ≈ 49.6%) */
+.button-capsule-wrap {
+  position: absolute;
+  left: 50%;
+  top: 49.6%;
+  width: 110px;
+  height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 径向光晕 */
+.capsule-glow {
+  position: absolute;
+  width: 180px;
+  height: 320px;
+  border-radius: 50%;
+  filter: blur(32px);
+  opacity: 0.85;
+  pointer-events: none;
+  transition: background 0.32s ease;
+}
+
+/* 3D 药丸按键本体 */
+.capsule-button {
+  width: 108px;
+  height: 236px;
+  border-radius: 54px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-}
-
-/* 物理凹槽 */
-.button-cavity {
-  width: 96px;
-  height: 200px;
-  border-radius: 48px;
-  background: #18191D;
   box-shadow:
-    inset 0 3px 8px rgba(0, 0, 0, 0.95),
-    inset 0 -1px 3px rgba(255, 255, 255, 0.08),
-    0 1px 2px rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.45),
+    inset 0 -1.5px 3px rgba(0, 0, 0, 0.4),
+    0 2px 12px rgba(0, 0, 0, 0.55);
+  transition: background 0.32s ease;
+  overflow: hidden;
 }
 
-/* 发光胶囊按键 */
-.active-capsule-button {
-  width: 82px;
-  height: 184px;
-  border-radius: 41px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-  cursor: pointer;
+.capsule-specular {
+  position: absolute;
+  inset: 0;
+  border-radius: 54px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.15) 100%);
+  pointer-events: none;
 }
 
-.active-capsule-button:active {
-  transform: scale(0.97);
+.capsule-icon-img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+  pointer-events: none;
 }
 
-/* 底部信息区 */
-.onetap-info-container {
+/* 模式说明甲板区（结构性锁定垂直高度，零跳变） */
+.onetap-info-deck {
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 24px 32px 24px;
-  flex-shrink: 0;
+  flex: none;
+}
+
+.mode-title-box {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
 }
 
 .mode-title {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 600;
   color: #FFFFFF;
-  margin-bottom: 8px;
   letter-spacing: -0.3px;
 }
 
-.mode-subtitles {
-  min-height: 52px;
+.mode-subtitles-box {
+  height: 56px;
+  min-height: 56px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 3px;
+}
+
+.mode-sub-line {
+  font-size: 14.5px;
+  color: #8E8E93;
+  line-height: 1.35;
+  text-align: center;
+  transition: opacity 0.2s ease;
+}
+
+/* 按钮占位插槽（高度恒定 38px） */
+.mode-action-slot {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
   margin-bottom: 12px;
 }
 
-.subtitle-line {
+.action-pill-btn {
+  height: 32px;
+  padding: 0 18px;
+  border-radius: 16px;
   font-size: 13.5px;
-  color: #8E8E93;
-}
-
-/* 修改操作按钮 */
-.action-btn-row {
-  min-height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 24px;
-}
-
-.sub-action-pill {
-  padding: 7px 22px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   border: none;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  touch-action: manipulation;
 }
 
-.sub-action-pill.secondary {
-  background: rgba(255, 255, 255, 0.18);
+.action-pill-btn.btn-primary {
+  background: #2E7CF6;
   color: #FFFFFF;
 }
 
-.sub-action-pill.secondary:active {
-  background: rgba(255, 255, 255, 0.28);
+.action-pill-btn.btn-secondary {
+  background: #2C2C2E;
+  color: #E5E5EA;
 }
 
-.sub-action-pill.primary {
-  background: #007AFF;
-  color: #FFFFFF;
+.action-pill-btn:active {
+  transform: scale(0.96);
+  opacity: 0.85;
 }
 
-.sub-action-pill.primary:active {
-  background: #0062CC;
+/* 底部控制栏（指示点 + 设定按钮） */
+.onetap-bottom-bar {
+  width: 100%;
+  padding: 0 20px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: none;
 }
 
-/* 轮播点指示器 */
-.carousel-dots-row {
+.dots-row {
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-bottom: 26px;
+  gap: 7px;
+  margin-bottom: 16px;
 }
 
-.carousel-dot {
+.dot-node {
   width: 5px;
   height: 5px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.25);
+  border: none;
+  padding: 0;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.25s ease, transform 0.25s ease;
+  touch-action: manipulation;
 }
 
-.carousel-dot.active {
+.dot-node.active {
   background: #FFFFFF;
-  width: 14px;
-  border-radius: 3px;
+  transform: scale(1.3);
 }
 
-/* 底部主按钮 */
-.bottom-apply-btn {
+.apply-btn {
   width: 100%;
-  max-width: 340px;
   height: 48px;
   border-radius: 24px;
-  font-size: 16px;
-  font-weight: 600;
   border: none;
+  font-size: 16px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #242426;
+  color: #FFFFFF;
   cursor: pointer;
-  transition: all 0.2s ease;
-  background: #FFFFFF;
-  color: #000000;
+  transition: background 0.2s ease, opacity 0.2s ease, transform 0.15s ease;
+  touch-action: manipulation;
 }
 
-.bottom-apply-btn.applied {
-  background: rgba(255, 255, 255, 0.08);
-  color: #636366;
+.apply-btn:not(.is-active):active {
+  transform: scale(0.98);
+  background: #333336;
+}
+
+.apply-btn.is-active {
+  background: #242426;
+  color: #737377;
   cursor: default;
 }
 
-.bottom-apply-btn:not(.applied):active {
-  opacity: 0.85;
-  transform: scale(0.98);
-}
-
-/* Toast Dark */
-.settings-toast-dark {
+/* Toast 提示 */
+.onetap-toast {
   position: absolute;
-  bottom: 84px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  background: rgba(44, 44, 46, 0.92);
+  transform: translate(-50%, -50%);
+  background: rgba(30, 30, 32, 0.94);
   color: #FFFFFF;
-  padding: 8px 18px;
+  padding: 10px 20px;
   border-radius: 20px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   pointer-events: none;
   z-index: 100;
-  white-space: nowrap;
+  text-align: center;
 }
 
 .toast-fade-enter-active,
@@ -522,6 +778,6 @@ defineExpose({ back })
 .toast-fade-enter-from,
 .toast-fade-leave-to {
   opacity: 0;
-  transform: translate(-50%, 8px);
+  transform: translate(-50%, -42%);
 }
 </style>
