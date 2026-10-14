@@ -29,6 +29,10 @@ import SettingsSecurity from './SettingsSecurity.vue'
 import SettingsPrivacy from './SettingsPrivacy.vue'
 import SettingsAppsManage from './SettingsAppsManage.vue'
 import SettingsLocation from './SettingsLocation.vue'
+import SettingsAccessibility from './SettingsAccessibility.vue'
+import SettingsOneTap from './SettingsOneTap.vue'
+import SettingsBattery from './SettingsBattery.vue'
+import SettingsStorage from './SettingsStorage.vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
 import { useSystemStore } from '../../../stores/systemStore'
@@ -131,6 +135,10 @@ const securityRef = ref(null)
 const privacyRef = ref(null)
 const appsManageRef = ref(null)
 const locationRef = ref(null)
+const accessibilityRef = ref(null)
+const oneTapRef = ref(null)
+const batteryRef = ref(null)
+const storageRef = ref(null)
 useBackHandler(() => {
   if (view.value === 'about' && aboutPhoneRef.value?.back?.()) return true
   if (view.value === 'sim' && simRef.value?.back?.()) return true
@@ -141,6 +149,10 @@ useBackHandler(() => {
   if (view.value === 'privacy' && privacyRef.value?.back?.()) return true
   if (view.value === 'appsManage' && appsManageRef.value?.back?.()) return true
   if (view.value === 'location' && locationRef.value?.back?.()) return true
+  if (view.value === 'accessibility' && accessibilityRef.value?.back?.()) return true
+  if (view.value === 'oneTap' && oneTapRef.value?.back?.()) return true
+  if (view.value === 'battery' && batteryRef.value?.back?.()) return true
+  if (view.value === 'storage' && storageRef.value?.back?.()) return true
   if (view.value === 'personalization' && personalizationRef.value?.back()) return true
   if (view.value === 'prayer' && prayerRef.value?.back()) return true
   if (view.value === 'notifications' && notifRef.value?.back()) return true
@@ -168,6 +180,10 @@ const viewTitles = computed(() => ({
   privacy: '权限与隐私',
   appsManage: '应用管理',
   location: '位置信息',
+  accessibility: '辅助功能',
+  oneTap: 'One-Tap Button',
+  battery: '电池与省电',
+  storage: '存储',
   account: 'Infinix ID',
   accountLogin: 'INFINIX ID',
   accountSecurity: '账号安全',
@@ -237,11 +253,15 @@ const allSearchableItems = [
   { id: 'appClone', title: '应用双开', group: '应用', action: () => push('appsManage') },
   { id: 'defaultApps', title: '默认应用', group: '应用', action: () => push('appsManage') },
   { id: 'location', title: '位置信息', group: '安全与隐私', action: () => push('location') },
-  { id: 'gtZone', title: 'GT Zone', group: '特色功能', action: () => pushUnimplemented('GT Zone') },
+  { id: 'accessibility', title: '辅助功能', group: '系统', action: () => push('accessibility') },
+  { id: 'oneTap', title: 'One-Tap Button', group: '系统', action: () => push('oneTap') },
+  { id: 'actionButton', title: '实体动作键', group: '系统', action: () => push('oneTap') },
+  { id: 'battery', title: '电池与省电', group: '电量', action: () => push('battery') },
+  { id: 'batteryHealth', title: '电池健康', group: '电量', action: () => push('battery') },
+  { id: 'storage', title: '存储', group: '系统', action: () => push('storage') },
+  { id: 'cleanStorage', title: '存储清理', group: '系统', action: () => push('storage') },
+  { id: 'gtZone', title: 'GT Zone', group: '特色功能', action: () => push('oneTap') },
   { id: 'wallet', title: '钱包', group: '特色功能', action: () => push('wallet') },
-  { id: 'accessibility', title: '辅助功能', group: '系统', action: () => pushUnimplemented('辅助功能') },
-  { id: 'battery', title: '电池与省电', group: '电量', action: () => pushUnimplemented('电池与省电') },
-  { id: 'storage', title: '存储', group: '系统', action: () => pushUnimplemented('存储') },
   { id: 'digitalHealth', title: '数字健康与家长控制', group: '数字健康', action: () => pushUnimplemented('数字健康与家长控制') },
   { id: 'emergency', title: '安全和紧急情况', group: '安全', action: () => pushUnimplemented('安全和紧急情况') },
   { id: 'account', title: '用户与账号', group: '账号', action: () => push('account') },
@@ -504,17 +524,8 @@ const filteredSearchResults = computed(() => {
 
             <!-- ================= 卡片 6: 系统特色与性能 (4项) ================= -->
             <div class="settings-card">
-              <!-- GT Zone -->
-              <ListCell title="GT Zone" chevron @click="pushUnimplemented('GT Zone')">
-                <template #icon>
-                  <div class="squircle-icon bg-gt">
-                    <span class="gt-badge">GT</span>
-                  </div>
-                </template>
-              </ListCell>
-
               <!-- 辅助功能 -->
-              <ListCell title="辅助功能" chevron @click="pushUnimplemented('辅助功能')">
+              <ListCell title="辅助功能" chevron @click="push('accessibility')">
                 <template #icon>
                   <div class="squircle-icon bg-accessibility">
                     <SettingsSystemIcon name="accessibility" />
@@ -522,8 +533,20 @@ const filteredSearchResults = computed(() => {
                 </template>
               </ListCell>
 
+              <!-- One-Tap Button -->
+              <ListCell title="One-Tap Button" chevron @click="push('oneTap')">
+                <template #icon>
+                  <div class="squircle-icon bg-onetap">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <rect x="7" y="3" width="10" height="18" rx="5" stroke="#FFFFFF" stroke-width="2"/>
+                      <rect x="10" y="7" width="4" height="6" rx="2" fill="#FFFFFF"/>
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
               <!-- 电池与省电 -->
-              <ListCell title="电池与省电" chevron @click="pushUnimplemented('电池与省电')">
+              <ListCell title="电池与省电" chevron @click="push('battery')">
                 <template #icon>
                   <div class="squircle-icon bg-battery">
                     <SettingsSystemIcon name="battery" :size="19" />
@@ -532,7 +555,7 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- 存储 -->
-              <ListCell title="存储" chevron last @click="pushUnimplemented('存储')">
+              <ListCell title="存储" chevron last @click="push('storage')">
                 <template #icon>
                   <div class="squircle-icon bg-storage">
                     <SettingsSystemIcon name="storage" />
@@ -739,6 +762,26 @@ const filteredSearchResults = computed(() => {
       <!-- ================= 位置信息 ================= -->
       <div v-else-if="view === 'location'" key="location" class="settings-page">
         <SettingsLocation ref="locationRef" @back="pop" />
+      </div>
+
+      <!-- ================= 辅助功能 ================= -->
+      <div v-else-if="view === 'accessibility'" key="accessibility" class="settings-page">
+        <SettingsAccessibility ref="accessibilityRef" @back="pop" />
+      </div>
+
+      <!-- ================= One-Tap Button ================= -->
+      <div v-else-if="view === 'oneTap'" key="oneTap" class="settings-page">
+        <SettingsOneTap ref="oneTapRef" @back="pop" />
+      </div>
+
+      <!-- ================= 电池与省电 ================= -->
+      <div v-else-if="view === 'battery'" key="battery" class="settings-page">
+        <SettingsBattery ref="batteryRef" @back="pop" />
+      </div>
+
+      <!-- ================= 存储 ================= -->
+      <div v-else-if="view === 'storage'" key="storage" class="settings-page">
+        <SettingsStorage ref="storageRef" @back="pop" />
       </div>
 
       <!-- ================= 其他二级页 ================= -->
@@ -1039,7 +1082,8 @@ const filteredSearchResults = computed(() => {
   letter-spacing: -0.5px;
 }
 
-.bg-accessibility { background: #EF4444; }
+.bg-accessibility { background: #3B82F6; }
+.bg-onetap { background: #2563EB; }
 .bg-battery { background: #22C55E; }
 .bg-storage { background: #3B82F6; }
 
