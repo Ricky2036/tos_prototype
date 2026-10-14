@@ -9,7 +9,7 @@ const emit = defineEmits(['back', 'navigate'])
 const lowStorageManage = ref(false)
 const cleanedOldFiles = ref(false)
 
-// 已用存储与占比（支持模拟清理后的动态响应）
+// 已用存储与占比（对齐真机 213 GB / 256 GB = 83.19%）
 const usedGB = ref(213)
 const totalGB = ref(256)
 const oldFilesSize = ref('72.73 GB')
@@ -28,7 +28,7 @@ function showToast(msg) {
 
 function handleCleanUp() {
   if (cleanedOldFiles.value) {
-    showToast('当前存储环境极佳，暂无多余垃圾文件')
+    showToast('当前存储环境良好，暂无多余垃圾文件')
     return
   }
   showToast('正在深度清理缓存与冗余安装包...')
@@ -68,7 +68,7 @@ defineExpose({ back })
 
 <template>
   <div class="settings-storage-page">
-    <!-- 顶部导航栏 -->
+    <!-- 顶部导航栏：左对齐大标题 -->
     <div class="storage-nav-bar">
       <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -76,7 +76,6 @@ defineExpose({ back })
         </svg>
       </button>
       <div class="nav-title">存储</div>
-      <div class="nav-placeholder"></div>
     </div>
 
     <!-- 滚动区域 -->
@@ -92,18 +91,18 @@ defineExpose({ back })
         </div>
         <div class="storage-capacity-text">已用 {{ usedGB }} GB/{{ totalGB }} GB</div>
 
-        <!-- 存储分类分段进度条 -->
+        <!-- 存储分类多色分段进度条（对齐真机实测色块） -->
         <div class="storage-segmented-bar">
-          <!-- 图片 (橙黄) -->
-          <span class="seg-fill seg-image" style="width: 3.5%;"></span>
-          <!-- 视频 (深橙) -->
-          <span class="seg-fill seg-video" style="width: 25.5%;"></span>
-          <!-- 应用 (亮蓝) -->
-          <span class="seg-fill seg-apps" style="width: 35.5%;"></span>
+          <!-- 图片 (明黄) -->
+          <span class="seg-fill seg-image" style="width: 3.2%;"></span>
+          <!-- 视频 (鲜橙) -->
+          <span class="seg-fill seg-video" style="width: 25.7%;"></span>
+          <!-- 应用 (湖蓝) -->
+          <span class="seg-fill seg-apps" style="width: 35.7%;"></span>
           <!-- 系统数据 (浅灰) -->
           <span class="seg-fill seg-sys-data" style="width: 7.1%;"></span>
           <!-- 系统固件 (深灰) -->
-          <span class="seg-fill seg-firmware" style="width: 11.1%;"></span>
+          <span class="seg-fill seg-firmware" style="width: 11.5%;"></span>
         </div>
       </div>
 
@@ -117,7 +116,9 @@ defineExpose({ back })
           <div class="recommend-icon bg-orange-rec">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <path d="M4 4H10L12 6H20C21.1 6 22 6.9 22 8V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" fill="#FFFFFF"/>
-              <path d="M12 11V15M10 13H14" stroke="#F97316" stroke-width="2" stroke-linecap="round"/>
+              <!-- 循环/刷新箭头 -->
+              <path d="M14 11C13.5 10.4 12.8 10 12 10C10.3 10 9 11.3 9 13C9 14.7 10.3 16 12 16C13.3 16 14.4 15.2 14.8 14" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M14 10V12H12" stroke="#F97316" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <div class="recommend-info">
@@ -127,60 +128,74 @@ defineExpose({ back })
           <div class="recommend-action">
             <span>{{ cleanedOldFiles ? '已清理' : '立即清理' }}</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M9 18L15 12L9 6" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9 18L15 12L9 6" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
         </div>
       </div>
 
-      <!-- 分类存储列表 -->
+      <!-- 分类存储列表（真机纯色指示圆点） -->
       <div class="settings-card">
         <!-- 图片 -->
         <ListCell title="图片" value="7.79 GB" chevron @click="handleCategoryTap('图片')">
           <template #icon>
-            <span class="color-dot dot-yellow"></span>
+            <div class="color-dot-wrap">
+              <span class="color-dot dot-yellow"></span>
+            </div>
           </template>
         </ListCell>
 
         <!-- 视频 -->
         <ListCell title="视频" value="65.89 GB" chevron @click="handleCategoryTap('视频')">
           <template #icon>
-            <span class="color-dot dot-orange"></span>
+            <div class="color-dot-wrap">
+              <span class="color-dot dot-orange"></span>
+            </div>
           </template>
         </ListCell>
 
         <!-- 音频 -->
         <ListCell title="音频" value="0.92 GB" chevron @click="handleCategoryTap('音频')">
           <template #icon>
-            <span class="color-dot dot-red"></span>
+            <div class="color-dot-wrap">
+              <span class="color-dot dot-red"></span>
+            </div>
           </template>
         </ListCell>
 
         <!-- 文档 -->
         <ListCell title="文档" value="179 MB" chevron @click="handleCategoryTap('文档')">
           <template #icon>
-            <span class="color-dot dot-purple"></span>
+            <div class="color-dot-wrap">
+              <span class="color-dot dot-purple"></span>
+            </div>
           </template>
         </ListCell>
 
         <!-- 安装包 -->
         <ListCell title="安装包" value="0 B" chevron @click="handleCategoryTap('安装包')">
           <template #icon>
-            <span class="color-dot dot-indigo"></span>
+            <div class="color-dot-wrap">
+              <span class="color-dot dot-indigo"></span>
+            </div>
           </template>
         </ListCell>
 
         <!-- 应用 -->
         <ListCell title="应用" value="91.41 GB" chevron @click="handleCategoryTap('应用')">
           <template #icon>
-            <span class="color-dot dot-cyan"></span>
+            <div class="color-dot-wrap">
+              <span class="color-dot dot-cyan"></span>
+            </div>
           </template>
         </ListCell>
 
         <!-- 其它 -->
         <ListCell title="其它" value="4.86 MB" chevron last @click="handleCategoryTap('其它')">
           <template #icon>
-            <span class="color-dot dot-mint"></span>
+            <div class="color-dot-wrap">
+              <span class="color-dot dot-mint"></span>
+            </div>
           </template>
         </ListCell>
       </div>
@@ -198,7 +213,9 @@ defineExpose({ back })
           @click="handleCategoryTap('系统数据')"
         >
           <template #icon>
-            <span class="color-dot dot-light-gray"></span>
+            <div class="color-dot-wrap top-align">
+              <span class="color-dot dot-light-gray"></span>
+            </div>
           </template>
         </ListCell>
 
@@ -210,7 +227,9 @@ defineExpose({ back })
           @click="handleCategoryTap('系统固件')"
         >
           <template #icon>
-            <span class="color-dot dot-dark-gray"></span>
+            <div class="color-dot-wrap">
+              <span class="color-dot dot-dark-gray"></span>
+            </div>
           </template>
         </ListCell>
       </div>
@@ -250,11 +269,11 @@ defineExpose({ back })
   user-select: none;
 }
 
-/* 导航栏 */
+/* 导航栏：左对齐大标题 */
 .storage-nav-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   height: calc(var(--safe-top, 0px) + 52px);
   padding: var(--safe-top, 0px) 16px 0 16px;
   background: #F2F2F7;
@@ -281,14 +300,10 @@ defineExpose({ back })
 }
 
 .nav-title {
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 600;
   color: #1C1C1E;
-  letter-spacing: -0.2px;
-}
-
-.nav-placeholder {
-  width: 36px;
+  letter-spacing: -0.3px;
 }
 
 /* 滚动区域 */
@@ -303,7 +318,7 @@ defineExpose({ back })
 .storage-hero-card {
   background: #FFFFFF;
   border-radius: 20px;
-  padding: 22px 20px 22px 20px;
+  padding: 20px 20px 22px 20px;
   margin-bottom: 16px;
   border: 1px solid rgba(0, 0, 0, 0.03);
 }
@@ -318,77 +333,81 @@ defineExpose({ back })
 .storage-percentage-wrap {
   display: flex;
   align-items: baseline;
+  line-height: 1;
 }
 
 .percentage-num {
-  font-size: 44px;
+  font-size: 46px;
   font-weight: 700;
-  line-height: 1;
   color: #1C1C1E;
-  letter-spacing: -1px;
+  letter-spacing: -1.2px;
 }
 
 .percentage-unit {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 600;
   color: #1C1C1E;
   margin-left: 2px;
 }
 
+/* 清理胶囊按钮：对齐真机浅色边框式样 */
 .clean-pill-btn {
-  padding: 6px 18px;
-  border-radius: 16px;
-  border: 1px solid #007AFF;
+  padding: 6px 20px;
+  border-radius: 999px;
+  border: 1.5px solid #007AFF;
   background: transparent;
   color: #007AFF;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .clean-pill-btn:active {
-  background: rgba(0, 122, 255, 0.08);
-  transform: scale(0.96);
+  background: rgba(0, 122, 255, 0.1);
 }
 
 .storage-capacity-text {
   font-size: 14px;
   color: #8E8E93;
-  margin-bottom: 18px;
+  margin-top: 4px;
+  margin-bottom: 16px;
 }
 
-/* 分段彩条 */
+/* 多色分段存储条 */
 .storage-segmented-bar {
   display: flex;
-  height: 20px;
-  border-radius: 10px;
+  height: 28px;
+  border-radius: 14px;
   overflow: hidden;
-  background: #E5E5EA;
+  background: #F2F2F7;
+  gap: 1.5px;
 }
 
 .seg-fill {
   height: 100%;
+  display: inline-block;
 }
 
-.seg-image { background: #FACC15; }
-.seg-video { background: #FB923C; }
-.seg-apps { background: #60A5FA; }
-.seg-sys-data { background: #CBD5E1; }
-.seg-firmware { background: #94A3B8; }
+.seg-image { background: #FBBF24; }
+.seg-video { background: #F97316; }
+.seg-apps { background: #38BDF8; }
+.seg-sys-data { background: #D1D5DB; }
+.seg-firmware { background: #6B7280; }
 
-/* 模块标题与操作 */
+/* 分组标题与操作链接 */
 .section-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 4px 8px 4px;
+  padding: 0 4px;
+  margin-bottom: 8px;
 }
 
 .section-title {
-  font-size: 13px;
-  color: #8E8E93;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1C1C1E;
 }
 
 .section-action-btn {
@@ -401,7 +420,16 @@ defineExpose({ back })
   cursor: pointer;
 }
 
-/* 推荐卡片 */
+/* 设置卡片容器 */
+.settings-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+/* 推荐卡片项 */
 .recommend-item {
   display: flex;
   align-items: center;
@@ -411,17 +439,17 @@ defineExpose({ back })
 }
 
 .recommend-item:active {
-  background: rgba(0, 0, 0, 0.03);
+  background: #F9F9FB;
 }
 
 .recommend-icon {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 14px;
+  margin-right: 12px;
   flex-shrink: 0;
 }
 
@@ -431,13 +459,15 @@ defineExpose({ back })
 
 .recommend-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .recommend-title {
   font-size: 15px;
   font-weight: 600;
   color: #1C1C1E;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 
 .recommend-subtitle {
@@ -453,34 +483,36 @@ defineExpose({ back })
   color: #8E8E93;
 }
 
-/* 设置卡片容器 */
-.settings-card {
-  background: #FFFFFF;
-  border-radius: 16px;
-  margin-bottom: 14px;
-  overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+/* 分类圆点指示器 */
+.color-dot-wrap {
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-shrink: 0;
 }
 
-/* 分类圆点图标 */
+.color-dot-wrap.top-align {
+  align-self: flex-start;
+  margin-top: 18px;
+}
+
 .color-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  margin-left: 2px;
-  margin-right: 4px;
-  display: inline-block;
+  display: block;
 }
 
-.dot-yellow { background: #FACC15; }
-.dot-orange { background: #FB923C; }
+.dot-yellow { background: #FBBF24; }
+.dot-orange { background: #F97316; }
 .dot-red { background: #EF4444; }
 .dot-purple { background: #A855F7; }
 .dot-indigo { background: #3B82F6; }
 .dot-cyan { background: #0EA5E9; }
 .dot-mint { background: #10B981; }
-.dot-light-gray { background: #CBD5E1; }
-.dot-dark-gray { background: #94A3B8; }
+.dot-light-gray { background: #D1D5DB; }
+.dot-dark-gray { background: #6B7280; }
 
 .bottom-spacer {
   height: 24px;
