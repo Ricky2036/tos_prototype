@@ -655,8 +655,9 @@ function handleClose() {
 
 /* 底部保存大药丸按钮 */
 .modal-footer {
-  padding: 8px 16px 24px;
+  padding: 10px 16px 28px;
   flex-shrink: 0;
+  background: #1c1c1e;
 }
 
 .btn-save-pill {

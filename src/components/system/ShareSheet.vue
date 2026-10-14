@@ -1,8 +1,21 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { useBackHandler } from '../../composables/backRegistry'
 import { useShareStore, SHARE_APPS } from '../../stores/shareStore'
 
 const store = useShareStore()
+
+useBackHandler(() => {
+  if (store.isOpen) {
+    if (store.activeMenuAppId) {
+      store.closeAllMenus()
+      return true
+    }
+    store.closeShare()
+    return true
+  }
+  return false
+})
 
 function resolveAsset(path) {
   if (!path) return ''
@@ -301,9 +314,6 @@ const activeMenuApp = computed(() => {
               </div>
             </div>
           </div>
-
-          <!-- 底部 Home 指示条 -->
-          <div class="share-home-bar"></div>
         </div>
       </div>
     </Transition>
@@ -315,7 +325,7 @@ const activeMenuApp = computed(() => {
   pointer-events: none;
   position: absolute;
   inset: 0;
-  z-index: 100;
+  z-index: 95; /* 低于全局导航栏 (z=96)，使系统全局手势条/三键导航栏自然浮于白色分享面板之上 */
 }
 
 /* 全局 Toast */
@@ -802,16 +812,6 @@ const activeMenuApp = computed(() => {
 .share-popover-check {
   flex: none;
   margin-left: 6px;
-}
-
-/* 底部 Home 指示条 */
-.share-home-bar {
-  width: 110px;
-  height: 4px;
-  background: #000000;
-  border-radius: 2px;
-  margin: 10px auto 0;
-  flex: none;
 }
 
 /* 动画过渡 */

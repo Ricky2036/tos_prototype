@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useSwipeGesture } from '../../composables/useSwipeGesture'
 import { useSpring } from '../../composables/useSpring'
 import { useSystemStore } from '../../stores/systemStore'
+import { useShareStore } from '../../stores/shareStore'
 
 /**
  * 底部 Home Indicator 手势条：
@@ -17,6 +18,7 @@ const props = defineProps({
 })
 
 const system = useSystemStore()
+const shareStore = useShareStore()
 const rootRef = ref(null)
 const GESTURE_SPAN = 260 // 更小的满量程 → 同样位移给出更大进度，更跟手
 
@@ -25,6 +27,10 @@ watch(springVal, (v) => system.setHomeGestureProgress(v))
 
 /** 当前应该执行的「回退/前进」动作 */
 function doAction() {
+  if (shareStore.isOpen) {
+    shareStore.closeShare()
+    return
+  }
   // 切换器打开时：点击手势条 = 关闭切换器（回到之前所在层）
   if (system.appSwitcherOpen) {
     system.closeSwitcher()

@@ -143,3 +143,25 @@ test('Desktop share applications list includes core desktop apps and required ch
   const bluetooth = SHARE_APPS.find((a) => a.id === 'bluetooth')
   assert.ok(bluetooth, 'Bluetooth must be present')
 })
+
+test('ShareSheet relies on global system navigation bar instead of local home indicator', () => {
+  const shareSheetPath = path.resolve(__dirname, '../src/components/system/ShareSheet.vue')
+  const content = fs.readFileSync(shareSheetPath, 'utf8')
+
+  assert.ok(!content.includes('share-home-bar'), 'Must not define or render local share-home-bar')
+  assert.ok(content.includes('z-index: 95'), 'ShareSheet layer root must have z-index 95 (below global navigation bar 96)')
+  assert.ok(content.includes('useBackHandler'), 'ShareSheet must register back handler for dismissing')
+
+  const screenViewPath = path.resolve(__dirname, '../src/components/phone/ScreenView.vue')
+  const screenContent = fs.readFileSync(screenViewPath, 'utf8')
+  assert.ok(screenContent.includes('navDark'), 'ScreenView must compute navDark for adaptive navigation bar on white share sheet')
+  assert.ok(screenContent.includes(':dark="navDark"'), 'HomeIndicator and ThreeButtonNav must receive navDark')
+})
+
+test('Lucide heart icon is a clean heart without ECG heart-rate line', () => {
+  const lucidePath = path.resolve(__dirname, '../src/assets/icons/lucide.js')
+  const content = fs.readFileSync(lucidePath, 'utf8')
+
+  assert.ok(content.includes("import heart from 'lucide-static/icons/heart.svg?raw'"), 'heart must be imported from standard lucide-static icons')
+  assert.ok(content.includes('health,'), 'health icon must be exported separately for control center')
+})

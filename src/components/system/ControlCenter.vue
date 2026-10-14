@@ -1437,7 +1437,7 @@ const glassRing = computed(() =>
                 background: 'rgba(255, 255, 255, 0.16)'
               }"
             >
-              <LIcon name="heart" :size="control.getIconSize('health')" />
+              <LIcon name="health" :size="control.getIconSize('health')" />
             </div>
             <div class="cc-pill-text"><span class="cc-pill-title">{{ i18n.ccLabel('health') }}</span></div>
           </div>
