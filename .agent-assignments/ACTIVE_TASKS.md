@@ -188,12 +188,18 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Fix app switcher resume state leak where lingering switcher overlay causes tapping resumed app to return to home screen | `antigravity/lane` | None (locks released) | `06f2077` | `2b6d45c` |
 | Review | Workbuddy | Adopt `scripts/run-e2e.mjs` as the single regression entry (daily = `--changed`, delivery = `--all --jobs 4`); document the cadence in `AGENTS.md`; fix the 6 verify scripts whose default port is the stale `5678` | `workbuddy/lane` | `scripts/run-e2e.mjs`; `AGENTS.md` (add-only section); `scripts/verify-cc-row.mjs`; `scripts/verify-cc-status-bar.mjs`; `scripts/verify-status-bar.mjs`; `scripts/verify-status-bar-camera.mjs`; `scripts/verify-status-bluetooth.mjs`; `scripts/verify-status-icon-size.mjs` | `68f7c50` | `93a6caa` |
 
-> Leftover after `93a6caa` (three verify scripts still red, root causes already identified, NOT fixed in that commit) —
-> `verify-status-bar.mjs` and `verify-status-icon-size.mjs`: `.status-bar .sb-ind` is now always rendered as 5 slots
-> with `display: none` controlling visibility, so counting `querySelectorAll().length` is a false FAIL; count the
-> visible slots (`rect.width/height > 0`) instead, and re-derive the "all off" expectation (one slot is still
-> visible there, likely Bluetooth default-on). `verify-cc-row.mjs`: `.pc-tab-btn` no longer exists (DevConsole was
-> refactored into a dropdown module switcher) and the script needs rewriting against the new structure.
+| Review | Workbuddy | Fix the three verify scripts left red by `93a6caa` (render-always status-bar slots defeating DOM counting; DevConsole structure drift breaking `.pc-tab-btn` / `.pc-card-duo`) | `workbuddy/lane` | `scripts/verify-status-bar.mjs`; `scripts/verify-status-icon-size.mjs`; `scripts/verify-cc-row.mjs` | `1d157dc` | `09140a9` |
+
+> Leftover after `93a6caa` — **RESOLVED in `09140a9`.** Root causes as diagnosed:
+> `.status-bar .sb-ind` is now always rendered as 5 fixed slots (`vibrate20 / mute30 / hotspot40 /
+> bluetooth50 / dnd60`) with `display: none` controlling visibility, so counting
+> `querySelectorAll().length` was a false FAIL — the judgment is now "visible slots" (`rect.width/height > 0`).
+> The "all off" baseline was also genuinely wrong: **Bluetooth defaults to on** and the old script never
+> turned it off. Squeeze behaviour: with all four features on, only 3 slots stay visible (the lowest-priority
+> one is dropped), so multi-on cases only assert that the high-priority subset is visible.
+> `verify-cc-row.mjs` was rewritten against the new DevConsole (module `<select id="desktop-module-select">`
+> plus `.pc-duo-row > .pc-duo-item`). Teeth tests: 5 negative controls, all red. 6 scripts now green,
+> 59 PASS / 0 FAIL.
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
