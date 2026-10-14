@@ -25,6 +25,10 @@ import SettingsSim from './SettingsSim.vue'
 import SettingsBluetooth from './SettingsBluetooth.vue'
 import SettingsSatellite from './SettingsSatellite.vue'
 import SettingsInfinixAI from './SettingsInfinixAI.vue'
+import SettingsSecurity from './SettingsSecurity.vue'
+import SettingsPrivacy from './SettingsPrivacy.vue'
+import SettingsAppsManage from './SettingsAppsManage.vue'
+import SettingsLocation from './SettingsLocation.vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
 import { useSystemStore } from '../../../stores/systemStore'
@@ -123,12 +127,20 @@ const simRef = ref(null)
 const bluetoothRef = ref(null)
 const satelliteRef = ref(null)
 const aiRef = ref(null)
+const securityRef = ref(null)
+const privacyRef = ref(null)
+const appsManageRef = ref(null)
+const locationRef = ref(null)
 useBackHandler(() => {
   if (view.value === 'about' && aboutPhoneRef.value?.back?.()) return true
   if (view.value === 'sim' && simRef.value?.back?.()) return true
   if (view.value === 'bluetooth' && bluetoothRef.value?.back?.()) return true
   if (view.value === 'satellite' && satelliteRef.value?.back?.()) return true
   if (view.value === 'infinixAi' && aiRef.value?.back?.()) return true
+  if (view.value === 'security' && securityRef.value?.back?.()) return true
+  if (view.value === 'privacy' && privacyRef.value?.back?.()) return true
+  if (view.value === 'appsManage' && appsManageRef.value?.back?.()) return true
+  if (view.value === 'location' && locationRef.value?.back?.()) return true
   if (view.value === 'personalization' && personalizationRef.value?.back()) return true
   if (view.value === 'prayer' && prayerRef.value?.back()) return true
   if (view.value === 'notifications' && notifRef.value?.back()) return true
@@ -152,6 +164,10 @@ const viewTitles = computed(() => ({
   bluetooth: '蓝牙',
   satellite: '星链卫星网络',
   infinixAi: 'Infinix AI',
+  security: '密码与安全',
+  privacy: '权限与隐私',
+  appsManage: '应用管理',
+  location: '位置信息',
   account: 'Infinix ID',
   accountLogin: 'INFINIX ID',
   accountSecurity: '账号安全',
@@ -210,10 +226,17 @@ const allSearchableItems = [
   { id: 'display', title: '显示与亮度', group: '显示', action: () => push('display') },
   { id: 'sound', title: '声音与振动', group: '声音', action: () => push('sound') },
   { id: 'notifications', title: '通知与状态栏', group: '通知', action: () => push('notifications') },
-  { id: 'security', title: '密码与安全', group: '安全与隐私', action: () => pushUnimplemented('密码与安全') },
-  { id: 'privacy', title: '权限与隐私', group: '安全与隐私', action: () => pushUnimplemented('权限与隐私') },
-  { id: 'appManage', title: '应用管理', group: '应用', action: () => pushUnimplemented('应用管理') },
-  { id: 'location', title: '位置信息', group: '安全与隐私', action: () => pushUnimplemented('位置信息') },
+  { id: 'security', title: '密码与安全', group: '安全与隐私', action: () => push('security') },
+  { id: 'lockScreenPwd', title: '锁屏密码', group: '安全与隐私', action: () => push('security') },
+  { id: 'fingerprint', title: '指纹识别', group: '安全与隐私', action: () => push('security') },
+  { id: 'faceUnlock', title: '面部识别', group: '安全与隐私', action: () => push('security') },
+  { id: 'privacy', title: '权限与隐私', group: '安全与隐私', action: () => push('privacy') },
+  { id: 'xhide', title: 'XHide', group: '安全与隐私', action: () => push('privacy') },
+  { id: 'appLock', title: '应用锁', group: '安全与隐私', action: () => push('privacy') },
+  { id: 'appManage', title: '应用管理', group: '应用', action: () => push('appsManage') },
+  { id: 'appClone', title: '应用双开', group: '应用', action: () => push('appsManage') },
+  { id: 'defaultApps', title: '默认应用', group: '应用', action: () => push('appsManage') },
+  { id: 'location', title: '位置信息', group: '安全与隐私', action: () => push('location') },
   { id: 'gtZone', title: 'GT Zone', group: '特色功能', action: () => pushUnimplemented('GT Zone') },
   { id: 'wallet', title: '钱包', group: '特色功能', action: () => push('wallet') },
   { id: 'accessibility', title: '辅助功能', group: '系统', action: () => pushUnimplemented('辅助功能') },
@@ -443,7 +466,7 @@ const filteredSearchResults = computed(() => {
             <!-- ================= 卡片 5: 安全与隐私 (4项) ================= -->
             <div class="settings-card">
               <!-- 密码与安全 -->
-              <ListCell title="密码与安全" chevron @click="pushUnimplemented('密码与安全')">
+              <ListCell title="密码与安全" chevron @click="push('security')">
                 <template #icon>
                   <div class="squircle-icon bg-security">
                     <SettingsSystemIcon name="security" />
@@ -452,7 +475,7 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- 权限与隐私 -->
-              <ListCell title="权限与隐私" chevron @click="pushUnimplemented('权限与隐私')">
+              <ListCell title="权限与隐私" chevron @click="push('privacy')">
                 <template #icon>
                   <div class="squircle-icon bg-privacy">
                     <SettingsSystemIcon name="privacy" />
@@ -461,7 +484,7 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- 应用管理 -->
-              <ListCell title="应用管理" chevron @click="pushUnimplemented('应用管理')">
+              <ListCell title="应用管理" chevron @click="push('appsManage')">
                 <template #icon>
                   <div class="squircle-icon bg-apps">
                     <SettingsSystemIcon name="apps" />
@@ -470,7 +493,7 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- 位置信息 -->
-              <ListCell title="位置信息" chevron last @click="pushUnimplemented('位置信息')">
+              <ListCell title="位置信息" chevron last @click="push('location')">
                 <template #icon>
                   <div class="squircle-icon bg-location">
                     <SettingsSystemIcon name="location" />
@@ -696,6 +719,26 @@ const filteredSearchResults = computed(() => {
       <!-- ================= Infinix AI ================= -->
       <div v-else-if="view === 'infinixAi'" key="infinixAi" class="settings-page">
         <SettingsInfinixAI ref="aiRef" @back="pop" />
+      </div>
+
+      <!-- ================= 密码与安全 ================= -->
+      <div v-else-if="view === 'security'" key="security" class="settings-page">
+        <SettingsSecurity ref="securityRef" @back="pop" />
+      </div>
+
+      <!-- ================= 权限与隐私 ================= -->
+      <div v-else-if="view === 'privacy'" key="privacy" class="settings-page">
+        <SettingsPrivacy ref="privacyRef" @back="pop" />
+      </div>
+
+      <!-- ================= 应用管理 ================= -->
+      <div v-else-if="view === 'appsManage'" key="appsManage" class="settings-page">
+        <SettingsAppsManage ref="appsManageRef" @back="pop" />
+      </div>
+
+      <!-- ================= 位置信息 ================= -->
+      <div v-else-if="view === 'location'" key="location" class="settings-page">
+        <SettingsLocation ref="locationRef" @back="pop" />
       </div>
 
       <!-- ================= 其他二级页 ================= -->
