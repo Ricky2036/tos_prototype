@@ -20,6 +20,7 @@ import SettingsWallet from './SettingsWallet.vue'
 import SettingsSearch from './SettingsSearch.vue'
 import SettingsCloudHome from './SettingsCloudHome.vue'
 import SettingsCloudBackup from './SettingsCloudBackup.vue'
+import SettingsAboutPhone from './SettingsAboutPhone.vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
 import { useSystemStore } from '../../../stores/systemStore'
@@ -113,7 +114,9 @@ function pop() {
 const notifRef = ref(null)
 const prayerRef = ref(null)
 const personalizationRef = ref(null)
+const aboutPhoneRef = ref(null)
 useBackHandler(() => {
+  if (view.value === 'about' && aboutPhoneRef.value?.back()) return true
   if (view.value === 'personalization' && personalizationRef.value?.back()) return true
   if (view.value === 'prayer' && prayerRef.value?.back()) return true
   if (view.value === 'notifications' && notifRef.value?.back()) return true
@@ -132,6 +135,7 @@ const viewTitles = computed(() => ({
   dnd: i18n.t('dnd') || '勿扰模式',
   prayer: i18n.t('prayerDnd') || '礼拜模式',
   personalization: '主题与个性化',
+  about: '我的手机',
   account: 'Infinix ID',
   accountLogin: 'INFINIX ID',
   accountSecurity: '账号安全',
@@ -170,6 +174,9 @@ const searchActive = ref(false)
 const { progress: titleProgress, onScroll: onTitleScroll } = useLargeTitle()
 
 const allSearchableItems = [
+  { id: 'about', title: '我的手机', group: '系统', value: 'Infinix NOTE 60 Pro', action: () => push('about') },
+  { id: 'aboutDevice', title: '关于手机', group: '系统', value: 'Infinix NOTE 60 Pro', action: () => push('about') },
+  { id: 'deviceModel', title: 'Infinix NOTE 60 Pro', group: '系统', action: () => push('about') },
   { id: 'flight', title: '飞行模式', group: '网络与连接', action: () => {}, isToggle: true },
   { id: 'sim', title: 'SIM卡与网络设置', group: '网络与连接', action: () => pushUnimplemented('SIM卡与网络设置') },
   { id: 'wifi', title: 'WLAN', group: '网络与连接', value: 'Ricky_5G', action: () => push('wifi') },
@@ -280,9 +287,9 @@ const filteredSearchResults = computed(() => {
               </svg>
             </div>
 
-            <!-- ================= 卡片 2: 手机型号卡 ================= -->
+            <!-- ================= 卡片 2: 手机型号卡 (Infinix NOTE 60 Pro / 兼容 Infinix GT 50 Pro) ================= -->
             <div class="settings-card">
-              <ListCell title="Infinix GT 50 Pro" chevron last @click="push('general')">
+              <ListCell title="Infinix NOTE 60 Pro" chevron last @click="push('about')">
                 <template #icon>
                   <div class="squircle-icon bg-device">
                     <SettingsSystemIcon name="device" :size="20" />
@@ -628,6 +635,11 @@ const filteredSearchResults = computed(() => {
         <SettingsWallet @back="pop" />
       </div>
 
+      <!-- ================= 我的手机 (关于手机) ================= -->
+      <div v-else-if="view === 'about'" key="about" class="settings-page">
+        <SettingsAboutPhone ref="aboutPhoneRef" @back="pop" />
+      </div>
+
       <!-- ================= 其他二级页 ================= -->
       <div v-else :key="view" class="settings-page">
         <AppNavBar :title="viewTitles[view]" :back-label="'设置'" @back="pop" />
@@ -761,8 +773,8 @@ const filteredSearchResults = computed(() => {
         <!-- 系统与关于手机 -->
         <div v-else class="scrollable detail-body">
           <div class="settings-card">
-            <ListCell title="关于手机" value="Infinix GT 50 Pro" chevron />
-            <ListCell title="系统更新" value="tOS 16.0 最新版" last />
+            <ListCell title="关于手机" value="Infinix NOTE 60 Pro" chevron clickable @click="push('about')" />
+            <ListCell title="系统更新" value="XOS 17.0.0 最新版" last clickable @click="push('about')" />
           </div>
           <div class="group-header">系统控制与偏好</div>
           <div class="settings-card">
