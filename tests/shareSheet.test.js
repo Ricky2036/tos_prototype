@@ -39,8 +39,7 @@ test('ShareSheet component matches design specification from latest screenshot &
   assert.ok(content.includes('share-transfer-graphic'), 'Must have dual-phone illustration graphic')
 
   // 4. 分享应用图标区（桌面真实应用）
-  assert.ok(content.includes('支持分享的应用'), 'Must have 支持分享的应用 header')
-  assert.ok(content.includes('点击图标或下拉可选择渠道'), 'Must have channel selection tip')
+  assert.ok(!content.includes('share-apps-header'), 'Must not have redundant share-apps-header')
   assert.ok(content.includes('class="share-apps-scroll"'), 'Must have scrollable app icons list')
   assert.ok(content.includes('class="share-channel-chip"'), 'Must have channel dropdown chips')
 
