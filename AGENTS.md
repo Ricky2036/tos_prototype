@@ -31,6 +31,27 @@ If the directory name does not match one of these values, stop and ask which rol
    - `tos-codex`: `8888`
 10. If a task conflicts with these defaults, the written task assignment wins only for the files it names.
 
+## Verification cadence
+
+Two modes. Do not pay delivery cost after every keystroke.
+
+- **Daily (every edit).** Target only what changed:
+  - `node scripts/run-e2e.mjs --changed` — derives the affected suites from path prefixes and runs only those.
+  - `node --test tests/*.test.js` — the whole unit suite, 48 files, ~8 s.
+  - Vite HMR covers everything else; there is nothing to restart.
+- **Delivery (only when the task says package / commit / hand off).**
+  - `node scripts/run-e2e.mjs --all --jobs 4` — all 8 suites, ~82 s (serial is ~315 s).
+  - Then commit, push, and package.
+
+Run the full suite **once at handoff**, not after every edit. If you only ran part of it, say so.
+
+**Never skip browser verification to save time.** Nearly every defect in this repo is pixel-level:
+clipped corners, an overlay landing 16 px outside the frame, a 9 px title misalignment, text under
+12 px. Unit tests cannot see any of it. Pick a smaller suite — never drop the check.
+
+⚠️ This repo auto-commits, so a clean working tree is normal. To diff against a ref, pass it
+explicitly: `node scripts/run-e2e.mjs --changed origin/main`.
+
 ## Shared-file lock
 
 These files are high-conflict integration surfaces and are integration-owned by default:

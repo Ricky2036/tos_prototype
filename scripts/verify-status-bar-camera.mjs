@@ -3,7 +3,7 @@
  * 否则最低优先级指示器被隐藏。同时验证最高优先级(蓝牙)始终可见、原生图标始终可见。
  * 用法: node scripts/verify-status-bar-camera.mjs [port] */
 import { chromium } from 'playwright'
-const PORT = process.argv[2] || '5678'
+const PORT = process.argv[2] || '5555'
 const CHROME =
   process.env.PLAYWRIGHT_CHROME ||
   '/Users/jingzhan.chen/Library/Caches/ms-playwright/chromium-1228/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'

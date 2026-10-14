@@ -2,7 +2,7 @@
  * 用法: node scripts/verify-cc-row.mjs [port] */
 import { chromium } from 'playwright'
 
-const PORT = process.argv[2] || '5678'
+const PORT = process.argv[2] || '5555'
 const URL = `http://127.0.0.1:${PORT}/`
 
 const CHROME_FALLBACK =

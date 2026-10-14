@@ -3,7 +3,7 @@
  *       故功能指示器计数需排除 'bluetooth' 这颗常量。
  * 用法: node scripts/verify-cc-status-bar.mjs [port] */
 import { chromium } from 'playwright'
-const PORT = process.argv[2] || '5678'
+const PORT = process.argv[2] || '5555'
 const CHROME =
   process.env.PLAYWRIGHT_CHROME ||
   '/Users/jingzhan.chen/Library/Caches/ms-playwright/chromium-1228/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'

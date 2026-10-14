@@ -186,6 +186,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Reset clip-path in mobile screen layout to prevent black rounded corners on mobile viewport resize | `antigravity/lane` | None (locks released) | `73981dc` | `1c25ebf` |
 | Merged | Antigravity | Optimize high-resolution wallpapers, sample photos, and avatars to significantly slim down repository size | `antigravity/lane` | None (locks released) | `4bb1573` | `78aaedf` |
 | Merged | Antigravity | Fix app switcher resume state leak where lingering switcher overlay causes tapping resumed app to return to home screen | `antigravity/lane` | None (locks released) | `06f2077` | `2b6d45c` |
+| Active | Workbuddy | Adopt `scripts/run-e2e.mjs` as the single regression entry (daily = `--changed`, delivery = `--all --jobs 4`); document the cadence in `AGENTS.md`; fix the 6 verify scripts whose default port is the stale `5678` | `workbuddy/lane` | `scripts/run-e2e.mjs`; `AGENTS.md` (add-only section); `scripts/verify-cc-row.mjs`; `scripts/verify-cc-status-bar.mjs`; `scripts/verify-status-bar.mjs`; `scripts/verify-status-bar-camera.mjs`; `scripts/verify-status-bluetooth.mjs`; `scripts/verify-status-icon-size.mjs` | `68f7c50` | (pending) |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
