@@ -24,6 +24,7 @@ import SettingsAboutPhone from './SettingsAboutPhone.vue'
 import SettingsSim from './SettingsSim.vue'
 import SettingsBluetooth from './SettingsBluetooth.vue'
 import SettingsSatellite from './SettingsSatellite.vue'
+import SettingsInfinixAI from './SettingsInfinixAI.vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
 import { useSystemStore } from '../../../stores/systemStore'
@@ -121,11 +122,13 @@ const aboutPhoneRef = ref(null)
 const simRef = ref(null)
 const bluetoothRef = ref(null)
 const satelliteRef = ref(null)
+const aiRef = ref(null)
 useBackHandler(() => {
   if (view.value === 'about' && aboutPhoneRef.value?.back?.()) return true
   if (view.value === 'sim' && simRef.value?.back?.()) return true
   if (view.value === 'bluetooth' && bluetoothRef.value?.back?.()) return true
   if (view.value === 'satellite' && satelliteRef.value?.back?.()) return true
+  if (view.value === 'infinixAi' && aiRef.value?.back?.()) return true
   if (view.value === 'personalization' && personalizationRef.value?.back()) return true
   if (view.value === 'prayer' && prayerRef.value?.back()) return true
   if (view.value === 'notifications' && notifRef.value?.back()) return true
@@ -148,6 +151,7 @@ const viewTitles = computed(() => ({
   sim: 'SIM 卡与网络设置',
   bluetooth: '蓝牙',
   satellite: '星链卫星网络',
+  infinixAi: 'Infinix AI',
   account: 'Infinix ID',
   accountLogin: 'INFINIX ID',
   accountSecurity: '账号安全',
@@ -196,7 +200,12 @@ const allSearchableItems = [
   { id: 'satellite', title: '星链卫星网络', group: '网络与连接', action: () => push('satellite') },
   { id: 'satelliteAlt', title: '卫星网络', group: '网络与连接', action: () => push('satellite') },
   { id: 'multiDevice', title: '多设备连接', group: '网络与连接', action: () => system.openApp('oneleap') },
-  { id: 'infinixAi', title: 'Infinix AI', group: '特色功能', action: () => pushUnimplemented('Infinix AI') },
+  { id: 'infinixAi', title: 'Infinix AI', group: '特色功能', action: () => push('infinixAi') },
+  { id: 'folaxVoice', title: 'Folax语音', group: 'Infinix AI', action: () => push('infinixAi') },
+  { id: 'folaxScreen', title: 'Folax识屏', group: 'Infinix AI', action: () => push('infinixAi') },
+  { id: 'aiBuddy', title: 'AI Buddy', group: 'Infinix AI', action: () => push('infinixAi') },
+  { id: 'circleSearch', title: '圈定即搜', group: 'Infinix AI', action: () => push('infinixAi') },
+  { id: 'aiCall', title: 'AI通话助手', group: 'Infinix AI', action: () => push('infinixAi') },
   { id: 'wallpaper', title: '壁纸与个性化', group: '个性化', action: () => push('personalization') },
   { id: 'display', title: '显示与亮度', group: '显示', action: () => push('display') },
   { id: 'sound', title: '声音与振动', group: '声音', action: () => push('sound') },
@@ -383,7 +392,7 @@ const filteredSearchResults = computed(() => {
             <!-- ================= 卡片 4: AI、个性化与视听通知 (5项) ================= -->
             <div class="settings-card">
               <!-- Infinix AI -->
-              <ListCell title="Infinix AI" chevron @click="pushUnimplemented('Infinix AI')">
+              <ListCell title="Infinix AI" chevron @click="push('infinixAi')">
                 <template #icon>
                   <div class="squircle-icon bg-infinix-ai">
                     <SettingsSystemIcon name="ai" :size="19" />
@@ -682,6 +691,11 @@ const filteredSearchResults = computed(() => {
       <!-- ================= 星链卫星网络 ================= -->
       <div v-else-if="view === 'satellite'" key="satellite" class="settings-page">
         <SettingsSatellite ref="satelliteRef" @back="pop" />
+      </div>
+
+      <!-- ================= Infinix AI ================= -->
+      <div v-else-if="view === 'infinixAi'" key="infinixAi" class="settings-page">
+        <SettingsInfinixAI ref="aiRef" @back="pop" />
       </div>
 
       <!-- ================= 其他二级页 ================= -->
