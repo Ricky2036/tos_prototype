@@ -348,8 +348,8 @@ const filteredSearchResults = computed(() => {
                 <div class="account-name">{{ accountStore.isLoggedIn ? accountStore.username : '登录 Infinix ID' }}</div>
                 <div class="account-sub">使用云服务、查找等</div>
               </div>
-              <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-                <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              <svg class="lc-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+                <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </div>
 
@@ -1002,20 +1002,18 @@ const filteredSearchResults = computed(() => {
 .account-avatar {
   width: 52px;
   height: 52px;
-  border-radius: 50%;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  background: #F2F2F7;
+  background: transparent;
 }
 
 .account-avatar-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
@@ -1038,9 +1036,9 @@ const filteredSearchResults = computed(() => {
   line-height: 1.2;
 }
 
-
-.chevron-icon {
+.account-card .lc-chevron {
   flex: none;
+  color: #C5C5C7;
 }
 
 /* ================= 统一 Squircle 图标规范 ================= */
@@ -1055,7 +1053,19 @@ const filteredSearchResults = computed(() => {
   margin-right: 14px;
 }
 
-.bg-device { background: #00C853; }
+.squircle-icon-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 10.5px;
+  object-fit: contain;
+  display: block;
+  flex: none;
+  margin-right: 14px;
+  user-select: none;
+  pointer-events: none;
+}
+
+.bg-device { background: #0C87F2; }
 .bg-airplane { background: #FFA000; }
 .bg-sim { background: #22C55E; }
 .bg-wifi { background: #0088FF; }

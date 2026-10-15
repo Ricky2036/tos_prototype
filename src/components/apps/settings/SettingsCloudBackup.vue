@@ -528,8 +528,8 @@ function selectFreq(val) {
         <span class="cb-cell-state" :class="{ on: state.autoBackupOn }">
           {{ state.autoBackupOn ? '已开启' : '已关闭' }}
         </span>
-        <svg width="8" height="13" viewBox="0 0 8 13">
-          <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+        <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+          <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </div>
 
@@ -562,8 +562,8 @@ function selectFreq(val) {
               <div class="cb-cell-sub">{{ state.cloudBackup.size }} GB | {{ state.cloudBackup.date }}</div>
             </div>
             <span class="cb-restore">恢复</span>
-            <svg width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </div>
         </div>
@@ -602,8 +602,8 @@ function selectFreq(val) {
                 </div>
               </div>
               <span class="cb-restore">恢复</span>
-              <svg width="8" height="13" viewBox="0 0 8 13">
-                <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+                <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </div>
           </div>
@@ -642,8 +642,8 @@ function selectFreq(val) {
                 </div>
               </div>
               <span class="cb-restore">恢复</span>
-              <svg width="8" height="13" viewBox="0 0 8 13">
-                <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+                <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </div>
           </div>
@@ -682,8 +682,8 @@ function selectFreq(val) {
                 </div>
               </div>
               <span class="cb-restore">恢复</span>
-              <svg width="8" height="13" viewBox="0 0 8 13">
-                <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+                <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </div>
           </div>
@@ -811,8 +811,8 @@ function selectFreq(val) {
               <div class="cb-cell-title">{{ cat.name }}</div>
               <div class="cb-cell-sub">{{ formatSize(cat.size, cat.unit) }}</div>
             </div>
-            <svg width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </div>
         </div>
@@ -992,8 +992,8 @@ function selectFreq(val) {
             <span>备份频率</span>
             <span class="cb-kv-dim">
               每 {{ state.autoFreq }} 天
-              <svg style="vertical-align: -2px; margin-left: 4px;" width="7" height="11" viewBox="0 0 8 13">
-                <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              <svg style="vertical-align: -2px; margin-left: 4px;" width="7" height="12" viewBox="0 0 7 12" fill="none">
+                <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </span>
           </div>
@@ -1013,8 +1013,8 @@ function selectFreq(val) {
             <div class="cb-cell-title">备份数据类型</div>
             <div class="cb-cell-sub">已选 {{ selectedIds.size }}/{{ backupCategories.length }} 类（与手动备份共用）</div>
           </div>
-          <svg width="8" height="13" viewBox="0 0 8 13">
-            <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+          <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </div>
       </div>
