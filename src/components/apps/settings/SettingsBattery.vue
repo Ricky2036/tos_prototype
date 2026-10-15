@@ -2,8 +2,26 @@
 import { ref } from 'vue'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
+import { getApp } from '../../../config/apps'
 
 const emit = defineEmits(['back', 'navigate'])
+
+// 耗电排行应用：完全对齐桌面已有的真实应用
+const batteryRankings = [
+  { id: 'tiktok', subtitle: '前台 45 分钟 · 后台 22 分钟', value: '38%' },
+  { id: 'youtube', subtitle: '前台 36 分钟', value: '26%' },
+  { id: 'wechat', subtitle: '前台 28 分钟 · 后台 1 小时 15 分钟', value: '18%' },
+  { id: 'camera', subtitle: '前台 16 分钟', value: '11%' },
+  { id: 'safari', subtitle: '前台 12 分钟', value: '7%' }
+]
+
+function resolveIcon(path) {
+  if (!path) return ''
+  if (path.startsWith('http') || path.startsWith('data:')) return path
+  const clean = path.replace(/^\/+/, '')
+  const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'
+  return `${base}${clean}`
+}
 
 // 电池模式选择：'balanced' (均衡) 或 'saver' (省电)
 const selectedMode = ref('balanced')
@@ -262,72 +280,25 @@ defineExpose({ back })
         </div>
       </div>
 
-      <!-- 耗电占比排行：全面复用现有真实应用图标资产 -->
+      <!-- 耗电占比排行：直接取桌面已有的应用与其真实图标 -->
       <div class="section-sub-title">耗电占比排行（过去 24 小时）</div>
       <div class="settings-card app-ranking-card">
-        <!-- 哔哩哔哩 -->
         <ListCell
-          title="哔哩哔哩"
-          subtitle="前台 37 分钟 · 后台 52 分钟"
-          value="54%"
+          v-for="(item, idx) in batteryRankings"
+          :key="item.id"
+          :title="getApp(item.id)?.name || item.id"
+          :subtitle="item.subtitle"
+          :value="item.value"
           chevron
-          @click="handleItemTap('哔哩哔哩耗电详情')"
+          :last="idx === batteryRankings.length - 1"
+          @click="handleItemTap(`${getApp(item.id)?.name || item.id}耗电详情`)"
         >
           <template #icon>
-            <img class="app-rank-icon" src="/icons/drawer/bilibili.png" alt="哔哩哔哩" />
-          </template>
-        </ListCell>
-
-        <!-- 腾讯视频 -->
-        <ListCell
-          title="腾讯视频"
-          subtitle="前台 40 分钟"
-          value="20%"
-          chevron
-          @click="handleItemTap('腾讯视频耗电详情')"
-        >
-          <template #icon>
-            <img class="app-rank-icon" src="/icons/drawer/tencent_video.png" alt="腾讯视频" />
-          </template>
-        </ListCell>
-
-        <!-- 微信 -->
-        <ListCell
-          title="微信"
-          subtitle="前台 28 分钟 · 后台 1 小时 15 分钟"
-          value="12%"
-          chevron
-          @click="handleItemTap('微信耗电详情')"
-        >
-          <template #icon>
-            <img class="app-rank-icon" src="/icons/drawer/wechat.png" alt="微信" />
-          </template>
-        </ListCell>
-
-        <!-- 系统界面 -->
-        <ListCell
-          title="系统界面"
-          subtitle="前台 18 分钟"
-          value="8%"
-          chevron
-          @click="handleItemTap('系统界面耗电详情')"
-        >
-          <template #icon>
-            <img class="app-rank-icon" src="/icons/settings.png" alt="系统界面" />
-          </template>
-        </ListCell>
-
-        <!-- 相机 -->
-        <ListCell
-          title="相机"
-          subtitle="前台 6 分钟"
-          value="6%"
-          chevron
-          last
-          @click="handleItemTap('相机耗电详情')"
-        >
-          <template #icon>
-            <img class="app-rank-icon" src="/icons/camera.png" alt="相机" />
+            <img
+              class="app-rank-icon"
+              :src="resolveIcon(getApp(item.id)?.image)"
+              :alt="getApp(item.id)?.name || item.id"
+            />
           </template>
         </ListCell>
       </div>
