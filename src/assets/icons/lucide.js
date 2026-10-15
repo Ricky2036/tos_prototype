@@ -270,35 +270,48 @@ const volumeX = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" str
 <line x1="16" x2="22" y1="9" y2="15"/>
 </svg>`
 
-const bellDot = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-<path d="M10.268 21a2 2 0 0 0 3.464 0"/>
-<path d="M11.68 2.009A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673c-.824-.85-1.678-1.731-2.21-3.348"/>
-<circle cx="18" cy="5" r="3"/>
+// 15.2 通知铃声 (bellDot) - 基于实机面性铃声并在右上角增加独立实心圆点
+const bellDot = `<svg width="26" height="26" viewBox="-2 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="bell-dot-mask">
+<rect x="-2" y="0" width="26" height="26" fill="#FFFFFF"/>
+<circle cx="17.8" cy="4.8" r="4.2" fill="#000000"/>
+</mask>
+<path d="M15.2037 22.4572C14.5574 24.1557 12.8497 25.3333 10.9079 25.3333C8.9661 25.3333 7.2581 24.1557 6.61179 22.4572H15.2037ZM10.9079 0C11.539 0.000166901 12.0508 0.511778 12.0508 1.14286V1.7939C15.9602 2.33919 19.0002 5.64069 19.111 9.69606L19.2372 14.3062C19.2672 15.4046 19.6759 16.4592 20.3945 17.2906L21.4894 18.5565C22.1844 19.3609 21.6996 20.5791 20.7078 20.7429H1.10844C0.116346 20.5792 -0.368188 19.361 0.327189 18.5565L1.42168 17.2906C2.1402 16.4593 2.5494 15.4045 2.57942 14.3062L2.70554 9.69606C2.81638 5.64075 5.85574 2.33925 9.76506 1.7939V1.14286C9.76506 0.511699 10.2768 3.96322e-05 10.9079 0Z" fill="currentColor" mask="url(#bell-dot-mask)"/>
+<circle cx="17.8" cy="4.8" r="2.8" fill="currentColor"/>
 </svg>`
 
-const bellDotOff = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-<path d="M10.268 21a2 2 0 0 0 3.464 0"/>
-<path d="M11.68 2.009A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673c-.824-.85-1.678-1.731-2.21-3.348"/>
-<circle cx="18" cy="5" r="3"/>
-<path d="m2 2 20 20"/>
+const bellDotOff = `<svg width="26" height="26" viewBox="-2 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="bell-dot-off-mask">
+<rect x="-2" y="0" width="26" height="26" fill="#FFFFFF"/>
+<circle cx="17.8" cy="4.8" r="4.2" fill="#000000"/>
+<line x1="0" y1="2" x2="22" y2="24" stroke="#000000" stroke-width="3" stroke-linecap="round"/>
+</mask>
+<path d="M15.2037 22.4572C14.5574 24.1557 12.8497 25.3333 10.9079 25.3333C8.9661 25.3333 7.2581 24.1557 6.61179 22.4572H15.2037ZM10.9079 0C11.539 0.000166901 12.0508 0.511778 12.0508 1.14286V1.7939C15.9602 2.33919 19.0002 5.64069 19.111 9.69606L19.2372 14.3062C19.2672 15.4046 19.6759 16.4592 20.3945 17.2906L21.4894 18.5565C22.1844 19.3609 21.6996 20.5791 20.7078 20.7429H1.10844C0.116346 20.5792 -0.368188 19.361 0.327189 18.5565L1.42168 17.2906C2.1402 16.4593 2.5494 15.4045 2.57942 14.3062L2.70554 9.69606C2.81638 5.64075 5.85574 2.33925 9.76506 1.7939V1.14286C9.76506 0.511699 10.2768 3.96322e-05 10.9079 0Z" fill="currentColor" mask="url(#bell-dot-off-mask)"/>
+<circle cx="17.8" cy="4.8" r="2.8" fill="currentColor"/>
+<line x1="0" y1="2" x2="22" y2="24" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
 </svg>`
 
-const alarmClock = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-<circle cx="12" cy="13" r="8"/>
-<path d="M12 9v4l2 2"/>
-<path d="M5 3 2 6"/>
-<path d="m22 6-3-3"/>
-<path d="M6.38 18.7 4 21"/>
-<path d="M17.64 18.67 20 21"/>
+// 15.3 闹钟 (alarmClock) - 1:1 实机面性闹钟（双耳 + 实心圆盘 + 指针镂空）
+const alarmClock = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="alarm-clock-mask">
+<rect width="24" height="24" fill="#FFFFFF"/>
+<path d="M11.75 7.8V13.2L15.3 16.7" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</mask>
+<path d="M1.6 5.8L4.6 1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<path d="M22.4 5.8L19.4 1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<circle cx="11.85" cy="13.2" r="9.5" fill="currentColor" mask="url(#alarm-clock-mask)"/>
 </svg>`
 
-const alarmClockOff = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-<path d="M6.87 6.87a8 8 0 1 0 11.26 11.26"/>
-<path d="M19.9 14.25a8 8 0 0 0-9.15-9.15"/>
-<path d="m22 6-3-3"/>
-<path d="M6.26 18.67 4 21"/>
-<path d="m2 2 20 20"/>
-<path d="M4 4 2 6"/>
+const alarmClockOff = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="alarm-clock-off-mask">
+<rect width="24" height="24" fill="#FFFFFF"/>
+<path d="M11.75 7.8V13.2L15.3 16.7" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="2" y1="2" x2="22" y2="22" stroke="#000000" stroke-width="3" stroke-linecap="round"/>
+</mask>
+<path d="M1.6 5.8L4.6 1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<path d="M22.4 5.8L19.4 1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<circle cx="11.85" cy="13.2" r="9.5" fill="currentColor" mask="url(#alarm-clock-off-mask)"/>
+<line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
 </svg>`
 
 /** AI Mate 首页风扇卡的实物图标（取自归档 `DeviceIcon` 组件，`small` 档 40×40）。
