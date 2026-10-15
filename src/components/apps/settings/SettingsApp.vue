@@ -10,6 +10,7 @@ import SettingsSearchBar from '../../ui/SettingsSearchBar.vue'
 import SettingsSystemIcon from '../../ui/SettingsSystemIcon.vue'
 import SettingsNotifications from './SettingsNotifications.vue'
 import SettingsSound from './SettingsSound.vue'
+import SettingsDisplay from './SettingsDisplay.vue'
 import SettingsDND from './SettingsDND.vue'
 import SettingsPrayer from './SettingsPrayer.vue'
 import SettingsPersonalization from './personalization/SettingsPersonalization.vue'
@@ -139,6 +140,7 @@ const accessibilityRef = ref(null)
 const oneTapRef = ref(null)
 const batteryRef = ref(null)
 const storageRef = ref(null)
+const displayRef = ref(null)
 useBackHandler(() => {
   if (view.value === 'about' && aboutPhoneRef.value?.back?.()) return true
   if (view.value === 'sim' && simRef.value?.back?.()) return true
@@ -150,6 +152,7 @@ useBackHandler(() => {
   if (view.value === 'appsManage' && appsManageRef.value?.back?.()) return true
   if (view.value === 'location' && locationRef.value?.back?.()) return true
   if (view.value === 'accessibility' && accessibilityRef.value?.back?.()) return true
+  if (view.value === 'display' && displayRef.value?.back?.()) return true
   if (view.value === 'oneTap' && oneTapRef.value?.back?.()) return true
   if (view.value === 'battery' && batteryRef.value?.back?.()) return true
   if (view.value === 'storage' && storageRef.value?.back?.()) return true
@@ -159,6 +162,16 @@ useBackHandler(() => {
   if (stack.value.length > 1) { pop(); return true }
   return false
 })
+
+function handleDisplayNavigate(target) {
+  if (target === 'personalization') {
+    push('personalization')
+  } else if (target === 'language') {
+    push('language')
+  } else {
+    pushUnimplemented(target)
+  }
+}
 
 const viewTitles = computed(() => ({
   wifi: i18n.t('wifi') || 'WLAN',
@@ -193,21 +206,6 @@ const viewTitles = computed(() => ({
   search: '搜索',
   placeholder: placeholderTitle.value || '设置'
 }))
-
-/* 显示与亮度：横向亮度滑块 */
-const sliderRef = ref(null)
-let sliding = false
-function setBrightness(e) {
-  const r = sliderRef.value.getBoundingClientRect()
-  control.setBrightness(clamp((e.clientX - r.left) / r.width, 0.25, 1))
-}
-function onSlideDown(e) {
-  sliding = true
-  e.currentTarget.setPointerCapture?.(e.pointerId)
-  setBrightness(e)
-}
-function onSlideMove(e) { if (sliding) setBrightness(e) }
-function onSlideUp() { sliding = false }
 
 const networks = ['Ricky_5G', 'Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G']
 
@@ -673,6 +671,11 @@ const filteredSearchResults = computed(() => {
         <SettingsPersonalization ref="personalizationRef" @back="pop" />
       </div>
 
+      <!-- ================= 显示与亮度 ================= -->
+      <div v-else-if="view === 'display'" key="display" class="settings-page">
+        <SettingsDisplay ref="displayRef" @back="pop" @navigate="handleDisplayNavigate" />
+      </div>
+
       <!-- ================= 账号中心 (Infinix ID) ================= -->
       <div v-else-if="view === 'account'" key="account" class="settings-page">
         <SettingsAccount
@@ -830,41 +833,6 @@ const filteredSearchResults = computed(() => {
           <div v-else class="empty-note">已关闭 WLAN</div>
         </div>
 
-        <!-- 显示与亮度 -->
-        <div v-else-if="view === 'display'" class="scrollable detail-body">
-          <div class="group-header">外观</div>
-          <div class="appearance-row">
-            <div class="appearance-card selected">
-              <div class="appearance-preview light"></div>
-              <span>浅色模式</span>
-            </div>
-            <div class="appearance-card">
-              <div class="appearance-preview dark"></div>
-              <span>深色模式</span>
-            </div>
-          </div>
-          <div class="group-header">亮度</div>
-          <div class="settings-card brightness-card">
-            <svg width="16" height="16" viewBox="0 0 24 24"><path :d="GLYPHS.sun" fill="#8E8E93" /></svg>
-            <div
-              ref="sliderRef"
-              class="h-slider"
-              @pointerdown="onSlideDown"
-              @pointermove="onSlideMove"
-              @pointerup="onSlideUp"
-              @pointercancel="onSlideUp"
-            >
-              <div class="h-slider-fill" :style="{ width: ((control.brightness - 0.25) / 0.75 * 100) + '%' }"></div>
-            </div>
-            <svg width="22" height="22" viewBox="0 0 24 24"><path :d="GLYPHS.sun" fill="#8E8E93" /></svg>
-          </div>
-          <div class="settings-card">
-            <ListCell title="护眼模式">
-              <template #right><ToggleSwitch :model-value="true" /></template>
-            </ListCell>
-            <ListCell title="自适应刷新率" value="144Hz" chevron last />
-          </div>
-        </div>
 
         <!-- 系统语言与输入法子页 -->
         <div v-else-if="view === 'language'" class="scrollable detail-body">
@@ -1265,60 +1233,4 @@ const filteredSearchResults = computed(() => {
   line-height: 1.6;
 }
 
-/* 外观模式 */
-.appearance-row {
-  display: flex;
-  gap: 14px;
-  margin: 0 16px 12px;
-}
-.appearance-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  font-size: 13.5px;
-  color: #111111;
-}
-.appearance-preview {
-  width: 100%;
-  height: 100px;
-  border-radius: 14px;
-  border: 2.5px solid transparent;
-}
-.appearance-preview.light {
-  background: linear-gradient(180deg, #FFFFFF 60%, #E9E9EB 60%);
-}
-.appearance-preview.dark {
-  background: linear-gradient(180deg, #1C1C1E 60%, #3A3A3C 60%);
-}
-.appearance-card.selected .appearance-preview {
-  border-color: #007AFF;
-  box-shadow: 0 2px 10px rgba(0, 122, 255, 0.25);
-}
-
-/* 亮度滑块 */
-.brightness-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-}
-.h-slider {
-  flex: 1;
-  height: 28px;
-  border-radius: 14px;
-  background: #E9E9EB;
-  overflow: hidden;
-  touch-action: none;
-  cursor: pointer;
-  position: relative;
-}
-.h-slider-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  background: #FFFFFF;
-  border-radius: 14px;
-  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.1);
-}
 </style>
