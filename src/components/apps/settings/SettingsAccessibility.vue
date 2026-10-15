@@ -47,11 +47,13 @@ defineExpose({ back })
     <!-- 滚动内容区 -->
     <div class="accessibility-scroll-body scrollable">
       <!-- 顶部特性大卡片：真机悬浮特色晶核徽标 -->
+      <!-- 顶部特性大卡片：标准无障碍关怀人形徽标 -->
       <div class="accessibility-hero-card">
         <div class="hero-icon-wrap">
           <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
-            <path d="M12 2.5L20 7.2V16.8L12 21.5L4 16.8V7.2L12 2.5Z" stroke="#FFFFFF" stroke-width="2.2" stroke-linejoin="round"/>
-            <path d="M12 12V21.5M12 12L20 7.2M12 12L4 7.2" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="4.5" r="2.2" fill="#FFFFFF"/>
+            <path d="M5.5 9C7.8 8.4 10 8.2 12 8.2C14 8.2 16.2 8.4 18.5 9" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M12 8.5V14.5M9.2 20.5L11.5 14.5H12.5L14.8 20.5" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
         <div class="hero-title">辅助功能</div>
@@ -60,15 +62,16 @@ defineExpose({ back })
         </div>
       </div>
 
-      <!-- 无障碍单项卡片：圆形无障碍徽标 -->
+      <!-- 无障碍单项卡片：标准无障碍圆形徽标 -->
       <div class="settings-card">
         <ListCell title="无障碍" chevron last @click="handleItemTap('无障碍')">
           <template #icon>
-            <div class="circle-icon bg-blue-access">
+            <div class="squircle-icon bg-blue-access">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="#FFFFFF" stroke-width="1.8"/>
-                <circle cx="12" cy="7" r="1.8" fill="#FFFFFF"/>
-                <path d="M7 11.5H17M12 11.5V16M9.5 20L12 16L14.5 20" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="12" r="9.2" stroke="#FFFFFF" stroke-width="1.6"/>
+                <circle cx="12" cy="6.8" r="1.6" fill="#FFFFFF"/>
+                <path d="M6.8 10.8C8.5 10.3 10.2 10.1 12 10.1C13.8 10.1 15.5 10.3 17.2 10.8" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round"/>
+                <path d="M12 10.2V14.8M9.8 19L11.6 14.6H12.4L14.2 19" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
           </template>
@@ -81,7 +84,10 @@ defineExpose({ back })
         <ListCell title="录屏" chevron @click="handleItemTap('录屏')">
           <template #icon>
             <div class="squircle-icon bg-red-record">
-              <LIcon name="video" :size="20" />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="8.5" stroke="#FFFFFF" stroke-width="1.8"/>
+                <circle cx="12" cy="12" r="4.2" fill="#FFFFFF"/>
+              </svg>
             </div>
           </template>
         </ListCell>
@@ -90,7 +96,11 @@ defineExpose({ back })
         <ListCell title="截屏" chevron @click="handleItemTap('截屏')">
           <template #icon>
             <div class="squircle-icon bg-amber-crop">
-              <LIcon name="scissors" :size="20" />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <rect x="4.5" y="3.5" width="15" height="17" rx="2.5" stroke="#FFFFFF" stroke-width="1.6"/>
+                <path d="M8 7H6V9M16 7H18V9M8 17H6V15M16 17H18V15" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="12" r="1.8" fill="#FFFFFF"/>
+              </svg>
             </div>
           </template>
         </ListCell>
@@ -99,8 +109,9 @@ defineExpose({ back })
         <ListCell title="动作与手势" chevron @click="handleItemTap('动作与手势')">
           <template #icon>
             <div class="squircle-icon bg-blue-gesture">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M12 11V4.5C12 3.67 11.33 3 10.5 3C9.67 3 9 3.67 9 4.5V13.5L7.2 11.7C6.6 11.1 5.6 11.1 5 11.7C4.4 12.3 4.4 13.3 5 13.9L9.5 18.4C10.7 19.6 12.3 20.3 14 20.3H16C18.8 20.3 21 18.1 21 15.3V11.5C21 10.7 20.3 10 19.5 10C18.7 10 18 10.7 18 11.5V11C18 10.2 17.3 9.5 16.5 9.5C15.7 9.5 15 10.2 15 11V10.5C15 9.7 14.3 9 13.5 9C12.7 9 12 9.7 12 10.5V11Z" fill="#FFFFFF"/>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 4.2V12C12 11.3 11.4 10.8 10.7 10.8C10 10.8 9.5 11.3 9.5 12V13.8L8.1 12.6C7.5 12.1 6.6 12.2 6.1 12.8C5.6 13.4 5.7 14.3 6.3 14.8L10.2 18.5C11.1 19.4 12.3 20 13.6 20H15.2C17.6 20 19.5 18.1 19.5 15.7V12.5C19.5 11.8 18.9 11.2 18.2 11.2C17.7 11.2 17.2 11.5 17 12C16.8 11.4 16.3 11 15.6 11C15.1 11 14.7 11.3 14.4 11.7C14.2 11.2 13.7 10.8 13.1 10.8C12.5 10.8 12.1 11.1 12 11.5V4.2C12 3.5 11.4 3 10.7 3C10 3 9.5 3.5 9.5 4.2" fill="#FFFFFF"/>
+                <path d="M14.5 3.2C16.8 4.2 18.5 6.2 19 8.5" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round"/>
               </svg>
             </div>
           </template>
@@ -110,9 +121,9 @@ defineExpose({ back })
         <ListCell title="智感握姿" chevron last @click="handleItemTap('智感握姿')">
           <template #icon>
             <div class="squircle-icon bg-purple-grip">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <rect x="7" y="3" width="10" height="18" rx="2.5" stroke="#FFFFFF" stroke-width="1.8"/>
-                <path d="M4 8.5C3.2 10 3.2 14 4 15.5M20 8.5C20.8 10 20.8 14 20 15.5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <rect x="7.5" y="3.5" width="9" height="17" rx="2.5" stroke="#FFFFFF" stroke-width="1.6"/>
+                <path d="M4.2 8C3.4 9.5 3.4 14.5 4.2 16M19.8 8C20.6 9.5 20.6 14.5 19.8 16" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round"/>
               </svg>
             </div>
           </template>
@@ -130,9 +141,9 @@ defineExpose({ back })
         >
           <template #icon>
             <div class="squircle-icon bg-pink-float">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="4" width="18" height="16" rx="3" stroke="#FFFFFF" stroke-width="1.8"/>
-                <rect x="11" y="10" width="8" height="8" rx="2" fill="#FFFFFF"/>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" stroke="#FFFFFF" stroke-width="1.6"/>
+                <rect x="11" y="10" width="8.5" height="8.5" rx="2" fill="#FFFFFF"/>
               </svg>
             </div>
           </template>
@@ -147,9 +158,13 @@ defineExpose({ back })
         >
           <template #icon>
             <div class="squircle-icon bg-green-split">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <rect x="4" y="3" width="7" height="18" rx="2" fill="#FFFFFF"/>
-                <rect x="13" y="3" width="7" height="18" rx="2" fill="#FFFFFF"/>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <rect x="3.5" y="3.5" width="17" height="17" rx="3" stroke="#FFFFFF" stroke-width="1.6"/>
+                <line x1="12" y1="3.5" x2="12" y2="20.5" stroke="#FFFFFF" stroke-width="1.6"/>
+                <rect x="5.5" y="6.5" width="4.5" height="2" rx="0.6" fill="#FFFFFF"/>
+                <rect x="14" y="6.5" width="4.5" height="2" rx="0.6" fill="#FFFFFF"/>
+                <rect x="5.5" y="10" width="3.5" height="1.5" rx="0.5" fill="#FFFFFF" fill-opacity="0.7"/>
+                <rect x="14" y="10" width="3.5" height="1.5" rx="0.5" fill="#FFFFFF" fill-opacity="0.7"/>
               </svg>
             </div>
           </template>
@@ -164,10 +179,11 @@ defineExpose({ back })
           @click="handleItemTap('智能侧边栏')"
         >
           <template #icon>
-            <div class="squircle-icon bg-purple-grip">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="4" width="18" height="16" rx="3" stroke="#FFFFFF" stroke-width="1.8"/>
-                <line x1="16" y1="4" x2="16" y2="20" stroke="#FFFFFF" stroke-width="2"/>
+            <div class="squircle-icon bg-indigo-sidebar">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <rect x="3.5" y="4" width="17" height="16" rx="2.8" stroke="#FFFFFF" stroke-width="1.6"/>
+                <line x1="15" y1="4" x2="15" y2="20" stroke="#FFFFFF" stroke-width="1.5"/>
+                <rect x="16.8" y="9.5" width="2" height="5" rx="1" fill="#FFFFFF"/>
               </svg>
             </div>
           </template>
@@ -185,8 +201,9 @@ defineExpose({ back })
         >
           <template #icon>
             <div class="squircle-icon bg-sky-outdoor">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M4 18L9 11L13 16L16 12L20 18H4Z" fill="#FFFFFF"/>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="4.2" fill="#FFFFFF"/>
+                <path d="M12 2.5V5M12 19V21.5M2.5 12H5M19 12H21.5M5.3 5.3L7.1 7.1M16.9 16.9L18.7 18.7M5.3 18.7L7.1 16.9M16.9 7.1L18.7 5.3" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
               </svg>
             </div>
           </template>
@@ -229,9 +246,10 @@ defineExpose({ back })
         >
           <template #icon>
             <div class="squircle-icon bg-coral-mistouch">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M12 3C8 3 5 6 5 10V14C5 18 8 21 12 21C16 21 19 18 19 14V10C19 6 16 3 12 3Z" stroke="#FFFFFF" stroke-width="1.8"/>
-                <line x1="4" y1="4" x2="20" y2="20" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M5.5 9.5V16.5C5.5 18.7 7.3 20.5 9.5 20.5H14.5C16.7 20.5 18.5 18.7 18.5 16.5V9.5H5.5Z" stroke="#FFFFFF" stroke-width="1.7" stroke-linejoin="round"/>
+                <line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round"/>
+                <rect x="8.5" y="4" width="7" height="9" rx="1.5" fill="#FFFFFF"/>
               </svg>
             </div>
           </template>
@@ -406,6 +424,7 @@ defineExpose({ back })
 .bg-amber-crop { background: #FF9800; }
 .bg-blue-gesture { background: #2196F3; }
 .bg-purple-grip { background: #5C6BC0; }
+.bg-indigo-sidebar { background: #5E35B1; }
 .bg-pink-float { background: #E91E63; }
 .bg-green-split { background: #4CAF50; }
 .bg-sky-outdoor { background: #03A9F4; }

@@ -43,8 +43,8 @@ const emit = defineEmits(['click'])
           <slot name="value">
             <span v-if="value" class="lc-value">{{ value }}</span>
           </slot>
-          <svg v-if="chevron" width="8" height="13" viewBox="0 0 8 13">
-            <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+          <svg v-if="chevron" class="lc-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </slot>
       </div>
@@ -127,5 +127,11 @@ const emit = defineEmits(['click'])
 .lc-value {
   font: 400 14.5px/1.25 var(--font-stack);
   color: #8E8E93;
+}
+.lc-chevron {
+  flex: none;
+  color: var(--chevron-color, #C5C5C7);
+  margin-left: 2px;
+  display: block;
 }
 </style>
