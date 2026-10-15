@@ -1,8 +1,21 @@
 <script setup>
 import { ref } from 'vue'
 import ListCell from '../../ui/ListCell.vue'
-import LIcon from '../../ui/LIcon.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
+
+import heroIcon from '../../../assets/icons/accessibility/hero.webp'
+import accessibilityIcon from '../../../assets/icons/accessibility/accessibility.webp'
+import recordIcon from '../../../assets/icons/accessibility/record.webp'
+import screenshotIcon from '../../../assets/icons/accessibility/screenshot.webp'
+import gestureIcon from '../../../assets/icons/accessibility/gesture.webp'
+import gripIcon from '../../../assets/icons/accessibility/grip.webp'
+import floatWindowIcon from '../../../assets/icons/accessibility/float_window.webp'
+import splitIcon from '../../../assets/icons/accessibility/split.webp'
+import sidebarIcon from '../../../assets/icons/accessibility/sidebar.webp'
+import outdoorIcon from '../../../assets/icons/accessibility/outdoor.webp'
+import motionIcon from '../../../assets/icons/accessibility/motion.webp'
+import gameIcon from '../../../assets/icons/accessibility/game.webp'
+import mistouchIcon from '../../../assets/icons/accessibility/mistouch.webp'
 
 const emit = defineEmits(['back', 'navigate'])
 
@@ -47,14 +60,10 @@ defineExpose({ back })
     <!-- 滚动内容区 -->
     <div class="accessibility-scroll-body scrollable">
       <!-- 顶部特性大卡片：真机悬浮特色晶核徽标 -->
-      <!-- 顶部特性大卡片：标准无障碍关怀人形徽标 -->
+      <!-- 顶部特性大卡片：真机官方高保真晶核徽标 -->
       <div class="accessibility-hero-card">
         <div class="hero-icon-wrap">
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="4.5" r="2.2" fill="#FFFFFF"/>
-            <path d="M5.5 9C7.8 8.4 10 8.2 12 8.2C14 8.2 16.2 8.4 18.5 9" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
-            <path d="M12 8.5V14.5M9.2 20.5L11.5 14.5H12.5L14.8 20.5" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <img :src="heroIcon" class="hero-icon-img" alt="辅助功能" draggable="false" />
         </div>
         <div class="hero-title">辅助功能</div>
         <div class="hero-desc">
@@ -62,18 +71,11 @@ defineExpose({ back })
         </div>
       </div>
 
-      <!-- 无障碍单项卡片：标准无障碍圆形徽标 -->
+      <!-- 无障碍单项卡片 -->
       <div class="settings-card">
         <ListCell title="无障碍" chevron last @click="handleItemTap('无障碍')">
           <template #icon>
-            <div class="squircle-icon bg-blue-access">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="9.2" stroke="#FFFFFF" stroke-width="1.6"/>
-                <circle cx="12" cy="6.8" r="1.6" fill="#FFFFFF"/>
-                <path d="M6.8 10.8C8.5 10.3 10.2 10.1 12 10.1C13.8 10.1 15.5 10.3 17.2 10.8" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round"/>
-                <path d="M12 10.2V14.8M9.8 19L11.6 14.6H12.4L14.2 19" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
+            <img :src="accessibilityIcon" class="cell-entry-icon" alt="无障碍" draggable="false" />
           </template>
         </ListCell>
       </div>
@@ -83,49 +85,28 @@ defineExpose({ back })
         <!-- 录屏 -->
         <ListCell title="录屏" chevron @click="handleItemTap('录屏')">
           <template #icon>
-            <div class="squircle-icon bg-red-record">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="8.5" stroke="#FFFFFF" stroke-width="1.8"/>
-                <circle cx="12" cy="12" r="4.2" fill="#FFFFFF"/>
-              </svg>
-            </div>
+            <img :src="recordIcon" class="cell-entry-icon" alt="录屏" draggable="false" />
           </template>
         </ListCell>
 
         <!-- 截屏 -->
         <ListCell title="截屏" chevron @click="handleItemTap('截屏')">
           <template #icon>
-            <div class="squircle-icon bg-amber-crop">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <rect x="4.5" y="3.5" width="15" height="17" rx="2.5" stroke="#FFFFFF" stroke-width="1.6"/>
-                <path d="M8 7H6V9M16 7H18V9M8 17H6V15M16 17H18V15" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="12" cy="12" r="1.8" fill="#FFFFFF"/>
-              </svg>
-            </div>
+            <img :src="screenshotIcon" class="cell-entry-icon" alt="截屏" draggable="false" />
           </template>
         </ListCell>
 
         <!-- 动作与手势 -->
         <ListCell title="动作与手势" chevron @click="handleItemTap('动作与手势')">
           <template #icon>
-            <div class="squircle-icon bg-blue-gesture">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M12 4.2V12C12 11.3 11.4 10.8 10.7 10.8C10 10.8 9.5 11.3 9.5 12V13.8L8.1 12.6C7.5 12.1 6.6 12.2 6.1 12.8C5.6 13.4 5.7 14.3 6.3 14.8L10.2 18.5C11.1 19.4 12.3 20 13.6 20H15.2C17.6 20 19.5 18.1 19.5 15.7V12.5C19.5 11.8 18.9 11.2 18.2 11.2C17.7 11.2 17.2 11.5 17 12C16.8 11.4 16.3 11 15.6 11C15.1 11 14.7 11.3 14.4 11.7C14.2 11.2 13.7 10.8 13.1 10.8C12.5 10.8 12.1 11.1 12 11.5V4.2C12 3.5 11.4 3 10.7 3C10 3 9.5 3.5 9.5 4.2" fill="#FFFFFF"/>
-                <path d="M14.5 3.2C16.8 4.2 18.5 6.2 19 8.5" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round"/>
-              </svg>
-            </div>
+            <img :src="gestureIcon" class="cell-entry-icon" alt="动作与手势" draggable="false" />
           </template>
         </ListCell>
 
         <!-- 智感握姿 -->
         <ListCell title="智感握姿" chevron last @click="handleItemTap('智感握姿')">
           <template #icon>
-            <div class="squircle-icon bg-purple-grip">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <rect x="7.5" y="3.5" width="9" height="17" rx="2.5" stroke="#FFFFFF" stroke-width="1.6"/>
-                <path d="M4.2 8C3.4 9.5 3.4 14.5 4.2 16M19.8 8C20.6 9.5 20.6 14.5 19.8 16" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round"/>
-              </svg>
-            </div>
+            <img :src="gripIcon" class="cell-entry-icon" alt="智感握姿" draggable="false" />
           </template>
         </ListCell>
       </div>
@@ -140,12 +121,7 @@ defineExpose({ back })
           @click="handleItemTap('小窗')"
         >
           <template #icon>
-            <div class="squircle-icon bg-pink-float">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" stroke="#FFFFFF" stroke-width="1.6"/>
-                <rect x="11" y="10" width="8.5" height="8.5" rx="2" fill="#FFFFFF"/>
-              </svg>
-            </div>
+            <img :src="floatWindowIcon" class="cell-entry-icon" alt="小窗" draggable="false" />
           </template>
         </ListCell>
 
@@ -157,16 +133,7 @@ defineExpose({ back })
           @click="handleItemTap('应用分屏')"
         >
           <template #icon>
-            <div class="squircle-icon bg-green-split">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <rect x="3.5" y="3.5" width="17" height="17" rx="3" stroke="#FFFFFF" stroke-width="1.6"/>
-                <line x1="12" y1="3.5" x2="12" y2="20.5" stroke="#FFFFFF" stroke-width="1.6"/>
-                <rect x="5.5" y="6.5" width="4.5" height="2" rx="0.6" fill="#FFFFFF"/>
-                <rect x="14" y="6.5" width="4.5" height="2" rx="0.6" fill="#FFFFFF"/>
-                <rect x="5.5" y="10" width="3.5" height="1.5" rx="0.5" fill="#FFFFFF" fill-opacity="0.7"/>
-                <rect x="14" y="10" width="3.5" height="1.5" rx="0.5" fill="#FFFFFF" fill-opacity="0.7"/>
-              </svg>
-            </div>
+            <img :src="splitIcon" class="cell-entry-icon" alt="应用分屏" draggable="false" />
           </template>
         </ListCell>
 
@@ -179,13 +146,7 @@ defineExpose({ back })
           @click="handleItemTap('智能侧边栏')"
         >
           <template #icon>
-            <div class="squircle-icon bg-indigo-sidebar">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <rect x="3.5" y="4" width="17" height="16" rx="2.8" stroke="#FFFFFF" stroke-width="1.6"/>
-                <line x1="15" y1="4" x2="15" y2="20" stroke="#FFFFFF" stroke-width="1.5"/>
-                <rect x="16.8" y="9.5" width="2" height="5" rx="1" fill="#FFFFFF"/>
-              </svg>
-            </div>
+            <img :src="sidebarIcon" class="cell-entry-icon" alt="智能侧边栏" draggable="false" />
           </template>
         </ListCell>
       </div>
@@ -200,12 +161,7 @@ defineExpose({ back })
           @click="handleItemTap('户外增强')"
         >
           <template #icon>
-            <div class="squircle-icon bg-sky-outdoor">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="4.2" fill="#FFFFFF"/>
-                <path d="M12 2.5V5M12 19V21.5M2.5 12H5M19 12H21.5M5.3 5.3L7.1 7.1M16.9 16.9L18.7 18.7M5.3 18.7L7.1 16.9M16.9 7.1L18.7 5.3" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
-              </svg>
-            </div>
+            <img :src="outdoorIcon" class="cell-entry-icon" alt="户外增强" draggable="false" />
           </template>
         </ListCell>
 
@@ -217,13 +173,11 @@ defineExpose({ back })
           @click="handleItemTap('晕动舒缓显示')"
         >
           <template #icon>
-            <div class="squircle-icon bg-blue-access">
-              <LIcon name="motionComfort" :size="20" />
-            </div>
+            <img :src="motionIcon" class="cell-entry-icon" alt="晕动舒缓显示" draggable="false" />
           </template>
         </ListCell>
 
-        <!-- 游戏模式：全面复用现有真实游戏模式官方图标资产 -->
+        <!-- 游戏模式 -->
         <ListCell
           title="游戏模式"
           subtitle="提升游戏体验。"
@@ -232,7 +186,7 @@ defineExpose({ back })
           @click="handleItemTap('游戏模式')"
         >
           <template #icon>
-            <img class="settings-entry-icon-img" src="/icons/games.png" alt="游戏模式" />
+            <img :src="gameIcon" class="cell-entry-icon" alt="游戏模式" draggable="false" />
           </template>
         </ListCell>
       </div>
@@ -245,13 +199,7 @@ defineExpose({ back })
           last
         >
           <template #icon>
-            <div class="squircle-icon bg-coral-mistouch">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M5.5 9.5V16.5C5.5 18.7 7.3 20.5 9.5 20.5H14.5C16.7 20.5 18.5 18.7 18.5 16.5V9.5H5.5Z" stroke="#FFFFFF" stroke-width="1.7" stroke-linejoin="round"/>
-                <line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round"/>
-                <rect x="8.5" y="4" width="7" height="9" rx="1.5" fill="#FFFFFF"/>
-              </svg>
-            </div>
+            <img :src="mistouchIcon" class="cell-entry-icon" alt="防误触模式" draggable="false" />
           </template>
           <template #right>
             <ToggleSwitch v-model="antiMistouch" />
@@ -350,15 +298,21 @@ defineExpose({ back })
 }
 
 .hero-icon-wrap {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
-  background: #3898FC;
+  width: 68px;
+  height: 68px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 14px;
-  box-shadow: 0 4px 12px rgba(56, 152, 252, 0.25);
+}
+
+.hero-icon-img {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+  display: block;
+  user-select: none;
+  pointer-events: none;
 }
 
 .hero-title {
@@ -384,51 +338,16 @@ defineExpose({ back })
   border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
-/* 圆形与圆角矩形图标基类 */
-.circle-icon {
+.cell-entry-icon {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  margin-right: 14px;
-  color: #FFFFFF;
-}
-
-.squircle-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  margin-right: 14px;
-  color: #FFFFFF;
-}
-
-.settings-entry-icon-img {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
   object-fit: contain;
   display: block;
   flex: none;
   margin-right: 14px;
+  user-select: none;
+  pointer-events: none;
 }
-
-.bg-blue-access { background: #1877F2; }
-.bg-red-record { background: #F44336; }
-.bg-amber-crop { background: #FF9800; }
-.bg-blue-gesture { background: #2196F3; }
-.bg-purple-grip { background: #5C6BC0; }
-.bg-indigo-sidebar { background: #5E35B1; }
-.bg-pink-float { background: #E91E63; }
-.bg-green-split { background: #4CAF50; }
-.bg-sky-outdoor { background: #03A9F4; }
-.bg-coral-mistouch { background: #FF5722; }
 
 /* 你可能想找 */
 .relative-links-box {
