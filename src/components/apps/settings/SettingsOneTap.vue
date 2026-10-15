@@ -151,50 +151,103 @@ const modes = [
 ]
 
 // 默认激活项对齐真机为自定义 (索引 12)
+const SPACING = 148
+const trackPos = ref(12)
 const currentIndex = ref(12)
 const activeModeId = ref('custom')
 
 const currentMode = computed(() => modes[currentIndex.value])
 const isCurrentActive = computed(() => currentMode.value.id === activeModeId.value)
 
-// 左右相邻项（无循环循环溢出，端点处自然隐去）
+// 左右相邻项
 const prevMode = computed(() => (currentIndex.value > 0 ? modes[currentIndex.value - 1] : null))
 const nextMode = computed(() => (currentIndex.value < modes.length - 1 ? modes[currentIndex.value + 1] : null))
 
+let animRaf = null
+
+function animateTo(targetIdx, duration = 340) {
+  if (targetIdx < 0) targetIdx = 0
+  if (targetIdx >= modes.length) targetIdx = modes.length - 1
+
+  if (animRaf) cancelAnimationFrame(animRaf)
+
+  const startPos = trackPos.value
+  const endPos = targetIdx
+  if (Math.abs(endPos - startPos) < 0.001) {
+    trackPos.value = endPos
+    currentIndex.value = targetIdx
+    return
+  }
+
+  const startTime = performance.now()
+  const dist = Math.abs(endPos - startPos)
+  const actualDuration = Math.min(460, Math.max(260, duration + (dist - 1) * 22))
+
+  function step(now) {
+    const elapsed = now - startTime
+    const progress = Math.min(1, elapsed / actualDuration)
+    // 缓动曲线：平滑出入
+    const ease = 1 - Math.pow(1 - progress, 3.2)
+    trackPos.value = startPos + (endPos - startPos) * ease
+
+    const nearest = Math.max(0, Math.min(modes.length - 1, Math.round(trackPos.value)))
+    if (nearest !== currentIndex.value) {
+      currentIndex.value = nearest
+    }
+
+    if (progress < 1) {
+      animRaf = requestAnimationFrame(step)
+    } else {
+      trackPos.value = endPos
+      currentIndex.value = targetIdx
+      animRaf = null
+    }
+  }
+
+  animRaf = requestAnimationFrame(step)
+}
+
 function goToPrev() {
   if (currentIndex.value > 0) {
-    currentIndex.value--
+    animateTo(currentIndex.value - 1)
   }
 }
 
 function goToNext() {
   if (currentIndex.value < modes.length - 1) {
-    currentIndex.value++
+    animateTo(currentIndex.value + 1)
   }
 }
 
 function goToIndex(idx) {
   if (idx >= 0 && idx < modes.length) {
-    currentIndex.value = idx
+    animateTo(idx)
+  }
+}
+
+function onSlotClick(idx) {
+  if (idx !== currentIndex.value) {
+    animateTo(idx)
   }
 }
 
 // 拖拽与跟手滑动手势
-const dragX = ref(0)
 const isDragging = ref(false)
 let startClientX = 0
 let startClientY = 0
+let startTrackPos = 12
 let isHorizontalDrag = false
 
 function onPointerDown(e) {
+  if (animRaf) cancelAnimationFrame(animRaf)
   try {
     e.currentTarget.setPointerCapture(e.pointerId)
   } catch {}
   startClientX = e.clientX
   startClientY = e.clientY
+  startTrackPos = trackPos.value
   isDragging.value = true
   isHorizontalDrag = false
-  dragX.value = 0
 }
 
 function onPointerMove(e) {
@@ -212,14 +265,20 @@ function onPointerMove(e) {
   }
 
   if (isHorizontalDrag) {
+    const posOffset = -dx / SPACING
+    let newPos = startTrackPos + posOffset
+
     // 边界阻尼
-    if (
-      (currentIndex.value === 0 && dx > 0) ||
-      (currentIndex.value === modes.length - 1 && dx < 0)
-    ) {
-      dragX.value = dx * 0.25
-    } else {
-      dragX.value = dx
+    if (newPos < 0) {
+      newPos = newPos * 0.28
+    } else if (newPos > modes.length - 1) {
+      newPos = (modes.length - 1) + (newPos - (modes.length - 1)) * 0.28
+    }
+
+    trackPos.value = newPos
+    const nearest = Math.max(0, Math.min(modes.length - 1, Math.round(newPos)))
+    if (nearest !== currentIndex.value) {
+      currentIndex.value = nearest
     }
   }
 }
@@ -231,13 +290,56 @@ function onPointerUp(e) {
     e.currentTarget.releasePointerCapture(e.pointerId)
   } catch {}
 
-  const finalDx = dragX.value || (isHorizontalDrag ? e.clientX - startClientX : 0)
-  dragX.value = 0
+  const dx = e.clientX - startClientX
+  let targetIdx = Math.round(trackPos.value)
 
-  if (finalDx > 28 && currentIndex.value > 0) {
-    currentIndex.value--
-  } else if (finalDx < -28 && currentIndex.value < modes.length - 1) {
-    currentIndex.value++
+  if (isHorizontalDrag) {
+    if (dx < -28 && startTrackPos < modes.length - 1) {
+      targetIdx = Math.min(modes.length - 1, Math.floor(startTrackPos) + 1)
+    } else if (dx > 28 && startTrackPos > 0) {
+      targetIdx = Math.max(0, Math.ceil(startTrackPos) - 1)
+    }
+  } else if (Math.abs(dx) < 8) {
+    // 轻触判定：点击中线左侧或右侧直接过渡到上一项/下一项
+    const rect = e.currentTarget.getBoundingClientRect()
+    const offsetX = e.clientX - (rect.left + rect.width / 2)
+    if (offsetX < -45 && currentIndex.value > 0) {
+      targetIdx = currentIndex.value - 1
+    } else if (offsetX > 45 && currentIndex.value < modes.length - 1) {
+      targetIdx = currentIndex.value + 1
+    }
+  }
+
+  animateTo(targetIdx, 300)
+}
+
+function getIconStyle(idx) {
+  const rel = idx - trackPos.value
+  const pixelX = rel * SPACING
+  const normDist = Math.abs(rel)
+
+  if (normDist > 1.9) {
+    return {
+      display: 'none'
+    }
+  }
+
+  // 缩放：在中心 (normDist=0) 为 1.0 (50px)，在侧翼 (normDist=1) 为 0.68 (34px)
+  const scale = Math.max(0.68, 1.0 - 0.32 * Math.min(1.0, normDist))
+
+  // 透明度：中心为 1.0，侧翼为 0.35，离开侧翼快速淡出至 0
+  let opacity = 0
+  if (normDist <= 1.0) {
+    opacity = 1.0 - 0.65 * normDist
+  } else {
+    opacity = Math.max(0, 0.35 * (1.0 - (normDist - 1.0) / 0.8))
+  }
+
+  return {
+    transform: `translate3d(calc(-50% + ${pixelX}px), -50%, 0) scale(${scale})`,
+    opacity: opacity,
+    zIndex: normDist < 0.5 ? 10 : 5,
+    pointerEvents: normDist > 0.4 && normDist < 1.4 ? 'auto' : 'none'
   }
 }
 
@@ -280,7 +382,7 @@ defineExpose({ back })
       </button>
     </div>
 
-    <!-- 主展示舞台：高精度手机侧边中框 + 真实物理按键与左右预告 -->
+    <!-- 主展示舞台：高精度手机侧边中框 + 真实物理按键与单轨无缝图标位移 -->
     <div
       class="onetap-stage"
       @pointerdown="onPointerDown"
@@ -288,26 +390,6 @@ defineExpose({ back })
       @pointerup="onPointerUp"
       @pointercancel="onPointerUp"
     >
-      <!-- 左侧预告图标 -->
-      <button
-        class="flank-icon-btn left-flank"
-        :class="{ hidden: !prevMode }"
-        aria-label="上一项"
-        :style="{
-          transform: `translateY(-50%) translateX(${dragX * 0.45}px)`,
-          transition: isDragging ? 'none' : 'transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease'
-        }"
-        @click.stop="goToPrev"
-      >
-        <img
-          v-if="prevMode"
-          :src="prevMode.icon"
-          class="flank-icon-img"
-          alt=""
-          draggable="false"
-        />
-      </button>
-
       <!-- 手机侧边金属中框整体（自带物理凹槽与上下自然渐隐） -->
       <div class="chassis-column phone-rail">
         <img
@@ -332,73 +414,32 @@ defineExpose({ back })
           >
             <!-- 按键内层凸面微高光 -->
             <div class="capsule-specular"></div>
-
-            <!-- 图标滑动轨道（仅图标在物理键帽内平滑跟手滑动） -->
-            <div class="capsule-icons-viewport">
-              <!-- 当前中心图标 -->
-              <img
-                :src="currentMode.icon"
-                class="capsule-icon-img center-icon"
-                :style="{
-                  transform: `translateX(${dragX}px)`,
-                  opacity: Math.max(0.15, 1 - Math.abs(dragX) / 80),
-                  transition: isDragging ? 'none' : 'transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease'
-                }"
-                alt=""
-                draggable="false"
-              />
-
-              <!-- 滑动时从右侧滑入的下一个图标 -->
-              <img
-                v-if="nextMode && dragX < 0"
-                :src="nextMode.icon"
-                class="capsule-icon-img incoming-icon"
-                :style="{
-                  transform: `translateX(${110 + dragX}px)`,
-                  opacity: Math.min(1, Math.abs(dragX) / 80),
-                  transition: isDragging ? 'none' : 'transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease'
-                }"
-                alt=""
-                draggable="false"
-              />
-
-              <!-- 滑动时从左侧滑入的上一个图标 -->
-              <img
-                v-if="prevMode && dragX > 0"
-                :src="prevMode.icon"
-                class="capsule-icon-img incoming-icon"
-                :style="{
-                  transform: `translateX(${-110 + dragX}px)`,
-                  opacity: Math.min(1, Math.abs(dragX) / 80),
-                  transition: isDragging ? 'none' : 'transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease'
-                }"
-                alt=""
-                draggable="false"
-              />
-            </div>
           </div>
         </div>
       </div>
 
-      <!-- 右侧预告图标 -->
-      <button
-        class="flank-icon-btn right-flank"
-        :class="{ hidden: !nextMode }"
-        aria-label="下一项"
-        :style="{
-          transform: `translateY(-50%) translateX(${dragX * 0.45}px)`,
-          transition: isDragging ? 'none' : 'transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease'
-        }"
-        @click.stop="goToNext"
-      >
-        <img
-          v-if="nextMode"
-          :src="nextMode.icon"
-          class="flank-icon-img"
-          alt=""
-          draggable="false"
-        />
-      </button>
+      <!-- 单一连续图标轨道：无缝位移、无缝放大/缩小，绝对零重复 -->
+      <div class="carousel-icons-track">
+        <div
+          v-for="(m, idx) in modes"
+          :key="m.id"
+          class="track-icon-slot"
+          :class="{
+            'is-center': idx === currentIndex,
+            'is-left': idx === currentIndex - 1,
+            'is-right': idx === currentIndex + 1
+          }"
+          :style="getIconStyle(idx)"
+          @click.stop="onSlotClick(idx)"
+        >
+          <img
+            :src="m.icon"
+            class="track-icon-img"
+            alt=""
+            draggable="false"
+          />
+        </div>
+      </div>
     </div>
 
     <!-- 模式说明与操作区域（高精度锁定固定高度，彻底杜绝切换时上下跳行） -->
@@ -527,49 +568,38 @@ defineExpose({ back })
   cursor: grabbing;
 }
 
-/* 侧边预告图标 */
-.flank-icon-btn {
+/* 单一连续图标轨道：无缝位移、无缝放大/缩小，绝对零重复 */
+.carousel-icons-track {
   position: absolute;
+  left: 50%;
   top: 49.6%;
-  transform: translateY(-50%);
-  width: 48px;
-  height: 48px;
-  background: none;
-  border: none;
+  width: 0;
+  height: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.track-icon-slot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.35;
-  transition: opacity 0.25s ease, transform 0.2s ease;
   cursor: pointer;
-  z-index: 5;
+  will-change: transform, opacity;
+  transform-origin: center center;
   touch-action: manipulation;
 }
 
-.flank-icon-btn.left-flank {
-  left: 22px;
-}
-
-.flank-icon-btn.right-flank {
-  right: 22px;
-}
-
-.flank-icon-btn.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.flank-icon-btn:active {
-  opacity: 0.7;
-  transform: translateY(-50%) scale(1.1);
-}
-
-.flank-icon-img {
-  width: 34px;
-  height: 34px;
+.track-icon-img {
+  width: 50px;
+  height: 50px;
   object-fit: contain;
   pointer-events: none;
-  filter: brightness(0.9);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
 }
 
 /* 手机侧边金属中框柱：添加上下平滑渐隐 Mask，彻底消除硬切边缘 */
@@ -639,31 +669,6 @@ defineExpose({ back })
   inset: 0;
   border-radius: 54px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.15) 100%);
-  pointer-events: none;
-}
-
-/* 图标滑动视口 */
-.capsule-icons-viewport {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 54px;
-}
-
-.capsule-icon-img {
-  width: 50px;
-  height: 50px;
-  object-fit: contain;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  margin-top: -25px;
-  margin-left: -25px;
-  z-index: 2;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
   pointer-events: none;
 }
 
