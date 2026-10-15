@@ -289,7 +289,7 @@ defineExpose({ back })
   justify-content: center;
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  border-radius: 13px;
   margin-bottom: 14px;
 }
 
