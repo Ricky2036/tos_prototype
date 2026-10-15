@@ -970,18 +970,20 @@ const filteredSearchResults = computed(() => {
 .account-avatar {
   width: 52px;
   height: 52px;
-  overflow: visible;
+  border-radius: 50%;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  background: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: #F2F2F7;
 }
 
 .account-avatar-img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   display: block;
 }
 
