@@ -109,9 +109,9 @@ test('SettingsBattery.vue implements battery & power saving aligned with real ph
   assert.match(content, /过去 7 天/)
   assert.match(content, /亮屏活动时长/)
   assert.match(content, /息屏活动时长/)
-  assert.match(content, /哔哩哔哩/)
-  assert.match(content, /腾讯视频/)
-  assert.match(content, /微信/)
+  assert.match(content, /tiktok/)
+  assert.match(content, /youtube/)
+  assert.match(content, /wechat/)
 })
 
 test('SettingsStorage.vue implements storage management aligned with real phone', () => {
