@@ -90,8 +90,8 @@ function setSoundMode(mode) {
           <span class="der-title">{{ i18n.t('dnd') }}</span>
           <div class="der-right">
             <span class="der-sub">{{ control.doNotDisturb ? i18n.t('dndEnabled') : i18n.t('dndScheduled') }}</span>
-            <svg width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" />
+            <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </div>
         </div>
@@ -105,8 +105,8 @@ function setSoundMode(mode) {
             <span class="der-sub" :class="{ 'is-active': prayerStore.masterEnabled }">
               {{ prayerStore.masterEnabled ? (prayerStore.activePrayer ? i18n.t('prayerActive') : i18n.t('dndEnabled')) : i18n.t('off') }}
             </span>
-            <svg width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" />
+            <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </div>
         </div>
@@ -212,8 +212,8 @@ function setSoundMode(mode) {
           <span class="der-title">{{ i18n.t('haptics') }}</span>
           <div class="der-right">
             <span class="der-sub">{{ i18n.t('hapticsOn') }}</span>
-            <svg width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" />
+            <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </div>
         </div>

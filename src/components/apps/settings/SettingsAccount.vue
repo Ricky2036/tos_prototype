@@ -149,8 +149,8 @@ function handleRelogin() {
               <div class="cell-title">云备份</div>
               <div class="cell-sub">设备数据备份、恢复与自动备份</div>
             </div>
-            <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
         </div>
@@ -164,8 +164,8 @@ function handleRelogin() {
           </div>
           <div class="cell-main">
             <div class="cell-title">个人信息</div>
-            <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
         </div>
@@ -183,8 +183,8 @@ function handleRelogin() {
               <div class="cell-title">账号安全</div>
               <div class="cell-sub">信息安全、密码管理</div>
             </div>
-            <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
         </div>
@@ -200,8 +200,8 @@ function handleRelogin() {
           </div>
           <div class="cell-main">
             <div class="cell-title">隐私与协议</div>
-            <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
         </div>
@@ -217,8 +217,8 @@ function handleRelogin() {
           </div>
           <div class="cell-main">
             <div class="cell-title">帮助中心</div>
-            <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
         </div>
@@ -237,8 +237,8 @@ function handleRelogin() {
               <div class="cell-title">版本</div>
               <div class="cell-sub">{{ account.version }}</div>
             </div>
-            <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
         </div>
@@ -255,8 +255,8 @@ function handleRelogin() {
               <div class="cell-title">钱包</div>
               <div class="cell-sub">发现专属优惠福利</div>
             </div>
-            <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
         </div>
@@ -281,8 +281,8 @@ function handleRelogin() {
               <div class="cell-title">{{ dev.name }}</div>
               <div v-if="dev.subtitle" class="cell-sub-accent">{{ dev.subtitle }}</div>
             </div>
-            <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
         </div>

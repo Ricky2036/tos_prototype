@@ -142,8 +142,8 @@ useBackHandler(() => {
             <span class="setting-label">计算方法</span>
             <span class="setting-sublabel">{{ clock.settings.calcMethod }}</span>
           </div>
-          <svg class="setting-chevron" width="8" height="13" viewBox="0 0 8 13" fill="none">
-            <path d="M1.5 1.5L6.5 6.5L1.5 11.5" stroke="#8e8e93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg class="setting-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
 
@@ -155,8 +155,8 @@ useBackHandler(() => {
             <span class="setting-label">哺礼时间法</span>
             <span class="setting-sublabel">{{ clock.settings.prayerTimeMethod }}</span>
           </div>
-          <svg class="setting-chevron" width="8" height="13" viewBox="0 0 8 13" fill="none">
-            <path d="M1.5 1.5L6.5 6.5L1.5 11.5" stroke="#8e8e93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg class="setting-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
 
@@ -168,8 +168,8 @@ useBackHandler(() => {
             <span class="setting-label">调整斋月日期</span>
             <span class="setting-sublabel">{{ clock.settings.ramadanAdjustDays }} 天</span>
           </div>
-          <svg class="setting-chevron" width="8" height="13" viewBox="0 0 8 13" fill="none">
-            <path d="M1.5 1.5L6.5 6.5L1.5 11.5" stroke="#8e8e93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg class="setting-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
 
@@ -181,8 +181,8 @@ useBackHandler(() => {
             <span class="setting-label">铃声</span>
             <span class="setting-sublabel">{{ clock.settings.ringtone }}</span>
           </div>
-          <svg class="setting-chevron" width="8" height="13" viewBox="0 0 8 13" fill="none">
-            <path d="M1.5 1.5L6.5 6.5L1.5 11.5" stroke="#8e8e93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg class="setting-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
       </div>
