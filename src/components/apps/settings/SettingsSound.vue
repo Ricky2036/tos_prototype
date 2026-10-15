@@ -1,271 +1,453 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useControlStore } from '../../../stores/controlStore'
 import { usePrayerStore } from '../../../stores/prayerStore'
 import { useI18nStore } from '../../../stores/i18nStore'
-import AppNavBar from '../../ui/AppNavBar.vue'
+import LIcon from '../../ui/LIcon.vue'
+import ListCell from '../../ui/ListCell.vue'
+import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 
 const emit = defineEmits(['back', 'open-dnd', 'open-prayer'])
 const control = useControlStore()
 const prayerStore = usePrayerStore()
 const i18n = useI18nStore()
 
+// 音量状态：媒体与 controlStore.volume 保持双向同步，其余为独立音量通道
 const volumes = ref({
-  media: 0.52,
-  ring: 0.78,
-  notif: 0.85,
-  alarm: 0.68
+  media: control.volume ?? 0.65,
+  ring: 0.15,
+  notif: 0.28,
+  alarm: 0.32
 })
+
+// 开关与交互状态
+const ringAscending = ref(true)
+
+// 浮层反馈提示
+const toastText = ref('')
+let toastTimer = null
+function showToast(msg) {
+  toastText.value = msg
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => {
+    toastText.value = ''
+  }, 2200)
+}
 
 function setSoundMode(mode) {
   control.setSoundMode(mode)
 }
+
+function handleItemTap(name) {
+  showToast(`已进入${name}设置`)
+}
+
+// 音量滑块拖拽交互
+const draggingChannel = ref(null)
+
+function updateVolumeFromPointer(channel, clientX, trackEl) {
+  if (!trackEl) return
+  const rect = trackEl.getBoundingClientRect()
+  if (rect.width <= 0) return
+  const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+  volumes.value[channel] = Math.round(ratio * 100) / 100
+  if (channel === 'media') {
+    control.setVolume(ratio)
+  }
+}
+
+function onSliderPointerDown(channel, e) {
+  draggingChannel.value = channel
+  const track = e.currentTarget
+  track.setPointerCapture?.(e.pointerId)
+  updateVolumeFromPointer(channel, e.clientX, track)
+}
+
+function onSliderPointerMove(channel, e) {
+  if (draggingChannel.value !== channel) return
+  updateVolumeFromPointer(channel, e.clientX, e.currentTarget)
+}
+
+function onSliderPointerUp(channel, e) {
+  if (draggingChannel.value === channel) {
+    draggingChannel.value = null
+    try {
+      e.currentTarget.releasePointerCapture?.(e.pointerId)
+    } catch {
+      // 忽略
+    }
+  }
+}
+
+function back() {
+  emit('back')
+  return true
+}
+
+defineExpose({ back })
 </script>
 
 <template>
-  <div class="settings-sound">
-    <!-- 顶部导航栏：左对齐，当前标题 -->
-    <AppNavBar :title="i18n.t('soundAndVibration')" @back="emit('back')" />
+  <div class="settings-sound-page">
+    <!-- 顶部导航栏：圆形微投影返回键 + 左对齐大标题 -->
+    <div class="sound-nav-bar">
+      <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="nav-title">声音与振动</div>
+    </div>
 
-    <div class="scrollable sound-body">
-      <!-- 顶部模式选择卡片（铃声 / 振动 / 静音 + 勿扰模式 + 礼拜模式入口） -->
-      <div class="sound-card">
-        <div class="mode-options-row">
+    <!-- 滚动内容区 -->
+    <div class="sound-scroll-body">
+      <!-- 卡片 1: 响铃/振动/静音模式 + 勿扰模式 + 礼拜模式入口 -->
+      <div class="settings-card mode-card">
+        <div class="mode-picker-row">
           <!-- 铃声 -->
           <div
-            class="mode-item"
+            class="mode-col"
             :class="{ active: control.soundMode === 'ring' }"
             @click="setSoundMode('ring')"
           >
             <div class="mode-icon-box">
-              <svg width="24" height="24" viewBox="0 0 24 24">
-                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" :fill="control.soundMode === 'ring' ? '#00C853' : '#636366'" />
-              </svg>
+              <LIcon name="bell" :size="26" />
             </div>
-            <span class="mode-label" :class="{ active: control.soundMode === 'ring' }">{{ i18n.t('soundRing') }}</span>
-            <div class="mode-radio" :class="{ active: control.soundMode === 'ring' }">
-              <div v-if="control.soundMode === 'ring'" class="radio-dot"></div>
+            <span class="mode-label">铃声</span>
+            <div class="mode-radio" :class="{ checked: control.soundMode === 'ring' }">
+              <div v-if="control.soundMode === 'ring'" class="mode-radio-dot"></div>
             </div>
           </div>
 
           <!-- 振动 -->
           <div
-            class="mode-item"
+            class="mode-col"
             :class="{ active: control.soundMode === 'vibrate' }"
             @click="setSoundMode('vibrate')"
           >
             <div class="mode-icon-box">
-              <svg width="24" height="24" viewBox="0 0 24 24">
-                <path d="M16 4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H8V6h8v12zM2 9h2v6H2zm20 0h-2v6h2zM0 11h2v2H0zm24 0h-2v2h2z" :fill="control.soundMode === 'vibrate' ? '#00C853' : '#636366'" />
-              </svg>
+              <LIcon name="vibrate" :size="26" />
             </div>
-            <span class="mode-label" :class="{ active: control.soundMode === 'vibrate' }">{{ i18n.t('soundVibrate') }}</span>
-            <div class="mode-radio" :class="{ active: control.soundMode === 'vibrate' }">
-              <div v-if="control.soundMode === 'vibrate'" class="radio-dot"></div>
+            <span class="mode-label">振动</span>
+            <div class="mode-radio" :class="{ checked: control.soundMode === 'vibrate' }">
+              <div v-if="control.soundMode === 'vibrate'" class="mode-radio-dot"></div>
             </div>
           </div>
 
           <!-- 静音 -->
           <div
-            class="mode-item"
+            class="mode-col"
             :class="{ active: control.soundMode === 'mute' }"
             @click="setSoundMode('mute')"
           >
             <div class="mode-icon-box">
-              <svg width="24" height="24" viewBox="0 0 24 24">
-                <path d="M4.34 2.93L2.93 4.34 7.29 8.7 7 9H3v6h4l5 5v-6.59l4.18 4.18c-.65.49-1.38.88-2.18 1.11v2.06c1.34-.3 2.57-.92 3.61-1.75l2.05 2.05 1.41-1.41L4.34 2.93zM10 15.17L7.83 13H5v-2h2.83l.88-.88L10 11.41v3.76zM19 12c0 .82-.15 1.61-.41 2.34l1.53 1.53c.56-1.17.88-2.48.88-3.87 0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zm-4.5-4.03v2.24l2.5 2.5v-.71c0-1.77-1.02-3.29-2.5-4.03z" :fill="control.soundMode === 'mute' ? '#00C853' : '#636366'" />
-              </svg>
+              <LIcon name="bellOff" :size="26" />
             </div>
-            <span class="mode-label" :class="{ active: control.soundMode === 'mute' }">{{ i18n.t('soundMute') }}</span>
-            <div class="mode-radio" :class="{ active: control.soundMode === 'mute' }">
-              <div v-if="control.soundMode === 'mute'" class="radio-dot"></div>
+            <span class="mode-label">静音</span>
+            <div class="mode-radio" :class="{ checked: control.soundMode === 'mute' }">
+              <div v-if="control.soundMode === 'mute'" class="mode-radio-dot"></div>
             </div>
           </div>
         </div>
 
-        <div class="card-divider"></div>
+        <div class="mode-card-divider"></div>
 
         <!-- 勿扰模式入口 -->
-        <div class="dnd-entry-row" @click="emit('open-dnd')">
-          <span class="der-title">{{ i18n.t('dnd') }}</span>
-          <div class="der-right">
-            <span class="der-sub">{{ control.doNotDisturb ? i18n.t('dndEnabled') : i18n.t('dndScheduled') }}</span>
-            <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+        <ListCell
+          title="勿扰模式"
+          :value="control.doNotDisturb ? '已开启' : '已关闭'"
+          chevron
+          clickable
+          @click="emit('open-dnd')"
+        />
+
+        <!-- 礼拜模式入口（特别保留） -->
+        <ListCell
+          title="礼拜模式"
+          :value="prayerStore.masterEnabled ? (prayerStore.activePrayer ? '礼拜中' : '已开启') : '已关闭'"
+          chevron
+          clickable
+          last
+          @click="emit('open-prayer')"
+        />
+      </div>
+
+      <!-- 卡片 2: 音量调节卡片 -->
+      <div class="section-header">音量</div>
+      <div class="settings-card volume-card">
+        <!-- 媒体音量 -->
+        <div class="volume-slider-item">
+          <div class="volume-header-line">
+            <div class="volume-icon-box">
+              <LIcon name="volume2" :size="20" />
+            </div>
+            <span class="volume-title">媒体</span>
+          </div>
+          <div
+            class="slider-track"
+            @pointerdown="onSliderPointerDown('media', $event)"
+            @pointermove="onSliderPointerMove('media', $event)"
+            @pointerup="onSliderPointerUp('media', $event)"
+            @pointercancel="onSliderPointerUp('media', $event)"
+          >
+            <div class="slider-fill" :style="{ width: `${volumes.media * 100}%` }"></div>
+            <div class="slider-thumb" :style="{ left: `${volumes.media * 100}%` }"></div>
           </div>
         </div>
 
-        <div class="card-divider"></div>
+        <div class="volume-divider"></div>
 
-        <!-- 礼拜模式入口（改到勿扰模式下方，名称为礼拜模式） -->
-        <div class="dnd-entry-row" @click="emit('open-prayer')">
-          <span class="der-title">{{ i18n.t('prayerDnd') }}</span>
-          <div class="der-right">
-            <span class="der-sub" :class="{ 'is-active': prayerStore.masterEnabled }">
-              {{ prayerStore.masterEnabled ? (prayerStore.activePrayer ? i18n.t('prayerActive') : i18n.t('dndEnabled')) : i18n.t('off') }}
-            </span>
-            <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+        <!-- 铃声音量 -->
+        <div class="volume-slider-item">
+          <div class="volume-header-line">
+            <div class="volume-icon-box">
+              <LIcon name="bell" :size="20" />
+            </div>
+            <span class="volume-title">铃声</span>
+          </div>
+          <div
+            class="slider-track"
+            @pointerdown="onSliderPointerDown('ring', $event)"
+            @pointermove="onSliderPointerMove('ring', $event)"
+            @pointerup="onSliderPointerUp('ring', $event)"
+            @pointercancel="onSliderPointerUp('ring', $event)"
+          >
+            <div class="slider-fill" :style="{ width: `${volumes.ring * 100}%` }"></div>
+            <div class="slider-thumb" :style="{ left: `${volumes.ring * 100}%` }"></div>
+          </div>
+        </div>
+
+        <div class="volume-divider"></div>
+
+        <!-- 通知音量 -->
+        <div class="volume-slider-item">
+          <div class="volume-header-line">
+            <div class="volume-icon-box">
+              <LIcon name="bellDot" :size="20" />
+            </div>
+            <span class="volume-title">通知</span>
+          </div>
+          <div
+            class="slider-track"
+            @pointerdown="onSliderPointerDown('notif', $event)"
+            @pointermove="onSliderPointerMove('notif', $event)"
+            @pointerup="onSliderPointerUp('notif', $event)"
+            @pointercancel="onSliderPointerUp('notif', $event)"
+          >
+            <div class="slider-fill" :style="{ width: `${volumes.notif * 100}%` }"></div>
+            <div class="slider-thumb" :style="{ left: `${volumes.notif * 100}%` }"></div>
+          </div>
+        </div>
+
+        <div class="volume-divider"></div>
+
+        <!-- 闹钟音量 -->
+        <div class="volume-slider-item last">
+          <div class="volume-header-line">
+            <div class="volume-icon-box">
+              <LIcon name="alarmClock" :size="20" />
+            </div>
+            <span class="volume-title">闹钟</span>
+          </div>
+          <div
+            class="slider-track"
+            @pointerdown="onSliderPointerDown('alarm', $event)"
+            @pointermove="onSliderPointerMove('alarm', $event)"
+            @pointerup="onSliderPointerUp('alarm', $event)"
+            @pointercancel="onSliderPointerUp('alarm', $event)"
+          >
+            <div class="slider-fill" :style="{ width: `${volumes.alarm * 100}%` }"></div>
+            <div class="slider-thumb" :style="{ left: `${volumes.alarm * 100}%` }"></div>
           </div>
         </div>
       </div>
 
-      <!-- 音量调节分组（图 1 宽裕呼吸感布局：上方图标标题，下方完整滑块） -->
-      <div class="sound-group-header">{{ i18n.t('volumeSection') }}</div>
-      <div class="sound-card volume-card">
-        <!-- 媒体 -->
-        <div class="volume-item">
-          <div class="vi-header">
-            <svg class="vi-icon" width="20" height="20" viewBox="0 0 24 24">
-              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" fill="#636366"/>
-            </svg>
-            <span class="vi-title">{{ i18n.t('media') }}</span>
-          </div>
-          <div class="vi-slider-wrap">
-            <input
-              type="range"
-              v-model="volumes.media"
-              min="0"
-              max="1"
-              step="0.01"
-              class="custom-slider"
-              :style="{ '--val': volumes.media }"
-            />
-          </div>
-        </div>
-
-        <div class="item-divider"></div>
-
-        <!-- 铃声 -->
-        <div class="volume-item">
-          <div class="vi-header">
-            <svg class="vi-icon" width="20" height="20" viewBox="0 0 24 24">
-              <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" fill="#636366"/>
-            </svg>
-            <span class="vi-title">{{ i18n.t('ringtone') }}</span>
-          </div>
-          <div class="vi-slider-wrap">
-            <input
-              type="range"
-              v-model="volumes.ring"
-              min="0"
-              max="1"
-              step="0.01"
-              class="custom-slider"
-              :style="{ '--val': volumes.ring }"
-            />
-          </div>
-        </div>
-
-        <div class="item-divider"></div>
-
-        <!-- 通知 -->
-        <div class="volume-item">
-          <div class="vi-header">
-            <svg class="vi-icon" width="20" height="20" viewBox="0 0 24 24">
-              <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" fill="#636366"/>
-            </svg>
-            <span class="vi-title">{{ i18n.t('notificationVolume') }}</span>
-          </div>
-          <div class="vi-slider-wrap">
-            <input
-              type="range"
-              v-model="volumes.notif"
-              min="0"
-              max="1"
-              step="0.01"
-              class="custom-slider"
-              :style="{ '--val': volumes.notif }"
-            />
-          </div>
-        </div>
-
-        <div class="item-divider"></div>
-
-        <!-- 闹钟 -->
-        <div class="volume-item">
-          <div class="vi-header">
-            <svg class="vi-icon" width="20" height="20" viewBox="0 0 24 24">
-              <path d="M12 4c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 16c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7zm.5-11H11v6l5.25 3.15.75-1.23-4.5-2.67zM22 5.72l-4.6-3.86-1.29 1.53 4.6 3.86L22 5.72zM7.88 3.39L6.6 1.86 2 5.71l1.29 1.53 4.59-3.85z" fill="#636366"/>
-            </svg>
-            <span class="vi-title">{{ i18n.t('alarm') }}</span>
-          </div>
-          <div class="vi-slider-wrap">
-            <input
-              type="range"
-              v-model="volumes.alarm"
-              min="0"
-              max="1"
-              step="0.01"
-              class="custom-slider"
-              :style="{ '--val': volumes.alarm }"
-            />
-          </div>
-        </div>
+      <!-- 卡片 3: 触感反馈 -->
+      <div class="settings-card" style="margin-top: 16px;">
+        <ListCell
+          title="触感反馈"
+          value="开启"
+          chevron
+          clickable
+          last
+          @click="handleItemTap('触感反馈')"
+        />
       </div>
 
-      <!-- 底部触感反馈卡片（图 1） -->
-      <div class="sound-card feedback-card">
-        <div class="dnd-entry-row">
-          <span class="der-title">{{ i18n.t('haptics') }}</span>
-          <div class="der-right">
-            <span class="der-sub">{{ i18n.t('hapticsOn') }}</span>
-            <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </div>
-        </div>
+      <!-- 卡片 4: 铃声设置 -->
+      <div class="section-header">铃声设置</div>
+      <div class="settings-card">
+        <ListCell
+          title="来电铃声"
+          subtitle="SIM1:  Elegant&#10;SIM2:  Elegant"
+          chevron
+          clickable
+          @click="handleItemTap('来电铃声')"
+        />
+        <ListCell
+          title="通知铃声"
+          subtitle="Acclivity"
+          chevron
+          clickable
+          @click="handleItemTap('通知铃声')"
+        />
+        <ListCell title="来电铃声渐响" last>
+          <template #right>
+            <ToggleSwitch v-model="ringAscending" color="blue" />
+          </template>
+        </ListCell>
       </div>
 
-      <!-- 铃声设置提示 -->
-      <div class="sound-group-header" style="margin-top: 14px;">{{ i18n.t('ringtoneSettings') }}</div>
+      <!-- 卡片 5: 振动强度 -->
+      <div class="settings-card" style="margin-top: 16px;">
+        <ListCell
+          title="振动强度"
+          chevron
+          clickable
+          last
+          @click="handleItemTap('振动强度')"
+        />
+      </div>
+
+      <!-- 卡片 6: 声音模式 -->
+      <div class="section-header">声音模式</div>
+      <div class="settings-card">
+        <ListCell
+          title="JBL 音效实验室"
+          value="智能"
+          chevron
+          clickable
+          @click="handleItemTap('JBL 音效实验室')"
+        />
+        <ListCell
+          title="全场景降噪"
+          subtitle="智能降低语音场景中的噪声。"
+          chevron
+          clickable
+          last
+          @click="handleItemTap('全场景降噪')"
+        />
+      </div>
+
+      <!-- 卡片 7: 提示音 -->
+      <div class="settings-card" style="margin-top: 16px; margin-bottom: 24px;">
+        <ListCell
+          title="提示音"
+          chevron
+          clickable
+          last
+          @click="handleItemTap('提示音')"
+        />
+      </div>
+
+      <div class="bottom-spacer"></div>
     </div>
+
+    <!-- 浮动提示 Toast -->
+    <transition name="toast-fade">
+      <div v-if="toastText" class="settings-toast">{{ toastText }}</div>
+    </transition>
   </div>
 </template>
 
 <style scoped>
-.settings-sound {
-  height: 100%;
+.settings-sound-page {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  background: #f2f3f7;
-}
-
-.sound-body {
-  flex: 1;
-  padding: 14px 0 34px;
-}
-
-.sound-card {
-  margin: 0 16px 14px;
-  background: #ffffff;
-  border-radius: 20px;
+  background: var(--bg-subtle, #F2F2F7);
+  color: #1C1C1E;
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  user-select: none;
 }
 
-.sound-group-header {
-  font-size: 13.5px;
-  font-weight: 500;
-  color: #8e8e93;
-  margin: 18px 22px 8px;
-}
-
-/* 顶部模式卡片 */
-.mode-options-row {
+/* 导航栏：左对齐大标题 + 白色微圆角圆形返回按钮 */
+.sound-nav-bar {
   display: flex;
-  padding: 22px 12px 18px;
+  align-items: center;
+  gap: 12px;
+  height: calc(var(--safe-top, 0px) + 52px);
+  padding: var(--safe-top, 0px) 16px 0 16px;
+  background: #F2F2F7;
+  flex-shrink: 0;
+  z-index: 10;
 }
 
-.mode-item {
+.nav-round-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: none;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.nav-round-btn:active {
+  background: #F0F0F2;
+  transform: scale(0.96);
+}
+
+.nav-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #111111;
+  letter-spacing: -0.3px;
+}
+
+/* 滚动区域 */
+.sound-scroll-body {
+  flex: 1;
+  padding: 8px 16px 36px 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 通用设置卡片 */
+.settings-card {
+  background: #FFFFFF;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+/* 分组标题 */
+.section-header {
+  font-size: 13.5px;
+  color: #8E8E93;
+  margin: 20px 16px 8px 16px;
+  font-weight: 400;
+}
+
+/* 模式选择卡片 */
+.mode-card {
+  padding-bottom: 2px;
+}
+
+.mode-picker-row {
+  display: flex;
+  padding: 22px 16px 18px 16px;
+}
+
+.mode-col {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  color: #636366;
+  transition: color 0.15s ease;
+}
+
+.mode-col.active {
+  color: #007AFF;
 }
 
 .mode-icon-box {
@@ -277,156 +459,149 @@ function setSoundMode(mode) {
 }
 
 .mode-label {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
-  color: #636366;
+  color: inherit;
 }
 
-.mode-label.active {
-  color: #00C853;
-  font-weight: 600;
-}
-
+/* 模式单选圆环 */
 .mode-radio {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  border: 1.8px solid #c7c7cc;
+  margin-top: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 4px;
-  transition: all 0.15s ease;
+  border: 2px solid #C7C7CC;
+  background: #FFFFFF;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
 }
 
-.mode-radio.active {
-  border-color: #00C853;
-  border-width: 2px;
+.mode-radio.checked {
+  border: 2.5px solid #007AFF;
 }
 
-.radio-dot {
-  width: 10px;
-  height: 10px;
+.mode-radio-dot {
+  width: 9.5px;
+  height: 9.5px;
   border-radius: 50%;
-  background: #00C853;
+  background: #007AFF;
 }
 
-.card-divider {
+.mode-card-divider {
   height: 0.5px;
-  background: rgba(60, 60, 67, 0.08);
-  margin: 0 18px;
+  background: #F0F1F3;
+  margin: 4px 16px 0 16px;
 }
 
-/* 勿扰模式入口行 */
-.dnd-entry-row {
+/* ================= 音量滑块卡片 ================= */
+.volume-card {
+  padding: 4px 0 6px 0;
+}
+
+.volume-slider-item {
+  padding: 14px 16px 16px 16px;
+}
+
+.volume-header-line {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  cursor: pointer;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
-.dnd-entry-row:active {
-  background: #f7f7f9;
+.volume-icon-box {
+  flex-shrink: 0;
+  color: #636366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.der-title {
+.volume-title {
   font-size: 16px;
-  font-weight: 500;
-  color: #1c1c1e;
+  font-weight: 450;
+  color: #111111;
 }
 
-.der-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.der-sub {
-  font-size: 14.5px;
-  color: #8e8e93;
-}
-
-.der-sub.is-active {
-  color: #00C853;
-  font-weight: 500;
-}
-
-/* ================= 图 1 音量调节上下两层呼吸感布局 ================= */
-.volume-item {
-  padding: 16px 20px 18px;
-}
-
-.vi-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.vi-icon {
-  flex: none;
-}
-
-.vi-title {
-  font-size: 15.5px;
-  font-weight: 500;
-  color: #1c1c1e;
-}
-
-.vi-slider-wrap {
+.slider-track {
   width: 100%;
-  display: flex;
-  align-items: center;
+  height: 6px;
+  background: #EDEDF0;
+  border-radius: 3px;
+  position: relative;
+  cursor: pointer;
+  touch-action: none;
 }
 
-.item-divider {
+.slider-fill {
+  height: 100%;
+  background: #007AFF;
+  border-radius: 3px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+.slider-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  border: 2px solid #007AFF;
+  pointer-events: none;
+}
+
+.volume-divider {
   height: 0.5px;
-  background: rgba(60, 60, 67, 0.06);
-  margin: 0 20px;
+  background: #F0F1F3;
+  margin: 0 16px;
 }
 
-/* 鲜绿定制滑块（图 1 样式） */
-.custom-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 4px;
-  border-radius: 2px;
-  outline: none;
-  background: linear-gradient(
-    to right,
-    #00C853 0%,
-    #00C853 calc(var(--val, 0.5) * 100%),
-    #e8eaed calc(var(--val, 0.5) * 100%),
-    #e8eaed 100%
-  );
-  cursor: pointer;
+/* 换行副标题样式修正 */
+:deep(.lc-subtitle) {
+  white-space: pre-line !important;
+  line-height: 1.4 !important;
 }
 
-.custom-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #00C853;
-  box-shadow: 0 2px 6px rgba(0, 200, 83, 0.35);
-  cursor: pointer;
-  transition: transform 0.1s ease;
+.bottom-spacer {
+  height: 24px;
 }
 
-.custom-slider::-webkit-slider-thumb:active {
-  transform: scale(1.15);
+/* Toast 提示 */
+.settings-toast {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 30, 32, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #FFFFFF;
+  font-size: 14px;
+  padding: 10px 20px;
+  border-radius: 22px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  z-index: 100;
+  white-space: nowrap;
 }
 
-.custom-slider::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #00C853;
-  border: none;
-  box-shadow: 0 2px 6px rgba(0, 200, 83, 0.35);
-  cursor: pointer;
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 10px);
 }
 </style>

@@ -141,6 +141,7 @@ const oneTapRef = ref(null)
 const batteryRef = ref(null)
 const storageRef = ref(null)
 const displayRef = ref(null)
+const soundRef = ref(null)
 useBackHandler(() => {
   if (view.value === 'about' && aboutPhoneRef.value?.back?.()) return true
   if (view.value === 'sim' && simRef.value?.back?.()) return true
@@ -153,6 +154,7 @@ useBackHandler(() => {
   if (view.value === 'location' && locationRef.value?.back?.()) return true
   if (view.value === 'accessibility' && accessibilityRef.value?.back?.()) return true
   if (view.value === 'display' && displayRef.value?.back?.()) return true
+  if (view.value === 'sound' && soundRef.value?.back?.()) return true
   if (view.value === 'oneTap' && oneTapRef.value?.back?.()) return true
   if (view.value === 'battery' && batteryRef.value?.back?.()) return true
   if (view.value === 'storage' && storageRef.value?.back?.()) return true
@@ -648,7 +650,7 @@ const filteredSearchResults = computed(() => {
 
       <!-- ================= 声音与振动 ================= -->
       <div v-else-if="view === 'sound'" key="sound" class="settings-page">
-        <SettingsSound @back="pop" @open-dnd="push('dnd')" @open-prayer="push('prayer')" />
+        <SettingsSound ref="soundRef" @back="pop" @open-dnd="push('dnd')" @open-prayer="push('prayer')" />
       </div>
 
       <!-- ================= 勿扰模式 (含礼拜模式入口) ================= -->
