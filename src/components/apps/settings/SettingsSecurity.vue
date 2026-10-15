@@ -90,8 +90,10 @@ defineExpose({ back })
         <button class="grid-card-item" @click="handleLockScreenTap">
           <div class="grid-icon-wrap bg-blue-lock">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <rect x="5" y="11" width="14" height="10" rx="2.5" fill="#FFFFFF"/>
-              <path d="M8 11V7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7V11" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
+              <rect x="5" y="10.5" width="14" height="10.5" rx="2.5" fill="#2E67F5"/>
+              <path d="M8 10.5V7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7V10.5" stroke="#2E67F5" stroke-width="2.2" stroke-linecap="round"/>
+              <circle cx="12" cy="15" r="1.3" fill="#FFFFFF"/>
+              <path d="M12 16.3V18" stroke="#FFFFFF" stroke-width="1.4" stroke-linecap="round"/>
             </svg>
           </div>
           <div class="grid-card-title">锁屏密码</div>
@@ -101,15 +103,15 @@ defineExpose({ back })
         <!-- 指纹 -->
         <button class="grid-card-item" @click="handleFingerprintTap">
           <div class="grid-icon-wrap bg-blue-fp">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round">
-              <path d="M12 2C8.5 2 5.5 4.5 5 8" />
-              <path d="M19 8C18.5 5 15.5 2 12 2" />
-              <path d="M12 6C9.8 6 8 7.8 8 10C8 13.5 6.5 15 5 16" />
-              <path d="M19 16C17.5 15 16 13.5 16 10C16 7.8 14.2 6 12 6" />
-              <path d="M12 10C10.9 10 10 10.9 10 12C10 14.5 9 16 8 17" />
-              <path d="M16 17C15 16 14 14.5 14 12C14 10.9 13.1 10 12 10" />
-              <path d="M12 14C11.4 14 11 14.4 11 15C11 17 10 18.5 9 19.5" />
-              <path d="M15 19.5C14 18.5 13 17 13 15C13 14.4 12.6 14 12 14" />
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2E67F5" stroke-width="1.85" stroke-linecap="round">
+              <path d="M12 3.5C8.8 3.5 6.2 5.5 5.5 8.5" />
+              <path d="M18.5 8.5C17.8 5.5 15.2 3.5 12 3.5" />
+              <path d="M12 7C9.8 7 8 8.8 8 11C8 14.2 6.8 16 5 17.2" />
+              <path d="M19 17.2C17.2 16 16 14.2 16 11C16 8.8 14.2 7 12 7" />
+              <path d="M12 10.5C11 10.5 10.2 11.3 10.2 12.3C10.2 14.8 9.2 16.5 7.8 18" />
+              <path d="M16.2 18C14.8 16.5 13.8 14.8 13.8 12.3C13.8 11.3 13 10.5 12 10.5" />
+              <path d="M12 14.2C11.4 14.2 11 14.7 11 15.4C11 17.2 9.8 18.8 8.8 19.8" />
+              <path d="M15.2 19.8C14.2 18.8 13 17.2 13 15.4C13 14.7 12.6 14.2 12 14.2" />
             </svg>
           </div>
           <div class="grid-card-title">指纹</div>
@@ -119,14 +121,15 @@ defineExpose({ back })
         <!-- 面部识别 -->
         <button class="grid-card-item" @click="handleFaceTap">
           <div class="grid-icon-wrap bg-green-face">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 8V6C4 4.89543 4.89543 4 6 4H8" />
-              <path d="M16 4H18C19.1046 4 20 4.89543 20 6V8" />
-              <path d="M4 16V18C4 19.1046 4.89543 20 6 20H8" />
-              <path d="M16 20H18C19.1046 20 20 19.1046 20 18V16" />
-              <circle cx="9" cy="10" r="1" fill="#FFFFFF" />
-              <circle cx="15" cy="10" r="1" fill="#FFFFFF" />
-              <path d="M10 15C10.6667 15.6667 11.3333 16 12 16C12.6667 16 13.3333 15.6667 14 15" />
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M4 8V6C4 4.89543 4.89543 4 6 4H8" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 4H18C19.1046 4 20 4.89543 20 6V8" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 16V18C4 19.1046 4.89543 20 6 20H8" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 20H18C19.1046 20 20 19.1046 20 18V16" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="9" cy="9.5" r="1.2" fill="#FFFFFF"/>
+              <circle cx="15" cy="9.5" r="1.2" fill="#FFFFFF"/>
+              <path d="M12 11.5V13.5" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M9.5 16C10.5 17.2 13.5 17.2 14.5 16" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
             </svg>
           </div>
           <div class="grid-card-title">面部识别</div>
@@ -137,9 +140,10 @@ defineExpose({ back })
         <button class="grid-card-item" @click="handlePrivacyPasswordTap">
           <div class="grid-icon-wrap bg-cyan-privacy">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <rect x="6" y="11" width="12" height="9" rx="2" fill="#FFFFFF"/>
-              <path d="M9 11V7.5C9 5.84315 10.3431 4.5 12 4.5C13.6569 4.5 15 5.84315 15 7.5V11" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
-              <path d="M17 10C18.1046 10 19 10.8954 19 12V14C19 15.1046 18.1046 16 17 16" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M8 9.5V6.5C8 4.567 9.567 3 11.5 3C13.433 3 15 4.567 15 6.5V9.5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+              <rect x="4.5" y="9.5" width="8" height="9.5" rx="2" fill="#FFFFFF"/>
+              <path d="M12.5 10.5C12.5 10.5 15.5 9.5 19 10.5V15C19 18 16 19.8 15.5 20.2C15.1 19.8 12.5 18 12.5 15V10.5Z" fill="#FFFFFF" fill-opacity="0.95"/>
+              <path d="M15.5 13.2C15.06 13.2 14.7 13.56 14.7 14C14.7 14.3 14.86 14.55 15.1 14.68V16.2C15.1 16.42 15.28 16.6 15.5 16.6C15.72 16.6 15.9 16.42 15.9 16.2V14.68C16.14 14.55 16.3 14.3 16.3 14C16.3 13.56 15.94 13.2 15.5 13.2Z" fill="#69BBF6"/>
             </svg>
           </div>
           <div class="grid-card-title">隐私密码</div>
@@ -285,24 +289,28 @@ defineExpose({ back })
   justify-content: center;
   width: 44px;
   height: 44px;
-  border-radius: 13px;
+  border-radius: 50%;
   margin-bottom: 14px;
 }
 
 .bg-blue-lock {
-  background: linear-gradient(135deg, #2F80ED, #1B62C9);
+  background: #EEF4FE;
+  color: #2E67F5;
 }
 
 .bg-blue-fp {
-  background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+  background: #EEF4FE;
+  color: #2E67F5;
 }
 
 .bg-green-face {
-  background: linear-gradient(135deg, #48BB78, #2E8540);
+  background: #63C97A;
+  color: #FFFFFF;
 }
 
 .bg-cyan-privacy {
-  background: linear-gradient(135deg, #38BDF8, #0284C7);
+  background: #69BBF6;
+  color: #FFFFFF;
 }
 
 .grid-card-title {
