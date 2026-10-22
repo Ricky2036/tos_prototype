@@ -7,11 +7,13 @@ import { useRecorderStore } from '../../stores/recorderStore'
 import { useClockStore } from '../../stores/clockStore'
 import { usePrayerStore } from '../../stores/prayerStore'
 import { useActiveActivities } from '../../composables/useActiveActivities'
+import { usePrivacyStore } from '../../stores/privacyStore'
 import StatusIcons from '../ui/StatusIcons.vue'
 import LIcon from '../ui/LIcon.vue'
 import { orderedIndicators } from '../../utils/statusBarIndicators'
 
 const { timeShort } = useClock()
+const privacy = usePrivacyStore()
 const control = useControlStore()
 const system = useSystemStore()
 const recorder = useRecorderStore()
@@ -166,6 +168,8 @@ watch(
     () => control.cellular,
     () => control.airplane,
     hasIsland,
+    () => privacy.statusExpanded,
+    () => privacy.statusKeys.join(),
     () => activeActivities.value.length
   ],
   () => {
@@ -191,7 +195,16 @@ watch(isIslandExpanded, (expanded) => {
     :style="{ color: light ? '#fff' : '#000' }"
   >
     <span class="sb-time" :style="{ opacity: hideTime || isIslandExpanded ? 0 : 1 }">{{ timeShort }}</span>
-    <div class="sb-right" ref="sbRightRef">
+    <div
+      class="sb-right"
+      ref="sbRightRef"
+      :aria-hidden="privacy.active.length > 0 && privacy.statusExpanded"
+      :style="{
+        visibility: privacy.active.length > 0 && privacy.statusExpanded ? 'hidden' : 'visible',
+        opacity: privacy.active.length > 0 && privacy.statusExpanded ? 0 : 1,
+        transition: privacy.active.length > 0 && privacy.statusExpanded ? 'opacity 180ms ease, visibility 0s linear 180ms' : 'opacity 160ms ease 240ms, visibility 0s linear 240ms'
+      }"
+    >
       <!-- 功能指示器：按优先级从右往左排，低优先级在摄像头/灵动岛挤压时先隐藏 -->
       <div class="sb-indicators">
         <LIcon

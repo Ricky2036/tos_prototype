@@ -24,7 +24,7 @@ const i18n = useI18nStore()
 const isSound = computed(() => props.item.id === 'sound')
 const isLocation = computed(() => props.item.id === 'location')
 const isFlashlight = computed(() => props.item.id === 'flashlight')
-const hasBadge = computed(() => true)
+const hasBadge = computed(() => props.item.hasBadge !== false)
 const isFineTuning = computed(() => control.fineTuningMode)
 
 /** 激活状态绑定 controlStore */
@@ -396,6 +396,7 @@ function onResizeDown(e) {
         <span
           class="gb-label"
           :style="{
+            color: containerActive && expanded && !hasBadge ? '#111' : '#fff',
             opacity: (expanded && !resizing) ? 1 : 0,
             transform: (expanded && !resizing) ? 'translateX(0px) scale(1)' : 'translateX(-8px) scale(0.85)',
             pointerEvents: expanded ? 'auto' : 'none',
