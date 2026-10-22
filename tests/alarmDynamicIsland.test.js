@@ -217,11 +217,11 @@ test('DynamicIsland.vue supports mirrored swipe-to-delete, settings jump, and Is
   assert.ok(content.includes('onCardPointerUp'), 'Must handle pointer up for swipe gesture')
 })
 
-test('DevConsole defaults to island module and provides 5 system app island buttons', () => {
+test('DevConsole defaults to privacy module and retains 5 system app island buttons', () => {
   const compPath = path.resolve(__dirname, '../src/components/dev/DevConsole.vue')
   const content = fs.readFileSync(compPath, 'utf8')
 
-  assert.match(content, /:\s*'island'/, 'initialModule must fallback to island')
+  assert.match(content, /:\s*'privacy'/, 'This task defaults to the sensitive permission demo')
   assert.match(content, /<option value="island">灵动岛<\/option>/, 'Module option must be 灵动岛')
   assert.doesNotMatch(content, /<option value="island">灵动岛与闹钟<\/option>/, 'Must not include 灵动岛与闹钟')
   assert.match(content, /<span class="pc-card-title">系统应用<\/span>/, 'Must have 系统应用 section title')

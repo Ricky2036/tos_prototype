@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useSwipeGesture } from '../../composables/useSwipeGesture'
 import { useSpring } from '../../composables/useSpring'
+import { usePrivacyStore } from '../../stores/privacyStore'
 import { useSystemStore } from '../../stores/systemStore'
 import { useShareStore } from '../../stores/shareStore'
 
@@ -19,6 +20,7 @@ const props = defineProps({
 
 const system = useSystemStore()
 const shareStore = useShareStore()
+const privacy = usePrivacyStore()
 const rootRef = ref(null)
 const GESTURE_SPAN = 260 // 更小的满量程 → 同样位移给出更大进度，更跟手
 
@@ -47,6 +49,10 @@ function doAction() {
   }
   if (o.controlCenter.status !== 'closed') {
     system.requestCloseOverlay('controlCenter')
+    return
+  }
+  if (privacy.settingsPage) {
+    privacy.page = null
     return
   }
   if (system.baseLayer === 'lock') {
@@ -102,6 +108,7 @@ const gesture = useSwipeGesture(rootRef, {
   span: GESTURE_SPAN,
   threshold: 5,
   canStart: () =>
+    Boolean(privacy.settingsPage) ||
     system.baseLayer === 'app' ||
     system.baseLayer === 'lock' ||
     system.appSwitcherOpen ||
@@ -120,6 +127,7 @@ const gesture = useSwipeGesture(rootRef, {
   },
   onProgress(p, d, other) {
     const switcherCandidate =
+      !privacy.settingsPage &&
       system.recentApps.length > 0 &&
       system.baseLayer !== 'lock' &&
       !system.anyOverlayOpen() &&
@@ -177,6 +185,7 @@ const gesture = useSwipeGesture(rootRef, {
     const canDwellOpen =
       system.switcherDwell &&
       Math.abs(velocity) * GESTURE_SPAN <= REST_SPEED &&
+      !privacy.settingsPage &&
       system.recentApps.length > 0 &&
       !system.anyOverlayOpen() &&
       system.baseLayer !== 'lock'
@@ -192,7 +201,7 @@ const gesture = useSwipeGesture(rootRef, {
        —— 一并清掉，避免在下一次手势真正开始前残留在 store 里。 */
     system.resetSwitcherDrag()
 
-    if (system.baseLayer === 'home') {
+    if (system.baseLayer === 'home' && !privacy.settingsPage && !system.anyOverlayOpen()) {
       animateTo(0, { initialVelocity: velocity })
       return 0
     }

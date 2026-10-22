@@ -1,3 +1,5 @@
+import navigation from 'lucide-static/icons/navigation.svg?raw'
+import messageCircle from 'lucide-static/icons/message-circle.svg?raw'
 /* lucide-static 图标集中导入 + 定制控制中心矢量图标（100% 用户原始 SVG） */
 import quickShareMask from './quick-share-mask.png'
 import play from 'lucide-static/icons/play.svg?raw'
@@ -578,6 +580,7 @@ export const LUCIDE = {
   crop, frame, film, shapes, move, moveHorizontal, aperture, wand2, paintbrush,
   /* AI Mori */
   bot, wandSparkles, bookOpen, calendarDays, notebookPen, sticker,
+  navigation, messageCircle,
   /* 首页卡动作（AI Mori 卡：拍照） */
   camera,
   /* One-Tap / 设置通用标准图标 */

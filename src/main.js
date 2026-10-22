@@ -14,16 +14,19 @@ app.mount('#app')
 
 import { useRecorderStore } from './stores/recorderStore'
 import { useNotificationsStore } from './stores/notificationsStore'
+import { usePrivacyStore } from './stores/privacyStore'
 
 // 调试钩子（原型验收用）
 const system = useSystemStore(pinia)
 const control = useControlStore(pinia)
 const recorder = useRecorderStore(pinia)
 const notifications = useNotificationsStore(pinia)
+const privacy = usePrivacyStore(pinia)
 window.__system = system
 window.__control = control
 window.__recorder = recorder
 window.__notifications = notifications
+window.__privacy = privacy
 
 const urlParams = new URLSearchParams(window.location.search)
 if (urlParams.get('overlay') === 'controlCenter') {

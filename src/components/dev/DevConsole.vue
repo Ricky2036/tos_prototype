@@ -10,6 +10,7 @@ import { useNotificationsStore } from '../../stores/notificationsStore'
 import { useCapture } from '../../composables/useCapture'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import { GLYPHS } from '../../assets/icons/glyphs'
+import PrivacyDemo from '../privacy/PrivacyDemo.vue'
 import LIcon from '../ui/LIcon.vue'
 
 /* 微调面板改为按需异步加载 */
@@ -130,7 +131,9 @@ const initialModule = (urlParams?.get('overlay') === 'controlCenter' || urlParam
     ? 'island'
     : (urlParams?.get('tab') === 'prayer' || urlParams?.get('tab') === 'muslim' || urlParams?.get('module') === 'muslim')
       ? 'muslim'
-      : 'island'
+      : (urlParams?.get('tab') === 'privacy' || urlParams?.get('module') === 'privacy')
+        ? 'privacy'
+        : 'privacy'
 
 const selectedModule = ref(initialModule) // 'control' | 'island' | 'muslim'
 const desktopCardRef = ref(null)
@@ -610,6 +613,7 @@ function onToggleFineTune(enabled) {
       <label for="desktop-module-select" class="pc-module-label">切换模块</label>
       <div class="pc-select-wrapper">
         <select id="desktop-module-select" v-model="selectedModule" class="pc-module-select">
+          <option value="privacy">敏感权限提示</option>
           <option value="island">灵动岛</option>
           <option value="muslim">礼拜模式</option>
           <option value="control">控制中心</option>
@@ -624,8 +628,9 @@ function onToggleFineTune(enabled) {
     <main class="pc-content-body">
       <div class="pc-card pc-module-big-card" ref="desktopCardRef">
         <Transition name="pc-module-swap">
+          <PrivacyDemo v-if="selectedModule === 'privacy'" key="privacy" />
           <!-- 模块 1: 控制中心 -->
-          <div v-if="selectedModule === 'control'" key="control" class="pc-module-section-group is-control">
+          <div v-else-if="selectedModule === 'control'" key="control" class="pc-module-section-group is-control">
             <!-- 区域 1：默认布局 -->
             <div class="pc-section">
               <div class="pc-card-header">
@@ -1067,6 +1072,7 @@ function onToggleFineTune(enabled) {
               <label for="mobile-module-select" class="pc-module-label">切换模块</label>
               <div class="pc-select-wrapper">
                 <select id="mobile-module-select" v-model="selectedModule" class="pc-module-select">
+                  <option value="privacy">敏感权限提示</option>
                   <option value="island">灵动岛</option>
                   <option value="muslim">礼拜模式</option>
                   <option value="control">控制中心</option>
@@ -1081,8 +1087,9 @@ function onToggleFineTune(enabled) {
             <main class="pc-content-body">
               <div class="pc-card pc-module-big-card" ref="mobileCardRef">
                 <Transition name="pc-module-swap">
+                  <PrivacyDemo v-if="selectedModule === 'privacy'" key="privacy" />
                   <!-- 模块 1: 控制中心 -->
-                  <div v-if="selectedModule === 'control'" key="control" class="pc-module-section-group is-control">
+                  <div v-else-if="selectedModule === 'control'" key="control" class="pc-module-section-group is-control">
                     <!-- 区域 1：默认布局 -->
                     <div class="pc-section">
                       <div class="pc-card-header">
@@ -1389,6 +1396,14 @@ function onToggleFineTune(enabled) {
   flex-direction: column;
   gap: 10px;
 }
+
+.proto-console:has(.privacy-demo) {
+  max-height: 90dvh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #ffffff30 transparent;
+}
+.proto-console:has(.privacy-demo) > * { flex-shrink: 0; }
 
 .pc-glow {
   position: absolute;
