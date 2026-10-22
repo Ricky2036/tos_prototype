@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useSystemChrome } from '../../../composables/useSystemChrome.js'
 import phoneBodyImg from '../../../assets/img/onetap/phone_body.webp'
 import icMute from '../../../assets/img/onetap/ic_mute.webp'
 import icCamera from '../../../assets/img/onetap/ic_camera.webp'
@@ -17,6 +18,9 @@ import icCustom from '../../../assets/img/onetap/ic_custom.webp'
 import icNone from '../../../assets/img/onetap/ic_none.webp'
 
 const emit = defineEmits(['back', 'navigate'])
+
+// 黑色背景页面适配系统状态栏与底部手势条反色（白字/白条）
+useSystemChrome('light')
 
 // 完整对齐真机 14 项功能模式（提取自真机 TranssionFlexButton 与界面 hierarchy）
 const modes = [
@@ -380,6 +384,7 @@ defineExpose({ back })
           <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
+      <div class="nav-title">One-Tap Button</div>
     </div>
 
     <!-- 主展示舞台：高精度手机侧边中框 + 真实物理按键与单轨无缝图标位移 -->
@@ -528,6 +533,7 @@ defineExpose({ back })
   align-items: center;
   padding-left: 16px;
   padding-right: 16px;
+  gap: 12px;
   flex: none;
   z-index: 10;
   box-sizing: border-box;
@@ -545,10 +551,23 @@ defineExpose({ back })
   cursor: pointer;
   transition: background 0.2s ease;
   touch-action: manipulation;
+  flex: none;
 }
 
 .nav-round-btn:active {
   background: rgba(255, 255, 255, 0.16);
+}
+
+.nav-title {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+  flex: 1;
 }
 
 /* 主展示舞台 */
@@ -754,11 +773,12 @@ defineExpose({ back })
 /* 底部控制栏（指示点 + 设定按钮） */
 .onetap-bottom-bar {
   width: 100%;
-  padding: 0 20px 24px 20px;
+  padding: 0 20px calc(var(--safe-bottom, 34px) + 16px) 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   flex: none;
+  box-sizing: border-box;
 }
 
 .dots-row {

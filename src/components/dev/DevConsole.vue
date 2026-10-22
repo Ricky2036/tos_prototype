@@ -133,7 +133,7 @@ const initialModule = (urlParams?.get('overlay') === 'controlCenter' || urlParam
       ? 'muslim'
       : (urlParams?.get('tab') === 'privacy' || urlParams?.get('module') === 'privacy')
         ? 'privacy'
-        : 'privacy'
+        : 'island'
 
 const selectedModule = ref(initialModule) // 'control' | 'island' | 'muslim'
 const desktopCardRef = ref(null)
@@ -613,10 +613,10 @@ function onToggleFineTune(enabled) {
       <label for="desktop-module-select" class="pc-module-label">切换模块</label>
       <div class="pc-select-wrapper">
         <select id="desktop-module-select" v-model="selectedModule" class="pc-module-select">
-          <option value="privacy">敏感权限提示</option>
           <option value="island">灵动岛</option>
           <option value="muslim">礼拜模式</option>
           <option value="control">控制中心</option>
+          <option value="privacy">敏感权限提示</option>
         </select>
         <svg class="pc-select-arrow" viewBox="0 0 20 20" fill="none">
           <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="m6 8 4 4 4-4"/>
@@ -628,9 +628,8 @@ function onToggleFineTune(enabled) {
     <main class="pc-content-body">
       <div class="pc-card pc-module-big-card" ref="desktopCardRef">
         <Transition name="pc-module-swap">
-          <PrivacyDemo v-if="selectedModule === 'privacy'" key="privacy" />
           <!-- 模块 1: 控制中心 -->
-          <div v-else-if="selectedModule === 'control'" key="control" class="pc-module-section-group is-control">
+          <div v-if="selectedModule === 'control'" key="control" class="pc-module-section-group is-control">
             <!-- 区域 1：默认布局 -->
             <div class="pc-section">
               <div class="pc-card-header">
@@ -741,6 +740,9 @@ function onToggleFineTune(enabled) {
               </Transition>
             </div>
           </div>
+
+          <!-- 模块 1.5: 敏感权限提示 (位于控制中心下方) -->
+          <PrivacyDemo v-else-if="selectedModule === 'privacy'" key="privacy" />
 
           <!-- 模块 2: 灵动岛 -->
           <div v-else-if="selectedModule === 'island'" key="island" class="pc-module-section-group is-island">
@@ -1072,10 +1074,10 @@ function onToggleFineTune(enabled) {
               <label for="mobile-module-select" class="pc-module-label">切换模块</label>
               <div class="pc-select-wrapper">
                 <select id="mobile-module-select" v-model="selectedModule" class="pc-module-select">
-                  <option value="privacy">敏感权限提示</option>
                   <option value="island">灵动岛</option>
                   <option value="muslim">礼拜模式</option>
                   <option value="control">控制中心</option>
+                  <option value="privacy">敏感权限提示</option>
                 </select>
                 <svg class="pc-select-arrow" viewBox="0 0 20 20" fill="none">
                   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="m6 8 4 4 4-4"/>
@@ -1087,9 +1089,8 @@ function onToggleFineTune(enabled) {
             <main class="pc-content-body">
               <div class="pc-card pc-module-big-card" ref="mobileCardRef">
                 <Transition name="pc-module-swap">
-                  <PrivacyDemo v-if="selectedModule === 'privacy'" key="privacy" />
                   <!-- 模块 1: 控制中心 -->
-                  <div v-else-if="selectedModule === 'control'" key="control" class="pc-module-section-group is-control">
+                  <div v-if="selectedModule === 'control'" key="control" class="pc-module-section-group is-control">
                     <!-- 区域 1：默认布局 -->
                     <div class="pc-section">
                       <div class="pc-card-header">
@@ -1200,6 +1201,9 @@ function onToggleFineTune(enabled) {
                       </Transition>
                     </div>
                   </div>
+
+                  <!-- 模块 1.5: 敏感权限提示 (位于控制中心下方) -->
+                  <PrivacyDemo v-else-if="selectedModule === 'privacy'" key="privacy" />
 
                   <!-- 模块 2: 灵动岛 -->
                   <div v-else-if="selectedModule === 'island'" key="island" class="pc-module-section-group is-island">
