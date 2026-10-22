@@ -186,7 +186,9 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Reset clip-path in mobile screen layout to prevent black rounded corners on mobile viewport resize | `antigravity/lane` | None (locks released) | `73981dc` | `1c25ebf` |
 | Merged | Antigravity | Optimize high-resolution wallpapers, sample photos, and avatars to significantly slim down repository size | `antigravity/lane` | None (locks released) | `4bb1573` | `78aaedf` |
 | Merged | Antigravity | Fix app switcher resume state leak where lingering switcher overlay causes tapping resumed app to return to home screen | `antigravity/lane` | None (locks released) | `06f2077` | `2b6d45c` |
-| Active | Antigravity | Correct clock edit button visibility, replace photo favorite icon with pure heart, and bind sharesheet to global navigation bar | `antigravity/lane` | None (locks released) | `2b6d45c` | `ad06b92` |
+| Merged | Antigravity | Correct clock edit button visibility, replace photo favorite icon with pure heart, and bind sharesheet to global navigation bar | `antigravity/lane` | None (locks released) | `2b6d45c` | `ad06b92` |
+| Merged | Antigravity | Real-device Settings secondary pages replication (About phone, SIM & networks, Bluetooth, Starlink, Infinix AI suite, Security & Privacy 13px rounded cards & palette, One-Tap midframe track carousel, Accessibility vector icons, Battery desktop app rankings, Display, Sound & vibration) | `antigravity/lane` | None (locks released) | `ad06b92` | `f436e54` |
+| Merged | Antigravity | Integrate full privacy indicator lifecycle prototype (status bar capsule with 3s auto-collapse, Control Center dynamic capsule, frosted glass alert modal, 24h privacy dashboard donut chart, permission timeline, 3-state permission manager) | `antigravity/lane` | None (locks released) | `f436e54` | `a9b7529` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
