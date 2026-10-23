@@ -37,6 +37,7 @@ export const usePrivacyStore = defineStore('privacy', {
     relevant() { return [...this.active, ...this.recent] },
     statusKeys() { return [...new Set(this.active.map(e => e.permission))].sort((a,b) => PERMISSIONS[b].priority - PERMISSIONS[a].priority) },
     statusExpanded: s => s.now < s.expandedUntil,
+    needsTick: s => s.now < s.expandedUntil || s.entries.some(e => e.stoppedAt !== null),
     statusPrimary() {
       if (!this.active.length) return undefined
       const latestBatch = Math.max(...this.active.map(e => e.batch))
@@ -57,7 +58,12 @@ export const usePrivacyStore = defineStore('privacy', {
     }
   },
   actions: {
-    tick(now = Date.now()) { this.now = now; this.entries = this.entries.filter(e => e.stoppedAt === null || now - e.stoppedAt < RECENT_MS) },
+    tick(now = Date.now()) {
+      if (this.now !== now) this.now = now
+      if (this.entries.some(e => e.stoppedAt !== null && now - e.stoppedAt >= RECENT_MS)) {
+        this.entries = this.entries.filter(e => e.stoppedAt === null || now - e.stoppedAt < RECENT_MS)
+      }
+    },
     color(key) { return PERMISSIONS[key].color },
     start(app, keys, now = Date.now()) {
       this.startCalls(keys.map(permission => ({app, permission})), now)

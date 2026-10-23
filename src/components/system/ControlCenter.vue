@@ -122,6 +122,7 @@ onBeforeUnmount(() => {
   // 伸缩手柄：pointerup 用 { once: true }，若卸载前未抬起则监听残留
   window.removeEventListener('pointermove', onResizeMove)
   window.removeEventListener('pointerup', onResizeEnd)
+  window.removeEventListener('pointercancel', onResizeEnd)
   resizeState = null
 
   // 滑块拖拽
@@ -131,6 +132,7 @@ onBeforeUnmount(() => {
   }
   if (sliderUpHandler) {
     window.removeEventListener('pointerup', sliderUpHandler)
+    window.removeEventListener('pointercancel', sliderUpHandler)
     sliderUpHandler = null
   }
 
@@ -634,6 +636,7 @@ function onResizeStart(e, id) {
   resizingId.value = id
   window.addEventListener('pointermove', onResizeMove)
   window.addEventListener('pointerup', onResizeEnd, { once: true })
+  window.addEventListener('pointercancel', onResizeEnd, { once: true })
 }
 
 function onResizeMove(e) {
@@ -670,6 +673,8 @@ function onResizeMove(e) {
 function onResizeEnd() {
   markInteracting()
   window.removeEventListener('pointermove', onResizeMove)
+  window.removeEventListener('pointerup', onResizeEnd)
+  window.removeEventListener('pointercancel', onResizeEnd)
   if (resizeState && Math.abs(resizeState.delta) < 5) {
     const want = resizeState.initialSize === '1x1' ? '2x1' : '1x1'
     recordPositions(gridRef.value, flipStore)
@@ -808,16 +813,22 @@ function sliderPointer(e, key) {
 
   // 上一次拖拽若未正常结束（多指 / 组件被切走），先摘掉残留监听
   if (sliderMoveHandler) window.removeEventListener('pointermove', sliderMoveHandler)
-  if (sliderUpHandler) window.removeEventListener('pointerup', sliderUpHandler)
+  if (sliderUpHandler) {
+    window.removeEventListener('pointerup', sliderUpHandler)
+    window.removeEventListener('pointercancel', sliderUpHandler)
+  }
 
   sliderMoveHandler = (ev) => setFromEvent(ev)
   sliderUpHandler = () => {
     window.removeEventListener('pointermove', sliderMoveHandler)
+    window.removeEventListener('pointerup', sliderUpHandler)
+    window.removeEventListener('pointercancel', sliderUpHandler)
     sliderMoveHandler = null
     sliderUpHandler = null
   }
   window.addEventListener('pointermove', sliderMoveHandler)
   window.addEventListener('pointerup', sliderUpHandler, { once: true })
+  window.addEventListener('pointercancel', sliderUpHandler, { once: true })
 }
 
 /* ---- 音量条：拖动调音量 + 按住 500ms 展开全屏面板 ---- */

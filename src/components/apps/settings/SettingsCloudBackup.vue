@@ -283,6 +283,10 @@ function confirmStopProgress() {
 
 onBeforeUnmount(() => {
   clearInterval(progressTimer)
+  clearTimeout(toastTimer)
+  window.removeEventListener('pointermove', onSwipePointerMove, true)
+  window.removeEventListener('pointerup', onSwipePointerUp, true)
+  window.removeEventListener('pointercancel', onSwipePointerUp, true)
 })
 
 // 演示场景切换

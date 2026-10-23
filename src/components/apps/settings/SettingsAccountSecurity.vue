@@ -156,6 +156,7 @@ function handleSubmitChangePassword() {
 
 // 注销确认
 const deleteAgreement = ref(false)
+let deleteRedirectTimer = null
 function handleConfirmDeleteAccount() {
   if (!deleteAgreement.value) {
     showToast('请阅读并勾选注销须知')
@@ -164,7 +165,8 @@ function handleConfirmDeleteAccount() {
   activeModal.value = null
   account.logout()
   showToast('账号注销申请已提交')
-  setTimeout(() => {
+  if (deleteRedirectTimer) clearTimeout(deleteRedirectTimer)
+  deleteRedirectTimer = setTimeout(() => {
     emit('back')
   }, 400)
 }
@@ -172,6 +174,7 @@ function handleConfirmDeleteAccount() {
 onBeforeUnmount(() => {
   if (countdownTimer) clearInterval(countdownTimer)
   if (toastTimer) clearTimeout(toastTimer)
+  if (deleteRedirectTimer) clearTimeout(deleteRedirectTimer)
 })
 </script>
 

@@ -34,7 +34,15 @@ import { useShareStore } from '../../stores/shareStore'
  * 壁纸（锁屏/桌面统一使用 notificationscreen.tsx 同款）/ 桌面 / 应用窗口 / 通知中心 / 控制中心 / 锁屏 / 系统 chrome / 边缘手势热区。
  */
 const privacy = usePrivacyStore()
-let privacyTicker
+let privacyTicker = null
+function syncPrivacyTicker(shouldRun) {
+  if (shouldRun) {
+    if (!privacyTicker) privacyTicker = setInterval(() => privacy.tick(), 100)
+  } else if (privacyTicker) {
+    clearInterval(privacyTicker)
+    privacyTicker = null
+  }
+}
 const control = useControlStore()
 const system = useSystemStore()
 const wallpaperStore = useWallpaperStore()
@@ -46,9 +54,12 @@ const rootEl = ref(null)
 onMounted(() => {
   screenRef.el = rootEl.value
   privacy.tick()
-  privacyTicker = setInterval(() => privacy.tick(), 100)
+  syncPrivacyTicker(privacy.needsTick)
 })
-onBeforeUnmount(() => clearInterval(privacyTicker))
+watch(() => privacy.needsTick, (shouldRun) => {
+  syncPrivacyTicker(shouldRun)
+})
+onBeforeUnmount(() => syncPrivacyTicker(false))
 
 /** 亮度滤镜：控制中心亮度滑块真实压暗屏幕（打开叠层时不遮罩控制中心/通知中心自身） */
 const dimOpacity = computed(() => system.anyOverlayOpen() ? 0 : (1 - control.brightness) * 0.72)

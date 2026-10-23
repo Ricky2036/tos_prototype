@@ -110,3 +110,23 @@ test('切换时长时活跃权限重新展开，不增加调用记录、不影�
  s.setIconDuration(4,6000);assert.equal(s.iconDurationSeconds,5);assert.equal(s.expandedUntil,10000)
  s.stop(null,null,7000);s.tick(26999);assert.ok(s.summary);s.tick(27000);assert.equal(s.summary,null)
 })
+test('空闲与常驻激活态按需驱动 needsTick，未过期 tick 不重新创建 entries 数组引用',()=>{
+ const s=store()
+ assert.equal(s.needsTick,false)
+ const emptyRef=s.entries
+ s.tick(1000)
+ assert.equal(s.entries,emptyRef)
+ s.start('camera',['camera'],1000)
+ assert.equal(s.needsTick,true)
+ const activeRef=s.entries
+ s.tick(2500)
+ assert.equal(s.entries,activeRef)
+ s.tick(4000)
+ assert.equal(s.statusExpanded,false)
+ assert.equal(s.needsTick,false)
+ s.stop('camera',['camera'],5000)
+ assert.equal(s.needsTick,true)
+ s.tick(25000)
+ assert.equal(s.entries.length,0)
+ assert.equal(s.needsTick,false)
+})

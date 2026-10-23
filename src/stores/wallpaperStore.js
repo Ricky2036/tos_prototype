@@ -46,7 +46,9 @@ export function resolveDepthSubjectUrl(lockWallpaper, savedSubject) {
 
 function getStorage() {
   try {
-    return typeof localStorage !== 'undefined' ? localStorage : null
+    if (typeof window !== 'undefined' && window.localStorage) return window.localStorage
+    const desc = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+    return desc?.value?.getItem ? desc.value : null
   } catch {
     return null
   }

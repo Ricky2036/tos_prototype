@@ -43,7 +43,13 @@ export function createDefaultHomeState() {
 }
 
 function safeStorage() {
-  try { return globalThis.localStorage?.getItem ? globalThis.localStorage : null } catch { return null }
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) return window.localStorage
+    const desc = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+    return desc?.value?.getItem ? desc.value : null
+  } catch {
+    return null
+  }
 }
 
 function reconcile(raw) {
