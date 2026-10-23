@@ -32,6 +32,8 @@ jobs:
       # npm ci 而不是 npm install：严格按 lock 文件装，
       # 依赖漂移会让「我这儿能跑、CI 挂了」变成常态
       - name: Install dependencies
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
         run: npm ci
 
       - name: Run tests
