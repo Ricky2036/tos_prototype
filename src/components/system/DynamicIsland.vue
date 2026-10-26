@@ -12,7 +12,13 @@ import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import LIcon from '../ui/LIcon.vue'
 import IslandCloseModal from '../ui/IslandCloseModal.vue'
 import MusicPlayerCard from './MusicPlayerCard.vue'
+import OS16TemplateCard from './island/OS16TemplateCard.vue'
+import { useOs16IslandStore, OS16_TEMPLATES } from '../../stores/os16IslandStore'
 import albumCover from '../../assets/icons/album_cover.png'
+import iconFoodPizza from '../../assets/island/icon_food_pizza.png'
+import iconRideCar from '../../assets/island/icon_ride_car.png'
+import coverEternalSunshine from '../../assets/island/cover_eternal_sunshine.png'
+import thumbThreeFinger from '../../assets/island/thumb_three_finger.png'
 
 const prayerStore = usePrayerStore()
 const recorderStore = useRecorderStore()
@@ -21,6 +27,7 @@ const system = useSystemStore()
 const i18n = useI18nStore()
 const notificationsStore = useNotificationsStore()
 const control = useControlStore()
+const os16Store = useOs16IslandStore()
 const mediaIslandExpanded = ref(false)
 
 if (typeof window !== 'undefined') {
@@ -57,6 +64,7 @@ const isMediaActive = computed(() => {
 /* 是否有任意灵动岛活动 */
 const hasAnyIsland = computed(() => {
   return (
+    os16Store.hasActiveTemplate ||
     isAlarmActive.value ||
     isRecorderActive.value ||
     isTimerActive.value ||
@@ -66,14 +74,15 @@ const hasAnyIsland = computed(() => {
   )
 })
 
-/* 活跃项列表，按优先级排序：Alarm > Timer > Stopwatch > Recorder > Media > Prayer */
+/* 活跃项列表，按优先级排序：OS16 Template > Alarm > Timer > Stopwatch > Recorder > Media > Prayer */
 const activeList = computed(() => {
   const list = []
+  if (os16Store.hasActiveTemplate) list.push('os16_template')
   if (isAlarmActive.value) list.push('alarm')
-  if (isTimerActive.value) list.push('timer')
+  if (isTimerActive.value && os16Store.activeTemplate !== OS16_TEMPLATES.TIMER) list.push('timer')
   if (isStopwatchActive.value) list.push('stopwatch')
-  if (isRecorderActive.value) list.push('recorder')
-  if (isMediaActive.value) list.push('media')
+  if (isRecorderActive.value && os16Store.activeTemplate !== OS16_TEMPLATES.VOICE_RECORDING) list.push('recorder')
+  if (isMediaActive.value && os16Store.activeTemplate !== OS16_TEMPLATES.MEDIA_EXTENDED) list.push('media')
   if (isPrayerActive.value) list.push('prayer')
   return list
 })
@@ -86,6 +95,7 @@ const subActiveItems = computed(() => activeList.value.slice(1, 4))
 const isExpanded = computed({
   get() {
     return (
+      (os16Store.hasActiveTemplate ? os16Store.isExpanded : false) ||
       (isAlarmActive.value || isTimerActive.value || isStopwatchActive.value ? clockStore.islandExpanded : false) ||
       (isRecorderActive.value ? recorderStore.islandExpanded : false) ||
       (isPrayerActive.value ? prayerStore.islandExpanded : false) ||
@@ -93,11 +103,44 @@ const isExpanded = computed({
     )
   },
   set(val) {
+    if (os16Store.hasActiveTemplate) {
+      os16Store.isExpanded = val
+    }
     clockStore.islandExpanded = val
     recorderStore.islandExpanded = val
     prayerStore.islandExpanded = val
     mediaIslandExpanded.value = val
   }
+})
+
+const os16CardClass = computed(() => {
+  if (primaryActiveItem.value !== 'os16_template') return ''
+  const t = os16Store.activeTemplate
+  if (t === OS16_TEMPLATES.FOOD_DELIVERY || t === OS16_TEMPLATES.RIDE_HAILING) return 'is-os16-progress'
+  if (t === OS16_TEMPLATES.NAVIGATION) return 'is-os16-nav'
+  if (t === OS16_TEMPLATES.TRANSLATION) return 'is-os16-translation'
+  if (t === OS16_TEMPLATES.MEDIA_EXTENDED) return 'is-os16-media'
+  if (t === OS16_TEMPLATES.SYSTEM_TIP) return 'is-os16-system-tip'
+  if (t === OS16_TEMPLATES.PHONE_CALL || t === OS16_TEMPLATES.MICROPHONE) return 'is-os16-base-74'
+  if (t === OS16_TEMPLATES.HOTSPOT || t === OS16_TEMPLATES.FLASHLIGHT) return 'is-os16-base-72'
+  return 'is-os16-base-76'
+})
+
+const os16CapsuleText = computed(() => {
+  const t = os16Store.activeTemplate
+  if (t === OS16_TEMPLATES.FOOD_DELIVERY) return '8:30'
+  if (t === OS16_TEMPLATES.RIDE_HAILING) return '35m'
+  if (t === OS16_TEMPLATES.NAVIGATION) return '6km'
+  if (t === OS16_TEMPLATES.TRANSLATION) return '英/中'
+  if (t === OS16_TEMPLATES.SYSTEM_TIP) return '三指'
+  if (t === OS16_TEMPLATES.MEDIA_EXTENDED) return '00:43'
+  if (t === OS16_TEMPLATES.SCREEN_RECORDING) return os16Store.baseTemplateState.screenRecordingTime
+  if (t === OS16_TEMPLATES.BATTERY_CHARGING) return `${os16Store.baseTemplateState.batteryPercent}%`
+  if (t === OS16_TEMPLATES.PHONE_CALL) return '00:48'
+  if (t === OS16_TEMPLATES.HOTSPOT) return '3m'
+  if (t === OS16_TEMPLATES.FLASHLIGHT) return os16Store.baseTemplateState.isFlashlightOn ? '开' : '关'
+  if (t === OS16_TEMPLATES.MICROPHONE) return '拾音中'
+  return 'OS16'
 })
 
 /* 当切换 App 或退出到桌面时，默认收起至紧凑胶囊态 */
@@ -173,7 +216,9 @@ watch(isExpanded, (expanded) => {
 
 function stopActivityInstance(type) {
   if (!type) return
-  if (type === 'alarm') {
+  if (type === 'os16_template') {
+    os16Store.closeTemplate()
+  } else if (type === 'alarm') {
     clockStore.dismissAlarm()
   } else if (type === 'recorder') {
     recorderStore.stopRecording()
@@ -359,7 +404,10 @@ function handleCardClick(item) {
     swipeOffsets.value = next
     return
   }
-  if (item === 'alarm') {
+  if (item === 'os16_template') {
+    isExpanded.value = false
+    os16Store.isExpanded = false
+  } else if (item === 'alarm') {
     openClockTab('alarm')
   } else if (item === 'timer') {
     openClockTab('timer')
@@ -397,6 +445,9 @@ function onSubcardBeforeLeave(el) {
 /* 点击背景遮罩收起 */
 function handleCloseBackdrop() {
   isExpanded.value = false
+  if (os16Store.hasActiveTemplate) {
+    os16Store.isExpanded = false
+  }
   swipeOffsets.value = {}
 }
 
@@ -441,18 +492,77 @@ function handleClosePrayer(e) {
     <!-- 1. 主灵动岛实体：在 compact 胶囊与 expanded 大圆角矩形之间做连续流体无缝变形 -->
     <div
       class="island-card"
-      :class="{
-        'is-expanded': isExpanded,
-        'is-compact': !isExpanded,
-        'is-media': isExpanded && primaryActiveItem === 'media'
-      }"
+      :class="[
+        {
+          'is-expanded': isExpanded,
+          'is-compact': !isExpanded,
+          'is-media': isExpanded && primaryActiveItem === 'media'
+        },
+        os16CardClass
+      ]"
       @click="handlePrimaryCardClick"
     >
       <!-- ================= 1.1 收起态图层（顶部胶囊） ================= -->
       <div class="morph-layer compact-layer">
         <div class="cc-left">
+          <!-- OS16 规范模版收起态图标（杜绝任何 Emoji，采用原版切图与矢量） -->
+          <template v-if="primaryActiveItem === 'os16_template'">
+            <img
+              v-if="os16Store.activeTemplate === OS16_TEMPLATES.FOOD_DELIVERY"
+              :src="iconFoodPizza"
+              class="os16-mini-hifi-avatar"
+              alt="Pizza"
+            />
+            <img
+              v-else-if="os16Store.activeTemplate === OS16_TEMPLATES.RIDE_HAILING"
+              :src="iconRideCar"
+              class="os16-mini-hifi-car"
+              alt="Car"
+            />
+            <svg v-else-if="os16Store.activeTemplate === OS16_TEMPLATES.NAVIGATION" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round">
+              <line x1="12" y1="19" x2="12" y2="5"></line>
+              <polyline points="5 12 12 5 19 12"></polyline>
+            </svg>
+            <img
+              v-else-if="os16Store.activeTemplate === OS16_TEMPLATES.MEDIA_EXTENDED"
+              :src="coverEternalSunshine"
+              class="os16-mini-hifi-cover"
+              alt="Music"
+            />
+            <svg v-else-if="os16Store.activeTemplate === OS16_TEMPLATES.TRANSLATION" width="16" height="16" viewBox="0 0 24 24" fill="#0091FF">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="#0091FF" stroke-width="2" fill="none"/>
+            </svg>
+            <img
+              v-else-if="os16Store.activeTemplate === OS16_TEMPLATES.SYSTEM_TIP"
+              :src="thumbThreeFinger"
+              class="os16-mini-hifi-tip"
+              alt="Tip"
+            />
+            <svg v-else-if="os16Store.activeTemplate === OS16_TEMPLATES.SCREEN_RECORDING" width="16" height="16" viewBox="0 0 24 24" fill="#FF3B30">
+              <circle cx="12" cy="12" r="7"/>
+            </svg>
+            <svg v-else-if="os16Store.activeTemplate === OS16_TEMPLATES.BATTERY_CHARGING" width="16" height="16" viewBox="0 0 24 24" fill="#30D158">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            <svg v-else-if="os16Store.activeTemplate === OS16_TEMPLATES.PHONE_CALL" width="16" height="16" viewBox="0 0 24 24" fill="#34C759">
+              <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-2.2 2.2a15.053 15.053 0 0 1-6.59-6.59l2.2-2.21a.96.96 0 0 0 .25-1A11.36 11.36 0 0 1 8.5 3.93c.07-.54-.38-.99-.92-.99H4.01c-.56 0-1.01.45-1.01 1.01C3 13.9 11.1 22 21.09 22c.56 0 1.01-.45 1.01-1.01v-4.6c0-.55-.45-1.01-1.09-1.01z"/>
+            </svg>
+            <svg v-else-if="os16Store.activeTemplate === OS16_TEMPLATES.HOTSPOT" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0091FF" stroke-width="2.2">
+              <circle cx="12" cy="12" r="2.5" fill="#0091FF"/>
+              <path d="M4.93 4.93a10 10 0 0 0 0 14.14"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+            </svg>
+            <svg v-else-if="os16Store.activeTemplate === OS16_TEMPLATES.FLASHLIGHT" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2">
+              <path d="M18 6l-2-4H8L6 6c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2z"/>
+              <path d="M8 8v12c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2V8"/>
+            </svg>
+            <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="#00E5FF">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </template>
           <!-- 闹钟收起态图标 -->
-          <svg v-if="primaryActiveItem === 'alarm'" class="compact-alarm-icon" width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
+          <svg v-else-if="primaryActiveItem === 'alarm'" class="compact-alarm-icon" width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
             <path :d="CLOCK_ICONS.alarm" />
           </svg>
           <svg v-else-if="primaryActiveItem === 'timer'" width="17" height="17" viewBox="0 0 24 24">
@@ -475,7 +585,10 @@ function handleClosePrayer(e) {
         <div class="cc-camera-slot"></div>
 
         <div class="cc-right">
-          <span v-if="primaryActiveItem === 'media'" class="media-mini-wave" :class="{ paused: !control.mediaPlaying }">
+          <span v-if="primaryActiveItem === 'os16_template'" class="cc-time os16-time">
+            {{ os16CapsuleText }}
+          </span>
+          <span v-else-if="primaryActiveItem === 'media'" class="media-mini-wave" :class="{ paused: !control.mediaPlaying }">
             <i></i><i></i><i></i><i></i>
           </span>
           <span v-else class="cc-time">{{ compactCapsuleTime }}</span>
@@ -516,7 +629,10 @@ function handleClosePrayer(e) {
       <div
         class="morph-layer expanded-layer"
         :class="[
-          { 'is-media-layer': primaryActiveItem === 'media' },
+          {
+            'is-media-layer': primaryActiveItem === 'media',
+            'is-os16-layer': primaryActiveItem === 'os16_template'
+          },
           {
             'is-swiping': isSwipingCard && activeCardId === primaryActiveItem,
             'has-swipe-transition': !isSwipingCard && swipedTransitionId === primaryActiveItem
@@ -528,6 +644,10 @@ function handleClosePrayer(e) {
         @pointerup="onCardPointerUp($event, primaryActiveItem)"
         @pointercancel="onCardPointerUp($event, primaryActiveItem)"
       >
+        <!-- OS16 灵动岛规范模版 -->
+        <template v-if="primaryActiveItem === 'os16_template'">
+          <OS16TemplateCard />
+        </template>
         <!-- 主项：闹钟（对齐 Screenshot_20260909-204420.jpg） -->
         <template v-if="primaryActiveItem === 'alarm'">
           <div class="ilc-left">
@@ -1663,5 +1783,102 @@ function handleClosePrayer(e) {
   border-radius: 32px;
   padding: 0;
   display: block;
+}
+
+/* ================= OS16 规范模版卡片尺寸与动效 ================= */
+.island-card.is-expanded.is-os16-progress,
+.island-card.is-expanded.is-os16-nav,
+.island-card.is-expanded.is-os16-media,
+.island-card.is-expanded.is-os16-system-tip,
+.island-card.is-expanded.is-os16-translation,
+.island-card.is-expanded.is-os16-base-76,
+.island-card.is-expanded.is-os16-base-74,
+.island-card.is-expanded.is-os16-base-72 {
+  width: 336px;
+  border-radius: 28px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+  background: #000000;
+}
+
+.island-card.is-expanded.is-os16-progress {
+  height: 122px;
+}
+
+.island-card.is-expanded.is-os16-nav {
+  height: 168px;
+}
+
+.island-card.is-expanded.is-os16-media {
+  height: 148px;
+}
+
+.island-card.is-expanded.is-os16-system-tip {
+  height: 180px;
+}
+
+.island-card.is-expanded.is-os16-translation {
+  height: 212px;
+}
+
+.island-card.is-expanded.is-os16-base-76 {
+  height: 76px;
+}
+
+.island-card.is-expanded.is-os16-base-74 {
+  height: 74px;
+}
+
+.island-card.is-expanded.is-os16-base-72 {
+  height: 72px;
+}
+
+.expanded-layer.is-os16-layer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+  border-radius: 28px;
+  box-shadow: none;
+  width: 100%;
+  height: 100%;
+}
+
+.os16-mini-hifi-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.os16-mini-hifi-car {
+  height: 13px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.os16-mini-hifi-cover {
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  object-fit: cover;
+  display: block;
+}
+
+.os16-mini-hifi-tip {
+  height: 16px;
+  width: auto;
+  border-radius: 3px;
+  object-fit: contain;
+  display: block;
+}
+
+.os16-time {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
 }
 </style>

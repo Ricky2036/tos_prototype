@@ -6,6 +6,7 @@ import { useSystemStore } from '../../stores/systemStore'
 import { useRecorderStore } from '../../stores/recorderStore'
 import { useClockStore } from '../../stores/clockStore'
 import { usePrayerStore } from '../../stores/prayerStore'
+import { useOs16IslandStore } from '../../stores/os16IslandStore'
 import { useActiveActivities } from '../../composables/useActiveActivities'
 import { usePrivacyStore } from '../../stores/privacyStore'
 import StatusIcons from '../ui/StatusIcons.vue'
@@ -19,6 +20,7 @@ const system = useSystemStore()
 const recorder = useRecorderStore()
 const clockStore = useClockStore()
 const prayerStore = usePrayerStore()
+const os16Store = useOs16IslandStore()
 const { activeActivities, isMediaActive } = useActiveActivities()
 
 /** 锁屏层时隐藏状态栏时间（锁屏有居中大时钟）；在桌面或应用内始终显示状态栏时钟，不受录音等灵动岛活动影响 */
@@ -28,14 +30,14 @@ const hideTime = computed(() => {
 
 /** 判断是否有灵动岛处于活跃展示状态 */
 const hasIsland = computed(() => {
-  return system.baseLayer !== 'lock' && !system.anyOverlayOpen() && (activeActivities.value.length > 0 || isMediaActive.value)
+  return system.baseLayer !== 'lock' && !system.anyOverlayOpen() && (activeActivities.value.length > 0 || isMediaActive.value || os16Store.hasActiveTemplate)
 })
 
 /** 判断灵动岛是否处于大卡片展开状态 */
 const isIslandExpanded = computed(() => {
   return (
     hasIsland.value &&
-    Boolean(clockStore.islandExpanded || recorder.islandExpanded || prayerStore.islandExpanded)
+    Boolean(clockStore.islandExpanded || recorder.islandExpanded || prayerStore.islandExpanded || (os16Store.hasActiveTemplate && os16Store.isExpanded))
   )
 })
 
