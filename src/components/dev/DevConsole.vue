@@ -7,6 +7,8 @@ import { useClockStore } from '../../stores/clockStore'
 import { useI18nStore } from '../../stores/i18nStore'
 import { useRecorderStore } from '../../stores/recorderStore'
 import { useNotificationsStore } from '../../stores/notificationsStore'
+import { useOs16IslandStore, OS16_TEMPLATES } from '../../stores/os16IslandStore'
+import { OS16_ICONS } from './os16Icons'
 import { useCapture } from '../../composables/useCapture'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import { GLYPHS } from '../../assets/icons/glyphs'
@@ -60,6 +62,7 @@ const prayerStore = usePrayerStore()
 const clockStore = useClockStore()
 const recorderStore = useRecorderStore()
 const notificationsStore = useNotificationsStore()
+const os16Store = useOs16IslandStore()
 const i18n = useI18nStore()
 
 if (typeof window !== 'undefined') {
@@ -251,6 +254,23 @@ function toggleMediaIsland() {
     control.mediaActive = true
     control.mediaPlaying = true
   }
+}
+
+/* ================= OS16 灵动岛规范模版控制 ================= */
+function selectOs16Template(templateId) {
+  if (os16Store.activeTemplate === templateId) {
+    os16Store.closeTemplate()
+  } else {
+    os16Store.activateTemplate(templateId, true)
+  }
+}
+
+function clearOs16Template() {
+  os16Store.closeTemplate()
+}
+
+function toggleOs16Expand() {
+  os16Store.toggleExpand()
 }
 
 function togglePrayerIslandSwitch(checked) {
@@ -744,81 +764,201 @@ function onToggleFineTune(enabled) {
           <!-- 模块 1.5: 敏感权限提示 (位于控制中心下方) -->
           <PrivacyDemo v-else-if="selectedModule === 'privacy'" key="privacy" />
 
-          <!-- 模块 2: 灵动岛 -->
+          <!-- 模块 2: 灵动岛 (统一采用系统应用样式规范) -->
           <div v-else-if="selectedModule === 'island'" key="island" class="pc-module-section-group is-island">
-            <!-- 区域 1：系统应用 -->
-            <div class="pc-section">
-              <div class="pc-card-header">
-                <span class="pc-card-title">系统应用</span>
-                <span v-if="clockStore.isAlarmActive || clockStore.isStopwatchActive || clockStore.isTimerActive || recorderStore.isRecording || control.mediaActive" class="pc-state-tag is-on">
-                  {{ clockStore.isAlarmActive ? '闹钟进行中' : (clockStore.isStopwatchActive ? '计时中' : (clockStore.isTimerActive ? '倒计时中' : (recorderStore.isRecording ? '录音中' : '音乐播放中'))) }}
-                </span>
+            <div class="pc-section os16-template-section">
+              <!-- 分组 1: 进度模板 (3 列统一样式卡片) -->
+              <div class="os16-subgroup">
+                <span class="os16-subgroup-title">进度模板</span>
+                <div class="pc-sysapp-grid grid-3">
+                  <button
+                    class="pc-sysapp-btn"
+                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.FOOD_DELIVERY }"
+                    @click="selectOs16Template(OS16_TEMPLATES.FOOD_DELIVERY)"
+                    title="外卖履约灵动岛"
+                  >
+                    <span class="os16-btn-svg" v-html="OS16_ICONS.delivery"></span>
+                    <span>外卖履约</span>
+                  </button>
+                  <button
+                    class="pc-sysapp-btn"
+                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.RIDE_HAILING }"
+                    @click="selectOs16Template(OS16_TEMPLATES.RIDE_HAILING)"
+                    title="网约车接驾灵动岛"
+                  >
+                    <span class="os16-btn-svg" v-html="OS16_ICONS.car"></span>
+                    <span>网约接驾</span>
+                  </button>
+                  <button
+                    class="pc-sysapp-btn"
+                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.NAVIGATION }"
+                    @click="selectOs16Template(OS16_TEMPLATES.NAVIGATION)"
+                    title="地图路线导航灵动岛"
+                  >
+                    <span class="os16-btn-svg" v-html="OS16_ICONS.navigation"></span>
+                    <span>地图导航</span>
+                  </button>
+                </div>
               </div>
-              <div class="pc-sysapp-grid">
-                <!-- 1. 闹钟 -->
-                <button
-                  class="pc-sysapp-btn"
-                  :class="{ on: clockStore.isAlarmActive }"
-                  @click="toggleAlarmIsland"
-                  title="开启/关闭闹钟灵动岛"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path :d="CLOCK_ICONS.alarm" />
-                  </svg>
-                  <span>闹钟</span>
-                </button>
 
-                <!-- 2. 计时器 -->
-                <button
-                  class="pc-sysapp-btn"
-                  :class="{ on: clockStore.isStopwatchActive }"
-                  @click="toggleStopwatchIsland"
-                  title="开启/关闭计时器灵动岛"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path :d="CLOCK_ICONS.stopwatch" />
-                  </svg>
-                  <span>计时器</span>
-                </button>
+              <!-- 分组 2: 自适应模版 (3 列统一样式卡片，归入音乐) -->
+              <div class="os16-subgroup">
+                <span class="os16-subgroup-title">自适应模版</span>
+                <div class="pc-sysapp-grid grid-3">
+                  <button
+                    class="pc-sysapp-btn"
+                    :class="{ on: control.mediaActive }"
+                    @click="toggleMediaIsland"
+                    title="开启/关闭音乐灵动岛"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path :d="GLYPHS.music" />
+                    </svg>
+                    <span>音乐</span>
+                  </button>
+                  <button
+                    class="pc-sysapp-btn"
+                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.TRANSLATION }"
+                    @click="selectOs16Template(OS16_TEMPLATES.TRANSLATION)"
+                    title="实时同声传译灵动岛"
+                  >
+                    <span class="os16-btn-svg" v-html="OS16_ICONS.translation"></span>
+                    <span>同声传译</span>
+                  </button>
+                  <button
+                    class="pc-sysapp-btn"
+                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.SYSTEM_TIP }"
+                    @click="selectOs16Template(OS16_TEMPLATES.SYSTEM_TIP)"
+                    title="系统功能引导灵动岛"
+                  >
+                    <span class="os16-btn-svg" v-html="OS16_ICONS.tip"></span>
+                    <span>系统引导</span>
+                  </button>
+                </div>
+              </div>
 
-                <!-- 3. 倒计时 -->
-                <button
-                  class="pc-sysapp-btn"
-                  :class="{ on: clockStore.isTimerActive }"
-                  @click="toggleTimerIsland"
-                  title="开启/关闭倒计时灵动岛"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path :d="CLOCK_ICONS.timer" />
-                  </svg>
-                  <span>倒计时</span>
-                </button>
+              <!-- 分组 3: 基础模板 (5 列统一样式卡片，归入闹钟、计时器、倒计时、录音) -->
+              <div class="os16-subgroup">
+                <span class="os16-subgroup-title">基础模板</span>
+                <div class="pc-sysapp-grid">
+                  <!-- 1. 闹钟 -->
+                  <button
+                    class="pc-sysapp-btn"
+                    :class="{ on: clockStore.isAlarmActive }"
+                    @click="toggleAlarmIsland"
+                    title="开启/关闭闹钟灵动岛"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path :d="CLOCK_ICONS.alarm" />
+                    </svg>
+                    <span>闹钟</span>
+                  </button>
 
-                <!-- 4. 录音 -->
-                <button
-                  class="pc-sysapp-btn"
-                  :class="{ on: recorderStore.isRecording }"
-                  @click="toggleRecorderIsland"
-                  title="开启/关闭录音灵动岛"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path :d="GLYPHS.mic" />
-                  </svg>
-                  <span>录音</span>
-                </button>
+                  <!-- 2. 计时器 -->
+                  <button
+                    class="pc-sysapp-btn"
+                    :class="{ on: clockStore.isStopwatchActive }"
+                    @click="toggleStopwatchIsland"
+                    title="开启/关闭计时器灵动岛"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path :d="CLOCK_ICONS.stopwatch" />
+                    </svg>
+                    <span>计时器</span>
+                  </button>
 
-                <!-- 5. 音乐 -->
-                <button
-                  class="pc-sysapp-btn"
-                  :class="{ on: control.mediaActive }"
-                  @click="toggleMediaIsland"
-                  title="开启/关闭音乐灵动岛"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path :d="GLYPHS.music" />
-                  </svg>
-                  <span>音乐</span>
-                </button>
+                  <!-- 3. 倒计时 -->
+                  <button
+                    class="pc-sysapp-btn"
+                    :class="{ on: clockStore.isTimerActive }"
+                    @click="toggleTimerIsland"
+                    title="开启/关闭倒计时灵动岛"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path :d="CLOCK_ICONS.timer" />
+                    </svg>
+                    <span>倒计时</span>
+                  </button>
+
+                  <!-- 4. 录音 -->
+                  <button
+                    class="pc-sysapp-btn"
+                    :class="{ on: recorderStore.isRecording }"
+                    @click="toggleRecorderIsland"
+                    title="开启/关闭录音灵动岛"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path :d="GLYPHS.mic" />
+                    </svg>
+                    <span>录音</span>
+                  </button>
+
+                  <!-- 5. 屏幕录制 -->
+                  <button
+                    class="pc-sysapp-btn"
+                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.SCREEN_RECORDING }"
+                    @click="selectOs16Template(OS16_TEMPLATES.SCREEN_RECORDING)"
+                    title="屏幕录制灵动岛"
+                  >
+                    <span class="os16-btn-svg" v-html="OS16_ICONS.screenRecording"></span>
+                    <span>屏幕录制</span>
+                  </button>
+
+                  <!-- 6. 超级快充 -->
+                  <button
+                    class="pc-sysapp-btn"
+                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.BATTERY_CHARGING }"
+                    @click="selectOs16Template(OS16_TEMPLATES.BATTERY_CHARGING)"
+                    title="超级快充灵动岛"
+                  >
+                    <span class="os16-btn-svg" v-html="OS16_ICONS.batteryCharging"></span>
+                    <span>超级快充</span>
+                  </button>
+
+                  <!-- 7. 电话通话 -->
+                  <button
+                    class="pc-sysapp-btn"
+                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.PHONE_CALL }"
+                    @click="selectOs16Template(OS16_TEMPLATES.PHONE_CALL)"
+                    title="电话通话灵动岛"
+                  >
+                    <span class="os16-btn-svg" v-html="OS16_ICONS.phoneCall"></span>
+                    <span>电话通话</span>
+                  </button>
+
+                  <!-- 8. 麦克拾音 -->
+                  <button
+                    class="pc-sysapp-btn"
+                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.MICROPHONE }"
+                    @click="selectOs16Template(OS16_TEMPLATES.MICROPHONE)"
+                    title="麦克拾音灵动岛"
+                  >
+                    <span class="os16-btn-svg" v-html="OS16_ICONS.microphone"></span>
+                    <span>麦克拾音</span>
+                  </button>
+
+                  <!-- 9. 个人热点 -->
+                  <button
+                    class="pc-sysapp-btn"
+                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.HOTSPOT }"
+                    @click="selectOs16Template(OS16_TEMPLATES.HOTSPOT)"
+                    title="个人热点灵动岛"
+                  >
+                    <span class="os16-btn-svg" v-html="OS16_ICONS.hotspot"></span>
+                    <span>个人热点</span>
+                  </button>
+
+                  <!-- 10. 手电筒 -->
+                  <button
+                    class="pc-sysapp-btn"
+                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.FLASHLIGHT }"
+                    @click="selectOs16Template(OS16_TEMPLATES.FLASHLIGHT)"
+                    title="手电筒灵动岛"
+                  >
+                    <span class="os16-btn-svg" v-html="OS16_ICONS.flashlight"></span>
+                    <span>手电筒</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1205,81 +1345,201 @@ function onToggleFineTune(enabled) {
                   <!-- 模块 1.5: 敏感权限提示 (位于控制中心下方) -->
                   <PrivacyDemo v-else-if="selectedModule === 'privacy'" key="privacy" />
 
-                  <!-- 模块 2: 灵动岛 -->
+                  <!-- 模块 2: 灵动岛 (统一采用系统应用样式规范) -->
                   <div v-else-if="selectedModule === 'island'" key="island" class="pc-module-section-group is-island">
-                    <!-- 区域 1：系统应用 -->
-                    <div class="pc-section">
-                      <div class="pc-card-header">
-                        <span class="pc-card-title">系统应用</span>
-                        <span v-if="clockStore.isAlarmActive || clockStore.isStopwatchActive || clockStore.isTimerActive || recorderStore.isRecording || control.mediaActive" class="pc-state-tag is-on">
-                          {{ clockStore.isAlarmActive ? '闹钟进行中' : (clockStore.isStopwatchActive ? '计时中' : (clockStore.isTimerActive ? '倒计时中' : (recorderStore.isRecording ? '录音中' : '音乐播放中'))) }}
-                        </span>
+                    <div class="pc-section os16-template-section">
+                      <!-- 分组 1: 进度模板 (3 列统一样式卡片) -->
+                      <div class="os16-subgroup">
+                        <span class="os16-subgroup-title">进度模板</span>
+                        <div class="pc-sysapp-grid grid-3">
+                          <button
+                            class="pc-sysapp-btn"
+                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.FOOD_DELIVERY }"
+                            @click="selectOs16Template(OS16_TEMPLATES.FOOD_DELIVERY)"
+                            title="外卖履约灵动岛"
+                          >
+                            <span class="os16-btn-svg" v-html="OS16_ICONS.delivery"></span>
+                            <span>外卖履约</span>
+                          </button>
+                          <button
+                            class="pc-sysapp-btn"
+                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.RIDE_HAILING }"
+                            @click="selectOs16Template(OS16_TEMPLATES.RIDE_HAILING)"
+                            title="网约车接驾灵动岛"
+                          >
+                            <span class="os16-btn-svg" v-html="OS16_ICONS.car"></span>
+                            <span>网约接驾</span>
+                          </button>
+                          <button
+                            class="pc-sysapp-btn"
+                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.NAVIGATION }"
+                            @click="selectOs16Template(OS16_TEMPLATES.NAVIGATION)"
+                            title="地图路线导航灵动岛"
+                          >
+                            <span class="os16-btn-svg" v-html="OS16_ICONS.navigation"></span>
+                            <span>地图导航</span>
+                          </button>
+                        </div>
                       </div>
-                      <div class="pc-sysapp-grid">
-                        <!-- 1. 闹钟 -->
-                        <button
-                          class="pc-sysapp-btn"
-                          :class="{ on: clockStore.isAlarmActive }"
-                          @click="toggleAlarmIsland"
-                          title="开启/关闭闹钟灵动岛"
-                        >
-                          <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path :d="CLOCK_ICONS.alarm" />
-                          </svg>
-                          <span>闹钟</span>
-                        </button>
 
-                        <!-- 2. 计时器 -->
-                        <button
-                          class="pc-sysapp-btn"
-                          :class="{ on: clockStore.isStopwatchActive }"
-                          @click="toggleStopwatchIsland"
-                          title="开启/关闭计时器灵动岛"
-                        >
-                          <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path :d="CLOCK_ICONS.stopwatch" />
-                          </svg>
-                          <span>计时器</span>
-                        </button>
+                      <!-- 分组 2: 自适应模版 (3 列统一样式卡片，归入音乐) -->
+                      <div class="os16-subgroup">
+                        <span class="os16-subgroup-title">自适应模版</span>
+                        <div class="pc-sysapp-grid grid-3">
+                          <button
+                            class="pc-sysapp-btn"
+                            :class="{ on: control.mediaActive }"
+                            @click="toggleMediaIsland"
+                            title="开启/关闭音乐灵动岛"
+                          >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path :d="GLYPHS.music" />
+                            </svg>
+                            <span>音乐</span>
+                          </button>
+                          <button
+                            class="pc-sysapp-btn"
+                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.TRANSLATION }"
+                            @click="selectOs16Template(OS16_TEMPLATES.TRANSLATION)"
+                            title="实时同声传译灵动岛"
+                          >
+                            <span class="os16-btn-svg" v-html="OS16_ICONS.translation"></span>
+                            <span>同声传译</span>
+                          </button>
+                          <button
+                            class="pc-sysapp-btn"
+                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.SYSTEM_TIP }"
+                            @click="selectOs16Template(OS16_TEMPLATES.SYSTEM_TIP)"
+                            title="系统功能引导灵动岛"
+                          >
+                            <span class="os16-btn-svg" v-html="OS16_ICONS.tip"></span>
+                            <span>系统引导</span>
+                          </button>
+                        </div>
+                      </div>
 
-                        <!-- 3. 倒计时 -->
-                        <button
-                          class="pc-sysapp-btn"
-                          :class="{ on: clockStore.isTimerActive }"
-                          @click="toggleTimerIsland"
-                          title="开启/关闭倒计时灵动岛"
-                        >
-                          <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path :d="CLOCK_ICONS.timer" />
-                          </svg>
-                          <span>倒计时</span>
-                        </button>
+                      <!-- 分组 3: 基础模板 (5 列统一样式卡片，归入闹钟、计时器、倒计时、录音) -->
+                      <div class="os16-subgroup">
+                        <span class="os16-subgroup-title">基础模板</span>
+                        <div class="pc-sysapp-grid">
+                          <!-- 1. 闹钟 -->
+                          <button
+                            class="pc-sysapp-btn"
+                            :class="{ on: clockStore.isAlarmActive }"
+                            @click="toggleAlarmIsland"
+                            title="开启/关闭闹钟灵动岛"
+                          >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path :d="CLOCK_ICONS.alarm" />
+                            </svg>
+                            <span>闹钟</span>
+                          </button>
 
-                        <!-- 4. 录音 -->
-                        <button
-                          class="pc-sysapp-btn"
-                          :class="{ on: recorderStore.isRecording }"
-                          @click="toggleRecorderIsland"
-                          title="开启/关闭录音灵动岛"
-                        >
-                          <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path :d="GLYPHS.mic" />
-                          </svg>
-                          <span>录音</span>
-                        </button>
+                          <!-- 2. 计时器 -->
+                          <button
+                            class="pc-sysapp-btn"
+                            :class="{ on: clockStore.isStopwatchActive }"
+                            @click="toggleStopwatchIsland"
+                            title="开启/关闭计时器灵动岛"
+                          >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path :d="CLOCK_ICONS.stopwatch" />
+                            </svg>
+                            <span>计时器</span>
+                          </button>
 
-                        <!-- 5. 音乐 -->
-                        <button
-                          class="pc-sysapp-btn"
-                          :class="{ on: control.mediaActive }"
-                          @click="toggleMediaIsland"
-                          title="开启/关闭音乐灵动岛"
-                        >
-                          <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path :d="GLYPHS.music" />
-                          </svg>
-                          <span>音乐</span>
-                        </button>
+                          <!-- 3. 倒计时 -->
+                          <button
+                            class="pc-sysapp-btn"
+                            :class="{ on: clockStore.isTimerActive }"
+                            @click="toggleTimerIsland"
+                            title="开启/关闭倒计时灵动岛"
+                          >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path :d="CLOCK_ICONS.timer" />
+                            </svg>
+                            <span>倒计时</span>
+                          </button>
+
+                          <!-- 4. 录音 -->
+                          <button
+                            class="pc-sysapp-btn"
+                            :class="{ on: recorderStore.isRecording }"
+                            @click="toggleRecorderIsland"
+                            title="开启/关闭录音灵动岛"
+                          >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path :d="GLYPHS.mic" />
+                            </svg>
+                            <span>录音</span>
+                          </button>
+
+                          <!-- 5. 屏幕录制 -->
+                          <button
+                            class="pc-sysapp-btn"
+                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.SCREEN_RECORDING }"
+                            @click="selectOs16Template(OS16_TEMPLATES.SCREEN_RECORDING)"
+                            title="屏幕录制灵动岛"
+                          >
+                            <span class="os16-btn-svg" v-html="OS16_ICONS.screenRecording"></span>
+                            <span>屏幕录制</span>
+                          </button>
+
+                          <!-- 6. 超级快充 -->
+                          <button
+                            class="pc-sysapp-btn"
+                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.BATTERY_CHARGING }"
+                            @click="selectOs16Template(OS16_TEMPLATES.BATTERY_CHARGING)"
+                            title="超级快充灵动岛"
+                          >
+                            <span class="os16-btn-svg" v-html="OS16_ICONS.batteryCharging"></span>
+                            <span>超级快充</span>
+                          </button>
+
+                          <!-- 7. 电话通话 -->
+                          <button
+                            class="pc-sysapp-btn"
+                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.PHONE_CALL }"
+                            @click="selectOs16Template(OS16_TEMPLATES.PHONE_CALL)"
+                            title="电话通话灵动岛"
+                          >
+                            <span class="os16-btn-svg" v-html="OS16_ICONS.phoneCall"></span>
+                            <span>电话通话</span>
+                          </button>
+
+                          <!-- 8. 麦克拾音 -->
+                          <button
+                            class="pc-sysapp-btn"
+                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.MICROPHONE }"
+                            @click="selectOs16Template(OS16_TEMPLATES.MICROPHONE)"
+                            title="麦克拾音灵动岛"
+                          >
+                            <span class="os16-btn-svg" v-html="OS16_ICONS.microphone"></span>
+                            <span>麦克拾音</span>
+                          </button>
+
+                          <!-- 9. 个人热点 -->
+                          <button
+                            class="pc-sysapp-btn"
+                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.HOTSPOT }"
+                            @click="selectOs16Template(OS16_TEMPLATES.HOTSPOT)"
+                            title="个人热点灵动岛"
+                          >
+                            <span class="os16-btn-svg" v-html="OS16_ICONS.hotspot"></span>
+                            <span>个人热点</span>
+                          </button>
+
+                          <!-- 10. 手电筒 -->
+                          <button
+                            class="pc-sysapp-btn"
+                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.FLASHLIGHT }"
+                            @click="selectOs16Template(OS16_TEMPLATES.FLASHLIGHT)"
+                            title="手电筒灵动岛"
+                          >
+                            <span class="os16-btn-svg" v-html="OS16_ICONS.flashlight"></span>
+                            <span>手电筒</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1852,11 +2112,16 @@ function onToggleFineTune(enabled) {
   margin-right: 7px;
 }
 
-/* 系统应用 5 按钮组 */
+/* 灵动岛统一卡片网格 */
 .pc-sysapp-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 5px;
+}
+
+.pc-sysapp-grid.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
 }
 
 .pc-sysapp-btn {
@@ -1878,10 +2143,17 @@ function onToggleFineTune(enabled) {
   user-select: none;
 }
 
-.pc-sysapp-btn svg {
+.pc-sysapp-btn svg,
+.pc-sysapp-btn .os16-btn-svg svg {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
+}
+
+.pc-sysapp-btn .os16-btn-svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .pc-sysapp-btn svg:not([stroke]) {
@@ -1899,6 +2171,133 @@ function onToggleFineTune(enabled) {
   color: #ffffff;
   font-weight: 700;
   box-shadow: 0 3px 12px rgba(16, 185, 129, 0.4);
+}
+
+/* ================= OS16 规范模版控制台样式 ================= */
+.os16-template-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.os16-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.os16-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pc-mini-action-btn {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  color: #e4e4e7;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pc-mini-action-btn:hover {
+  background: #3f3f46;
+  color: #ffffff;
+}
+
+.pc-mini-action-btn.is-danger {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
+.pc-mini-action-btn.is-danger:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+}
+
+.os16-subgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid #27272a;
+  border-radius: 9px;
+  padding: 8px 9px;
+}
+
+.os16-subgroup-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #a1a1aa;
+  letter-spacing: 0.2px;
+}
+
+.os16-btn-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.os16-btn-grid.grid-compact {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.pc-os16-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 500;
+  background: #18181b;
+  border: 1px solid #27272a;
+  color: #d4d4d8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.pc-os16-btn:hover {
+  background: #27272a;
+  border-color: #3f3f46;
+  color: #ffffff;
+}
+
+.pc-os16-btn.on {
+  background: #2563eb;
+  border-color: #3b82f6;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45);
+}
+
+.os16-btn-svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: currentColor;
+}
+
+.os16-btn-svg svg {
+  width: 14px;
+  height: 14px;
+}
+
+.os16-btn-name {
+  white-space: nowrap;
 }
 
 
