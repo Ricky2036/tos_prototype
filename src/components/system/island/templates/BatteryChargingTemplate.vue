@@ -6,11 +6,17 @@ const store = useOs16IslandStore()
 
 const batteryPercent = computed(() => store.baseTemplateState?.batteryPercent ?? 87)
 const batteryWatt = computed(() => store.baseTemplateState?.batteryWatt ?? 25)
-const chargingMode = computed(() => store.baseTemplateState?.chargingMode ?? 'super')
+const chargingMode = computed(() => store.baseTemplateState?.chargingMode ?? 'hyper')
+
+const isModeCold = computed(() => chargingMode.value === 'cold' || chargingMode.value === 'normal')
+const isModeAi = computed(() => chargingMode.value === 'ai' || chargingMode.value === 'turbo')
+const isModeHyper = computed(() => chargingMode.value === 'hyper' || chargingMode.value === 'super')
 
 function onSetMode(mode, watt) {
-  store.baseTemplateState.chargingMode = mode
-  store.baseTemplateState.batteryWatt = watt
+  if (store.baseTemplateState) {
+    store.baseTemplateState.chargingMode = mode
+    store.baseTemplateState.batteryWatt = watt
+  }
 }
 </script>
 
@@ -32,41 +38,50 @@ function onSetMode(mode, watt) {
       </div>
     </div>
 
-    <!-- 右侧三种充电模式切换按键 (常规蓝 / 极速青 / 超级闪充紫) -->
+    <!-- 右侧三种充电模式切换按键 (低温慢充 / 智能AI充 / 超级闪充) -->
     <div class="card-actions">
-      <!-- 模式 1: 常规快充 (蓝) -->
+      <!-- 模式 1: 低温慢充 (闪电 + 雪花) -->
       <button
-        class="mode-btn btn-normal"
-        :class="{ active: chargingMode === 'normal' }"
-        @click.stop="onSetMode('normal', 18)"
-        title="标准快充 18W"
+        class="mode-btn btn-cold"
+        :class="{ active: isModeCold }"
+        @click.stop="onSetMode('cold', 18)"
+        title="低温慢充 18W"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M13 2 4 14h7v8l9-12h-7z"/>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <!-- 闪电主体 -->
+          <path d="M10 2L5 13H10L8 21L15 11H10.5L12.5 2Z" fill="currentColor"/>
+          <!-- 雪花晶体 -->
+          <path d="M19 3.5V8.5M16.5 6H21.5M17.2 4.2L20.8 7.8M20.8 4.2L17.2 7.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
         </svg>
       </button>
 
-      <!-- 模式 2: 极速闪充 (青) -->
+      <!-- 模式 2: 智能AI充 (闪电 + Ai) -->
       <button
-        class="mode-btn btn-turbo"
-        :class="{ active: chargingMode === 'turbo' }"
-        @click.stop="onSetMode('turbo', 68)"
-        title="极速闪充 68W"
+        class="mode-btn btn-ai"
+        :class="{ active: isModeAi }"
+        @click.stop="onSetMode('ai', 25)"
+        title="智能AI快充 25W"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M13 2 4 14h7v8l9-12h-7z"/>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <!-- 闪电主体 -->
+          <path d="M9 2L4.5 13H9.5L7.5 21L14.5 11H10L12 2Z" fill="currentColor"/>
+          <!-- Ai 字母标识 -->
+          <text x="14" y="15" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" font-size="8.5" font-weight="700" fill="currentColor">Ai</text>
         </svg>
       </button>
 
-      <!-- 模式 3: 超级闪充 (紫) -->
+      <!-- 模式 3: 超级闪充 (双平行闪电) -->
       <button
-        class="mode-btn btn-super"
-        :class="{ active: chargingMode === 'super' }"
-        @click.stop="onSetMode('super', 120)"
+        class="mode-btn btn-hyper"
+        :class="{ active: isModeHyper }"
+        @click.stop="onSetMode('hyper', 120)"
         title="超级闪充 120W"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M13 2 4 14h7v8l9-12h-7z"/>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <!-- 左侧闪电 -->
+          <path d="M9.5 2.5L4 12.5H8.5L7 20.5L13.5 10.5H9L11 2.5Z"/>
+          <!-- 右侧闪电 -->
+          <path d="M15.5 2.5L10 12.5H14.5L13 20.5L19.5 10.5H15L17 2.5Z"/>
         </svg>
       </button>
     </div>
@@ -173,24 +188,41 @@ function onSetMode(mode, watt) {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s ease, opacity 0.15s ease;
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.16);
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .mode-btn:active {
   transform: scale(0.92);
 }
 
-.btn-normal {
-  color: #00d2d3;
+/* 模式 1: 低温慢充 (默认浅青，激活时亮蓝渐变) */
+.btn-cold {
+  color: #26C6DA;
 }
-
-.btn-turbo {
-  color: #30d158;
-}
-
-.btn-super {
-  background: linear-gradient(135deg, #7b61ff 0%, #d856ff 100%);
+.btn-cold.active {
+  background: linear-gradient(135deg, #00A6FF 0%, #0072FF 100%);
   color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 114, 255, 0.35);
+}
+
+/* 模式 2: 智能AI充 (默认浅青，激活时亮青蓝渐变) */
+.btn-ai {
+  color: #26C6DA;
+}
+.btn-ai.active {
+  background: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 198, 255, 0.35);
+}
+
+/* 模式 3: 超级闪充 (默认浅紫，激活时紫粉高光渐变) */
+.btn-hyper {
+  color: #DA70D6;
+}
+.btn-hyper.active {
+  background: linear-gradient(135deg, #8A2BE2 0%, #DA70D6 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 12px rgba(218, 112, 214, 0.45);
 }
 </style>

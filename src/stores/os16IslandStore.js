@@ -183,7 +183,7 @@ export const useOs16IslandStore = defineStore('os16Island', () => {
     screenRecordingTime: '04:20',
     isRecordingPaused: false,
     batteryPercent: 87,
-    batteryWatt: 68,
+    batteryWatt: 25,
     chargingMode: 'super', // 'super' (68W) 或 'turbo' (120W)
     callerName: 'Gdragon',
     callerNumber: '130 3987 9876',
