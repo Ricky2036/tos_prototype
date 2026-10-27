@@ -29,26 +29,26 @@ function onTogglePause() {
       <div class="sub-text">Timer</div>
     </div>
 
-    <!-- 右侧操作按键：取消 + 暂停/继续 (严格 42x42 纯圆) -->
+    <!-- 右侧操作按键：取消 + 暂停/继续 (严格 42x42 纯圆，Figma 原厂矢量) -->
     <div class="card-actions">
       <button class="act-btn btn-cancel" @click.stop="onCancel" title="取消倒计时">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
+        <svg width="42" height="42" viewBox="414 453 42 42" fill="none">
+          <path d="M428.519 467.518C428.942 467.095 429.628 467.095 430.051 467.518L435.001 472.468L439.95 467.52C440.373 467.097 441.059 467.097 441.482 467.52C441.905 467.943 441.905 468.629 441.482 469.052L436.533 474.001L441.482 478.95C441.905 479.373 441.905 480.058 441.482 480.481C441.059 480.904 440.373 480.904 439.95 480.481L435.001 475.533L430.051 480.484C429.628 480.907 428.942 480.907 428.519 480.484C428.096 480.061 428.096 479.375 428.519 478.952L433.469 474.001L428.519 469.05C428.095 468.627 428.096 467.941 428.519 467.518Z" fill="white"/>
         </svg>
       </button>
 
       <button
         class="act-btn btn-primary"
-        :class="{ 'is-paused-btn': isPaused }"
         @click.stop="onTogglePause"
-        title="暂停/继续"
+        :title="isPaused ? '继续倒计时' : '暂停倒计时'"
       >
-        <div v-if="!isPaused" class="pause-bars">
-          <div class="bar"></div>
-          <div class="bar"></div>
-        </div>
-        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <!-- 运行中：Figma 原厂双竖条暂停矢量 -->
+        <svg v-if="!isPaused" width="42" height="42" viewBox="470 453 42 42" fill="none">
+          <rect x="485.166" y="466.223" width="3.88889" height="15.5556" rx="1.11111" fill="white"/>
+          <rect x="492.943" y="466.223" width="3.88889" height="15.5556" rx="1.11111" fill="white"/>
+        </svg>
+        <!-- 暂停后：复用音乐播放图标，保持统一纯白风格与按键底色 -->
+        <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="white" style="margin-left: 2px;">
           <path d="M8 5v14l11-7z"/>
         </svg>
       </button>
@@ -167,23 +167,5 @@ function onTogglePause() {
 
 .btn-primary:hover {
   background: #2f83ff;
-}
-
-.btn-primary.is-paused-btn {
-  background: #ff9900;
-}
-
-.pause-bars {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-}
-
-.pause-bars .bar {
-  width: 3.89px;
-  height: 15.56px;
-  border-radius: 1.11px;
-  background-color: #ffffff;
 }
 </style>

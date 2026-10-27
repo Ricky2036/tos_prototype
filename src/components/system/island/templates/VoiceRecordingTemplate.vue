@@ -24,10 +24,12 @@ function onStop() {
       <div class="sub-text">Voice Recording...</div>
     </div>
 
-    <!-- 右侧结束操作按键 (严格 42x42 纯圆) -->
+    <!-- 右侧结束操作按键 (严格 42x42 纯圆，Figma 原厂矢量) -->
     <div class="card-actions">
       <button class="act-btn btn-stop" @click.stop="onStop" title="结束录音">
-        <div class="stop-square"></div>
+        <svg width="42" height="42" viewBox="470 353 42 42" fill="none">
+          <rect x="483.918" y="366.917" width="14.1667" height="14.1667" rx="2.5" fill="white"/>
+        </svg>
       </button>
     </div>
   </div>
@@ -133,12 +135,5 @@ function onStop() {
 
 .btn-stop:hover {
   background: #ff5e52;
-}
-
-.stop-square {
-  width: 14.17px;
-  height: 14.17px;
-  background: #ffffff;
-  border-radius: 2.5px;
 }
 </style>
