@@ -1484,7 +1484,7 @@ const glassRing = computed(() =>
   display: flex;
   flex-direction: column;
   /* 顶部 18px：严格对齐效果图中顶部编辑/设置按钮与屏幕顶边的安全距离 */
-  padding: 24px 0 0;
+  padding: 18px 0 0;
   will-change: transform, opacity;
 }
 
@@ -1535,7 +1535,7 @@ const glassRing = computed(() =>
   width: var(--cc-grid-w);
   margin: 0 auto;
   padding: 0;
-  height: 36px;
+  height: 30px;
   position: relative;
   z-index: 20;
   color: #fff;
@@ -1688,11 +1688,14 @@ const glassRing = computed(() =>
   /* 下间距 14px 的一半（7px）让给滚动区做顶部内边距：
      裁切起始线因此上移到「状态栏与网格按钮间距的中点」，
      最顶排砖块被选中时，画在元素外侧的选中框才有地方显示，不会被切掉。 */
-  margin: 0 auto 3px;
+  margin: 8px auto 7px;
   padding: 0;
   height: 16px;
   color: rgba(255, 255, 255, 0.95);
-  transition: opacity 0.3s ease, height 0.25s ease;
+  transition: opacity 0.3s ease, height 0.25s ease, margin 0.25s ease;
+}
+.cc-fixed-top:has(.privacy-slot.is-active) .cc-status {
+  margin-top: 2px;
 }
 .cc-status.is-dual {
   height: 36px;

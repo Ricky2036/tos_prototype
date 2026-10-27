@@ -10,7 +10,7 @@ const backplates = {camera,microphone,location}
 const backplateStyle = key => ({ borderImageSource: `url("${backplates[key]}")` })
 </script>
 <template>
-  <div class="privacy-slot">
+  <div class="privacy-slot" :class="{ 'is-active': !!privacy.summary }">
     <Transition name="capsule">
       <button v-if="privacy.summary" class="privacy-capsule" :class="{ recent: !privacy.summary.isActive }" @pointerdown.stop @click.stop="privacy.openDetail()" :aria-label="`${privacy.summary.apps.map(app=>DEMO_APPS[app].name).join('、')}${privacy.summary.isActive ? '正在使用' : '最近使用'}${privacy.summary.keys.map(k=>PERMISSIONS[k].label).join('、')}，查看详情`" data-testid="privacy-capsule">
         <span class="capsule-backplate" :style="backplateStyle(privacy.summary.primary)" aria-hidden="true" />
@@ -22,7 +22,21 @@ const backplateStyle = key => ({ borderImageSource: `url("${backplates[key]}")` 
   </div>
 </template>
 <style scoped>
-.privacy-slot{height:24px;display:flex;align-items:center;justify-content:center;margin:8px auto 13px;width:var(--cc-grid-w,290px);}
+.privacy-slot {
+  height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  width: var(--cc-grid-w, 290px);
+  overflow: hidden;
+  transition: height 0.25s cubic-bezier(0.25, 1, 0.5, 1), margin 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.privacy-slot.is-active {
+  height: 24px;
+  margin: 6px auto 8px;
+  overflow: visible;
+}
 .privacy-capsule{position:relative;isolation:isolate;width:max-content;max-width:100%;box-sizing:border-box;height:24px;display:flex;align-items:center;gap:5px;border:0;border-radius:999px;padding:4px 5px 4px 4px;color:white;background:transparent;font:500 12px/1 var(--font-stack);cursor:pointer;}
 .capsule-backplate{position:absolute;inset:0;box-sizing:border-box;border:12px solid transparent;border-image-slice:12 fill;border-image-width:12px;border-image-repeat:stretch;z-index:-1;pointer-events:none;transition:opacity .25s;}
 .privacy-capsule.recent{color:#ffffffe0;}.recent .capsule-backplate{opacity:0;}
