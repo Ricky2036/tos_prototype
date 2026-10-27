@@ -43,14 +43,14 @@ function onExitNavigate() {
       </div>
     </div>
 
-    <!-- 中部全路段多色路况进度条 (蓝/深红/红/绿/橙) -->
+    <!-- 中部全路段多色路况进度条 (严格对应 Figma 298:18670 原厂独立胶囊路段) -->
     <div class="card-traffic-row">
       <div class="traffic-rail">
-        <div class="seg seg-blue" style="flex: 35"></div>
-        <div class="seg seg-darkred" style="flex: 8"></div>
-        <div class="seg seg-red" style="flex: 7"></div>
-        <div class="seg seg-green" style="flex: 30"></div>
-        <div class="seg seg-orange" style="flex: 20"></div>
+        <div class="seg seg-blue" style="flex: 127"></div>
+        <div class="seg seg-darkred" style="flex: 22"></div>
+        <div class="seg seg-red" style="flex: 18"></div>
+        <div class="seg seg-green" style="flex: 80"></div>
+        <div class="seg seg-orange" style="flex: 37"></div>
 
         <!-- 实时导航车辆定位光标 -->
         <div
@@ -168,7 +168,7 @@ function onExitNavigate() {
   display: block;
 }
 
-/* 路况多色进度条 */
+/* 路况多色进度条 (各路段独立胶囊条，间距 4px，高度统一 6px，圆角 3px，严格对齐 Figma 原厂规范) */
 .card-traffic-row {
   display: flex;
   align-items: center;
@@ -181,20 +181,21 @@ function onExitNavigate() {
   position: relative;
   width: 100%;
   height: 6px;
-  border-radius: 3px;
   display: flex;
+  align-items: center;
+  gap: 4px;
   overflow: visible;
 }
 
 .seg {
-  height: 100%;
+  height: 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
   transition: flex 0.3s ease;
 }
 
 .seg-blue {
   background-color: #0060ea;
-  border-top-left-radius: 3px;
-  border-bottom-left-radius: 3px;
 }
 
 .seg-darkred {
@@ -211,8 +212,6 @@ function onExitNavigate() {
 
 .seg-orange {
   background-color: #fc843f;
-  border-top-right-radius: 3px;
-  border-bottom-right-radius: 3px;
 }
 
 .nav-cursor-node {
