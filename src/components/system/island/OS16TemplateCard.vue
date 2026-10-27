@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useOs16IslandStore, OS16_TEMPLATES } from '../../../stores/os16IslandStore'
+import FoodDeliveryTemplate from './templates/FoodDeliveryTemplate.vue'
 
 // 导入从 Figma 原稿规范导出的 100% 纯矢量 SVG 卡片资产
 import svgFoodDelivery from '../../../assets/island/progress_food_delivery.svg'
@@ -48,13 +49,17 @@ const currentCardSvg = computed(() => {
 
 <template>
   <div class="os16-figma-card-container">
-    <!-- Figma 原稿 100% 纯矢量 SVG 卡片底板（杜绝重复文本叠加，呈现最纯正清晰的原稿排版） -->
-    <img
-      :src="currentCardSvg"
-      class="os16-figma-svg"
-      alt="OS16 Island Vector Card"
-      draggable="false"
-    />
+    <!-- 1. 新一代分图层原生重构模板：外卖履约 (Food Delivery) -->
+    <FoodDeliveryTemplate v-if="currentTemplate === OS16_TEMPLATES.FOOD_DELIVERY" />
+
+    <!-- 兼容层：其他模板渲染规范底板与对应交互层 -->
+    <template v-else>
+      <img
+        :src="currentCardSvg"
+        class="os16-figma-svg"
+        alt="OS16 Island Vector Card"
+        draggable="false"
+      />
 
     <!-- ================= 原生交互层 ================= -->
 
@@ -231,6 +236,7 @@ const currentCardSvg = computed(() => {
         @click.stop="os16Store.toggleMicMute()"
         title="暂停/继续拾音"
       ></button>
+    </template>
     </template>
   </div>
 </template>

@@ -161,3 +161,37 @@ test('OS16 纯矢量 SVG 分层卡片资产齐全健全', () => {
     assert.ok(!content.includes('fill="white" width="1920"'), `SVG 严禁包含画布外部全屏白底: ${file}`)
   }
 })
+
+test('OS16 分图层重构规范模板：外卖履约各图层元素独立导出与原生组件重构健全性', () => {
+  const tplPath = path.resolve('src/components/system/island/templates/FoodDeliveryTemplate.vue')
+  assert.ok(fs.existsSync(tplPath), '必须存在独立的 FoodDeliveryTemplate.vue 组件')
+  const content = fs.readFileSync(tplPath, 'utf8')
+
+  // 1. 各图层独立素材引用
+  assert.ok(content.includes('thumb_pizza.png'), '必须引用独立导出的餐品缩略图')
+  assert.ok(content.includes('badge_meituan.png'), '必须引用独立导出的美团角标')
+  assert.ok(content.includes('rider_scooter.png'), '必须引用独立导出的外卖骑手切图')
+  assert.ok(content.includes('icon_store.svg'), '必须引用独立导出的商家端矢量图标')
+  assert.ok(content.includes('icon_pin.svg'), '必须引用独立导出的收货地址矢量图钉')
+
+  // 2. 原生 HTML/CSS 结构分层
+  assert.ok(content.includes('card-header-row'), '必须具备顶部信息排版行')
+  assert.ok(content.includes('thumb-container'), '必须具备商家头像图层容器')
+  assert.ok(content.includes('text-column'), '必须具备纯文本排版图层')
+  assert.ok(content.includes('badge-container'), '必须具备品牌角标图层容器')
+  assert.ok(content.includes('card-progress-row'), '必须具备底部动态进度条图层')
+  assert.ok(content.includes('track-rail'), '必须具备动态轨道')
+  assert.ok(content.includes('rider-node'), '必须具备动态行进的骑手节点')
+
+  // 3. 动态响应式状态绑定
+  assert.ok(content.includes('foodDeliveryState'), '必须绑定响应式履约数据')
+  assert.ok(content.includes('advanceFoodDelivery'), '必须支持点击推进履约进度')
+
+  // 4. 磁盘素材存在性校验
+  const foodAssetDir = path.resolve('src/assets/island/food_delivery')
+  assert.ok(fs.existsSync(path.join(foodAssetDir, 'thumb_pizza.png')))
+  assert.ok(fs.existsSync(path.join(foodAssetDir, 'badge_meituan.png')))
+  assert.ok(fs.existsSync(path.join(foodAssetDir, 'rider_scooter.png')))
+  assert.ok(fs.existsSync(path.join(foodAssetDir, 'icon_store.svg')))
+  assert.ok(fs.existsSync(path.join(foodAssetDir, 'icon_pin.svg')))
+})
