@@ -20,8 +20,8 @@ function onStop() {
 
 <template>
   <div class="os16-base-card" role="region" aria-label="屏幕录制实时卡片">
-    <!-- 左侧红底录屏图标 -->
-    <div class="card-icon-wrap is-rec-icon">
+    <!-- 左侧红底录屏图标 (直接居左渲染纯矢量摄像机) -->
+    <div class="card-icon-wrap">
       <img :src="iconScreenRec" alt="录屏" class="icon-svg" />
     </div>
 
@@ -34,7 +34,7 @@ function onStop() {
       </div>
     </div>
 
-    <!-- 右侧操作按键：暂停/继续 + 结束并保存 -->
+    <!-- 右侧操作按键：暂停/继续 + 结束并保存 (严格 42x42 纯圆，尺寸完全一致) -->
     <div class="card-actions">
       <button
         class="act-btn btn-pause"
@@ -42,9 +42,10 @@ function onStop() {
         @click.stop="onTogglePause"
         title="暂停/继续"
       >
-        <svg v-if="!isPaused" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M6 5h4v14H6zm8 0h4v14h-4z"/>
-        </svg>
+        <div v-if="!isPaused" class="pause-bars">
+          <div class="bar"></div>
+          <div class="bar"></div>
+        </div>
         <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M8 5v14l11-7z"/>
         </svg>
@@ -73,17 +74,13 @@ function onStop() {
 }
 
 .card-icon-wrap {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-
-.is-rec-icon {
-  background: rgba(252, 91, 79, 0.18);
+  background: transparent;
 }
 
 .icon-svg {
@@ -126,7 +123,7 @@ function onStop() {
 .card-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   flex-shrink: 0;
   margin-left: 12px;
 }
@@ -134,9 +131,16 @@ function onStop() {
 .act-btn {
   width: 42px;
   height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  max-width: 42px;
+  max-height: 42px;
   border-radius: 50%;
   border: none;
   outline: none;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -149,12 +153,12 @@ function onStop() {
 }
 
 .btn-pause {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.25);
   color: #ffffff;
 }
 
 .btn-pause:hover {
-  background: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.32);
 }
 
 .btn-pause.is-paused-btn {
@@ -162,9 +166,23 @@ function onStop() {
   color: #ffb800;
 }
 
+.pause-bars {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.pause-bars .bar {
+  width: 3.89px;
+  height: 15.56px;
+  border-radius: 1.11px;
+  background-color: #ffffff;
+}
+
 .btn-stop {
   background: #fc4c3f;
-  box-shadow: 0 2px 8px rgba(252, 76, 63, 0.4);
+  box-shadow: none;
 }
 
 .btn-stop:hover {
@@ -172,8 +190,8 @@ function onStop() {
 }
 
 .stop-square {
-  width: 14px;
-  height: 14px;
+  width: 14.17px;
+  height: 14.17px;
   background: #ffffff;
   border-radius: 2.5px;
 }

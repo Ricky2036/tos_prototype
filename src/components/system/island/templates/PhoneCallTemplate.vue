@@ -96,9 +96,16 @@ function onToggleSpeaker() {
 .call-btn {
   width: 42px;
   height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  max-width: 42px;
+  max-height: 42px;
   border-radius: 50%;
   border: none;
   outline: none;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -112,7 +119,7 @@ function onToggleSpeaker() {
 
 .btn-hangup {
   background: #f54240;
-  box-shadow: 0 2px 10px rgba(245, 66, 64, 0.4);
+  box-shadow: none;
 }
 
 .btn-hangup:hover {
@@ -121,7 +128,7 @@ function onToggleSpeaker() {
 
 .btn-speaker {
   background: #28cc71;
-  box-shadow: 0 2px 10px rgba(40, 204, 113, 0.4);
+  box-shadow: none;
 }
 
 .btn-speaker:hover {
@@ -129,7 +136,7 @@ function onToggleSpeaker() {
 }
 
 .btn-speaker.active {
-  box-shadow: 0 0 14px rgba(40, 204, 113, 0.7);
+  background: #22b362;
 }
 
 .btn-svg {

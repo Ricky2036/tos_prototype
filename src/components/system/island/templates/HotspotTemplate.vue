@@ -39,7 +39,7 @@ function onClose() {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  padding: 12px 18px;
+  padding: 12px 16px;
   background: transparent;
   border-radius: 28px;
   display: flex;
@@ -56,16 +56,17 @@ function onClose() {
 }
 
 .icon-wrap {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .icon-svg {
-  width: 30px;
-  height: 26px;
+  width: 28px;
+  height: 24px;
   display: block;
 }
 
@@ -98,10 +99,10 @@ function onClose() {
 }
 
 .capsule-btn {
-  width: 58px;
+  width: 57px;
   height: 32px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.25);
   border: none;
   outline: none;
   color: #ffffff;
@@ -116,7 +117,7 @@ function onClose() {
 }
 
 .capsule-btn:hover {
-  background: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.32);
 }
 
 .capsule-btn:active {

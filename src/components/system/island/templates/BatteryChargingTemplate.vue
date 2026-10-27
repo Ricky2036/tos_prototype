@@ -92,7 +92,7 @@ function onSetMode(mode, watt) {
 .battery-info-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .battery-shell {
@@ -102,25 +102,24 @@ function onSetMode(mode, watt) {
 
 .battery-body {
   width: 32px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  height: 17px;
+  background: #3a3a3c;
   border-radius: 4px;
-  padding: 1.5px;
-  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
 }
 
 .battery-level {
   height: 100%;
-  background: #8cfd80;
-  border-radius: 1.5px;
-  box-shadow: 0 0 8px rgba(140, 253, 128, 0.6);
+  background: #30d158;
+  border-radius: 3px 0 0 3px;
   transition: width 0.3s ease;
 }
 
 .battery-cap {
   width: 2.5px;
   height: 6px;
-  background: rgba(255, 255, 255, 0.4);
+  background: #3a3a3c;
   border-top-right-radius: 1.5px;
   border-bottom-right-radius: 1.5px;
   margin-left: 1px;
@@ -133,10 +132,10 @@ function onSetMode(mode, watt) {
 
 .percent-title {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
-  line-height: 1.25;
-  color: #8cfd80;
+  line-height: 1.2;
+  color: #30d158;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.2px;
 }
@@ -147,7 +146,7 @@ function onSetMode(mode, watt) {
   font-weight: 400;
   line-height: 1.25;
   color: rgba(255, 255, 255, 0.6);
-  margin-top: 3px;
+  margin-top: 2px;
   letter-spacing: -0.1px;
 }
 
@@ -158,53 +157,40 @@ function onSetMode(mode, watt) {
 }
 
 .mode-btn {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  max-width: 42px;
+  max-height: 42px;
   border-radius: 50%;
   border: none;
   outline: none;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.2s ease;
-  opacity: 0.45;
-}
-
-.mode-btn:hover {
-  opacity: 0.8;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .mode-btn:active {
   transform: scale(0.92);
 }
 
-.mode-btn.active {
-  opacity: 1;
-  transform: scale(1.08);
-}
-
 .btn-normal {
-  background: #1e76fe;
-  color: #ffffff;
-}
-.btn-normal.active {
-  box-shadow: 0 0 12px rgba(30, 118, 254, 0.6);
+  color: #00d2d3;
 }
 
 .btn-turbo {
-  background: #00d2d3;
-  color: #ffffff;
-}
-.btn-turbo.active {
-  box-shadow: 0 0 12px rgba(0, 210, 211, 0.6);
+  color: #30d158;
 }
 
 .btn-super {
-  background: #b538ff;
+  background: linear-gradient(135deg, #7b61ff 0%, #d856ff 100%);
   color: #ffffff;
-}
-.btn-super.active {
-  box-shadow: 0 0 14px rgba(181, 56, 255, 0.7);
 }
 </style>

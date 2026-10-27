@@ -131,6 +131,7 @@ function onToggleSpeaker() {
   font-size: 13.5px;
   color: #53a3ff;
   font-weight: 400;
+  white-space: normal;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -149,17 +150,25 @@ function onToggleSpeaker() {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 28px;
-  height: 44px;
-  margin-top: 4px;
+  gap: 36px;
+  height: 42px;
+  margin-top: 6px;
+  margin-bottom: 2px;
 }
 
 .trans-btn {
   width: 42px;
   height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  max-width: 42px;
+  max-height: 42px;
   border-radius: 50%;
   border: none;
   outline: none;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -172,21 +181,20 @@ function onToggleSpeaker() {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.32);
 }
 
 .btn-secondary.is-speaking {
   background: rgba(83, 163, 255, 0.35);
-  box-shadow: 0 0 10px rgba(83, 163, 255, 0.4);
 }
 
 .btn-primary {
   background: #0066ff;
-  box-shadow: 0 4px 12px rgba(0, 102, 255, 0.35);
+  box-shadow: none;
 }
 
 .btn-primary:hover {
@@ -195,7 +203,6 @@ function onToggleSpeaker() {
 
 .btn-primary.is-muted {
   background: #3a3a3c;
-  box-shadow: none;
   opacity: 0.7;
 }
 

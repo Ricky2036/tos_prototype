@@ -98,20 +98,19 @@ function onExitNavigate() {
 .arrow-wrap {
   width: 44px;
   height: 44px;
-  border-radius: 10px;
-  overflow: hidden;
+  overflow: visible;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: #1c1c1e;
+  border: none;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .arrow-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 32px;
+  height: 38px;
+  object-fit: contain;
   display: block;
 }
 
@@ -240,7 +239,7 @@ function onExitNavigate() {
   width: 100%;
   height: 32px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.25);
   border: none;
   outline: none;
   color: #ffffff;
@@ -255,11 +254,11 @@ function onExitNavigate() {
 }
 
 .nav-exit-btn:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.32);
 }
 
 .nav-exit-btn:active {
   transform: scale(0.98);
-  background: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.38);
 }
 </style>

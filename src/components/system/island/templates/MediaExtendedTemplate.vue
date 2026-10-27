@@ -37,12 +37,13 @@ function onNext() {
         <div class="artist-name">{{ artistText }}</div>
       </div>
 
-      <!-- 右上角跳动音浪 -->
+      <!-- 右上角跳动音浪 (Figma 原稿 5 根红柱音波) -->
       <div class="wave-visualizer" :class="{ 'is-paused': !isPlaying }" title="正在播放">
         <span class="wave-bar bar-1"></span>
         <span class="wave-bar bar-2"></span>
         <span class="wave-bar bar-3"></span>
         <span class="wave-bar bar-4"></span>
+        <span class="wave-bar bar-5"></span>
       </div>
     </div>
 
