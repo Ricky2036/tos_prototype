@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import { useOs16IslandStore } from '../../../../stores/os16IslandStore'
 
-import arrowTurn from '../../../../assets/island/navigation/arrow_turn.png'
 import badgePetal from '../../../../assets/island/navigation/badge_petal.png'
 import iconCursorArrow from '../../../../assets/island/navigation/icon_cursor_arrow.svg'
 
@@ -25,9 +24,11 @@ function onExitNavigate() {
   <div class="os16-nav-card" @click.stop="onCardClick" role="region" aria-label="地图导航实时卡片">
     <!-- 顶部信息行：转向大图标 + 导航剩余时间与距离 + 右侧花瓣地图角标 -->
     <div class="card-header-row">
-      <!-- 转向大图标 (44x44 圆角 10px) -->
+      <!-- 转向指示图标 (对应 Figma 298:18670 原厂直行指示矢量，纯白不裁切) -->
       <div class="arrow-wrap">
-        <img :src="arrowTurn" alt="转向指示" class="arrow-img" />
+        <svg class="arrow-svg" viewBox="33 6 66 121" fill="none">
+          <path d="M66 6L99 51H82V127H50V51H33L66 6Z" fill="#FFFFFF"/>
+        </svg>
       </div>
 
       <!-- 动态排版 (主信息 + 预计到达) -->
@@ -107,10 +108,9 @@ function onExitNavigate() {
   justify-content: center;
 }
 
-.arrow-img {
-  width: 32px;
-  height: 38px;
-  object-fit: contain;
+.arrow-svg {
+  width: 24px;
+  height: 42px;
   display: block;
 }
 
@@ -152,14 +152,18 @@ function onExitNavigate() {
   width: 20px;
   height: 20px;
   border-radius: 5.88px;
+  background: #ffffff;
   overflow: hidden;
   flex-shrink: 0;
   margin-left: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .badge-img {
-  width: 100%;
-  height: 100%;
+  width: 14px;
+  height: 14px;
   object-fit: contain;
   display: block;
 }
@@ -214,8 +218,8 @@ function onExitNavigate() {
 .nav-cursor-node {
   position: absolute;
   top: 50%;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   transform: translate(-50%, -50%);
   transition: left 0.35s cubic-bezier(0.25, 1, 0.5, 1);
   pointer-events: none;
@@ -223,8 +227,9 @@ function onExitNavigate() {
 }
 
 .cursor-svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
+  overflow: visible;
   display: block;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }

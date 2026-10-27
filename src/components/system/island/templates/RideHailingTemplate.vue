@@ -82,7 +82,7 @@ function onCardClick() {
 
 .car-photo-wrap {
   width: 88px;
-  height: 44px;
+  height: 48px;
   border-radius: 10px;
   overflow: visible;
   flex-shrink: 0;
