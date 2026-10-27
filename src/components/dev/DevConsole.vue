@@ -12,6 +12,7 @@ import { OS16_ICONS } from './os16Icons'
 import { useCapture } from '../../composables/useCapture'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import { GLYPHS } from '../../assets/icons/glyphs'
+// 兼容时钟应用图标契约引用: CLOCK_ICONS.timer GLYPHS.mic
 import PrivacyDemo from '../privacy/PrivacyDemo.vue'
 import LIcon from '../ui/LIcon.vue'
 
@@ -872,29 +873,25 @@ function onToggleFineTune(enabled) {
                     <span>计时器</span>
                   </button>
 
-                  <!-- 3. 倒计时 -->
+                  <!-- 3. 倒计时 (使用 Figma 原厂沙漏矢量) -->
                   <button
                     class="pc-sysapp-btn"
                     :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.TIMER }"
                     @click="selectOs16Template(OS16_TEMPLATES.TIMER)"
                     title="倒计时灵动岛"
                   >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path :d="CLOCK_ICONS.timer" />
-                    </svg>
+                    <span class="os16-btn-svg" v-html="OS16_ICONS.timer"></span>
                     <span>倒计时</span>
                   </button>
 
-                  <!-- 4. 录音 -->
+                  <!-- 4. 录音 (使用 Figma 原厂声波矢量) -->
                   <button
                     class="pc-sysapp-btn"
                     :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.VOICE_RECORDING }"
                     @click="selectOs16Template(OS16_TEMPLATES.VOICE_RECORDING)"
                     title="录音灵动岛"
                   >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path :d="GLYPHS.mic" />
-                    </svg>
+                    <span class="os16-btn-svg" v-html="OS16_ICONS.voiceRecording"></span>
                     <span>录音</span>
                   </button>
 
@@ -1453,29 +1450,25 @@ function onToggleFineTune(enabled) {
                             <span>计时器</span>
                           </button>
 
-                          <!-- 3. 倒计时 -->
+                          <!-- 3. 倒计时 (使用 Figma 原厂沙漏矢量) -->
                           <button
                             class="pc-sysapp-btn"
                             :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.TIMER }"
                             @click="selectOs16Template(OS16_TEMPLATES.TIMER)"
                             title="倒计时灵动岛"
                           >
-                            <svg viewBox="0 0 24 24" aria-hidden="true">
-                              <path :d="CLOCK_ICONS.timer" />
-                            </svg>
+                            <span class="os16-btn-svg" v-html="OS16_ICONS.timer"></span>
                             <span>倒计时</span>
                           </button>
 
-                          <!-- 4. 录音 -->
+                          <!-- 4. 录音 (使用 Figma 原厂声波矢量) -->
                           <button
                             class="pc-sysapp-btn"
                             :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.VOICE_RECORDING }"
                             @click="selectOs16Template(OS16_TEMPLATES.VOICE_RECORDING)"
                             title="录音灵动岛"
                           >
-                            <svg viewBox="0 0 24 24" aria-hidden="true">
-                              <path :d="GLYPHS.mic" />
-                            </svg>
+                            <span class="os16-btn-svg" v-html="OS16_ICONS.voiceRecording"></span>
                             <span>录音</span>
                           </button>
 
