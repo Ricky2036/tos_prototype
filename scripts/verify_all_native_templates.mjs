@@ -31,25 +31,25 @@ async function run() {
   await page.waitForTimeout(500)
 
   const templatesToTest = [
-    { label: '外卖履约', file: 'native_01_外卖履约.png' },
-    { label: '网约接驾', file: 'native_02_网约接驾.png' },
-    { label: '地图导航', file: 'native_03_地图导航.png' },
+    { label: '外卖', file: 'native_01_外卖.png' },
+    { label: '打车', file: 'native_02_打车.png' },
+    { label: '导航', file: 'native_03_导航.png' },
     { label: '音乐', file: 'native_04_音乐.png' },
-    { label: '同声传译', file: 'native_05_同声传译.png' },
-    { label: '系统引导', file: 'native_06_系统引导.png' },
-    { label: '屏幕录制', file: 'native_07_屏幕录制.png' },
+    { label: '翻译', file: 'native_05_翻译.png' },
+    { label: '引导', file: 'native_06_引导.png' },
+    { label: '录屏', file: 'native_07_录屏.png' },
     { label: '录音', file: 'native_08_录音.png' },
     { label: '倒计时', file: 'native_09_倒计时.png' },
-    { label: '超级快充', file: 'native_10_超级快充.png' },
-    { label: '电话通话', file: 'native_11_电话通话.png' },
-    { label: '麦克拾音', file: 'native_12_麦克拾音.png' },
-    { label: '个人热点', file: 'native_13_个人热点.png' },
+    { label: '快充', file: 'native_10_快充.png' },
+    { label: '通话', file: 'native_11_通话.png' },
+    { label: '拾音', file: 'native_12_拾音.png' },
+    { label: '热点', file: 'native_13_热点.png' },
     { label: '手电筒', file: 'native_14_手电筒.png' }
   ]
 
   for (const t of templatesToTest) {
     console.log(`Testing template: ${t.label} ...`)
-    const btn = page.locator(`button.pc-sysapp-btn:has-text("${t.label}")`)
+    const btn = page.locator(`.pc-module-big-card button.pc-sysapp-btn:has-text("${t.label}")`).first()
     await btn.click()
     await page.waitForTimeout(600)
 

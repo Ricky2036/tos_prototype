@@ -783,7 +783,7 @@ function onToggleFineTune(enabled) {
                     title="外卖履约灵动岛"
                   >
                     <span class="os16-btn-svg" v-html="OS16_ICONS.delivery"></span>
-                    <span>外卖履约</span>
+                    <span>外卖</span>
                   </button>
                   <button
                     class="pc-sysapp-btn"
@@ -792,7 +792,7 @@ function onToggleFineTune(enabled) {
                     title="网约车接驾灵动岛"
                   >
                     <span class="os16-btn-svg" v-html="OS16_ICONS.car"></span>
-                    <span>网约接驾</span>
+                    <span>打车</span>
                   </button>
                   <button
                     class="pc-sysapp-btn"
@@ -801,7 +801,7 @@ function onToggleFineTune(enabled) {
                     title="地图路线导航灵动岛"
                   >
                     <span class="os16-btn-svg" v-html="OS16_ICONS.navigation"></span>
-                    <span>地图导航</span>
+                    <span>导航</span>
                   </button>
                 </div>
               </div>
@@ -828,7 +828,7 @@ function onToggleFineTune(enabled) {
                     title="实时同声传译灵动岛"
                   >
                     <span class="os16-btn-svg" v-html="OS16_ICONS.translation"></span>
-                    <span>同声传译</span>
+                    <span>翻译</span>
                   </button>
                   <button
                     class="pc-sysapp-btn"
@@ -837,7 +837,7 @@ function onToggleFineTune(enabled) {
                     title="系统功能引导灵动岛"
                   >
                     <span class="os16-btn-svg" v-html="OS16_ICONS.tip"></span>
-                    <span>系统引导</span>
+                    <span>引导</span>
                   </button>
                 </div>
               </div>
@@ -898,7 +898,7 @@ function onToggleFineTune(enabled) {
                     <span>录音</span>
                   </button>
 
-                  <!-- 5. 屏幕录制 -->
+                  <!-- 5. 录屏 (原屏幕录制，优先使用模版提供的摄像机图标) -->
                   <button
                     class="pc-sysapp-btn"
                     :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.SCREEN_RECORDING }"
@@ -906,10 +906,10 @@ function onToggleFineTune(enabled) {
                     title="屏幕录制灵动岛"
                   >
                     <span class="os16-btn-svg" v-html="OS16_ICONS.screenRecording"></span>
-                    <span>屏幕录制</span>
+                    <span>录屏</span>
                   </button>
 
-                  <!-- 6. 超级快充 -->
+                  <!-- 6. 快充 (原超级快充，优先使用模版提供的电量闪充图标) -->
                   <button
                     class="pc-sysapp-btn"
                     :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.BATTERY_CHARGING }"
@@ -917,10 +917,10 @@ function onToggleFineTune(enabled) {
                     title="超级快充灵动岛"
                   >
                     <span class="os16-btn-svg" v-html="OS16_ICONS.batteryCharging"></span>
-                    <span>超级快充</span>
+                    <span>快充</span>
                   </button>
 
-                  <!-- 7. 电话通话 -->
+                  <!-- 7. 通话 (原电话通话，优先使用模版提供的接听图标) -->
                   <button
                     class="pc-sysapp-btn"
                     :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.PHONE_CALL }"
@@ -928,10 +928,10 @@ function onToggleFineTune(enabled) {
                     title="电话通话灵动岛"
                   >
                     <span class="os16-btn-svg" v-html="OS16_ICONS.phoneCall"></span>
-                    <span>电话通话</span>
+                    <span>通话</span>
                   </button>
 
-                  <!-- 8. 麦克拾音 -->
+                  <!-- 8. 拾音 (原麦克拾音，优先使用模版提供的麦克风图标) -->
                   <button
                     class="pc-sysapp-btn"
                     :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.MICROPHONE }"
@@ -939,10 +939,10 @@ function onToggleFineTune(enabled) {
                     title="麦克拾音灵动岛"
                   >
                     <span class="os16-btn-svg" v-html="OS16_ICONS.microphone"></span>
-                    <span>麦克拾音</span>
+                    <span>拾音</span>
                   </button>
 
-                  <!-- 9. 个人热点 -->
+                  <!-- 9. 热点 (原个人热点，优先使用模版提供的四重热点电波图标) -->
                   <button
                     class="pc-sysapp-btn"
                     :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.HOTSPOT }"
@@ -950,10 +950,10 @@ function onToggleFineTune(enabled) {
                     title="个人热点灵动岛"
                   >
                     <span class="os16-btn-svg" v-html="OS16_ICONS.hotspot"></span>
-                    <span>个人热点</span>
+                    <span>热点</span>
                   </button>
 
-                  <!-- 10. 手电筒 -->
+                  <!-- 10. 手电筒 (优先使用模版提供的手电金属图标) -->
                   <button
                     class="pc-sysapp-btn"
                     :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.FLASHLIGHT }"
@@ -1364,7 +1364,7 @@ function onToggleFineTune(enabled) {
                             title="外卖履约灵动岛"
                           >
                             <span class="os16-btn-svg" v-html="OS16_ICONS.delivery"></span>
-                            <span>外卖履约</span>
+                            <span>外卖</span>
                           </button>
                           <button
                             class="pc-sysapp-btn"
@@ -1373,7 +1373,7 @@ function onToggleFineTune(enabled) {
                             title="网约车接驾灵动岛"
                           >
                             <span class="os16-btn-svg" v-html="OS16_ICONS.car"></span>
-                            <span>网约接驾</span>
+                            <span>打车</span>
                           </button>
                           <button
                             class="pc-sysapp-btn"
@@ -1382,7 +1382,7 @@ function onToggleFineTune(enabled) {
                             title="地图路线导航灵动岛"
                           >
                             <span class="os16-btn-svg" v-html="OS16_ICONS.navigation"></span>
-                            <span>地图导航</span>
+                            <span>导航</span>
                           </button>
                         </div>
                       </div>
@@ -1409,7 +1409,7 @@ function onToggleFineTune(enabled) {
                             title="实时同声传译灵动岛"
                           >
                             <span class="os16-btn-svg" v-html="OS16_ICONS.translation"></span>
-                            <span>同声传译</span>
+                            <span>翻译</span>
                           </button>
                           <button
                             class="pc-sysapp-btn"
@@ -1418,7 +1418,7 @@ function onToggleFineTune(enabled) {
                             title="系统功能引导灵动岛"
                           >
                             <span class="os16-btn-svg" v-html="OS16_ICONS.tip"></span>
-                            <span>系统引导</span>
+                            <span>引导</span>
                           </button>
                         </div>
                       </div>
@@ -1479,7 +1479,7 @@ function onToggleFineTune(enabled) {
                             <span>录音</span>
                           </button>
 
-                          <!-- 5. 屏幕录制 -->
+                          <!-- 5. 录屏 (原屏幕录制，优先使用模版提供的摄像机图标) -->
                           <button
                             class="pc-sysapp-btn"
                             :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.SCREEN_RECORDING }"
@@ -1487,10 +1487,10 @@ function onToggleFineTune(enabled) {
                             title="屏幕录制灵动岛"
                           >
                             <span class="os16-btn-svg" v-html="OS16_ICONS.screenRecording"></span>
-                            <span>屏幕录制</span>
+                            <span>录屏</span>
                           </button>
 
-                          <!-- 6. 超级快充 -->
+                          <!-- 6. 快充 (原超级快充，优先使用模版提供的电量闪充图标) -->
                           <button
                             class="pc-sysapp-btn"
                             :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.BATTERY_CHARGING }"
@@ -1498,10 +1498,10 @@ function onToggleFineTune(enabled) {
                             title="超级快充灵动岛"
                           >
                             <span class="os16-btn-svg" v-html="OS16_ICONS.batteryCharging"></span>
-                            <span>超级快充</span>
+                            <span>快充</span>
                           </button>
 
-                          <!-- 7. 电话通话 -->
+                          <!-- 7. 通话 (原电话通话，优先使用模版提供的接听图标) -->
                           <button
                             class="pc-sysapp-btn"
                             :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.PHONE_CALL }"
@@ -1509,10 +1509,10 @@ function onToggleFineTune(enabled) {
                             title="电话通话灵动岛"
                           >
                             <span class="os16-btn-svg" v-html="OS16_ICONS.phoneCall"></span>
-                            <span>电话通话</span>
+                            <span>通话</span>
                           </button>
 
-                          <!-- 8. 麦克拾音 -->
+                          <!-- 8. 拾音 (原麦克拾音，优先使用模版提供的麦克风图标) -->
                           <button
                             class="pc-sysapp-btn"
                             :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.MICROPHONE }"
@@ -1520,10 +1520,10 @@ function onToggleFineTune(enabled) {
                             title="麦克拾音灵动岛"
                           >
                             <span class="os16-btn-svg" v-html="OS16_ICONS.microphone"></span>
-                            <span>麦克拾音</span>
+                            <span>拾音</span>
                           </button>
 
-                          <!-- 9. 个人热点 -->
+                          <!-- 9. 热点 (原个人热点，优先使用模版提供的四重热点电波图标) -->
                           <button
                             class="pc-sysapp-btn"
                             :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.HOTSPOT }"
@@ -1531,10 +1531,10 @@ function onToggleFineTune(enabled) {
                             title="个人热点灵动岛"
                           >
                             <span class="os16-btn-svg" v-html="OS16_ICONS.hotspot"></span>
-                            <span>个人热点</span>
+                            <span>热点</span>
                           </button>
 
-                          <!-- 10. 手电筒 -->
+                          <!-- 10. 手电筒 (优先使用模版提供的手电金属图标) -->
                           <button
                             class="pc-sysapp-btn"
                             :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.FLASHLIGHT }"
@@ -2153,6 +2153,44 @@ function onToggleFineTune(enabled) {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
+}
+
+.pc-sysapp-btn img,
+.pc-sysapp-btn .os16-btn-svg img,
+.pc-sysapp-btn .os16-dock-icon-img,
+:deep(.os16-dock-icon-img),
+:deep(.os16-btn-svg img) {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
+  pointer-events: none;
+}
+
+.pc-sysapp-btn .os16-dock-icon-img.is-car,
+:deep(.os16-dock-icon-img.is-car) {
+  width: 20px;
+  height: 12px;
+}
+
+.pc-sysapp-btn .os16-dock-icon-img.is-tip,
+:deep(.os16-dock-icon-img.is-tip) {
+  width: 12px;
+  height: 16px;
+  border-radius: 2px;
+}
+
+.pc-sysapp-btn .os16-dock-icon-img.is-album,
+:deep(.os16-dock-icon-img.is-album) {
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+}
+
+.pc-sysapp-btn span:last-child {
+  white-space: nowrap;
+  letter-spacing: 0.5px;
 }
 
 .pc-sysapp-btn .os16-btn-svg {
