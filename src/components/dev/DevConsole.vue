@@ -202,6 +202,7 @@ function toggleAlarmIsland() {
   if (clockStore.isAlarmActive) {
     clockStore.dismissAlarm()
   } else {
+    os16Store.closeTemplate()
     notificationsStore.setIslandEnabled('alarm', true)
     clockStore.triggerAlarm()
   }
@@ -211,6 +212,7 @@ function toggleStopwatchIsland() {
   if (clockStore.isStopwatchActive) {
     clockStore.resetStopwatch()
   } else {
+    os16Store.closeTemplate()
     notificationsStore.setIslandEnabled('stopwatch', true)
     clockStore.startStopwatch()
     if (system.activeAppId === 'clock') {
@@ -223,6 +225,7 @@ function toggleTimerIsland() {
   if (clockStore.isTimerActive) {
     clockStore.cancelTimer()
   } else {
+    os16Store.closeTemplate()
     notificationsStore.setIslandEnabled('timer', true)
     if (clockStore.timer.totalDuration <= 0) {
       clockStore.setTimerDuration(0, 5, 0)
@@ -238,6 +241,7 @@ function toggleRecorderIsland() {
   if (recorderStore.isRecording) {
     recorderStore.stopRecording()
   } else {
+    os16Store.closeTemplate()
     notificationsStore.setIslandEnabled('recorder', true)
     recorderStore.startRecording()
     if (system.activeAppId === 'voicememos') {
@@ -250,6 +254,7 @@ function toggleMediaIsland() {
   if (control.mediaActive) {
     control.dismissMediaImmediately()
   } else {
+    os16Store.closeTemplate()
     notificationsStore.setIslandEnabled('media', true)
     control.mediaActive = true
     control.mediaPlaying = true

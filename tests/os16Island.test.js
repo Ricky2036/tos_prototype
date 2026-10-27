@@ -195,3 +195,32 @@ test('OS16 分图层重构规范模板：外卖履约各图层元素独立导出
   assert.ok(fs.existsSync(path.join(foodAssetDir, 'icon_store.svg')))
   assert.ok(fs.existsSync(path.join(foodAssetDir, 'icon_pin.svg')))
 })
+
+test('OS16 全套规范模板组件齐全且均完成独立图层重构', () => {
+  const templatesDir = path.resolve('src/components/system/island/templates')
+  const allTemplates = [
+    'FoodDeliveryTemplate.vue',
+    'RideHailingTemplate.vue',
+    'NavigationTemplate.vue',
+    'MediaExtendedTemplate.vue',
+    'TranslationTemplate.vue',
+    'SystemTipTemplate.vue',
+    'ScreenRecordingTemplate.vue',
+    'VoiceRecordingTemplate.vue',
+    'TimerTemplate.vue',
+    'BatteryChargingTemplate.vue',
+    'PhoneCallTemplate.vue',
+    'MicrophoneTemplate.vue',
+    'HotspotTemplate.vue',
+    'FlashlightTemplate.vue'
+  ]
+
+  for (const tpl of allTemplates) {
+    const fullPath = path.join(templatesDir, tpl)
+    assert.ok(fs.existsSync(fullPath), `必须存在独立重构的模板组件: ${tpl}`)
+    const content = fs.readFileSync(fullPath, 'utf8')
+    assert.ok(content.includes('<template>'), `必须具备 Vue 模板根: ${tpl}`)
+    assert.ok(content.includes('<style scoped>'), `必须具备 scoped 样式规范: ${tpl}`)
+    assert.ok(!content.includes('os16-figma-svg'), `重构组件严禁嵌套旧版整张底图: ${tpl}`)
+  }
+})
