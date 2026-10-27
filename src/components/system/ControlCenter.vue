@@ -1688,14 +1688,11 @@ const glassRing = computed(() =>
   /* 下间距 14px 的一半（7px）让给滚动区做顶部内边距：
      裁切起始线因此上移到「状态栏与网格按钮间距的中点」，
      最顶排砖块被选中时，画在元素外侧的选中框才有地方显示，不会被切掉。 */
-  margin: 8px auto 7px;
+  margin: 0 auto 7px;
   padding: 0;
   height: 16px;
   color: rgba(255, 255, 255, 0.95);
-  transition: opacity 0.3s ease, height 0.25s ease, margin 0.25s ease;
-}
-.cc-fixed-top:has(.privacy-slot.is-active) .cc-status {
-  margin-top: 2px;
+  transition: opacity 0.3s ease, height 0.25s ease;
 }
 .cc-status.is-dual {
   height: 36px;
