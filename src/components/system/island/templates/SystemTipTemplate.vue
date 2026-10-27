@@ -59,9 +59,9 @@ function onToggleLearned() {
 }
 
 .preview-card-wrap {
-  width: 108px;
+  width: 126px;
   height: 148px;
-  border-radius: 16px;
+  border-radius: 18px;
   background: #ffeed2;
   overflow: hidden;
   flex-shrink: 0;
@@ -71,19 +71,20 @@ function onToggleLearned() {
 }
 
 .preview-img {
-  width: 90%;
-  height: 90%;
+  width: 55px;
+  height: 114px;
   object-fit: contain;
   display: block;
 }
 
 .right-content-col {
-  margin-left: 14px;
-  flex: 1;
+  margin-left: 16px;
+  width: 162px;
   height: 148px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  flex-shrink: 0;
   min-width: 0;
 }
 
@@ -103,23 +104,21 @@ function onToggleLearned() {
 
 .tip-desc {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 400;
   line-height: 1.35;
-  color: rgba(255, 255, 255, 0.6);
-  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 4px;
   letter-spacing: -0.1px;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .tip-action-btn {
-  width: 100%;
-  height: 34px;
-  border-radius: 17px;
-  background: rgba(255, 255, 255, 0.16);
+  width: 162px;
+  height: 32px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.25);
   border: none;
   outline: none;
   color: #ffffff;
@@ -134,7 +133,7 @@ function onToggleLearned() {
 }
 
 .tip-action-btn:hover {
-  background: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.32);
 }
 
 .tip-action-btn:active {

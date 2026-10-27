@@ -812,9 +812,9 @@ function onToggleFineTune(enabled) {
                 <div class="pc-sysapp-grid grid-3">
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: control.mediaActive }"
-                    @click="toggleMediaIsland"
-                    title="开启/关闭音乐灵动岛"
+                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.MEDIA_EXTENDED }"
+                    @click="selectOs16Template(OS16_TEMPLATES.MEDIA_EXTENDED)"
+                    title="音乐大卡灵动岛"
                   >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path :d="GLYPHS.music" />
@@ -875,9 +875,9 @@ function onToggleFineTune(enabled) {
                   <!-- 3. 倒计时 -->
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: clockStore.isTimerActive }"
-                    @click="toggleTimerIsland"
-                    title="开启/关闭倒计时灵动岛"
+                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.TIMER }"
+                    @click="selectOs16Template(OS16_TEMPLATES.TIMER)"
+                    title="倒计时灵动岛"
                   >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path :d="CLOCK_ICONS.timer" />
@@ -888,9 +888,9 @@ function onToggleFineTune(enabled) {
                   <!-- 4. 录音 -->
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: recorderStore.isRecording }"
-                    @click="toggleRecorderIsland"
-                    title="开启/关闭录音灵动岛"
+                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.VOICE_RECORDING }"
+                    @click="selectOs16Template(OS16_TEMPLATES.VOICE_RECORDING)"
+                    title="录音灵动岛"
                   >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path :d="GLYPHS.mic" />
@@ -1393,9 +1393,9 @@ function onToggleFineTune(enabled) {
                         <div class="pc-sysapp-grid grid-3">
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: control.mediaActive }"
-                            @click="toggleMediaIsland"
-                            title="开启/关闭音乐灵动岛"
+                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.MEDIA_EXTENDED }"
+                            @click="selectOs16Template(OS16_TEMPLATES.MEDIA_EXTENDED)"
+                            title="音乐大卡灵动岛"
                           >
                             <svg viewBox="0 0 24 24" aria-hidden="true">
                               <path :d="GLYPHS.music" />
@@ -1456,9 +1456,9 @@ function onToggleFineTune(enabled) {
                           <!-- 3. 倒计时 -->
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: clockStore.isTimerActive }"
-                            @click="toggleTimerIsland"
-                            title="开启/关闭倒计时灵动岛"
+                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.TIMER }"
+                            @click="selectOs16Template(OS16_TEMPLATES.TIMER)"
+                            title="倒计时灵动岛"
                           >
                             <svg viewBox="0 0 24 24" aria-hidden="true">
                               <path :d="CLOCK_ICONS.timer" />
@@ -1469,9 +1469,9 @@ function onToggleFineTune(enabled) {
                           <!-- 4. 录音 -->
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: recorderStore.isRecording }"
-                            @click="toggleRecorderIsland"
-                            title="开启/关闭录音灵动岛"
+                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.VOICE_RECORDING }"
+                            @click="selectOs16Template(OS16_TEMPLATES.VOICE_RECORDING)"
+                            title="录音灵动岛"
                           >
                             <svg viewBox="0 0 24 24" aria-hidden="true">
                               <path :d="GLYPHS.mic" />

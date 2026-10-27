@@ -13,8 +13,8 @@ function onStop() {
 
 <template>
   <div class="os16-base-card" role="region" aria-label="语音录音实时卡片">
-    <!-- 左侧红底声波图标 -->
-    <div class="card-icon-wrap is-voice-icon">
+    <!-- 左侧声波图标 (纯矢量声波) -->
+    <div class="card-icon-wrap">
       <img :src="iconVoiceRec" alt="录音" class="icon-svg" />
     </div>
 
@@ -24,7 +24,7 @@ function onStop() {
       <div class="sub-text">Voice Recording...</div>
     </div>
 
-    <!-- 右侧结束操作按键 -->
+    <!-- 右侧结束操作按键 (严格 42x42 纯圆) -->
     <div class="card-actions">
       <button class="act-btn btn-stop" @click.stop="onStop" title="结束录音">
         <div class="stop-square"></div>
@@ -49,22 +49,18 @@ function onStop() {
 }
 
 .card-icon-wrap {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+  width: 36px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-
-.is-voice-icon {
-  background: rgba(252, 91, 79, 0.18);
+  background: transparent;
 }
 
 .icon-svg {
-  width: 26px;
-  height: 26px;
+  width: 36px;
+  height: 30px;
   display: block;
 }
 
@@ -109,9 +105,16 @@ function onStop() {
 .act-btn {
   width: 42px;
   height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  max-width: 42px;
+  max-height: 42px;
   border-radius: 50%;
   border: none;
   outline: none;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -125,7 +128,7 @@ function onStop() {
 
 .btn-stop {
   background: #fc4c3f;
-  box-shadow: 0 2px 8px rgba(252, 76, 63, 0.4);
+  box-shadow: none;
 }
 
 .btn-stop:hover {
@@ -133,8 +136,8 @@ function onStop() {
 }
 
 .stop-square {
-  width: 14px;
-  height: 14px;
+  width: 14.17px;
+  height: 14.17px;
   background: #ffffff;
   border-radius: 2.5px;
 }

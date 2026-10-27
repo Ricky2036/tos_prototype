@@ -52,7 +52,7 @@ function onToggle() {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  padding: 12px 18px;
+  padding: 12px 16px;
   background: transparent;
   border-radius: 28px;
   display: flex;
@@ -70,12 +70,13 @@ function onToggle() {
 }
 
 .icon-wrap {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: transform 0.2s ease;
+  flex-shrink: 0;
 }
 
 .icon-svg {
@@ -124,10 +125,10 @@ function onToggle() {
 }
 
 .capsule-btn {
-  width: 58px;
+  width: 56px;
   height: 32px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.25);
   border: none;
   outline: none;
   color: #ffffff;
@@ -142,7 +143,7 @@ function onToggle() {
 }
 
 .capsule-btn:hover {
-  background: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.32);
 }
 
 .capsule-btn:active {
@@ -152,6 +153,5 @@ function onToggle() {
 .capsule-btn.is-on-btn {
   background: #ffffff;
   color: #000000;
-  box-shadow: 0 2px 12px rgba(255, 255, 255, 0.45);
 }
 </style>

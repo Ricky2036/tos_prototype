@@ -18,8 +18,8 @@ function onTogglePause() {
 
 <template>
   <div class="os16-base-card" role="region" aria-label="倒计时实时卡片">
-    <!-- 左侧橙色沙漏图标 -->
-    <div class="card-icon-wrap is-timer-icon">
+    <!-- 左侧橙色沙漏图标 (直接居左渲染纯矢量沙漏) -->
+    <div class="card-icon-wrap">
       <img :src="iconTimer" alt="计时器" class="icon-svg" />
     </div>
 
@@ -29,10 +29,10 @@ function onTogglePause() {
       <div class="sub-text">Timer</div>
     </div>
 
-    <!-- 右侧操作按键：取消 + 暂停/继续 -->
+    <!-- 右侧操作按键：取消 + 暂停/继续 (严格 42x42 纯圆) -->
     <div class="card-actions">
       <button class="act-btn btn-cancel" @click.stop="onCancel" title="取消倒计时">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
           <line x1="18" y1="6" x2="6" y2="18"/>
           <line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -44,9 +44,10 @@ function onTogglePause() {
         @click.stop="onTogglePause"
         title="暂停/继续"
       >
-        <svg v-if="!isPaused" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M6 5h4v14H6zm8 0h4v14h-4z"/>
-        </svg>
+        <div v-if="!isPaused" class="pause-bars">
+          <div class="bar"></div>
+          <div class="bar"></div>
+        </div>
         <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M8 5v14l11-7z"/>
         </svg>
@@ -71,17 +72,13 @@ function onTogglePause() {
 }
 
 .card-icon-wrap {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-
-.is-timer-icon {
-  background: rgba(255, 153, 0, 0.18);
+  background: transparent;
 }
 
 .icon-svg {
@@ -124,7 +121,7 @@ function onTogglePause() {
 .card-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   flex-shrink: 0;
   margin-left: 12px;
 }
@@ -132,9 +129,16 @@ function onTogglePause() {
 .act-btn {
   width: 42px;
   height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  max-width: 42px;
+  max-height: 42px;
   border-radius: 50%;
   border: none;
   outline: none;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -147,18 +151,18 @@ function onTogglePause() {
 }
 
 .btn-cancel {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.25);
   color: #ffffff;
 }
 
 .btn-cancel:hover {
-  background: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.32);
 }
 
 .btn-primary {
   background: #1e76fe;
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(30, 118, 254, 0.35);
+  box-shadow: none;
 }
 
 .btn-primary:hover {
@@ -167,6 +171,19 @@ function onTogglePause() {
 
 .btn-primary.is-paused-btn {
   background: #ff9900;
-  box-shadow: 0 2px 8px rgba(255, 153, 0, 0.35);
+}
+
+.pause-bars {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.pause-bars .bar {
+  width: 3.89px;
+  height: 15.56px;
+  border-radius: 1.11px;
+  background-color: #ffffff;
 }
 </style>

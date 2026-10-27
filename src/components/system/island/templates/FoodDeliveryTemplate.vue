@@ -44,7 +44,7 @@ function onCardClick() {
 
     <!-- 底部动态进度图层：起点图标 + 动态轨道与骑手 + 终点图标 -->
     <div class="card-progress-row">
-      <!-- 起点商家图标 (纯矢量 SVG) -->
+      <!-- 起点商家图标 (20x20 琥珀黄圆圈) -->
       <div class="track-node is-start" title="商家已出餐">
         <img :src="iconStore" alt="商家" class="node-icon" />
       </div>
@@ -53,6 +53,8 @@ function onCardClick() {
       <div class="track-rail">
         <!-- 底轨 (25% 琥珀黄底色) -->
         <div class="track-bg"></div>
+        <!-- 中途节点 (第 2 阶段) -->
+        <div class="mid-dot"></div>
         <!-- 已行进高亮轨 (纯琥珀黄 #FFB200) -->
         <div class="track-active" :style="{ width: progressPercent + '%' }"></div>
 
@@ -66,7 +68,7 @@ function onCardClick() {
         </div>
       </div>
 
-      <!-- 终点到达图标 (纯矢量 SVG 地图图钉) -->
+      <!-- 终点到达图标 (20x20 暗金圆圈地图图钉) -->
       <div class="track-node is-end" title="收货地址">
         <img :src="iconPin" alt="目的地" class="node-icon" />
       </div>
@@ -178,45 +180,70 @@ function onCardClick() {
 }
 
 .track-node {
-  width: 10px;
-  height: 12px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
+.track-node.is-start {
+  background: #ffb200;
+}
+
+.track-node.is-end {
+  background: #805900;
+}
+
 .node-icon {
-  width: 10px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   display: block;
 }
 
 .track-rail {
   position: relative;
   flex: 1;
-  height: 3px;
-  margin: 0 10px;
+  height: 6px;
+  margin: 0 4px;
+  display: flex;
+  align-items: center;
 }
 
 .track-bg {
   position: absolute;
-  top: 0;
+  top: 50%;
   left: 0;
   right: 0;
-  bottom: 0;
+  height: 3px;
+  transform: translateY(-50%);
   background-color: rgba(255, 178, 0, 0.25);
   border-radius: 1.5px;
+}
+
+.mid-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(255, 178, 0, 0.5);
+  z-index: 1;
 }
 
 .track-active {
   position: absolute;
   top: 0;
   left: 0;
-  height: 100%;
+  height: 6px;
   background-color: #ffb200;
-  border-radius: 1.5px;
+  border-radius: 3px;
   transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: 2;
 }
 
 .rider-node {
@@ -227,7 +254,7 @@ function onCardClick() {
   transform: translate(-50%, -50%) scaleX(-1);
   transition: left 0.3s cubic-bezier(0.25, 1, 0.5, 1);
   pointer-events: none;
-  z-index: 2;
+  z-index: 3;
 }
 
 .rider-img {

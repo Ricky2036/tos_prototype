@@ -84,10 +84,10 @@ function onCardClick() {
   width: 88px;
   height: 44px;
   border-radius: 10px;
-  overflow: hidden;
+  overflow: visible;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: #1c1c1e;
+  border: none;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,7 +96,7 @@ function onCardClick() {
 .car-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
@@ -161,32 +161,38 @@ function onCardClick() {
 .track-rail {
   position: relative;
   width: 100%;
-  height: 4px;
+  height: 6px;
+  display: flex;
+  align-items: center;
 }
 
 .track-bg {
   position: absolute;
-  inset: 0;
-  background-color: rgba(7, 180, 151, 0.25);
-  border-radius: 2px;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 3px;
+  transform: translateY(-50%);
+  background-color: rgba(7, 180, 151, 0.3);
+  border-radius: 1.5px;
 }
 
 .track-active {
   position: absolute;
   top: 0;
   left: 0;
-  height: 100%;
+  height: 6px;
   background-color: #07b497;
-  border-radius: 2px;
+  border-radius: 3px;
   transition: width 0.35s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .car-node {
   position: absolute;
   top: 50%;
-  width: 24px;
-  height: 24px;
-  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 18px;
+  transform: translate(-50%, -50%) rotate(90deg);
   transition: left 0.35s cubic-bezier(0.25, 1, 0.5, 1);
   pointer-events: none;
   z-index: 2;
@@ -200,6 +206,5 @@ function onCardClick() {
   height: 28px;
   object-fit: contain;
   display: block;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
 }
 </style>
