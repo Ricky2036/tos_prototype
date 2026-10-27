@@ -34,25 +34,29 @@ function onStop() {
       </div>
     </div>
 
-    <!-- 右侧操作按键：暂停/继续 + 结束并保存 (严格 42x42 纯圆，尺寸完全一致) -->
+    <!-- 右侧操作按键：暂停/继续 + 结束并保存 (严格 42x42 纯圆，Figma 原厂图层) -->
     <div class="card-actions">
       <button
         class="act-btn btn-pause"
-        :class="{ 'is-paused-btn': isPaused }"
         @click.stop="onTogglePause"
-        title="暂停/继续"
+        :title="isPaused ? '继续录制' : '暂停录制'"
       >
-        <div v-if="!isPaused" class="pause-bars">
-          <div class="bar"></div>
-          <div class="bar"></div>
-        </div>
-        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <!-- 录制中：Figma 原厂双竖条暂停矢量 -->
+        <svg v-if="!isPaused" width="42" height="42" viewBox="414 253 42 42" fill="none">
+          <rect x="429.166" y="266.223" width="3.88889" height="15.5556" rx="1.11111" fill="white"/>
+          <rect x="436.943" y="266.223" width="3.88889" height="15.5556" rx="1.11111" fill="white"/>
+        </svg>
+        <!-- 暂停后：复用音乐播放图标，保持统一纯白风格 -->
+        <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="white" style="margin-left: 2px;">
           <path d="M8 5v14l11-7z"/>
         </svg>
       </button>
 
+      <!-- 结束并保存：Figma 原厂带圆角方块停止键 -->
       <button class="act-btn btn-stop" @click.stop="onStop" title="结束录制">
-        <div class="stop-square"></div>
+        <svg width="42" height="42" viewBox="470 253 42 42" fill="none">
+          <rect x="483.918" y="266.917" width="14.1667" height="14.1667" rx="2.5" fill="white"/>
+        </svg>
       </button>
     </div>
   </div>
@@ -104,13 +108,12 @@ function onStop() {
   font-weight: 600;
   line-height: 1.25;
   color: #ffffff;
-  font-variant-numeric: tabular-nums;
   letter-spacing: -0.2px;
 }
 
 .sub-text {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.25;
   color: rgba(255, 255, 255, 0.6);
@@ -123,9 +126,7 @@ function onStop() {
 .card-actions {
   display: flex;
   align-items: center;
-  gap: 14px;
-  flex-shrink: 0;
-  margin-left: 12px;
+  gap: 10px;
 }
 
 .act-btn {
@@ -145,7 +146,7 @@ function onStop() {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .act-btn:active {
@@ -161,38 +162,12 @@ function onStop() {
   background: rgba(255, 255, 255, 0.32);
 }
 
-.btn-pause.is-paused-btn {
-  background: rgba(255, 178, 0, 0.3);
-  color: #ffb800;
-}
-
-.pause-bars {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-}
-
-.pause-bars .bar {
-  width: 3.89px;
-  height: 15.56px;
-  border-radius: 1.11px;
-  background-color: #ffffff;
-}
-
 .btn-stop {
   background: #fc4c3f;
-  box-shadow: none;
+  color: #ffffff;
 }
 
 .btn-stop:hover {
   background: #ff5e52;
-}
-
-.stop-square {
-  width: 14.17px;
-  height: 14.17px;
-  background: #ffffff;
-  border-radius: 2.5px;
 }
 </style>
