@@ -75,9 +75,9 @@ export const useOs16IslandStore = defineStore('os16Island', () => {
   }
 
   const navManeuvers = [
-    { title: 'Drive 10 min 6km', subtitle: 'Arrive 10:08 AM', turn: 'Turn right in 200m' },
-    { title: 'Drive 8 min 4.8km', subtitle: 'Arrive 10:08 AM', turn: 'Continue on Shennan Ave 3km' },
-    { title: 'Drive 2 min 800m', subtitle: 'Arrive 10:06 AM', turn: 'Destination ahead on right' }
+    { title: 'Drive 10 min 6km', subtitle: 'Arrive 10:08 AM', turn: 'Turn right in 200m', progress: 20 },
+    { title: 'Drive 8 min 4.8km', subtitle: 'Arrive 10:08 AM', turn: 'Continue on Shennan Ave 3km', progress: 50 },
+    { title: 'Drive 2 min 800m', subtitle: 'Arrive 10:06 AM', turn: 'Destination ahead on right', progress: 85 }
   ]
   const currentNavIdx = ref(0)
   const navigationState = ref({
@@ -85,14 +85,14 @@ export const useOs16IslandStore = defineStore('os16Island', () => {
     title: 'Drive 10 min 6km',
     subtitle: 'Arrive 10:08 AM',
     turnText: 'Turn right in 200m',
-    progress: 35,
+    progress: 20,
     speed: '65 km/h',
     segments: [
-      { color: '#2979FF', flex: 3 },
-      { color: '#00C853', flex: 4 },
-      { color: '#FF1744', flex: 2 },
-      { color: '#FF9100', flex: 3 },
-      { color: '#00C853', flex: 5 }
+      { color: '#0060EA', flex: 127 },
+      { color: '#B91702', flex: 22 },
+      { color: '#FC4C3F', flex: 18 },
+      { color: '#01AD4B', flex: 80 },
+      { color: '#FC843F', flex: 37 }
     ]
   })
 
@@ -102,6 +102,9 @@ export const useOs16IslandStore = defineStore('os16Island', () => {
     navigationState.value.title = m.title
     navigationState.value.subtitle = m.subtitle
     navigationState.value.turnText = m.turn
+    if (m.progress !== undefined) {
+      navigationState.value.progress = m.progress
+    }
   }
 
   // 自适应模版专属动态数据
