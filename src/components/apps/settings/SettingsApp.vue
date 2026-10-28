@@ -39,6 +39,7 @@ import { useNotificationsStore } from '../../../stores/notificationsStore'
 import { useSystemStore } from '../../../stores/systemStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import { useAccountStore } from '../../../stores/accountStore'
+import { useDeviceStore } from '../../../stores/deviceStore'
 import { GLYPHS } from '../../../assets/icons/glyphs'
 import accountAvatar from '../../../assets/img/account-avatar.jpg'
 import { clamp } from '../../../utils/math'
@@ -56,6 +57,7 @@ const notificationsStore = useNotificationsStore()
 const system = useSystemStore()
 const i18n = useI18nStore()
 const accountStore = useAccountStore()
+const deviceStore = useDeviceStore()
 const { timeShort } = useClock()
 
 /* 内部导航栈：支持从礼拜卡片、通知灵动岛、账号引导通知直接深链跳转 */
@@ -355,7 +357,7 @@ const filteredSearchResults = computed(() => {
 
             <!-- ================= 卡片 2: 手机型号卡 (Infinix NOTE 60 Pro / 兼容 Infinix GT 50 Pro) ================= -->
             <div class="settings-card">
-              <ListCell title="Infinix NOTE 60 Pro" chevron last @click="push('about')">
+              <ListCell :title="deviceStore.deviceName || 'Infinix NOTE 60 Pro'" chevron last @click="push('about')">
                 <template #icon>
                   <div class="squircle-icon bg-device">
                     <SettingsSystemIcon name="device" :size="20" />
@@ -726,7 +728,7 @@ const filteredSearchResults = computed(() => {
 
       <!-- ================= 我的手机 (关于手机) ================= -->
       <div v-else-if="view === 'about'" key="about" class="settings-page">
-        <SettingsAboutPhone ref="aboutPhoneRef" @back="pop" />
+        <SettingsAboutPhone ref="aboutPhoneRef" @back="pop" @open-storage="push('storage')" />
       </div>
 
       <!-- ================= SIM 卡与网络设置 ================= -->
