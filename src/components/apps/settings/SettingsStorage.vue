@@ -114,7 +114,7 @@ defineExpose({ back })
       <div class="settings-card">
         <div class="recommend-item" @click="handleCleanOldFiles">
           <div class="recommend-icon bg-orange-rec">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
               <path d="M4 4H10L12 6H20C21.1 6 22 6.9 22 8V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" fill="#FFFFFF"/>
               <!-- 循环/刷新箭头 -->
               <path d="M14 11C13.5 10.4 12.8 10 12 10C10.3 10 9 11.3 9 13C9 14.7 10.3 16 12 16C13.3 16 14.4 15.2 14.8 14" stroke="#F97316" stroke-width="1.8" stroke-linecap="round"/>
@@ -381,12 +381,14 @@ defineExpose({ back })
   border-radius: 14px;
   overflow: hidden;
   background: #F2F2F7;
-  gap: 1.5px;
+  gap: 0;
 }
 
 .seg-fill {
   height: 100%;
   display: inline-block;
+  border: none;
+  outline: none;
 }
 
 .seg-image { background: #FBBF24; }
@@ -443,13 +445,13 @@ defineExpose({ back })
 }
 
 .recommend-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
+  margin-right: 14px;
   flex-shrink: 0;
 }
 
@@ -483,26 +485,29 @@ defineExpose({ back })
   color: #8E8E93;
 }
 
-/* 分类圆点指示器 */
+/* 分类圆点指示器：左右留白严格对称相等 (左 16px，右 16px) */
 .color-dot-wrap {
-  width: 20px;
+  width: 8px;
+  height: 8px;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   flex: none;
-  margin-right: 14px;
+  margin-right: 16px !important;
+  margin-left: 0 !important;
 }
 
 .color-dot-wrap.top-align {
   align-self: flex-start;
-  margin-top: 18px;
+  margin-top: 21px;
 }
 
 .color-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   display: block;
+  flex-shrink: 0;
 }
 
 .dot-yellow { background: #FBBF24; }

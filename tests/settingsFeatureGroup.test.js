@@ -149,6 +149,11 @@ test('SettingsStorage.vue implements storage management aligned with real phone'
   assert.match(content, /系统固件/)
   assert.match(content, /28.43 GB/)
   assert.match(content, /低存储管理/)
+
+  // Design polish: seamless segmented bar, circular recommend icon, symmetric dot margins
+  assert.match(content, /gap:\s*0/, 'Segmented bar should not have gaps between color blocks')
+  assert.match(content, /recommend-icon[\s\S]*?border-radius:\s*50%/, 'Recommend icon must be circular')
+  assert.match(content, /color-dot-wrap[\s\S]*?margin-right:\s*16px/, 'Category dot right margin must be 16px to match 16px left padding')
 })
 
 test('SettingsApp.vue wires card 6 items to real subpages', () => {
