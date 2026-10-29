@@ -1,0 +1,618 @@
+<script setup>
+import { ref } from 'vue'
+import { useNetworkStore } from '../../../stores/networkStore'
+import { useSystemStore } from '../../../stores/systemStore'
+import ListCell from '../../ui/ListCell.vue'
+import ToggleSwitch from '../../ui/ToggleSwitch.vue'
+import SettingsSystemIcon from '../../ui/SettingsSystemIcon.vue'
+
+const emit = defineEmits(['back', 'open-hotspot', 'open-nfc'])
+
+const network = useNetworkStore()
+const system = useSystemStore()
+
+// 提示反馈
+const toastText = ref('')
+let toastTimer = null
+function showToast(msg) {
+  toastText.value = msg
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => {
+    toastText.value = ''
+  }, 2200)
+}
+
+// 模态弹窗状态
+const showUsbModal = ref(false)
+const usbModes = ['文件传输 / Android Auto', 'USB 网络共享', 'MIDI', '仅充电']
+
+const showDnsModal = ref(false)
+const dnsOptions = [
+  { id: 'off', label: '关闭' },
+  { id: 'auto', label: '自动' },
+  { id: 'hostname', label: '专用 DNS 提供商主机名' }
+]
+const tempDnsMode = ref(network.privateDnsMode)
+const tempDnsHost = ref(network.privateDnsHostname)
+
+const showVpnModal = ref(false)
+const showCastModal = ref(false)
+
+function selectUsbMode(mode) {
+  network.usbConnectionMode = mode
+  showUsbModal.value = false
+  showToast(`已切换 USB 用途为：${mode}`)
+}
+
+function openDnsModal() {
+  tempDnsMode.value = network.privateDnsMode
+  tempDnsHost.value = network.privateDnsHostname
+  showDnsModal.value = true
+}
+
+function saveDns() {
+  network.setPrivateDns(tempDnsMode.value, tempDnsHost.value)
+  showDnsModal.value = false
+  showToast('已更新专用 DNS 设置')
+}
+
+function back() {
+  if (showUsbModal.value) {
+    showUsbModal.value = false
+    return true
+  }
+  if (showDnsModal.value) {
+    showDnsModal.value = false
+    return true
+  }
+  if (showVpnModal.value) {
+    showVpnModal.value = false
+    return true
+  }
+  if (showCastModal.value) {
+    showCastModal.value = false
+    return true
+  }
+  emit('back')
+  return true
+}
+
+defineExpose({ back })
+</script>
+
+<template>
+  <div class="settings-multi-device-page">
+    <!-- 顶部导航栏 -->
+    <div class="md-nav-bar">
+      <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="nav-title">多设备连接</div>
+    </div>
+
+    <!-- 滚动主体内容 -->
+    <div class="md-scroll-body scrollable">
+      <!-- 分组 1: 常用网络与端口连接 -->
+      <div class="settings-card">
+        <ListCell
+          title="个人热点"
+          :value="network.hotspotEnabled ? '已开启' : '已关闭'"
+          chevron
+          clickable
+          @click="emit('open-hotspot')"
+        />
+        <ListCell
+          title="NFC"
+          :value="network.nfcEnabled ? '已开启' : '已关闭'"
+          chevron
+          clickable
+          @click="emit('open-nfc')"
+        />
+        <ListCell
+          title="USB"
+          :value="network.usbConnectionMode"
+          chevron
+          clickable
+          @click="showUsbModal = true"
+        />
+        <ListCell
+          title="VPN"
+          value="无"
+          chevron
+          clickable
+          @click="showVpnModal = true"
+        />
+        <ListCell
+          title="专用 DNS"
+          :value="network.privateDnsMode === 'auto' ? '自动' : (network.privateDnsMode === 'off' ? '关闭' : '自定主机')"
+          chevron
+          last
+          clickable
+          @click="openDnsModal"
+        />
+      </div>
+
+      <!-- 分组 2: 多设备互联 -->
+      <div class="group-label">多设备互联</div>
+      <div class="settings-card">
+        <ListCell
+          title="多屏互联"
+          subtitle="手机、平板、PC 之间的投屏与屏幕扩展、数据共享等。"
+          chevron
+          clickable
+          @click="system.openApp('oneleap')"
+        />
+        <ListCell
+          title="联系方式一碰传"
+          subtitle="碰一碰分享手机号、WhatsApp、Instagram等联系方式，快捷添加。"
+          chevron
+          clickable
+          @click="showToast('联系方式一碰传：请将手机顶部靠近另一台手机')"
+        />
+        <ListCell
+          title="极速互传"
+          subtitle="免流量互传。手机之间可互传文件、WLAN、应用。与 iPhone、平板、PC 可互传文件。"
+          chevron
+          last
+          clickable
+          @click="showToast('极速互传：已开启设备发现广播')"
+        />
+      </div>
+
+      <!-- 分组 3: 其他连接方式 -->
+      <div class="group-label">其他连接方式</div>
+      <div class="settings-card">
+        <ListCell
+          title="投屏"
+          :value="network.castEnabled ? '已开启' : '已关闭'"
+          chevron
+          clickable
+          @click="showCastModal = true"
+        />
+        <ListCell
+          title="打印"
+          chevron
+          clickable
+          @click="showToast('默认打印服务就绪，0 个打印作业')"
+        />
+        <ListCell
+          title="跨设备服务"
+          subtitle="通话投放、网络共享"
+          chevron
+          clickable
+          @click="showToast('跨设备服务：同账号设备已就绪')"
+        />
+        <ListCell
+          title="Chromebook"
+          subtitle="您的手机未连接到 Chromebook"
+          chevron
+          clickable
+          @click="showToast('设置连接以在 Chromebook 上同步短信和热点')"
+        />
+        <ListCell
+          title="快速分享"
+          subtitle="与附近的设备分享文件"
+          chevron
+          clickable
+          @click="showToast('快速分享：设备对所有人可见 10 分钟')"
+        />
+        <ListCell
+          title="Android Auto"
+          subtitle="在车载显示屏上使用应用"
+          chevron
+          last
+          clickable
+          @click="showToast('请将手机连接至车载 USB 接口或支持无线连接的车载系统')"
+        />
+      </div>
+
+      <div class="bottom-spacer"></div>
+    </div>
+
+    <!-- 弹窗 1: USB 用途选择 -->
+    <div v-if="showUsbModal" class="modal-backdrop" @click.self="showUsbModal = false">
+      <div class="modal-sheet">
+        <div class="sheet-title">USB 用途</div>
+        <div class="options-list">
+          <div
+            v-for="mode in usbModes"
+            :key="mode"
+            class="option-item"
+            :class="{ active: network.usbConnectionMode === mode }"
+            @click="selectUsbMode(mode)"
+          >
+            <span class="option-name">{{ mode }}</span>
+            <svg v-if="network.usbConnectionMode === mode" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+        </div>
+        <button class="sheet-cancel-btn" @click="showUsbModal = false">取消</button>
+      </div>
+    </div>
+
+    <!-- 弹窗 2: 专用 DNS 选择 -->
+    <div v-if="showDnsModal" class="modal-backdrop" @click.self="showDnsModal = false">
+      <div class="modal-sheet">
+        <div class="sheet-title">专用 DNS</div>
+        <div class="options-list">
+          <div
+            v-for="item in dnsOptions"
+            :key="item.id"
+            class="option-item"
+            :class="{ active: tempDnsMode === item.id }"
+            @click="tempDnsMode = item.id"
+          >
+            <span class="option-name">{{ item.label }}</span>
+            <svg v-if="tempDnsMode === item.id" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+        </div>
+        <div v-if="tempDnsMode === 'hostname'" class="dns-input-wrap">
+          <input
+            v-model="tempDnsHost"
+            type="text"
+            class="dns-text-input"
+            placeholder="例如 dns.google 或 1dot1dot1dot1.cloudflare-dns.com"
+          />
+        </div>
+        <div class="modal-dialog-buttons">
+          <button class="sheet-cancel-btn" @click="showDnsModal = false">取消</button>
+          <button class="sheet-confirm-btn" @click="saveDns">确定</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗 3: VPN 提示 -->
+    <div v-if="showVpnModal" class="modal-backdrop" @click.self="showVpnModal = false">
+      <div class="modal-dialog">
+        <div class="modal-dialog-title">VPN</div>
+        <div class="modal-dialog-message">当前系统未配置 VPN 连接配置文件。您可点击下方按钮添加自定 L2TP/IPSec 或 IKEv2 虚拟专用网。</div>
+        <div class="modal-dialog-buttons">
+          <button class="dialog-cancel-btn" @click="showVpnModal = false">取消</button>
+          <button class="dialog-submit-btn" @click="showVpnModal = false; showToast('已发起添加 VPN 凭据引导')">添加</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗 4: 投屏设备搜索 -->
+    <div v-if="showCastModal" class="modal-backdrop" @click.self="showCastModal = false">
+      <div class="modal-sheet">
+        <div class="cast-sheet-header">
+          <div class="sheet-title">投屏</div>
+          <ToggleSwitch
+            :model-value="network.castEnabled"
+            @update:model-value="v => network.castEnabled = v"
+          />
+        </div>
+        <div v-if="network.castEnabled" class="cast-search-wrap">
+          <div class="cast-spinner"></div>
+          <div class="cast-status-text">未在附近找到设备。</div>
+          <div class="cast-subtext">请确保被投屏设备已开启无线显示并处于同一 WLAN 网络下。</div>
+        </div>
+        <div v-else class="cast-search-wrap">
+          <div class="cast-status-text">投屏服务已关闭。</div>
+        </div>
+        <button class="sheet-cancel-btn" @click="showCastModal = false">关闭</button>
+      </div>
+    </div>
+
+    <!-- 轻提示 (Toast) -->
+    <transition name="toast-fade">
+      <div v-if="toastText" class="settings-toast">{{ toastText }}</div>
+    </transition>
+  </div>
+</template>
+
+<style scoped>
+.settings-multi-device-page {
+  position: absolute;
+  inset: 0;
+  background: #F4F5F7;
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+  color: #111;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+.md-nav-bar {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: calc(var(--safe-top, 0px) + 52px);
+  padding: var(--safe-top, 0px) 16px 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #F4F5F7;
+  flex-shrink: 0;
+  z-index: 10;
+  box-sizing: border-box;
+}
+
+.nav-round-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #1A1A1A;
+  transition: background 0.15s;
+}
+
+.nav-round-btn:active {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.nav-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111;
+  letter-spacing: -0.2px;
+}
+
+.md-scroll-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 16px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  scrollbar-width: none;
+}
+
+.md-scroll-body::-webkit-scrollbar {
+  display: none;
+}
+
+.settings-card {
+  background: #FFFFFF;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.group-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #8E8E93;
+  padding-left: 8px;
+  margin-top: 4px;
+}
+
+.bottom-spacer {
+  height: 24px;
+}
+
+/* 模态弹窗样式 */
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-dialog {
+  width: 86%;
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 24px 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15);
+  animation: pop-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-sheet {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 24px 24px 0 0;
+  padding: 20px 16px 36px;
+  box-sizing: border-box;
+  animation: slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes pop-in {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.sheet-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.modal-dialog-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 8px;
+}
+
+.modal-dialog-message {
+  font-size: 14px;
+  color: #636366;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.options-list {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+.option-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.option-item:active {
+  background: #F4F5F7;
+}
+
+.option-name {
+  font-size: 15px;
+  color: #111;
+}
+
+.option-item.active .option-name {
+  color: #007AFF;
+  font-weight: 600;
+}
+
+.dns-input-wrap {
+  margin-bottom: 16px;
+}
+
+.dns-text-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #F4F5F7;
+  font-size: 14px;
+  color: #111;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.dns-text-input:focus {
+  border-color: #007AFF;
+  background: #FFF;
+}
+
+.modal-dialog-buttons {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.dialog-cancel-btn,
+.sheet-cancel-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  background: #F4F5F7;
+  color: #8E8E93;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+.dialog-submit-btn,
+.sheet-confirm-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  background: #007AFF;
+  color: #FFF;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+.cast-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.cast-search-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px 24px;
+  text-align: center;
+}
+
+.cast-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(0, 122, 255, 0.15);
+  border-top-color: #007AFF;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+  margin-bottom: 14px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.cast-status-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 6px;
+}
+
+.cast-subtext {
+  font-size: 12px;
+  color: #8E8E93;
+  line-height: 1.4;
+  max-width: 260px;
+}
+
+.settings-toast {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(28, 28, 30, 0.88);
+  backdrop-filter: blur(12px);
+  color: #FFFFFF;
+  padding: 10px 20px;
+  border-radius: 22px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 200;
+}
+
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 10px);
+}
+</style>

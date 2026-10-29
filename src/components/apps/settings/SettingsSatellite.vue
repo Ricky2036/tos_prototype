@@ -1,80 +1,31 @@
-<template>
-  <div class="settings-satellite-page">
-    <div class="satellite-nav">
-      <button class="nav-back-btn" aria-label="返回" data-nav-back @click="emit('back')">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="19" y1="12" x2="5" y2="12"></line>
-          <polyline points="12 19 5 12 12 5"></polyline>
-        </svg>
-      </button>
-      <div class="nav-title">星链卫星网络</div>
-    </div>
-
-    <div class="satellite-scroll-content">
-      <!-- 提示胶囊条 -->
-      <div class="status-banner">
-        <svg class="info-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="16" x2="12" y2="12"></line>
-          <line x1="12" y1="8" x2="12.01" y2="8"></line>
-        </svg>
-        <span>当前未插入支持星链的 SIM 卡。</span>
-      </div>
-
-      <!-- 关于卫星连接 -->
-      <div class="info-card">
-        <div class="card-headline">关于卫星连接</div>
-        <div class="card-desc">
-          您可以使用特定运营商提供的卫星直连服务来使用短信或者数据服务。
-        </div>
-      </div>
-
-      <!-- 使用指南与注意事项 -->
-      <div class="guide-card">
-        <div class="guide-section">
-          <div class="card-headline">使用指南</div>
-
-          <div class="guide-item">
-            <div class="guide-item-title">1. 自动触发</div>
-            <div class="guide-item-text">手机完全没有移动网络时，会自动尝试连接到卫星。</div>
-          </div>
-
-          <div class="guide-item">
-            <div class="guide-item-title">2. 环境要求</div>
-            <div class="guide-item-text">为获得最佳卫星连接信号，请将手机对准天空，确保无建筑物、树木等遮挡。</div>
-          </div>
-
-          <div class="guide-item">
-            <div class="guide-item-title">3. 功能使用</div>
-            <div class="guide-item-text">连接成功后，您可以向任何人发送短信（包括紧急服务），并可在某些特定应用上受限地使用数据。一旦地面移动网络恢复，手机会自动重新连接地面移动网络。</div>
-          </div>
-        </div>
-
-        <div class="guide-section note-section">
-          <div class="card-headline">注意事项</div>
-
-          <div class="guide-item">
-            <div class="guide-item-title">1. 地区限制</div>
-            <div class="guide-item-text">卫星连接仅在部分地区可用，可查看运营商官网了解详情。</div>
-          </div>
-
-          <div class="guide-item">
-            <div class="guide-item-title">2. 环境干扰</div>
-            <div class="guide-item-text">卫星连接并非一直稳定可用。受天气、建筑物遮挡、卫星移动等因素影响，可能会出现信号不稳定或连接断开的情况。</div>
-          </div>
-
-          <div class="guide-item">
-            <div class="guide-item-title">3. 资费与套餐</div>
-            <div class="guide-item-text">资费与套餐请以运营商公布的政策为准，具体费用及开通方式可咨询运营商。</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup>
+import { ref } from 'vue'
+import { useNetworkStore } from '../../../stores/networkStore'
+import ListCell from '../../ui/ListCell.vue'
+import ToggleSwitch from '../../ui/ToggleSwitch.vue'
+
 const emit = defineEmits(['back'])
+
+const network = useNetworkStore()
+
+// 提示反馈
+const toastText = ref('')
+let toastTimer = null
+function showToast(msg) {
+  toastText.value = msg
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => {
+    toastText.value = ''
+  }, 2200)
+}
+
+function handleToggleSatellite(val) {
+  if (val && !network.satelliteSimInserted) {
+    showToast('未检测到支持星链卫星的专用卡')
+  } else {
+    network.setSatelliteService(val)
+  }
+}
 
 function back() {
   emit('back')
@@ -84,11 +35,109 @@ function back() {
 defineExpose({ back })
 </script>
 
+<template>
+  <div class="settings-satellite-page">
+    <div class="satellite-nav">
+      <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="nav-title">星链卫星网络</div>
+    </div>
+
+    <div class="satellite-scroll-content scrollable">
+      <!-- 提示横幅 -->
+      <div class="status-banner">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>当前未插入支持星链的 SIM 卡。</span>
+      </div>
+
+      <!-- 星链卫星服务开关卡片 -->
+      <div class="settings-card">
+        <ListCell title="星链卫星服务" last>
+          <template #right>
+            <ToggleSwitch
+              :model-value="network.satelliteServiceEnabled"
+              @update:model-value="handleToggleSatellite"
+            />
+          </template>
+        </ListCell>
+      </div>
+
+      <!-- 关于卫星连接 -->
+      <div class="settings-card guide-card">
+        <div class="card-headline">关于卫星连接</div>
+        <div class="card-desc">
+          您可以使用特定运营商提供的卫星直连服务来使用短信或者数据服务。
+        </div>
+      </div>
+
+      <!-- 使用指南与注意事项 -->
+      <div class="settings-card guide-card">
+        <div class="card-headline">使用指南</div>
+
+        <div class="guide-item">
+          <div class="guide-item-title">1. 自动触发</div>
+          <div class="guide-item-text">手机完全没有移动网络时，会自动尝试连接到卫星。</div>
+        </div>
+
+        <div class="guide-item">
+          <div class="guide-item-title">2. 环境要求</div>
+          <div class="guide-item-text">为获得最佳卫星连接信号，请将手机对准天空，确保无建筑物、树木等遮挡。</div>
+        </div>
+
+        <div class="guide-item">
+          <div class="guide-item-title">3. 功能使用</div>
+          <div class="guide-item-text">连接成功后，您可以向任何人发送短信（包括紧急服务），并可在某些特定应用上受限地使用数据。一旦地面移动网络恢复，手机会自动重新连接地面移动网络。</div>
+        </div>
+
+        <div class="inner-divider"></div>
+
+        <div class="card-headline">注意事项</div>
+
+        <div class="guide-item">
+          <div class="guide-item-title">1. 地区限制</div>
+          <div class="guide-item-text">卫星连接仅在部分地区可用，可查看运营商官网了解详情。</div>
+        </div>
+
+        <div class="guide-item">
+          <div class="guide-item-title">2. 环境干扰</div>
+          <div class="guide-item-text">卫星连接并非一直稳定可用。受天气、建筑物遮挡、卫星移动等因素影响，可能会出现信号不稳定或连接断开的情况。</div>
+        </div>
+
+        <div class="guide-item">
+          <div class="guide-item-title">3. 资费与套餐</div>
+          <div class="guide-item-text">资费与套餐请以运营商公布的政策为准，具体费用及开通方式可咨询运营商。</div>
+        </div>
+      </div>
+
+      <!-- 支持卫星通讯的应用卡片 -->
+      <div class="settings-card guide-card">
+        <div class="card-headline">支持卫星通讯的应用</div>
+        <div class="card-subhead">卫星连接状态下，您的手机端支持以下应用</div>
+        <div class="empty-app-notice">未插入星链卡，无法检索手机支持的应用。</div>
+      </div>
+
+      <div class="bottom-spacer"></div>
+    </div>
+
+    <!-- 轻提示 (Toast) -->
+    <transition name="toast-fade">
+      <div v-if="toastText" class="settings-toast">{{ toastText }}</div>
+    </transition>
+  </div>
+</template>
+
 <style scoped>
 .settings-satellite-page {
   position: absolute;
   inset: 0;
-  background: #f4f5f7;
+  background: #F4F5F7;
   display: flex;
   flex-direction: column;
   z-index: 20;
@@ -105,13 +154,13 @@ defineExpose({ back })
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #f4f5f7;
+  background: #F4F5F7;
   flex-shrink: 0;
   z-index: 10;
   box-sizing: border-box;
 }
 
-.nav-back-btn {
+.nav-round-btn {
   width: 38px;
   height: 38px;
   border-radius: 50%;
@@ -121,11 +170,11 @@ defineExpose({ back })
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #1a1a1a;
+  color: #1A1A1A;
   transition: background 0.15s;
 }
 
-.nav-back-btn:active {
+.nav-round-btn:active {
   background: rgba(0, 0, 0, 0.08);
 }
 
@@ -151,68 +200,110 @@ defineExpose({ back })
 }
 
 .status-banner {
-  background: #eceef1;
-  border-radius: 18px;
-  padding: 10px 16px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 13.5px;
-  color: #727a84;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(0, 122, 255, 0.08);
+  border-radius: 14px;
+  font-size: 13px;
+  color: #007AFF;
+  font-weight: 500;
 }
 
-.info-icon {
-  flex-shrink: 0;
-  color: #8c939e;
+.settings-card {
+  background: #FFFFFF;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
-.info-card,
 .guide-card {
-  background: #ffffff;
-  border-radius: 22px;
   padding: 20px 18px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .card-headline {
-  font-size: 17.5px;
+  font-size: 17px;
   font-weight: 700;
-  color: #18191c;
-  margin-bottom: 12px;
-  letter-spacing: -0.2px;
+  color: #111;
 }
 
 .card-desc {
-  font-size: 14px;
-  line-height: 1.6;
-  color: #555c65;
+  font-size: 13px;
+  color: #636366;
+  line-height: 1.5;
 }
 
-.guide-section {
-  display: flex;
-  flex-direction: column;
+.card-subhead {
+  font-size: 13px;
+  color: #8E8E93;
+  margin-top: -6px;
 }
 
-.note-section {
-  margin-top: 26px;
+.inner-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.05);
+  margin: 6px 0;
 }
 
 .guide-item {
-  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .guide-item-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  color: #1a1c1e;
-  margin-bottom: 4px;
+  color: #111;
 }
 
 .guide-item-text {
-  font-size: 13.5px;
-  line-height: 1.55;
-  color: #636a75;
+  font-size: 13px;
+  color: #636366;
+  line-height: 1.5;
+}
+
+.empty-app-notice {
+  padding: 24px 0 12px;
+  text-align: center;
+  font-size: 13px;
+  color: #8E8E93;
+}
+
+.bottom-spacer {
+  height: 24px;
+}
+
+.settings-toast {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(28, 28, 30, 0.88);
+  backdrop-filter: blur(12px);
+  color: #FFFFFF;
+  padding: 10px 20px;
+  border-radius: 22px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 200;
+}
+
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 10px);
 }
 </style>
