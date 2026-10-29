@@ -43,7 +43,7 @@ defineExpose({ back })
           <div class="ai-orb">
             <div class="ai-orb-inner"></div>
             <svg class="ai-sparkle" viewBox="0 0 24 24" width="28" height="28" fill="none">
-              <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#ai-grad)" />
+              <path d="M6 16c5 0 7-8 12-8a4 4 0 0 1 0 8c-5 0-7-8-12-8a4 4 0 1 0 0 8" stroke="url(#ai-grad)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
               <defs>
                 <linearGradient id="ai-grad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
                   <stop stop-color="#38bdf8" />

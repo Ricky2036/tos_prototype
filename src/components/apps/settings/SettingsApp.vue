@@ -451,13 +451,7 @@ const filteredSearchResults = computed(() => {
               >
                 <template #icon>
                   <div class="squircle-icon bg-satellite">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M4 10a7.3 7.3 0 0 0 10 10l1-1a3 3 0 0 0-4-4l-1 1" />
-                      <path d="m14 15 6 6" />
-                      <path d="m17 12 3 3" />
-                      <path d="m9 4a12 12 0 0 1 11 11" />
-                      <path d="m8 7a8 8 0 0 1 8 8" />
-                    </svg>
+                    <SettingsSystemIcon name="satellite" :size="18" />
                   </div>
                 </template>
               </ListCell>
