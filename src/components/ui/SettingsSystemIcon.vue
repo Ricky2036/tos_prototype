@@ -11,6 +11,7 @@ import location from '../../assets/icons/settings/location.svg'
 import multiDevice from '../../assets/icons/settings/multi-device.svg'
 import notifications from '../../assets/icons/settings/notifications.svg'
 import privacy from '../../assets/icons/settings/privacy.svg'
+import satellite from '../../assets/icons/settings/satellite.svg'
 import security from '../../assets/icons/settings/security.svg'
 import sim from '../../assets/icons/settings/sim.svg'
 import sound from '../../assets/icons/settings/sound.svg'
@@ -33,6 +34,7 @@ const icons = {
   'multi-device': multiDevice,
   notifications,
   privacy,
+  satellite,
   security,
   sim,
   sound,
