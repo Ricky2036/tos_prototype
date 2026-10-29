@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useNetworkStore } from '../../../stores/networkStore'
+import { useSubPageNav } from '../../../composables/useSubPageNav'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 
@@ -8,8 +9,8 @@ const emit = defineEmits(['back'])
 
 const network = useNetworkStore()
 
-// 视图层级：'main' | 'detail'
-const activeSubView = ref('main')
+// 视图层级管理与动画规范
+const { activeSubView, isBack, openSubView, closeSubView } = useSubPageNav('main')
 const selectedNetwork = ref(null)
 
 // 提示反馈
@@ -37,7 +38,7 @@ const newPassword = ref('')
 // 点击网络进入全屏二级详情页
 function openDetail(wifiItem) {
   selectedNetwork.value = wifiItem
-  activeSubView.value = 'detail'
+  openSubView('detail')
 }
 
 // 点击二维码分享
@@ -54,7 +55,7 @@ function handleDisconnect(ssid) {
 // 取消保存 / 忽略网络
 function handleForget(ssid) {
   network.forgetWifi(ssid)
-  activeSubView.value = 'main'
+  closeSubView()
   showToast(`已取消保存网络 ${ssid}`)
 }
 
@@ -115,8 +116,7 @@ function back() {
     showAddModal.value = false
     return true
   }
-  if (activeSubView.value !== 'main') {
-    activeSubView.value = 'main'
+  if (closeSubView()) {
     return true
   }
   emit('back')
@@ -128,17 +128,18 @@ defineExpose({ back })
 
 <template>
   <div class="settings-wifi-page">
-    <!-- ================= 1. 全屏二级页：网络详情 ================= -->
-    <template v-if="activeSubView === 'detail' && selectedNetwork">
-      <div class="wifi-nav-bar">
-        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="activeSubView = 'main'">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <div class="nav-title">网络详情</div>
-        <div class="nav-placeholder"></div>
-      </div>
+    <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
+      <!-- ================= 1. 全屏三级页：网络详情 ================= -->
+      <div v-if="activeSubView === 'detail' && selectedNetwork" key="detail" class="subpage-view-pane">
+        <div class="wifi-nav-bar">
+          <button class="nav-round-btn" aria-label="返回" data-nav-back @click="closeSubView">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="nav-title">网络详情</div>
+          <div class="nav-placeholder"></div>
+        </div>
 
       <div class="wifi-scroll-body scrollable">
         <!-- 头部网络居中实体卡片 -->
@@ -233,10 +234,10 @@ defineExpose({ back })
 
         <div class="bottom-spacer"></div>
       </div>
-    </template>
+    </div>
 
     <!-- ================= 2. WLAN 主界面 ================= -->
-    <template v-else>
+    <div v-else key="main" class="subpage-view-pane">
       <div class="wifi-nav-bar">
         <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -449,7 +450,8 @@ defineExpose({ back })
 
         <div class="bottom-spacer"></div>
       </div>
-    </template>
+    </div>
+  </Transition>
 
     <!-- 弹窗 1: 二维码分享原生弹窗 -->
     <div v-if="showQrModal && selectedNetwork" class="modal-backdrop" @click.self="showQrModal = false">
@@ -521,6 +523,8 @@ defineExpose({ back })
 </template>
 
 <style scoped>
+@import '../../../styles/layer-transitions.css';
+
 .settings-wifi-page {
   position: absolute;
   inset: 0;

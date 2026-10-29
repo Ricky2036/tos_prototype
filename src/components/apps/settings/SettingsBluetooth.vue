@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useNetworkStore } from '../../../stores/networkStore'
+import { useSubPageNav } from '../../../composables/useSubPageNav'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import SettingsSystemIcon from '../../ui/SettingsSystemIcon.vue'
@@ -32,8 +33,8 @@ function showToast(msg) {
   }, 2200)
 }
 
-// 视图状态：'main' | 'devDetail'
-const activeSubView = ref('main')
+// 视图层级管理与动画规范
+const { activeSubView, isBack, openSubView, closeSubView } = useSubPageNav('main')
 const targetDev = ref(null)
 
 // 设备重命名弹窗
@@ -57,7 +58,7 @@ function submitRename() {
 
 function openDevDetail(dev) {
   targetDev.value = dev
-  activeSubView.value = 'devDetail'
+  openSubView('devDetail')
 }
 
 function handleToggleConnectDev(dev) {
@@ -72,7 +73,7 @@ function handleToggleConnectDev(dev) {
 
 function handleUnpairDev(dev) {
   network.unpairBluetoothDevice(dev.id)
-  activeSubView.value = 'main'
+  closeSubView()
   showToast(`已取消配对 ${dev.name}`)
 }
 
@@ -96,8 +97,7 @@ function back() {
     showRenameModal.value = false
     return true
   }
-  if (activeSubView.value !== 'main') {
-    activeSubView.value = 'main'
+  if (closeSubView()) {
     return true
   }
   emit('back')
@@ -109,17 +109,18 @@ defineExpose({ back })
 
 <template>
   <div class="settings-bluetooth-page">
-    <!-- ================= 1. 全屏二级页：设备详情 (1:1 对齐真机 BluetoothDeviceDetailActivity) ================= -->
-    <template v-if="activeSubView === 'devDetail' && targetDev">
-      <div class="bt-nav-bar">
-        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="activeSubView = 'main'">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <div class="nav-title">设备详情</div>
-        <div class="nav-placeholder"></div>
-      </div>
+    <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
+      <!-- ================= 1. 全屏三级页：设备详情 ================= -->
+      <div v-if="activeSubView === 'devDetail' && targetDev" key="devDetail" class="subpage-view-pane">
+        <div class="bt-nav-bar">
+          <button class="nav-round-btn" aria-label="返回" data-nav-back @click="closeSubView">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="nav-title">设备详情</div>
+          <div class="nav-placeholder"></div>
+        </div>
 
       <div class="bt-scroll-body scrollable">
         <!-- 居中耳机/设备大图标与标题 (实机 1:1) -->
@@ -197,10 +198,10 @@ defineExpose({ back })
 
         <div class="bottom-spacer"></div>
       </div>
-    </template>
+    </div>
 
     <!-- ================= 2. 蓝牙主界面 ================= -->
-    <template v-else>
+    <div v-else key="main" class="subpage-view-pane">
       <div class="bt-nav-bar">
         <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -354,7 +355,8 @@ defineExpose({ back })
 
         <div class="bottom-spacer"></div>
       </div>
-    </template>
+    </div>
+  </Transition>
 
     <!-- 弹窗: 重命名设备 -->
     <div v-if="showRenameModal" class="modal-backdrop" @click.self="showRenameModal = false">
@@ -376,6 +378,8 @@ defineExpose({ back })
 </template>
 
 <style scoped>
+@import '../../../styles/layer-transitions.css';
+
 .settings-bluetooth-page {
   position: absolute;
   inset: 0;
