@@ -973,7 +973,9 @@ function saveEdit() {
 .lc-main.no-sep { border-bottom: none; }
 
 .lc-title {
-  font: 400 15.5px/1.25 var(--font-stack);
+  font: 550 16px/1.3 var(--font-stack);
+  font-weight: 550;
+  letter-spacing: -0.2px;
   color: var(--label);
 }
 
