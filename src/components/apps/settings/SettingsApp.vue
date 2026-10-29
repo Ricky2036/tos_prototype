@@ -23,8 +23,12 @@ import SettingsCloudHome from './SettingsCloudHome.vue'
 import SettingsCloudBackup from './SettingsCloudBackup.vue'
 import SettingsAboutPhone from './SettingsAboutPhone.vue'
 import SettingsSim from './SettingsSim.vue'
+import SettingsWifi from './SettingsWifi.vue'
 import SettingsBluetooth from './SettingsBluetooth.vue'
 import SettingsSatellite from './SettingsSatellite.vue'
+import SettingsMultiDevice from './SettingsMultiDevice.vue'
+import SettingsHotspot from './SettingsHotspot.vue'
+import SettingsNfc from './SettingsNfc.vue'
 import SettingsInfinixAI from './SettingsInfinixAI.vue'
 import SettingsSecurity from './SettingsSecurity.vue'
 import SettingsPrivacy from './SettingsPrivacy.vue'
@@ -40,6 +44,7 @@ import { useSystemStore } from '../../../stores/systemStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import { useAccountStore } from '../../../stores/accountStore'
 import { useDeviceStore } from '../../../stores/deviceStore'
+import { useNetworkStore } from '../../../stores/networkStore'
 import { GLYPHS } from '../../../assets/icons/glyphs'
 import accountAvatar from '../../../assets/img/account-avatar.jpg'
 import { clamp } from '../../../utils/math'
@@ -58,6 +63,7 @@ const system = useSystemStore()
 const i18n = useI18nStore()
 const accountStore = useAccountStore()
 const deviceStore = useDeviceStore()
+const network = useNetworkStore()
 const { timeShort } = useClock()
 
 /* 内部导航栈：支持从礼拜卡片、通知灵动岛、账号引导通知直接深链跳转 */
@@ -131,8 +137,12 @@ const prayerRef = ref(null)
 const personalizationRef = ref(null)
 const aboutPhoneRef = ref(null)
 const simRef = ref(null)
+const wifiRef = ref(null)
 const bluetoothRef = ref(null)
 const satelliteRef = ref(null)
+const multiDeviceRef = ref(null)
+const hotspotRef = ref(null)
+const nfcRef = ref(null)
 const aiRef = ref(null)
 const securityRef = ref(null)
 const privacyRef = ref(null)
@@ -147,8 +157,12 @@ const soundRef = ref(null)
 useBackHandler(() => {
   if (view.value === 'about' && aboutPhoneRef.value?.back?.()) return true
   if (view.value === 'sim' && simRef.value?.back?.()) return true
+  if (view.value === 'wifi' && wifiRef.value?.back?.()) return true
   if (view.value === 'bluetooth' && bluetoothRef.value?.back?.()) return true
   if (view.value === 'satellite' && satelliteRef.value?.back?.()) return true
+  if (view.value === 'multiDevice' && multiDeviceRef.value?.back?.()) return true
+  if (view.value === 'hotspot' && hotspotRef.value?.back?.()) return true
+  if (view.value === 'nfc' && nfcRef.value?.back?.()) return true
   if (view.value === 'infinixAi' && aiRef.value?.back?.()) return true
   if (view.value === 'security' && securityRef.value?.back?.()) return true
   if (view.value === 'privacy' && privacyRef.value?.back?.()) return true
@@ -192,6 +206,9 @@ const viewTitles = computed(() => ({
   sim: 'SIM 卡与网络设置',
   bluetooth: '蓝牙',
   satellite: '星链卫星网络',
+  multiDevice: '多设备连接',
+  hotspot: '个人热点',
+  nfc: 'NFC',
   infinixAi: 'Infinix AI',
   security: '密码与安全',
   privacy: '权限与隐私',
@@ -229,11 +246,14 @@ const allSearchableItems = [
   { id: 'deviceModel', title: 'Infinix NOTE 60 Pro', group: '系统', action: () => push('about') },
   { id: 'flight', title: '飞行模式', group: '网络与连接', action: () => {}, isToggle: true },
   { id: 'sim', title: 'SIM 卡与网络设置', group: '网络与连接', action: () => push('sim') },
-  { id: 'wifi', title: 'WLAN', group: '网络与连接', value: 'Transsion_Holdings', action: () => push('wifi') },
+  { id: 'wifi', title: 'WLAN', group: '网络与连接', value: 'Transsion_Mobile', action: () => push('wifi') },
   { id: 'bluetooth', title: '蓝牙', group: '网络与连接', action: () => push('bluetooth') },
   { id: 'satellite', title: '星链卫星网络', group: '网络与连接', action: () => push('satellite') },
   { id: 'satelliteAlt', title: '卫星网络', group: '网络与连接', action: () => push('satellite') },
-  { id: 'multiDevice', title: '多设备连接', group: '网络与连接', action: () => system.openApp('oneleap') },
+  { id: 'multiDevice', title: '多设备连接', group: '网络与连接', action: () => push('multiDevice') },
+  { id: 'oneleap', title: '多屏互联 (OneLeap)', group: '网络与连接', action: () => system.openApp('oneleap') },
+  { id: 'hotspot', title: '个人热点', group: '网络与连接', action: () => push('hotspot') },
+  { id: 'nfc', title: 'NFC', group: '网络与连接', action: () => push('nfc') },
   { id: 'infinixAi', title: 'Infinix AI', group: '特色功能', action: () => push('infinixAi') },
   { id: 'folaxVoice', title: 'Folax语音', group: 'Infinix AI', action: () => push('infinixAi') },
   { id: 'folaxScreen', title: 'Folax识屏', group: 'Infinix AI', action: () => push('infinixAi') },
@@ -378,7 +398,10 @@ const filteredSearchResults = computed(() => {
                   </div>
                 </template>
                 <template #right>
-                  <ToggleSwitch v-model="control.airplane" />
+                  <ToggleSwitch
+                    :model-value="control.airplane"
+                    @update:model-value="v => network.setAirplaneMode(v)"
+                  />
                 </template>
               </ListCell>
 
@@ -392,7 +415,12 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- WLAN -->
-              <ListCell title="WLAN" value="Transsion_Holdings" chevron @click="push('wifi')">
+              <ListCell
+                title="WLAN"
+                :value="network.wifiEnabled ? (network.connectedWifi ? network.connectedWifi.ssid : '未连接') : '已关闭'"
+                chevron
+                @click="push('wifi')"
+              >
                 <template #icon>
                   <div class="squircle-icon bg-wifi">
                     <SettingsSystemIcon name="wifi" />
@@ -401,7 +429,12 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- 蓝牙 -->
-              <ListCell title="蓝牙" chevron @click="push('bluetooth')">
+              <ListCell
+                title="蓝牙"
+                :value="network.bluetoothEnabled ? (network.pairedDevices.find(d => d.connected)?.name || '') : '已关闭'"
+                chevron
+                @click="push('bluetooth')"
+              >
                 <template #icon>
                   <div class="squircle-icon bg-bluetooth">
                     <SettingsSystemIcon name="bluetooth" />
@@ -410,7 +443,12 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- 卫星网络 -->
-              <ListCell title="卫星网络" chevron @click="push('satellite')">
+              <ListCell
+                title="卫星网络"
+                :value="network.satelliteServiceEnabled ? '已开启' : ''"
+                chevron
+                @click="push('satellite')"
+              >
                 <template #icon>
                   <div class="squircle-icon bg-satellite">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -425,7 +463,7 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- 多设备连接 -->
-              <ListCell title="多设备连接" chevron last @click="system.openApp('oneleap')">
+              <ListCell title="多设备连接" chevron last @click="push('multiDevice')">
                 <template #icon>
                   <div class="squircle-icon bg-multidevice">
                     <SettingsSystemIcon name="multi-device" :size="19" />
@@ -736,6 +774,11 @@ const filteredSearchResults = computed(() => {
         <SettingsSim ref="simRef" @back="pop" />
       </div>
 
+      <!-- ================= WLAN (无线局域网) ================= -->
+      <div v-else-if="view === 'wifi'" key="wifi" class="settings-page">
+        <SettingsWifi ref="wifiRef" @back="pop" />
+      </div>
+
       <!-- ================= 蓝牙 ================= -->
       <div v-else-if="view === 'bluetooth'" key="bluetooth" class="settings-page">
         <SettingsBluetooth ref="bluetoothRef" @back="pop" />
@@ -744,6 +787,26 @@ const filteredSearchResults = computed(() => {
       <!-- ================= 星链卫星网络 ================= -->
       <div v-else-if="view === 'satellite'" key="satellite" class="settings-page">
         <SettingsSatellite ref="satelliteRef" @back="pop" />
+      </div>
+
+      <!-- ================= 多设备连接 ================= -->
+      <div v-else-if="view === 'multiDevice'" key="multiDevice" class="settings-page">
+        <SettingsMultiDevice
+          ref="multiDeviceRef"
+          @back="pop"
+          @open-hotspot="push('hotspot')"
+          @open-nfc="push('nfc')"
+        />
+      </div>
+
+      <!-- ================= 个人热点 ================= -->
+      <div v-else-if="view === 'hotspot'" key="hotspot" class="settings-page">
+        <SettingsHotspot ref="hotspotRef" @back="pop" />
+      </div>
+
+      <!-- ================= NFC ================= -->
+      <div v-else-if="view === 'nfc'" key="nfc" class="settings-page">
+        <SettingsNfc ref="nfcRef" @back="pop" @open-wallet="push('wallet')" />
       </div>
 
       <!-- ================= Infinix AI ================= -->
