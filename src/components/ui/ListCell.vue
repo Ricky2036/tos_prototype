@@ -107,13 +107,13 @@ const emit = defineEmits(['click'])
 }
 
 .lc-title {
-  font: 550 16px/1.3 var(--font-stack);
-  font-weight: 550;
+  font: 500 15.5px/1.3 var(--font-stack);
+  font-weight: 500;
   color: #111111;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.15px;
 }
 .lc-subtitle {
   font: 400 13px/1.35 var(--font-stack);

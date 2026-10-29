@@ -579,10 +579,10 @@ function handleRelogin() {
 }
 
 .cell-title {
-  font-size: 16px;
+  font-size: 15.5px;
   color: #111111;
-  font-weight: 550;
-  letter-spacing: -0.2px;
+  font-weight: 500;
+  letter-spacing: -0.15px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
