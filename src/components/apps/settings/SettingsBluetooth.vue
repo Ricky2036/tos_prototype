@@ -430,11 +430,10 @@ defineExpose({ back })
 .bt-scroll-body {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px 16px 36px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  scrollbar-width: none;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
 }
 
 .bt-scroll-body::-webkit-scrollbar {
@@ -451,6 +450,7 @@ defineExpose({ back })
   border-radius: 18px;
   border: 1px solid rgba(0, 0, 0, 0.04);
   overflow: hidden;
+  margin-bottom: 14px;
 }
 
 .bt-feature-icon-wrap {
@@ -496,6 +496,8 @@ defineExpose({ back })
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.04);
+  margin-bottom: 14px;
+  box-sizing: border-box;
 }
 
 .pair-new-cell {
@@ -528,7 +530,7 @@ defineExpose({ back })
   font-weight: 600;
   color: #8E8E93;
   padding-left: 8px;
-  margin-top: 4px;
+  margin: 16px 0 8px 0;
 }
 
 .group-header-with-loader {
@@ -790,6 +792,7 @@ defineExpose({ back })
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  margin-bottom: 14px;
 }
 
 .dev-action-card-btn {
