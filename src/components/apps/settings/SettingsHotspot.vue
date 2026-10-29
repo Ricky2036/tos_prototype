@@ -20,15 +20,18 @@ function showToast(msg) {
   }, 2200)
 }
 
-// 热点配置编辑弹窗
-const showConfigModal = ref(false)
+// 视图状态：'main' | 'config'
+const activeSubView = ref('main')
+
+// 热点配置编辑
 const editHotspotName = ref(network.hotspotName)
 const editHotspotPassword = ref(network.hotspotPassword)
+const editHotspotHidden = ref(false)
 
 function openConfigModal() {
   editHotspotName.value = network.hotspotName
   editHotspotPassword.value = network.hotspotPassword
-  showConfigModal.value = true
+  activeSubView.value = 'config'
 }
 
 function saveHotspotConfig() {
@@ -45,7 +48,7 @@ function saveHotspotConfig() {
     password: editHotspotPassword.value
   })
   showToast('热点配置已更新')
-  showConfigModal.value = false
+  activeSubView.value = 'main'
 }
 
 // 自动关闭选项弹窗
@@ -59,8 +62,8 @@ function selectAutoOff(opt) {
 }
 
 function back() {
-  if (showConfigModal.value) {
-    showConfigModal.value = false
+  if (activeSubView.value !== 'main') {
+    activeSubView.value = 'main'
     return true
   }
   if (showAutoOffModal.value) {
@@ -76,135 +79,178 @@ defineExpose({ back })
 
 <template>
   <div class="settings-hotspot-page">
-    <!-- 顶部导航栏 -->
-    <div class="hotspot-nav-bar">
-      <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <div class="nav-title">个人热点</div>
-    </div>
-
-    <!-- 滚动主体内容 -->
-    <div class="hotspot-scroll-body scrollable">
-      <!-- 头部特性大卡片 -->
-      <div class="hotspot-feature-card">
-        <div class="hotspot-feature-icon-wrap">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12.55a11 11 0 0 1 14.08 0" />
-            <path d="M1.42 9a16 16 0 0 1 21.16 0" />
-            <circle cx="12" cy="18" r="2" fill="#FFFFFF"/>
+    <!-- ================= 1. 全屏二级页：WLAN热点设置 (实机 1:1) ================= -->
+    <template v-if="activeSubView === 'config'">
+      <div class="hotspot-nav-bar">
+        <button class="nav-round-btn" aria-label="取消" @click="activeSubView = 'main'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
-        </div>
-        <div class="hotspot-feature-title">便携式热点</div>
-        <div class="hotspot-feature-desc">将手机的移动网络通过无线局域网共享给附近的其他设备使用。</div>
+        </button>
+        <div class="nav-title">WLAN热点设置</div>
+        <button class="nav-round-btn confirm-btn" aria-label="保存" @click="saveHotspotConfig">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </button>
       </div>
 
-      <!-- 热点开关卡片 -->
-      <div class="settings-card">
-        <ListCell title="个人热点" last>
-          <template #right>
-            <ToggleSwitch
-              :model-value="network.hotspotEnabled"
-              @update:model-value="v => network.setHotspot(v)"
-              @change="showToast(network.hotspotEnabled ? '已开启个人热点' : '已关闭个人热点')"
+      <div class="hotspot-scroll-body scrollable">
+        <div class="group-label">名称</div>
+        <div class="settings-card input-card">
+          <div class="input-row">
+            <input
+              v-model="editHotspotName"
+              type="text"
+              class="card-text-input"
+              maxlength="32"
+              placeholder="热点名称"
             />
-          </template>
-        </ListCell>
-      </div>
+            <button v-if="editHotspotName" class="input-clear-btn" @click="editHotspotName = ''">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" fill="#8E8E93"/>
+                <path d="M15 9l-6 6M9 9l6 6" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+          <div class="char-count">{{ editHotspotName.length }}/32</div>
+        </div>
 
-      <!-- 分组 1: 热点配置 -->
-      <div class="group-label">热点配置</div>
-      <div class="settings-card">
-        <ListCell
-          title="热点配置"
-          :value="network.hotspotName"
-          :subtitle="'密码：' + network.hotspotPassword"
-          chevron
-          clickable
-          @click="openConfigModal"
-        />
-        <ListCell
-          title="连接管理"
-          :value="`${network.connectedClients.length} 台设备连接`"
-          chevron
-          clickable
-          @click="showToast(`当前连接 ${network.connectedClients.length} 台设备，黑名单 0 台`)"
-        />
-        <ListCell
-          title="自动关闭热点"
-          subtitle="一定时间内无设备或网络连接，自动关闭热点。"
-          :value="network.hotspotAutoOff"
-          chevron
-          clickable
-          @click="showAutoOffModal = true"
-        />
-        <ListCell
-          title="使用 WLAN 6协议"
-          subtitle="能够提升连接速度，老旧设备可能无法找到 WLAN 6协议的热点。"
-          last
-        >
-          <template #right>
-            <ToggleSwitch
-              v-model="network.hotspotWlan6"
-              @change="showToast(network.hotspotWlan6 ? '已启用 WLAN 6 高速协议' : '已切换为兼容模式')"
+        <div class="group-label">密码</div>
+        <div class="settings-card input-card">
+          <div class="input-row">
+            <input
+              v-model="editHotspotPassword"
+              type="text"
+              class="card-text-input"
+              placeholder="设置 8 位以上密码"
             />
-          </template>
-        </ListCell>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <ListCell
+            title="安全"
+            value="WPA2/WPA3-Personal"
+            chevron
+            clickable
+            @click="showToast('安全性：WPA2/WPA3-Personal (推荐)')"
+          />
+          <ListCell
+            title="隐藏网络"
+            subtitle="仅允许通过手动添加网络连接此热点。"
+            last
+          >
+            <template #right>
+              <ToggleSwitch
+                v-model="editHotspotHidden"
+                @change="showToast(editHotspotHidden ? '已开启隐藏网络' : '已关闭隐藏网络')"
+              />
+            </template>
+          </ListCell>
+        </div>
+
+        <div class="bottom-spacer"></div>
+      </div>
+    </template>
+
+    <!-- ================= 2. 个人热点主页 (实机 1:1) ================= -->
+    <template v-else>
+      <div class="hotspot-nav-bar">
+        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="nav-title">个人热点</div>
+        <div class="nav-placeholder"></div>
       </div>
 
-      <!-- 分组 2: 网络共享 -->
-      <div class="group-label">网络共享</div>
-      <div class="settings-card">
-        <ListCell title="USB网络共享">
-          <template #right>
-            <ToggleSwitch
-              v-model="network.usbSharing"
-              @change="showToast(network.usbSharing ? '已通过 USB 共享网络' : '已关闭 USB 网络共享')"
-            />
-          </template>
-        </ListCell>
-        <ListCell title="蓝牙网络共享" last>
-          <template #right>
-            <ToggleSwitch
-              v-model="network.bluetoothSharing"
-              @change="showToast(network.bluetoothSharing ? '已通过蓝牙共享网络' : '已关闭蓝牙网络共享')"
-            />
-          </template>
-        </ListCell>
+      <!-- 滚动主体内容 -->
+      <div class="hotspot-scroll-body scrollable">
+        <!-- 分组 1: 便携式热点 (实机 1:1，移除假大图标) -->
+        <div class="group-label">便携式热点</div>
+        <div class="settings-card">
+          <ListCell title="个人热点">
+            <template #right>
+              <ToggleSwitch
+                :model-value="network.hotspotEnabled"
+                @update:model-value="v => network.setHotspot(v)"
+                @change="showToast(network.hotspotEnabled ? '已开启个人热点' : '已关闭个人热点')"
+              />
+            </template>
+          </ListCell>
+          <ListCell
+            title="热点配置"
+            chevron
+            clickable
+            @click="openConfigModal"
+          >
+            <template #right>
+              <div class="hotspot-config-preview">
+                <div class="config-name-text">{{ network.hotspotName }}</div>
+                <div class="config-pwd-text">{{ network.hotspotPassword }}</div>
+              </div>
+            </template>
+          </ListCell>
+          <ListCell
+            title="连接管理"
+            chevron
+            clickable
+            @click="showToast(`连接管理：已连接 ${network.connectedClients.length} 台设备`)"
+          />
+          <ListCell
+            title="自动关闭热点"
+            subtitle="一定时间内无设备或网络连接，自动关闭热点。"
+            :value="network.hotspotAutoOff"
+            chevron
+            clickable
+            @click="showAutoOffModal = true"
+          />
+          <ListCell
+            title="使用 WLAN 6协议"
+            subtitle="能够提升连接速度，老旧设备可能无法找到 WLAN 6协议的热点。"
+            last
+          >
+            <template #right>
+              <ToggleSwitch
+                v-model="network.hotspotWlan6"
+                @change="showToast(network.hotspotWlan6 ? '已启用 WLAN 6 协议' : '已切换为兼容模式')"
+              />
+            </template>
+          </ListCell>
+        </div>
+
+        <!-- 分组 2: 网络共享 -->
+        <div class="group-label">网络共享</div>
+        <div class="settings-card">
+          <ListCell title="USB网络共享">
+            <template #right>
+              <ToggleSwitch
+                v-model="network.usbSharing"
+                @change="showToast(network.usbSharing ? '已通过 USB 共享网络' : '已关闭 USB 网络共享')"
+              />
+            </template>
+          </ListCell>
+          <ListCell title="蓝牙网络共享" last>
+            <template #right>
+              <ToggleSwitch
+                v-model="network.bluetoothSharing"
+                @change="showToast(network.bluetoothSharing ? '已通过蓝牙共享网络' : '已关闭蓝牙网络共享')"
+              />
+            </template>
+          </ListCell>
+        </div>
+
+        <div class="bottom-spacer"></div>
       </div>
+    </template>
 
-      <div class="bottom-spacer"></div>
-    </div>
-
-    <!-- 热点配置编辑弹窗 -->
-    <div v-if="showConfigModal" class="modal-backdrop" @click.self="showConfigModal = false">
-      <div class="modal-dialog">
-        <div class="modal-dialog-title">热点配置</div>
-        <div class="modal-input-group">
-          <label class="input-label">网络名称</label>
-          <input v-model="editHotspotName" type="text" class="modal-text-input" placeholder="输入热点名称" />
-        </div>
-        <div class="modal-input-group">
-          <label class="input-label">安全性</label>
-          <div class="readonly-badge">WPA2/WPA3 个人级</div>
-        </div>
-        <div class="modal-input-group">
-          <label class="input-label">热点密码</label>
-          <input v-model="editHotspotPassword" type="text" class="modal-text-input" placeholder="至少 8 位密码" />
-        </div>
-        <div class="modal-dialog-buttons">
-          <button class="dialog-cancel-btn" @click="showConfigModal = false">取消</button>
-          <button class="dialog-submit-btn" @click="saveHotspotConfig">保存</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 自动关闭热点选择弹窗 -->
+    <!-- 自动关闭选项弹窗 -->
     <div v-if="showAutoOffModal" class="modal-backdrop" @click.self="showAutoOffModal = false">
-      <div class="modal-sheet">
-        <div class="sheet-title">自动关闭热点</div>
+      <div class="modal-dialog">
+        <div class="modal-dialog-title">自动关闭热点</div>
         <div class="options-list">
           <div
             v-for="opt in autoOffOptions"
@@ -219,9 +265,11 @@ defineExpose({ back })
             </svg>
           </div>
         </div>
-        <button class="sheet-cancel-btn" @click="showAutoOffModal = false">取消</button>
+        <button class="dialog-cancel-btn" @click="showAutoOffModal = false">取消</button>
       </div>
     </div>
+
+
 
     <!-- 轻提示 (Toast) -->
     <transition name="toast-fade">
@@ -280,6 +328,75 @@ defineExpose({ back })
   font-weight: 700;
   color: #111;
   letter-spacing: -0.2px;
+}
+
+.confirm-btn {
+  background: rgba(0, 122, 255, 0.08);
+  color: #007AFF;
+}
+
+.confirm-btn:active {
+  background: rgba(0, 122, 255, 0.16);
+}
+
+.input-card {
+  padding: 16px 20px;
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-text-input {
+  border: none;
+  outline: none;
+  font-size: 17px;
+  font-weight: 500;
+  color: #111;
+  width: 100%;
+  background: transparent;
+}
+
+.card-text-input::placeholder {
+  color: #C7C7CC;
+}
+
+.input-clear-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.char-count {
+  font-size: 12px;
+  color: #8E8E93;
+  text-align: right;
+  margin-top: 6px;
+}
+
+.hotspot-config-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  margin-right: 4px;
+}
+
+.config-name-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111;
+}
+
+.config-pwd-text {
+  font-size: 12px;
+  color: #8E8E93;
 }
 
 .hotspot-scroll-body {

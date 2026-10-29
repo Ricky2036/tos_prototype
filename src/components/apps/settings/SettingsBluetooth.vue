@@ -32,28 +32,32 @@ function showToast(msg) {
   }, 2200)
 }
 
+// 视图状态：'main' | 'devDetail'
+const activeSubView = ref('main')
+const targetDev = ref(null)
+
 // 设备重命名弹窗
 const showRenameModal = ref(false)
 const renameInput = ref(network.deviceName)
 
 function openRename() {
-  renameInput.value = network.deviceName
+  renameInput.value = targetDev.value?.name || network.deviceName
   showRenameModal.value = true
 }
 
 function submitRename() {
-  network.setDeviceName(renameInput.value)
+  if (activeSubView.value === 'devDetail' && targetDev.value) {
+    targetDev.value.name = renameInput.value
+  } else {
+    network.setDeviceName(renameInput.value)
+  }
   showRenameModal.value = false
   showToast('已更新设备名称')
 }
 
-// 设备详情弹窗
-const showDevDetailModal = ref(false)
-const targetDev = ref(null)
-
 function openDevDetail(dev) {
   targetDev.value = dev
-  showDevDetailModal.value = true
+  activeSubView.value = 'devDetail'
 }
 
 function handleToggleConnectDev(dev) {
@@ -62,13 +66,13 @@ function handleToggleConnectDev(dev) {
     showToast(`已断开连接 ${dev.name}`)
   } else {
     network.connectBluetoothDevice(dev.id)
-    showToast(`正在连接 ${dev.name}...`)
+    showToast(`已连接 ${dev.name}`)
   }
 }
 
 function handleUnpairDev(dev) {
   network.unpairBluetoothDevice(dev.id)
-  showDevDetailModal.value = false
+  activeSubView.value = 'main'
   showToast(`已取消配对 ${dev.name}`)
 }
 
@@ -92,8 +96,8 @@ function back() {
     showRenameModal.value = false
     return true
   }
-  if (showDevDetailModal.value) {
-    showDevDetailModal.value = false
+  if (activeSubView.value !== 'main') {
+    activeSubView.value = 'main'
     return true
   }
   emit('back')
@@ -105,179 +109,254 @@ defineExpose({ back })
 
 <template>
   <div class="settings-bluetooth-page">
-    <!-- 顶部导航栏 -->
-    <div class="bt-nav-bar">
-      <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <div class="nav-title">蓝牙</div>
-      <button class="nav-round-btn" aria-label="更多选项" @click="showToast('蓝牙高级设置')">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="5" r="1.5" fill="#1C1C1E" />
-          <circle cx="12" cy="12" r="1.5" fill="#1C1C1E" />
-          <circle cx="12" cy="19" r="1.5" fill="#1C1C1E" />
-        </svg>
-      </button>
-    </div>
+    <!-- ================= 1. 全屏二级页：设备详情 (1:1 对齐真机 BluetoothDeviceDetailActivity) ================= -->
+    <template v-if="activeSubView === 'devDetail' && targetDev">
+      <div class="bt-nav-bar">
+        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="activeSubView = 'main'">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="nav-title">设备详情</div>
+        <div class="nav-placeholder"></div>
+      </div>
 
-    <!-- 滚动区域 -->
-    <div class="bt-scroll-body scrollable">
-      <!-- 头部特性大卡片 -->
-      <div class="bt-feature-card">
-        <div class="bt-feature-icon-wrap">
-          <SettingsSystemIcon name="bluetooth" :size="32" />
+      <div class="bt-scroll-body scrollable">
+        <!-- 居中耳机/设备大图标与标题 (实机 1:1) -->
+        <div class="dev-detail-hero">
+          <div class="dev-detail-icon-wrap">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#71717A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+            </svg>
+          </div>
+          <div class="dev-detail-title">{{ targetDev.name }}</div>
+          <div class="dev-detail-status">{{ targetDev.connected ? '已连接' : '已配对' }}</div>
         </div>
-        <div class="bt-feature-title">蓝牙</div>
-        <div class="bt-feature-desc">连接附近的蓝牙设备，并管理连接偏好设置。</div>
 
-        <div class="card-inner-divider"></div>
+        <!-- 取消配对 & 连接/断开 两大独立实体卡片按钮 (实机 1:1) -->
+        <div class="dev-actions-grid">
+          <button class="dev-action-card-btn" @click="handleUnpairDev(targetDev)">
+            <div class="dev-action-btn-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+            </div>
+            <span class="action-card-text">取消配对</span>
+          </button>
+          <button class="dev-action-card-btn" @click="handleToggleConnectDev(targetDev)">
+            <div class="dev-action-btn-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/>
+              </svg>
+            </div>
+            <span class="action-card-text">{{ targetDev.connected ? '断开连接' : '连接' }}</span>
+          </button>
+        </div>
 
-        <!-- 设备名称与开关 -->
-        <div class="card-inner-cells">
-          <ListCell
-            title="设备名称"
-            :value="network.deviceName"
-            chevron
-            clickable
-            @click="openRename"
-          />
-          <ListCell
-            title="蓝牙"
-            last
-          >
+        <!-- 重命名设备卡片 (实机 1:1) -->
+        <div class="settings-card rename-card" @click="openRename">
+          <span class="rename-text">重命名设备</span>
+        </div>
+
+        <!-- 用于卡片 (实机 1:1) -->
+        <div class="group-label">用于</div>
+        <div class="settings-card">
+          <ListCell title="HD 音频">
             <template #right>
-              <ToggleSwitch
-                :model-value="network.bluetoothEnabled"
-                @update:model-value="v => network.setBluetooth(v)"
-                @change="showToast(network.bluetoothEnabled ? '已开启蓝牙' : '已关闭蓝牙')"
-              />
+              <ToggleSwitch :model-value="true" @change="showToast('已更新 HD 音频设置')" />
+            </template>
+          </ListCell>
+          <ListCell title="通话">
+            <template #right>
+              <ToggleSwitch :model-value="false" @change="showToast('已更新通话音频设置')" />
+            </template>
+          </ListCell>
+          <ListCell title="媒体音频">
+            <template #right>
+              <ToggleSwitch :model-value="false" @change="showToast('已更新媒体音频设置')" />
+            </template>
+          </ListCell>
+          <ListCell title="输入设备">
+            <template #right>
+              <ToggleSwitch :model-value="false" @change="showToast('已更新输入设备设置')" />
+            </template>
+          </ListCell>
+          <ListCell title="允许访问通讯录和通话记录">
+            <template #right>
+              <ToggleSwitch :model-value="false" @change="showToast('已更新通讯录权限设置')" />
+            </template>
+          </ListCell>
+          <ListCell title="低功耗蓝牙音频" last>
+            <template #right>
+              <ToggleSwitch :model-value="false" @change="showToast('已更新低功耗蓝牙音频设置')" />
             </template>
           </ListCell>
         </div>
+
+        <div class="bottom-spacer"></div>
+      </div>
+    </template>
+
+    <!-- ================= 2. 蓝牙主界面 ================= -->
+    <template v-else>
+      <div class="bt-nav-bar">
+        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="nav-title">蓝牙</div>
+        <button class="nav-round-btn" aria-label="更多选项" @click="showToast('蓝牙高级设置')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="5" r="1.5" fill="#1C1C1E" />
+            <circle cx="12" cy="12" r="1.5" fill="#1C1C1E" />
+            <circle cx="12" cy="19" r="1.5" fill="#1C1C1E" />
+          </svg>
+        </button>
       </div>
 
-      <template v-if="network.bluetoothEnabled">
-        <!-- 配对新设备入口 -->
-        <div class="settings-card">
-          <div class="pair-new-cell" @click="showToast('正在搜索附近的蓝牙设备...')">
-            <div class="pair-icon-col">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-            </div>
-            <div class="pair-title">配对新设备</div>
-            <div class="cell-arrow">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </div>
+      <!-- 滚动区域 -->
+      <div class="bt-scroll-body scrollable">
+        <!-- 头部特性大卡片 -->
+        <div class="bt-feature-card">
+          <div class="bt-feature-icon-wrap">
+            <SettingsSystemIcon name="bluetooth" :size="32" />
+          </div>
+          <div class="bt-feature-title">蓝牙</div>
+          <div class="bt-feature-desc">连接可用配件进行播放音乐、打电话等活动。</div>
+
+          <div class="card-inner-divider"></div>
+
+          <!-- 设备名称与开关 -->
+          <div class="card-inner-cells">
+            <ListCell
+              title="设备名称"
+              :value="network.deviceName"
+              chevron
+              clickable
+              @click="openRename"
+            />
+            <ListCell
+              title="蓝牙"
+              last
+            >
+              <template #right>
+                <ToggleSwitch
+                  :model-value="network.bluetoothEnabled"
+                  @update:model-value="v => network.setBluetooth(v)"
+                  @change="showToast(network.bluetoothEnabled ? '已开启蓝牙' : '已关闭蓝牙')"
+                />
+              </template>
+            </ListCell>
           </div>
         </div>
 
-        <!-- 分组 1: 已配对设备 -->
-        <div class="group-label">已配对设备</div>
-        <div class="settings-card">
-          <div
-            v-for="(dev, idx) in pairedDevicesList"
-            :key="dev.id"
-            class="paired-cell-row"
-            :class="{ 'no-sep': idx === pairedDevicesList.length - 1 }"
-          >
-            <!-- 设备图标 -->
-            <div class="dev-type-icon">
-              <!-- 耳机 -->
-              <svg v-if="dev.type === 'headphone'" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
-                <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
-              </svg>
-              <!-- 平板 -->
-              <svg v-else-if="dev.type === 'tablet'" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
-                <line x1="12" y1="18" x2="12.01" y2="18"/>
-              </svg>
-              <!-- 手机 -->
-              <svg v-else-if="dev.type === 'phone'" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
-                <line x1="12" y1="18" x2="12.01" y2="18"/>
-              </svg>
-              <!-- 电视 -->
-              <svg v-else-if="dev.type === 'tv'" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="7" width="20" height="15" rx="2" ry="2"/>
-                <polyline points="17 2 12 7 7 2"/>
-              </svg>
-              <!-- 通用蓝牙 -->
-              <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/>
-              </svg>
-            </div>
+        <template v-if="network.bluetoothEnabled">
+          <!-- 分组 1: 已配对设备 (实机 1:1) -->
+          <div class="group-label">已配对设备</div>
+          <div class="settings-card">
+            <div
+              v-for="(dev, idx) in pairedDevicesList"
+              :key="dev.id"
+              class="paired-cell-row"
+              :class="{ 'no-sep': idx === pairedDevicesList.length - 1 }"
+            >
+              <!-- 设备图标 -->
+              <div class="dev-type-icon">
+                <!-- 耳机 -->
+                <svg v-if="dev.type === 'headphone'" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+                  <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+                </svg>
+                <!-- 平板 -->
+                <svg v-else-if="dev.type === 'tablet'" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+                  <line x1="12" y1="18" x2="12.01" y2="18"/>
+                </svg>
+                <!-- 手机 -->
+                <svg v-else-if="dev.type === 'phone'" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                  <line x1="12" y1="18" x2="12.01" y2="18"/>
+                </svg>
+                <!-- 电视 -->
+                <svg v-else-if="dev.type === 'tv'" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="7" width="20" height="15" rx="2" ry="2"/>
+                  <polyline points="17 2 12 7 7 2"/>
+                </svg>
+                <!-- 通用蓝牙 -->
+                <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/>
+                </svg>
+              </div>
 
-            <div class="dev-info-col" @click="handleToggleConnectDev(dev)">
-              <div class="dev-name-text" :class="{ 'connected-name': dev.connected }">{{ dev.name }}</div>
-              <div class="dev-status-sub">{{ dev.connected ? `已连接${dev.battery ? ' · 电量 ' + dev.battery : ''}` : '未连接' }}</div>
-            </div>
+              <div class="dev-info-col" @click="handleToggleConnectDev(dev)">
+                <div class="dev-name-text" :class="{ 'connected-name': dev.connected }">{{ dev.name }}</div>
+                <div class="dev-status-sub">{{ dev.connected ? `已连接${dev.battery ? ' · 电量 ' + dev.battery : ''}` : '已配对' }}</div>
+              </div>
 
-            <div class="dev-gear-btn" @click.stop="openDevDetail(dev)">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <!-- 蓝牙硬件地址卡片 -->
-        <div class="settings-card">
-          <ListCell
-            title="蓝牙地址"
-            :value="btMacAddress"
-            last
-            clickable
-            @click="showToast(`本机蓝牙 MAC 地址：${btMacAddress}`)"
-          />
-        </div>
-
-        <!-- 分组 2: 可用设备 -->
-        <div v-if="network.availableBtDevices.length" class="group-header-with-loader">
-          <div class="group-label-inline">可用设备</div>
-          <div class="scanning-dots">
-            <span class="dot"></span>
-            <span class="dot"></span>
-            <span class="dot"></span>
-          </div>
-        </div>
-
-        <div v-if="network.availableBtDevices.length" class="settings-card">
-          <div
-            v-for="(dev, idx) in network.availableBtDevices"
-            :key="dev.id"
-            class="available-cell-row"
-            :class="{ 'no-sep': idx === network.availableBtDevices.length - 1 }"
-            @click="connectAvailable(dev)"
-          >
-            <div class="dev-type-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/>
-              </svg>
-            </div>
-            <div class="dev-info-col">
-              <div class="dev-name-text">{{ dev.name }}</div>
-            </div>
-            <div class="cell-arrow">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
+              <!-- 右侧独立设置齿轮按钮 (点击直接进入全屏设备详情) -->
+              <div class="dev-gear-btn" @click.stop="openDevDetail(dev)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+              </div>
             </div>
           </div>
-        </div>
-      </template>
 
-      <div class="bottom-spacer"></div>
-    </div>
+          <!-- 蓝牙硬件地址卡片 -->
+          <div class="settings-card">
+            <ListCell
+              title="蓝牙地址"
+              :value="btMacAddress"
+              last
+              clickable
+              @click="showToast(`本机蓝牙 MAC 地址：${btMacAddress}`)"
+            />
+          </div>
 
-    <!-- 弹窗 1: 重命名设备 -->
+          <!-- 分组 2: 可用设备 -->
+          <div v-if="network.availableBtDevices.length" class="group-header-with-loader">
+            <div class="group-label-inline">可用设备</div>
+            <div class="scanning-dots">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          </div>
+
+          <div v-if="network.availableBtDevices.length" class="settings-card">
+            <div
+              v-for="(dev, idx) in network.availableBtDevices"
+              :key="dev.id"
+              class="available-cell-row"
+              :class="{ 'no-sep': idx === network.availableBtDevices.length - 1 }"
+              @click="connectAvailable(dev)"
+            >
+              <div class="dev-type-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/>
+                </svg>
+              </div>
+              <div class="dev-info-col">
+                <div class="dev-name-text">{{ dev.name }}</div>
+              </div>
+              <div class="cell-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <div class="bottom-spacer"></div>
+      </div>
+    </template>
+
+    <!-- 弹窗: 重命名设备 -->
     <div v-if="showRenameModal" class="modal-backdrop" @click.self="showRenameModal = false">
       <div class="modal-dialog">
         <div class="modal-dialog-title">重命名设备</div>
@@ -286,28 +365,6 @@ defineExpose({ back })
           <button class="dialog-cancel-btn" @click="showRenameModal = false">取消</button>
           <button class="dialog-submit-btn" @click="submitRename">保存</button>
         </div>
-      </div>
-    </div>
-
-    <!-- 弹窗 2: 设备详情 -->
-    <div v-if="showDevDetailModal && targetDev" class="modal-backdrop" @click.self="showDevDetailModal = false">
-      <div class="modal-sheet">
-        <div class="sheet-title">{{ targetDev.name }}</div>
-        <div class="dev-detail-actions">
-          <button
-            class="action-row-btn"
-            @click="handleToggleConnectDev(targetDev)"
-          >
-            {{ targetDev.connected ? '断开连接' : '连接此设备' }}
-          </button>
-          <button
-            class="action-row-btn text-danger"
-            @click="handleUnpairDev(targetDev)"
-          >
-            取消配对
-          </button>
-        </div>
-        <button class="sheet-cancel-btn" @click="showDevDetailModal = false">关闭</button>
       </div>
     </div>
 
@@ -697,6 +754,91 @@ defineExpose({ back })
   font-weight: 600;
   border: none;
   cursor: pointer;
+}
+
+/* 设备详情二级全屏样式 (1:1 还原真机) */
+.dev-detail-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 0 16px;
+}
+
+.dev-detail-icon-wrap {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.dev-detail-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 4px;
+}
+
+.dev-detail-status {
+  font-size: 14px;
+  color: #8E8E93;
+}
+
+.dev-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.dev-action-card-btn {
+  background: #FFFFFF;
+  border-radius: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.1s active, background 0.15s;
+}
+
+.dev-action-card-btn:active {
+  background: #F8F9FA;
+  transform: scale(0.98);
+}
+
+.dev-action-btn-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-card-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+}
+
+.rename-card {
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.rename-card:active {
+  background: #F8F9FA;
+}
+
+.rename-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: #007AFF;
 }
 
 .dev-detail-actions {

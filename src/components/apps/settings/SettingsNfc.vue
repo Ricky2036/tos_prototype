@@ -46,13 +46,15 @@ defineExpose({ back })
 
     <!-- 滚动主体内容 -->
     <div class="nfc-scroll-body scrollable">
-      <!-- 头部 NFC 模拟示意图与提示条 -->
+      <!-- 头部 NFC 模拟示意图与提示条 (实机 1:1) -->
       <div class="nfc-banner-card">
-        <div class="nfc-icon-orbit">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 10.5C6 7.46 8.46 5 11.5 5h1C15.54 5 18 7.46 18 10.5v3c0 3.04-2.46 5.5-5.5 5.5h-1C8.46 19 6 16.54 6 13.5v-3z" />
-            <path d="M9 10.5C9 9.12 10.12 8 11.5 8h1C13.88 8 15 9.12 15 10.5v3c0 1.38-1.12 2.5-2.5 2.5h-1C10.12 16 9 14.88 9 13.5v-3z" />
-          </svg>
+        <div class="nfc-phone-graphic">
+          <div class="nfc-phone-body">
+            <div class="nfc-camera-island"></div>
+            <div class="nfc-wave-circle">
+              <span class="nfc-wave-text">NFC</span>
+            </div>
+          </div>
         </div>
         <div class="nfc-banner-desc">将感应区贴近 NFC 设备以使用卡片或支付。</div>
       </div>
@@ -71,15 +73,20 @@ defineExpose({ back })
       </div>
 
       <template v-if="network.nfcEnabled">
-        <!-- 功能选项卡片 -->
+        <!-- 卡片 2: 读卡提醒 (独立卡片，实机 1:1) -->
         <div class="settings-card">
           <ListCell
             title="允许 NFC 读卡提醒"
             :value="network.nfcReadPrompt"
             chevron
+            last
             clickable
             @click="showToast('当前设置：无限制，允许自动识别附近 NFC 标签与卡片')"
           />
+        </div>
+
+        <!-- 卡片 3: 门禁卡与卡包 (独立卡片，实机 1:1) -->
+        <div class="settings-card">
           <ListCell
             title="添加 NFC 门禁卡"
             subtitle="复制门禁卡到手机使用。"
@@ -178,25 +185,64 @@ defineExpose({ back })
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 28px 16px 14px;
+  padding: 24px 16px 8px;
 }
 
-.nfc-icon-orbit {
-  width: 68px;
-  height: 68px;
-  border-radius: 22px;
-  background: rgba(0, 122, 255, 0.1);
+.nfc-phone-graphic {
+  width: 140px;
+  height: 170px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 14px;
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.nfc-phone-body {
+  width: 100px;
+  height: 160px;
+  background: #CBD5E1;
+  border-radius: 20px;
+  position: relative;
+  overflow: visible;
+}
+
+.nfc-camera-island {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 32px;
+  height: 48px;
+  background: #94A3B8;
+  border-radius: 8px;
+}
+
+.nfc-wave-circle {
+  position: absolute;
+  top: 10px;
+  right: -15px;
+  width: 75px;
+  height: 75px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.15);
+}
+
+.nfc-wave-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1D4ED8;
+  letter-spacing: 0.5px;
 }
 
 .nfc-banner-desc {
-  font-size: 14px;
-  color: #8E8E93;
+  font-size: 13px;
+  color: #475569;
   line-height: 1.45;
-  max-width: 260px;
+  max-width: 280px;
 }
 
 .settings-card {
