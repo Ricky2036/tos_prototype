@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useNetworkStore } from '../../../stores/networkStore'
+import { useSubPageNav } from '../../../composables/useSubPageNav'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import SettingsSystemIcon from '../../ui/SettingsSystemIcon.vue'
@@ -20,8 +21,8 @@ function showToast(msg) {
   }, 2200)
 }
 
-// 二级页面视图切换：SIM 1 (中国电信) 详情
-const activeSubView = ref('main') // 'main' | 'sim1Detail' | 'trafficManage'
+// 规范层级切换与导航状态
+const { activeSubView, isBack, openSubView, closeSubView } = useSubPageNav('main')
 
 // 实体卡 1 字段
 const sim1 = network.simCards[0]
@@ -49,8 +50,7 @@ function back() {
     showNetworkTypeModal.value = false
     return true
   }
-  if (activeSubView.value !== 'main') {
-    activeSubView.value = 'main'
+  if (closeSubView()) {
     return true
   }
   emit('back')
@@ -62,16 +62,17 @@ defineExpose({ back })
 
 <template>
   <div class="settings-sim-page">
-    <!-- 1. SIM 1 详情二级页 -->
-    <template v-if="activeSubView === 'sim1Detail'">
-      <div class="sim-nav-bar">
-        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="activeSubView = 'main'">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <div class="nav-title">{{ sim1.name }}</div>
-      </div>
+    <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
+      <!-- 1. SIM 1 详情三级页 -->
+      <div v-if="activeSubView === 'sim1Detail'" key="sim1Detail" class="subpage-view-pane">
+        <div class="sim-nav-bar">
+          <button class="nav-round-btn" aria-label="返回" data-nav-back @click="closeSubView">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="nav-title">{{ sim1.name }}</div>
+        </div>
 
       <div class="sim-scroll-body scrollable">
         <div class="settings-card">
@@ -118,7 +119,7 @@ defineExpose({ back })
             :subtitle="`${sim1.period}期间已使用 ${sim1.dataUsage}`"
             chevron
             clickable
-            @click="activeSubView = 'trafficManage'"
+            @click="openSubView('trafficManage')"
           />
           <ListCell
             title="漫游"
@@ -153,12 +154,12 @@ defineExpose({ back })
 
         <div class="bottom-spacer"></div>
       </div>
-    </template>
+    </div>
 
-    <!-- 2. 全屏二级页：流量管理（实机 1:1 全屏） -->
-    <template v-else-if="activeSubView === 'trafficManage'">
+    <!-- 2. 全屏三级页：流量管理 -->
+    <div v-else-if="activeSubView === 'trafficManage'" key="trafficManage" class="subpage-view-pane">
       <div class="sim-nav-bar">
-        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="activeSubView = 'main'">
+        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="closeSubView">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
             <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -197,10 +198,10 @@ defineExpose({ back })
 
         <div class="bottom-spacer"></div>
       </div>
-    </template>
+    </div>
 
     <!-- 3. SIM 卡与网络设置主页 -->
-    <template v-else>
+    <div v-else key="main" class="subpage-view-pane">
       <div class="sim-nav-bar">
         <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -228,7 +229,7 @@ defineExpose({ back })
             value="+86 181 3884 8993"
             chevron
             clickable
-            @click="activeSubView = 'sim1Detail'"
+            @click="openSubView('sim1Detail')"
           />
           <ListCell
             title="SIM 卡 2"
@@ -332,7 +333,7 @@ defineExpose({ back })
             title="流量管理"
             chevron
             clickable
-            @click="activeSubView = 'trafficManage'"
+            @click="openSubView('trafficManage')"
           />
           <ListCell
             title="网络优化"
@@ -367,7 +368,8 @@ defineExpose({ back })
 
         <div class="bottom-spacer"></div>
       </div>
-    </template>
+    </div>
+  </Transition>
 
     <!-- 首选网络选择弹窗 -->
     <div v-if="showNetworkTypeModal" class="modal-backdrop" @click.self="showNetworkTypeModal = false">
@@ -401,6 +403,8 @@ defineExpose({ back })
 </template>
 
 <style scoped>
+@import '../../../styles/layer-transitions.css';
+
 .settings-sim-page {
   position: absolute;
   inset: 0;

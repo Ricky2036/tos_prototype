@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useNetworkStore } from '../../../stores/networkStore'
 import { useSystemStore } from '../../../stores/systemStore'
+import { useSubPageNav } from '../../../composables/useSubPageNav'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import SettingsSystemIcon from '../../ui/SettingsSystemIcon.vue'
@@ -22,8 +23,8 @@ function showToast(msg) {
   }, 2200)
 }
 
-// 视图状态：'main' | 'quickShare' | 'cast'
-const activeSubView = ref('main')
+// 视图层级管理与动画规范
+const { activeSubView, isBack, openSubView, closeSubView } = useSubPageNav('main')
 
 // 极速互传状态
 const quickShareEnabled = ref(false)
@@ -75,8 +76,7 @@ function back() {
     showVpnModal.value = false
     return true
   }
-  if (activeSubView.value !== 'main') {
-    activeSubView.value = 'main'
+  if (closeSubView()) {
     return true
   }
   emit('back')
@@ -88,17 +88,18 @@ defineExpose({ back })
 
 <template>
   <div class="settings-multi-device-page">
-    <!-- ================= 1. 全屏二级页：极速互传 (实机 1:1) ================= -->
-    <template v-if="activeSubView === 'quickShare'">
-      <div class="md-nav-bar">
-        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="activeSubView = 'main'">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <div class="nav-title">极速互传</div>
-        <div class="nav-placeholder"></div>
-      </div>
+    <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
+      <!-- ================= 1. 全屏三级页：极速互传 ================= -->
+      <div v-if="activeSubView === 'quickShare'" key="quickShare" class="subpage-view-pane">
+        <div class="md-nav-bar">
+          <button class="nav-round-btn" aria-label="返回" data-nav-back @click="closeSubView">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="nav-title">极速互传</div>
+          <div class="nav-placeholder"></div>
+        </div>
 
       <div class="md-scroll-body scrollable">
         <!-- 头部碰一碰传输插画 (实机 1:1) -->
@@ -165,12 +166,12 @@ defineExpose({ back })
 
         <div class="bottom-spacer"></div>
       </div>
-    </template>
+    </div>
 
-    <!-- ================= 2. 全屏二级页：投屏 (实机 1:1) ================= -->
-    <template v-else-if="activeSubView === 'cast'">
+    <!-- ================= 2. 全屏三级页：投屏 ================= -->
+    <div v-else-if="activeSubView === 'cast'" key="cast" class="subpage-view-pane">
       <div class="md-nav-bar">
-        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="activeSubView = 'main'">
+        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="closeSubView">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
             <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -206,10 +207,10 @@ defineExpose({ back })
 
         <div class="bottom-spacer"></div>
       </div>
-    </template>
+    </div>
 
     <!-- ================= 3. 多设备连接主页 ================= -->
-    <template v-else>
+    <div v-else key="main" class="subpage-view-pane">
       <div class="md-nav-bar">
         <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -285,7 +286,7 @@ defineExpose({ back })
             chevron
             last
             clickable
-            @click="activeSubView = 'quickShare'"
+            @click="openSubView('quickShare')"
           />
         </div>
 
@@ -297,7 +298,7 @@ defineExpose({ back })
             :value="network.castEnabled ? '已开启' : '已关闭'"
             chevron
             clickable
-            @click="activeSubView = 'cast'"
+            @click="openSubView('cast')"
           />
           <ListCell
             title="打印"
@@ -338,7 +339,8 @@ defineExpose({ back })
 
         <div class="bottom-spacer"></div>
       </div>
-    </template>
+    </div>
+  </Transition>
 
     <!-- 弹窗 1: USB 用途选择 -->
     <div v-if="showUsbModal" class="modal-backdrop" @click.self="showUsbModal = false">
@@ -415,6 +417,8 @@ defineExpose({ back })
 </template>
 
 <style scoped>
+@import '../../../styles/layer-transitions.css';
+
 .settings-multi-device-page {
   position: absolute;
   inset: 0;

@@ -69,11 +69,15 @@ function handleSaveDeviceName(newName) {
   showToast(`设备名称已更新为：${newName}`)
 }
 
+const isBack = ref(false)
+
 function openSubPage(page) {
+  isBack.value = false
   subPage.value = page
 }
 
 function closeSubPage() {
+  isBack.value = true
   subPage.value = null
 }
 
@@ -83,7 +87,7 @@ function back() {
     return true
   }
   if (subPage.value) {
-    subPage.value = null
+    closeSubPage()
     return true
   }
   emit('back')
@@ -95,7 +99,7 @@ defineExpose({ back })
 
 <template>
   <div class="about-phone-page">
-    <Transition name="page-slide" mode="out-in">
+    <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <!-- ================= 三级页面：MemFusion 融合内存 ================= -->
       <AboutMemFusion
         v-if="subPage === 'memFusion'"
@@ -371,6 +375,8 @@ defineExpose({ back })
 </template>
 
 <style scoped>
+@import '../../../styles/layer-transitions.css';
+
 .about-phone-page {
   height: 100%;
   width: 100%;
@@ -600,21 +606,5 @@ defineExpose({ back })
 .toast-fade-leave-to {
   opacity: 0;
   transform: translate(-50%, 8px);
-}
-
-/* 子页面切换滑动动画 */
-.page-slide-enter-active,
-.page-slide-leave-active {
-  transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.4, 1), opacity 0.28s ease;
-}
-
-.page-slide-enter-from {
-  opacity: 0;
-  transform: translateX(24px);
-}
-
-.page-slide-leave-to {
-  opacity: 0;
-  transform: translateX(-16px);
 }
 </style>

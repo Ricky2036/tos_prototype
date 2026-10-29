@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useNetworkStore } from '../../../stores/networkStore'
+import { useSubPageNav } from '../../../composables/useSubPageNav'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import SettingsSystemIcon from '../../ui/SettingsSystemIcon.vue'
@@ -20,8 +21,8 @@ function showToast(msg) {
   }, 2200)
 }
 
-// 视图状态：'main' | 'config'
-const activeSubView = ref('main')
+// 视图层级管理与动画规范
+const { activeSubView, isBack, openSubView, closeSubView } = useSubPageNav('main')
 
 // 热点配置编辑
 const editHotspotName = ref(network.hotspotName)
@@ -31,7 +32,7 @@ const editHotspotHidden = ref(false)
 function openConfigModal() {
   editHotspotName.value = network.hotspotName
   editHotspotPassword.value = network.hotspotPassword
-  activeSubView.value = 'config'
+  openSubView('config')
 }
 
 function saveHotspotConfig() {
@@ -48,7 +49,7 @@ function saveHotspotConfig() {
     password: editHotspotPassword.value
   })
   showToast('热点配置已更新')
-  activeSubView.value = 'main'
+  closeSubView()
 }
 
 // 自动关闭选项弹窗
@@ -62,8 +63,7 @@ function selectAutoOff(opt) {
 }
 
 function back() {
-  if (activeSubView.value !== 'main') {
-    activeSubView.value = 'main'
+  if (closeSubView()) {
     return true
   }
   if (showAutoOffModal.value) {
@@ -79,22 +79,23 @@ defineExpose({ back })
 
 <template>
   <div class="settings-hotspot-page">
-    <!-- ================= 1. 全屏二级页：WLAN热点设置 (实机 1:1) ================= -->
-    <template v-if="activeSubView === 'config'">
-      <div class="hotspot-nav-bar">
-        <button class="nav-round-btn" aria-label="取消" @click="activeSubView = 'main'">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-        <div class="nav-title">WLAN热点设置</div>
-        <button class="nav-round-btn confirm-btn" aria-label="保存" @click="saveHotspotConfig">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-        </button>
-      </div>
+    <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
+      <!-- ================= 1. 全屏三级页：WLAN热点设置 (实机 1:1) ================= -->
+      <div v-if="activeSubView === 'config'" key="config" class="subpage-view-pane">
+        <div class="hotspot-nav-bar">
+          <button class="nav-round-btn" aria-label="取消" @click="closeSubView">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+          <div class="nav-title">WLAN热点设置</div>
+          <button class="nav-round-btn confirm-btn" aria-label="保存" @click="saveHotspotConfig">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </button>
+        </div>
 
       <div class="hotspot-scroll-body scrollable">
         <div class="group-label">名称</div>
@@ -153,10 +154,10 @@ defineExpose({ back })
 
         <div class="bottom-spacer"></div>
       </div>
-    </template>
+    </div>
 
     <!-- ================= 2. 个人热点主页 (实机 1:1) ================= -->
-    <template v-else>
+    <div v-else key="main" class="subpage-view-pane">
       <div class="hotspot-nav-bar">
         <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -245,7 +246,8 @@ defineExpose({ back })
 
         <div class="bottom-spacer"></div>
       </div>
-    </template>
+    </div>
+  </Transition>
 
     <!-- 自动关闭选项弹窗 -->
     <div v-if="showAutoOffModal" class="modal-backdrop" @click.self="showAutoOffModal = false">
@@ -279,6 +281,8 @@ defineExpose({ back })
 </template>
 
 <style scoped>
+@import '../../../styles/layer-transitions.css';
+
 .settings-hotspot-page {
   position: absolute;
   inset: 0;
