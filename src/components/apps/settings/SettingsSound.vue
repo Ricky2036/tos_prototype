@@ -521,9 +521,9 @@ defineExpose({ back })
 }
 
 .volume-title {
-  font-size: 16px;
-  font-weight: 550;
-  letter-spacing: -0.2px;
+  font-size: 15.5px;
+  font-weight: 500;
+  letter-spacing: -0.15px;
   color: #111111;
 }
 
