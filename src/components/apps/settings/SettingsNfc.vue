@@ -169,11 +169,10 @@ defineExpose({ back })
 .nfc-scroll-body {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px 16px 36px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  scrollbar-width: none;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
 }
 
 .nfc-scroll-body::-webkit-scrollbar {
@@ -186,6 +185,7 @@ defineExpose({ back })
   align-items: center;
   text-align: center;
   padding: 24px 16px 8px;
+  margin-bottom: 14px;
 }
 
 .nfc-phone-graphic {
@@ -250,6 +250,8 @@ defineExpose({ back })
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.04);
+  margin-bottom: 14px;
+  box-sizing: border-box;
 }
 
 .bottom-spacer {

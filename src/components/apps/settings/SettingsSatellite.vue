@@ -188,11 +188,10 @@ defineExpose({ back })
 .satellite-scroll-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px 16px 36px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  scrollbar-width: none;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
 }
 
 .satellite-scroll-content::-webkit-scrollbar {
@@ -209,6 +208,7 @@ defineExpose({ back })
   font-size: 13px;
   color: #007AFF;
   font-weight: 500;
+  margin-bottom: 14px;
 }
 
 .settings-card {
@@ -216,6 +216,8 @@ defineExpose({ back })
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.04);
+  margin-bottom: 14px;
+  box-sizing: border-box;
 }
 
 .guide-card {

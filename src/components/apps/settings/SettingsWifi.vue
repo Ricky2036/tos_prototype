@@ -585,11 +585,10 @@ defineExpose({ back })
 .wifi-scroll-body {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px 16px 36px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  scrollbar-width: none;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
 }
 
 .wifi-scroll-body::-webkit-scrollbar {
@@ -607,6 +606,7 @@ defineExpose({ back })
   border-radius: 18px;
   border: 1px solid rgba(0, 0, 0, 0.04);
   overflow: hidden;
+  margin-bottom: 14px;
 }
 
 .wifi-feature-icon-wrap {
@@ -667,6 +667,7 @@ defineExpose({ back })
   align-items: center;
   text-align: center;
   border: 1px solid rgba(0, 0, 0, 0.04);
+  margin-bottom: 14px;
 }
 
 .entity-header-icon-wrap {
@@ -737,6 +738,8 @@ defineExpose({ back })
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.04);
+  margin-bottom: 14px;
+  box-sizing: border-box;
 }
 
 .group-label {
@@ -744,14 +747,15 @@ defineExpose({ back })
   font-weight: 600;
   color: #8E8E93;
   padding-left: 8px;
-  margin-top: 4px;
+  margin: 16px 0 8px 0;
 }
 
 .group-header-with-loader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 8px 0;
+  padding: 0 8px;
+  margin: 16px 0 8px 0;
 }
 
 .group-label-inline {
