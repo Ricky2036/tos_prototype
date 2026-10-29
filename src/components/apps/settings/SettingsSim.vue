@@ -36,9 +36,6 @@ function selectNetworkType(t) {
   showToast(`首选网络已设为：${t}`)
 }
 
-// 流量管理弹窗
-const showTrafficModal = ref(false)
-
 function toggleDataCard() {
   showToast('当前仅插入一张实体 SIM 卡（中国电信）')
 }
@@ -50,10 +47,6 @@ function toggleCallCard() {
 function back() {
   if (showNetworkTypeModal.value) {
     showNetworkTypeModal.value = false
-    return true
-  }
-  if (showTrafficModal.value) {
-    showTrafficModal.value = false
     return true
   }
   if (activeSubView.value !== 'main') {
@@ -125,7 +118,7 @@ defineExpose({ back })
             :subtitle="`${sim1.period}期间已使用 ${sim1.dataUsage}`"
             chevron
             clickable
-            @click="showTrafficModal = true"
+            @click="activeSubView = 'trafficManage'"
           />
           <ListCell
             title="漫游"
@@ -162,7 +155,51 @@ defineExpose({ back })
       </div>
     </template>
 
-    <!-- 2. SIM 卡与网络设置主页 -->
+    <!-- 2. 全屏二级页：流量管理（实机 1:1 全屏） -->
+    <template v-else-if="activeSubView === 'trafficManage'">
+      <div class="sim-nav-bar">
+        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="activeSubView = 'main'">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="nav-title">流量管理</div>
+      </div>
+
+      <div class="sim-scroll-body scrollable">
+        <div class="settings-card traffic-hero-card">
+          <div class="traffic-circle">
+            <span class="traffic-num">14.28</span>
+            <span class="traffic-unit">GB</span>
+          </div>
+          <div class="traffic-desc">本计费周期已用流量 · 剩余 35.72 GB</div>
+        </div>
+
+        <div class="group-label">套餐与限制</div>
+        <div class="settings-card">
+          <ListCell title="套餐限额" value="50.00 GB" chevron clickable @click="showToast('套餐限额设置：50 GB / 月')" />
+          <ListCell title="流量预警" value="40.00 GB" chevron clickable @click="showToast('已设置流量预警')" />
+          <ListCell title="超出套餐断网" subtitle="当月流量用尽后自动关闭移动数据" last>
+            <template #right>
+              <ToggleSwitch :model-value="false" @change="showToast('已更新自动断网设置')" />
+            </template>
+          </ListCell>
+        </div>
+
+        <div class="group-label">应用数据用量排行</div>
+        <div class="settings-card">
+          <ListCell title="微信" value="5.62 GB" chevron clickable @click="showToast('微信：5.62 GB')" />
+          <ListCell title="抖音" value="4.18 GB" chevron clickable @click="showToast('抖音：4.18 GB')" />
+          <ListCell title="Bilibili" value="2.35 GB" chevron clickable @click="showToast('Bilibili：2.35 GB')" />
+          <ListCell title="浏览器" value="1.12 GB" chevron clickable @click="showToast('浏览器：1.12 GB')" />
+          <ListCell title="系统服务与应用更新" value="1.01 GB" last chevron clickable @click="showToast('系统服务：1.01 GB')" />
+        </div>
+
+        <div class="bottom-spacer"></div>
+      </div>
+    </template>
+
+    <!-- 3. SIM 卡与网络设置主页 -->
     <template v-else>
       <div class="sim-nav-bar">
         <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
@@ -295,7 +332,7 @@ defineExpose({ back })
             title="流量管理"
             chevron
             clickable
-            @click="showTrafficModal = true"
+            @click="activeSubView = 'trafficManage'"
           />
           <ListCell
             title="网络优化"
@@ -354,20 +391,7 @@ defineExpose({ back })
       </div>
     </div>
 
-    <!-- 流量管理弹窗 -->
-    <div v-if="showTrafficModal" class="modal-backdrop" @click.self="showTrafficModal = false">
-      <div class="modal-sheet">
-        <div class="sheet-title">流量管理</div>
-        <div class="traffic-overview-box">
-          <div class="traffic-circle">
-            <span class="traffic-num">14.28</span>
-            <span class="traffic-unit">GB</span>
-          </div>
-          <div class="traffic-desc">本计费周期已用流量（剩余 35.72 GB）</div>
-        </div>
-        <button class="sheet-cancel-btn" @click="showTrafficModal = false">关闭</button>
-      </div>
-    </div>
+
 
     <!-- 轻提示 (Toast) -->
     <transition name="toast-fade">
@@ -447,12 +471,15 @@ defineExpose({ back })
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 24px 16px 12px;
+  padding: 24px 16px 20px;
+  background: #FFFFFF;
+  border-radius: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .sim-feature-icon-wrap {
-  width: 60px;
-  height: 60px;
+  width: 58px;
+  height: 58px;
   border-radius: 18px;
   background: #34C759;
   display: flex;
@@ -460,6 +487,7 @@ defineExpose({ back })
   justify-content: center;
   margin-bottom: 12px;
   box-shadow: 0 4px 12px rgba(52, 199, 89, 0.22);
+  color: #FFFFFF;
 }
 
 .sim-feature-title {
@@ -605,6 +633,14 @@ defineExpose({ back })
   font-weight: 600;
   border: none;
   cursor: pointer;
+}
+
+.traffic-hero-card {
+  padding: 32px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 .traffic-overview-box {
