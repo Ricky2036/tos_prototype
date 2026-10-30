@@ -9,7 +9,11 @@ import LIcon from '../ui/LIcon.vue'
 import backIcon from '../../assets/privacy/back.svg'
 import googleIcon from '../../assets/icons/notification-apps/google.png'
 
-const props = defineProps({ page: {type:String,default:null} })
+const props = defineProps({
+  page: { type: String, default: null },
+  embedded: { type: Boolean, default: false }
+})
+const emit = defineEmits(['back'])
 const privacy = usePrivacyStore()
 const page = computed(() => props.page || privacy.page)
 const scroll = ref(null)
@@ -81,6 +85,10 @@ function back() {
   }
   if (allPermissions.value) {allPermissions.value = false;return}
   if (usagePermission.value) {usagePermission.value = null;return}
+  if (props.embedded) {
+    emit('back')
+    return
+  }
   privacy.page = page.value === 'settings' && privacy.returnPage === 'history' ? 'history' : null
 }
 function setPermission(value) {
@@ -97,6 +105,7 @@ watch(() => page.value, () => {
   scroll.value?.scrollTo({top:0})
 })
 useBackHandler(() => {
+  if (props.embedded) return false
   if (privacy.page === 'detail') return false
   back();return true
 })
@@ -104,10 +113,10 @@ defineExpose({ back, openUsage, openPermission, openManager })
 </script>
 
 <template>
- <div class="privacy-settings-screen" data-testid="privacy-settings-screen" @keydown.esc.stop.prevent="back">
-  <div class="settings-status" aria-hidden="true"></div>
+ <div class="privacy-settings-screen" :class="{ 'is-embedded': embedded }" data-testid="privacy-settings-screen" @keydown.esc.stop.prevent="back">
+  <div v-if="!embedded" class="settings-status" aria-hidden="true"></div>
   <header class="settings-navigation">
-   <button class="settings-back" :aria-label="subpageStack.length?'返回上一页':page==='settings' && privacy.returnPage==='history'?'返回隐私信息中心':'返回桌面'" @click="back"><img :src="backIcon" alt="" width="21" height="21"/></button>
+   <button class="settings-back" :aria-label="subpageStack.length?'返回上一页':page==='settings' && privacy.returnPage==='history'?'返回隐私信息中心':'返回'" @click="back"><img :src="backIcon" alt="" width="21" height="21"/></button>
    <h2>{{ title }}</h2>
    <button v-if="!permissionSheet || managerPermission" class="settings-overflow" aria-label="更多选项" aria-haspopup="menu" :aria-expanded="menuOpen" @click="menuOpen=!menuOpen"><LIcon name="moreVertical" :size="22"/></button>
    <div v-if="menuOpen" class="settings-menu" role="menu" aria-label="更多选项">
@@ -186,6 +195,8 @@ defineExpose({ back, openUsage, openPermission, openManager })
 
 <style scoped>
 .privacy-settings-screen{position:absolute;inset:0;background:#efefef;color:#151515;display:flex;flex-direction:column;font-family:var(--font-stack);overflow:hidden}
+.privacy-settings-screen.is-embedded{position:relative;width:100%;height:100%;z-index:10}
+.privacy-settings-screen.is-embedded .settings-navigation{padding-top:calc(var(--safe-top, 0px) + 8px)}
 .settings-status{height:47px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:7px 24px 0;font-size:15px;font-weight:600;box-sizing:border-box}.settings-status-icons{display:flex;align-items:center;gap:5px}
 .settings-navigation{position:relative;flex:none;display:flex;align-items:center;gap:16px;padding:4px 14px 10px;min-height:45px;box-sizing:border-box}.settings-navigation h2{font-size:21px;font-weight:500;line-height:1.4;margin:0;flex:1}.settings-back{width:36px;height:36px;border:0;border-radius:50%;background:#e5e5e5;display:grid;place-items:center;cursor:pointer}.settings-back img{filter:brightness(0);opacity:.7}.settings-overflow{position:relative;z-index:6;display:grid;place-items:center;width:27px;height:34px;background:none;border:0;color:#fff;cursor:pointer}.settings-menu{position:absolute;right:15px;top:45px;z-index:5;min-width:130px;max-width:calc(100% - 30px);padding:5px 0;border-radius:12px;background:white;box-shadow:0 5px 20px #0003}.settings-menu button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;border:0;background:none;padding:14px 16px;color:#333;text-align:left;white-space:nowrap;font:400 12px/1.4 var(--font-stack);cursor:pointer}.settings-menu button:hover{background:#f2f2f2}.settings-menu-dismiss{position:absolute;inset:0;z-index:3;background:transparent}
 .settings-scroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:none;padding:0 14px 42px;touch-action:pan-y}.settings-scroll::-webkit-scrollbar{display:none}.app-permissions-hero{display:flex;flex-direction:column;align-items:center;padding:32px 0 67px}.app-permissions-hero h3{font-size:20px;font-weight:600;margin:14px 0 0;line-height:1.4}
