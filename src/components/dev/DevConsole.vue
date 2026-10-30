@@ -69,6 +69,8 @@ const i18n = useI18nStore()
 if (typeof window !== 'undefined') {
   window.__clock = clockStore
   window.__recorder = recorderStore
+  window.__system = system
+  window.__os16Store = os16Store
 }
 
 /** 默认布局按「系列」分行：tOS 16 / tOS 17 / EE1，每行同样是 CAMON / NOTE / GT */
@@ -242,7 +244,9 @@ function toggleRecorderIsland() {
   if (recorderStore.isRecording) {
     recorderStore.stopRecording()
   } else {
-    os16Store.closeTemplate()
+    if (os16Store.isTemplateActive(OS16_TEMPLATES.VOICE_RECORDING)) {
+      os16Store.closeTemplate(OS16_TEMPLATES.VOICE_RECORDING)
+    }
     notificationsStore.setIslandEnabled('recorder', true)
     recorderStore.startRecording()
     if (system.activeAppId === 'voicememos') {
@@ -255,7 +259,6 @@ function toggleMediaIsland() {
   if (control.mediaActive) {
     control.dismissMediaImmediately()
   } else {
-    os16Store.closeTemplate()
     notificationsStore.setIslandEnabled('media', true)
     control.mediaActive = true
     control.mediaPlaying = true
@@ -264,8 +267,8 @@ function toggleMediaIsland() {
 
 /* ================= OS16 灵动岛规范模版控制 ================= */
 function selectOs16Template(templateId) {
-  if (os16Store.activeTemplate === templateId) {
-    os16Store.closeTemplate()
+  if (os16Store.isTemplateActive(templateId)) {
+    os16Store.closeTemplate(templateId)
   } else {
     os16Store.activateTemplate(templateId, true)
   }
@@ -779,7 +782,7 @@ function onToggleFineTune(enabled) {
                 <div class="pc-sysapp-grid grid-3">
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.FOOD_DELIVERY }"
+                    :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.FOOD_DELIVERY) }"
                     @click="selectOs16Template(OS16_TEMPLATES.FOOD_DELIVERY)"
                     title="外卖履约灵动岛"
                   >
@@ -788,7 +791,7 @@ function onToggleFineTune(enabled) {
                   </button>
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.RIDE_HAILING }"
+                    :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.RIDE_HAILING) }"
                     @click="selectOs16Template(OS16_TEMPLATES.RIDE_HAILING)"
                     title="网约车接驾灵动岛"
                   >
@@ -797,7 +800,7 @@ function onToggleFineTune(enabled) {
                   </button>
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.NAVIGATION }"
+                    :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.NAVIGATION) }"
                     @click="selectOs16Template(OS16_TEMPLATES.NAVIGATION)"
                     title="地图路线导航灵动岛"
                   >
@@ -813,9 +816,9 @@ function onToggleFineTune(enabled) {
                 <div class="pc-sysapp-grid grid-3">
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.MEDIA_EXTENDED }"
-                    @click="selectOs16Template(OS16_TEMPLATES.MEDIA_EXTENDED)"
-                    title="音乐大卡灵动岛"
+                    :class="{ on: Boolean(control.mediaActive) }"
+                    @click="toggleMediaIsland"
+                    title="音乐播放器灵动岛"
                   >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path :d="GLYPHS.music" />
@@ -824,7 +827,7 @@ function onToggleFineTune(enabled) {
                   </button>
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.TRANSLATION }"
+                    :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.TRANSLATION) }"
                     @click="selectOs16Template(OS16_TEMPLATES.TRANSLATION)"
                     title="实时同声传译灵动岛"
                   >
@@ -833,7 +836,7 @@ function onToggleFineTune(enabled) {
                   </button>
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.SYSTEM_TIP }"
+                    :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.SYSTEM_TIP) }"
                     @click="selectOs16Template(OS16_TEMPLATES.SYSTEM_TIP)"
                     title="系统功能引导灵动岛"
                   >
@@ -876,19 +879,19 @@ function onToggleFineTune(enabled) {
                   <!-- 3. 倒计时 (使用 Figma 原厂沙漏矢量) -->
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.TIMER }"
+                    :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.TIMER) }"
                     @click="selectOs16Template(OS16_TEMPLATES.TIMER)"
                     title="倒计时灵动岛"
                   >
-                    <span class="os16-btn-svg" v-html="OS16_ICONS.timer"></span>
+                    <span class="os16-btn-svg is-timer" v-html="OS16_ICONS.timer"></span>
                     <span>倒计时</span>
                   </button>
 
-                  <!-- 4. 录音 (使用 Figma 原厂声波矢量) -->
+                  <!-- 4. 录音 (与系统录音App及录音灵动岛联动) -->
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.VOICE_RECORDING }"
-                    @click="selectOs16Template(OS16_TEMPLATES.VOICE_RECORDING)"
+                    :class="{ on: recorderStore.isRecording }"
+                    @click="toggleRecorderIsland"
                     title="录音灵动岛"
                   >
                     <span class="os16-btn-svg" v-html="OS16_ICONS.voiceRecording"></span>
@@ -898,7 +901,7 @@ function onToggleFineTune(enabled) {
                   <!-- 5. 录屏 (原屏幕录制，优先使用模版提供的摄像机图标) -->
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.SCREEN_RECORDING }"
+                    :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.SCREEN_RECORDING) }"
                     @click="selectOs16Template(OS16_TEMPLATES.SCREEN_RECORDING)"
                     title="屏幕录制灵动岛"
                   >
@@ -909,7 +912,7 @@ function onToggleFineTune(enabled) {
                   <!-- 6. 快充 (原超级快充，优先使用模版提供的电量闪充图标) -->
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.BATTERY_CHARGING }"
+                    :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.BATTERY_CHARGING) }"
                     @click="selectOs16Template(OS16_TEMPLATES.BATTERY_CHARGING)"
                     title="超级快充灵动岛"
                   >
@@ -920,7 +923,7 @@ function onToggleFineTune(enabled) {
                   <!-- 7. 通话 (原电话通话，优先使用模版提供的接听图标) -->
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.PHONE_CALL }"
+                    :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.PHONE_CALL) }"
                     @click="selectOs16Template(OS16_TEMPLATES.PHONE_CALL)"
                     title="电话通话灵动岛"
                   >
@@ -931,7 +934,7 @@ function onToggleFineTune(enabled) {
                   <!-- 8. 拾音 (原麦克拾音，优先使用模版提供的麦克风图标) -->
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.MICROPHONE }"
+                    :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.MICROPHONE) }"
                     @click="selectOs16Template(OS16_TEMPLATES.MICROPHONE)"
                     title="麦克拾音灵动岛"
                   >
@@ -942,7 +945,7 @@ function onToggleFineTune(enabled) {
                   <!-- 9. 热点 (原个人热点，优先使用模版提供的四重热点电波图标) -->
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.HOTSPOT }"
+                    :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.HOTSPOT) }"
                     @click="selectOs16Template(OS16_TEMPLATES.HOTSPOT)"
                     title="个人热点灵动岛"
                   >
@@ -953,11 +956,11 @@ function onToggleFineTune(enabled) {
                   <!-- 10. 手电筒 (优先使用模版提供的手电金属图标) -->
                   <button
                     class="pc-sysapp-btn"
-                    :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.FLASHLIGHT }"
+                    :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.FLASHLIGHT) }"
                     @click="selectOs16Template(OS16_TEMPLATES.FLASHLIGHT)"
                     title="手电筒灵动岛"
                   >
-                    <span class="os16-btn-svg" v-html="OS16_ICONS.flashlight"></span>
+                    <span class="os16-btn-svg is-flashlight" v-html="OS16_ICONS.flashlight"></span>
                     <span>手电筒</span>
                   </button>
                 </div>
@@ -1356,7 +1359,7 @@ function onToggleFineTune(enabled) {
                         <div class="pc-sysapp-grid grid-3">
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.FOOD_DELIVERY }"
+                            :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.FOOD_DELIVERY) }"
                             @click="selectOs16Template(OS16_TEMPLATES.FOOD_DELIVERY)"
                             title="外卖履约灵动岛"
                           >
@@ -1365,7 +1368,7 @@ function onToggleFineTune(enabled) {
                           </button>
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.RIDE_HAILING }"
+                            :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.RIDE_HAILING) }"
                             @click="selectOs16Template(OS16_TEMPLATES.RIDE_HAILING)"
                             title="网约车接驾灵动岛"
                           >
@@ -1374,7 +1377,7 @@ function onToggleFineTune(enabled) {
                           </button>
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.NAVIGATION }"
+                            :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.NAVIGATION) }"
                             @click="selectOs16Template(OS16_TEMPLATES.NAVIGATION)"
                             title="地图路线导航灵动岛"
                           >
@@ -1390,9 +1393,9 @@ function onToggleFineTune(enabled) {
                         <div class="pc-sysapp-grid grid-3">
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.MEDIA_EXTENDED }"
-                            @click="selectOs16Template(OS16_TEMPLATES.MEDIA_EXTENDED)"
-                            title="音乐大卡灵动岛"
+                            :class="{ on: Boolean(control.mediaActive) }"
+                            @click="toggleMediaIsland"
+                            title="音乐播放器灵动岛"
                           >
                             <svg viewBox="0 0 24 24" aria-hidden="true">
                               <path :d="GLYPHS.music" />
@@ -1401,7 +1404,7 @@ function onToggleFineTune(enabled) {
                           </button>
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.TRANSLATION }"
+                            :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.TRANSLATION) }"
                             @click="selectOs16Template(OS16_TEMPLATES.TRANSLATION)"
                             title="实时同声传译灵动岛"
                           >
@@ -1410,7 +1413,7 @@ function onToggleFineTune(enabled) {
                           </button>
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.SYSTEM_TIP }"
+                            :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.SYSTEM_TIP) }"
                             @click="selectOs16Template(OS16_TEMPLATES.SYSTEM_TIP)"
                             title="系统功能引导灵动岛"
                           >
@@ -1453,19 +1456,19 @@ function onToggleFineTune(enabled) {
                           <!-- 3. 倒计时 (使用 Figma 原厂沙漏矢量) -->
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.TIMER }"
+                            :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.TIMER) }"
                             @click="selectOs16Template(OS16_TEMPLATES.TIMER)"
                             title="倒计时灵动岛"
                           >
-                            <span class="os16-btn-svg" v-html="OS16_ICONS.timer"></span>
+                            <span class="os16-btn-svg is-timer" v-html="OS16_ICONS.timer"></span>
                             <span>倒计时</span>
                           </button>
 
-                          <!-- 4. 录音 (使用 Figma 原厂声波矢量) -->
+                          <!-- 4. 录音 (与系统录音App及录音灵动岛联动) -->
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.VOICE_RECORDING }"
-                            @click="selectOs16Template(OS16_TEMPLATES.VOICE_RECORDING)"
+                            :class="{ on: recorderStore.isRecording }"
+                            @click="toggleRecorderIsland"
                             title="录音灵动岛"
                           >
                             <span class="os16-btn-svg" v-html="OS16_ICONS.voiceRecording"></span>
@@ -1475,7 +1478,7 @@ function onToggleFineTune(enabled) {
                           <!-- 5. 录屏 (原屏幕录制，优先使用模版提供的摄像机图标) -->
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.SCREEN_RECORDING }"
+                            :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.SCREEN_RECORDING) }"
                             @click="selectOs16Template(OS16_TEMPLATES.SCREEN_RECORDING)"
                             title="屏幕录制灵动岛"
                           >
@@ -1486,7 +1489,7 @@ function onToggleFineTune(enabled) {
                           <!-- 6. 快充 (原超级快充，优先使用模版提供的电量闪充图标) -->
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.BATTERY_CHARGING }"
+                            :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.BATTERY_CHARGING) }"
                             @click="selectOs16Template(OS16_TEMPLATES.BATTERY_CHARGING)"
                             title="超级快充灵动岛"
                           >
@@ -1497,7 +1500,7 @@ function onToggleFineTune(enabled) {
                           <!-- 7. 通话 (原电话通话，优先使用模版提供的接听图标) -->
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.PHONE_CALL }"
+                            :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.PHONE_CALL) }"
                             @click="selectOs16Template(OS16_TEMPLATES.PHONE_CALL)"
                             title="电话通话灵动岛"
                           >
@@ -1508,7 +1511,7 @@ function onToggleFineTune(enabled) {
                           <!-- 8. 拾音 (原麦克拾音，优先使用模版提供的麦克风图标) -->
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.MICROPHONE }"
+                            :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.MICROPHONE) }"
                             @click="selectOs16Template(OS16_TEMPLATES.MICROPHONE)"
                             title="麦克拾音灵动岛"
                           >
@@ -1519,7 +1522,7 @@ function onToggleFineTune(enabled) {
                           <!-- 9. 热点 (原个人热点，优先使用模版提供的四重热点电波图标) -->
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.HOTSPOT }"
+                            :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.HOTSPOT) }"
                             @click="selectOs16Template(OS16_TEMPLATES.HOTSPOT)"
                             title="个人热点灵动岛"
                           >
@@ -1530,11 +1533,11 @@ function onToggleFineTune(enabled) {
                           <!-- 10. 手电筒 (优先使用模版提供的手电金属图标) -->
                           <button
                             class="pc-sysapp-btn"
-                            :class="{ on: os16Store.activeTemplate === OS16_TEMPLATES.FLASHLIGHT }"
+                            :class="{ on: os16Store.isTemplateActive(OS16_TEMPLATES.FLASHLIGHT) }"
                             @click="selectOs16Template(OS16_TEMPLATES.FLASHLIGHT)"
                             title="手电筒灵动岛"
                           >
-                            <span class="os16-btn-svg" v-html="OS16_ICONS.flashlight"></span>
+                            <span class="os16-btn-svg is-flashlight" v-html="OS16_ICONS.flashlight"></span>
                             <span>手电筒</span>
                           </button>
                         </div>
@@ -2142,10 +2145,25 @@ function onToggleFineTune(enabled) {
 }
 
 .pc-sysapp-btn svg,
-.pc-sysapp-btn .os16-btn-svg svg {
+.pc-sysapp-btn .os16-btn-svg svg,
+:deep(.pc-sysapp-btn .os16-btn-svg svg) {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
+}
+
+.pc-sysapp-btn .os16-btn-svg.is-timer svg,
+.pc-sysapp-btn .os16-btn-svg.is-timer :deep(svg),
+:deep(.pc-sysapp-btn .os16-btn-svg.is-timer svg) {
+  width: 11px !important;
+  height: 14px !important;
+}
+
+.pc-sysapp-btn .os16-btn-svg.is-flashlight svg,
+.pc-sysapp-btn .os16-btn-svg.is-flashlight :deep(svg),
+:deep(.pc-sysapp-btn .os16-btn-svg.is-flashlight svg) {
+  width: 7px !important;
+  height: 14px !important;
 }
 
 .pc-sysapp-btn img,

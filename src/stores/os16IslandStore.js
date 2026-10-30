@@ -24,8 +24,20 @@ export const OS16_TEMPLATES = {
 }
 
 export const useOs16IslandStore = defineStore('os16Island', () => {
-  // 当前激活的模版 ID（为 null 时不激活）
-  const activeTemplate = ref(null)
+  // 当前激活的所有模版列表（支持多岛共存，最多 4 个）
+  const activeTemplates = ref([])
+
+  // 兼容旧接口：当前首选激活的模版 ID
+  const activeTemplate = computed({
+    get: () => activeTemplates.value[0] || null,
+    set: (val) => {
+      if (!val) {
+        activeTemplates.value = []
+      } else if (!activeTemplates.value.includes(val)) {
+        activeTemplates.value = [val, ...activeTemplates.value.slice(0, 3)]
+      }
+    }
+  })
 
   // 灵动岛是否处于展开大卡片态
   const isExpanded = ref(false)
@@ -227,33 +239,46 @@ export const useOs16IslandStore = defineStore('os16Island', () => {
   }
 
   // 判断是否有 OS16 模版正在展示
-  const hasActiveTemplate = computed(() => activeTemplate.value !== null)
+  const hasActiveTemplate = computed(() => activeTemplates.value.length > 0)
 
-  // 切换或激活模版
+  // 判断指定模版是否处于激活状态
+  function isTemplateActive(templateId) {
+    return activeTemplates.value.includes(templateId)
+  }
+
+  // 切换或激活模版（支持最多 4 个灵动岛共存）
   function activateTemplate(templateId, autoExpand = true) {
-    if (activeTemplate.value === templateId) {
+    const idx = activeTemplates.value.indexOf(templateId)
+    if (idx !== -1) {
       if (!isExpanded.value) {
         isExpanded.value = true
       } else {
-        closeTemplate()
+        closeTemplate(templateId)
       }
       return
     }
-    activeTemplate.value = templateId
+    // 新增模版置于首位（成为当前主活动），最多保留 4 项
+    activeTemplates.value = [templateId, ...activeTemplates.value.filter((id) => id !== templateId).slice(0, 3)]
     if (autoExpand) {
       isExpanded.value = true
     }
   }
 
-  // 关闭模版
-  function closeTemplate() {
-    activeTemplate.value = null
-    isExpanded.value = false
+  // 关闭指定模版或清空全部模版
+  function closeTemplate(templateId = null) {
+    if (templateId) {
+      activeTemplates.value = activeTemplates.value.filter((id) => id !== templateId)
+    } else {
+      activeTemplates.value = []
+    }
+    if (activeTemplates.value.length === 0) {
+      isExpanded.value = false
+    }
   }
 
   // 展开 / 收起切换
   function toggleExpand() {
-    if (!activeTemplate.value) return
+    if (activeTemplates.value.length === 0) return
     isExpanded.value = !isExpanded.value
   }
 
@@ -278,7 +303,9 @@ export const useOs16IslandStore = defineStore('os16Island', () => {
   }
 
   return {
+    activeTemplates,
     activeTemplate,
+    isTemplateActive,
     isExpanded,
     foodDeliveryState,
     rideHailingState,

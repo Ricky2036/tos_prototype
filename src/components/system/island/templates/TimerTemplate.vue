@@ -1,18 +1,66 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { useOs16IslandStore } from '../../../../stores/os16IslandStore'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useOs16IslandStore, OS16_TEMPLATES } from '../../../../stores/os16IslandStore'
+import { useClockStore } from '../../../../stores/clockStore'
 
 import iconTimer from '../../../../assets/island/base/icon_timer.svg'
 
 const store = useOs16IslandStore()
-const isPaused = ref(false)
+const clockStore = useClockStore()
+
+const localSeconds = ref(20)
+const localPaused = ref(false)
+let timerId = null
+
+onMounted(() => {
+  timerId = setInterval(() => {
+    if (!isPaused.value && localSeconds.value > 0) {
+      localSeconds.value--
+    }
+  }, 1000)
+})
+
+onUnmounted(() => {
+  if (timerId) clearInterval(timerId)
+})
+
+const isPaused = computed(() => {
+  if (clockStore.isTimerActive) {
+    return clockStore.timer.status === 'paused'
+  }
+  return localPaused.value
+})
+
+const timerDisplay = computed(() => {
+  if (clockStore.isTimerActive) {
+    return clockStore.formattedTimerIsland
+  }
+  const m = Math.floor(localSeconds.value / 60)
+  const s = localSeconds.value % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+})
+
+const subTextDisplay = computed(() => {
+  return isPaused.value ? '倒计时 · 已暂停' : '倒计时 · 计时中'
+})
 
 function onCancel() {
-  store.closeTemplate()
+  store.closeTemplate(OS16_TEMPLATES.TIMER)
+  if (clockStore.isTimerActive) {
+    clockStore.cancelTimer()
+  }
 }
 
 function onTogglePause() {
-  isPaused.value = !isPaused.value
+  if (clockStore.isTimerActive) {
+    if (clockStore.timer.status === 'running') {
+      clockStore.pauseTimer()
+    } else {
+      clockStore.resumeTimer()
+    }
+  } else {
+    localPaused.value = !localPaused.value
+  }
 }
 </script>
 
@@ -25,8 +73,8 @@ function onTogglePause() {
 
     <!-- 中部动态倒计时排版 -->
     <div class="card-text-col">
-      <div class="main-title">00:20</div>
-      <div class="sub-text">Timer</div>
+      <div class="main-title">{{ timerDisplay }}</div>
+      <div class="sub-text">{{ subTextDisplay }}</div>
     </div>
 
     <!-- 右侧操作按键：取消 + 暂停/继续 (严格 42x42 纯圆，Figma 原厂矢量) -->
@@ -98,20 +146,20 @@ function onTogglePause() {
 
 .main-title {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.25;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.15;
   color: #ffffff;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.3px;
 }
 
 .sub-text {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
   font-size: 12.5px;
   font-weight: 400;
   line-height: 1.25;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.75);
   margin-top: 3px;
   white-space: nowrap;
   overflow: hidden;
