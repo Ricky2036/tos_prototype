@@ -20,8 +20,12 @@ import MicrophoneTemplate from './templates/MicrophoneTemplate.vue'
 import HotspotTemplate from './templates/HotspotTemplate.vue'
 import FlashlightTemplate from './templates/FlashlightTemplate.vue'
 
+const props = defineProps({
+  template: { type: String, default: null }
+})
+
 const os16Store = useOs16IslandStore()
-const currentTemplate = computed(() => os16Store.activeTemplate)
+const currentTemplate = computed(() => props.template || os16Store.activeTemplate)
 </script>
 
 <template>

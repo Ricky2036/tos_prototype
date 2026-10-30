@@ -104,19 +104,20 @@ function onStop() {
 
 .main-title {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.25;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.15;
   color: #ffffff;
-  letter-spacing: -0.2px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
 }
 
 .sub-text {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+  font-size: 12.5px;
   font-weight: 400;
   line-height: 1.25;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.75);
   margin-top: 3px;
   white-space: nowrap;
   overflow: hidden;

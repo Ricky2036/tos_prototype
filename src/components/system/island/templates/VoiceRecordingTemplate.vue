@@ -21,7 +21,7 @@ function onStop() {
     <!-- 中部动态计时排版 -->
     <div class="card-text-col">
       <div class="main-title">29:07</div>
-      <div class="sub-text">Voice Recording...</div>
+      <div class="sub-text">正在录音</div>
     </div>
 
     <!-- 右侧结束操作按键 (严格 42x42 纯圆，Figma 原厂矢量) -->
@@ -77,20 +77,20 @@ function onStop() {
 
 .main-title {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.25;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.15;
   color: #ffffff;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.3px;
 }
 
 .sub-text {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
   font-size: 12.5px;
   font-weight: 400;
   line-height: 1.25;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.75);
   margin-top: 3px;
   white-space: nowrap;
   overflow: hidden;

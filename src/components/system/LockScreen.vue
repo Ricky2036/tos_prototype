@@ -20,6 +20,8 @@ import { clamp, rubberBand, createVelocityTracker } from '../../utils/math'
 import { getNotificationStackLayout } from '../../utils/notificationStack'
 import wallpaper from '../../assets/img/wallpaper-lock.jpg'
 import albumArt from '../../assets/img/album-2.jpg'
+import iconFoodPizza from '../../assets/island/icon_food_pizza.png'
+import iconRideCar from '../../assets/island/icon_ride_car.png'
 
 /**
  * 锁屏（移植自 notificationscreen.tsx）：
@@ -30,6 +32,8 @@ import albumArt from '../../assets/img/album-2.jpg'
  * 上滑解锁：非交互区上滑触发（与展开手势隔离）。
  */
 import MusicPlayerCard from './MusicPlayerCard.vue'
+import OS16TemplateCard from './island/OS16TemplateCard.vue'
+import { useOs16IslandStore, OS16_TEMPLATES } from '../../stores/os16IslandStore.js'
 import LIcon from '../ui/LIcon.vue'
 import IslandCloseModal from '../ui/IslandCloseModal.vue'
 
@@ -41,6 +45,7 @@ const recorder = useRecorderStore()
 const clock = useClockStore()
 const prayer = usePrayerStore()
 const control = useControlStore()
+const os16Store = useOs16IslandStore()
 import { getPresetDepthSubject } from '../../composables/useDepthSegmentation.js'
 const wallpaperStore = useWallpaperStore()
 const { activeActivities } = useActiveActivities()
@@ -125,6 +130,7 @@ const BASE_Y = computed(() => screenHeight.value - 224)
 const PLAYER_HEIGHT = 164
 const NOTIF_SPACING = 98
 const PLAYER_NOTIF_GAP = 8
+const ACTIVITY_NOTIF_GAP = 12
 const PLAYER_START_Y = computed(() => BASE_Y.value - PLAYER_HEIGHT - PLAYER_NOTIF_GAP)
 const ACTIVITY_CARD_HEIGHT = 84
 const ACTIVITY_GAP = 10
@@ -195,21 +201,117 @@ const LOCK_STACK_BACK_ALPHA = 0.80
 const LOCK_STACK_DEPTH_ALPHA = 0.15
 const LOCK_STACK_ALPHA_OVERLAP = 48
 const NATIVE_EXPAND_OFFSET = 0
-const activityBottomY = computed(() => control.mediaActive ? PLAYER_START_Y.value : BASE_Y.value)
-const standaloneActivityCapacity = computed(() => {
-  const available = activityBottomY.value - (CLOCK_TOP + CLOCK_MIN_HEIGHT + SAFE_GAP + 4)
-  return Math.max(0, Math.floor((available + ACTIVITY_GAP) / (ACTIVITY_CARD_HEIGHT + ACTIVITY_GAP)))
+function getActivityHeight(act) {
+  if (!act) return ACTIVITY_CARD_HEIGHT
+  if (act.type === 'os16_template' && act.template) {
+    const t = act.template
+    if (t === OS16_TEMPLATES.FOOD_DELIVERY || t === OS16_TEMPLATES.RIDE_HAILING) return 122
+    if (t === OS16_TEMPLATES.NAVIGATION) return 168
+    if (t === OS16_TEMPLATES.TRANSLATION) return 212
+    if (t === OS16_TEMPLATES.SYSTEM_TIP) return 180
+    if (t === OS16_TEMPLATES.PHONE_CALL || t === OS16_TEMPLATES.MICROPHONE) return 74
+    if (t === OS16_TEMPLATES.HOTSPOT || t === OS16_TEMPLATES.FLASHLIGHT) return 72
+    return 76
+  }
+  return ACTIVITY_CARD_HEIGHT
+}
+
+function getOs16CardClass(tpl) {
+  if (tpl === OS16_TEMPLATES.FOOD_DELIVERY || tpl === OS16_TEMPLATES.RIDE_HAILING) return 'is-os16-progress'
+  if (tpl === OS16_TEMPLATES.NAVIGATION) return 'is-os16-nav'
+  if (tpl === OS16_TEMPLATES.TRANSLATION) return 'is-os16-translation'
+  if (tpl === OS16_TEMPLATES.SYSTEM_TIP) return 'is-os16-system-tip'
+  if (tpl === OS16_TEMPLATES.PHONE_CALL || tpl === OS16_TEMPLATES.MICROPHONE) return 'is-os16-base-74'
+  if (tpl === OS16_TEMPLATES.HOTSPOT || tpl === OS16_TEMPLATES.FLASHLIGHT) return 'is-os16-base-72'
+  return 'is-os16-base-76'
+}
+
+// 独立卡片与活动最底端物理下边界（严禁突破通知最低位置，与底部按键留出舒适呼吸安全间距）
+const maxCardsBottomY = computed(() => {
+  if (control.mediaActive) {
+    return isCollapsed.value
+      ? PLAYER_COLLAPSED_Y.value - PLAYER_NOTIF_GAP
+      : PLAYER_START_Y.value - ACTIVITY_NOTIF_GAP
+  }
+  // 展开态且有普通通知，让出通知展开基准区
+  if (lockNotifs.value.length > 0 && !isCollapsed.value) {
+    return BASE_Y.value - ACTIVITY_NOTIF_GAP
+  }
+  // 最低通知基准底线（与快捷操作按键保持 16px 安全距离，严防遮挡手电筒/相机）
+  return screenHeight.value - LOCK_STACK_BOTTOM_INSET
 })
+
+// 时钟处于极限最小高度时，为灵动岛活动卡片留出的最大垂直空间
+const maxAvailableActivitiesHeight = computed(() => {
+  const minTop = CLOCK_TOP + CLOCK_MIN_HEIGHT + SAFE_GAP
+  return Math.max(0, maxCardsBottomY.value - minTop)
+})
+
+// 计算独立展示灵动岛卡片容量（超出该容量的卡片自动降级参与通知流堆叠）
+const standaloneActivityCapacity = computed(() => {
+  const acts = activeActivities.value
+  if (!acts.length) return 0
+  let usedHeight = 0
+  let count = 0
+  for (let i = 0; i < acts.length; i++) {
+    const cardH = getActivityHeight(acts[i])
+    const needed = (count > 0 ? ACTIVITY_GAP : 0) + cardH
+    if (usedHeight + needed <= maxAvailableActivitiesHeight.value) {
+      usedHeight += needed
+      count++
+    } else {
+      break
+    }
+  }
+  // 若至少有一张卡片，至少保留 1 张独立展示
+  return Math.max(count > 0 ? count : (acts.length > 0 ? 1 : 0), 0)
+})
+
 const standaloneActivities = computed(() => activeActivities.value.slice(0, standaloneActivityCapacity.value))
 const overflowActivities = computed(() => activeActivities.value.slice(standaloneActivityCapacity.value))
+
 const totalActivitiesHeight = computed(() => {
-  const count = standaloneActivities.value.length
-  return count > 0 ? count * (ACTIVITY_CARD_HEIGHT + ACTIVITY_GAP) : 0
+  const acts = standaloneActivities.value
+  if (!acts.length) return 0
+  let h = 0
+  for (let i = 0; i < acts.length; i++) {
+    h += getActivityHeight(acts[i]) + (i > 0 ? ACTIVITY_GAP : 0)
+  }
+  return h
+})
+
+function getActivityOffsetTop(index) {
+  let top = 0
+  const acts = standaloneActivities.value
+  for (let i = 0; i < index && i < acts.length; i++) {
+    top += getActivityHeight(acts[i]) + ACTIVITY_GAP
+  }
+  return top
+}
+
+// 灵动岛卡片增多引起的时钟动态挤压量（当卡片超出全高时钟可用空间时，自动缩小时钟）
+const activityClockSqueeze = computed(() => {
+  const acts = standaloneActivities.value
+  if (!acts.length) return 0
+  const baseAvail = maxCardsBottomY.value - (CLOCK_TOP + CLOCK_MAX_HEIGHT + SAFE_GAP)
+  const overflow = totalActivitiesHeight.value - baseAvail
+  return Math.min(CLOCK_MAX_HEIGHT - CLOCK_MIN_HEIGHT, Math.max(0, overflow))
+})
+
+// 滚动条手势上滑挤压量
+const scrollSqueeze = computed(() => Math.max(0, scrollY.value > 0 ? scrollY.value - HIT_DISTANCE.value : 0))
+// 综合挤压量
+const totalSqueeze = computed(() => Math.min(CLOCK_MAX_HEIGHT - CLOCK_MIN_HEIGHT, activityClockSqueeze.value + scrollSqueeze.value))
+const clockHeight = computed(() => CLOCK_MAX_HEIGHT - totalSqueeze.value)
+const clockProgress = computed(() => {
+  const span = CLOCK_MAX_HEIGHT - CLOCK_MIN_HEIGHT
+  return span > 0 ? Math.min(1, Math.max(0, totalSqueeze.value / span)) : 0
 })
 
 // 折叠态最底端可用基准线：若有通知胶囊则贴紧通知胶囊上方（留12px间距），若无通知则贴紧底部快捷按钮上方
 const COLLAPSED_BOTTOM_Y = computed(() => {
-  return screenHeight.value - (lockItems.value.length > 0 ? 104 : 84)
+  const hasNotifs = lockNotifs.value.length > 0 || overflowActivities.value.length > 0
+  return screenHeight.value - (hasNotifs ? 104 : 84)
 })
 
 // 播放器在折叠态的 Y 坐标：紧贴在折叠底线正上方
@@ -217,34 +319,38 @@ const PLAYER_COLLAPSED_Y = computed(() => {
   return COLLAPSED_BOTTOM_Y.value - PLAYER_HEIGHT
 })
 
-// 活动卡片队列在折叠态的起始 Y 坐标：下沉至最底端；若播放器开启则位于播放器正上方，否则直接沉至折叠底线正上方
+// 活动卡片队列在折叠态的起始 Y 坐标：时钟底边与 maxCardsBottomY 双向约束，绝不遮挡底部按键
 function getActivityCollapsedY(index) {
   const totalH = totalActivitiesHeight.value
-  const bottomY = control.mediaActive
-    ? PLAYER_COLLAPSED_Y.value - PLAYER_NOTIF_GAP
-    : COLLAPSED_BOTTOM_Y.value
-  const idealStart = bottomY - totalH
-  const minStart = clipTop.value + 4
+  const idealStart = maxCardsBottomY.value - totalH
+  const minStart = clipTop.value
   const startY = Math.max(minStart, idealStart)
-  return startY + index * (ACTIVITY_CARD_HEIGHT + ACTIVITY_GAP)
+  return startY + getActivityOffsetTop(index)
 }
+
+// 灵动岛活动队列在展开态的基准起始与底边锚点（固定参考静止时钟高度，决不随滚动挤压动态漂移，彻底消除上滑粘连）
+const activitiesExpandedBaseY = computed(() => {
+  const minTop = CLOCK_TOP + CLOCK_INITIAL_HEIGHT.value + SAFE_GAP + 4
+  const idealStart = maxCardsBottomY.value - totalActivitiesHeight.value
+  return Math.max(minTop, idealStart)
+})
+const activitiesExpandedBaseBottom = computed(() => activitiesExpandedBaseY.value + totalActivitiesHeight.value)
 
 // 活动卡片队列在展开态的起始 Y 坐标：紧贴在音乐播放器上方，随通知队列平滑滚动
 function getActivityStartY(index) {
-  const totalH = totalActivitiesHeight.value
-  const baseY = Math.max(clipTop.value + 4, activityBottomY.value - totalH) + index * (ACTIVITY_CARD_HEIGHT + ACTIVITY_GAP)
+  const baseY = activitiesExpandedBaseY.value + getActivityOffsetTop(index)
   return isCollapsed.value ? getActivityCollapsedY(index) : baseY - scrollOffset.value
 }
 
 // 有独立展示活动时，顶部可用空间需考虑其总高度；溢出活动进入通知堆叠。
 const TOP_WIDGET_START_Y = computed(() => {
   return standaloneActivities.value.length > 0
-    ? activityBottomY.value - totalActivitiesHeight.value
-    : activityBottomY.value
+    ? maxCardsBottomY.value - totalActivitiesHeight.value
+    : maxCardsBottomY.value
 })
-const CLOCK_INITIAL_HEIGHT = computed(() => CLOCK_MAX_HEIGHT)
-const HIT_DISTANCE = computed(() => Math.max(0, TOP_WIDGET_START_Y.value - (CLOCK_TOP + CLOCK_INITIAL_HEIGHT.value) - SAFE_GAP))
-const EXPAND_SCROLL_Y = computed(() => CLOCK_INITIAL_HEIGHT.value - CLOCK_MIN_HEIGHT)
+const CLOCK_INITIAL_HEIGHT = computed(() => CLOCK_MAX_HEIGHT - activityClockSqueeze.value)
+const HIT_DISTANCE = computed(() => Math.max(0, TOP_WIDGET_START_Y.value - (CLOCK_TOP + clockHeight.value) - SAFE_GAP))
+const EXPAND_SCROLL_Y = computed(() => clockHeight.value - CLOCK_MIN_HEIGHT)
 
 /* 锁屏队列最多容纳 6 项；空间不足的灵动岛活动优先进入队列。 */
 const lockNotifs = computed(() => notifications.list.slice(0, 6))
@@ -260,14 +366,52 @@ const lockItems = computed(() => {
 })
 /* 「N 条通知」的 N 与量词语序各语言不同，交给 i18n 拼 */
 const notifCountLabel = computed(() => i18n.t('notifCount')(lockItems.value.length))
+
+function getLockItemHeight(item) {
+  if (!item) return LOCK_CARD_HEIGHT
+  return item.isActivity ? getActivityHeight(item.activity) : LOCK_CARD_HEIGHT
+}
+
+function getLockItemGap(item, nextItem) {
+  if (!nextItem) return 0
+  if (item?.isActivity || nextItem?.isActivity) {
+    return ACTIVITY_NOTIF_GAP
+  }
+  return NOTIF_SPACING - LOCK_CARD_HEIGHT
+}
+
+function getLockItemOffset(index) {
+  const items = lockItems.value
+  let offset = 0
+  for (let k = 0; k < index && k < items.length; k++) {
+    const item = items[k]
+    const nextItem = items[k + 1]
+    offset += getLockItemHeight(item) + getLockItemGap(item, nextItem)
+  }
+  return offset
+}
+
+const totalLockItemsHeight = computed(() => {
+  const items = lockItems.value
+  if (!items.length) return 0
+  let total = 0
+  for (let k = 0; k < items.length; k++) {
+    total += getLockItemHeight(items[k])
+    if (k < items.length - 1) {
+      total += getLockItemGap(items[k], items[k + 1])
+    }
+  }
+  return total
+})
+
 const TARGET_SCROLL_TOP_Y = CLOCK_TOP + CLOCK_MIN_HEIGHT + SAFE_GAP + 4
 const liftDistance = computed(() => Math.max(0, TOP_WIDGET_START_Y.value - TARGET_SCROLL_TOP_Y))
 const overflowDistance = computed(() => {
   if (lockItems.value.length === 0 && standaloneActivities.value.length === 0) return 0
   const totalStackHeight = (control.mediaActive ? (PLAYER_HEIGHT + PLAYER_NOTIF_GAP) : 0)
     + totalActivitiesHeight.value
-    + Math.max(0, lockItems.value.length - 1) * NOTIF_SPACING
-    + (lockItems.value.length > 0 ? LOCK_CARD_HEIGHT : 0)
+    + (standaloneActivities.value.length > 0 && (lockItems.value.length > 0 || control.mediaActive) ? ACTIVITY_NOTIF_GAP : 0)
+    + totalLockItemsHeight.value
   // 滑到最底部时，确保底端卡片完全脱离底部堆叠（高于 bottomThreshold），保留标准间隙，并与快捷按钮保持舒适间距
   const targetBottom = screenHeight.value - LOCK_STACK_BOTTOM_INSET - 10
   return Math.max(0, TOP_WIDGET_START_Y.value + totalStackHeight - targetBottom)
@@ -930,6 +1074,9 @@ function stopActivityInstance(act) {
     clock.resetStopwatch()
   } else if (act.type === 'prayer' || act.id === 'prayer') {
     prayer.closeIsland()
+  } else if (act.type === 'os16_template' || (act.id && String(act.id).startsWith('os16_'))) {
+    const tplId = act.template || String(act.id).replace(/^os16_/, '')
+    os16Store.closeTemplate(tplId)
   }
 }
 
@@ -1149,13 +1296,7 @@ const containerStyle = computed(() => {
   return { opacity: fade }
 })
 
-const squeeze = computed(() => Math.max(0, scrollY.value > 0 ? scrollY.value - HIT_DISTANCE.value : 0))
-const clockHeight = computed(() => Math.max(CLOCK_MIN_HEIGHT, CLOCK_INITIAL_HEIGHT.value - squeeze.value))
-/* 挤压进度 0..1。容器高 / 字号 / ytde 三者由这同一个 p 驱动，保证严格同步。 */
-const clockProgress = computed(() => {
-  const span = CLOCK_INITIAL_HEIGHT.value - CLOCK_MIN_HEIGHT
-  return span > 0 ? Math.min(1, Math.max(0, squeeze.value / span)) : 0
-})
+const squeeze = computed(() => totalSqueeze.value)
 const clockFontSize = computed(() => CLOCK_FONT_MAX + (CLOCK_FONT_MIN - CLOCK_FONT_MAX) * clockProgress.value)
 const clockYtde = computed(() => Math.round(CLOCK_YTDE_MAX + (CLOCK_YTDE_MIN - CLOCK_YTDE_MAX) * clockProgress.value))
 /* y 随字号同步下移，使 ink 顶恒为 CLOCK_INK_TOP_OFFSET（数字顶部固定，不随挤压下沉） */
@@ -1189,10 +1330,15 @@ const glassRect = computed(() => {
 })
 const clipTop = computed(() => CLOCK_TOP + clockHeight.value + SAFE_GAP)
 const scrollOffset = computed(() => scrollY.value)
-const expandedPlayerBaseY = computed(() => Math.max(
-  PLAYER_START_Y.value,
-  clipTop.value + 4 + totalActivitiesHeight.value
-))
+const expandedPlayerBaseY = computed(() => {
+  if (standaloneActivities.value.length > 0) {
+    return Math.max(
+      PLAYER_START_Y.value,
+      activitiesExpandedBaseBottom.value + ACTIVITY_NOTIF_GAP
+    )
+  }
+  return PLAYER_START_Y.value
+})
 const expandedNotificationBaseY = computed(() => {
   if (control.mediaActive) {
     return Math.max(
@@ -1201,7 +1347,7 @@ const expandedNotificationBaseY = computed(() => {
     )
   }
   if (standaloneActivities.value.length > 0) {
-    return Math.max(BASE_Y.value, clipTop.value + 4 + totalActivitiesHeight.value)
+    return Math.max(BASE_Y.value, activitiesExpandedBaseBottom.value + ACTIVITY_NOTIF_GAP)
   }
   return BASE_Y.value
 })
@@ -1213,8 +1359,11 @@ const currentPlayerY = computed(() => {
 })
 function activityCardStyle(index) {
   const y = getActivityStartY(index)
+  const act = standaloneActivities.value[index]
+  const h = getActivityHeight(act)
   return {
     transform: `translate3d(0, ${y}px, 0)`,
+    height: `${h}px`,
     transition: transitionStyle.value,
     zIndex: 190 - index
   }
@@ -1226,17 +1375,16 @@ const transitionStyle = computed(() =>
     : 'none'
 )
 const clipStyle = computed(() => {
-  const sideInset = isCollapsed.value ? -50 : 0
   return {
-    clipPath: `inset(${clipTop.value}px ${sideInset}px -100px ${sideInset}px)`,
-    WebkitClipPath: `inset(${clipTop.value}px ${sideInset}px -100px ${sideInset}px)`,
+    clipPath: `inset(${clipTop.value - 12}px -50px -100px -50px)`,
+    WebkitClipPath: `inset(${clipTop.value - 12}px -50px -100px -50px)`,
     transition: isStateTransitioning.value ? 'clip-path 0.28s cubic-bezier(0.1, 0.9, 0.2, 1)' : 'none',
     pointerEvents: 'none'
   }
 })
 const clockStyle = computed(() => ({
   height: `${clockHeight.value}px`,
-  transition: isStateTransitioning.value ? 'height 0.28s cubic-bezier(0.1, 0.9, 0.2, 1)' : 'none'
+  transition: scrollY.value > 0 ? 'none' : 'height 0.35s cubic-bezier(0.32, 0.72, 0, 1)'
 }))
 const pillStyle = computed(() => ({
   transform: `translateY(${isCollapsed.value ? 0 : 30}px) scale(${isCollapsed.value ? 1 : 0.85})`,
@@ -1246,9 +1394,12 @@ const pillStyle = computed(() => ({
 }))
 
 function getLockNotificationGeometry(i) {
-  const naturalY = expandedNotificationBaseY.value + i * NOTIF_SPACING - scrollY.value
+  const item = lockItems.value[i]
+  const cardH = getLockItemHeight(item)
+  const offset = getLockItemOffset(i)
+  const naturalY = expandedNotificationBaseY.value + offset - scrollY.value
   const layout = getNotificationStackLayout({
-    cardBottom: naturalY + LOCK_CARD_HEIGHT,
+    cardBottom: naturalY + cardH,
     viewportHeight: screenHeight.value,
     bottomInset: LOCK_STACK_BOTTOM_INSET,
     maxVisualOffset: 18,
@@ -1258,12 +1409,13 @@ function getLockNotificationGeometry(i) {
   const bottomThreshold = screenHeight.value - LOCK_STACK_BOTTOM_INSET
   const stackDepthProgress = Math.min(
     1,
-    Math.max(0, (naturalY + LOCK_CARD_HEIGHT - bottomThreshold) / LOCK_STACK_ALPHA_OVERLAP)
+    Math.max(0, (naturalY + cardH - bottomThreshold) / LOCK_STACK_ALPHA_OVERLAP)
   )
   return {
     naturalY,
     visualY,
-    visualBottom: visualY + LOCK_CARD_HEIGHT * layout.scale,
+    visualBottom: visualY + cardH * layout.scale,
+    cardHeight: cardH,
     stackDepthProgress,
     layout
   }
@@ -1314,8 +1466,6 @@ const lockNotificationsLayout = computed(() => {
       opacity = geo.layout.opacity
     }
 
-
-
     // 遮挡检测与完全隐藏处理：
     // 当卡片被前序可见卡片完全遮挡时（底部未超出前序卡片的最大底部），直接隐藏 (opacity = 0, visibility = hidden)
     // 杜绝上拉通知时被完全遮挡的卡片提前透出显示
@@ -1364,8 +1514,11 @@ function notifStyle(i) {
       pointerEvents: 'none'
     }
   }
+  const item = lockItems.value[i]
+  const cardH = item?.isActivity ? getActivityHeight(item.activity) : LOCK_CARD_HEIGHT
   return {
     transform: `translate3d(0, ${itemLayout.yPos}px, 0) scale(${itemLayout.scale})`,
+    height: `${cardH}px`,
     opacity: itemLayout.opacity,
     visibility: itemLayout.opacity === 0 ? 'hidden' : 'visible',
     zIndex: 100 - i,
@@ -1488,6 +1641,7 @@ function notifStyle(i) {
               class="ls-card-front ls-activity-card"
               :class="[
                 `is-${act.type}`,
+                act.type === 'os16_template' ? ['is-os16-template', getOs16CardClass(act.template)] : null,
                 {
                   'is-swiping': isSwipingCard && activeCardId === act.id,
                   'has-swipe-transition': !isSwipingCard && swipedTransitionId === act.id
@@ -1504,8 +1658,13 @@ function notifStyle(i) {
               @touchcancel="onCardTouchCancel($event, act.id)"
               @click="handleActivityCardClick(act)"
             >
+              <!-- 灵动岛 OS16 规范模板卡片 -->
+              <template v-if="act.type === 'os16_template'">
+                <OS16TemplateCard :template="act.template" />
+              </template>
+
               <!-- 闹钟类型 -->
-              <template v-if="act.type === 'alarm'">
+              <template v-else-if="act.type === 'alarm'">
                 <div class="ls-act-icon-wrap icon-alarm" :class="{ 'is-ringing': clock.isAlarmRinging }">
                   <svg class="alarm-activity-icon" width="34" height="34" viewBox="0 0 24 24" aria-hidden="true">
                     <path :d="CLOCK_ICONS.alarm" />
@@ -1652,6 +1811,10 @@ function notifStyle(i) {
           v-for="(item, i) in lockItems"
           :key="item.id"
           class="ls-card-wrapper ls-interact"
+          :class="{
+            'is-activity': item.isActivity,
+            'is-os16-template': item.isActivity && item.activity.type === 'os16_template'
+          }"
           :style="notifStyle(i)"
         >
           <!-- 底层滑动操作按钮 -->
@@ -1711,7 +1874,15 @@ function notifStyle(i) {
           <div
             class="ls-card-front"
             :class="[
-              item.isActivity ? ['ls-activity-card', `is-${item.activity.type}`] : null,
+              item.isActivity
+                ? [
+                    'ls-activity-card',
+                    `is-${item.activity.type}`,
+                    item.activity.type === 'os16_template'
+                      ? ['is-os16-template', getOs16CardClass(item.activity.template)]
+                      : null
+                  ]
+                : null,
               {
                 'is-swiping': isSwipingCard && activeCardId === item.id,
                 'has-swipe-transition': !isSwipingCard && swipedTransitionId === item.id
@@ -1729,29 +1900,142 @@ function notifStyle(i) {
             @click="handleCardClick(item)"
           >
             <template v-if="item.isActivity">
-              <div v-if="item.activity.type === 'alarm'" class="ls-act-icon-wrap icon-alarm" :class="{ 'is-ringing': clock.isAlarmRinging }">
-                <svg class="alarm-activity-icon" width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
-                  <path :d="CLOCK_ICONS.alarm" />
-                </svg>
-              </div>
-              <div v-else-if="item.activity.type === 'recorder'" class="ls-rc-icon-wrap">
-                <div class="ls-rc-audio-bars">
-                  <span class="bar bar-1"></span><span class="bar bar-2"></span><span class="bar bar-3"></span>
-                  <span class="bar bar-main"></span><span class="bar bar-5"></span><span class="bar bar-6"></span><span class="bar bar-7"></span>
+              <!-- 灵动岛 OS16 规范模板卡片：参与堆叠时完整保留原厂卡片布局与交互 -->
+              <template v-if="item.activity.type === 'os16_template'">
+                <OS16TemplateCard :template="item.activity.template" />
+              </template>
+
+              <!-- 闹钟类型 -->
+              <template v-else-if="item.activity.type === 'alarm'">
+                <div class="ls-act-icon-wrap icon-alarm" :class="{ 'is-ringing': clock.isAlarmRinging }">
+                  <svg class="alarm-activity-icon" width="34" height="34" viewBox="0 0 24 24" aria-hidden="true">
+                    <path :d="CLOCK_ICONS.alarm" />
+                  </svg>
                 </div>
-              </div>
-              <div v-else class="ls-act-icon-wrap" :class="`icon-${item.activity.type}`">
-                <svg width="22" height="22" viewBox="0 0 24 24">
-                  <path
-                    :d="item.activity.type === 'timer' ? CLOCK_ICONS.timer : item.activity.type === 'stopwatch' ? CLOCK_ICONS.stopwatch : GLYPHS.moon"
-                    :fill="item.activity.type === 'prayer' ? '#00C853' : '#ff9500'"
-                  />
-                </svg>
-              </div>
-              <div class="ls-rc-info">
-                <div class="ls-overflow-activity-title">{{ item.activity.title }}</div>
-                <div class="ls-rc-sub">{{ item.activity.subtitle }}</div>
-              </div>
+                <div class="ls-rc-info">
+                  <div class="ls-rc-time">{{ item.activity.title }}</div>
+                  <div class="ls-rc-sub">{{ item.activity.subtitle }}</div>
+                </div>
+                <div class="ls-act-ctrls">
+                  <button
+                    class="ls-act-ctrl-btn btn-snooze"
+                    @click.stop="clock.snoozeAlarm()"
+                    :title="clock.isAlarmSnoozing ? '重新延时' : '稍后提醒'"
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+                      <path :d="CLOCK_ICONS.snooze" fill="#fff" />
+                    </svg>
+                  </button>
+                  <button class="ls-act-ctrl-btn btn-cancel" @click.stop="clock.dismissAlarm()" title="关闭">
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.close" fill="#fff" /></svg>
+                  </button>
+                </div>
+              </template>
+
+              <!-- 录音类型 -->
+              <template v-else-if="item.activity.type === 'recorder'">
+                <div class="ls-rc-icon-wrap">
+                  <div class="ls-rc-audio-bars">
+                    <span class="bar bar-1"></span>
+                    <span class="bar bar-2"></span>
+                    <span class="bar bar-3"></span>
+                    <span class="bar bar-main"></span>
+                    <span class="bar bar-5"></span>
+                    <span class="bar bar-6"></span>
+                    <span class="bar bar-7"></span>
+                  </div>
+                </div>
+                <div class="ls-rc-info">
+                  <div class="ls-rc-time">{{ item.activity.title }}</div>
+                  <div class="ls-rc-sub">{{ item.activity.subtitle }}</div>
+                </div>
+                <button class="ls-rc-stop-btn" @click.stop="recorder.stopRecording" title="停止录音">
+                  <div class="ls-rc-stop-square"></div>
+                </button>
+              </template>
+
+              <!-- 定时器类型 -->
+              <template v-else-if="item.activity.type === 'timer'">
+                <div class="ls-act-icon-wrap icon-timer">
+                  <svg width="22" height="22" viewBox="0 0 24 24">
+                    <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
+                  </svg>
+                </div>
+                <div class="ls-rc-info">
+                  <div class="ls-rc-time">{{ item.activity.title }}</div>
+                  <div class="ls-rc-sub">{{ item.activity.subtitle }}</div>
+                </div>
+                <div class="ls-act-ctrls">
+                  <button class="ls-act-ctrl-btn btn-cancel" @click.stop="clock.cancelTimer()" title="取消">
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.close" fill="#fff" /></svg>
+                  </button>
+                  <button
+                    class="ls-act-ctrl-btn btn-action"
+                    @click.stop="clock.timer.status === 'running' ? clock.pauseTimer() : clock.resumeTimer()"
+                    title="暂停/开始"
+                  >
+                    <svg v-if="clock.timer.status === 'running'" width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.pause" fill="#fff" /></svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.play" fill="#fff" /></svg>
+                  </button>
+                </div>
+              </template>
+
+              <!-- 秒表类型 -->
+              <template v-else-if="item.activity.type === 'stopwatch'">
+                <div class="ls-act-icon-wrap icon-stopwatch">
+                  <svg width="22" height="22" viewBox="0 0 24 24">
+                    <path :d="CLOCK_ICONS.stopwatch" fill="#ff9500" />
+                  </svg>
+                </div>
+                <div class="ls-rc-info">
+                  <div class="ls-rc-time">{{ item.activity.title }}</div>
+                  <div class="ls-rc-sub">{{ item.activity.subtitle }}</div>
+                </div>
+                <div class="ls-act-ctrls">
+                  <button
+                    v-if="clock.stopwatch.status === 'running'"
+                    class="ls-act-ctrl-btn btn-cancel"
+                    @click.stop="clock.recordLap()"
+                    title="计次"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.lap" fill="#fff" /></svg>
+                  </button>
+                  <button
+                    v-else
+                    class="ls-act-ctrl-btn btn-cancel"
+                    @click.stop="clock.resetStopwatch()"
+                    title="重置"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.close" fill="#fff" /></svg>
+                  </button>
+                  <button
+                    class="ls-act-ctrl-btn btn-action"
+                    @click.stop="clock.stopwatch.status === 'running' ? clock.pauseStopwatch() : clock.startStopwatch()"
+                    title="暂停/开始"
+                  >
+                    <svg v-if="clock.stopwatch.status === 'running'" width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.pause" fill="#fff" /></svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.play" fill="#fff" /></svg>
+                  </button>
+                </div>
+              </template>
+
+              <!-- 礼拜模式类型 -->
+              <template v-else-if="item.activity.type === 'prayer'">
+                <div class="ls-act-icon-wrap icon-prayer">
+                  <svg width="22" height="22" viewBox="0 0 24 24">
+                    <path :d="GLYPHS.moon" fill="#00C853" />
+                  </svg>
+                </div>
+                <div class="ls-rc-info">
+                  <div class="ls-rc-time">{{ item.activity.title }}</div>
+                  <div class="ls-rc-sub">{{ item.activity.subtitle }}</div>
+                </div>
+                <div class="ls-act-ctrls">
+                  <button class="ls-act-ctrl-btn btn-cancel" @click.stop="prayer.closeIsland()" title="关闭">
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.close" fill="#fff" /></svg>
+                  </button>
+                </div>
+              </template>
             </template>
             <template v-else>
               <NotificationIcon :type="item.raw.iconType" :size="38" />
@@ -2129,9 +2413,23 @@ function notifStyle(i) {
 /* 灵动岛活动卡片深色样式（与灵动岛/通知中心保持一致） */
 .ls-card-front.ls-activity-card,
 .ls-card-front.is-recorder {
-  background: rgba(26, 26, 28, 0.88);
+  background: rgba(26, 26, 28, 0.94);
   border-color: rgba(255, 255, 255, 0.12);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.ls-card-front.ls-activity-card.is-os16-template {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  background: #000000;
+  border: none;
+  border-radius: 28px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+}
+
+.ls-card-wrapper.is-os16-template {
+  border-radius: 28px;
 }
 
 .ls-act-icon-wrap {
@@ -2142,6 +2440,18 @@ function notifStyle(i) {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.ls-notif-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+.ls-notif-car {
+  width: 36px;
+  height: auto;
+  display: block;
 }
 .ls-act-icon-wrap.icon-alarm {
   background: transparent;

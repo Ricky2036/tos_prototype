@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, useId } from 'vue'
 import { useOs16IslandStore } from '../../../../stores/os16IslandStore'
 
 const store = useOs16IslandStore()
@@ -18,6 +18,10 @@ function onSetMode(mode, watt) {
     store.baseTemplateState.batteryWatt = watt
   }
 }
+
+const instanceId = useId()
+const gradId = computed(() => `figma_battery_grad_${instanceId.replace(/:/g, '_')}`)
+const clipId = computed(() => `figma_battery_clip_${instanceId.replace(/:/g, '_')}`)
 </script>
 
 <template>
@@ -27,13 +31,13 @@ function onSetMode(mode, watt) {
       <div class="battery-shell-wrap">
         <svg width="35" height="20" viewBox="207 564 36 20" fill="none">
           <defs>
-            <linearGradient id="figma_battery_grad" x1="208" y1="574" x2="232" y2="574" gradientUnits="userSpaceOnUse">
+            <linearGradient :id="gradId" x1="208" y1="574" x2="238.6" y2="574" gradientUnits="userSpaceOnUse">
               <stop stop-color="#94FF84"/>
               <stop offset="1" stop-color="#09D535"/>
             </linearGradient>
-            <clipPath id="figma_battery_level_clip">
+            <clipPath :id="clipId">
               <!-- 随电量动态变化的裁切区域 -->
-              <rect x="208" y="564" :width="23.8 * (batteryPercent / 100)" height="20" />
+              <rect x="208" y="564" :width="30.613 * (batteryPercent / 100)" height="20" />
             </clipPath>
           </defs>
           <!-- 电池外壳底层 (半透浅灰) -->
@@ -41,8 +45,8 @@ function onSetMode(mode, watt) {
           <!-- 电池正极帽 -->
           <path d="M241.989 572.278C241.995 571.654 241.491 571.145 240.867 571.145H240.014V576.77H240.834C241.45 576.77 241.951 576.273 241.957 575.658L241.989 572.278Z" fill="#ADADAD" fill-opacity="0.35"/>
           <!-- 动态电量填充层 (带双色平滑渐变，受电量百分比裁切) -->
-          <g clip-path="url(#figma_battery_level_clip)">
-            <path d="M231.813 564.786C234.193 564.786 235.384 564.786 236.293 565.249C237.092 565.657 237.742 566.307 238.15 567.107C238.613 568.016 238.613 569.206 238.613 571.586V576.32C238.613 578.7 238.613 579.89 238.15 580.799C237.742 581.599 237.092 582.249 236.293 582.656C235.384 583.12 234.193 583.12 231.813 583.12H214.8C212.42 583.12 211.23 583.12 210.321 582.656C209.521 582.249 208.871 581.599 208.463 580.799C208 579.89 208 578.7 208 576.32V571.586C208 569.206 208 568.016 208.463 567.107C208.871 566.307 209.521 565.657 210.321 565.249C211.23 564.786 212.42 564.786 214.8 564.786H231.813Z" fill="url(#figma_battery_grad)"/>
+          <g :clip-path="`url(#${clipId})`">
+            <path d="M231.813 564.786C234.193 564.786 235.384 564.786 236.293 565.249C237.092 565.657 237.742 566.307 238.15 567.107C238.613 568.016 238.613 569.206 238.613 571.586V576.32C238.613 578.7 238.613 579.89 238.15 580.799C237.742 581.599 237.092 582.249 236.293 582.656C235.384 583.12 234.193 583.12 231.813 583.12H214.8C212.42 583.12 211.23 583.12 210.321 582.656C209.521 582.249 208.871 581.599 208.463 580.799C208 579.89 208 578.7 208 576.32V571.586C208 569.206 208 568.016 208.463 567.107C208.871 566.307 209.521 565.657 210.321 565.249C211.23 564.786 212.42 564.786 214.8 564.786H231.813Z" :fill="`url(#${gradId})`"/>
           </g>
         </svg>
       </div>
