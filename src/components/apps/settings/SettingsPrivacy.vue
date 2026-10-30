@@ -2,8 +2,13 @@
 import { ref } from 'vue'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
+import PrivacySettingsPages from '../../privacy/PrivacySettingsPages.vue'
 
 const emit = defineEmits(['back', 'navigate'])
+const privacyPagesRef = ref(null)
+
+// 页面状态：null 为当前隐私首页，'history' 为隐私信息中心，'settings' 为应用权限管理
+const currentSubpage = ref(null)
 
 // 提示反馈
 const toastText = ref('')
@@ -30,7 +35,27 @@ function toggleMic() {
   showToast(micAccess.value ? '已恢复麦克风访问权限' : '已关闭所有应用的麦克风访问')
 }
 
+function openDashboard() {
+  currentSubpage.value = 'history'
+}
+
+function openAppPermissions() {
+  currentSubpage.value = 'settings'
+}
+
+function closeSubpage() {
+  currentSubpage.value = null
+}
+
 function back() {
+  if (currentSubpage.value) {
+    if (privacyPagesRef.value?.back) {
+      privacyPagesRef.value.back()
+    } else {
+      currentSubpage.value = null
+    }
+    return true
+  }
   emit('back')
   return true
 }
@@ -40,8 +65,19 @@ defineExpose({ back })
 
 <template>
   <div class="settings-privacy-page">
-    <!-- 顶部导航栏 -->
-    <div class="privacy-nav-bar">
+    <!-- 三级页面：嵌入的隐私信息中心 / 应用权限管理 -->
+    <PrivacySettingsPages
+      v-if="currentSubpage"
+      ref="privacyPagesRef"
+      :page="currentSubpage"
+      embedded
+      @back="closeSubpage"
+    />
+
+    <!-- 二级页面：权限与隐私首页 -->
+    <template v-else>
+      <!-- 顶部导航栏 -->
+      <div class="privacy-nav-bar">
       <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
           <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -238,8 +274,8 @@ defineExpose({ back })
       <!-- 分组：权限设置 -->
       <div class="section-title">权限设置</div>
       <div class="privacy-card">
-        <ListCell title="隐私信息中心" subtitle="显示最近使用过权限的应用。" chevron @click="showToast('查看应用权限调用时间线')"/>
-        <ListCell title="应用权限管理" subtitle="管理应用的隐私权限使用行为。" chevron @click="showToast('进入应用权限总览')"/>
+        <ListCell title="隐私信息中心" subtitle="显示最近使用过权限的应用。" chevron @click="openDashboard"/>
+        <ListCell title="应用权限管理" subtitle="管理应用的隐私权限使用行为。" chevron @click="openAppPermissions"/>
         <ListCell title="健康数据共享" subtitle="管理应用对健康数据的访问权限。" chevron @click="showToast('健康数据暂未向第三方授权')"/>
         <ListCell title="位置数据分享方面的更新" subtitle="查看改变了位置数据分享方式的应用。" chevron @click="showToast('无位置数据共享变更记录')"/>
         <ListCell title="特殊应用权限" subtitle="管理应用获取和使用特殊权限。" chevron @click="showToast('管理悬浮窗、修改系统设置等特殊权限')"/>
@@ -295,6 +331,7 @@ defineExpose({ back })
 
       <div class="bottom-spacer"></div>
     </div>
+    </template>
 
     <!-- 交互提示轻吐司 -->
     <Transition name="fade">
