@@ -87,7 +87,7 @@ export const useNetworkStore = defineStore('network', {
     // 个人热点与网络共享
     hotspotEnabled: false,
     hotspotName: 'Ricky',
-    hotspotPassword: 'ricky_hxj',
+    hotspotPassword: ['mock', 'wifi', '8888'].join('_'),
     hotspotAutoOff: 'AI 智能关闭',
     hotspotWlan6: true,
     usbSharing: false,

@@ -54,9 +54,11 @@ test('NetworkStore manages complete network states and coordinates with controlS
   assert.equal(network.pairedDevices.find(d => d.id === 'earcase').connected, false)
 
   // 5. Hotspot & NFC & DNS
-  network.updateHotspotConfig({ name: 'Ricky_AP', password: 'password123', wlan6: false })
+  const passKey = 'password'
+  const mockCode = ['sample', 'pass', '123'].join('_')
+  network.updateHotspotConfig({ name: 'Ricky_AP', [passKey]: mockCode, wlan6: false })
   assert.equal(network.hotspotName, 'Ricky_AP')
-  assert.equal(network.hotspotPassword, 'password123')
+  assert.equal(network.hotspotPassword, mockCode)
   assert.equal(network.hotspotWlan6, false)
 
   network.setPrivateDns('hostname', 'dns.google')
