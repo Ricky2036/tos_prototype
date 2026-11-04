@@ -206,6 +206,8 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Integrate full privacy indicator lifecycle prototype (status bar capsule with 3s auto-collapse, Control Center dynamic capsule, frosted glass alert modal, 24h privacy dashboard donut chart, permission timeline, 3-state permission manager) | `antigravity/lane` | None (locks released) | `f436e54` | `a9b7529` |
 | Merged | Antigravity | Release tOS Prototype 2.5: OS16 Dynamic Island 14 native templates, About Phone tertiary subpages, Network group replica, Privacy center linkage, security gate fixes & asset slimming | `antigravity/lane` | None (locks released) | `7443909` | `07eff26` |
 
+| Review | Workbuddy | Settings group 2 (Infinix AI → 通知与状态栏) second/third-level replication, part 1: restructure Infinix AI list to the real device (4 cards / 15 rows / Fola naming) and build all 14 settings-type third-level pages from a shared config-driven shell, incl. the 智慧翻译 first-entry consent dialog | `workbuddy/lane` | `src/components/apps/settings/SettingsInfinixAI.vue`; `src/components/apps/settings/infinixai/**`; `src/stores/infinixAiSettingsStore.js`; `src/components/apps/settings/SettingsApp.vue` (search index titles only); `tests/infinixAiSettings.test.js`; `tests/settingsInfinixAI.test.js` | `fadc48d` | pending |
+
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
 
