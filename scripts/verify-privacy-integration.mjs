@@ -1,11 +1,18 @@
 import { chromium } from 'playwright'
+import fs from 'node:fs'
+
+// 端口可由命令行覆盖：node scripts/verify-privacy-integration.mjs <port>（默认 5555 = tos-workbuddy canonical）
+const PORT = process.argv[2] || '5555'
+const BASE = `http://127.0.0.1:${PORT}/`
 
 const CHROME =
   process.env.PLAYWRIGHT_CHROME ||
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-const OUT = '/Users/jingzhan.chen/.gemini/antigravity/brain/6849f499-9763-46b6-82ae-ad8c7436a14f/'
+const OUT =
+  process.env.ARTIFACT_DIR || '/tmp/vwork/privacy-integration'
 
 async function run() {
+  fs.mkdirSync(OUT, { recursive: true })
   const browser = await chromium.launch({
     executablePath: CHROME,
     headless: true
@@ -16,8 +23,8 @@ async function run() {
   })
   const page = await ctx.newPage()
 
-  console.log('Navigating to http://127.0.0.1:1111/...')
-  await page.goto('http://127.0.0.1:1111/', { waitUntil: 'networkidle' })
+  console.log(`${'Navigating to'} ${BASE}`)
+  await page.goto(BASE, { waitUntil: 'networkidle' })
   await page.waitForTimeout(1000)
 
   // 1. 解锁手机
@@ -42,7 +49,7 @@ async function run() {
   await page.waitForTimeout(500)
 
   // 截图 1: 状态栏敏感权限提示 (展开状态或胶囊)
-  await page.screenshot({ path: OUT + '01_status_bar_privacy_active.png' })
+  await page.screenshot({ path: OUT + '/01_status_bar_privacy_active.png' })
   console.log('Saved 01_status_bar_privacy_active.png')
 
   // 4. 打开控制中心
@@ -53,7 +60,7 @@ async function run() {
   await page.waitForTimeout(600)
 
   // 截图 2: 控制中心顶部胶囊 (PrivacyCapsule)
-  await page.screenshot({ path: OUT + '02_control_center_privacy_capsule.png' })
+  await page.screenshot({ path: OUT + '/02_control_center_privacy_capsule.png' })
   console.log('Saved 02_control_center_privacy_capsule.png')
 
   // 5. 点击胶囊打开敏感权限使用提醒弹窗 (PrivacyPanel)
@@ -69,7 +76,7 @@ async function run() {
   await page.waitForTimeout(700)
 
   // 截图 3: 敏感权限使用提醒详情弹窗
-  await page.screenshot({ path: OUT + '03_privacy_detail_panel.png' })
+  await page.screenshot({ path: OUT + '/03_privacy_detail_panel.png' })
   console.log('Saved 03_privacy_detail_panel.png')
 
   // 6. 点击近期权限使用情况按钮
@@ -85,7 +92,7 @@ async function run() {
   await page.waitForTimeout(700)
 
   // 截图 4: 隐私信息中心 24 小时权限仪表盘
-  await page.screenshot({ path: OUT + '04_privacy_dashboard.png' })
+  await page.screenshot({ path: OUT + '/04_privacy_dashboard.png' })
   console.log('Saved 04_privacy_dashboard.png')
 
   // 7. 点击相机权限查看时间轴
@@ -97,7 +104,7 @@ async function run() {
   await page.waitForTimeout(700)
 
   // 截图 5: 权限使用时间轴
-  await page.screenshot({ path: OUT + '05_permission_timeline.png' })
+  await page.screenshot({ path: OUT + '/05_permission_timeline.png' })
   console.log('Saved 05_permission_timeline.png')
 
   // 8. 点击管理权限按钮
@@ -109,7 +116,7 @@ async function run() {
   await page.waitForTimeout(700)
 
   // 截图 6: 权限管理应用列表
-  await page.screenshot({ path: OUT + '06_permission_manager.png' })
+  await page.screenshot({ path: OUT + '/06_permission_manager.png' })
   console.log('Saved 06_permission_manager.png')
 
   await browser.close()
