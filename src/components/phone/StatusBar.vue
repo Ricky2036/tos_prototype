@@ -6,17 +6,21 @@ import { useSystemStore } from '../../stores/systemStore'
 import { useRecorderStore } from '../../stores/recorderStore'
 import { useClockStore } from '../../stores/clockStore'
 import { usePrayerStore } from '../../stores/prayerStore'
+import { useOs16IslandStore } from '../../stores/os16IslandStore'
 import { useActiveActivities } from '../../composables/useActiveActivities'
+import { usePrivacyStore } from '../../stores/privacyStore'
 import StatusIcons from '../ui/StatusIcons.vue'
 import LIcon from '../ui/LIcon.vue'
 import { orderedIndicators } from '../../utils/statusBarIndicators'
 
 const { timeShort } = useClock()
+const privacy = usePrivacyStore()
 const control = useControlStore()
 const system = useSystemStore()
 const recorder = useRecorderStore()
 const clockStore = useClockStore()
 const prayerStore = usePrayerStore()
+const os16Store = useOs16IslandStore()
 const { activeActivities, isMediaActive } = useActiveActivities()
 
 /** 锁屏层时隐藏状态栏时间（锁屏有居中大时钟）；在桌面或应用内始终显示状态栏时钟，不受录音等灵动岛活动影响 */
@@ -26,14 +30,14 @@ const hideTime = computed(() => {
 
 /** 判断是否有灵动岛处于活跃展示状态 */
 const hasIsland = computed(() => {
-  return system.baseLayer !== 'lock' && !system.anyOverlayOpen() && (activeActivities.value.length > 0 || isMediaActive.value)
+  return system.baseLayer !== 'lock' && !system.anyOverlayOpen() && (activeActivities.value.length > 0 || isMediaActive.value || os16Store.hasActiveTemplate)
 })
 
 /** 判断灵动岛是否处于大卡片展开状态 */
 const isIslandExpanded = computed(() => {
   return (
     hasIsland.value &&
-    Boolean(clockStore.islandExpanded || recorder.islandExpanded || prayerStore.islandExpanded)
+    Boolean(clockStore.islandExpanded || recorder.islandExpanded || prayerStore.islandExpanded || (os16Store.hasActiveTemplate && os16Store.isExpanded))
   )
 })
 
@@ -166,6 +170,8 @@ watch(
     () => control.cellular,
     () => control.airplane,
     hasIsland,
+    () => privacy.statusExpanded,
+    () => privacy.statusKeys.join(),
     () => activeActivities.value.length
   ],
   () => {
@@ -191,7 +197,16 @@ watch(isIslandExpanded, (expanded) => {
     :style="{ color: light ? '#fff' : '#000' }"
   >
     <span class="sb-time" :style="{ opacity: hideTime || isIslandExpanded ? 0 : 1 }">{{ timeShort }}</span>
-    <div class="sb-right" ref="sbRightRef">
+    <div
+      class="sb-right"
+      ref="sbRightRef"
+      :aria-hidden="privacy.active.length > 0 && privacy.statusExpanded"
+      :style="{
+        visibility: privacy.active.length > 0 && privacy.statusExpanded ? 'hidden' : 'visible',
+        opacity: privacy.active.length > 0 && privacy.statusExpanded ? 0 : 1,
+        transition: privacy.active.length > 0 && privacy.statusExpanded ? 'opacity 180ms ease, visibility 0s linear 180ms' : 'opacity 160ms ease 240ms, visibility 0s linear 240ms'
+      }"
+    >
       <!-- 功能指示器：按优先级从右往左排，低优先级在摄像头/灵动岛挤压时先隐藏 -->
       <div class="sb-indicators">
         <LIcon

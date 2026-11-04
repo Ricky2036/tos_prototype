@@ -117,9 +117,11 @@ const doneAction = computed(() => am(mate.printKind === 'ar' ? 'printer.tryAr' :
 const arTrack = ref(null)
 const trimLeftPct = computed(() => (mate.arTrimStart / AR_VIDEO.duration) * 100)
 const trimRightPct = computed(() => (mate.arTrimEnd / AR_VIDEO.duration) * 100)
+let cleanupTrimDrag = null
 function dragTrim(which, e) {
   const el = arTrack.value
   if (!el) return
+  if (cleanupTrimDrag) cleanupTrimDrag()
   const rect = el.getBoundingClientRect()
   const move = (ev) => {
     const x = Math.max(0, Math.min(rect.width, ev.clientX - rect.left))
@@ -130,9 +132,13 @@ function dragTrim(which, e) {
   const up = () => {
     window.removeEventListener('pointermove', move)
     window.removeEventListener('pointerup', up)
+    window.removeEventListener('pointercancel', up)
+    cleanupTrimDrag = null
   }
+  cleanupTrimDrag = up
   window.addEventListener('pointermove', move)
   window.addEventListener('pointerup', up)
+  window.addEventListener('pointercancel', up)
   move(e)
 }
 /** 归档时间轴刻度写法：`00:04` */
@@ -191,6 +197,7 @@ function triggerShutter() {
 }
 
 onBeforeUnmount(() => {
+  if (cleanupTrimDrag) cleanupTrimDrag()
   clearInterval(printTicker)
   clearTimeout(queueTimer)
   clearInterval(fwTimer)

@@ -158,9 +158,21 @@ function clampScale(v, min, max) {
   return Math.min(max, Math.max(min, n))
 }
 
-function loadStorageOverrides() {
+function getSafeStorage() {
   try {
-    const raw = localStorage.getItem('aurora_cc_fine_tuning')
+    if (typeof window !== 'undefined' && window.localStorage) return window.localStorage
+    const desc = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+    return desc?.value?.getItem ? desc.value : null
+  } catch {
+    return null
+  }
+}
+
+function loadStorageOverrides() {
+  const storage = getSafeStorage()
+  if (!storage) return { icons: {}, bgs: {} }
+  try {
+    const raw = storage.getItem('aurora_cc_fine_tuning')
     if (raw) {
       const parsed = JSON.parse(raw)
       return {
@@ -176,8 +188,10 @@ function loadStorageOverrides() {
 }
 
 function loadStoredDefaults() {
+  const storage = getSafeStorage()
+  if (!storage) return { icons: {}, bgs: {} }
   try {
-    const raw = localStorage.getItem('aurora_cc_custom_defaults')
+    const raw = storage.getItem('aurora_cc_custom_defaults')
     if (raw) {
       const parsed = JSON.parse(raw)
       return {
@@ -581,7 +595,7 @@ export const useControlStore = defineStore('control', {
       }
 
       try {
-        localStorage.setItem('aurora_cc_custom_defaults', JSON.stringify({
+        getSafeStorage()?.setItem('aurora_cc_custom_defaults', JSON.stringify({
           icons: this.customDefaultIconSizes,
           bgs: this.customDefaultBgSizes
         }))
@@ -648,7 +662,7 @@ export const useControlStore = defineStore('control', {
       this.bgSizeOverrides = {}
       // 持久化
       try {
-        localStorage.setItem('aurora_cc_custom_defaults', JSON.stringify({
+        getSafeStorage()?.setItem('aurora_cc_custom_defaults', JSON.stringify({
           icons: this.customDefaultIconSizes,
           bgs: this.customDefaultBgSizes
         }))
@@ -659,9 +673,9 @@ export const useControlStore = defineStore('control', {
       // 退出微调模式
       this.fineTuningMode = false
     },
-    saveFineTuning() {
+      saveFineTuning() {
       try {
-        localStorage.setItem('aurora_cc_fine_tuning', JSON.stringify({
+        getSafeStorage()?.setItem('aurora_cc_fine_tuning', JSON.stringify({
           icons: this.iconSizeOverrides,
           bgs: this.bgSizeOverrides,
           gridScale: this.gridScale

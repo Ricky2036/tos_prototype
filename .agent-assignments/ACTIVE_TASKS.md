@@ -201,6 +201,11 @@ Only the integration owner edits this table. Remove or mark a row complete after
 > plus `.pc-duo-row > .pc-duo-item`). Teeth tests: 5 negative controls, all red. 6 scripts now green,
 > 59 PASS / 0 FAIL.
 
+| Merged | Antigravity | Correct clock edit button visibility, replace photo favorite icon with pure heart, and bind sharesheet to global navigation bar | `antigravity/lane` | None (locks released) | `2b6d45c` | `ad06b92` |
+| Merged | Antigravity | Real-device Settings secondary pages replication (About phone, SIM & networks, Bluetooth, Starlink, Infinix AI suite, Security & Privacy 13px rounded cards & palette, One-Tap midframe track carousel, Accessibility vector icons, Battery desktop app rankings, Display, Sound & vibration) | `antigravity/lane` | None (locks released) | `ad06b92` | `f436e54` |
+| Merged | Antigravity | Integrate full privacy indicator lifecycle prototype (status bar capsule with 3s auto-collapse, Control Center dynamic capsule, frosted glass alert modal, 24h privacy dashboard donut chart, permission timeline, 3-state permission manager) | `antigravity/lane` | None (locks released) | `f436e54` | `a9b7529` |
+| Merged | Antigravity | Release tOS Prototype 2.5: OS16 Dynamic Island 14 native templates, About Phone tertiary subpages, Network group replica, Privacy center linkage, security gate fixes & asset slimming | `antigravity/lane` | None (locks released) | `7443909` | `07eff26` |
+
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
 

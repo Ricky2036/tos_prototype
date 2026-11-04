@@ -12,7 +12,13 @@ import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import LIcon from '../ui/LIcon.vue'
 import IslandCloseModal from '../ui/IslandCloseModal.vue'
 import MusicPlayerCard from './MusicPlayerCard.vue'
+import OS16TemplateCard from './island/OS16TemplateCard.vue'
+import { useOs16IslandStore, OS16_TEMPLATES } from '../../stores/os16IslandStore'
 import albumCover from '../../assets/icons/album_cover.png'
+import iconFoodPizza from '../../assets/island/icon_food_pizza.png'
+import iconRideCar from '../../assets/island/icon_ride_car.png'
+import coverEternalSunshine from '../../assets/island/cover_eternal_sunshine.png'
+import thumbThreeFinger from '../../assets/island/thumb_three_finger.png'
 
 const prayerStore = usePrayerStore()
 const recorderStore = useRecorderStore()
@@ -21,6 +27,7 @@ const system = useSystemStore()
 const i18n = useI18nStore()
 const notificationsStore = useNotificationsStore()
 const control = useControlStore()
+const os16Store = useOs16IslandStore()
 const mediaIslandExpanded = ref(false)
 
 if (typeof window !== 'undefined') {
@@ -57,6 +64,7 @@ const isMediaActive = computed(() => {
 /* 是否有任意灵动岛活动 */
 const hasAnyIsland = computed(() => {
   return (
+    os16Store.hasActiveTemplate ||
     isAlarmActive.value ||
     isRecorderActive.value ||
     isTimerActive.value ||
@@ -66,16 +74,40 @@ const hasAnyIsland = computed(() => {
   )
 })
 
-/* 活跃项列表，按优先级排序：Alarm > Timer > Stopwatch > Recorder > Media > Prayer */
+/* 判断是否为 OS16 灵动岛规范模板项 */
+function isOs16Item(item) {
+  return typeof item === 'string' && (item.startsWith('os16_') || item === 'os16_template')
+}
+
+/* 提取 OS16 模版名称 */
+function getOs16TemplateName(item) {
+  if (!isOs16Item(item)) return null
+  return item === 'os16_template' ? os16Store.activeTemplate : item.replace('os16_', '')
+}
+
+function getOs16CardClass(t) {
+  if (t === OS16_TEMPLATES.FOOD_DELIVERY || t === OS16_TEMPLATES.RIDE_HAILING) return 'is-os16-progress'
+  if (t === OS16_TEMPLATES.NAVIGATION) return 'is-os16-nav'
+  if (t === OS16_TEMPLATES.TRANSLATION) return 'is-os16-translation'
+  if (t === OS16_TEMPLATES.SYSTEM_TIP) return 'is-os16-system-tip'
+  if (t === OS16_TEMPLATES.PHONE_CALL || t === OS16_TEMPLATES.MICROPHONE) return 'is-os16-base-74'
+  if (t === OS16_TEMPLATES.HOTSPOT || t === OS16_TEMPLATES.FLASHLIGHT) return 'is-os16-base-72'
+  return 'is-os16-base-76'
+}
+
+/* 活跃项列表，按优先级排序，最多支持 4 项活动同时显示 */
 const activeList = computed(() => {
   const list = []
+  for (const tpl of os16Store.activeTemplates) {
+    list.push(`os16_${tpl}`)
+  }
   if (isAlarmActive.value) list.push('alarm')
-  if (isTimerActive.value) list.push('timer')
+  if (isTimerActive.value && !os16Store.isTemplateActive(OS16_TEMPLATES.TIMER)) list.push('timer')
   if (isStopwatchActive.value) list.push('stopwatch')
-  if (isRecorderActive.value) list.push('recorder')
+  if (isRecorderActive.value && !os16Store.isTemplateActive(OS16_TEMPLATES.VOICE_RECORDING)) list.push('recorder')
   if (isMediaActive.value) list.push('media')
   if (isPrayerActive.value) list.push('prayer')
-  return list
+  return list.slice(0, 4)
 })
 
 /* 主卡片与副卡片列表：最多支持 4 项活动同时展示 */
@@ -86,6 +118,7 @@ const subActiveItems = computed(() => activeList.value.slice(1, 4))
 const isExpanded = computed({
   get() {
     return (
+      (os16Store.hasActiveTemplate ? os16Store.isExpanded : false) ||
       (isAlarmActive.value || isTimerActive.value || isStopwatchActive.value ? clockStore.islandExpanded : false) ||
       (isRecorderActive.value ? recorderStore.islandExpanded : false) ||
       (isPrayerActive.value ? prayerStore.islandExpanded : false) ||
@@ -93,11 +126,41 @@ const isExpanded = computed({
     )
   },
   set(val) {
+    if (os16Store.hasActiveTemplate) {
+      os16Store.isExpanded = val
+    }
     clockStore.islandExpanded = val
     recorderStore.islandExpanded = val
     prayerStore.islandExpanded = val
     mediaIslandExpanded.value = val
   }
+})
+
+const os16CardClass = computed(() => {
+  if (!isOs16Item(primaryActiveItem.value)) return ''
+  const t = getOs16TemplateName(primaryActiveItem.value)
+  return getOs16CardClass(t)
+})
+
+function getOs16CapsuleText(t) {
+  if (t === OS16_TEMPLATES.FOOD_DELIVERY) return '8:30'
+  if (t === OS16_TEMPLATES.RIDE_HAILING) return '35m'
+  if (t === OS16_TEMPLATES.NAVIGATION) return '6km'
+  if (t === OS16_TEMPLATES.TRANSLATION) return '英/中'
+  if (t === OS16_TEMPLATES.SYSTEM_TIP) return '三指'
+  if (t === OS16_TEMPLATES.SCREEN_RECORDING) return os16Store.baseTemplateState.screenRecordingTime
+  if (t === OS16_TEMPLATES.BATTERY_CHARGING) return `${os16Store.baseTemplateState.batteryPercent}%`
+  if (t === OS16_TEMPLATES.PHONE_CALL) return '00:48'
+  if (t === OS16_TEMPLATES.HOTSPOT) return '3m'
+  if (t === OS16_TEMPLATES.FLASHLIGHT) return os16Store.baseTemplateState.isFlashlightOn ? '开' : '关'
+  if (t === OS16_TEMPLATES.MICROPHONE) return '拾音中'
+  if (t === OS16_TEMPLATES.TIMER) return '00:15'
+  if (t === OS16_TEMPLATES.VOICE_RECORDING) return '01:28'
+  return 'OS16'
+}
+
+const os16CapsuleText = computed(() => {
+  return getOs16CapsuleText(getOs16TemplateName(primaryActiveItem.value))
 })
 
 /* 当切换 App 或退出到桌面时，默认收起至紧凑胶囊态 */
@@ -173,7 +236,9 @@ watch(isExpanded, (expanded) => {
 
 function stopActivityInstance(type) {
   if (!type) return
-  if (type === 'alarm') {
+  if (isOs16Item(type)) {
+    os16Store.closeTemplate(getOs16TemplateName(type))
+  } else if (type === 'alarm') {
     clockStore.dismissAlarm()
   } else if (type === 'recorder') {
     recorderStore.stopRecording()
@@ -184,7 +249,7 @@ function stopActivityInstance(type) {
   } else if (type === 'prayer') {
     prayerStore.closeIsland()
   } else if (type === 'media') {
-    control.mediaPlaying = false
+    control.dismissMediaImmediately()
   }
 }
 
@@ -359,7 +424,10 @@ function handleCardClick(item) {
     swipeOffsets.value = next
     return
   }
-  if (item === 'alarm') {
+  if (isOs16Item(item)) {
+    isExpanded.value = false
+    os16Store.isExpanded = false
+  } else if (item === 'alarm') {
     openClockTab('alarm')
   } else if (item === 'timer') {
     openClockTab('timer')
@@ -397,6 +465,9 @@ function onSubcardBeforeLeave(el) {
 /* 点击背景遮罩收起 */
 function handleCloseBackdrop() {
   isExpanded.value = false
+  if (os16Store.hasActiveTemplate) {
+    os16Store.isExpanded = false
+  }
   swipeOffsets.value = {}
 }
 
@@ -441,18 +512,114 @@ function handleClosePrayer(e) {
     <!-- 1. 主灵动岛实体：在 compact 胶囊与 expanded 大圆角矩形之间做连续流体无缝变形 -->
     <div
       class="island-card"
-      :class="{
-        'is-expanded': isExpanded,
-        'is-compact': !isExpanded,
-        'is-media': isExpanded && primaryActiveItem === 'media'
-      }"
+      :class="[
+        {
+          'is-expanded': isExpanded,
+          'is-compact': !isExpanded,
+          'is-media': isExpanded && primaryActiveItem === 'media'
+        },
+        os16CardClass
+      ]"
       @click="handlePrimaryCardClick"
     >
       <!-- ================= 1.1 收起态图层（顶部胶囊） ================= -->
       <div class="morph-layer compact-layer">
         <div class="cc-left">
+          <!-- OS16 规范模版收起态图标（杜绝任何 Emoji，采用原版切图与矢量） -->
+          <template v-if="isOs16Item(primaryActiveItem)">
+            <img
+              v-if="getOs16TemplateName(primaryActiveItem) === OS16_TEMPLATES.FOOD_DELIVERY"
+              :src="iconFoodPizza"
+              class="os16-mini-hifi-avatar"
+              alt="Pizza"
+            />
+            <img
+              v-else-if="getOs16TemplateName(primaryActiveItem) === OS16_TEMPLATES.RIDE_HAILING"
+              :src="iconRideCar"
+              class="os16-mini-hifi-car"
+              alt="Car"
+            />
+            <svg
+              v-else-if="getOs16TemplateName(primaryActiveItem) === OS16_TEMPLATES.NAVIGATION"
+              width="17"
+              height="17"
+              viewBox="857.5 608 22 22"
+              fill="none"
+              style="overflow: visible;"
+            >
+              <path d="M868.6 609.778C873.693 609.778 877.822 613.907 877.822 619C877.822 624.093 873.693 628.222 868.6 628.222C863.506 628.222 859.377 624.093 859.377 619C859.377 613.907 863.506 609.778 868.6 609.778Z" fill="#0060EA" stroke="white" stroke-width="1.5"/>
+              <path d="M874.755 618.97L864.744 614.838L866.448 618.984L864.688 623.073L874.755 618.97Z" fill="white"/>
+            </svg>
+            <svg
+              v-else-if="getOs16TemplateName(primaryActiveItem) === OS16_TEMPLATES.TRANSLATION"
+              width="16"
+              height="16"
+              viewBox="1545 564 34 32"
+              fill="none"
+              style="overflow: visible;"
+            >
+              <path d="M1560 570.667C1561.47 570.667 1562.67 571.861 1562.67 573.333V580C1562.67 581.472 1561.47 582.667 1560 582.667C1558.53 582.667 1557.33 581.472 1557.33 580V573.333C1557.33 571.861 1558.53 570.667 1560 570.667Z" fill="#0091FF"/>
+              <path d="M1552.64 582.127C1554.43 586.438 1558.74 589.333 1563.74 589.333C1568.74 589.333 1573.05 586.438 1574.84 582.127" stroke="#0091FF" stroke-width="2.67" stroke-linecap="round"/>
+              <path d="M1563.74 589.333V593.333" stroke="#0091FF" stroke-width="2.67" stroke-linecap="round"/>
+            </svg>
+            <img
+              v-else-if="getOs16TemplateName(primaryActiveItem) === OS16_TEMPLATES.SYSTEM_TIP"
+              :src="thumbThreeFinger"
+              class="os16-mini-hifi-tip"
+              alt="Tip"
+            />
+            <svg v-else-if="getOs16TemplateName(primaryActiveItem) === OS16_TEMPLATES.SCREEN_RECORDING" width="18" height="12" viewBox="209 264 32 20" fill="none">
+              <path d="M227.095 264.227C227.893 264.227 228.556 264.227 229.098 264.271C229.662 264.317 230.188 264.417 230.683 264.67L230.824 264.745C231.523 265.136 232.091 265.727 232.455 266.442L232.501 266.535C232.72 267.002 232.809 267.497 232.853 268.026C232.893 268.525 232.896 269.128 232.896 269.845V278.111C232.896 278.828 232.893 279.432 232.853 279.931C232.809 280.46 232.72 280.955 232.501 281.422L232.455 281.515C232.091 282.231 231.523 282.821 230.824 283.213L230.683 283.288C230.188 283.54 229.662 283.64 229.098 283.686C228.556 283.73 227.893 283.73 227.095 283.73H215.218C214.42 283.73 213.756 283.73 213.215 283.686C212.686 283.643 212.191 283.553 211.724 283.334L211.631 283.288C210.916 282.923 210.325 282.355 209.934 281.657L209.858 281.515C209.606 281.02 209.506 280.495 209.46 279.931C209.416 279.39 209.416 278.726 209.416 277.928V270.029C209.416 269.231 209.416 268.567 209.46 268.026C209.506 267.462 209.606 266.937 209.858 266.442C210.247 265.679 210.868 265.058 211.631 264.67C212.126 264.417 212.651 264.317 213.215 264.271C213.756 264.227 214.42 264.227 215.218 264.227H227.095ZM239.093 266.55C239.546 266.552 239.975 266.76 240.257 267.115C240.472 267.386 240.53 267.718 240.556 267.998C240.582 268.288 240.582 268.663 240.582 269.101V278.963C240.582 279.404 240.582 279.781 240.556 280.073C240.53 280.353 240.472 280.688 240.256 280.96C239.972 281.315 239.542 281.522 239.087 281.522C238.74 281.522 238.441 281.358 238.206 281.203C237.961 281.041 237.668 280.806 237.323 280.531L234.817 278.529V269.511L237.332 267.527C237.677 267.255 237.969 267.022 238.214 266.863C238.449 266.71 238.747 266.549 239.093 266.55ZM214.938 267.636C213.765 267.636 212.813 268.588 212.813 269.761C212.814 270.935 213.765 271.885 214.938 271.885C216.112 271.885 217.063 270.935 217.063 269.761C217.063 268.588 216.112 267.636 214.938 267.636Z" fill="#FC5B4F"/>
+            </svg>
+            <svg v-else-if="getOs16TemplateName(primaryActiveItem) === OS16_TEMPLATES.BATTERY_CHARGING" width="16" height="16" viewBox="480 564 22 20" fill="#30D158">
+              <path d="M498.976 571.674C499.248 571.674 499.399 571.989 499.229 572.201L491.413 581.909C491.201 582.172 490.778 581.975 490.843 581.644L491.695 577.285L496.214 571.674H498.976ZM489.092 574.643C489.296 574.643 489.448 574.829 489.409 575.029L489.257 575.81H488.023C487.75 575.809 487.6 575.491 487.773 575.279L488.297 574.643H489.092ZM495.574 565.787C495.789 565.527 496.209 565.727 496.142 566.058L495.241 570.508H491.694L495.574 565.787Z"/>
+              <path d="M491.142 566.058C491.209 565.727 490.788 565.527 490.574 565.788L482.774 575.28C482.6 575.491 482.75 575.809 483.024 575.809H486.592C486.796 575.809 486.949 575.996 486.91 576.196L485.843 581.644C485.778 581.976 486.201 582.173 486.414 581.909L494.228 572.202C494.399 571.99 494.248 571.674 493.976 571.674H490.402C490.197 571.674 490.044 571.487 490.084 571.286L491.142 566.058Z"/>
+            </svg>
+            <svg v-else-if="getOs16TemplateName(primaryActiveItem) === OS16_TEMPLATES.PHONE_CALL" width="16" height="16" viewBox="482 664 18 18" fill="#34C759">
+              <path d="M498.729 679.75C498.55 680.872 497.93 681.224 497.133 681.115L497.054 681.103L496.842 681.067L496.642 681.031L496.47 680.998L496.28 680.958L496.138 680.927L496.017 680.9L495.8 680.85L495.507 680.777L495.268 680.715C495.188 680.693 495.107 680.67 495.024 680.647L494.881 680.604L494.708 680.551L494.61 680.521L494.454 680.47C494.369 680.442 494.285 680.413 494.2 680.383L494.064 680.333L493.883 680.265L493.789 680.228L493.631 680.164C493.549 680.129 493.467 680.094 493.386 680.058L493.316 680.029C492.766 679.809 492.229 679.56 491.706 679.282L491.475 679.157C491.357 679.091 491.24 679.025 491.123 678.956L490.942 678.849C490.637 678.665 490.34 678.473 490.049 678.271L489.827 678.114C489.645 677.984 489.467 677.85 489.291 677.712C489.174 677.621 489.058 677.528 488.944 677.433L488.761 677.28C488.638 677.176 488.517 677.069 488.397 676.961L488.209 676.789C488.098 676.686 487.989 676.58 487.88 676.474L487.808 676.402C487.714 676.309 487.622 676.215 487.53 676.119L487.386 675.966C487.296 675.869 487.207 675.772 487.119 675.673L486.983 675.518C486.878 675.397 486.775 675.275 486.673 675.15L486.504 674.94C486.365 674.764 486.23 674.586 486.099 674.405L486.099 674.404C486.015 674.289 485.933 674.173 485.853 674.056L485.729 673.875C485.637 673.736 485.546 673.596 485.457 673.454L485.314 673.222L485.197 673.025L485.034 672.74C484.985 672.652 484.937 672.564 484.889 672.475L484.812 672.329C484.737 672.186 484.665 672.041 484.594 671.895L484.488 671.67C484.427 671.54 484.368 671.409 484.311 671.277L484.225 671.075C484.143 670.878 484.064 670.679 483.989 670.478L483.955 670.384C483.874 670.163 483.798 669.939 483.727 669.714C483.727 669.713 483.727 669.711 483.726 669.71C483.654 669.485 483.588 669.257 483.526 669.027C483.526 669.025 483.524 669.023 483.524 669.021C483.477 668.848 483.433 668.675 483.392 668.5L483.362 668.369C483.329 668.222 483.296 668.075 483.268 667.927L483.245 667.83L483.183 667.551L483.148 667.382L483.148 667.377L483.116 667.216L483.088 667.067V667.067L483.027 666.721C482.899 665.902 483.242 665.262 484.386 665.08C485.201 664.945 486.024 664.865 486.85 664.838C487.343 664.823 487.853 665.073 488.207 665.783C488.282 665.934 488.355 666.09 488.425 666.246L488.508 666.433L488.627 666.711L488.915 667.401L488.98 667.553C489.033 667.676 489.083 667.787 489.13 667.882C489.365 668.358 489.292 669.24 488.754 669.796L488.668 669.886L488.529 670.034V670.034L488.431 670.142L488.332 670.256C487.95 670.702 487.556 671.262 487.527 671.75C487.526 671.77 487.525 671.793 487.525 671.815L487.527 671.932C487.527 671.972 487.527 672.029 487.534 672.078C487.54 672.116 487.544 672.141 487.563 672.183C488.628 673.901 490.05 675.369 491.732 676.488L491.877 676.583C491.889 676.591 491.9 676.599 491.917 676.603L491.952 676.609V676.609L491.987 676.609C492.012 676.609 492.034 676.611 492.058 676.609L492.109 676.603L492.136 676.6C492.159 676.597 492.182 676.594 492.205 676.589L492.246 676.581L492.286 676.57C492.309 676.564 492.333 676.558 492.356 676.551C492.384 676.542 492.411 676.533 492.439 676.523L492.509 676.495C492.537 676.483 492.564 676.472 492.592 676.459L492.627 676.442L492.663 676.424C492.691 676.41 492.718 676.397 492.745 676.382L492.782 676.361L492.898 676.293L492.976 676.243C493.023 676.212 493.07 676.18 493.116 676.147L493.191 676.095L493.228 676.067L493.337 675.983L493.443 675.897L493.567 675.793L493.674 675.699L493.796 675.588L493.91 675.482L494.012 675.384C494.568 674.845 495.451 674.772 495.927 675.008L495.985 675.036L496.114 675.096L496.255 675.158L496.407 675.223L497.097 675.511L497.282 675.59L497.469 675.671C497.656 675.754 497.844 675.84 498.025 675.93C498.736 676.284 498.985 676.795 498.971 677.288C498.944 678.113 498.863 678.935 498.729 679.75Z"/>
+            </svg>
+            <svg v-else-if="getOs16TemplateName(primaryActiveItem) === OS16_TEMPLATES.HOTSPOT" width="16" height="16" viewBox="0 0 32 28" fill="none">
+              <circle cx="16" cy="14" r="3.2" fill="#2680EB"/>
+              <path d="M 10.7 8.7 A 7.5 7.5 0 0 0 10.7 19.3" stroke="#2680EB" stroke-width="2.6" stroke-linecap="round"/>
+              <path d="M 6.8 4.8 A 13 13 0 0 0 6.8 23.2" stroke="#2680EB" stroke-width="2.6" stroke-linecap="round"/>
+              <path d="M 21.3 8.7 A 7.5 7.5 0 0 1 21.3 19.3" stroke="#2680EB" stroke-width="2.6" stroke-linecap="round"/>
+              <path d="M 25.2 4.8 A 13 13 0 0 1 25.2 23.2" stroke="#2680EB" stroke-width="2.6" stroke-linecap="round"/>
+            </svg>
+            <svg v-else-if="getOs16TemplateName(primaryActiveItem) === OS16_TEMPLATES.FLASHLIGHT" width="12" height="16" viewBox="218 949 14 30" fill="none">
+              <defs><linearGradient id="fl_grad_cap" x1="224.999" y1="949" x2="224.999" y2="979" gradientUnits="userSpaceOnUse"><stop stop-color="#E4E4E7"/><stop offset="1" stop-color="#71717A"/></linearGradient></defs>
+              <path d="M231.993 954C231.983 954.804 231.953 955.344 231.851 955.868C231.719 956.543 231.5 957.198 231.201 957.816C230.864 958.514 230.389 959.147 229.439 960.413L229.319 960.573C229.201 960.732 229.141 960.811 229.099 960.898C229.061 960.976 229.034 961.057 229.018 961.142C228.999 961.237 228.999 961.335 228.999 961.533V975.8C228.999 976.92 228.999 977.48 228.781 977.908C228.59 978.284 228.283 978.59 227.907 978.782C227.479 979 226.919 979 225.799 979H224.199C223.079 979 222.519 979 222.091 978.782C221.715 978.59 221.409 978.284 221.217 977.908C220.999 977.48 220.999 976.92 220.999 975.8V961.533C220.999 961.335 220.999 961.237 220.98 961.142C220.964 961.057 220.937 960.976 220.899 960.898C220.857 960.811 220.797 960.732 220.679 960.573L220.559 960.413C219.609 959.147 219.134 958.514 218.797 957.816C218.498 957.198 218.279 956.543 218.147 955.868C218.045 955.344 218.015 954.804 218.005 954H231.993ZM224.999 963C224.171 963 223.499 963.672 223.499 964.5V967.5C223.499 968.328 224.171 969 224.999 969C225.827 969 226.499 968.328 226.499 967.5V964.5C226.499 963.672 225.827 963 224.999 963ZM224.999 966C225.551 966 225.999 966.448 225.999 967V967.5C225.999 968.052 225.551 968.5 224.999 968.5C224.447 968.5 223.999 968.052 223.999 967.5V967C223.999 966.448 224.447 966 224.999 966Z" fill="url(#fl_grad_cap)"/>
+            </svg>
+            <svg v-else-if="getOs16TemplateName(primaryActiveItem) === OS16_TEMPLATES.TIMER" width="13" height="16" viewBox="214 459 22 30" fill="none">
+              <path d="M233.689 459.464C233.802 459.464 233.958 459.463 234.096 459.474C234.247 459.487 234.478 459.52 234.723 459.644C234.995 459.783 235.222 459.994 235.381 460.253L235.445 460.366L235.522 460.546C235.585 460.721 235.606 460.88 235.615 460.994C235.626 461.132 235.625 461.288 235.625 461.4V462.379C235.625 464.133 235.636 465.25 235.33 466.285C235.069 467.167 234.641 467.992 234.069 468.713C233.398 469.558 232.478 470.191 231.042 471.2L227.056 474L231.042 476.8C232.478 477.808 233.398 478.441 234.069 479.287C234.641 480.008 235.069 480.832 235.33 481.715C235.636 482.75 235.625 483.866 235.625 485.621V486.599C235.625 468.712 235.626 486.868 235.615 487.006C235.606 487.12 235.585 487.279 235.522 487.454L235.445 487.634L235.381 487.747C235.222 488.006 234.995 488.217 234.723 488.355C234.478 488.48 234.247 488.513 234.096 488.525C233.958 488.537 233.802 488.536 233.689 488.536H216.312C216.199 488.536 216.043 488.536 215.905 488.525C215.792 488.516 215.633 488.496 215.458 488.433L215.277 488.355C215.005 488.217 214.778 488.006 214.619 487.747L214.556 487.634C214.431 487.389 214.398 487.157 214.386 487.006C214.375 486.868 214.375 486.712 214.375 486.599V485.621C214.375 483.866 214.364 482.75 214.67 481.715C214.931 480.832 215.359 480.008 215.932 479.287C216.603 478.441 217.523 477.808 218.959 476.8L222.943 474L218.959 471.2C217.523 470.191 216.603 469.558 215.932 468.713C215.359 467.992 214.931 467.168 214.67 466.285C214.364 465.25 214.375 464.133 214.375 462.379V461.4C214.375 461.288 214.375 461.132 214.386 460.994C214.398 460.842 214.431 460.611 214.556 460.366L214.619 460.253C214.778 459.994 215.005 459.783 215.277 459.644L215.458 459.566C215.633 459.504 215.792 459.484 215.905 459.474C216.043 459.463 216.199 459.464 216.312 459.464H233.689ZM216.736 462.379C216.736 464.276 216.747 464.986 216.934 465.616C217.109 466.208 217.396 466.761 217.78 467.245C218.189 467.76 218.763 468.178 220.315 469.268L225 472.558L229.685 469.268C231.237 468.178 231.811 467.76 232.22 467.245C232.604 466.761 232.891 466.208 233.066 465.616C233.253 464.986 233.264 464.276 233.264 462.379V461.825H216.736V462.379Z" fill="#FF9900"/>
+            </svg>
+            <svg v-else-if="getOs16TemplateName(primaryActiveItem) === OS16_TEMPLATES.VOICE_RECORDING" width="18" height="15" viewBox="207 359 36 30" fill="none">
+              <rect x="208" y="372.021" width="2.4" height="4.0" rx="1.2" fill="white"/>
+              <rect x="212.5" y="368.01" width="2.4" height="12" rx="1.2" fill="white"/>
+              <rect x="217" y="371.019" width="2.4" height="6" rx="1.2" fill="white"/>
+              <rect x="221.5" y="364" width="2.4" height="20" rx="1.2" fill="white"/>
+              <path d="M226.053 360.187C226.053 359.522 226.592 358.983 227.256 358.983C227.921 358.983 228.46 359.522 228.46 360.187V387.868C228.46 388.533 227.921 389.072 227.256 389.072C226.592 389.072 226.053 388.533 226.053 387.868V360.187Z" fill="#FC5B4F"/>
+              <rect width="2.4" height="4.0" rx="1.2" transform="matrix(-1 0 0 1 233 372.021)" fill="white" fill-opacity="0.6"/>
+              <rect width="2.4" height="4.0" rx="1.2" transform="matrix(-1 0 0 1 237.5 372.021)" fill="white" fill-opacity="0.6"/>
+              <rect width="2.4" height="4.0" rx="1.2" transform="matrix(-1 0 0 1 242 372.021)" fill="white" fill-opacity="0.6"/>
+            </svg>
+            <svg
+              v-else-if="getOs16TemplateName(primaryActiveItem) === OS16_TEMPLATES.MICROPHONE"
+              width="16"
+              height="16"
+              viewBox="1545 564 34 32"
+              fill="none"
+              style="overflow: visible;"
+            >
+              <path d="M1560 570.667C1561.47 570.667 1562.67 571.861 1562.67 573.333V580C1562.67 581.472 1561.47 582.667 1560 582.667C1558.53 582.667 1557.33 581.472 1557.33 580V573.333C1557.33 571.861 1558.53 570.667 1560 570.667Z" fill="#FF9500"/>
+              <path d="M1552.64 582.127C1554.43 586.438 1558.74 589.333 1563.74 589.333C1568.74 589.333 1573.05 586.438 1574.84 582.127" stroke="#FF9500" stroke-width="2.67" stroke-linecap="round"/>
+              <path d="M1563.74 589.333V593.333" stroke="#FF9500" stroke-width="2.67" stroke-linecap="round"/>
+            </svg>
+            <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="#00E5FF">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </template>
           <!-- 闹钟收起态图标 -->
-          <svg v-if="primaryActiveItem === 'alarm'" class="compact-alarm-icon" width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
+          <svg v-else-if="primaryActiveItem === 'alarm'" class="compact-alarm-icon" width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
             <path :d="CLOCK_ICONS.alarm" />
           </svg>
           <svg v-else-if="primaryActiveItem === 'timer'" width="17" height="17" viewBox="0 0 24 24">
@@ -475,7 +642,10 @@ function handleClosePrayer(e) {
         <div class="cc-camera-slot"></div>
 
         <div class="cc-right">
-          <span v-if="primaryActiveItem === 'media'" class="media-mini-wave" :class="{ paused: !control.mediaPlaying }">
+          <span v-if="primaryActiveItem === 'os16_template' || isOs16Item(primaryActiveItem)" class="cc-time os16-time">
+            {{ os16CapsuleText }}
+          </span>
+          <span v-else-if="primaryActiveItem === 'media'" class="media-mini-wave" :class="{ paused: !control.mediaPlaying }">
             <i></i><i></i><i></i><i></i>
           </span>
           <span v-else class="cc-time">{{ compactCapsuleTime }}</span>
@@ -516,7 +686,10 @@ function handleClosePrayer(e) {
       <div
         class="morph-layer expanded-layer"
         :class="[
-          { 'is-media-layer': primaryActiveItem === 'media' },
+          {
+            'is-media-layer': primaryActiveItem === 'media',
+            'is-os16-layer': isOs16Item(primaryActiveItem)
+          },
           {
             'is-swiping': isSwipingCard && activeCardId === primaryActiveItem,
             'has-swipe-transition': !isSwipingCard && swipedTransitionId === primaryActiveItem
@@ -528,6 +701,10 @@ function handleClosePrayer(e) {
         @pointerup="onCardPointerUp($event, primaryActiveItem)"
         @pointercancel="onCardPointerUp($event, primaryActiveItem)"
       >
+        <!-- OS16 灵动岛规范模版 -->
+        <template v-if="primaryActiveItem === 'os16_template' || isOs16Item(primaryActiveItem)">
+          <OS16TemplateCard :template="getOs16TemplateName(primaryActiveItem)" />
+        </template>
         <!-- 主项：闹钟（对齐 Screenshot_20260909-204420.jpg） -->
         <template v-if="primaryActiveItem === 'alarm'">
           <div class="ilc-left">
@@ -582,7 +759,7 @@ function handleClosePrayer(e) {
             <div class="ilc-time-col">
               <span class="ilc-main-time">{{ clockStore.formattedTimerIsland }}</span>
               <span class="ilc-sub-label">
-                {{ clockStore.timer.status === 'paused' ? '已暂停' : '倒计时' }}
+                {{ clockStore.timer.status === 'paused' ? '倒计时 · 已暂停' : '倒计时 · 计时中' }}
               </span>
             </div>
           </div>
@@ -759,7 +936,10 @@ function handleClosePrayer(e) {
         v-for="item in subActiveItems"
         :key="item"
         class="island-secondary-card"
-        :class="{ 'is-media-card': item === 'media' }"
+        :class="[
+          { 'is-media-card': item === 'media', 'is-os16-card': isOs16Item(item) },
+          isOs16Item(item) ? getOs16CardClass(getOs16TemplateName(item)) : null
+        ]"
         @click="handleCardClick(item)"
       >
         <!-- 底层滑动操作按钮 -->
@@ -795,7 +975,7 @@ function handleClosePrayer(e) {
         <div
           class="island-subcard-front"
           :class="[
-            { 'is-media-front': item === 'media' },
+            { 'is-media-front': item === 'media', 'is-os16-front': isOs16Item(item) },
             {
               'is-swiping': isSwipingCard && activeCardId === item,
               'has-swipe-transition': !isSwipingCard && swipedTransitionId === item
@@ -807,8 +987,13 @@ function handleClosePrayer(e) {
           @pointerup="onCardPointerUp($event, item)"
           @pointercancel="onCardPointerUp($event, item)"
         >
+          <!-- 副项：OS16 规范模版 -->
+          <template v-if="isOs16Item(item)">
+            <OS16TemplateCard :template="getOs16TemplateName(item)" />
+          </template>
+
           <!-- 副项：闹钟 -->
-          <template v-if="item === 'alarm'">
+          <template v-else-if="item === 'alarm'">
           <div class="ilc-left">
             <div class="ilc-icon-wrap icon-alarm" :class="{ 'is-ringing': clockStore.isAlarmRinging }">
               <svg class="alarm-activity-icon" width="34" height="34" viewBox="0 0 24 24" aria-hidden="true">
@@ -921,7 +1106,7 @@ function handleClosePrayer(e) {
             <div class="ilc-time-col">
               <span class="ilc-main-time">{{ clockStore.formattedTimerIsland }}</span>
               <span class="ilc-sub-label">
-                {{ clockStore.timer.status === 'paused' ? '已暂停' : '倒计时' }}
+                {{ clockStore.timer.status === 'paused' ? '倒计时 · 已暂停' : '倒计时 · 计时中' }}
               </span>
             </div>
           </div>
@@ -1663,5 +1848,142 @@ function handleClosePrayer(e) {
   border-radius: 32px;
   padding: 0;
   display: block;
+}
+
+/* ================= OS16 规范模版卡片尺寸与动效 ================= */
+.island-card.is-expanded.is-os16-progress,
+.island-card.is-expanded.is-os16-nav,
+.island-card.is-expanded.is-os16-media,
+.island-card.is-expanded.is-os16-system-tip,
+.island-card.is-expanded.is-os16-translation,
+.island-card.is-expanded.is-os16-base-76,
+.island-card.is-expanded.is-os16-base-74,
+.island-card.is-expanded.is-os16-base-72 {
+  width: 336px;
+  border-radius: 28px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+  background: #000000;
+}
+
+.island-card.is-expanded.is-os16-progress {
+  height: 122px;
+}
+
+.island-card.is-expanded.is-os16-nav {
+  height: 168px;
+}
+
+.island-card.is-expanded.is-os16-media {
+  height: 148px;
+}
+
+.island-card.is-expanded.is-os16-system-tip {
+  height: 180px;
+}
+
+.island-card.is-expanded.is-os16-translation {
+  height: 212px;
+}
+
+.island-card.is-expanded.is-os16-base-76 {
+  height: 76px;
+}
+
+.island-card.is-expanded.is-os16-base-74 {
+  height: 74px;
+}
+
+.island-card.is-expanded.is-os16-base-72 {
+  height: 72px;
+}
+
+/* OS16 副卡片容器与自适应高度 */
+.island-secondary-card.is-os16-card {
+  width: 336px;
+  border-radius: 28px;
+  background: transparent;
+}
+.island-secondary-card.is-os16-progress {
+  height: 122px;
+}
+.island-secondary-card.is-os16-nav {
+  height: 168px;
+}
+.island-secondary-card.is-os16-media {
+  height: 148px;
+}
+.island-secondary-card.is-os16-system-tip {
+  height: 180px;
+}
+.island-secondary-card.is-os16-translation {
+  height: 212px;
+}
+.island-secondary-card.is-os16-base-76 {
+  height: 76px;
+}
+.island-secondary-card.is-os16-base-74 {
+  height: 74px;
+}
+.island-secondary-card.is-os16-base-72 {
+  height: 72px;
+}
+
+.island-subcard-front.is-os16-front {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  background: #000000;
+  border-radius: 28px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+}
+
+.expanded-layer.is-os16-layer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+  border-radius: 28px;
+  box-shadow: none;
+  width: 100%;
+  height: 100%;
+}
+
+.os16-mini-hifi-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.os16-mini-hifi-car {
+  height: 13px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.os16-mini-hifi-cover {
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  object-fit: cover;
+  display: block;
+}
+
+.os16-mini-hifi-tip {
+  height: 16px;
+  width: auto;
+  border-radius: 3px;
+  object-fit: contain;
+  display: block;
+}
+
+.os16-time {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
 }
 </style>

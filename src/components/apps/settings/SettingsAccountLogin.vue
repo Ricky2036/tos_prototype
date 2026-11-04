@@ -53,6 +53,15 @@ function fillDemoSmsCode() {
   smsCode.value = ['8', '9', '2', '6', '0', '1']
 }
 
+let loginRedirectTimer = null
+let googleAuthTimer = null
+function scheduleLoginSuccess() {
+  if (loginRedirectTimer) clearTimeout(loginRedirectTimer)
+  loginRedirectTimer = setTimeout(() => {
+    emit('login-success')
+  }, 400)
+}
+
 function handleSmsLogin() {
   const code = smsCode.value.join('')
   if (code.length < 6) {
@@ -62,9 +71,7 @@ function handleSmsLogin() {
   account.login('Ricky')
   activeModal.value = null
   showToast(isZh.value ? '验证码登录成功' : 'Signed in successfully')
-  setTimeout(() => {
-    emit('login-success')
-  }, 400)
+  scheduleLoginSuccess()
 }
 
 // 密码登录状态
@@ -80,22 +87,19 @@ function handlePasswordLogin() {
   account.login(pwdAccount.value || 'Ricky')
   activeModal.value = null
   showToast(isZh.value ? '账号密码登录成功' : 'Signed in successfully')
-  setTimeout(() => {
-    emit('login-success')
-  }, 400)
+  scheduleLoginSuccess()
 }
 
 // Google 一键登录
 const isLoggingInGoogle = ref(false)
 function handleGoogleLogin() {
   isLoggingInGoogle.value = true
-  setTimeout(() => {
+  if (googleAuthTimer) clearTimeout(googleAuthTimer)
+  googleAuthTimer = setTimeout(() => {
     isLoggingInGoogle.value = false
     account.login('Ricky')
     showToast(isZh.value ? 'Google 账号授权登录成功' : 'Signed in with Google')
-    setTimeout(() => {
-      emit('login-success')
-    }, 400)
+    scheduleLoginSuccess()
   }, 500)
 }
 
@@ -109,23 +113,21 @@ function handleRegister() {
   account.login('新用户')
   activeModal.value = null
   showToast(isZh.value ? '账号注册并登录成功' : 'Registered successfully')
-  setTimeout(() => {
-    emit('login-success')
-  }, 400)
+  scheduleLoginSuccess()
 }
 
 // 第三方登录模拟
 function handleThirdPartyLogin(provider) {
   account.login('Ricky')
   showToast(isZh.value ? `${provider} 授权登录成功` : `Signed in with ${provider}`)
-  setTimeout(() => {
-    emit('login-success')
-  }, 400)
+  scheduleLoginSuccess()
 }
 
 onBeforeUnmount(() => {
   if (toastTimer) clearTimeout(toastTimer)
   if (smsCountdownTimer) clearInterval(smsCountdownTimer)
+  if (loginRedirectTimer) clearTimeout(loginRedirectTimer)
+  if (googleAuthTimer) clearTimeout(googleAuthTimer)
 })
 </script>
 

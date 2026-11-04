@@ -365,8 +365,51 @@ export default defineConfig({
     // 首屏只加载主包；Vue 运行时和调试控制台（体积大、只在演示时用）拆出去
     rollupOptions: {
       output: {
-        manualChunks: {
-          vue: ['vue', 'pinia']
+        manualChunks(id) {
+          if (id.includes('node_modules/vue') || id.includes('node_modules/@vue') || id.includes('node_modules/pinia')) {
+            return 'vue'
+          }
+          if (id.includes('/src/assets/icons/lucide.js') || id.includes('node_modules/lucide-static')) {
+            return 'lucide-icons'
+          }
+          if (
+            id.includes('/src/assets/icons/') ||
+            id.includes('/src/assets/img/onetap/')
+          ) {
+            return 'icon-assets'
+          }
+          if (id.includes('/src/components/dev/')) {
+            return 'dev-console'
+          }
+          if (
+            id.includes('/src/components/apps/aimate/') ||
+            id.includes('/src/components/apps/oneleap/') ||
+            id.includes('/src/stores/aiMateStore') ||
+            id.includes('/src/stores/moriFlowStore') ||
+            id.includes('/src/stores/recorderFlowStore')
+          ) {
+            return 'ecosystem-apps'
+          }
+          if (
+            id.includes('/src/components/apps/settings/SettingsCloud') ||
+            id.includes('/src/components/apps/settings/SettingsAccount') ||
+            id.includes('/src/components/apps/settings/SettingsWallet') ||
+            id.includes('/src/components/apps/settings/SettingsPrayer')
+          ) {
+            return 'settings-account-cloud'
+          }
+          if (id.includes('/src/components/apps/settings/') && !id.endsWith('/SettingsApp.vue') && !id.includes('/personalization/')) {
+            return 'settings-subpages'
+          }
+          if (
+            id.includes('/src/components/system/AppSwitcher.vue') ||
+            id.includes('/src/components/system/ControlCenter.vue') ||
+            id.includes('/src/components/system/AppLibrary.vue') ||
+            id.includes('/src/components/system/drawer/') ||
+            id.includes('/src/components/system/cc/')
+          ) {
+            return 'system-overlays'
+          }
         }
       }
     },

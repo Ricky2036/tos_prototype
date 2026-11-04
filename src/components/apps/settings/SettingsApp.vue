@@ -10,6 +10,7 @@ import SettingsSearchBar from '../../ui/SettingsSearchBar.vue'
 import SettingsSystemIcon from '../../ui/SettingsSystemIcon.vue'
 import SettingsNotifications from './SettingsNotifications.vue'
 import SettingsSound from './SettingsSound.vue'
+import SettingsDisplay from './SettingsDisplay.vue'
 import SettingsDND from './SettingsDND.vue'
 import SettingsPrayer from './SettingsPrayer.vue'
 import SettingsPersonalization from './personalization/SettingsPersonalization.vue'
@@ -20,11 +21,30 @@ import SettingsWallet from './SettingsWallet.vue'
 import SettingsSearch from './SettingsSearch.vue'
 import SettingsCloudHome from './SettingsCloudHome.vue'
 import SettingsCloudBackup from './SettingsCloudBackup.vue'
+import SettingsAboutPhone from './SettingsAboutPhone.vue'
+import SettingsSim from './SettingsSim.vue'
+import SettingsWifi from './SettingsWifi.vue'
+import SettingsBluetooth from './SettingsBluetooth.vue'
+import SettingsSatellite from './SettingsSatellite.vue'
+import SettingsMultiDevice from './SettingsMultiDevice.vue'
+import SettingsHotspot from './SettingsHotspot.vue'
+import SettingsNfc from './SettingsNfc.vue'
+import SettingsInfinixAI from './SettingsInfinixAI.vue'
+import SettingsSecurity from './SettingsSecurity.vue'
+import SettingsPrivacy from './SettingsPrivacy.vue'
+import SettingsAppsManage from './SettingsAppsManage.vue'
+import SettingsLocation from './SettingsLocation.vue'
+import SettingsAccessibility from './SettingsAccessibility.vue'
+import SettingsOneTap from './SettingsOneTap.vue'
+import SettingsBattery from './SettingsBattery.vue'
+import SettingsStorage from './SettingsStorage.vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
 import { useSystemStore } from '../../../stores/systemStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import { useAccountStore } from '../../../stores/accountStore'
+import { useDeviceStore } from '../../../stores/deviceStore'
+import { useNetworkStore } from '../../../stores/networkStore'
 import { GLYPHS } from '../../../assets/icons/glyphs'
 import accountAvatar from '../../../assets/img/account-avatar.jpg'
 import { clamp } from '../../../utils/math'
@@ -42,6 +62,8 @@ const notificationsStore = useNotificationsStore()
 const system = useSystemStore()
 const i18n = useI18nStore()
 const accountStore = useAccountStore()
+const deviceStore = useDeviceStore()
+const network = useNetworkStore()
 const { timeShort } = useClock()
 
 /* 内部导航栈：支持从礼拜卡片、通知灵动岛、账号引导通知直接深链跳转 */
@@ -113,13 +135,61 @@ function pop() {
 const notifRef = ref(null)
 const prayerRef = ref(null)
 const personalizationRef = ref(null)
+const aboutPhoneRef = ref(null)
+const simRef = ref(null)
+const wifiRef = ref(null)
+const bluetoothRef = ref(null)
+const satelliteRef = ref(null)
+const multiDeviceRef = ref(null)
+const hotspotRef = ref(null)
+const nfcRef = ref(null)
+const aiRef = ref(null)
+const securityRef = ref(null)
+const privacyRef = ref(null)
+const appsManageRef = ref(null)
+const locationRef = ref(null)
+const accessibilityRef = ref(null)
+const oneTapRef = ref(null)
+const batteryRef = ref(null)
+const storageRef = ref(null)
+const displayRef = ref(null)
+const soundRef = ref(null)
 useBackHandler(() => {
+  if (view.value === 'about' && aboutPhoneRef.value?.back?.()) return true
+  if (view.value === 'sim' && simRef.value?.back?.()) return true
+  if (view.value === 'wifi' && wifiRef.value?.back?.()) return true
+  if (view.value === 'bluetooth' && bluetoothRef.value?.back?.()) return true
+  if (view.value === 'satellite' && satelliteRef.value?.back?.()) return true
+  if (view.value === 'multiDevice' && multiDeviceRef.value?.back?.()) return true
+  if (view.value === 'hotspot' && hotspotRef.value?.back?.()) return true
+  if (view.value === 'nfc' && nfcRef.value?.back?.()) return true
+  if (view.value === 'infinixAi' && aiRef.value?.back?.()) return true
+  if (view.value === 'security' && securityRef.value?.back?.()) return true
+  if (view.value === 'privacy' && privacyRef.value?.back?.()) return true
+  if (view.value === 'appsManage' && appsManageRef.value?.back?.()) return true
+  if (view.value === 'location' && locationRef.value?.back?.()) return true
+  if (view.value === 'accessibility' && accessibilityRef.value?.back?.()) return true
+  if (view.value === 'display' && displayRef.value?.back?.()) return true
+  if (view.value === 'sound' && soundRef.value?.back?.()) return true
+  if (view.value === 'oneTap' && oneTapRef.value?.back?.()) return true
+  if (view.value === 'battery' && batteryRef.value?.back?.()) return true
+  if (view.value === 'storage' && storageRef.value?.back?.()) return true
   if (view.value === 'personalization' && personalizationRef.value?.back()) return true
   if (view.value === 'prayer' && prayerRef.value?.back()) return true
   if (view.value === 'notifications' && notifRef.value?.back()) return true
   if (stack.value.length > 1) { pop(); return true }
   return false
 })
+
+function handleDisplayNavigate(target) {
+  if (target === 'personalization') {
+    push('personalization')
+  } else if (target === 'language') {
+    push('language')
+  } else {
+    pushUnimplemented(target)
+  }
+}
 
 const viewTitles = computed(() => ({
   wifi: i18n.t('wifi') || 'WLAN',
@@ -132,6 +202,22 @@ const viewTitles = computed(() => ({
   dnd: i18n.t('dnd') || '勿扰模式',
   prayer: i18n.t('prayerDnd') || '礼拜模式',
   personalization: '主题与个性化',
+  about: '我的手机',
+  sim: 'SIM 卡与网络设置',
+  bluetooth: '蓝牙',
+  satellite: '星链卫星网络',
+  multiDevice: '多设备连接',
+  hotspot: '个人热点',
+  nfc: 'NFC',
+  infinixAi: 'Infinix AI',
+  security: '密码与安全',
+  privacy: '权限与隐私',
+  appsManage: '应用管理',
+  location: '位置信息',
+  accessibility: '辅助功能',
+  oneTap: 'One-Tap Button',
+  battery: '电池与省电',
+  storage: '存储',
   account: 'Infinix ID',
   accountLogin: 'INFINIX ID',
   accountSecurity: '账号安全',
@@ -141,21 +227,6 @@ const viewTitles = computed(() => ({
   search: '搜索',
   placeholder: placeholderTitle.value || '设置'
 }))
-
-/* 显示与亮度：横向亮度滑块 */
-const sliderRef = ref(null)
-let sliding = false
-function setBrightness(e) {
-  const r = sliderRef.value.getBoundingClientRect()
-  control.setBrightness(clamp((e.clientX - r.left) / r.width, 0.25, 1))
-}
-function onSlideDown(e) {
-  sliding = true
-  e.currentTarget.setPointerCapture?.(e.pointerId)
-  setBrightness(e)
-}
-function onSlideMove(e) { if (sliding) setBrightness(e) }
-function onSlideUp() { sliding = false }
 
 const networks = ['Ricky_5G', 'Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G']
 
@@ -170,25 +241,49 @@ const searchActive = ref(false)
 const { progress: titleProgress, onScroll: onTitleScroll } = useLargeTitle()
 
 const allSearchableItems = [
+  { id: 'about', title: '我的手机', group: '系统', value: 'Infinix NOTE 60 Pro', action: () => push('about') },
+  { id: 'aboutDevice', title: '关于手机', group: '系统', value: 'Infinix NOTE 60 Pro', action: () => push('about') },
+  { id: 'deviceModel', title: 'Infinix NOTE 60 Pro', group: '系统', action: () => push('about') },
   { id: 'flight', title: '飞行模式', group: '网络与连接', action: () => {}, isToggle: true },
-  { id: 'sim', title: 'SIM卡与网络设置', group: '网络与连接', action: () => pushUnimplemented('SIM卡与网络设置') },
-  { id: 'wifi', title: 'WLAN', group: '网络与连接', value: 'Ricky_5G', action: () => push('wifi') },
-  { id: 'bluetooth', title: '蓝牙', group: '网络与连接', action: () => pushUnimplemented('蓝牙') },
-  { id: 'multiDevice', title: '多设备连接', group: '网络与连接', action: () => system.openApp('oneleap') },
-  { id: 'infinixAi', title: 'Infinix AI', group: '特色功能', action: () => pushUnimplemented('Infinix AI') },
+  { id: 'sim', title: 'SIM 卡与网络设置', group: '网络与连接', action: () => push('sim') },
+  { id: 'wifi', title: 'WLAN', group: '网络与连接', value: 'Transsion_Mobile', action: () => push('wifi') },
+  { id: 'bluetooth', title: '蓝牙', group: '网络与连接', action: () => push('bluetooth') },
+  { id: 'satellite', title: '星链卫星网络', group: '网络与连接', action: () => push('satellite') },
+  { id: 'satelliteAlt', title: '卫星网络', group: '网络与连接', action: () => push('satellite') },
+  { id: 'multiDevice', title: '多设备连接', group: '网络与连接', action: () => push('multiDevice') },
+  { id: 'oneleap', title: '多屏互联 (OneLeap)', group: '网络与连接', action: () => system.openApp('oneleap') },
+  { id: 'hotspot', title: '个人热点', group: '网络与连接', action: () => push('hotspot') },
+  { id: 'nfc', title: 'NFC', group: '网络与连接', action: () => push('nfc') },
+  { id: 'infinixAi', title: 'Infinix AI', group: '特色功能', action: () => push('infinixAi') },
+  { id: 'folaxVoice', title: 'Folax语音', group: 'Infinix AI', action: () => push('infinixAi') },
+  { id: 'folaxScreen', title: 'Folax识屏', group: 'Infinix AI', action: () => push('infinixAi') },
+  { id: 'aiBuddy', title: 'AI Buddy', group: 'Infinix AI', action: () => push('infinixAi') },
+  { id: 'circleSearch', title: '圈定即搜', group: 'Infinix AI', action: () => push('infinixAi') },
+  { id: 'aiCall', title: 'AI通话助手', group: 'Infinix AI', action: () => push('infinixAi') },
   { id: 'wallpaper', title: '壁纸与个性化', group: '个性化', action: () => push('personalization') },
   { id: 'display', title: '显示与亮度', group: '显示', action: () => push('display') },
   { id: 'sound', title: '声音与振动', group: '声音', action: () => push('sound') },
   { id: 'notifications', title: '通知与状态栏', group: '通知', action: () => push('notifications') },
-  { id: 'security', title: '密码与安全', group: '安全与隐私', action: () => pushUnimplemented('密码与安全') },
-  { id: 'privacy', title: '权限与隐私', group: '安全与隐私', action: () => pushUnimplemented('权限与隐私') },
-  { id: 'appManage', title: '应用管理', group: '应用', action: () => pushUnimplemented('应用管理') },
-  { id: 'location', title: '位置信息', group: '安全与隐私', action: () => pushUnimplemented('位置信息') },
-  { id: 'gtZone', title: 'GT Zone', group: '特色功能', action: () => pushUnimplemented('GT Zone') },
+  { id: 'security', title: '密码与安全', group: '安全与隐私', action: () => push('security') },
+  { id: 'lockScreenPwd', title: '锁屏密码', group: '安全与隐私', action: () => push('security') },
+  { id: 'fingerprint', title: '指纹识别', group: '安全与隐私', action: () => push('security') },
+  { id: 'faceUnlock', title: '面部识别', group: '安全与隐私', action: () => push('security') },
+  { id: 'privacy', title: '权限与隐私', group: '安全与隐私', action: () => push('privacy') },
+  { id: 'xhide', title: 'XHide', group: '安全与隐私', action: () => push('privacy') },
+  { id: 'appLock', title: '应用锁', group: '安全与隐私', action: () => push('privacy') },
+  { id: 'appManage', title: '应用管理', group: '应用', action: () => push('appsManage') },
+  { id: 'appClone', title: '应用双开', group: '应用', action: () => push('appsManage') },
+  { id: 'defaultApps', title: '默认应用', group: '应用', action: () => push('appsManage') },
+  { id: 'location', title: '位置信息', group: '安全与隐私', action: () => push('location') },
+  { id: 'accessibility', title: '辅助功能', group: '系统', action: () => push('accessibility') },
+  { id: 'oneTap', title: 'One-Tap Button', group: '系统', action: () => push('oneTap') },
+  { id: 'actionButton', title: '实体动作键', group: '系统', action: () => push('oneTap') },
+  { id: 'battery', title: '电池与省电', group: '电量', action: () => push('battery') },
+  { id: 'batteryHealth', title: '电池健康', group: '电量', action: () => push('battery') },
+  { id: 'storage', title: '存储', group: '系统', action: () => push('storage') },
+  { id: 'cleanStorage', title: '存储清理', group: '系统', action: () => push('storage') },
+  { id: 'gtZone', title: 'GT Zone', group: '特色功能', action: () => push('oneTap') },
   { id: 'wallet', title: '钱包', group: '特色功能', action: () => push('wallet') },
-  { id: 'accessibility', title: '辅助功能', group: '系统', action: () => pushUnimplemented('辅助功能') },
-  { id: 'battery', title: '电池与省电', group: '电量', action: () => pushUnimplemented('电池与省电') },
-  { id: 'storage', title: '存储', group: '系统', action: () => pushUnimplemented('存储') },
   { id: 'digitalHealth', title: '数字健康与家长控制', group: '数字健康', action: () => pushUnimplemented('数字健康与家长控制') },
   { id: 'emergency', title: '安全和紧急情况', group: '安全', action: () => pushUnimplemented('安全和紧急情况') },
   { id: 'account', title: '用户与账号', group: '账号', action: () => push('account') },
@@ -275,14 +370,14 @@ const filteredSearchResults = computed(() => {
                 <div class="account-name">{{ accountStore.isLoggedIn ? accountStore.username : '登录 Infinix ID' }}</div>
                 <div class="account-sub">使用云服务、查找等</div>
               </div>
-              <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-                <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              <svg class="lc-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+                <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </div>
 
-            <!-- ================= 卡片 2: 手机型号卡 ================= -->
+            <!-- ================= 卡片 2: 手机型号卡 (Infinix NOTE 60 Pro / 兼容 Infinix GT 50 Pro) ================= -->
             <div class="settings-card">
-              <ListCell title="Infinix GT 50 Pro" chevron last @click="push('general')">
+              <ListCell :title="deviceStore.deviceName || 'Infinix NOTE 60 Pro'" chevron last @click="push('about')">
                 <template #icon>
                   <div class="squircle-icon bg-device">
                     <SettingsSystemIcon name="device" :size="20" />
@@ -291,7 +386,7 @@ const filteredSearchResults = computed(() => {
               </ListCell>
             </div>
 
-            <!-- ================= 卡片 3: 网络与连接 (5项) ================= -->
+            <!-- ================= 卡片 3: 网络与连接 (6项) ================= -->
             <div class="settings-card">
               <!-- 飞行模式 -->
               <ListCell title="飞行模式">
@@ -303,12 +398,15 @@ const filteredSearchResults = computed(() => {
                   </div>
                 </template>
                 <template #right>
-                  <ToggleSwitch v-model="control.airplane" />
+                  <ToggleSwitch
+                    :model-value="control.airplane"
+                    @update:model-value="v => network.setAirplaneMode(v)"
+                  />
                 </template>
               </ListCell>
 
               <!-- SIM卡与网络设置 -->
-              <ListCell title="SIM卡与网络设置" chevron @click="pushUnimplemented('SIM卡与网络设置')">
+              <ListCell title="SIM 卡与网络设置" chevron @click="push('sim')">
                 <template #icon>
                   <div class="squircle-icon bg-sim">
                     <SettingsSystemIcon name="sim" />
@@ -317,7 +415,12 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- WLAN -->
-              <ListCell title="WLAN" value="Ricky_5G" chevron @click="push('wifi')">
+              <ListCell
+                title="WLAN"
+                :value="network.wifiEnabled ? (network.connectedWifi ? network.connectedWifi.ssid : '未连接') : '已关闭'"
+                chevron
+                @click="push('wifi')"
+              >
                 <template #icon>
                   <div class="squircle-icon bg-wifi">
                     <SettingsSystemIcon name="wifi" />
@@ -326,7 +429,12 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- 蓝牙 -->
-              <ListCell title="蓝牙" chevron @click="pushUnimplemented('蓝牙')">
+              <ListCell
+                title="蓝牙"
+                :value="network.bluetoothEnabled ? (network.pairedDevices.find(d => d.connected)?.name || '') : '已关闭'"
+                chevron
+                @click="push('bluetooth')"
+              >
                 <template #icon>
                   <div class="squircle-icon bg-bluetooth">
                     <SettingsSystemIcon name="bluetooth" />
@@ -334,8 +442,22 @@ const filteredSearchResults = computed(() => {
                 </template>
               </ListCell>
 
+              <!-- 卫星网络 -->
+              <ListCell
+                title="卫星网络"
+                :value="network.satelliteServiceEnabled ? '已开启' : ''"
+                chevron
+                @click="push('satellite')"
+              >
+                <template #icon>
+                  <div class="squircle-icon bg-satellite">
+                    <SettingsSystemIcon name="satellite" :size="18" />
+                  </div>
+                </template>
+              </ListCell>
+
               <!-- 多设备连接 -->
-              <ListCell title="多设备连接" chevron last @click="system.openApp('oneleap')">
+              <ListCell title="多设备连接" chevron last @click="push('multiDevice')">
                 <template #icon>
                   <div class="squircle-icon bg-multidevice">
                     <SettingsSystemIcon name="multi-device" :size="19" />
@@ -347,7 +469,7 @@ const filteredSearchResults = computed(() => {
             <!-- ================= 卡片 4: AI、个性化与视听通知 (5项) ================= -->
             <div class="settings-card">
               <!-- Infinix AI -->
-              <ListCell title="Infinix AI" chevron @click="pushUnimplemented('Infinix AI')">
+              <ListCell title="Infinix AI" chevron @click="push('infinixAi')">
                 <template #icon>
                   <div class="squircle-icon bg-infinix-ai">
                     <SettingsSystemIcon name="ai" :size="19" />
@@ -398,7 +520,7 @@ const filteredSearchResults = computed(() => {
             <!-- ================= 卡片 5: 安全与隐私 (4项) ================= -->
             <div class="settings-card">
               <!-- 密码与安全 -->
-              <ListCell title="密码与安全" chevron @click="pushUnimplemented('密码与安全')">
+              <ListCell title="密码与安全" chevron @click="push('security')">
                 <template #icon>
                   <div class="squircle-icon bg-security">
                     <SettingsSystemIcon name="security" />
@@ -407,7 +529,7 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- 权限与隐私 -->
-              <ListCell title="权限与隐私" chevron @click="pushUnimplemented('权限与隐私')">
+              <ListCell title="权限与隐私" chevron @click="push('privacy')">
                 <template #icon>
                   <div class="squircle-icon bg-privacy">
                     <SettingsSystemIcon name="privacy" />
@@ -416,7 +538,7 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- 应用管理 -->
-              <ListCell title="应用管理" chevron @click="pushUnimplemented('应用管理')">
+              <ListCell title="应用管理" chevron @click="push('appsManage')">
                 <template #icon>
                   <div class="squircle-icon bg-apps">
                     <SettingsSystemIcon name="apps" />
@@ -425,7 +547,7 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- 位置信息 -->
-              <ListCell title="位置信息" chevron last @click="pushUnimplemented('位置信息')">
+              <ListCell title="位置信息" chevron last @click="push('location')">
                 <template #icon>
                   <div class="squircle-icon bg-location">
                     <SettingsSystemIcon name="location" />
@@ -436,17 +558,8 @@ const filteredSearchResults = computed(() => {
 
             <!-- ================= 卡片 6: 系统特色与性能 (4项) ================= -->
             <div class="settings-card">
-              <!-- GT Zone -->
-              <ListCell title="GT Zone" chevron @click="pushUnimplemented('GT Zone')">
-                <template #icon>
-                  <div class="squircle-icon bg-gt">
-                    <span class="gt-badge">GT</span>
-                  </div>
-                </template>
-              </ListCell>
-
               <!-- 辅助功能 -->
-              <ListCell title="辅助功能" chevron @click="pushUnimplemented('辅助功能')">
+              <ListCell title="辅助功能" chevron @click="push('accessibility')">
                 <template #icon>
                   <div class="squircle-icon bg-accessibility">
                     <SettingsSystemIcon name="accessibility" />
@@ -454,8 +567,20 @@ const filteredSearchResults = computed(() => {
                 </template>
               </ListCell>
 
+              <!-- One-Tap Button -->
+              <ListCell title="One-Tap Button" chevron @click="push('oneTap')">
+                <template #icon>
+                  <div class="squircle-icon bg-onetap">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <rect x="7" y="3" width="10" height="18" rx="5" stroke="#FFFFFF" stroke-width="2"/>
+                      <rect x="10" y="7" width="4" height="6" rx="2" fill="#FFFFFF"/>
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
               <!-- 电池与省电 -->
-              <ListCell title="电池与省电" chevron @click="pushUnimplemented('电池与省电')">
+              <ListCell title="电池与省电" chevron @click="push('battery')">
                 <template #icon>
                   <div class="squircle-icon bg-battery">
                     <SettingsSystemIcon name="battery" :size="19" />
@@ -464,7 +589,7 @@ const filteredSearchResults = computed(() => {
               </ListCell>
 
               <!-- 存储 -->
-              <ListCell title="存储" chevron last @click="pushUnimplemented('存储')">
+              <ListCell title="存储" chevron last @click="push('storage')">
                 <template #icon>
                   <div class="squircle-icon bg-storage">
                     <SettingsSystemIcon name="storage" />
@@ -559,7 +684,7 @@ const filteredSearchResults = computed(() => {
 
       <!-- ================= 声音与振动 ================= -->
       <div v-else-if="view === 'sound'" key="sound" class="settings-page">
-        <SettingsSound @back="pop" @open-dnd="push('dnd')" @open-prayer="push('prayer')" />
+        <SettingsSound ref="soundRef" @back="pop" @open-dnd="push('dnd')" @open-prayer="push('prayer')" />
       </div>
 
       <!-- ================= 勿扰模式 (含礼拜模式入口) ================= -->
@@ -580,6 +705,11 @@ const filteredSearchResults = computed(() => {
       <!-- ================= 主题与个性化 ================= -->
       <div v-else-if="view === 'personalization'" key="personalization" class="settings-page">
         <SettingsPersonalization ref="personalizationRef" @back="pop" />
+      </div>
+
+      <!-- ================= 显示与亮度 ================= -->
+      <div v-else-if="view === 'display'" key="display" class="settings-page">
+        <SettingsDisplay ref="displayRef" @back="pop" @navigate="handleDisplayNavigate" />
       </div>
 
       <!-- ================= 账号中心 (Infinix ID) ================= -->
@@ -628,6 +758,96 @@ const filteredSearchResults = computed(() => {
         <SettingsWallet @back="pop" />
       </div>
 
+      <!-- ================= 我的手机 (关于手机) ================= -->
+      <div v-else-if="view === 'about'" key="about" class="settings-page">
+        <SettingsAboutPhone ref="aboutPhoneRef" @back="pop" @open-storage="push('storage')" />
+      </div>
+
+      <!-- ================= SIM 卡与网络设置 ================= -->
+      <div v-else-if="view === 'sim'" key="sim" class="settings-page">
+        <SettingsSim ref="simRef" @back="pop" />
+      </div>
+
+      <!-- ================= WLAN (无线局域网) ================= -->
+      <div v-else-if="view === 'wifi'" key="wifi" class="settings-page">
+        <SettingsWifi ref="wifiRef" @back="pop" />
+      </div>
+
+      <!-- ================= 蓝牙 ================= -->
+      <div v-else-if="view === 'bluetooth'" key="bluetooth" class="settings-page">
+        <SettingsBluetooth ref="bluetoothRef" @back="pop" />
+      </div>
+
+      <!-- ================= 星链卫星网络 ================= -->
+      <div v-else-if="view === 'satellite'" key="satellite" class="settings-page">
+        <SettingsSatellite ref="satelliteRef" @back="pop" />
+      </div>
+
+      <!-- ================= 多设备连接 ================= -->
+      <div v-else-if="view === 'multiDevice'" key="multiDevice" class="settings-page">
+        <SettingsMultiDevice
+          ref="multiDeviceRef"
+          @back="pop"
+          @open-hotspot="push('hotspot')"
+          @open-nfc="push('nfc')"
+        />
+      </div>
+
+      <!-- ================= 个人热点 ================= -->
+      <div v-else-if="view === 'hotspot'" key="hotspot" class="settings-page">
+        <SettingsHotspot ref="hotspotRef" @back="pop" />
+      </div>
+
+      <!-- ================= NFC ================= -->
+      <div v-else-if="view === 'nfc'" key="nfc" class="settings-page">
+        <SettingsNfc ref="nfcRef" @back="pop" @open-wallet="push('wallet')" />
+      </div>
+
+      <!-- ================= Infinix AI ================= -->
+      <div v-else-if="view === 'infinixAi'" key="infinixAi" class="settings-page">
+        <SettingsInfinixAI ref="aiRef" @back="pop" />
+      </div>
+
+      <!-- ================= 密码与安全 ================= -->
+      <div v-else-if="view === 'security'" key="security" class="settings-page">
+        <SettingsSecurity ref="securityRef" @back="pop" />
+      </div>
+
+      <!-- ================= 权限与隐私 ================= -->
+      <div v-else-if="view === 'privacy'" key="privacy" class="settings-page">
+        <SettingsPrivacy ref="privacyRef" @back="pop" />
+      </div>
+
+      <!-- ================= 应用管理 ================= -->
+      <div v-else-if="view === 'appsManage'" key="appsManage" class="settings-page">
+        <SettingsAppsManage ref="appsManageRef" @back="pop" />
+      </div>
+
+      <!-- ================= 位置信息 ================= -->
+      <div v-else-if="view === 'location'" key="location" class="settings-page">
+        <SettingsLocation ref="locationRef" @back="pop" />
+      </div>
+
+      <!-- ================= 辅助功能 ================= -->
+      <div v-else-if="view === 'accessibility'" key="accessibility" class="settings-page">
+        <SettingsAccessibility ref="accessibilityRef" @back="pop" />
+      </div>
+
+      <!-- ================= One-Tap Button ================= -->
+      <div v-else-if="view === 'oneTap'" key="oneTap" class="settings-page">
+        <SettingsOneTap ref="oneTapRef" @back="pop" />
+      </div>
+
+      <!-- ================= 电池与省电 ================= -->
+      <div v-else-if="view === 'battery'" key="battery" class="settings-page">
+        <SettingsBattery ref="batteryRef" @back="pop" />
+      </div>
+
+      <!-- ================= 存储 ================= -->
+      <div v-else-if="view === 'storage'" key="storage" class="settings-page">
+        <SettingsStorage ref="storageRef" @back="pop" />
+      </div>
+
       <!-- ================= 其他二级页 ================= -->
       <div v-else :key="view" class="settings-page">
         <AppNavBar :title="viewTitles[view]" :back-label="'设置'" @back="pop" />
@@ -674,41 +894,6 @@ const filteredSearchResults = computed(() => {
           <div v-else class="empty-note">已关闭 WLAN</div>
         </div>
 
-        <!-- 显示与亮度 -->
-        <div v-else-if="view === 'display'" class="scrollable detail-body">
-          <div class="group-header">外观</div>
-          <div class="appearance-row">
-            <div class="appearance-card selected">
-              <div class="appearance-preview light"></div>
-              <span>浅色模式</span>
-            </div>
-            <div class="appearance-card">
-              <div class="appearance-preview dark"></div>
-              <span>深色模式</span>
-            </div>
-          </div>
-          <div class="group-header">亮度</div>
-          <div class="settings-card brightness-card">
-            <svg width="16" height="16" viewBox="0 0 24 24"><path :d="GLYPHS.sun" fill="#8E8E93" /></svg>
-            <div
-              ref="sliderRef"
-              class="h-slider"
-              @pointerdown="onSlideDown"
-              @pointermove="onSlideMove"
-              @pointerup="onSlideUp"
-              @pointercancel="onSlideUp"
-            >
-              <div class="h-slider-fill" :style="{ width: ((control.brightness - 0.25) / 0.75 * 100) + '%' }"></div>
-            </div>
-            <svg width="22" height="22" viewBox="0 0 24 24"><path :d="GLYPHS.sun" fill="#8E8E93" /></svg>
-          </div>
-          <div class="settings-card">
-            <ListCell title="护眼模式">
-              <template #right><ToggleSwitch :model-value="true" /></template>
-            </ListCell>
-            <ListCell title="自适应刷新率" value="144Hz" chevron last />
-          </div>
-        </div>
 
         <!-- 系统语言与输入法子页 -->
         <div v-else-if="view === 'language'" class="scrollable detail-body">
@@ -761,8 +946,8 @@ const filteredSearchResults = computed(() => {
         <!-- 系统与关于手机 -->
         <div v-else class="scrollable detail-body">
           <div class="settings-card">
-            <ListCell title="关于手机" value="Infinix GT 50 Pro" chevron />
-            <ListCell title="系统更新" value="tOS 16.0 最新版" last />
+            <ListCell title="关于手机" value="Infinix NOTE 60 Pro" chevron clickable @click="push('about')" />
+            <ListCell title="系统更新" value="XOS 17.0.0 最新版" last clickable @click="push('about')" />
           </div>
           <div class="group-header">系统控制与偏好</div>
           <div class="settings-card">
@@ -882,9 +1067,9 @@ const filteredSearchResults = computed(() => {
   line-height: 1.2;
 }
 
-
-.chevron-icon {
+.account-card .lc-chevron {
   flex: none;
+  color: #C5C5C7;
 }
 
 /* ================= 统一 Squircle 图标规范 ================= */
@@ -899,11 +1084,24 @@ const filteredSearchResults = computed(() => {
   margin-right: 14px;
 }
 
-.bg-device { background: #00C853; }
+.squircle-icon-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 10.5px;
+  object-fit: contain;
+  display: block;
+  flex: none;
+  margin-right: 14px;
+  user-select: none;
+  pointer-events: none;
+}
+
+.bg-device { background: #0C87F2; }
 .bg-airplane { background: #FFA000; }
 .bg-sim { background: #22C55E; }
 .bg-wifi { background: #0088FF; }
 .bg-bluetooth { background: #0088FF; }
+.bg-satellite { background: #22C55E; }
 .bg-multidevice { background: #10B981; }
 
 .bg-infinix-ai { background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 50%, #EC4899 100%); }
@@ -925,7 +1123,8 @@ const filteredSearchResults = computed(() => {
   letter-spacing: -0.5px;
 }
 
-.bg-accessibility { background: #EF4444; }
+.bg-accessibility { background: #3B82F6; }
+.bg-onetap { background: #2563EB; }
 .bg-battery { background: #22C55E; }
 .bg-storage { background: #3B82F6; }
 
@@ -1097,60 +1296,4 @@ const filteredSearchResults = computed(() => {
   line-height: 1.6;
 }
 
-/* 外观模式 */
-.appearance-row {
-  display: flex;
-  gap: 14px;
-  margin: 0 16px 12px;
-}
-.appearance-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  font-size: 13.5px;
-  color: #111111;
-}
-.appearance-preview {
-  width: 100%;
-  height: 100px;
-  border-radius: 14px;
-  border: 2.5px solid transparent;
-}
-.appearance-preview.light {
-  background: linear-gradient(180deg, #FFFFFF 60%, #E9E9EB 60%);
-}
-.appearance-preview.dark {
-  background: linear-gradient(180deg, #1C1C1E 60%, #3A3A3C 60%);
-}
-.appearance-card.selected .appearance-preview {
-  border-color: #007AFF;
-  box-shadow: 0 2px 10px rgba(0, 122, 255, 0.25);
-}
-
-/* 亮度滑块 */
-.brightness-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-}
-.h-slider {
-  flex: 1;
-  height: 28px;
-  border-radius: 14px;
-  background: #E9E9EB;
-  overflow: hidden;
-  touch-action: none;
-  cursor: pointer;
-  position: relative;
-}
-.h-slider-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  background: #FFFFFF;
-  border-radius: 14px;
-  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.1);
-}
 </style>

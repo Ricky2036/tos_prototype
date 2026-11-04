@@ -18,6 +18,8 @@ import { useClockStore } from '../../stores/clockStore'
 import { usePrayerStore } from '../../stores/prayerStore'
 import { useControlStore } from '../../stores/controlStore'
 import { useActiveActivities } from '../../composables/useActiveActivities'
+import { useOs16IslandStore, OS16_TEMPLATES } from '../../stores/os16IslandStore'
+import OS16TemplateCard from './island/OS16TemplateCard.vue'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import { GLYPHS } from '../../assets/icons/glyphs'
 import IslandCloseModal from '../ui/IslandCloseModal.vue'
@@ -36,7 +38,19 @@ const recorder = useRecorderStore()
 const clock = useClockStore()
 const prayer = usePrayerStore()
 const control = useControlStore()
+const os16Store = useOs16IslandStore()
 const { activeActivities } = useActiveActivities()
+
+function getOs16CardClass(tpl) {
+  if (tpl === OS16_TEMPLATES.FOOD_DELIVERY || tpl === OS16_TEMPLATES.RIDE_HAILING) return 'is-os16-progress'
+  if (tpl === OS16_TEMPLATES.NAVIGATION) return 'is-os16-nav'
+  if (tpl === OS16_TEMPLATES.TRANSLATION) return 'is-os16-translation'
+  if (tpl === OS16_TEMPLATES.MEDIA_EXTENDED) return 'is-os16-media'
+  if (tpl === OS16_TEMPLATES.SYSTEM_TIP) return 'is-os16-system-tip'
+  if (tpl === OS16_TEMPLATES.PHONE_CALL || tpl === OS16_TEMPLATES.MICROPHONE) return 'is-os16-base-74'
+  if (tpl === OS16_TEMPLATES.HOTSPOT || tpl === OS16_TEMPLATES.FLASHLIGHT) return 'is-os16-base-72'
+  return 'is-os16-base-76'
+}
 const { timeShort, now } = useClock()
 const mediaActivity = computed(() => ({
   id: 'media',
@@ -216,6 +230,9 @@ function stopActivityInstance(act) {
     clock.resetStopwatch()
   } else if (act.type === 'prayer' || act.id === 'prayer') {
     prayer.closeIsland()
+  } else if (act.type === 'os16_template' || (act.id && String(act.id).startsWith('os16_'))) {
+    const tplId = act.template || String(act.id).replace(/^os16_/, '')
+    os16Store.closeTemplate(tplId)
   } else if (act.type === 'media' || act.id === 'media') {
     control.dismissMediaImmediately()
   }
@@ -335,6 +352,8 @@ function onActivityCardClick(act) {
   } else if (act.type === 'prayer') {
     clock.setActiveTab('muslim')
     system.openApp('clock')
+  } else if (act.type === 'os16_template') {
+    return
   }
   system.requestCloseOverlay('notificationCenter')
 }
@@ -712,6 +731,7 @@ watch(expandedId, async () => {
               class="nc-activity-card"
               :class="[
                 `is-${act.type}`,
+                act.type === 'os16_template' ? ['is-os16-template', getOs16CardClass(act.template)] : null,
                 {
                   'is-swiping': isSwipingCard && activeCardId === act.id,
                   'has-swipe-transition': !isSwipingCard && swipedTransitionId === act.id
@@ -724,8 +744,13 @@ watch(expandedId, async () => {
               @pointercancel="onCardPointerUp($event, act.id)"
               @click.stop="onActivityCardClick(act)"
             >
+              <!-- 灵动岛 OS16 规范模板卡片 -->
+              <template v-if="act.type === 'os16_template'">
+                <OS16TemplateCard :template="act.template" />
+              </template>
+
               <!-- 闹钟类型 -->
-              <template v-if="act.type === 'alarm'">
+              <template v-else-if="act.type === 'alarm'">
                 <div class="nc-act-icon-wrap icon-alarm" :class="{ 'is-ringing': clock.isAlarmRinging }">
                   <svg class="alarm-activity-icon" width="34" height="34" viewBox="0 0 24 24" aria-hidden="true">
                     <path :d="CLOCK_ICONS.alarm" />
@@ -1073,6 +1098,39 @@ watch(expandedId, async () => {
 .nc-activity-card:active,
 .nc-recorder-card:active {
   background: rgba(22, 22, 26, 0.95);
+}
+
+.nc-activity-card.is-os16-template {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  background: #000000;
+  border-radius: 28px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+}
+.nc-activity-card.is-os16-progress {
+  height: 122px;
+}
+.nc-activity-card.is-os16-nav {
+  height: 168px;
+}
+.nc-activity-card.is-os16-media {
+  height: 148px;
+}
+.nc-activity-card.is-os16-system-tip {
+  height: 180px;
+}
+.nc-activity-card.is-os16-translation {
+  height: 212px;
+}
+.nc-activity-card.is-os16-base-76 {
+  height: 76px;
+}
+.nc-activity-card.is-os16-base-74 {
+  height: 74px;
+}
+.nc-activity-card.is-os16-base-72 {
+  height: 72px;
 }
 
 .nc-act-icon-wrap {

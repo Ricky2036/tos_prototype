@@ -32,4 +32,6 @@ user_svgs/
 code-review-*.html
 
 # ---- Motion Builder deterministic capture output ----
-.motion/**/artifacts/
+.motion/*
+!.motion/baselines/
+!.motion/references/

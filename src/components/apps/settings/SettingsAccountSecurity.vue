@@ -156,6 +156,7 @@ function handleSubmitChangePassword() {
 
 // 注销确认
 const deleteAgreement = ref(false)
+let deleteRedirectTimer = null
 function handleConfirmDeleteAccount() {
   if (!deleteAgreement.value) {
     showToast('请阅读并勾选注销须知')
@@ -164,7 +165,8 @@ function handleConfirmDeleteAccount() {
   activeModal.value = null
   account.logout()
   showToast('账号注销申请已提交')
-  setTimeout(() => {
+  if (deleteRedirectTimer) clearTimeout(deleteRedirectTimer)
+  deleteRedirectTimer = setTimeout(() => {
     emit('back')
   }, 400)
 }
@@ -172,6 +174,7 @@ function handleConfirmDeleteAccount() {
 onBeforeUnmount(() => {
   if (countdownTimer) clearInterval(countdownTimer)
   if (toastTimer) clearTimeout(toastTimer)
+  if (deleteRedirectTimer) clearTimeout(deleteRedirectTimer)
 })
 </script>
 
@@ -197,8 +200,8 @@ onBeforeUnmount(() => {
             <div class="cell-title">电话号码</div>
             <div class="cell-sub">电话号码可用于登录账号、重置密码和身份验证。</div>
           </div>
-          <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-            <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
 
@@ -210,8 +213,8 @@ onBeforeUnmount(() => {
             <div class="cell-title">电子邮箱</div>
             <div class="cell-sub">电子邮箱可用于登录账号、重置密码和身份验证。</div>
           </div>
-          <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-            <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
 
@@ -222,8 +225,8 @@ onBeforeUnmount(() => {
           <div class="cell-content">
             <div class="cell-title">紧急联系人</div>
           </div>
-          <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-            <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
       </div>
@@ -248,8 +251,8 @@ onBeforeUnmount(() => {
             <div class="cell-title">绑定三方</div>
             <div class="cell-sub">三方账号可用于登录账号。</div>
           </div>
-          <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-            <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
 
@@ -260,8 +263,8 @@ onBeforeUnmount(() => {
           <div class="cell-content">
             <div class="cell-title">修改密码</div>
           </div>
-          <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-            <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
 
@@ -272,8 +275,8 @@ onBeforeUnmount(() => {
           <div class="cell-content">
             <div class="cell-title">账号日志</div>
           </div>
-          <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-            <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
       </div>
@@ -284,8 +287,8 @@ onBeforeUnmount(() => {
           <div class="cell-content">
             <div class="cell-title">账号注销</div>
           </div>
-          <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-            <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
       </div>

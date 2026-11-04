@@ -1,8 +1,21 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { useBackHandler } from '../../composables/backRegistry'
 import { useShareStore, SHARE_APPS } from '../../stores/shareStore'
 
 const store = useShareStore()
+
+useBackHandler(() => {
+  if (store.isOpen) {
+    if (store.activeMenuAppId) {
+      store.closeAllMenus()
+      return true
+    }
+    store.closeShare()
+    return true
+  }
+  return false
+})
 
 function resolveAsset(path) {
   if (!path) return ''
@@ -213,11 +226,6 @@ const activeMenuApp = computed(() => {
 
           <!-- 分享应用横滑图标栏 -->
           <div class="share-apps-container">
-            <div class="share-apps-header">
-              <span class="share-apps-label">支持分享的应用</span>
-              <span class="share-apps-tip">点击图标或下拉可选择渠道</span>
-            </div>
-
             <div class="share-apps-scroll">
               <div
                 v-for="app in SHARE_APPS"
@@ -301,9 +309,6 @@ const activeMenuApp = computed(() => {
               </div>
             </div>
           </div>
-
-          <!-- 底部 Home 指示条 -->
-          <div class="share-home-bar"></div>
         </div>
       </div>
     </Transition>
@@ -315,7 +320,7 @@ const activeMenuApp = computed(() => {
   pointer-events: none;
   position: absolute;
   inset: 0;
-  z-index: 100;
+  z-index: 95; /* 低于全局导航栏 (z=96)，使系统全局手势条/三键导航栏自然浮于白色分享面板之上 */
 }
 
 /* 全局 Toast */
@@ -568,37 +573,15 @@ const activeMenuApp = computed(() => {
 
 /* 应用图标列表 */
 .share-apps-container {
-  padding: 6px 0 2px;
+  padding: 4px 0 2px;
   flex: none;
-}
-
-.share-apps-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 16px 6px;
-}
-
-.share-apps-label {
-  font-size: 11.5px;
-  font-weight: 500;
-  color: #8E8E93;
-}
-
-.share-apps-tip {
-  font-size: 10px;
-  color: #007AFF;
-  background: rgba(0, 122, 255, 0.08);
-  padding: 1.5px 6px;
-  border-radius: 999px;
-  border: 0.5px solid rgba(0, 122, 255, 0.16);
 }
 
 .share-apps-scroll {
   display: flex;
   gap: 10px;
   overflow-x: auto;
-  padding: 4px 14px 6px;
+  padding: 8px 14px 6px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
@@ -802,16 +785,6 @@ const activeMenuApp = computed(() => {
 .share-popover-check {
   flex: none;
   margin-left: 6px;
-}
-
-/* 底部 Home 指示条 */
-.share-home-bar {
-  width: 110px;
-  height: 4px;
-  background: #000000;
-  border-radius: 2px;
-  margin: 10px auto 0;
-  flex: none;
 }
 
 /* 动画过渡 */

@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { usePrivacyStore } from '../../stores/privacyStore'
 import { useSystemStore } from '../../stores/systemStore'
 import { runBackHandler } from '../../composables/backRegistry'
 
@@ -15,6 +16,7 @@ const props = defineProps({
 })
 
 const system = useSystemStore()
+const privacy = usePrivacyStore()
 
 const color = computed(() => (props.dark ? 'rgba(0, 0, 0, 0.75)' : 'rgba(255, 255, 255, 0.9)'))
 
@@ -42,6 +44,10 @@ function onHome() {
   }
   if (system.overlays.controlCenter.status !== 'closed') {
     system.requestCloseOverlay('controlCenter')
+    return
+  }
+  if (privacy.settingsPage) {
+    privacy.page = null
     return
   }
   if (system.baseLayer === 'lock') {

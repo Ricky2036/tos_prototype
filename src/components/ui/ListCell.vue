@@ -43,8 +43,8 @@ const emit = defineEmits(['click'])
           <slot name="value">
             <span v-if="value" class="lc-value">{{ value }}</span>
           </slot>
-          <svg v-if="chevron" width="8" height="13" viewBox="0 0 8 13">
-            <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+          <svg v-if="chevron" class="lc-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </slot>
       </div>
@@ -74,6 +74,13 @@ const emit = defineEmits(['click'])
   justify-content: center;
   margin-right: 14px;
 }
+
+/* 保护所有自定义 slot="icon" 图标项：统一间距与防止 flex 挤压 */
+:deep(.list-cell > *:not(.lc-main)) {
+  flex: none;
+  margin-right: 14px;
+}
+
 .lc-icon-text {
   color: #fff;
   font: 600 15px/1 var(--font-stack);
@@ -93,16 +100,20 @@ const emit = defineEmits(['click'])
 .lc-title-col {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-width: 0;
   gap: 2px;
+  margin-right: 8px;
 }
 
 .lc-title {
-  font: 450 15.5px/1.3 var(--font-stack);
+  font: 500 15.5px/1.3 var(--font-stack);
+  font-weight: 500;
   color: #111111;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.15px;
 }
 .lc-subtitle {
   font: 400 13px/1.35 var(--font-stack);
@@ -118,5 +129,11 @@ const emit = defineEmits(['click'])
 .lc-value {
   font: 400 14.5px/1.25 var(--font-stack);
   color: #8E8E93;
+}
+.lc-chevron {
+  flex: none;
+  color: var(--chevron-color, #C5C5C7);
+  margin-left: 2px;
+  display: block;
 }
 </style>

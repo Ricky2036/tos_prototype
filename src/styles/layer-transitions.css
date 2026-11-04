@@ -1,0 +1,116 @@
+/* ============================================================
+   移动端层级切换过渡规范 (Hierarchical Layer Transitions)
+   
+   层级切换运动学契约：
+   - 前进（Push / 进入深层级菜单）：
+     进场页：0.22s cubic-bezier(0.2, 0.9, 0.3, 1), 起始 translateX(36px) 与透明度 0 -> 1
+     退场页：0.14s cubic-bezier(0.4, 0, 1, 1), 目标 translateX(-24px) 与透明度 1 -> 0
+   - 后退（Pop / 返回上层级菜单）：
+     进场页：0.22s cubic-bezier(0.2, 0.9, 0.3, 1), 起始 translateX(-24px) 与透明度 0 -> 1
+     退场页：0.14s cubic-bezier(0.4, 0, 1, 1), 目标 translateX(36px) 与透明度 1 -> 0
+   ============================================================ */
+
+/* 前进过渡类名 */
+.slide-enter-active,
+.slide-back-enter-active,
+.layer-slide-enter-active,
+.layer-slide-back-enter-active {
+  transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.20s ease-out;
+  will-change: transform, opacity;
+}
+
+.slide-leave-active,
+.slide-back-leave-active,
+.layer-slide-leave-active,
+.layer-slide-back-leave-active {
+  transition: transform 0.14s cubic-bezier(0.4, 0, 1, 1), opacity 0.12s ease-in;
+  will-change: transform, opacity;
+}
+
+.slide-enter-from,
+.layer-slide-enter-from {
+  transform: translateX(36px);
+  opacity: 0;
+}
+
+.slide-enter-to,
+.layer-slide-enter-to {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.slide-leave-from,
+.layer-slide-leave-from {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.slide-leave-to,
+.layer-slide-leave-to {
+  transform: translateX(-24px);
+  opacity: 0;
+}
+
+/* 后退过渡类名 */
+.slide-back-enter-from,
+.layer-slide-back-enter-from {
+  transform: translateX(-24px);
+  opacity: 0;
+}
+
+.slide-back-enter-to,
+.layer-slide-back-enter-to {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.slide-back-leave-from,
+.layer-slide-back-leave-from {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.slide-back-leave-to,
+.layer-slide-back-leave-to {
+  transform: translateX(36px);
+  opacity: 0;
+}
+
+/* 统一视图窗格：避免切换期间容器塌陷或发生双重滚动 */
+.subpage-view-pane,
+.layer-view-pane {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 动效偏好：系统减弱动态效果时降级为纯透明度平滑过渡 */
+@media (prefers-reduced-motion: reduce) {
+  .slide-enter-active,
+  .slide-back-enter-active,
+  .layer-slide-enter-active,
+  .layer-slide-back-enter-active,
+  .slide-leave-active,
+  .slide-back-leave-active,
+  .layer-slide-leave-active,
+  .layer-slide-back-leave-active {
+    transition: opacity 0.15s ease !important;
+    transform: none !important;
+    will-change: opacity;
+  }
+  .slide-enter-from,
+  .layer-slide-enter-from,
+  .slide-leave-to,
+  .layer-slide-leave-to,
+  .slide-back-enter-from,
+  .layer-slide-back-enter-from,
+  .slide-back-leave-to,
+  .layer-slide-back-leave-to {
+    transform: none !important;
+  }
+}

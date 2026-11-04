@@ -1,3 +1,5 @@
+import navigation from 'lucide-static/icons/navigation.svg?raw'
+import messageCircle from 'lucide-static/icons/message-circle.svg?raw'
 /* lucide-static 图标集中导入 + 定制控制中心矢量图标（100% 用户原始 SVG） */
 import quickShareMask from './quick-share-mask.png'
 import play from 'lucide-static/icons/play.svg?raw'
@@ -11,6 +13,7 @@ import check from 'lucide-static/icons/check.svg?raw'
 import plus from 'lucide-static/icons/plus.svg?raw'
 import slidersHorizontal from 'lucide-static/icons/sliders-horizontal.svg?raw'
 import minus from 'lucide-static/icons/minus.svg?raw'
+import ban from 'lucide-static/icons/ban.svg?raw'
 
 /* ================= AI Mate 设备中枢所需的 lucide 图标 ================= */
 // -- 设备类型 --
@@ -99,6 +102,7 @@ import externalLink from 'lucide-static/icons/external-link.svg?raw'
 import send from 'lucide-static/icons/send.svg?raw'
 import rotateCcw from 'lucide-static/icons/rotate-ccw.svg?raw'
 import star from 'lucide-static/icons/star.svg?raw'
+import heart from 'lucide-static/icons/heart.svg?raw'
 import eye from 'lucide-static/icons/eye.svg?raw'
 import maximize from 'lucide-static/icons/maximize.svg?raw'
 import minimize from 'lucide-static/icons/minimize.svg?raw'
@@ -140,7 +144,6 @@ import shapes from 'lucide-static/icons/shapes.svg?raw'
 import move from 'lucide-static/icons/move.svg?raw'
 import moveHorizontal from 'lucide-static/icons/move-horizontal.svg?raw'
 import aperture from 'lucide-static/icons/aperture.svg?raw'
-import camera from 'lucide-static/icons/camera.svg?raw'
 import wand2 from 'lucide-static/icons/wand-2.svg?raw'
 import paintbrush from 'lucide-static/icons/paintbrush.svg?raw'
 // -- AI Mori --
@@ -269,35 +272,48 @@ const volumeX = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" str
 <line x1="16" x2="22" y1="9" y2="15"/>
 </svg>`
 
-const bellDot = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-<path d="M10.268 21a2 2 0 0 0 3.464 0"/>
-<path d="M11.68 2.009A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673c-.824-.85-1.678-1.731-2.21-3.348"/>
-<circle cx="18" cy="5" r="3"/>
+// 15.2 通知铃声 (bellDot) - 基于实机面性铃声并在右上角增加独立实心圆点
+const bellDot = `<svg width="26" height="26" viewBox="-2 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="bell-dot-mask">
+<rect x="-2" y="0" width="26" height="26" fill="#FFFFFF"/>
+<circle cx="17.8" cy="4.8" r="4.2" fill="#000000"/>
+</mask>
+<path d="M15.2037 22.4572C14.5574 24.1557 12.8497 25.3333 10.9079 25.3333C8.9661 25.3333 7.2581 24.1557 6.61179 22.4572H15.2037ZM10.9079 0C11.539 0.000166901 12.0508 0.511778 12.0508 1.14286V1.7939C15.9602 2.33919 19.0002 5.64069 19.111 9.69606L19.2372 14.3062C19.2672 15.4046 19.6759 16.4592 20.3945 17.2906L21.4894 18.5565C22.1844 19.3609 21.6996 20.5791 20.7078 20.7429H1.10844C0.116346 20.5792 -0.368188 19.361 0.327189 18.5565L1.42168 17.2906C2.1402 16.4593 2.5494 15.4045 2.57942 14.3062L2.70554 9.69606C2.81638 5.64075 5.85574 2.33925 9.76506 1.7939V1.14286C9.76506 0.511699 10.2768 3.96322e-05 10.9079 0Z" fill="currentColor" mask="url(#bell-dot-mask)"/>
+<circle cx="17.8" cy="4.8" r="2.8" fill="currentColor"/>
 </svg>`
 
-const bellDotOff = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-<path d="M10.268 21a2 2 0 0 0 3.464 0"/>
-<path d="M11.68 2.009A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673c-.824-.85-1.678-1.731-2.21-3.348"/>
-<circle cx="18" cy="5" r="3"/>
-<path d="m2 2 20 20"/>
+const bellDotOff = `<svg width="26" height="26" viewBox="-2 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="bell-dot-off-mask">
+<rect x="-2" y="0" width="26" height="26" fill="#FFFFFF"/>
+<circle cx="17.8" cy="4.8" r="4.2" fill="#000000"/>
+<line x1="0" y1="2" x2="22" y2="24" stroke="#000000" stroke-width="3" stroke-linecap="round"/>
+</mask>
+<path d="M15.2037 22.4572C14.5574 24.1557 12.8497 25.3333 10.9079 25.3333C8.9661 25.3333 7.2581 24.1557 6.61179 22.4572H15.2037ZM10.9079 0C11.539 0.000166901 12.0508 0.511778 12.0508 1.14286V1.7939C15.9602 2.33919 19.0002 5.64069 19.111 9.69606L19.2372 14.3062C19.2672 15.4046 19.6759 16.4592 20.3945 17.2906L21.4894 18.5565C22.1844 19.3609 21.6996 20.5791 20.7078 20.7429H1.10844C0.116346 20.5792 -0.368188 19.361 0.327189 18.5565L1.42168 17.2906C2.1402 16.4593 2.5494 15.4045 2.57942 14.3062L2.70554 9.69606C2.81638 5.64075 5.85574 2.33925 9.76506 1.7939V1.14286C9.76506 0.511699 10.2768 3.96322e-05 10.9079 0Z" fill="currentColor" mask="url(#bell-dot-off-mask)"/>
+<circle cx="17.8" cy="4.8" r="2.8" fill="currentColor"/>
+<line x1="0" y1="2" x2="22" y2="24" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
 </svg>`
 
-const alarmClock = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-<circle cx="12" cy="13" r="8"/>
-<path d="M12 9v4l2 2"/>
-<path d="M5 3 2 6"/>
-<path d="m22 6-3-3"/>
-<path d="M6.38 18.7 4 21"/>
-<path d="M17.64 18.67 20 21"/>
+// 15.3 闹钟 (alarmClock) - 1:1 实机面性闹钟（双耳 + 实心圆盘 + 指针镂空）
+const alarmClock = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="alarm-clock-mask">
+<rect width="24" height="24" fill="#FFFFFF"/>
+<path d="M11.75 7.8V13.2L15.3 16.7" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</mask>
+<path d="M1.6 5.8L4.6 1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<path d="M22.4 5.8L19.4 1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<circle cx="11.85" cy="13.2" r="9.5" fill="currentColor" mask="url(#alarm-clock-mask)"/>
 </svg>`
 
-const alarmClockOff = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-<path d="M6.87 6.87a8 8 0 1 0 11.26 11.26"/>
-<path d="M19.9 14.25a8 8 0 0 0-9.15-9.15"/>
-<path d="m22 6-3-3"/>
-<path d="M6.26 18.67 4 21"/>
-<path d="m2 2 20 20"/>
-<path d="M4 4 2 6"/>
+const alarmClockOff = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="alarm-clock-off-mask">
+<rect width="24" height="24" fill="#FFFFFF"/>
+<path d="M11.75 7.8V13.2L15.3 16.7" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="2" y1="2" x2="22" y2="22" stroke="#000000" stroke-width="3" stroke-linecap="round"/>
+</mask>
+<path d="M1.6 5.8L4.6 1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<path d="M22.4 5.8L19.4 1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<circle cx="11.85" cy="13.2" r="9.5" fill="currentColor" mask="url(#alarm-clock-off-mask)"/>
+<line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
 </svg>`
 
 /** AI Mate 首页风扇卡的实物图标（取自归档 `DeviceIcon` 组件，`small` 档 40×40）。
@@ -403,8 +419,8 @@ const cast = `<svg width="32" height="32" viewBox="0 0 292 292" fill="none" xmln
 <rect width="292" height="292" fill="currentColor" mask="url(#lucide-cast-mask)"/>
 </svg>`
 
-// 21. 健康 / 爱心 (heart)
-const heart = `<svg width="24" height="24" viewBox="7 7 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+// 21. 控制中心健康 (health)
+const health = `<svg width="24" height="24" viewBox="7 7 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M23.4814 10.2009C26.84 10.2011 29.5625 13.6199 29.5625 16.7117C29.5624 19.8034 28.1222 21.7243 25.7217 24.1248C24.9008 24.9455 21.8325 27.2808 20.1396 28.5535C19.4636 29.0617 18.5364 29.0617 17.8604 28.5535C16.1674 27.2808 13.0992 24.9455 12.2783 24.1248C9.87782 21.7243 8.43758 19.8034 8.4375 16.7117C8.4375 13.6199 11.1601 10.2011 14.5186 10.2009C15.3902 10.2009 16.2192 10.3808 16.9688 10.7039L20.7627 14.4802C21.0472 14.7634 21.5072 14.7642 21.793 14.4822C22.082 14.1966 22.0829 13.7298 21.7949 13.4431L19.7754 11.4333C20.8014 10.6609 22.0866 10.2009 23.4814 10.2009ZM18.1299 16.0164C17.9059 15.9965 17.6863 16.0799 17.5322 16.239L17.4707 16.3113L15.8203 18.5271H14.3203C13.9117 18.5271 13.5803 18.8587 13.5801 19.2673C13.5803 19.6759 13.9117 20.0076 14.3203 20.0076H16.1924C16.4261 20.0075 16.6465 19.8962 16.7861 19.7087L17.9395 18.1599L19.7422 21.7644C19.8609 22.0019 20.0981 22.1578 20.3633 22.1726C20.6283 22.1872 20.8811 22.0584 21.0254 21.8357L22.2109 20.0076H23.6807C24.089 20.0072 24.4207 19.6757 24.4209 19.2673C24.4207 18.8589 24.089 18.5274 23.6807 18.5271H21.8086C21.5892 18.5271 21.3827 18.6247 21.2432 18.7898L21.1875 18.865L20.4873 19.9441L18.7266 16.4226C18.6117 16.193 18.3855 16.0392 18.1299 16.0164Z" fill="white"/>
 </svg>`
 
@@ -526,10 +542,15 @@ const jbl = `<svg width="32" height="32" viewBox="0 0 84 84" fill="none" xmlns="
    到时直接替换下面这个 `vpn` 常量即可，其它代码一行都不用动。 */
 const vpn = `<svg width="32" height="32" viewBox="0 0 84 84" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M42 6L74 17V42C74 60 60 73 42 78C24 73 10 60 10 42V17L42 6ZM19 34L24.7 52L27.3 52L33 34H29.7L26 43.5L22.3 34H19ZM36 34H44.2C47.8 34 50 36.2 50 39.8C50 43.4 47.8 45.6 44.2 45.6H39.8V52H36V34ZM39.8 37.5V42.6H44C45.4 42.6 46.3 41.4 46.3 39.9C46.3 38.4 45.4 37.5 44 37.5H39.8ZM53 52V34H56.3L61.7 43.8V34H65V52H61.7L56.3 42.2V52H53Z" fill="white"/></svg>`
 
+// 官方锁屏与系统级相机矢量图标 (camera)
+const camera = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M13.9922 2.65625C14.1016 2.67187 14.2031 2.67969 14.2969 2.67969C14.4062 2.67969 14.5156 2.69531 14.625 2.72656C14.7344 2.75781 14.8359 2.79688 14.9297 2.84375C15.0391 2.875 15.1484 2.92188 15.2578 2.98438C15.3359 3.04687 15.4141 3.10938 15.4922 3.17188C15.5703 3.23437 15.6484 3.30469 15.7266 3.38281L16.9688 4.625C17.0938 4.75 17.1719 4.82812 17.2031 4.85938C17.25 4.89063 17.2812 4.91406 17.2969 4.92969C17.3125 4.94531 17.3281 4.96094 17.3438 4.97656C17.375 4.97656 17.4062 4.97656 17.4375 4.97656C17.4531 4.99219 17.4844 5 17.5312 5C17.5781 5 17.6953 5 17.8828 5H18.2578C18.5859 5 18.8828 5 19.1484 5C19.4141 5 19.6562 5.00781 19.875 5.02344C20.0938 5.05469 20.3047 5.09375 20.5078 5.14062C20.7109 5.17188 20.9062 5.24219 21.0938 5.35156C21.4062 5.49219 21.6797 5.6875 21.9141 5.9375C22.1484 6.17188 22.3359 6.4375 22.4766 6.73438C22.5859 6.92188 22.6641 7.11719 22.7109 7.32031C22.7578 7.52344 22.7891 7.74219 22.8047 7.97656C22.8203 8.17969 22.8281 8.41406 22.8281 8.67969C22.8281 8.94531 22.8281 9.24219 22.8281 9.57031V16.7656C22.8281 17.0938 22.8281 17.3906 22.8281 17.6562C22.8281 17.9219 22.8203 18.1562 22.8047 18.3594C22.7891 18.5781 22.7578 18.7969 22.7109 19.0156C22.6641 19.2188 22.5859 19.4141 22.4766 19.6016C22.3359 19.8984 22.1484 20.1641 21.9141 20.3984C21.6797 20.6328 21.4062 20.8281 21.0938 20.9844C20.9062 21.0781 20.7109 21.1484 20.5078 21.1953C20.3047 21.2422 20.0938 21.2734 19.875 21.2891C19.6562 21.3203 19.4141 21.3359 19.1484 21.3359C18.8828 21.3359 18.5859 21.3359 18.2578 21.3359H5.74219C5.41406 21.3359 5.11719 21.3359 4.85156 21.3359C4.58594 21.3359 4.34375 21.3203 4.125 21.2891C3.90625 21.2734 3.69531 21.2422 3.49219 21.1953C3.28906 21.1484 3.09375 21.0781 2.90625 20.9844C2.59375 20.8281 2.32031 20.6328 2.08594 20.3984C1.85156 20.1641 1.66406 19.8984 1.52344 19.6016C1.41406 19.4141 1.33594 19.2188 1.28906 19.0156C1.24219 18.7969 1.21094 18.5781 1.19531 18.3594C1.17969 18.1562 1.17188 17.9219 1.17188 17.6562C1.17188 17.3906 1.17188 17.0938 1.17188 16.7656V9.57031C1.17188 9.24219 1.17188 8.94531 1.17188 8.67969C1.17188 8.41406 1.17969 8.17969 1.19531 7.97656C1.21094 7.74219 1.24219 7.52344 1.28906 7.32031C1.33594 7.11719 1.40625 6.92188 1.5 6.73438C1.65625 6.4375 1.85156 6.17188 2.08594 5.9375C2.32031 5.6875 2.59375 5.49219 2.90625 5.35156C3.09375 5.24219 3.28906 5.17188 3.49219 5.14062C3.69531 5.09375 3.90625 5.05469 4.125 5.02344C4.34375 5.00781 4.58594 5 4.85156 5C5.11719 5 5.41406 5 5.74219 5H6.11719C6.30469 5 6.42188 5 6.46875 5C6.51562 5 6.54688 4.99219 6.5625 4.97656C6.59375 4.97656 6.61719 4.97656 6.63281 4.97656C6.66406 4.96094 6.6875 4.94531 6.70312 4.92969C6.71875 4.91406 6.74219 4.89063 6.77344 4.85938C6.82031 4.82812 6.90625 4.75 7.03125 4.625L8.27344 3.38281C8.35156 3.30469 8.42969 3.23437 8.50781 3.17188C8.58594 3.10938 8.66406 3.04687 8.74219 2.98438C8.85156 2.92188 8.95312 2.875 9.04688 2.84375C9.15625 2.79688 9.26562 2.75781 9.375 2.72656C9.48438 2.69531 9.58594 2.67969 9.67969 2.67969C9.78906 2.67969 9.89844 2.67187 10.0078 2.65625H13.9922ZM12 8.42188C11.3438 8.42188 10.7266 8.54688 10.1484 8.79688C9.57031 9.04688 9.0625 9.39062 8.625 9.82812C8.20312 10.25 7.86719 10.75 7.61719 11.3281C7.36719 11.8906 7.24219 12.5 7.24219 13.1562C7.24219 13.8125 7.36719 14.4297 7.61719 15.0078C7.86719 15.5859 8.20312 16.0938 8.625 16.5312C9.0625 16.9531 9.57031 17.2891 10.1484 17.5391C10.7266 17.7891 11.3438 17.9141 12 17.9141C12.6562 17.9141 13.2734 17.7891 13.8516 17.5391C14.4297 17.2891 14.9297 16.9531 15.3516 16.5312C15.7891 16.0938 16.1328 15.5859 16.3828 15.0078C16.6328 14.4297 16.7578 13.8125 16.7578 13.1562C16.7578 12.5 16.6328 11.8906 16.3828 11.3281C16.1328 10.75 15.7891 10.25 15.3516 9.82812C14.9297 9.39062 14.4297 9.04688 13.8516 8.79688C13.2734 8.54688 12.6562 8.42188 12 8.42188ZM12 9.92188C12.8906 9.92188 13.6562 10.2422 14.2969 10.8828C14.9375 11.5078 15.2578 12.2656 15.2578 13.1562C15.2578 14.0625 14.9375 14.8359 14.2969 15.4766C13.6562 16.1016 12.8906 16.4141 12 16.4141C11.1094 16.4141 10.3438 16.1016 9.70312 15.4766C9.0625 14.8359 8.74219 14.0625 8.74219 13.1562C8.74219 12.2656 9.0625 11.5078 9.70312 10.8828C10.3438 10.2422 11.1094 9.92188 12 9.92188ZM18.8438 7.50781C18.5156 7.50781 18.2344 7.625 18 7.85938C17.7812 8.07812 17.6719 8.34375 17.6719 8.65625C17.6719 8.98438 17.7812 9.26562 18 9.5C18.2344 9.71875 18.5156 9.82812 18.8438 9.82812C19.1562 9.82812 19.4219 9.71875 19.6406 9.5C19.875 9.26562 19.9922 8.98438 19.9922 8.65625C19.9922 8.34375 19.875 8.07812 19.6406 7.85938C19.4219 7.625 19.1562 7.50781 18.8438 7.50781Z" fill="currentColor"/>
+</svg>`
+
 export const LUCIDE = {
   wifi, bluetooth, plane, mapPin, moon, rotationLock, lock: rotationLock,
   battery, share2: quickShare, refreshCw: cast, wallet, scan, zap,
-  play, pause, skipBack, skipForward, cast, sun, volume2, link2, heart,
+  play, pause, skipBack, skipForward, cast, sun, volume2, link2, heart, health,
   flashlight, flashlightOn, bell, bellOff, vibrate, radio, video, scissors, motionComfort, motionComfortOff, liquidCooling,
   shoulderKey, jbl, vpn,
   layoutGrid, settings, pencil, check, plus, slidersHorizontal, minus,
@@ -559,6 +580,9 @@ export const LUCIDE = {
   crop, frame, film, shapes, move, moveHorizontal, aperture, wand2, paintbrush,
   /* AI Mori */
   bot, wandSparkles, bookOpen, calendarDays, notebookPen, sticker,
+  navigation, messageCircle,
   /* 首页卡动作（AI Mori 卡：拍照） */
-  camera
+  camera,
+  /* One-Tap / 设置通用标准图标 */
+  ban
 }

@@ -115,8 +115,9 @@ useBackHandler(() => {
       />
     </div>
 
-    <!-- 全局底部悬浮导航控件（像素级对齐录屏 62px 高度与 22px 底边距） -->
+    <!-- 全局底部悬浮导航控件（像素级对齐录屏 62px 高度与 22px 底边距，编辑闹钟或进入二级页时隐藏） -->
     <FloatingTabBar
+      v-if="!subpage && !clock.isEditingAlarm"
       v-model="activeTab"
       :tabs="tabs"
       height="62px"

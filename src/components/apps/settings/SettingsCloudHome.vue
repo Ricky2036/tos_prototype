@@ -104,8 +104,8 @@ function handleServiceClick(serviceKey) {
           <div class="user-space-usage">
             <span class="space-highlight">23.37 MB</span>
             <span class="space-total"> / 40 GB</span>
-            <svg class="chevron-icon" width="7" height="11" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </div>
         </div>
@@ -130,8 +130,8 @@ function handleServiceClick(serviceKey) {
           <div class="drive-title">云盘</div>
           <div class="drive-sub">节省存储空间。</div>
         </div>
-        <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-          <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+        <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+          <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </div>
 
@@ -290,8 +290,8 @@ function handleServiceClick(serviceKey) {
           <h2 class="apps-sync-title">使用云的应用</h2>
           <div class="apps-sync-all" @click="showToast('所有云应用同步管理')">
             <span>全部</span>
-            <svg width="7" height="11" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </div>
         </div>

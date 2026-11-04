@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { onUnmounted, ref } from 'vue'
 import { useClockStore } from '../../../../stores/clockStore'
 import { CLOCK_ICONS } from '../clockIcons'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
@@ -30,11 +30,18 @@ function navigateTo(page) {
 function openAddAlarm() {
   currentEditingAlarm.value = null
   showEditModal.value = true
+  clock.setEditingAlarm(true)
 }
 
 function openEditAlarm(alarm) {
   currentEditingAlarm.value = alarm
   showEditModal.value = true
+  clock.setEditingAlarm(true)
+}
+
+function handleCloseModal() {
+  showEditModal.value = false
+  clock.setEditingAlarm(false)
 }
 
 function handleSaveAlarm(payload) {
@@ -44,12 +51,18 @@ function handleSaveAlarm(payload) {
     clock.addAlarm(payload)
   }
   showEditModal.value = false
+  clock.setEditingAlarm(false)
 }
 
 function handleDeleteAlarm(id) {
   clock.deleteAlarm(id)
   showEditModal.value = false
+  clock.setEditingAlarm(false)
 }
+
+onUnmounted(() => {
+  clock.setEditingAlarm(false)
+})
 </script>
 
 <template>
@@ -119,7 +132,7 @@ function handleDeleteAlarm(id) {
     <AlarmEditModal
       :visible="showEditModal"
       :alarm="currentEditingAlarm"
-      @close="showEditModal = false"
+      @close="handleCloseModal"
       @save="handleSaveAlarm"
       @delete="handleDeleteAlarm"
     />

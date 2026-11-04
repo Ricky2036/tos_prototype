@@ -81,8 +81,8 @@ function handleTabClick(tabId, name) {
               <div class="wallet-cell-title">门禁卡</div>
               <div class="wallet-cell-sub">一碰开门，轻装出行</div>
             </div>
-            <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
         </div>
@@ -103,8 +103,8 @@ function handleTabClick(tabId, name) {
               <div class="wallet-cell-title">证件</div>
               <div class="wallet-cell-sub">随时随地查看您的证件</div>
             </div>
-            <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
         </div>

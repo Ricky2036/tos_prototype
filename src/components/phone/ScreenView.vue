@@ -1,11 +1,14 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useControlStore } from '../../stores/controlStore'
 import { useSystemStore } from '../../stores/systemStore'
 import { useSpring } from '../../composables/useSpring'
 import { useSwipeGesture } from '../../composables/useSwipeGesture'
 import { screenRef } from '../../utils/screenRef'
 import StatusBar from './StatusBar.vue'
+import PrivacyStatus from '../privacy/PrivacyStatus.vue'
+import PrivacyPanel from '../privacy/PrivacyPanel.vue'
+import { usePrivacyStore } from '../../stores/privacyStore'
 import HomeIndicator from './HomeIndicator.vue'
 import ThreeButtonNav from './ThreeButtonNav.vue'
 import DynamicIsland from '../system/DynamicIsland.vue'
@@ -24,21 +27,39 @@ import { registerDriver } from '../../composables/driverRegistry'
 import { runBackHandler } from '../../composables/backRegistry'
 import wallpaper from '../../assets/img/wallpaper-lock.jpg'
 import { useWallpaperStore } from '../../stores/wallpaperStore'
+import { useShareStore } from '../../stores/shareStore'
 
 /**
  * 屏幕容器（OS 合成器）：
  * 壁纸（锁屏/桌面统一使用 notificationscreen.tsx 同款）/ 桌面 / 应用窗口 / 通知中心 / 控制中心 / 锁屏 / 系统 chrome / 边缘手势热区。
  */
+const privacy = usePrivacyStore()
+let privacyTicker = null
+function syncPrivacyTicker(shouldRun) {
+  if (shouldRun) {
+    if (!privacyTicker) privacyTicker = setInterval(() => privacy.tick(), 100)
+  } else if (privacyTicker) {
+    clearInterval(privacyTicker)
+    privacyTicker = null
+  }
+}
 const control = useControlStore()
 const system = useSystemStore()
 const wallpaperStore = useWallpaperStore()
+const shareStore = useShareStore()
 const activeWallpaper = computed(() => wallpaperStore.homeWallpaper || wallpaperStore.active || wallpaper)
 const heroVisual = ref(null)
 
 const rootEl = ref(null)
 onMounted(() => {
   screenRef.el = rootEl.value
+  privacy.tick()
+  syncPrivacyTicker(privacy.needsTick)
 })
+watch(() => privacy.needsTick, (shouldRun) => {
+  syncPrivacyTicker(shouldRun)
+})
+onBeforeUnmount(() => syncPrivacyTicker(false))
 
 /** 亮度滤镜：控制中心亮度滑块真实压暗屏幕（打开叠层时不遮罩控制中心/通知中心自身） */
 const dimOpacity = computed(() => system.anyOverlayOpen() ? 0 : (1 - control.brightness) * 0.72)
@@ -59,7 +80,7 @@ function onHeroFrame(nextFrame) {
 }
 
 /** 应用打开时桌面不响应手势 */
-const homeInteractive = computed(() => system.baseLayer !== 'app')
+const homeInteractive = computed(() => system.baseLayer !== 'app' && !privacy.settingsPage)
 
 /**
  * 壁纸可见性：
@@ -84,10 +105,17 @@ const isWallpaperVisible = computed(() => {
  */
 const DARK_BG_APPS = ['camera', 'clock', 'voicememos', 'oneleap']
 const chromeLight = computed(() => {
+  if (privacy.settingsPage) return false
   if (system.chromeStyleOverride === 'light') return true
   if (system.chromeStyleOverride === 'dark') return false
   if (system.baseLayer === 'app') return DARK_BG_APPS.includes(system.activeAppId)
   return true
+})
+
+/** 底部导航栏自适应深色（白色分享面板或浅色页面使用深色导航条） */
+const navDark = computed(() => {
+  if (shareStore.isOpen) return true
+  return !chromeLight.value
 })
 
 /* ================= 叠层手势驱动（NC / CC） ================= */
@@ -233,7 +261,7 @@ useSwipeGesture(sideEdgeRef, {
   direction: 1, // 右滑
   span: SIDE_SPAN,
   threshold: 6,
-  canStart: () => system.baseLayer === 'app' || system.anyOverlayOpen(),
+  canStart: () => Boolean(privacy.settingsPage) || system.baseLayer === 'app' || system.anyOverlayOpen(),
   onStart() {
     sideSnap(system.homeGestureProgress)
   },
@@ -346,10 +374,12 @@ useSwipeGesture(sideEdgeRef, {
     <div v-if="!system.screenOn" class="screen-off"></div>
 
     <DynamicIsland v-if="!system.anyOverlayOpen() && system.baseLayer !== 'lock'" />
+    <PrivacyStatus />
+    <PrivacyPanel />
     <StatusBar v-if="!system.anyOverlayOpen()" :light="chromeLight" />
     <!-- 底部导航栏：支持手势条 (HomeIndicator) 与三键导航 (ThreeButtonNav) 切换 -->
-    <HomeIndicator v-if="system.navigationMode === 'gesture'" :dark="!chromeLight" />
-    <ThreeButtonNav v-else :dark="!chromeLight" />
+    <HomeIndicator v-if="system.navigationMode === 'gesture'" :dark="navDark" />
+    <ThreeButtonNav v-else :dark="navDark" />
   </div>
 </template>
 

@@ -100,10 +100,12 @@ function toggleCharging() {
 }
 
 // 口袋打印机：发起打印流程
+let launchDoneTimer = null
 function launchAIMatePrinter() {
   launchOverlayOpen.value = true
   launchProgress.value = 0
   if (launchTimer) clearInterval(launchTimer)
+  if (launchDoneTimer) clearTimeout(launchDoneTimer)
 
   const startTime = Date.now()
   const duration = 900
@@ -114,7 +116,7 @@ function launchAIMatePrinter() {
     launchProgress.value = p
     if (p >= 100) {
       clearInterval(launchTimer)
-      setTimeout(() => {
+      launchDoneTimer = setTimeout(() => {
         launchOverlayOpen.value = false
         showToast('已连接口袋打印机，请选择照片')
       }, 350)
@@ -183,6 +185,7 @@ useBackHandler(() => {
 onBeforeUnmount(() => {
   clearInterval(recordTimer)
   clearInterval(launchTimer)
+  clearTimeout(launchDoneTimer)
   clearTimeout(toastTimer)
 })
 </script>
