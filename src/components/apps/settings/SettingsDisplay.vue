@@ -3,6 +3,16 @@ import { ref, computed } from 'vue'
 import { useControlStore } from '../../../stores/controlStore'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
+import { useDisplaySettingsStore } from '../../../stores/displaySettingsStore'
+import DisplayScheduleTheme from './display/DisplayScheduleTheme.vue'
+import DisplayDarkMode from './display/DisplayDarkMode.vue'
+import DisplayEyeCare from './display/DisplayEyeCare.vue'
+import DisplayColorStyle from './display/DisplayColorStyle.vue'
+import DisplayRefreshRate from './display/DisplayRefreshRate.vue'
+import DisplayAutoSleepSheet from './display/DisplayAutoSleepSheet.vue'
+import DisplayFont from './display/DisplayFont.vue'
+import DisplaySize from './display/DisplaySize.vue'
+import DisplayFullscreenApps from './display/DisplayFullscreenApps.vue'
 
 const emit = defineEmits(['back', 'navigate'])
 const control = useControlStore()
@@ -31,9 +41,29 @@ function selectTheme(mode) {
   }
 }
 
-function handleItemTap(name) {
-  showToast(`已进入${name}设置`)
+const display = useDisplaySettingsStore()
+
+/* ==================== 三级页 ==================== */
+const subPage = ref(null)
+const isBack = ref(false)
+const showAutoSleepSheet = ref(false)
+
+function openSubPage(key) {
+  if (key === 'autoSleep') {
+    showAutoSleepSheet.value = true
+    return
+  }
+  isBack.value = false
+  subPage.value = key
 }
+
+function closeSubPage() {
+  isBack.value = true
+  subPage.value = null
+}
+
+const REFRESH_LABELS = { auto: '智能切换', standard: '标准', high: '高' }
+const refreshRateLabel = computed(() => REFRESH_LABELS[display.refreshRate] || '智能切换')
 
 function handleRelativeNavigate(target) {
   if (target === 'personalization') {
@@ -89,6 +119,14 @@ function onSliderPointerUp(e) {
 }
 
 function back() {
+  if (showAutoSleepSheet.value) {
+    showAutoSleepSheet.value = false
+    return true
+  }
+  if (subPage.value) {
+    closeSubPage()
+    return true
+  }
   emit('back')
   return true
 }
@@ -98,8 +136,20 @@ defineExpose({ back })
 
 <template>
   <div class="settings-display-page">
+    <!-- ==================== 三级页 ==================== -->
+    <Transition :name="isBack ? 'slide-back' : 'slide'">
+      <DisplayScheduleTheme v-if="subPage === 'scheduleTheme'" key="scheduleTheme" @back="closeSubPage" />
+      <DisplayDarkMode v-else-if="subPage === 'darkMode'" key="darkMode" @back="closeSubPage" />
+      <DisplayEyeCare v-else-if="subPage === 'eyeCare'" key="eyeCare" @back="closeSubPage" />
+      <DisplayColorStyle v-else-if="subPage === 'colorStyle'" key="colorStyle" @back="closeSubPage" />
+      <DisplayRefreshRate v-else-if="subPage === 'refreshRate'" key="refreshRate" @back="closeSubPage" />
+      <DisplayFont v-else-if="subPage === 'font'" key="font" @back="closeSubPage" />
+      <DisplaySize v-else-if="subPage === 'size'" key="size" @back="closeSubPage" />
+      <DisplayFullscreenApps v-else-if="subPage === 'fullscreenApps'" key="fullscreenApps" @back="closeSubPage" />
+    </Transition>
+
     <!-- 顶部导航栏：圆形微投影返回键 + 左对齐大标题 -->
-    <div class="display-nav-bar">
+    <div v-if="!subPage" class="display-nav-bar">
       <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
           <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -109,7 +159,7 @@ defineExpose({ back })
     </div>
 
     <!-- 滚动内容区 -->
-    <div class="display-scroll-body">
+    <div v-if="!subPage" class="display-scroll-body">
       <!-- 卡片 1: 外观主题模式 -->
       <div class="settings-card theme-card">
         <div class="theme-picker-row">
@@ -158,17 +208,17 @@ defineExpose({ back })
 
         <ListCell
           title="定时切换主题"
-          value="已关闭"
+          :value="display.themeScheduleLabel()"
           chevron
           clickable
-          @click="handleItemTap('定时切换主题')"
+          @click="openSubPage('scheduleTheme')"
         />
         <ListCell
           title="深色主题设置"
           chevron
           clickable
           last
-          @click="handleItemTap('深色主题设置')"
+          @click="openSubPage('darkMode')"
         />
       </div>
 
@@ -207,9 +257,22 @@ defineExpose({ back })
           </div>
         </div>
 
-        <ListCell title="自动调节亮度" last>
+        <ListCell title="自动调节亮度">
           <template #right>
             <ToggleSwitch v-model="autoBrightness" color="blue" />
+          </template>
+        </ListCell>
+        <ListCell
+          title="强光模式"
+          subtitle="在强光下提高屏幕亮度，但会增加耗电与发热。"
+          last
+        >
+          <template #right>
+            <ToggleSwitch
+              :model-value="display.strongLightMode"
+              color="blue"
+              @update:model-value="v => display.setBool('strongLightMode', v)"
+            />
           </template>
         </ListCell>
       </div>
@@ -221,21 +284,21 @@ defineExpose({ back })
           title="护眼模式"
           chevron
           clickable
-          @click="handleItemTap('护眼模式')"
+          @click="openSubPage('eyeCare')"
         />
         <ListCell
           title="色彩风格"
           chevron
           clickable
-          @click="handleItemTap('色彩风格')"
+          @click="openSubPage('colorStyle')"
         />
         <ListCell
           title="屏幕刷新率"
-          value="智能切换"
+          :value="refreshRateLabel"
           chevron
           clickable
           last
-          @click="handleItemTap('屏幕刷新率')"
+          @click="openSubPage('refreshRate')"
         />
       </div>
 
@@ -244,22 +307,22 @@ defineExpose({ back })
       <div class="settings-card">
         <ListCell
           title="自动息屏时间"
-          value="10 分钟"
+          :value="display.autoSleep"
           chevron
           clickable
-          @click="handleItemTap('自动息屏时间')"
+          @click="openSubPage('autoSleep')"
         />
         <ListCell
           title="字体"
           chevron
           clickable
-          @click="handleItemTap('字体')"
+          @click="openSubPage('font')"
         />
         <ListCell
           title="显示大小"
           chevron
           clickable
-          @click="handleItemTap('显示大小')"
+          @click="openSubPage('size')"
         />
         <ListCell title="竖屏锁定">
           <template #right>
@@ -271,7 +334,7 @@ defineExpose({ back })
           chevron
           clickable
           last
-          @click="handleItemTap('应用全屏显示')"
+          @click="openSubPage('fullscreenApps')"
         />
       </div>
 
@@ -299,6 +362,11 @@ defineExpose({ back })
 
       <div class="bottom-spacer"></div>
     </div>
+
+    <!-- 自动息屏时间：真机是底部弹层 -->
+    <Transition name="toast-fade">
+      <DisplayAutoSleepSheet v-if="showAutoSleepSheet" @close="showAutoSleepSheet = false" />
+    </Transition>
 
     <!-- 浮动提示 Toast -->
     <transition name="toast-fade">

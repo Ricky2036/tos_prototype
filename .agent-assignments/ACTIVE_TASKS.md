@@ -208,6 +208,8 @@ Only the integration owner edits this table. Remove or mark a row complete after
 
 | Review | Workbuddy | Settings group 2 (Infinix AI → 通知与状态栏) second/third-level replication, part 1: restructure Infinix AI list to the real device (4 cards / 15 rows / Fola naming) and build all 14 settings-type third-level pages from a shared config-driven shell, incl. the 智慧翻译 first-entry consent dialog | `workbuddy/lane` | `src/components/apps/settings/SettingsInfinixAI.vue`; `src/components/apps/settings/infinixai/**`; `src/stores/infinixAiSettingsStore.js`; `src/components/apps/settings/SettingsApp.vue` (search index titles only); `tests/infinixAiSettings.test.js`; `tests/settingsInfinixAI.test.js` | `fadc48d` | pending |
 
+| Review | Workbuddy | Settings group 2, part 2 (显示与亮度 / 声音与振动): build all 16 third-level pages off a shared `SubPageShell` (incl. the 自动息屏时间 bottom sheet, 强光模式 row added to display, SIM-split ringtone pickers, JBL 4-mode grid, per-app fullscreen list) + two new stores for the toggles/sliders | `workbuddy/lane` | `src/components/apps/settings/SettingsDisplay.vue`; `src/components/apps/settings/SettingsSound.vue`; `src/components/apps/settings/display/**`; `src/components/apps/settings/sound/**`; `src/components/apps/settings/subpage/**`; `src/stores/displaySettingsStore.js`; `src/stores/soundSettingsStore.js`; `src/utils/localPrefs.js`; `tests/displaySoundSubpages.test.js` | `5203ae7` | pending |
+
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
 
