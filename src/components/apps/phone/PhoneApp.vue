@@ -247,7 +247,7 @@ function handleAppWheel(e) {
       <FloatingTabBar
         :model-value="phoneStore.currentTab"
         :tabs="tabs"
-        height="58px"
+        height="62px"
         bottom="20px"
         accent-color="#00C853"
         :dark="false"
@@ -257,13 +257,13 @@ function handleAppWheel(e) {
         <template #tab="{ tab, active }">
           <div class="phone-tab-content" :class="{ active }">
             <div class="tab-icon-wrapper" :class="{ 'icon-active': active }">
-              <!-- 通话记录图标：时钟（严格正圆与居中指针） -->
-              <svg v-if="tab.id === 'recents'" width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <!-- 通话记录图标：时钟（严格正圆底座与锐利表针） -->
+              <svg v-if="tab.id === 'recents'" width="20" height="20" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="9" :stroke="active ? '#FFFFFF' : '#1C1C1E'" stroke-width="2.2" />
                 <path d="M12 7V12L15 14" :stroke="active ? '#FFFFFF' : '#1C1C1E'" stroke-width="2.2" stroke-linecap="round" />
               </svg>
               <!-- 联系人图标：头像剪影（严格正圆头部） -->
-              <svg v-else width="15" height="15" viewBox="0 0 24 24" :fill="active ? '#FFFFFF' : '#1C1C1E'">
+              <svg v-else width="20" height="20" viewBox="0 0 24 24" :fill="active ? '#FFFFFF' : '#1C1C1E'">
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
               </svg>
             </div>
@@ -471,31 +471,43 @@ function handleAppWheel(e) {
   z-index: 45;
 }
 
-/* 规范 FloatingTabBar 胶囊适配：一体化乳白磨砂、杜绝灰色滑块底托 */
+/* 规范 FloatingTabBar 胶囊适配：严格对齐视频/真机尺寸（宽 226px，高 62px），给右侧 FAB 留出 70px 空间 */
 .phone-app :deep(.floating-tab-bar) {
   left: 20px;
   transform: none;
-  width: calc(100% - 20px - 20px - 58px - 14px);
-  max-width: none;
+  width: 226px;
+  max-width: 226px;
+  height: 62px;
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
   border: 0.5px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.03);
+  padding: 4px;
   pointer-events: auto;
 }
 
-/* 彻底隐藏死灰色的滑动滑块，还原一体乳白纯净悬浮质感 */
-.phone-app :deep(.nav-sliding-pill-track),
-.phone-app :deep(.nav-highlight-pill) {
-  display: none !important;
+/* 恢复平滑移动的高亮滑块底托，平滑过渡 */
+.phone-app :deep(.nav-sliding-pill-track) {
+  display: flex !important;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+}
+
+.phone-app :deep(.floating-tab-bar:not(.theme-dark) .nav-highlight-pill) {
+  display: block !important;
+  background: rgba(0, 0, 0, 0.045);
+  box-shadow: none;
+  border-radius: 9999px;
 }
 
 .phone-app :deep(.floating-tab-item) {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 4px 0;
+  padding: 2px 0;
+  z-index: 2;
 }
 
 .phone-tab-content {
@@ -509,13 +521,14 @@ function handleAppWheel(e) {
   user-select: none;
 }
 
+/* 时钟与头像底座：严格 36px × 36px 饱满正圆，杜绝偏小与变形 */
 .tab-icon-wrapper {
-  width: 24px !important;
-  height: 24px !important;
-  min-width: 24px !important;
-  min-height: 24px !important;
-  max-width: 24px !important;
-  max-height: 24px !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  max-width: 36px !important;
+  max-height: 36px !important;
   aspect-ratio: 1 / 1 !important;
   flex-shrink: 0 !important;
   border-radius: 50% !important;
@@ -523,28 +536,29 @@ function handleAppWheel(e) {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  transition: all 0.2s ease;
+  transition: all 0.22s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .tab-icon-wrapper svg {
-  width: 15px !important;
-  height: 15px !important;
+  width: 20px !important;
+  height: 20px !important;
   flex-shrink: 0 !important;
   display: block !important;
 }
 
 .tab-icon-wrapper.icon-active {
   background: #00C853;
+  box-shadow: 0 2px 8px rgba(0, 200, 83, 0.28);
 }
 
 .tab-name {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 500;
   color: #1C1C1E;
   line-height: 1;
   white-space: nowrap;
   flex-shrink: 0;
-  margin-top: 1px;
+  margin-top: 2px;
   transition: color 0.2s ease;
 }
 
