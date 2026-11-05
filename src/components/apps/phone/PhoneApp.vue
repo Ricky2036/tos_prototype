@@ -22,11 +22,11 @@ const scrollContainerRef = ref(null)
 
 // 电话应用定制大标题折叠曲线：紧密贴合分类栏（间距 ~13px），100% 消除红框大空隙
 const PHONE_TITLE_CURVE = {
-  fromTopInset: 14,
-  toTopInset: -2,
-  fromHeight: 54,
-  toHeight: 48,
-  fromSize: 30,
+  fromTopInset: 6,
+  toTopInset: 4,
+  fromHeight: 46,
+  toHeight: 46,
+  fromSize: 26,
   toSize: 20
 }
 
@@ -479,15 +479,29 @@ function handleAppWheel(e) {
   -webkit-backdrop-filter: blur(24px);
   border: 0.5px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  padding: 0;
+  padding: 3px;
   border-radius: 9999px;
   pointer-events: auto;
 }
 
-/* 彻底隐藏任何滑块底托与药丸高亮，杜绝任何背景挤压文字，实现纯粹的面性图标染色 */
-.phone-app :deep(.nav-sliding-pill-track),
-.phone-app :deep(.nav-highlight-pill) {
-  display: none !important;
+/* 悬浮底栏高亮背景胶囊：平滑滑动底托，轻柔浅绿背景包裹高亮 Tab */
+.phone-app :deep(.nav-sliding-pill-track) {
+  display: flex !important;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  height: calc(100% - 6px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.phone-app :deep(.floating-tab-bar:not(.theme-dark) .nav-highlight-pill) {
+  display: block !important;
+  background: rgba(0, 200, 83, 0.12) !important; /* 柔和浅绿高亮背景胶囊，高保真还原原厂 */
+  box-shadow: none !important;
+  border-radius: 9999px !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .phone-app :deep(.floating-tab-item) {
