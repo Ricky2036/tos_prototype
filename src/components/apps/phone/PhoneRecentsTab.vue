@@ -163,7 +163,7 @@ function triggerFlashCallBanner() {
 .recents-filter-bar {
   position: sticky;
   top: calc(var(--safe-top, 54px) + var(--title-height, 46px));
-  z-index: 15;
+  z-index: 10;
   background: #FFFFFF;
   display: flex;
   align-items: center;
@@ -173,19 +173,6 @@ function triggerFlashCallBanner() {
   margin: 0;
   box-sizing: border-box;
   border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
-}
-
-/* 向上延伸白色遮挡幕，彻底防止列表滚动时文字从标题间隙穿透漏出 */
-.recents-filter-bar::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 100%;
-  height: 120px;
-  background: #FFFFFF;
-  pointer-events: none;
-  z-index: -1;
 }
 
 /* 两个 Tab 左右 50% 等分、各自在其半屏内严格水平居中 */
