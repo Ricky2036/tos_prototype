@@ -85,42 +85,32 @@ const formattedNumber = computed(() => {
       </div>
     </div>
 
-    <!-- 底部操作栏：收起/视频呼叫 / 主拨号绿色大圆钮 / 退格删除 -->
+    <!-- 底部操作栏：视频通话 / 主拨号绿色大圆钮 / 退格删除（对齐真机录屏规范） -->
     <div class="keypad-actions-row">
-      <!-- 左侧：收起键盘（无输入时）或视频通话（有输入时） -->
+      <!-- 左侧：视频通话按钮（常驻） -->
       <button
-        v-if="!phoneStore.dialedNumber"
-        class="action-aux-btn hide-keypad-btn"
-        title="收起键盘"
-        @click="phoneStore.isKeypadOpen = false"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M6 9l6 6 6-6" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
-      <button
-        v-else
-        class="action-aux-btn video-call-btn active"
+        class="action-aux-btn video-call-btn"
         title="视频通话"
         @click="handleVideoCall"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <rect x="2" y="5" width="14" height="14" rx="3" stroke="#1C1C1E" stroke-width="2" />
-          <path d="M16 10L21 7V17L16 14" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <rect x="2" y="6" width="13" height="12" rx="2.5" stroke="#1C1C1E" stroke-width="2" />
+          <path d="M15 10.2L20.2 6.8C20.7 6.4 21.5 6.8 21.5 7.5V16.5C21.5 17.2 20.7 17.6 20.2 17.2L15 13.8" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </button>
 
       <!-- 绿色大圆拨号按键 -->
-      <button class="main-call-btn" @click="handleCall">
+      <button class="main-call-btn" title="拨打" @click="handleCall">
         <svg width="30" height="30" viewBox="0 0 24 24" fill="#FFFFFF">
           <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-2.2 2.2a15.047 15.047 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.01A11.36 11.36 0 018.57 3.9c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.52c0-.55-.45-1-.99-1z" />
         </svg>
       </button>
 
-      <!-- 退格键 -->
+      <!-- 右侧：退格键（有输入时可见） -->
       <button
         class="action-aux-btn backspace-btn"
         :class="{ visible: phoneStore.dialedNumber }"
+        title="删除"
         @click="handleBackspace"
         @contextmenu.prevent="phoneStore.clearNumber"
       >
@@ -138,11 +128,8 @@ const formattedNumber = computed(() => {
 .phone-keypad-panel {
   display: flex;
   flex-direction: column;
-  background: #FFFFFF;
-  border-top-left-radius: 28px;
-  border-top-right-radius: 28px;
-  box-shadow: 0 -6px 25px rgba(0, 0, 0, 0.06);
-  padding: 6px 20px 20px;
+  background: transparent;
+  padding: 4px 18px 8px;
 }
 
 /* 顶部号码回显 */

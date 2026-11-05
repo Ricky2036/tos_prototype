@@ -226,9 +226,8 @@ function triggerFlashCallBanner() {
 
 /* 通话记录列表 */
 .recents-list {
-  flex: 1;
-  overflow-y: auto;
   padding: 4px 0 0;
+  width: 100%;
 }
 
 .recent-row {
@@ -326,6 +325,6 @@ function triggerFlashCallBanner() {
 }
 
 .bottom-safe-space {
-  height: 100px;
+  height: 140px;
 }
 </style>

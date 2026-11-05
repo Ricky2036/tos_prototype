@@ -251,6 +251,6 @@ function handleContactClick(contact) {
 }
 
 .bottom-safe-space {
-  height: 100px;
+  height: 140px;
 }
 </style>

@@ -4,6 +4,7 @@ import { usePhoneStore } from '../../../stores/phoneStore'
 import { useBackHandler } from '../../../composables/backRegistry'
 import { useLargeTitle, largeTitleVars } from '../../../composables/useLargeTitle.js'
 import LargeTitleHeader from '../../ui/LargeTitleHeader.vue'
+import FloatingTabBar from '../../ui/FloatingTabBar.vue'
 import PhoneRecentsTab from './PhoneRecentsTab.vue'
 import PhoneContactsTab from './PhoneContactsTab.vue'
 import PhoneKeypad from './PhoneKeypad.vue'
@@ -22,6 +23,12 @@ const scrollContainerRef = ref(null)
 // 大标题折叠契约（规范通用件）
 const { progress: titleProgress, onScroll: onTitleScroll } = useLargeTitle()
 const titleVars = computed(() => largeTitleVars(titleProgress.value))
+
+// 悬浮导航 Tab 规范配置
+const tabs = [
+  { id: 'recents', name: '通话记录' },
+  { id: 'contacts', name: '联系人' }
+]
 
 // 联系人快速检索字母表
 const alphabetList = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '#']
@@ -70,7 +77,7 @@ function switchTab(tabName) {
 
 function handleFabClick() {
   if (phoneStore.currentTab === 'recents') {
-    phoneStore.isKeypadOpen = true
+    phoneStore.isKeypadOpen = !phoneStore.isKeypadOpen
   } else {
     // 联系人页：新建联系人模拟行为
     const newMock = {
@@ -91,7 +98,7 @@ function scrollToLetter(letter) {
   }
 }
 
-// 滑动手势与滚动联动
+// 滑动手势与滚动联动（对齐真机录屏：滑动列表顺滑收起拨号盘）
 let touchStartY = 0
 let touchStartX = 0
 
@@ -107,8 +114,8 @@ function handleTouchMove(e) {
   const dy = e.touches[0].clientY - touchStartY
   const dx = e.touches[0].clientX - touchStartX
 
-  // 向上滑动且拨号盘开启时，顺滑收起拨号盘
-  if (dy < -30 && phoneStore.isKeypadOpen && Math.abs(dy) > Math.abs(dx)) {
+  // 手指在列表区域产生垂直滑动时，顺滑收起拨号盘
+  if (Math.abs(dy) > 16 && phoneStore.isKeypadOpen) {
     phoneStore.isKeypadOpen = false
   }
 
@@ -123,7 +130,14 @@ function handleTouchMove(e) {
 function handleAppScroll(e) {
   onTitleScroll(e)
   // 滚动列表时自动收起拨号盘
-  if (e.target.scrollTop > 20 && phoneStore.isKeypadOpen) {
+  if (phoneStore.isKeypadOpen && e.target.scrollTop > 5) {
+    phoneStore.isKeypadOpen = false
+  }
+}
+
+function handleAppWheel(e) {
+  // 滚轮滑动列表时自动收起拨号盘
+  if (phoneStore.isKeypadOpen && Math.abs(e.deltaY) > 6) {
     phoneStore.isKeypadOpen = false
   }
 }
@@ -131,7 +145,7 @@ function handleAppScroll(e) {
 
 <template>
   <div class="phone-app">
-    <!-- 主滚动容器（承载大标题吸顶折叠与列表流动） -->
+    <!-- 主滚动容器（承载大标题吸顶折叠、渐隐防透底遮罩与列表流动） -->
     <div
       ref="scrollContainerRef"
       class="phone-scroll-viewport scrollable"
@@ -139,6 +153,7 @@ function handleAppScroll(e) {
       @scroll.passive="handleAppScroll"
       @touchstart.passive="handleTouchStart"
       @touchmove.passive="handleTouchMove"
+      @wheel.passive="handleAppWheel"
     >
       <!-- 标准吸顶折叠大标题通用件 -->
       <LargeTitleHeader
@@ -206,66 +221,72 @@ function handleAppScroll(e) {
       </span>
     </div>
 
-    <!-- 底部双体悬浮岛导航栏（未展开键盘时常驻） -->
-    <Transition name="floating-fade">
-      <div v-if="!phoneStore.isKeypadOpen" class="phone-floating-nav-container">
-        <!-- 左侧：双标签悬浮胶囊岛 -->
-        <div class="floating-capsule-island">
-          <button
-            class="capsule-tab-item"
-            :class="{ active: phoneStore.currentTab === 'recents' }"
-            @click="switchTab('recents')"
-          >
-            <div class="capsule-icon-wrap">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="9" :stroke="phoneStore.currentTab === 'recents' ? '#00C853' : '#1C1C1E'" stroke-width="2.2" />
-                <path d="M12 7V12L15 14" :stroke="phoneStore.currentTab === 'recents' ? '#00C853' : '#1C1C1E'" stroke-width="2.2" stroke-linecap="round" />
-              </svg>
-            </div>
-            <span class="capsule-label">通话记录</span>
-          </button>
+    <!-- 底部纯白柔和渐变托底：彻底消解任何列表穿透与漏底 -->
+    <div class="phone-bottom-fade-scrim" aria-hidden="true"></div>
 
-          <button
-            class="capsule-tab-item"
-            :class="{ active: phoneStore.currentTab === 'contacts' }"
-            @click="switchTab('contacts')"
-          >
-            <div class="capsule-icon-wrap">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" :stroke="phoneStore.currentTab === 'contacts' ? '#00C853' : '#1C1C1E'" stroke-width="2.2" stroke-linecap="round" />
-                <circle cx="12" cy="7" r="4" :stroke="phoneStore.currentTab === 'contacts' ? '#00C853' : '#1C1C1E'" stroke-width="2.2" />
-              </svg>
-            </div>
-            <span class="capsule-label">联系人</span>
-          </button>
-        </div>
-
-        <!-- 右侧：独立圆形悬浮操作球 (FAB) -->
-        <button
-          class="floating-action-ball"
-          :title="phoneStore.currentTab === 'recents' ? '打开拨号盘' : '新建联系人'"
-          @click="handleFabClick"
-        >
-          <!-- 通话记录：9宫格按键 -->
-          <svg v-if="phoneStore.currentTab === 'recents'" width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <circle cx="5" cy="5" r="2" fill="#1C1C1E" />
-            <circle cx="12" cy="5" r="2" fill="#1C1C1E" />
-            <circle cx="19" cy="5" r="2" fill="#1C1C1E" />
-            <circle cx="5" cy="12" r="2" fill="#1C1C1E" />
-            <circle cx="12" cy="12" r="2" fill="#1C1C1E" />
-            <circle cx="19" cy="12" r="2" fill="#1C1C1E" />
-            <circle cx="5" cy="19" r="2" fill="#1C1C1E" />
-            <circle cx="12" cy="19" r="2" fill="#1C1C1E" />
-            <circle cx="19" cy="19" r="2" fill="#1C1C1E" />
-          </svg>
-          <!-- 联系人：+ 新建 -->
-          <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </button>
+    <!-- 拨号键盘浮层面板（抽屉式弹出/收起，呼叫按钮精确落在悬浮底栏上方） -->
+    <Transition name="keypad-slide">
+      <div v-if="phoneStore.isKeypadOpen && phoneStore.currentTab === 'recents'" class="keypad-drawer-wrap">
+        <PhoneKeypad />
       </div>
     </Transition>
+
+    <!-- 底部悬浮双体导航栏（通用控件 FloatingTabBar + 独立操作球，全天候常驻屏幕底端） -->
+    <div class="phone-nav-wrapper">
+      <FloatingTabBar
+        :model-value="phoneStore.currentTab"
+        :tabs="tabs"
+        height="54px"
+        bottom="22px"
+        accent-color="#00C853"
+        :dark="false"
+        @update:model-value="switchTab"
+        @change="switchTab"
+      >
+        <template #tab="{ tab, active }">
+          <div class="phone-tab-content" :class="{ active }">
+            <div class="tab-icon-wrapper" :class="{ 'icon-active': active }">
+              <!-- 通话记录图标：时钟 -->
+              <svg v-if="tab.id === 'recents'" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" :stroke="active ? '#FFFFFF' : '#1C1C1E'" stroke-width="2.2" />
+                <path d="M12 7V12L15 14" :stroke="active ? '#FFFFFF' : '#1C1C1E'" stroke-width="2.2" stroke-linecap="round" />
+              </svg>
+              <!-- 联系人图标：头像剪影 -->
+              <svg v-else width="17" height="17" viewBox="0 0 24 24" :fill="active ? '#FFFFFF' : '#1C1C1E'">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+              </svg>
+            </div>
+            <span class="tab-name">{{ tab.name }}</span>
+          </div>
+        </template>
+      </FloatingTabBar>
+
+      <!-- 右侧：独立圆形悬浮操作球 (FAB) -->
+      <button
+        class="phone-fab"
+        :class="{ 'keypad-active': phoneStore.isKeypadOpen && phoneStore.currentTab === 'recents' }"
+        :title="phoneStore.currentTab === 'recents' ? (phoneStore.isKeypadOpen ? '收起拨号盘' : '打开拨号盘') : '新建联系人'"
+        @click="handleFabClick"
+      >
+        <!-- 通话记录：3x3 绿色圆点拨号盘（高保真还原原厂录屏） -->
+        <svg v-if="phoneStore.currentTab === 'recents'" width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <circle cx="5" cy="5" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+          <circle cx="12" cy="5" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+          <circle cx="19" cy="5" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+          <circle cx="5" cy="12" r="2.2" :fill="phoneStore.isKeypadOpen ? '#555555' : '#00C853'" />
+          <circle cx="12" cy="12" r="2.2" :fill="phoneStore.isKeypadOpen ? '#555555' : '#00C853'" />
+          <circle cx="19" cy="12" r="2.2" :fill="phoneStore.isKeypadOpen ? '#555555' : '#00C853'" />
+          <circle cx="5" cy="19" r="2.2" :fill="phoneStore.isKeypadOpen ? '#00C853' : '#00C853'" />
+          <circle cx="12" cy="19" r="2.2" :fill="phoneStore.isKeypadOpen ? '#00C853' : '#00C853'" />
+          <circle cx="19" cy="19" r="2.2" :fill="phoneStore.isKeypadOpen ? '#00C853' : '#00C853'" />
+        </svg>
+        <!-- 联系人：+ 新建 -->
+        <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
+    </div>
 
     <!-- 拨号键盘浮层面板（抽屉式弹出/收起） -->
     <Transition name="keypad-slide">
@@ -311,7 +332,7 @@ function handleAppScroll(e) {
   user-select: none;
 }
 
-/* 主滚动视口 */
+/* 主滚动视口：挂载底部遮罩渐隐契约，底栏占 100%-76px ~ 100%-22px，下方彻底透明不透底 */
 .phone-scroll-viewport {
   flex: 1;
   width: 100%;
@@ -320,6 +341,15 @@ function handleAppScroll(e) {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   position: relative;
+  --tabbar-fade: linear-gradient(
+    to bottom,
+    black 0%,
+    black calc(100% - 96px),
+    rgba(0, 0, 0, 0.4) calc(100% - 60px),
+    transparent calc(100% - 22px)
+  );
+  -webkit-mask-image: var(--tabbar-fade);
+  mask-image: var(--tabbar-fade);
 }
 
 /* 大标题文字行与联系人数量小标 */
@@ -401,102 +431,141 @@ function handleAppScroll(e) {
   transform: scale(1.3);
 }
 
-/* 底部双体悬浮岛容器 */
-.phone-floating-nav-container {
+/* 底部纯白柔和渐变托底：彻底消解任何列表穿透与漏底 */
+.phone-bottom-fade-scrim {
   position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: calc(var(--safe-bottom, 20px) + 12px);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 110px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.75) 40%,
+    rgba(255, 255, 255, 0.96) 75%,
+    #FFFFFF 100%
+  );
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* 底部通用悬浮栏包装层（全天候常驻屏幕顶层） */
+.phone-nav-wrapper {
+  position: absolute;
+  inset: 0;
   pointer-events: none;
   z-index: 45;
 }
 
-/* 左侧双标签悬浮胶囊岛 */
-.floating-capsule-island {
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  padding: 4px 6px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-radius: 999px;
+/* 规范 FloatingTabBar 胶囊适配：给右侧 FAB 留位 + 垂直上下排布 */
+.phone-app :deep(.floating-tab-bar) {
+  left: 20px;
+  transform: none;
+  width: calc(100% - 20px - 20px - 54px - 14px);
+  max-width: none;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
   border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  gap: 4px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.03);
+  pointer-events: auto;
 }
 
-.capsule-tab-item {
-  background: none;
-  border: none;
-  display: flex;
+.phone-app :deep(.floating-tab-bar:not(.theme-dark) .nav-highlight-pill) {
+  background: rgba(0, 0, 0, 0.04);
+  box-shadow: none;
+}
+
+.phone-app :deep(.floating-tab-item) {
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  padding: 4px 0;
 }
 
-.capsule-tab-item.active {
-  background-color: #E8F8EE;
+.phone-tab-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  user-select: none;
 }
 
-.capsule-icon-wrap {
+.tab-icon-wrapper {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
 }
 
-.capsule-label {
-  font-size: 13px;
+.tab-icon-wrapper.icon-active {
+  background: #00C853;
+}
+
+.tab-name {
+  font-size: 11px;
   font-weight: 500;
   color: #1C1C1E;
+  line-height: 1.2;
+  transition: color 0.2s ease;
 }
 
-.capsule-tab-item.active .capsule-label {
+.phone-tab-content.active .tab-name {
   color: #00C853;
   font-weight: 600;
 }
 
 /* 右侧独立圆形悬浮操作球 (FAB) */
-.floating-action-ball {
-  pointer-events: auto;
-  width: 52px;
-  height: 52px;
+.phone-fab {
+  position: absolute;
+  right: 20px;
+  bottom: 22px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
   border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.03);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.15s ease, background-color 0.15s ease;
+  pointer-events: auto;
+  z-index: 45;
+  transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.2s ease;
 }
 
-.floating-action-ball:active {
+.phone-fab:active {
   transform: scale(0.92);
   background-color: #F2F3F5;
 }
 
-/* 拨号键盘浮层 */
+.phone-fab.keypad-active {
+  background: #F8F9FA;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* 拨号键盘浮层面板（位于悬浮导航栏上方，呼叫键与底栏自然错落） */
 .keypad-drawer-wrap {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 50;
+  z-index: 30;
   background: #FFFFFF;
   border-top-left-radius: 28px;
   border-top-right-radius: 28px;
-  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.08);
-  padding-bottom: calc(var(--safe-bottom, 20px) + 8px);
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.05);
+  padding-bottom: calc(var(--safe-bottom, 20px) + 54px + 14px);
+  will-change: transform;
 }
 
 /* 转场动效 */
