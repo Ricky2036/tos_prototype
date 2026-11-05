@@ -1,375 +1,389 @@
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue'
-import { GLYPHS } from '../../../assets/icons/glyphs'
-import { useI18nStore } from '../../../stores/i18nStore'
+import { ref } from 'vue'
+import { usePhoneStore } from '../../../stores/phoneStore'
+import { useBackHandler } from '../../../composables/backRegistry'
+import PhoneRecentsTab from './PhoneRecentsTab.vue'
+import PhoneContactsTab from './PhoneContactsTab.vue'
+import PhoneKeypad from './PhoneKeypad.vue'
+import PhoneSearch from './PhoneSearch.vue'
+import PhoneFlashCallModal from './PhoneFlashCallModal.vue'
+import PhoneCallScreen from './PhoneCallScreen.vue'
+import PhoneSettings from './settings/PhoneSettings.vue'
 
-/**
- * 电话：底部 Tab（最近通话 / 通讯录 / 拨号键盘）。
- * 拨号键盘：圆形数字键 + 号码回显 + 拨打/删除；拨号即生成一条「呼叫中」模拟态。
- */
 const props = defineProps({ app: Object })
-const i18n = useI18nStore()
+const phoneStore = usePhoneStore()
 
-const tab = ref('keypad') // recents | contacts | keypad
+const isSettingsOpen = ref(false)
+const settingsRef = ref(null)
 
-/* 演示数据从 i18n 取：姓名、标签、时间都跟着语言走；
-   颜色是视觉常量，用 id 顺序固定分配，不参与翻译 */
-const CONTACT_COLORS = ['#5AC8FA', '#34C759', '#FF2D55', '#FF9500', '#AF52DE', '#0A84FF']
-/* 必须 computed：写死在 setup 里的话，开着应用切语言时列表不会跟着变 */
-const RECENTS = computed(() => i18n.demoRecents || [])
-const CONTACTS = computed(() =>
-  (i18n.demoContacts || []).map((c, i) => ({
-    ...c,
-    color: CONTACT_COLORS[i % CONTACT_COLORS.length]
-  }))
-)
-
-const KEYS = [
-  ['1', ''], ['2', 'ABC'], ['3', 'DEF'],
-  ['4', 'GHI'], ['5', 'JKL'], ['6', 'MNO'],
-  ['7', 'PQRS'], ['8', 'TUV'], ['9', 'WXYZ'],
-  ['*', ''], ['0', '+'], ['#', '']
-]
-
-const number = ref('')
-const calling = ref(false)
-let callTimer = null
-
-function pressKey(k) {
-  if (number.value.length < 15) number.value += k
-}
-function backspace() {
-  number.value = number.value.slice(0, -1)
-}
-function call() {
-  if (!number.value) return
-  calling.value = true
-  clearTimeout(callTimer)
-  callTimer = setTimeout(() => {
-    calling.value = false
-    number.value = ''
-    tab.value = 'recents'
-    callTimer = null
-  }, 2200)
-}
-
-/** 号码分组显示：138 0000 0000 */
-const formatted = computed(() => {
-  const n = number.value
-  if (n.length <= 3) return n
-  if (n.length <= 7) return `${n.slice(0, 3)} ${n.slice(3)}`
-  return `${n.slice(0, 3)} ${n.slice(3, 7)} ${n.slice(7)}`
+// 响应全局侧滑返回手势
+useBackHandler(() => {
+  if (phoneStore.activeCall) {
+    phoneStore.endCall()
+    return true
+  }
+  if (isSettingsOpen.value) {
+    if (settingsRef.value?.back?.()) return true
+    isSettingsOpen.value = false
+    return true
+  }
+  if (phoneStore.isSearchActive) {
+    phoneStore.isSearchActive = false
+    phoneStore.searchQuery = ''
+    return true
+  }
+  if (phoneStore.flashCallTarget) {
+    phoneStore.flashCallTarget = null
+    return true
+  }
+  if (phoneStore.isKeypadOpen && phoneStore.dialedNumber) {
+    phoneStore.clearNumber()
+    return true
+  }
+  if (phoneStore.isKeypadOpen) {
+    phoneStore.isKeypadOpen = false
+    return true
+  }
+  return false
 })
 
-const TABS = [
-  { id: 'recents', key: 'phoneRecents', glyph: 'schedule' },
-  { id: 'contacts', key: 'phoneContacts', glyph: 'person' },
-  { id: 'keypad', key: 'phoneKeypad', glyph: 'dialpad' }
-]
-
-/* tab 取值非法时 find 会返回 undefined，模板里直接 .label 会抛错并白屏，故兜底到首个 Tab */
-const activeTabLabel = computed(() => {
-  const t = TABS.find((x) => x.id === tab.value) ?? TABS[0]
-  return i18n.t(t.key)
-})
-
-/* 拨打中滑走关闭应用的话，2.2s 后的回调会写已卸载组件的 ref 并把 tab 改掉，故卸载时清掉 */
-onBeforeUnmount(() => {
-  clearTimeout(callTimer)
-  callTimer = null
-})
+function switchTab(tabName) {
+  phoneStore.currentTab = tabName
+  if (tabName === 'contacts') {
+    phoneStore.isKeypadOpen = false
+  }
+}
 </script>
 
 <template>
   <div class="phone-app">
-    <!-- 呼叫中全屏模拟 -->
-    <Transition name="fade">
-      <div v-if="calling" class="calling-overlay">
-        <div class="co-avatar">{{ number.slice(0, 1) }}</div>
-        <div class="co-number">{{ formatted }}</div>
-        <div class="co-status">{{ i18n.t('callCalling') }}</div>
-        <div class="co-end" @click="calling = false; number = ''">
-          <svg width="26" height="26" viewBox="0 0 24 24" style="transform: rotate(135deg)">
-            <path :d="GLYPHS.phone" fill="#fff" />
-          </svg>
+    <!-- 顶部状态大标题与操作区 -->
+    <div class="phone-top-header">
+      <div class="header-titles-wrap">
+        <h1 class="page-large-title">
+          {{ phoneStore.currentTab === 'recents' ? '通话记录' : '联系人' }}
+        </h1>
+        <div v-if="phoneStore.currentTab === 'contacts'" class="contacts-sub-count">
+          {{ phoneStore.contacts.length }} 位联系人
         </div>
+      </div>
+
+      <!-- 右上角快捷动作：搜索 & 电话设置 -->
+      <div class="header-actions">
+        <button class="header-action-btn search-trigger" @click="phoneStore.isSearchActive = true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="7.5" stroke="#1C1C1E" stroke-width="2.2" />
+            <line x1="21" y1="21" x2="16.5" y2="16.5" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" />
+          </svg>
+        </button>
+
+        <button class="header-action-btn settings-trigger" @click="isSettingsOpen = true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="#1C1C1E" stroke-width="2" />
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span class="settings-red-dot"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 核心视图标签页切换 -->
+    <div class="phone-tabs-viewport">
+      <PhoneRecentsTab v-if="phoneStore.currentTab === 'recents'" />
+      <PhoneContactsTab v-else />
+    </div>
+
+    <!-- 拨号键盘浮层面板（抽屉式弹出/收起） -->
+    <Transition name="keypad-slide">
+      <div v-if="phoneStore.isKeypadOpen && phoneStore.currentTab === 'recents'" class="keypad-drawer-wrap">
+        <PhoneKeypad />
       </div>
     </Transition>
 
-    <div class="pa-header">
-      <div class="large-title">{{ activeTabLabel }}</div>
-    </div>
-
-    <!-- 最近通话 -->
-    <div v-if="tab === 'recents'" class="pa-body scrollable">
-      <div v-for="(r, i) in RECENTS" :key="i" class="recent-cell">
-        <div class="rc-main">
-          <div class="rc-name" :class="{ missed: r.type === 'missed' }">{{ r.name }}</div>
-          <div class="rc-sub">
-            <svg width="11" height="11" viewBox="0 0 24 24" style="margin-right:3px">
-              <path v-if="r.type === 'outgoing'" d="M9 5v2h6.6L4.4 18.2 5.8 19.6 17 8.4V15h2V5H9z" fill="#8E8E93" />
-              <path v-else :d="GLYPHS.phone" :fill="r.type === 'missed' ? '#FF3B30' : '#8E8E93'" />
-            </svg>
-            {{ r.tag }}
-          </div>
+    <!-- 底部常驻导航控制栏 -->
+    <div class="phone-bottom-nav">
+      <!-- 通话记录标签 -->
+      <button
+        class="nav-tab-item"
+        :class="{ active: phoneStore.currentTab === 'recents' }"
+        @click="switchTab('recents')"
+      >
+        <div class="nav-icon-wrap" :class="{ pill: phoneStore.currentTab === 'recents' }">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" :stroke="phoneStore.currentTab === 'recents' ? '#00C853' : '#1C1C1E'" stroke-width="2.2" />
+            <path d="M12 7V12L15 14" :stroke="phoneStore.currentTab === 'recents' ? '#00C853' : '#1C1C1E'" stroke-width="2.2" stroke-linecap="round" />
+          </svg>
         </div>
-        <span class="rc-time">{{ r.time }}</span>
-        <svg width="20" height="20" viewBox="0 0 24 24"><path :d="GLYPHS.info" fill="#0A84FF" /></svg>
-      </div>
-    </div>
+        <span class="nav-label">通话记录</span>
+      </button>
 
-    <!-- 通讯录 -->
-    <div v-else-if="tab === 'contacts'" class="pa-body scrollable">
-      <div v-for="(c, i) in CONTACTS" :key="i" class="contact-cell">
-        <div class="ct-avatar" :style="{ background: c.color }">{{ c.initial }}</div>
-        <div class="ct-name">{{ c.name }}</div>
-      </div>
-    </div>
+      <!-- 联系人标签 -->
+      <button
+        class="nav-tab-item"
+        :class="{ active: phoneStore.currentTab === 'contacts' }"
+        @click="switchTab('contacts')"
+      >
+        <div class="nav-icon-wrap" :class="{ pill: phoneStore.currentTab === 'contacts' }">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" :stroke="phoneStore.currentTab === 'contacts' ? '#00C853' : '#1C1C1E'" stroke-width="2.2" stroke-linecap="round" />
+            <circle cx="12" cy="7" r="4" :stroke="phoneStore.currentTab === 'contacts' ? '#00C853' : '#1C1C1E'" stroke-width="2.2" />
+          </svg>
+        </div>
+        <span class="nav-label">联系人</span>
+      </button>
 
-    <!-- 拨号键盘 -->
-    <div v-else class="pa-body keypad-body">
-      <div class="number-display">{{ formatted || '&nbsp;' }}</div>
-      <div class="keypad-grid">
+      <!-- 键盘开关 / 新增联系人快捷键 -->
+      <div class="nav-extra-action">
+        <!-- 通话记录页：3x3 键盘展开/收起按钮 -->
         <button
-          v-for="[num, letters] in KEYS"
-          :key="num"
-          class="key"
-          @click="pressKey(num)"
+          v-if="phoneStore.currentTab === 'recents'"
+          class="keypad-toggle-btn"
+          :class="{ active: phoneStore.isKeypadOpen }"
+          @click="phoneStore.toggleKeypad"
         >
-          <span class="key-num">{{ num }}</span>
-          <span v-if="letters" class="key-letters">{{ letters }}</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <circle cx="5" cy="5" r="1.8" :fill="phoneStore.isKeypadOpen ? '#00C853' : '#1C1C1E'" />
+            <circle cx="12" cy="5" r="1.8" :fill="phoneStore.isKeypadOpen ? '#00C853' : '#1C1C1E'" />
+            <circle cx="19" cy="5" r="1.8" :fill="phoneStore.isKeypadOpen ? '#00C853' : '#1C1C1E'" />
+            <circle cx="5" cy="12" r="1.8" :fill="phoneStore.isKeypadOpen ? '#00C853' : '#1C1C1E'" />
+            <circle cx="12" cy="12" r="1.8" :fill="phoneStore.isKeypadOpen ? '#00C853' : '#1C1C1E'" />
+            <circle cx="19" cy="12" r="1.8" :fill="phoneStore.isKeypadOpen ? '#00C853' : '#1C1C1E'" />
+            <circle cx="5" cy="19" r="1.8" :fill="phoneStore.isKeypadOpen ? '#00C853' : '#1C1C1E'" />
+            <circle cx="12" cy="19" r="1.8" :fill="phoneStore.isKeypadOpen ? '#00C853' : '#1C1C1E'" />
+            <circle cx="19" cy="19" r="1.8" :fill="phoneStore.isKeypadOpen ? '#00C853' : '#1C1C1E'" />
+          </svg>
         </button>
-      </div>
-      <div class="keypad-actions">
-        <div class="ka-placeholder"></div>
-        <button class="call-btn" :class="{ ready: number }" @click="call">
-          <svg width="28" height="28" viewBox="0 0 24 24"><path :d="GLYPHS.phone" fill="#fff" /></svg>
-        </button>
-        <button class="backspace" :style="{ visibility: number ? 'visible' : 'hidden' }" @click="backspace" @contextmenu.prevent>
-          <svg width="24" height="24" viewBox="0 0 24 24">
-            <path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z" fill="#8E8E93" />
+
+        <!-- 联系人页：+ 新增联系人 -->
+        <button v-else class="add-contact-btn">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
         </button>
       </div>
     </div>
 
-    <!-- 底部 Tab 栏 -->
-    <div class="tab-bar">
-      <button
-        v-for="t in TABS"
-        :key="t.id"
-        class="tab-item"
-        :class="{ active: tab === t.id }"
-        @click="tab = t.id"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24">
-          <path :d="GLYPHS[t.glyph]" :fill="tab === t.id ? '#007AFF' : '#8E8E93'" />
-        </svg>
-        <span>{{ i18n.t(t.key) }}</span>
-      </button>
-    </div>
+    <!-- 全局弹层组件集合 -->
+    <!-- 1. 搜索页 -->
+    <Transition name="fade">
+      <PhoneSearch v-if="phoneStore.isSearchActive" />
+    </Transition>
+
+    <!-- 2. Flash Call 快捷回复弹窗 -->
+    <PhoneFlashCallModal />
+
+    <!-- 3. 通话中全屏仿真界面 -->
+    <Transition name="fade">
+      <PhoneCallScreen v-if="phoneStore.activeCall" />
+    </Transition>
+
+    <!-- 4. 电话设置菜单群 -->
+    <Transition name="slide">
+      <PhoneSettings
+        v-if="isSettingsOpen"
+        ref="settingsRef"
+        @back="isSettingsOpen = false"
+      />
+    </Transition>
   </div>
 </template>
 
 <style scoped>
 .phone-app {
+  position: relative;
+  width: 100%;
   height: 100%;
-  background: #fff;
+  background: #FFFFFF;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  user-select: none;
 }
-.pa-header { flex: none; }
-.large-title {
-  font: var(--text-large-title);
-  color: var(--label);
-  padding: calc(var(--safe-top) + 18px) 20px 10px;
-}
-.pa-body { flex: 1; min-height: 0; }
 
-/* 最近通话 */
-.recent-cell {
+/* 顶部大标题与工具栏 */
+.phone-top-header {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 50px 24px 12px;
+  background: #FFFFFF;
 }
-.recent-cell:active { background: #F2F2F7; }
-.rc-main { flex: 1; border-bottom: 0.5px solid rgba(60,60,67,0.12); padding-bottom: 9px; min-width: 0; }
-.recent-cell:last-child .rc-main { border-bottom: none; }
-.rc-name { font: var(--text-body); color: var(--label); }
-.rc-name.missed { color: var(--ios-red); }
-.rc-sub {
-  font: var(--text-footnote);
-  color: var(--label-secondary);
-  display: flex;
-  align-items: center;
-  margin-top: 1px;
-}
-.rc-time { font: var(--text-footnote); color: var(--label-secondary); }
 
-/* 通讯录 */
-.contact-cell {
+.header-titles-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.page-large-title {
+  font-size: 30px;
+  font-weight: 700;
+  color: #1C1C1E;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.contacts-sub-count {
+  font-size: 13px;
+  color: #8E8E93;
+  margin-top: 3px;
+}
+
+.header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
+  gap: 16px;
+  margin-top: 6px;
 }
-.contact-cell:active { background: #F2F2F7; }
-.ct-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  color: #fff;
-  font: 500 16px/1 var(--font-stack);
+
+.header-action-btn {
+  position: relative;
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.ct-name {
+
+.header-action-btn:active {
+  opacity: 0.6;
+}
+
+.settings-red-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #FF3B30;
+}
+
+/* 视图主视口 */
+.phone-tabs-viewport {
   flex: 1;
-  font: var(--text-body);
-  color: var(--label);
-  border-bottom: 0.5px solid rgba(60,60,67,0.12);
-  padding-bottom: 10px;
+  position: relative;
+  overflow: hidden;
 }
-.contact-cell:last-child .ct-name { border-bottom: none; }
 
-/* 拨号键盘 */
-.keypad-body {
+/* 拨号键盘浮层 */
+.keypad-drawer-wrap {
+  position: absolute;
+  bottom: 64px;
+  left: 0;
+  right: 0;
+  z-index: 30;
+}
+
+/* 底部导航控制栏 */
+.phone-bottom-nav {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: #FFFFFF;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 16px;
+  z-index: 40;
+}
+
+.nav-tab-item {
+  background: none;
+  border: none;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  padding-bottom: 12px;
-}
-.number-display {
-  text-align: center;
-  font: 300 34px/1.2 var(--font-stack);
-  color: var(--label);
-  letter-spacing: 1px;
-  font-variant-numeric: tabular-nums;
-  min-height: 44px;
-  margin-bottom: 14px;
-}
-.keypad-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 76px);
-  gap: 14px 20px;
-  justify-content: center;
-}
-.key {
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  background: #E9E9EB;
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  transition: background 0.1s ease, transform 0.1s ease;
+  gap: 2px;
+  cursor: pointer;
+  padding: 4px 16px;
 }
-.key:active { background: #C7C7CC; transform: scale(0.95); }
-.key-num { font: 400 30px/1 var(--font-stack); color: var(--label); }
-.key-letters {
-  font: 600 9px/1.2 var(--font-stack);
-  color: var(--label-secondary);
-  letter-spacing: 1.5px;
-  margin-top: 1px;
-}
-.keypad-actions {
+
+.nav-icon-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 40px;
-  margin-top: 14px;
+  padding: 3px 18px;
+  border-radius: 999px;
+  transition: background-color 0.18s ease;
 }
-.ka-placeholder { width: 48px; }
-.call-btn {
-  width: 68px;
-  height: 68px;
-  border-radius: 50%;
-  background: #C7C7CC;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s ease, transform 0.1s ease;
+
+.nav-icon-wrap.pill {
+  background-color: #F0FDF4;
 }
-.call-btn.ready { background: var(--ios-green); }
-.call-btn.ready:active { transform: scale(0.92); }
-.backspace {
+
+.nav-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #8E8E93;
+}
+
+.nav-tab-item.active .nav-label {
+  color: #00C853;
+  font-weight: 600;
+}
+
+.nav-extra-action {
   width: 48px;
-  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Tab 栏 */
-.tab-bar {
-  flex: none;
+.keypad-toggle-btn,
+.add-contact-btn {
+  background: none;
+  border: none;
+  padding: 8px;
   display: flex;
-  height: calc(var(--safe-bottom) + 49px);
-  padding-bottom: var(--safe-bottom);
-  background: rgba(248, 248, 250, 0.9);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-top: 0.5px solid rgba(60, 60, 67, 0.14);
-}
-.tab-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  font: 500 10px/1 var(--font-stack);
-  color: var(--ios-gray);
+  cursor: pointer;
+  border-radius: 50%;
 }
-.tab-item.active { color: var(--ios-blue); }
 
-/* 呼叫中 */
-.calling-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  background: linear-gradient(180deg, #2c2c2e 0%, #1c1c1e 100%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 140px;
-  color: #fff;
+.keypad-toggle-btn:active,
+.add-contact-btn:active {
+  background-color: rgba(0, 0, 0, 0.05);
 }
-.co-avatar {
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  background: #48484d;
-  font: 400 36px/1 var(--font-stack);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 24px;
+
+/* 动画转场定义 */
+.keypad-slide-enter-active,
+.keypad-slide-leave-active {
+  transition: transform 0.28s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease;
 }
-.co-number { font: 300 30px/1.2 var(--font-stack); letter-spacing: 1px; }
-.co-status {
-  font: var(--text-callout);
-  color: rgba(255, 255, 255, 0.65);
-  margin-top: 8px;
-  animation: breathe 1.6s ease-in-out infinite;
+
+.keypad-slide-enter-from,
+.keypad-slide-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
 }
-@keyframes breathe { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
-.co-end {
-  position: absolute;
-  bottom: 90px;
-  width: 68px;
-  height: 68px;
-  border-radius: 50%;
-  background: var(--ios-red);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
-.co-end:active { transform: scale(0.92); }
-.fade-enter-active, .fade-leave-active { transition: opacity 0.25s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+.slide-enter-from {
+  transform: translateX(100%);
+}
+
+.slide-leave-to {
+  transform: translateX(100%);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
 </style>
