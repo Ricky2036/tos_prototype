@@ -47,7 +47,7 @@ function confirmReset() {
           <span class="cc-cell tall"></span>
         </div>
         <div class="cc-grid">
-          <i v-for="n in 12" :key="n" class="cc-knob" :class="{ dark: slide === 2 && n > 5 }"></i>
+          <i v-for="n in 20" :key="n" class="cc-knob" :class="{ dark: slide === 2 && n > 9 }"></i>
         </div>
       </div>
       <div class="cc-caption">{{ SLIDES[slide].caption }}</div>
@@ -106,9 +106,9 @@ function confirmReset() {
 }
 
 .cc-phone {
-  width: 132px;
-  height: 190px;
-  border-radius: 18px;
+  width: 118px;
+  height: 258px;
+  border-radius: 22px;
   border: 2px solid #C9C9CE;
   padding: 10px;
   box-sizing: border-box;
@@ -145,6 +145,9 @@ function confirmReset() {
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin-top: 2px;
+  flex: 1;
+  align-content: space-evenly;
+  padding-bottom: 4px;
 }
 
 .cc-knob {

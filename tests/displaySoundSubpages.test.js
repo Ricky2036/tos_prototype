@@ -203,3 +203,60 @@ test('三级页统一使用共享外壳，不允许各写一套导航与卡片',
     assert.doesNotMatch(src, /class="nav-round-btn"/, `${f} 自己又写了一版返回键`)
   }
 })
+
+/* ==================== 手机示意框比例守卫（2026-11-05 Ricky 打回） ==================== */
+test('设置页里所有「手机屏幕示意框」都必须接近真机比例 360:788 ≈ 0.457', () => {
+  const ROOT = 'src/components/apps/settings'
+  const files = []
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, entry.name)
+      if (entry.isDirectory()) walk(p)
+      else if (entry.name.endsWith('.vue')) files.push(p)
+    }
+  }
+  walk(ROOT)
+
+  const BLOCK = /\.([\w-]*phone[\w-]*)\s*\{([^}]*)\}/g
+  const checked = []
+
+  for (const file of files) {
+    const src = read(file)
+    let m
+    while ((m = BLOCK.exec(src)) !== null) {
+      const cls = m[1]
+      const body = m[2]
+      // 只检查「单个手机屏幕示意框」：名字以 -phone 结尾，或 phone-mini / phone-big
+      // （.two-phones-illustration 这类是并排容器的外层，不是单个屏幕，跳过）
+      const isPhoneFrame = /-phone$/.test(cls) || cls === 'phone' || /^phone-(mini|big)$/.test(cls)
+      if (!isPhoneFrame) continue
+
+      const w = body.match(/width:\s*([\d.]+)px/)
+      const h = body.match(/height:\s*([\d.]+)px/)
+      if (!w || !h) continue
+
+      const ratio = Number(w[1]) / Number(h[1])
+      checked.push({ file, cls, ratio })
+      assert.ok(
+        ratio >= 0.40 && ratio <= 0.52,
+        `${file} 的 .${cls} 宽高比 ${ratio.toFixed(3)} 不像手机屏幕（应在 0.40–0.52，真机是 0.457）`
+      )
+    }
+  }
+
+  assert.ok(checked.length >= 6, `扫到的手机示意框偏少：${checked.length}`)
+})
+
+test('手机示意框的内部内容不许挤在顶部（要用 space-evenly / space-between 铺开）', () => {
+  const targets = [
+    ['src/components/apps/settings/notifications/NotifControlCenter.vue', '.cc-phone', 'align-content: space-evenly'],
+    ['src/components/apps/settings/SettingsNotifications.vue', '.db-hero-phone', 'align-content: space-evenly'],
+    ['src/components/apps/settings/display/DisplaySize.vue', '.size-phone', 'justify-content: space-between'],
+    ['src/components/apps/settings/display/DisplayRefreshRate.vue', '.rate-phone', 'justify-content: space-between']
+  ]
+  for (const [file, cls, expect] of targets) {
+    const src = read(file)
+    const block = src.slice(src.indexOf(`${cls} {`), src.indexOf('}', src.indexOf(`${cls} {`)))
+    assert.ok(block.includes(expect) || src.includes(expect), `${file} 的 ${cls} 缺少「${expect}」`)
+  }
+})

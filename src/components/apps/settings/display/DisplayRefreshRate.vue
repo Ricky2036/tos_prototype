@@ -78,14 +78,14 @@ const OPTIONS = [
 }
 
 .rate-phone {
-  width: 96px;
-  height: 160px;
-  border-radius: 14px;
+  width: 92px;
+  height: 202px;
+  border-radius: 16px;
   border: 2px solid #C9C9CE;
-  padding: 10px 8px;
+  padding: 12px 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  justify-content: space-between;
   box-sizing: border-box;
 }
 

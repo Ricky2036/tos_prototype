@@ -11,10 +11,10 @@ defineProps({
 
 <template>
   <div class="ai-hero-art">
-    <svg viewBox="0 0 150 300" width="112" height="224" fill="none" aria-hidden="true">
+    <svg viewBox="0 0 150 328" width="112" height="245" fill="none" aria-hidden="true">
       <!-- 手机外框 -->
       <rect
-        x="1.5" y="1.5" width="147" height="297" rx="26"
+        x="1.5" y="1.5" width="147" height="325" rx="26"
         stroke="#B9B9BE" stroke-width="2.5"
       />
 

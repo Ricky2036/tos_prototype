@@ -67,14 +67,14 @@ const MODES = [
 }
 
 .size-phone {
-  width: 108px;
-  height: 180px;
-  border-radius: 16px;
+  width: 100px;
+  height: 219px;
+  border-radius: 18px;
   border: 2px solid #C9C9CE;
-  padding: 12px 10px;
+  padding: 14px 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  justify-content: space-between;
   box-sizing: border-box;
 }
 

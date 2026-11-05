@@ -507,10 +507,10 @@ const emit = defineEmits(['back-to-settings'])
         <div class="db-hero">
           <div class="db-hero-phone">
             <span class="db-hp-dot"></span>
-            <div class="db-hp-grid">
-              <i v-for="n in 12" :key="n" class="db-hp-cell"></i>
-            </div>
             <span class="db-hp-pill"></span>
+            <div class="db-hp-grid">
+              <i v-for="n in 16" :key="n" class="db-hp-cell"></i>
+            </div>
           </div>
           <div class="db-hero-title">实时浏览重要信息</div>
           <div class="db-hero-caption">在状态栏、通知中心和锁屏查看实时活动与系统状态。</div>
@@ -1035,9 +1035,9 @@ const emit = defineEmits(['back-to-settings'])
 
 .db-hero-phone {
   position: relative;
-  width: 132px;
-  height: 176px;
-  border-radius: 18px;
+  width: 118px;
+  height: 258px;
+  border-radius: 22px;
   border: 2px solid #C9C9CE;
   padding: 12px 10px;
   box-sizing: border-box;
@@ -1060,6 +1060,9 @@ const emit = defineEmits(['back-to-settings'])
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   width: 100%;
+  flex: 1;
+  align-content: space-evenly;
+  padding-bottom: 4px;
 }
 
 .db-hp-cell {
@@ -1067,19 +1070,16 @@ const emit = defineEmits(['back-to-settings'])
   width: 100%;
   aspect-ratio: 1;
   border-radius: 7px;
-  background: #EDEDF0;
+  background: #E3E3E8;
 }
 
 .db-hp-pill {
-  position: absolute;
-  left: 50%;
-  top: 82px;
-  transform: translateX(-50%);
-  width: 34px;
-  height: 22px;
-  border-radius: 11px;
-  background: #5B5B60;
-  border: 3px solid #F2F2F7;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: #3A3A3C;
+  margin-bottom: 12px;
+  flex: none;
 }
 
 .db-hero-title {

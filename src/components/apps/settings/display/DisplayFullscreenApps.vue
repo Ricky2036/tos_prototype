@@ -66,8 +66,8 @@ const APPS = [
 .hole-phone {
   position: relative;
   width: 92px;
-  height: 158px;
-  border-radius: 14px;
+  height: 202px;
+  border-radius: 16px;
   border: 2px solid #C9C9CE;
   display: flex;
   justify-content: center;
