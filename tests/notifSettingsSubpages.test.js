@@ -82,8 +82,12 @@ test('状态栏图标清单：8 行、顺序与真机一致、每行都有图标
   assert.deepEqual(rows.map(r => r.label), [
     '勿扰', '网速', '磁吸充电宝', '蓝牙', '闹钟', '耳机', 'VPN', '流量节省'
   ])
+  // 图标一律复用 lucide 键（网速是真机那种文字图标），不允许再手绘
   for (const row of rows) {
-    assert.ok(row.icon, `${row.label} 缺少图标名`)
+    assert.ok(
+      row.lucide || row.text,
+      `${row.label} 既没有 lucide 图标也不是文字图标`
+    )
   }
   // 勿扰/蓝牙必须走 controlStore（状态栏上真的会画这两个图标）
   assert.equal(rows.find(r => r.label === '勿扰').kind, 'control')
@@ -282,5 +286,21 @@ test('Dynamic Bar 用到的 lucide 图标名必须真实存在（写错会静默
       available.has(name),
       `LIcon 没有 "${name}" 这个图标（lucide.js 的键是 camelCase，写成 audio-lines 会渲染空白）`
     )
+  }
+})
+
+test('状态栏图标行用到的 lucide 键必须真实存在（写错会渲染空白）', () => {
+  const storeSrc = read('src/stores/notificationSettingsStore.js')
+  const rowsBlock = storeSrc.slice(storeSrc.indexOf('iconRows()'), storeSrc.indexOf('return {', storeSrc.indexOf('iconRows()')))
+  const names = [...new Set([...rowsBlock.matchAll(/lucide: '([A-Za-z0-9]+)'/g)].map(m => m[1]))]
+  assert.ok(names.length >= 6, `解析到的状态栏图标偏少：${names.length}`)
+
+  const lucideSrc = read('src/assets/icons/lucide.js')
+  const exportBlock = lucideSrc.slice(lucideSrc.indexOf('export const LUCIDE = {'))
+  const body = exportBlock.slice(0, exportBlock.indexOf('\n}'))
+  const available = new Set([...body.matchAll(/\b([a-zA-Z][a-zA-Z0-9]*)\s*[,:]/g)].map(m => m[1]))
+
+  for (const name of names) {
+    assert.ok(available.has(name), `LIcon 没有 "${name}" 这个图标`)
   }
 })

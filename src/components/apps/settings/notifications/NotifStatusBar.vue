@@ -1,6 +1,7 @@
 <script setup>
 import SubPageShell from '../subpage/SubPageShell.vue'
 import ListCell from '../../../ui/ListCell.vue'
+import LIcon from '../../../ui/LIcon.vue'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 import { useControlStore } from '../../../../stores/controlStore'
 import { ref } from 'vue'
@@ -65,40 +66,19 @@ function setOn(row, value) {
       >
         <template #icon>
           <div class="sb-glyph">
-            <!-- 勿扰 -->
-            <svg v-if="row.icon === 'moon'" width="15" height="15" viewBox="0 0 24 24" fill="#3C3C43">
-              <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-            </svg>
-            <!-- 网速：用文字图标还原真机的 0.01 KB/S -->
-            <span v-else-if="row.icon === 'text'" class="sb-text">0.01<br />KB/S</span>
-            <!-- 磁吸充电宝 -->
-            <svg v-else-if="row.icon === 'battery'" width="15" height="15" viewBox="0 0 24 24" fill="none">
-              <rect x="2" y="8" width="17" height="9" rx="2.4" fill="#3C3C43" />
-              <rect x="20" y="10.5" width="2" height="4" rx="1" fill="#3C3C43" />
-              <path d="M6 12.4h3.2v-1.6h2.4v1.6H15v1.4h-3.4v1.6H9.2v-1.6H6z" fill="#FFFFFF" />
-            </svg>
-            <!-- 蓝牙 -->
-            <svg v-else-if="row.icon === 'bluetooth'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3C3C43" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M7 7l10 10-5 5V2l5 5L7 17" />
-            </svg>
-            <!-- 闹钟 -->
-            <svg v-else-if="row.icon === 'alarm'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3C3C43" stroke-width="2.2" stroke-linecap="round">
-              <circle cx="12" cy="13" r="8" />
-              <path d="M12 9.5V13l2.6 1.6M5 3.6 3.2 5.4M19 3.6l1.8 1.8" />
-            </svg>
-            <!-- 耳机 -->
-            <svg v-else-if="row.icon === 'headset'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3C3C43" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 14v-2a8 8 0 0 1 16 0v2" />
-              <rect x="2.6" y="13" width="4" height="7" rx="2" fill="#3C3C43" stroke="none" />
-              <rect x="17.4" y="13" width="4" height="7" rx="2" fill="#3C3C43" stroke="none" />
-            </svg>
-            <!-- VPN -->
-            <span v-else-if="row.icon === 'vpn'" class="sb-vpn">VPN</span>
-            <!-- 流量节省 -->
-            <svg v-else-if="row.icon === 'droplet'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3C3C43" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 3s6 6.4 6 10a6 6 0 0 1-12 0c0-3.6 6-10 6-10z" />
-              <path d="M9.5 14.6 14.5 10" />
-            </svg>
+            <!-- 网速：真机就是「0.01 / KB/S」两行文字 -->
+            <span v-if="row.text" class="sb-text">0.01<br />KB/S</span>
+            <!-- VPN：真机是深色小胶囊 + VPN 字样 -->
+            <span v-else-if="row.lucide === 'vpn'" class="sb-vpn">VPN</span>
+            <!-- 其余全部复用 lucide 图标 -->
+            <LIcon
+              v-else
+              :name="row.lucide"
+              :size="19"
+              :stroke-width="2"
+              :filled="Boolean(row.filled)"
+              style="color: #1C1C1E"
+            />
           </div>
         </template>
         <template #right>
@@ -121,7 +101,6 @@ function setOn(row, value) {
 .sb-glyph {
   width: 26px;
   height: 26px;
-  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -130,12 +109,12 @@ function setOn(row, value) {
 }
 
 .sb-text {
-  font-size: 7.5px;
-  line-height: 8px;
+  font-size: 8px;
+  line-height: 8.5px;
   font-weight: 700;
-  color: #3C3C43;
+  color: #1C1C1E;
   text-align: center;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.3px;
 }
 
 .sb-vpn {

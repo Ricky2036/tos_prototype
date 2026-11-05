@@ -128,15 +128,16 @@ export const useNotificationSettingsStore = defineStore('notificationSettings', 
 
   /** 状态栏图标清单（真机顺序）：勿扰/网速/磁吸充电宝/蓝牙/闹钟/耳机/VPN/流量节省 */
   function iconRows() {
+    // 图标复用仓里既有的 lucide 键（LIcon），不再手绘；网速那行是真机的文字图标
     return [
-      { key: 'dnd', label: '勿扰', icon: 'moon', kind: 'control', controlKey: 'dnd' },
-      { key: 'iconNetSpeed', label: '网速', icon: 'text' },
-      { key: 'iconMagneticPower', label: '磁吸充电宝', icon: 'battery' },
-      { key: 'bluetooth', label: '蓝牙', icon: 'bluetooth', kind: 'control', controlKey: 'bluetooth' },
-      { key: 'iconAlarm', label: '闹钟', icon: 'alarm' },
-      { key: 'iconHeadset', label: '耳机', icon: 'headset' },
-      { key: 'iconVpn', label: 'VPN', icon: 'vpn' },
-      { key: 'iconDataSaver', label: '流量节省', icon: 'droplet' }
+      { key: 'dnd', label: '勿扰', lucide: 'moon', filled: true, kind: 'control', controlKey: 'dnd' },
+      { key: 'iconNetSpeed', label: '网速', text: true },
+      { key: 'iconMagneticPower', label: '磁吸充电宝', lucide: 'batteryCharging', filled: true },
+      { key: 'bluetooth', label: '蓝牙', lucide: 'bluetooth', kind: 'control', controlKey: 'bluetooth' },
+      { key: 'iconAlarm', label: '闹钟', lucide: 'alarmClock', filled: true },
+      { key: 'iconHeadset', label: '耳机', lucide: 'headphones' },
+      { key: 'iconVpn', label: 'VPN', lucide: 'vpn' },
+      { key: 'iconDataSaver', label: '流量节省', lucide: 'droplet', filled: true }
     ]
   }
 
