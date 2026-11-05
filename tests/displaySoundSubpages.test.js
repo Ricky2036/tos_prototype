@@ -250,7 +250,6 @@ test('设置页里所有「手机屏幕示意框」都必须接近真机比例 3
 test('手机示意框的内部内容不许挤在顶部（要用 space-evenly / space-between 铺开）', () => {
   const targets = [
     ['src/components/apps/settings/notifications/NotifControlCenter.vue', '.cc-phone', 'align-content: space-evenly'],
-    ['src/components/apps/settings/SettingsNotifications.vue', '.db-hero-phone', 'align-content: space-evenly'],
     ['src/components/apps/settings/display/DisplaySize.vue', '.size-phone', 'justify-content: space-between'],
     ['src/components/apps/settings/display/DisplayRefreshRate.vue', '.rate-phone', 'justify-content: space-between']
   ]
@@ -259,4 +258,29 @@ test('手机示意框的内部内容不许挤在顶部（要用 space-evenly / s
     const block = src.slice(src.indexOf(`${cls} {`), src.indexOf('}', src.indexOf(`${cls} {`)))
     assert.ok(block.includes(expect) || src.includes(expect), `${file} 的 ${cls} 缺少「${expect}」`)
   }
+})
+
+test('Dynamic Bar 头图必须是「被裁切的半部手机」（Ricky 2026-11-05 指出）', () => {
+  const src = read('src/components/apps/settings/SettingsNotifications.vue')
+
+  // 容器定高 + 裁切
+  const wrap = src.slice(src.indexOf('.db-figure {'), src.indexOf('.db-figure-phone {'))
+  assert.match(wrap, /overflow:\s*hidden/, '头图容器必须裁切')
+  const wrapH = wrap.match(/height:\s*(\d+)px/)
+  assert.ok(wrapH, '头图容器必须有固定高度')
+
+  // 机器本身比容器高 ⇒ 底部被切掉，只露上半部
+  const phone = src.slice(src.indexOf('.db-figure-phone {'), src.indexOf('.db-figure-hole {'))
+  const phoneH = phone.match(/height:\s*(\d+)px/)
+  assert.ok(phoneH, '.db-figure-phone 必须有高度')
+  assert.ok(
+    Number(phoneH[1]) > Number(wrapH[1]) * 1.5,
+    `手机高度(${phoneH[1]}) 应远大于容器(${wrapH[1]})，否则就不是「半部手机」`
+  )
+
+  // 机身内部与页面同色，只留描边（真机效果）
+  assert.doesNotMatch(phone, /background:\s*#FFFFFF/, '机身不该是白底')
+
+  // 网格要铺到裁切边，不能只有几行
+  assert.match(src, /v-for="n in (1[6-9]|2\d)"[^>]*><\/i>|<i v-for="n in (1[6-9]|2\d)"/, '头图网格格数太少，填不满裁切区')
 })

@@ -68,6 +68,7 @@ export const useNotificationsStore = defineStore('notifications', {
       networkBoost: false,
       flashlight: true,
       callSummary: true,
+      callSummaryWhatsapp: true,
       verification: true,
       gameCountdown: false,
       importantDay: true,

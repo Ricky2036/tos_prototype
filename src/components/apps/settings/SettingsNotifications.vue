@@ -2,6 +2,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import ListCell from '../../ui/ListCell.vue'
+import LIcon from '../../ui/LIcon.vue'
 import SplitActionCell from '../../ui/SplitActionCell.vue'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import SettingsAppIcon from '../../ui/SettingsAppIcon.vue'
@@ -209,48 +210,42 @@ function toggleAppState(id) {
  * 其余为真机新增项，先记录开关状态（新增键在 canShowIsland 里被视为允许，不影响既有行为）。
  */
 const ISLAND_SERVICES = [
-  { key: 'aiPhoto', label: 'AI 修图', bg: '#7C6BF6', d: 'M12 3l1.9 4.7L18.6 9.6 13.9 11.5 12 16.2 10.1 11.5 5.4 9.6 10.1 7.7z' },
-  { key: 'timer', label: '定时器', bg: '#3C3C43', clock: 'timer' },
-  { key: 'screenRecord', label: '录屏', bg: '#FF6B5A', d: 'M3 7.5A2.5 2.5 0 0 1 5.5 5h8A2.5 2.5 0 0 1 16 7.5v9A2.5 2.5 0 0 1 13.5 19h-8A2.5 2.5 0 0 1 3 16.5zM17.5 10l3.5-2v8l-3.5-2z' },
-  { key: 'recorder', label: '录音', bg: '#F2F2F7', img: true },
-  { key: 'stopwatch', label: '秒表', bg: '#3C3C43', clock: 'stopwatch' },
-  { key: 'noiseCancel', label: '全场景降噪', bg: '#2F6BF6', glyph: 'mic' },
-  { key: 'guide', label: '全局引导', bg: '#FFB020', d: 'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.4.3.5.8.5 1.3V16h6v-.8c0-.5.1-1 .5-1.3A6 6 0 0 0 12 3z' },
-  { key: 'hotspot', label: '热点', bg: '#34C759', d: 'M4.5 16.5a10 10 0 0 1 0-9M7.8 14a6 6 0 0 1 0-4M18 7.5a10 10 0 0 1 0 9M16.2 10a6 6 0 0 1 0 4M12 13.2a1.4 1.4 0 1 0 0-2.4 1.4 1.4 0 0 0 0 2.4z' },
-  { key: 'videoGen', label: '视频生成', bg: '#7C6BF6', d: 'M4 6h12v12H4zM16 10l4-2v8l-4-2z' },
-  { key: 'networkBoost', label: '网络加速', bg: '#5AC8FA', d: 'M13 2 4 14h6l-1 8 9-12h-6z' },
-  { key: 'flashlight', label: '手电筒', bg: '#FFB020', d: 'M8 3h8v3l-2 2v11a2 2 0 0 1-2 2h-0a2 2 0 0 1-2-2V8L8 6z' },
-  { key: 'callSummary', label: '系统通话摘要', bg: '#2F6BF6', glyph: 'phone' },
-  { key: 'verification', label: '验证码', bg: '#2F6BF6', d: 'M9 4 7 20M17 4l-2 16M4 9h16M3 15h16' },
-  { key: 'media', label: '音乐播放', bg: '#FF5A5A', glyph: 'music' },
-  { key: 'gameCountdown', label: '游戏倒计时', bg: '#2F6BF6', d: 'M7 8h10a4 4 0 0 1 4 4v4a2 2 0 0 1-2 2h-1.5l-1.5-2h-8L6.5 18H5a2 2 0 0 1-2-2v-4a4 4 0 0 1 4-4zM8 11v4M6 13h4M16 12h.01M18 14h.01' },
-  { key: 'importantDay', label: '重要日', bg: '#FFFFFF', d: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4' },
-  { key: 'alarm', label: '闹钟', bg: '#3C3C43', clock: 'alarm' },
-  { key: 'prayer', label: '礼拜', bg: '#2F6BF6', clock: 'muslim' }
+  // bg 全部来自真机截图取色（/tmp/ref/g6 采样），icon 优先复用仓里已有图标：
+  // lucide=LIcon / clock=CLOCK_ICONS / glyph=GLYPHS / app=应用真实图标 PNG
+  { key: 'aiPhoto', label: 'AI 修图', bg: 'linear-gradient(135deg, #8A82C6 0%, #6E96DC 100%)', lucide: 'wandSparkles' },
+  { key: 'timer', label: '定时器', bg: '#2E67F5', clock: 'timer' },
+  { key: 'screenRecord', label: '录屏', bg: '#EA7260', lucide: 'video' },
+  { key: 'recorder', label: '录音', bg: '#EA7B49', lucide: 'audioLines' },
+  { key: 'stopwatch', label: '秒表', bg: '#2E67F5', clock: 'stopwatch' },
+  { key: 'alarm', label: '闹钟', bg: '#EB9335', clock: 'alarm' },
+  { key: 'noiseCancel', label: '全场景降噪', bg: '#2E66F6', lucide: 'micVocal' },
+  { key: 'guide', label: '全局引导', bg: '#F2C357', lucide: 'lightbulb' },
+  { key: 'hotspot', label: '热点', bg: '#63C979', lucide: 'radioTower' },
+  { key: 'flashlight', label: '手电筒', bg: '#F1B83F', lucide: 'flashlight' },
+  { key: 'callSummaryWhatsapp', label: 'WhatsApp 通话摘要', bg: '#61C856', glyph: 'phone' },
+  { key: 'callSummary', label: '系统通话摘要', bg: '#2E66F6', glyph: 'phone' },
+  { key: 'verification', label: '应用验证码', bg: '#3A83F7', lucide: 'key' },
+  { key: 'media', label: '音乐播放', bg: '#E83C3C', lucide: 'play', filled: true },
+  { key: 'gameCountdown', label: '游戏倒计时', bg: '#61BDF4', lucide: 'grid2x2' },
+  { key: 'importantDay', label: '重要日', bg: '#FFFFFF', light: true, lucide: 'calendarDays', color: '#FF3B30' },
+  { key: 'videoGen', label: '视频生成', bg: '#7C6BF6', lucide: 'film' },
+  { key: 'networkBoost', label: '网络加速', bg: '#5AC8FA', lucide: 'zap' },
+  // 礼拜在真机这一版没出现在列表里，但灵动岛有对应模板，必须留一行给它的开关
+  { key: 'prayer', label: '礼拜', bg: '#2E66F6', clock: 'muslim' }
 ]
 
 /**
- * Dynamic Bar「实时活动」逐应用清单 —— 对齐真机已安装的实时活动应用。
- * 开关状态存在 notificationSettingsStore.liveActivityApps。
+ * Dynamic Bar「实时活动」逐应用清单。
+ * 真机是按当前有实时活动的应用动态列出；原型用固定几项近似。
+ * 图标优先复用：能对上 NotificationIcon 类型（google / whatsapp …）就直接用真实应用图标。
+ * 底色取自真机截图（/tmp/ref/g6/00_now.png）。
  */
 const LIVE_ACTIVITY_APPS = [
-  {
-    key: 'folaxMpl',
-    label: 'Folax MPL 助手',
-    subtitle: 'MPL全能AI助手——实时比分、赛程与赛事洞察，一目了然。',
-    bg: '#EFE6FF',
-    d: 'M13 2 4 14h6l-1 8 9-12h-6z'
-  },
-  { key: 'googleMaps', label: 'Google Maps', subtitle: '导航服务', bg: '#E8F0FE', d: 'M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z' },
-  { key: 'trainAlert', label: '国内火车异常提醒', subtitle: '', bg: '#EAF3FF', d: 'M7 3h10a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zm0 4v6h10V7zM7 18l-2 3M17 18l2 3' },
-  { key: 'flight', label: '航班服务', subtitle: '', bg: '#E8F7EE', d: 'M2 15l20-9-4 9 2 1-2 1-6-1-4 3-1-3z' },
-  {
-    key: 'hiTranslate',
-    label: 'Hi Translate',
-    subtitle: '实时翻译服务',
-    bg: '#E7F0FF',
-    d: 'M4 5h9v2H4zM8 3h2v2H8zM5 9h8v2a8 8 0 0 1-8 8v-2a6 6 0 0 0 6-6H5zM13 13h7v2h-3l3 5h-2l-3-5h-2z'
-  }
+  // 与真机截图（/tmp/ref/g6/00_now.png）一致：当前只列出这三项 + 「更多服务」开关行。
+  // 真机列表是按当前有实时活动的应用动态生成，原型固定这几项近似。
+  { key: 'googleMaps', label: 'Google Maps', subtitle: '导航服务', iconType: 'google', bg: '#FFFFFF' },
+  { key: 'hiTranslate', label: 'Hi Translate', subtitle: '实时翻译服务', custom: 'translate', bg: 'linear-gradient(135deg, #2F6BF6 0%, #4FA3FF 100%)' },
+  { key: 'songRecog', label: '听歌识曲', subtitle: '音乐识别服务', custom: 'song', bg: 'linear-gradient(135deg, #FFE3EC 0%, #E7DBFF 100%)' }
 ]
 
 const appLiveActivityStates = ref({})
@@ -505,11 +500,18 @@ const emit = defineEmits(['back-to-settings'])
 
         <!-- 头图：手机 + 灵动岛 -->
         <div class="db-hero">
-          <div class="db-hero-phone">
-            <span class="db-hp-dot"></span>
-            <span class="db-hp-pill"></span>
-            <div class="db-hp-grid">
-              <i v-for="n in 16" :key="n" class="db-hp-cell"></i>
+          <div class="db-figure">
+            <div class="db-figure-phone">
+              <span class="db-figure-hole"></span>
+              <span class="db-figure-pill">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFB020" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 7h9l6 3v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z" />
+                </svg>
+              </span>
+              <div class="db-figure-grid">
+                <i v-for="n in 24" :key="n"></i>
+              </div>
+              <span class="db-figure-tap"></span>
             </div>
           </div>
           <div class="db-hero-title">实时浏览重要信息</div>
@@ -526,9 +528,20 @@ const emit = defineEmits(['back-to-settings'])
             :subtitle="app.subtitle"
           >
             <template #icon>
-              <div class="db-app-icon" :style="{ background: app.bg }">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B5B60" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <path :d="app.d" />
+              <div class="db-live-icon" :style="{ background: app.bg }">
+                <NotificationIcon v-if="app.iconType" :type="app.iconType" :size="30" />
+                <svg v-else-if="app.custom === 'translate'" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <text x="2" y="17" font-size="15" font-weight="700" fill="#FFFFFF" font-family="-apple-system, sans-serif">文</text>
+                  <text x="14" y="21" font-size="9" font-weight="700" fill="#FFFFFF" font-family="-apple-system, sans-serif">A</text>
+                </svg>
+                <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="8.6" stroke="url(#songGrad)" stroke-width="2.6" />
+                  <path d="M10 9.4l5 2.6-5 2.6z" fill="#7C6BF6" />
+                  <defs>
+                    <linearGradient id="songGrad" x1="3" y1="3" x2="21" y2="21">
+                      <stop stop-color="#FF7BA8" /><stop offset="1" stop-color="#7C6BF6" />
+                    </linearGradient>
+                  </defs>
                 </svg>
               </div>
             </template>
@@ -541,6 +554,11 @@ const emit = defineEmits(['back-to-settings'])
             </template>
           </ListCell>
           <ListCell title="更多服务" subtitle="更多支持实时更新通知的服务" last>
+            <template #icon>
+              <div class="db-live-icon" style="background: #EFEFF2">
+                <LIcon name="grid2x2" :size="17" :stroke-width="2.1" style="color: #6E6E73" />
+              </div>
+            </template>
             <template #right>
               <ToggleSwitch
                 :model-value="notifSettings.liveActivityMore"
@@ -583,17 +601,24 @@ const emit = defineEmits(['back-to-settings'])
             :last="idx === ISLAND_SERVICES.length - 1"
           >
             <template #icon>
-              <div class="db-app-icon" :style="{ background: svc.bg }">
-                <img v-if="svc.img" :src="voicememosIconUrl" alt="Voice Memos" class="db-icon-img" />
-                <svg v-else-if="svc.clock" width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <div class="db-app-icon" :class="{ 'is-light': svc.light }" :style="{ background: svc.bg }">
+                <LIcon
+                  v-if="svc.lucide"
+                  :name="svc.lucide"
+                  :size="17"
+                  :stroke-width="2.1"
+                  :filled="Boolean(svc.filled)"
+                  :style="{ color: svc.color || '#FFFFFF' }"
+                />
+                <svg v-else-if="svc.clock" width="18" height="18" viewBox="0 0 24 24" fill="none">
                   <path :d="CLOCK_ICONS[svc.clock]" fill="#FFFFFF" />
                 </svg>
-                <svg v-else-if="svc.glyph" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <svg v-else-if="svc.glyph" width="18" height="18" viewBox="0 0 24 24" fill="none">
                   <path :d="GLYPHS[svc.glyph]" fill="#FFFFFF" />
                 </svg>
                 <svg
                   v-else
-                  width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  width="18" height="18" viewBox="0 0 24 24" fill="none"
                   stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
                 >
                   <path :d="svc.d" />
@@ -973,6 +998,10 @@ const emit = defineEmits(['back-to-settings'])
   min-width: 0;
   flex: 1;
 }
+.db-app-icon.is-light {
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+}
+
 .db-app-icon {
   width: 36px;
   height: 36px;
@@ -1030,56 +1059,91 @@ const emit = defineEmits(['back-to-settings'])
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 0 20px;
+  padding: 4px 0 18px;
 }
 
-.db-hero-phone {
+/* 头图只露手机上半部：容器裁切，机器本身画满整高（真机截图就是这个效果） */
+.db-figure {
+  width: 100%;
+  height: 246px;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.db-figure-phone {
   position: relative;
-  width: 118px;
-  height: 258px;
-  border-radius: 22px;
-  border: 2px solid #C9C9CE;
-  padding: 12px 10px;
+  width: 200px;
+  height: 437px;
+  border-radius: 30px;
+  border: 1.5px solid #D3D3D8;
+  background: #F2F2F7;
   box-sizing: border-box;
+  padding: 8px 16px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow: hidden;
+  flex: none;
 }
 
-.db-hp-dot {
+.db-figure-hole {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: #1C1C1E;
-  margin-bottom: 10px;
+  margin: 6px 0 14px;
 }
 
-.db-hp-grid {
+.db-figure-pill {
+  width: 74px;
+  height: 26px;
+  border-radius: 13px;
+  background: #111111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  z-index: 2;
+}
+
+.db-figure-tap {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: rgba(120, 120, 128, 0.24);
+  z-index: 3;
+}
+
+.db-figure-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  gap: 12px;
   width: 100%;
-  flex: 1;
-  align-content: space-evenly;
-  padding-bottom: 4px;
 }
 
-.db-hp-cell {
+.db-figure-grid i {
   display: block;
-  width: 100%;
   aspect-ratio: 1;
-  border-radius: 7px;
-  background: #E3E3E8;
+  border-radius: 9px;
+  background: #E7E7EA;
 }
 
-.db-hp-pill {
-  width: 36px;
-  height: 20px;
-  border-radius: 10px;
-  background: #3A3A3C;
-  margin-bottom: 12px;
+/* 实时活动：真实应用图标 + 真机底色 */
+.db-live-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: none;
+  overflow: hidden;
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
 }
 
 .db-hero-title {

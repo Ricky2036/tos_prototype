@@ -172,7 +172,7 @@ test('实时活动：逐应用开关默认开，未知名被拒绝，更多服�
   const s = notifSettings()
   assert.deepEqual(
     Object.keys(s.liveActivityApps),
-    ['folaxMpl', 'googleMaps', 'trainAlert', 'flight', 'hiTranslate']
+    ['googleMaps', 'hiTranslate', 'songRecog']
   )
   for (const v of Object.values(s.liveActivityApps)) assert.equal(v, true)
 
@@ -227,7 +227,7 @@ test('Dynamic Bar 页有「实时活动」分组，且清单 key 全部落在 st
 
   const block = src.slice(src.indexOf('const LIVE_ACTIVITY_APPS'), src.indexOf('const appLiveActivityStates'))
   const keys = [...block.matchAll(/key: '([a-zA-Z]+)'/g)].map(m => m[1])
-  assert.ok(keys.length >= 5, `实时活动应用数偏少：${keys.length}`)
+  assert.ok(keys.length >= 3, `实时活动应用数偏少：${keys.length}`)
 
   const s = notifSettings()
   for (const key of keys) {
@@ -263,4 +263,24 @@ test('控制中心页含还原确认弹窗（真机交互）', () => {
   assert.match(src, /resetControlCenterLayout/)
   // 头图轮播三点
   assert.match(src, /SLIDES/, '缺少轮播配置')
+})
+
+test('Dynamic Bar 用到的 lucide 图标名必须真实存在（写错会静默渲染空白）', () => {
+  const src = read('src/components/apps/settings/SettingsNotifications.vue')
+  const names = [...new Set([...src.matchAll(/lucide: '([A-Za-z0-9-]+)'/g)].map(m => m[1]))]
+  assert.ok(names.length >= 8, `解析到的 lucide 图标偏少：${names.length}`)
+
+  const lucideSrc = read('src/assets/icons/lucide.js')
+  const exportBlock = lucideSrc.slice(lucideSrc.indexOf('export const LUCIDE = {'))
+  const body = exportBlock.slice(0, exportBlock.indexOf('\n}'))
+  const available = new Set(
+    [...body.matchAll(/\b([a-zA-Z][a-zA-Z0-9]*)\s*[,:]/g)].map(m => m[1])
+  )
+
+  for (const name of names) {
+    assert.ok(
+      available.has(name),
+      `LIcon 没有 "${name}" 这个图标（lucide.js 的键是 camelCase，写成 audio-lines 会渲染空白）`
+    )
+  }
 })

@@ -64,11 +64,9 @@ export const useNotificationSettingsStore = defineStore('notificationSettings', 
 
   /** Dynamic Bar「实时活动」逐应用开关（真机按已安装的实时活动应用列出） */
   const liveActivityApps = ref({
-    folaxMpl: true,
     googleMaps: true,
-    trainAlert: true,
-    flight: true,
-    hiTranslate: true
+    hiTranslate: true,
+    songRecog: true
   })
 
   function setBool(key, value) {
