@@ -54,39 +54,54 @@ const formattedNumber = computed(() => {
 
 <template>
   <div class="phone-keypad-panel">
-    <!-- 顶部拨号显示栏（有数字时呈现） -->
+    <!-- 顶部拨号回显条（输入时滑入） -->
     <div class="keypad-display-row" :class="{ visible: phoneStore.dialedNumber }">
       <div class="dialed-number-text">{{ formattedNumber }}</div>
     </div>
 
-    <!-- 3x4 核心按键矩阵 -->
+    <!-- 3x4 严格正圆形按键网格 -->
     <div class="keypad-grid">
-      <button
+      <div
         v-for="k in KEYS"
         :key="k.num"
-        class="keypad-btn"
-        @click="handleKeyPress(k)"
-        @contextmenu.prevent="k.num === '0' ? handleZeroLongPress() : null"
+        class="keypad-cell"
       >
-        <span class="key-digit">{{ k.num }}</span>
-        <!-- 1 键特殊语音信箱图标 -->
-        <span v-if="k.sub === 'voicemail'" class="key-sub-icon">
-          <svg width="14" height="8" viewBox="0 0 28 16" fill="none">
-            <circle cx="6" cy="8" r="5" stroke="#8E8E93" stroke-width="2.5" />
-            <circle cx="22" cy="8" r="5" stroke="#8E8E93" stroke-width="2.5" />
-            <line x1="6" y1="13" x2="22" y2="13" stroke="#8E8E93" stroke-width="2.5" />
-          </svg>
-        </span>
-        <span v-else-if="k.sub" class="key-sub-text">{{ k.sub }}</span>
-      </button>
+        <button
+          class="keypad-circle-btn"
+          @click="handleKeyPress(k)"
+          @contextmenu.prevent="k.num === '0' ? handleZeroLongPress() : null"
+        >
+          <span class="key-digit">{{ k.num }}</span>
+          <!-- 1 键语音信箱图标 -->
+          <span v-if="k.sub === 'voicemail'" class="key-sub-icon">
+            <svg width="14" height="8" viewBox="0 0 28 16" fill="none">
+              <circle cx="6" cy="8" r="5" stroke="#8E8E93" stroke-width="2.5" />
+              <circle cx="22" cy="8" r="5" stroke="#8E8E93" stroke-width="2.5" />
+              <line x1="6" y1="13" x2="22" y2="13" stroke="#8E8E93" stroke-width="2.5" />
+            </svg>
+          </span>
+          <span v-else-if="k.sub" class="key-sub-text">{{ k.sub }}</span>
+        </button>
+      </div>
     </div>
 
-    <!-- 底部操作栏：视频通话 / 拨出大绿钮 / 退格删除 -->
+    <!-- 底部操作栏：收起/视频呼叫 / 主拨号绿色大圆钮 / 退格删除 -->
     <div class="keypad-actions-row">
-      <!-- 视频通话按钮 -->
+      <!-- 左侧：收起键盘（无输入时）或视频通话（有输入时） -->
       <button
-        class="action-aux-btn video-call-btn"
-        :class="{ active: phoneStore.dialedNumber }"
+        v-if="!phoneStore.dialedNumber"
+        class="action-aux-btn hide-keypad-btn"
+        title="收起键盘"
+        @click="phoneStore.isKeypadOpen = false"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M6 9l6 6 6-6" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+      <button
+        v-else
+        class="action-aux-btn video-call-btn active"
+        title="视频通话"
         @click="handleVideoCall"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -95,14 +110,14 @@ const formattedNumber = computed(() => {
         </svg>
       </button>
 
-      <!-- 绿色大拨号按钮 -->
+      <!-- 绿色大圆拨号按键 -->
       <button class="main-call-btn" @click="handleCall">
         <svg width="30" height="30" viewBox="0 0 24 24" fill="#FFFFFF">
           <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-2.2 2.2a15.047 15.047 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.01A11.36 11.36 0 018.57 3.9c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.52c0-.55-.45-1-.99-1z" />
         </svg>
       </button>
 
-      <!-- 退格键（有输入时展示，支持点击退格与长按清空） -->
+      <!-- 退格键 -->
       <button
         class="action-aux-btn backspace-btn"
         :class="{ visible: phoneStore.dialedNumber }"
@@ -126,13 +141,13 @@ const formattedNumber = computed(() => {
   background: #FFFFFF;
   border-top-left-radius: 28px;
   border-top-right-radius: 28px;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
-  padding: 10px 24px 24px;
+  box-shadow: 0 -6px 25px rgba(0, 0, 0, 0.06);
+  padding: 6px 20px 20px;
 }
 
-/* 拨号显示栏 */
+/* 顶部号码回显 */
 .keypad-display-row {
-  height: 48px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -145,36 +160,54 @@ const formattedNumber = computed(() => {
 }
 
 .dialed-number-text {
-  font-size: 28px;
+  font-size: 27px;
   font-weight: 500;
   color: #1C1C1E;
   letter-spacing: 1px;
 }
 
-/* 3x4 矩阵 */
+/* 3x4 按键网格：严格正圆单元格 */
 .keypad-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  row-gap: 12px;
-  column-gap: 24px;
-  margin-top: 4px;
+  row-gap: 8px;
+  justify-items: center;
+  margin-top: 2px;
 }
 
-.keypad-btn {
+.keypad-cell {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 正圆形按键容器（防止椭圆变形） */
+.keypad-circle-btn {
+  width: 68px;
+  height: 68px;
+  min-width: 68px;
+  min-height: 68px;
+  max-width: 68px;
+  max-height: 68px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
   background: none;
   border: none;
-  height: 64px;
-  border-radius: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+  transition: background-color 0.15s ease, transform 0.12s ease;
 }
 
-.keypad-btn:active {
-  background-color: rgba(0, 0, 0, 0.06);
+.keypad-circle-btn:active {
+  background-color: rgba(0, 0, 0, 0.08);
+  transform: scale(0.94);
 }
 
 .key-digit {
@@ -188,7 +221,7 @@ const formattedNumber = computed(() => {
   font-size: 9.5px;
   font-weight: 600;
   color: #8E8E93;
-  letter-spacing: 1.5px;
+  letter-spacing: 1.2px;
   margin-top: 2px;
 }
 
@@ -198,18 +231,18 @@ const formattedNumber = computed(() => {
   margin-top: 3px;
 }
 
-/* 底部操作栏 */
+/* 底部操作区 */
 .keypad-actions-row {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  margin-top: 16px;
+  margin-top: 14px;
   padding: 0 10px;
 }
 
 .action-aux-btn {
-  width: 52px;
-  height: 52px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
   background: none;
   border: none;
@@ -217,8 +250,8 @@ const formattedNumber = computed(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  opacity: 0.4;
-  transition: opacity 0.15s ease;
+  opacity: 0.35;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
 }
 
 .action-aux-btn.active,
@@ -249,12 +282,12 @@ const formattedNumber = computed(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 200, 83, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 200, 83, 0.32);
   transition: transform 0.15s ease, background-color 0.15s ease;
 }
 
 .main-call-btn:active {
-  transform: scale(0.94);
+  transform: scale(0.93);
   background-color: #00B348;
 }
 </style>

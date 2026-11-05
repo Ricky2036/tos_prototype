@@ -28,7 +28,7 @@ function highlightMatch(text, query) {
 
 <template>
   <div class="phone-search-view">
-    <!-- 顶部搜索栏 -->
+    <!-- 顶部搜索栏（带安全区状态栏防重叠边距） -->
     <div class="search-top-bar">
       <button class="back-btn" @click="handleBack">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -121,8 +121,13 @@ function highlightMatch(text, query) {
 .search-top-bar {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  /* 严格避让机身状态栏 */
+  padding-top: calc(var(--safe-top, 54px) + 8px);
+  padding-bottom: 12px;
+  padding-left: 16px;
+  padding-right: 16px;
   gap: 12px;
+  background: #FFFFFF;
   border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
 }
 

@@ -124,8 +124,12 @@ function handleUpdateNow() {
 .subpage-header {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding-top: calc(var(--safe-top, 54px) + 8px);
+  padding-bottom: 12px;
+  padding-left: 16px;
+  padding-right: 16px;
   gap: 12px;
+  background: #FFFFFF;
   border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
 }
 

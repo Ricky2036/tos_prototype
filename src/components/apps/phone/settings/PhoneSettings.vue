@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { usePhoneStore } from '../../../../stores/phoneStore'
 import PhoneAutoRecord from './PhoneAutoRecord.vue'
 import PhoneAiAssistant from './PhoneAiAssistant.vue'
@@ -13,6 +13,14 @@ const emit = defineEmits(['back', 'openSystemSettings'])
 
 // 内部设置子页面导航栈
 const subpage = ref(null) // null | 'autoRecord' | 'aiAssistant' | 'flashCall' | 'unknownId' | 'callDisplay' | 'advanced' | 'about'
+const showVoiceBroadcastModal = ref(false)
+
+const voiceBroadcastText = computed(() => {
+  const v = phoneStore.settings.voiceBroadcast
+  if (v === 'always') return '始终'
+  if (v === 'headset') return '仅耳机'
+  return '永不'
+})
 
 function handleSubpageBack() {
   subpage.value = null
@@ -20,6 +28,10 @@ function handleSubpageBack() {
 
 defineExpose({
   back() {
+    if (showVoiceBroadcastModal.value) {
+      showVoiceBroadcastModal.value = false
+      return true
+    }
     if (subpage.value) {
       subpage.value = null
       return true
@@ -107,10 +119,10 @@ defineExpose({
 
         <!-- 第 3 组：播报、来电显示与视频秀 -->
         <div class="settings-group">
-          <div class="setting-item-row">
+          <div class="setting-item-row" @click="showVoiceBroadcastModal = true">
             <span class="item-title">来电语音播报</span>
             <div class="right-summary">
-              <span class="summary-text">永不</span>
+              <span class="summary-text">{{ voiceBroadcastText }}</span>
               <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
                 <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
@@ -193,6 +205,36 @@ defineExpose({
         </div>
       </div>
     </Transition>
+    <!-- 来电语音播报选择弹窗 -->
+    <Transition name="fade">
+      <div
+        v-if="showVoiceBroadcastModal"
+        class="settings-modal-overlay"
+        @click.self="showVoiceBroadcastModal = false"
+      >
+        <div class="settings-action-sheet">
+          <div class="sheet-modal-title">来电语音播报</div>
+          <div class="sheet-options-list">
+            <div
+              v-for="opt in [
+                { label: '始终', value: 'always' },
+                { label: '仅耳机', value: 'headset' },
+                { label: '永不', value: 'never' }
+              ]"
+              :key="opt.value"
+              class="sheet-radio-item"
+              @click="phoneStore.settings.voiceBroadcast = opt.value; showVoiceBroadcastModal = false"
+            >
+              <span class="sheet-option-label">{{ opt.label }}</span>
+              <div class="custom-radio" :class="{ checked: phoneStore.settings.voiceBroadcast === opt.value }">
+                <div v-if="phoneStore.settings.voiceBroadcast === opt.value" class="radio-inner"></div>
+              </div>
+            </div>
+          </div>
+          <button class="sheet-cancel-btn" @click="showVoiceBroadcastModal = false">取消</button>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -218,8 +260,13 @@ defineExpose({
 .settings-header {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  /* 严格避开机身状态栏 */
+  padding-top: calc(var(--safe-top, 54px) + 8px);
+  padding-bottom: 12px;
+  padding-left: 16px;
+  padding-right: 16px;
   gap: 12px;
+  background: #FFFFFF;
   border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
 }
 
@@ -232,7 +279,7 @@ defineExpose({
 }
 
 .header-title {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 600;
   color: #1C1C1E;
 }
@@ -296,7 +343,7 @@ defineExpose({
 }
 
 .group-divider {
-  height: 16px;
+  height: 20px;
 }
 
 /* 关于页面 */
@@ -317,15 +364,15 @@ defineExpose({
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-top: 120px;
+  margin-top: 100px;
 }
 
 .app-brand-logo {
-  width: 90px;
-  height: 90px;
+  width: 88px;
+  height: 88px;
   border-radius: 22px;
   background: #F0FDF4;
-  border: 1px solid rgba(0, 200, 83, 0.2);
+  border: 1px solid rgba(0, 200, 83, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -342,5 +389,100 @@ defineExpose({
 .app-version {
   font-size: 13px;
   color: #8E8E93;
+}
+
+/* 底部操作弹窗样式 */
+.settings-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(4px);
+  z-index: 70;
+  display: flex;
+  align-items: flex-end;
+}
+
+.settings-action-sheet {
+  width: 100%;
+  background: #FFFFFF;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding: 24px 20px calc(var(--safe-bottom, 20px) + 16px);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet-modal-title {
+  font-size: 19px;
+  font-weight: 600;
+  color: #1C1C1E;
+  margin-bottom: 16px;
+}
+
+.sheet-options-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet-radio-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+}
+
+.sheet-radio-item:last-child {
+  border-bottom: none;
+}
+
+.sheet-option-label {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1C1C1E;
+}
+
+.custom-radio {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.8px solid #C7C7CC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s ease;
+}
+
+.custom-radio.checked {
+  border-color: #00C853;
+}
+
+.radio-inner {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #00C853;
+}
+
+.sheet-cancel-btn {
+  margin-top: 20px;
+  width: 100%;
+  height: 48px;
+  border-radius: 24px;
+  background-color: #F2F3F5;
+  border: none;
+  font-size: 16px;
+  font-weight: 500;
+  color: #1C1C1E;
+  cursor: pointer;
+}
+
+.sheet-cancel-btn:active {
+  background-color: #E5E7EB;
 }
 </style>

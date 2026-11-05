@@ -54,12 +54,12 @@ export const usePhoneStore = defineStore('phone', () => {
     gestureAnswer: false
   })
 
-  // 种子通话记录数据（对齐真机录屏中的真实通话列表）
+  // 纯模拟通话记录数据（全面消除任何真实个人记录与真实号码）
   const recents = ref([
     {
       id: 'r1',
-      name: '陈伊曼',
-      number: '188 1234 5678',
+      name: '陈晓敏',
+      number: '136 8888 2233',
       type: 'incoming', // incoming | outgoing | missed
       tag: '单位',
       hd: true,
@@ -69,47 +69,47 @@ export const usePhoneStore = defineStore('phone', () => {
     {
       id: 'r2',
       name: '',
-      number: '181 2206 7312',
+      number: '181 0000 2233',
       type: 'missed',
-      tag: '广东省深圳市',
+      tag: '广东深圳',
       hd: true,
       time: '04:45 下午',
       date: '今天'
     },
     {
       id: 'r3',
-      name: '',
-      number: '0755 6169 1814',
+      name: '咨询专线',
+      number: '0755 8888 1814',
       type: 'missed',
-      tag: '广东省深圳市',
+      tag: '广东深圳',
       hd: true,
       time: '04:44 下午',
       date: '今天'
     },
     {
       id: 'r4',
-      name: '',
-      number: '0755 6164 4106',
+      name: '业务专员',
+      number: '0755 8888 4106',
       type: 'missed',
-      tag: '广东省深圳市',
+      tag: '广东深圳',
       hd: true,
       time: '04:43 下午',
       date: '今天'
     },
     {
       id: 'r5',
-      name: '',
-      number: '133 4291 5371',
+      name: '顺丰速运',
+      number: '133 0000 5371',
       type: 'missed',
-      tag: '广东省深圳市',
+      tag: '广东深圳',
       hd: true,
       time: '04:31 下午',
       date: '今天'
     },
     {
       id: 'r6',
-      name: '陈伊曼',
-      number: '188 1234 5678',
+      name: '陈晓敏',
+      number: '136 8888 2233',
       type: 'incoming',
       tag: '单位',
       hd: true,
@@ -118,27 +118,27 @@ export const usePhoneStore = defineStore('phone', () => {
     },
     {
       id: 'r7',
-      name: '',
-      number: '020 6294 0028',
+      name: '广州分部',
+      number: '020 8888 0028',
       type: 'missed',
-      tag: '广东省广州市',
+      tag: '广东广州',
       hd: true,
       time: '昨天',
       date: '11/3'
     },
     {
       id: 'r8',
-      name: '',
-      number: '400 101 6859',
+      name: '全国客服热线',
+      number: '400 100 6859',
       type: 'missed',
-      tag: '中国',
+      tag: '全国客服',
       hd: true,
       time: '前天',
       date: '11/2'
     },
     {
       id: 'r9',
-      name: 'A老婆',
+      name: '林小敏',
       number: '138 0013 8000',
       type: 'incoming',
       count: 2,
@@ -149,70 +149,78 @@ export const usePhoneStore = defineStore('phone', () => {
     }
   ])
 
-  // 种子联系人数据（对齐真机录屏联系人列表）
+  // 纯模拟联系人数据（全面替换为安全模拟演示名单）
   const contacts = ref([
     {
       id: 'c1',
-      name: '阿里巴巴钉钉客服',
-      number: '0571 8815 7888',
+      name: '阿里巴巴客户服务',
+      number: '400 800 1688',
       initial: 'A',
-      pinyin: 'alibabadingdingkefu',
+      pinyin: 'alibabakehufuwu',
       color: '#4F46E5'
     },
     {
       id: 'c2',
-      name: '艾尚美窗纱-老板娘',
-      number: '139 2840 9182',
+      name: '安吉拉',
+      number: '138 0000 1001',
       initial: 'A',
-      pinyin: 'aishangmeichuangsha',
+      pinyin: 'anjila',
       color: '#6366F1'
     },
     {
       id: 'c3',
-      name: '爱尚美窗纱',
-      number: '137 1948 2234',
+      name: '爱尚生活馆',
+      number: '139 1234 5678',
       initial: 'A',
-      pinyin: 'aishangmeichuangsha',
+      pinyin: 'aishangshenghuoguan',
       color: '#0EA5E9'
     },
     {
       id: 'c4',
-      name: '安装垃圾处理器',
-      number: '135 9012 3456',
-      initial: 'A',
-      pinyin: 'anzhuanglajichuliqi',
-      color: '#10B981'
-    },
-    {
-      id: 'c5',
-      name: '陈伊曼',
-      number: '188 1234 5678',
+      name: '陈晓敏',
+      number: '136 8888 2233',
       initial: 'C',
-      pinyin: 'chenyiman',
+      pinyin: 'chenxiaomin',
       color: '#EC4899'
     },
     {
-      id: 'c6',
-      name: '何兰',
-      number: '151 1231 3663',
+      id: 'c5',
+      name: '何子涵',
+      number: '151 2233 4455',
       initial: 'H',
-      pinyin: 'helan',
+      pinyin: 'hezihan',
       color: '#8B5CF6'
     },
     {
+      id: 'c6',
+      name: '李明',
+      number: '137 0000 3344',
+      initial: 'L',
+      pinyin: 'liming',
+      color: '#10B981'
+    },
+    {
       id: 'c7',
-      name: '王海元',
-      number: '+86 134 1234 5567',
+      name: '王海峰',
+      number: '+86 134 5566 7788',
       initial: 'W',
-      pinyin: 'wanghaiyuan',
+      pinyin: 'wanghaifeng',
       color: '#3B82F6'
     },
     {
       id: 'c8',
-      name: '智行火车票',
+      name: '张建国',
+      number: '188 6677 8899',
+      initial: 'Z',
+      pinyin: 'zhangjianguo',
+      color: '#14B8A6'
+    },
+    {
+      id: 'c9',
+      name: '智行客服专线',
       number: '0513 8066 1231',
       initial: 'Z',
-      pinyin: 'zhixinghuochepiao',
+      pinyin: 'zhixingkefuzhuanxian',
       color: '#F59E0B'
     }
   ])
@@ -299,7 +307,6 @@ export const usePhoneStore = defineStore('phone', () => {
     clearTimeout(callTimer)
     callTimer = null
     if (activeCall.value) {
-      // 记录到通话记录中
       recents.value.unshift({
         id: 'r_' + Date.now(),
         name: activeCall.value.name !== activeCall.value.number ? activeCall.value.name : '',
@@ -322,7 +329,6 @@ export const usePhoneStore = defineStore('phone', () => {
 
   function mergeDuplicates() {
     duplicateBannerVisible.value = false
-    // 模拟去重完成
   }
 
   // 添加自定义快捷回复

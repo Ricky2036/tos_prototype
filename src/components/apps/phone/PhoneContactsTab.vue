@@ -5,7 +5,7 @@ import { usePhoneStore } from '../../../stores/phoneStore'
 const phoneStore = usePhoneStore()
 const alphabetList = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '#']
 
-const emit = defineEmits(['openAddContact', 'openMergeDuplicates'])
+const emit = defineEmits(['openAddContact', 'openMergeDuplicates', 'scroll'])
 
 function scrollToSection(letter) {
   const el = document.getElementById(`section-${letter}`)
@@ -35,9 +35,10 @@ function handleContactClick(contact) {
       </button>
     </div>
 
-    <!-- 顶层常驻系统条目：我的资料 / 我的群组 -->
-    <div class="contacts-list scrollable">
-      <div class="contact-fixed-item" @click="phoneStore.startCall({ name: '我的资料', number: '181 2206 7312' })">
+    <!-- 联系人主滚动列表 -->
+    <div class="contacts-list">
+      <!-- 顶层常驻条目：我的资料 / 我的群组 -->
+      <div class="contact-fixed-item" @click="phoneStore.startCall({ name: '我的资料', number: '138 0000 0000' })">
         <div class="avatar-circle bg-profile">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="#FFFFFF">
             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
@@ -79,18 +80,9 @@ function handleContactClick(contact) {
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 右侧字母快速滚动条 -->
-    <div class="alphabet-scrubber">
-      <span
-        v-for="letter in alphabetList"
-        :key="letter"
-        class="scrubber-letter"
-        @click="scrollToSection(letter)"
-      >
-        {{ letter }}
-      </span>
+      <!-- 底部安全留白，避免被悬浮胶囊底栏遮挡 -->
+      <div class="bottom-safe-space"></div>
     </div>
   </div>
 </template>
@@ -99,8 +91,8 @@ function handleContactClick(contact) {
 .phone-contacts-tab {
   display: flex;
   flex-direction: column;
-  height: 100%;
   position: relative;
+  width: 100%;
   background: #FFFFFF;
 }
 
@@ -146,9 +138,8 @@ function handleContactClick(contact) {
 
 /* 列表容器 */
 .contacts-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 6px 0 80px;
+  width: 100%;
+  padding: 6px 0 0;
 }
 
 /* 资料与群组项 */
@@ -257,5 +248,9 @@ function handleContactClick(contact) {
 }
 .scrubber-letter:hover {
   color: #00C853;
+}
+
+.bottom-safe-space {
+  height: 100px;
 }
 </style>

@@ -35,9 +35,9 @@ test('phoneStore manages call logs, contacts, keypad, and settings properly', ()
   assert.equal(store.dialedNumber, '')
 
   // 4. Call Actions
-  store.startCall({ name: '陈伊曼', number: '188 1234 5678' })
+  store.startCall({ name: '陈晓敏', number: '136 8888 2233' })
   assert.ok(store.activeCall)
-  assert.equal(store.activeCall.name, '陈伊曼')
+  assert.equal(store.activeCall.name, '陈晓敏')
   assert.equal(store.activeCall.status, 'calling')
 
   const initialRecentsCount = store.recents.length
@@ -49,10 +49,10 @@ test('phoneStore manages call logs, contacts, keypad, and settings properly', ()
   // 5. Contact Search
   store.searchQuery = '123'
   assert.ok(store.searchResults.length > 0)
-  assert.ok(store.searchResults.some(c => c.name === '何兰' || c.name === '王海元'))
+  assert.ok(store.searchResults.some(c => c.name === '爱尚生活馆' || c.name === '智行客服专线'))
 
-  store.searchQuery = '钉钉'
-  assert.ok(store.searchResults.some(c => c.name.includes('钉钉')))
+  store.searchQuery = '阿里'
+  assert.ok(store.searchResults.some(c => c.name.includes('阿里')))
 
   // 6. Flash Call Replies
   const initialRepliesCount = store.settings.flashCallReplies.length

@@ -1,8 +1,39 @@
 <script setup>
-import { computed } from 'vue'
+import { ref } from 'vue'
 import { usePhoneStore } from '../../../stores/phoneStore'
 
 const phoneStore = usePhoneStore()
+const emit = defineEmits(['scroll', 'openFlashCall'])
+
+// 滑动状态检测
+let touchStartY = 0
+let touchStartX = 0
+
+function handleTouchStart(e) {
+  if (e.touches?.length) {
+    touchStartY = e.touches[0].clientY
+    touchStartX = e.touches[0].clientX
+  }
+}
+
+function handleTouchMove(e) {
+  if (!e.touches?.length) return
+  const dy = e.touches[0].clientY - touchStartY
+  const dx = e.touches[0].clientX - touchStartX
+
+  // 向上滑动且拨号盘开启时，收起拨号盘
+  if (dy < -40 && phoneStore.isKeypadOpen && Math.abs(dy) > Math.abs(dx)) {
+    phoneStore.isKeypadOpen = false
+  }
+}
+
+function handleScroll(e) {
+  emit('scroll', e)
+  // 向上滚动列表自动收起拨号盘
+  if (e.target.scrollTop > 30 && phoneStore.isKeypadOpen) {
+    phoneStore.isKeypadOpen = false
+  }
+}
 
 function handleItemClick(recent) {
   phoneStore.startCall(recent)
@@ -16,11 +47,15 @@ function handleInfoClick(e, recent) {
 function handleLongPress(recent) {
   phoneStore.flashCallTarget = recent
 }
+
+function triggerFlashCallBanner() {
+  phoneStore.flashCallTarget = phoneStore.recents[0] || { name: '常用联系人', number: '138 0000 0000' }
+}
 </script>
 
 <template>
   <div class="phone-recents-tab">
-    <!-- 筛选标签：全部类型 | 未接来电 -->
+    <!-- 筛选标签栏：全部类型 | 未接来电 -->
     <div class="recents-filter-bar">
       <button
         class="filter-tab-btn"
@@ -40,8 +75,12 @@ function handleLongPress(recent) {
       </button>
     </div>
 
-    <!-- 未接来电状态下的 FLASH CALL 横幅 -->
-    <div v-if="phoneStore.recentsFilter === 'missed'" class="flash-call-banner">
+    <!-- 未接来电状态下的 FLASH CALL 彩色品牌横幅 -->
+    <div
+      v-if="phoneStore.recentsFilter === 'missed'"
+      class="flash-call-banner"
+      @click="triggerFlashCallBanner"
+    >
       <div class="flash-call-glow-text">FLASH CALL</div>
       <div class="flash-call-dots">
         <span class="dot d1"></span>
@@ -50,8 +89,8 @@ function handleLongPress(recent) {
       </div>
     </div>
 
-    <!-- 通话记录列表 -->
-    <div class="recents-list scrollable">
+    <!-- 通话记录列表（支持滑动手势与折叠联动） -->
+    <div class="recents-list">
       <div
         v-for="r in phoneStore.filteredRecents"
         :key="r.id"
@@ -70,7 +109,7 @@ function handleLongPress(recent) {
             <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" fill="#FF3B30" />
             <path d="M16 4L11 9M11 9H15M11 9V5" stroke="#FF3B30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
-          <!-- 拨出呼叫：右上绿/灰箭头 -->
+          <!-- 拨出呼叫：右上绿箭头 -->
           <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path d="M5 19L19 5M19 5H9M19 5V15" stroke="#10B981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
@@ -99,6 +138,9 @@ function handleLongPress(recent) {
           </svg>
         </button>
       </div>
+
+      <!-- 底部安全留白，确保不被悬浮底栏遮挡 -->
+      <div class="bottom-safe-space"></div>
     </div>
   </div>
 </template>
@@ -107,7 +149,7 @@ function handleLongPress(recent) {
 .phone-recents-tab {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  width: 100%;
   background: #FFFFFF;
 }
 
@@ -158,6 +200,7 @@ function handleLongPress(recent) {
   background: linear-gradient(135deg, #F0FDF4 0%, #E0F2FE 100%);
   border-radius: 14px;
   border: 1px solid rgba(0, 200, 83, 0.15);
+  cursor: pointer;
 }
 
 .flash-call-glow-text {
@@ -185,7 +228,7 @@ function handleLongPress(recent) {
 .recents-list {
   flex: 1;
   overflow-y: auto;
-  padding: 4px 0 80px;
+  padding: 4px 0 0;
 }
 
 .recent-row {
@@ -280,5 +323,9 @@ function handleLongPress(recent) {
 }
 .info-btn:active {
   opacity: 0.6;
+}
+
+.bottom-safe-space {
+  height: 100px;
 }
 </style>
