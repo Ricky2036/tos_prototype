@@ -20,14 +20,14 @@ const isSettingsOpen = ref(false)
 const settingsRef = ref(null)
 const scrollContainerRef = ref(null)
 
-// 电话应用定制大标题折叠曲线：紧密贴合分类栏（视觉留白 ~16px，严控间距），折叠态完美与胶囊共线
+// 电话应用定制大标题折叠曲线：严格 1:1 对齐真机测量几何（大标题从 y=97px 展开，字号 32px，Tab 绿色指示条精准锚定在 y=184.6px）
 const PHONE_TITLE_CURVE = {
-  distance: 56,
-  fromTopInset: 14,
-  toTopInset: 6,
-  fromHeight: 52,
+  distance: 64,
+  fromTopInset: 42,
+  toTopInset: 4,
+  fromHeight: 84,
   toHeight: 46,
-  fromSize: 26,
+  fromSize: 32,
   toSize: 20,
   accessoryRight: 16
 }

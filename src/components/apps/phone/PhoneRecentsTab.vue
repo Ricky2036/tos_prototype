@@ -168,7 +168,7 @@ function triggerFlashCallBanner() {
   display: flex;
   align-items: center;
   width: 100%;
-  height: 44px;
+  height: 46px;
   padding: 0;
   margin: 0;
   box-sizing: border-box;
@@ -224,7 +224,7 @@ function triggerFlashCallBanner() {
 }
 
 .filter-indicator-pill {
-  width: 44px;
+  width: 52px;
   height: 3.5px;
   border-radius: 9999px;
   background-color: #00C853;
@@ -266,7 +266,7 @@ function triggerFlashCallBanner() {
 
 /* 通话记录列表 */
 .recents-list {
-  padding: 4px 0 0;
+  padding: 8px 0 0;
   width: 100%;
 }
 
