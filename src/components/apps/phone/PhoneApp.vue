@@ -247,8 +247,8 @@ function handleAppWheel(e) {
       <FloatingTabBar
         :model-value="phoneStore.currentTab"
         :tabs="tabs"
-        height="62px"
-        bottom="20px"
+        height="54px"
+        bottom="18px"
         accent-color="#00C853"
         :dark="false"
         @update:model-value="switchTab"
@@ -257,14 +257,15 @@ function handleAppWheel(e) {
         <template #tab="{ tab, active }">
           <div class="phone-tab-content" :class="{ active }">
             <div class="tab-icon-wrapper" :class="{ 'icon-active': active }">
-              <!-- 通话记录图标：时钟（严格正圆底座与锐利表针） -->
-              <svg v-if="tab.id === 'recents'" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="9" :stroke="active ? '#FFFFFF' : '#1C1C1E'" stroke-width="2.2" />
-                <path d="M12 7V12L15 14" :stroke="active ? '#FFFFFF' : '#1C1C1E'" stroke-width="2.2" stroke-linecap="round" />
+              <!-- 通话记录图标：实心面性时钟剪影（未选深灰 #656668，选中纯绿染色 #00C853） -->
+              <svg v-if="tab.id === 'recents'" width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" :fill="active ? '#00C853' : '#656668'" />
+                <path d="M12 6.5V12L15.6 15" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
-              <!-- 联系人图标：头像剪影（严格正圆头部） -->
-              <svg v-else width="20" height="20" viewBox="0 0 24 24" :fill="active ? '#FFFFFF' : '#1C1C1E'">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+              <!-- 联系人图标：实心面性人像剪影（未选深灰 #656668，选中纯绿染色 #00C853） -->
+              <svg v-else width="22" height="22" viewBox="0 0 24 24" :fill="active ? '#00C853' : '#656668'">
+                <circle cx="12" cy="7.2" r="4.2" />
+                <path d="M4.5 19.5c0-3.6 3.4-6.3 7.5-6.3s7.5 2.7 7.5 6.3v0.5H4.5v-0.5z" />
               </svg>
             </div>
             <span class="tab-name">{{ tab.name }}</span>
@@ -280,31 +281,25 @@ function handleAppWheel(e) {
         @click="handleFabClick"
       >
         <!-- 通话记录：3x3 绿色圆点拨号盘（高保真还原原厂录屏） -->
-        <svg v-if="phoneStore.currentTab === 'recents'" width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <svg v-if="phoneStore.currentTab === 'recents'" width="18" height="18" viewBox="0 0 24 24" fill="none">
           <circle cx="5" cy="5" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
           <circle cx="12" cy="5" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
           <circle cx="19" cy="5" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
-          <circle cx="5" cy="12" r="2.2" :fill="phoneStore.isKeypadOpen ? '#555555' : '#00C853'" />
-          <circle cx="12" cy="12" r="2.2" :fill="phoneStore.isKeypadOpen ? '#555555' : '#00C853'" />
-          <circle cx="19" cy="12" r="2.2" :fill="phoneStore.isKeypadOpen ? '#555555' : '#00C853'" />
-          <circle cx="5" cy="19" r="2.2" :fill="phoneStore.isKeypadOpen ? '#00C853' : '#00C853'" />
-          <circle cx="12" cy="19" r="2.2" :fill="phoneStore.isKeypadOpen ? '#00C853' : '#00C853'" />
-          <circle cx="19" cy="19" r="2.2" :fill="phoneStore.isKeypadOpen ? '#00C853' : '#00C853'" />
+          <circle cx="5" cy="12" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+          <circle cx="12" cy="12" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+          <circle cx="19" cy="12" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+          <circle cx="5" cy="19" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+          <circle cx="12" cy="19" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+          <circle cx="19" cy="19" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
         </svg>
         <!-- 联系人：+ 新建 -->
-        <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round">
+        <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round">
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
       </button>
     </div>
 
-    <!-- 拨号键盘浮层面板（抽屉式弹出/收起） -->
-    <Transition name="keypad-slide">
-      <div v-if="phoneStore.isKeypadOpen && phoneStore.currentTab === 'recents'" class="keypad-drawer-wrap">
-        <PhoneKeypad />
-      </div>
-    </Transition>
 
     <!-- 全局弹层组件集合 -->
     <!-- 1. 搜索页 -->
@@ -471,43 +466,42 @@ function handleAppWheel(e) {
   z-index: 45;
 }
 
-/* 规范 FloatingTabBar 胶囊适配：严格对齐视频/真机尺寸（宽 226px，高 62px），给右侧 FAB 留出 70px 空间 */
+/* 规范 FloatingTabBar 胶囊适配：严格对齐真机比例（宽 176px，高 54px，48.9% 屏宽），给右侧留出充足呼吸感 */
 .phone-app :deep(.floating-tab-bar) {
-  left: 20px;
+  left: 18px;
+  bottom: 18px;
   transform: none;
-  width: 226px;
-  max-width: 226px;
-  height: 62px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
+  width: 176px;
+  max-width: 176px;
+  height: 54px;
+  background: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.03);
-  padding: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  padding: 0;
+  border-radius: 9999px;
   pointer-events: auto;
 }
 
-/* 恢复平滑移动的高亮滑块底托，平滑过渡 */
-.phone-app :deep(.nav-sliding-pill-track) {
-  display: flex !important;
-  top: 4px;
-  bottom: 4px;
-  left: 4px;
-}
-
-.phone-app :deep(.floating-tab-bar:not(.theme-dark) .nav-highlight-pill) {
-  display: block !important;
-  background: rgba(0, 0, 0, 0.045);
-  box-shadow: none;
-  border-radius: 9999px;
+/* 彻底隐藏任何滑块底托与药丸高亮，杜绝任何背景挤压文字，实现纯粹的面性图标染色 */
+.phone-app :deep(.nav-sliding-pill-track),
+.phone-app :deep(.nav-highlight-pill) {
+  display: none !important;
 }
 
 .phone-app :deep(.floating-tab-item) {
+  flex: 1 1 0%;
+  width: 50%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 2px 0;
   z-index: 2;
+  background: transparent !important;
 }
 
 .phone-tab-content {
@@ -521,45 +515,43 @@ function handleAppWheel(e) {
   user-select: none;
 }
 
-/* 时钟与头像底座：严格 36px × 36px 饱满正圆，杜绝偏小与变形 */
+/* 图标容器：纯透明无底色无阴影，仅承载 22px 面性染色矢量图标 */
 .tab-icon-wrapper {
-  width: 36px !important;
-  height: 36px !important;
-  min-width: 36px !important;
-  min-height: 36px !important;
-  max-width: 36px !important;
-  max-height: 36px !important;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+  max-width: 22px !important;
+  max-height: 22px !important;
   aspect-ratio: 1 / 1 !important;
   flex-shrink: 0 !important;
-  border-radius: 50% !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-radius: 0 !important;
   box-sizing: border-box !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  transition: all 0.22s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .tab-icon-wrapper svg {
-  width: 20px !important;
-  height: 20px !important;
+  width: 22px !important;
+  height: 22px !important;
   flex-shrink: 0 !important;
   display: block !important;
-}
-
-.tab-icon-wrapper.icon-active {
-  background: #00C853;
-  box-shadow: 0 2px 8px rgba(0, 200, 83, 0.28);
+  transition: fill 0.2s ease, stroke 0.2s ease;
 }
 
 .tab-name {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 500;
-  color: #1C1C1E;
+  color: #656668;
   line-height: 1;
   white-space: nowrap;
   flex-shrink: 0;
   margin-top: 2px;
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, font-weight 0.2s ease;
 }
 
 .phone-tab-content.active .tab-name {
@@ -567,24 +559,24 @@ function handleAppWheel(e) {
   font-weight: 600;
 }
 
-/* 右侧独立圆形悬浮操作球 (FAB) */
+/* 右侧独立圆形悬浮操作球 (FAB)：严格 54px × 54px，与胶囊高度对齐 */
 .phone-fab {
   position: absolute;
-  right: 20px;
-  bottom: 20px;
-  width: 58px !important;
-  height: 58px !important;
-  min-width: 58px !important;
-  min-height: 58px !important;
-  max-width: 58px !important;
-  max-height: 58px !important;
+  right: 18px;
+  bottom: 18px;
+  width: 54px !important;
+  height: 54px !important;
+  min-width: 54px !important;
+  min-height: 54px !important;
+  max-width: 54px !important;
+  max-height: 54px !important;
   aspect-ratio: 1 / 1 !important;
   border-radius: 50% !important;
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
