@@ -95,7 +95,9 @@ export const MESSAGES = {
       gmail: 'Gmail', amazon: 'Amazon', snapchat: 'Snapchat', uber: 'Uber', google: 'Google',
       pinterest: 'Pinterest', wechat: '微信', instagram: 'Instagram', x: 'X', netflix: 'Netflix',
       telegram: 'Telegram', youtube: 'YouTube', weather: '天气预警', system: '系统更新',
-      linkedin: 'LinkedIn', alipay: '支付宝'
+      linkedin: 'LinkedIn', alipay: '支付宝',
+      recorder: '录音', voicememos: '录音', alarm: '闹钟', clock: '时钟', timer: '定时器',
+      stopwatch: '秒表', media: '音乐', prayer: '礼拜'
     },
     demoNotifBodies: {
       infinix: '登录INFINIX ID,即可享受更多个性化服务',
@@ -483,7 +485,9 @@ export const MESSAGES = {
       gmail: 'Gmail', amazon: 'Amazon', snapchat: 'Snapchat', uber: 'Uber', google: 'Google',
       pinterest: 'Pinterest', wechat: 'WeChat', instagram: 'Instagram', x: 'X', netflix: 'Netflix',
       telegram: 'Telegram', youtube: 'YouTube', weather: 'Weather Alert', system: 'System Update',
-      linkedin: 'LinkedIn', alipay: 'Alipay'
+      linkedin: 'LinkedIn', alipay: 'Alipay',
+      recorder: 'Voice Memos', voicememos: 'Voice Memos', alarm: 'Alarm', clock: 'Clock',
+      timer: 'Timer', stopwatch: 'Stopwatch', media: 'Music', prayer: 'Prayer'
     },
     demoNotifBodies: {
       infinix: 'Sign in to INFINIX ID to enjoy more personalized services',

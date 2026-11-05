@@ -210,6 +210,8 @@ Only the integration owner edits this table. Remove or mark a row complete after
 
 | Review | Workbuddy | Settings group 2, part 2 (显示与亮度 / 声音与振动): build all 16 third-level pages off a shared `SubPageShell` (incl. the 自动息屏时间 bottom sheet, 强光模式 row added to display, SIM-split ringtone pickers, JBL 4-mode grid, per-app fullscreen list) + two new stores for the toggles/sliders | `workbuddy/lane` | `src/components/apps/settings/SettingsDisplay.vue`; `src/components/apps/settings/SettingsSound.vue`; `src/components/apps/settings/display/**`; `src/components/apps/settings/sound/**`; `src/components/apps/settings/subpage/**`; `src/stores/displaySettingsStore.js`; `src/stores/soundSettingsStore.js`; `src/utils/localPrefs.js`; `tests/displaySoundSubpages.test.js` | `5203ae7` | pending |
 
+| Review | Workbuddy | Settings group 2, part 3 (通知与状态栏): wire the dead 状态栏 row to a new subpage, make 桌面角标 clickable, rebuild Dynamic Bar to the real device (hero + 智能服务 + 系统服务 + 更多服务) while keeping the islandSettings store contract and the deep-link 3-flash highlight | `workbuddy/lane` | `src/components/apps/settings/SettingsNotifications.vue`; `src/components/apps/settings/notifications/**`; `src/stores/notificationSettingsStore.js`; `src/stores/notificationsStore.js` (additive keys only); `src/locales/messages.js` (notification titles); `tests/notifSettingsSubpages.test.js`; `tests/alarmDynamicIsland.test.js` (contract moved to config-driven rows) | `74aed3b` | pending |
+
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
 

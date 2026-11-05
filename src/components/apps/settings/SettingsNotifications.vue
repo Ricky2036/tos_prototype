@@ -7,6 +7,8 @@ import AppNavBar from '../../ui/AppNavBar.vue'
 import SettingsAppIcon from '../../ui/SettingsAppIcon.vue'
 import NotificationIcon from '../../ui/NotificationIcon.vue'
 import AppIcon from '../../ui/AppIcon.vue'
+import NotifStatusBar from './notifications/NotifStatusBar.vue'
+import NotifHomeBadge from './notifications/NotifHomeBadge.vue'
 import { getApp } from '../../../config/apps'
 import { seedNotifications } from '../../../config/seedNotifications'
 import { useI18nStore } from '../../../stores/i18nStore'
@@ -195,6 +197,32 @@ function toggleAppState(id) {
   notificationsStore.toggleAppNotification(id)
 }
 
+/**
+ * Dynamic Bar「系统服务」清单 —— 顺序与图标对齐真机 Infinix X6878（XOS 17）。
+ * key 全部落在 notificationsStore.islandSettings（开关的单一来源）：
+ * recorder / alarm / timer / stopwatch / prayer / media 六项有真实渲染逻辑；
+ * 其余为真机新增项，先记录开关状态（新增键在 canShowIsland 里被视为允许，不影响既有行为）。
+ */
+const ISLAND_SERVICES = [
+  { key: 'aiPhoto', label: 'AI 修图', bg: '#7C6BF6', d: 'M12 3l1.9 4.7L18.6 9.6 13.9 11.5 12 16.2 10.1 11.5 5.4 9.6 10.1 7.7z' },
+  { key: 'timer', label: '定时器', bg: '#3C3C43', clock: 'timer' },
+  { key: 'screenRecord', label: '录屏', bg: '#FF6B5A', d: 'M3 7.5A2.5 2.5 0 0 1 5.5 5h8A2.5 2.5 0 0 1 16 7.5v9A2.5 2.5 0 0 1 13.5 19h-8A2.5 2.5 0 0 1 3 16.5zM17.5 10l3.5-2v8l-3.5-2z' },
+  { key: 'recorder', label: '录音', bg: '#F2F2F7', img: true },
+  { key: 'stopwatch', label: '秒表', bg: '#3C3C43', clock: 'stopwatch' },
+  { key: 'noiseCancel', label: '全场景降噪', bg: '#2F6BF6', glyph: 'mic' },
+  { key: 'guide', label: '全局引导', bg: '#FFB020', d: 'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.4.3.5.8.5 1.3V16h6v-.8c0-.5.1-1 .5-1.3A6 6 0 0 0 12 3z' },
+  { key: 'hotspot', label: '热点', bg: '#34C759', d: 'M4.5 16.5a10 10 0 0 1 0-9M7.8 14a6 6 0 0 1 0-4M18 7.5a10 10 0 0 1 0 9M16.2 10a6 6 0 0 1 0 4M12 13.2a1.4 1.4 0 1 0 0-2.4 1.4 1.4 0 0 0 0 2.4z' },
+  { key: 'networkBoost', label: '网络加速', bg: '#5AC8FA', d: 'M13 2 4 14h6l-1 8 9-12h-6z' },
+  { key: 'flashlight', label: '手电筒', bg: '#FFB020', d: 'M8 3h8v3l-2 2v11a2 2 0 0 1-2 2h-0a2 2 0 0 1-2-2V8L8 6z' },
+  { key: 'callSummary', label: '系统通话摘要', bg: '#2F6BF6', glyph: 'phone' },
+  { key: 'verification', label: '验证码', bg: '#2F6BF6', d: 'M9 4 7 20M17 4l-2 16M4 9h16M3 15h16' },
+  { key: 'media', label: '音乐播放', bg: '#FF5A5A', glyph: 'music' },
+  { key: 'gameCountdown', label: '游戏倒计时', bg: '#2F6BF6', d: 'M7 8h10a4 4 0 0 1 4 4v4a2 2 0 0 1-2 2h-1.5l-1.5-2h-8L6.5 18H5a2 2 0 0 1-2-2v-4a4 4 0 0 1 4-4zM8 11v4M6 13h4M16 12h.01M18 14h.01' },
+  { key: 'importantDay', label: '重要日', bg: '#FFFFFF', d: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4' },
+  { key: 'alarm', label: '闹钟', bg: '#3C3C43', clock: 'alarm' },
+  { key: 'prayer', label: '礼拜', bg: '#2F6BF6', clock: 'muslim' }
+]
+
 const appLiveActivityStates = ref({})
 function getAppLiveActivityState(id) {
   const islandKeys = getIslandKeysForApp(id)
@@ -240,9 +268,16 @@ const emit = defineEmits(['back-to-settings'])
         <AppNavBar :title="i18n.t('notifications')" @back="emit('back-to-settings')" />
 
         <div class="cell-group mt-first">
-          <ListCell :title="i18n.t('nsStatusBar')" chevron />
+          <ListCell :title="i18n.t('nsStatusBar')" chevron clickable @click="go('statusBar')" />
           <ListCell :title="i18n.t('nsControlCenter')" chevron />
-          <ListCell :title="i18n.t('nsDynamicBar')" chevron last @click="go('dynamicBar')" />
+          <ListCell
+            :title="i18n.t('nsDynamicBar')"
+            subtitle="在状态栏等多场景提供实时信息、系统状态与智能服务。"
+            chevron
+            clickable
+            last
+            @click="go('dynamicBar')"
+          />
         </div>
 
         <div class="group-header">{{ i18n.t('nsType') }}</div>
@@ -260,19 +295,24 @@ const emit = defineEmits(['back-to-settings'])
             </div>
             <span class="pm-label">{{ i18n.t('nsFloatingNotif') }}</span>
           </div>
-          <div class="ns-type-card">
+          <div class="ns-type-card" @click="go('homeBadge')">
             <div class="phone-mini pm-grid-wrap">
               <div class="pm-grid">
                 <i v-for="i in 16" :key="i" class="pm-cell" :class="{ badge: i === 3 }"></i>
               </div>
             </div>
-            <span class="pm-label">{{ i18n.t('nsHomeBadge') }}</span>
+            <span class="pm-label">
+              {{ i18n.t('nsHomeBadge') }}
+              <svg width="6" height="10" viewBox="0 0 7 12" fill="none">
+                <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </span>
           </div>
         </div>
 
         <div class="cell-group">
           <ListCell :title="i18n.t('nsHideLockContent')" :subtitle="i18n.t('nsHideLockContentSub')">
-            <template #right><ToggleSwitch v-model="globalHideLockContent" /></template>
+            <template #right><ToggleSwitch color="blue" v-model="globalHideLockContent" /></template>
           </ListCell>
           <ListCell :subtitle="i18n.t('nsSmartReminderSub')">
             <template #title>
@@ -283,7 +323,7 @@ const emit = defineEmits(['back-to-settings'])
                 </svg>
               </div>
             </template>
-            <template #right><ToggleSwitch v-model="smartReminder" /></template>
+            <template #right><ToggleSwitch color="blue" v-model="smartReminder" /></template>
           </ListCell>
           <ListCell :subtitle="i18n.t('nsAdaptiveNotifSub')" last>
             <template #title>
@@ -294,7 +334,7 @@ const emit = defineEmits(['back-to-settings'])
                 </svg>
               </div>
             </template>
-            <template #right><ToggleSwitch v-model="adaptiveNotif" /></template>
+            <template #right><ToggleSwitch color="blue" v-model="adaptiveNotif" /></template>
           </ListCell>
         </div>
 
@@ -350,7 +390,7 @@ const emit = defineEmits(['back-to-settings'])
         <div class="cell-group">
           <ListCell :title="i18n.t('nsWakeOnNotif')" :subtitle="i18n.t('nsWakeOnNotifSub')" :value="i18n.t('nsEnabled')" />
           <ListCell :title="i18n.t('nsOnlyNewOnLock')" :subtitle="i18n.t('nsOnlyNewOnLockSub')" last>
-            <template #right><ToggleSwitch v-model="onlyNewOnLock" /></template>
+            <template #right><ToggleSwitch color="blue" v-model="onlyNewOnLock" /></template>
           </ListCell>
         </div>
 
@@ -368,7 +408,7 @@ const emit = defineEmits(['back-to-settings'])
               </div>
             </template>
             <template #right>
-              <ToggleSwitch :model-value="getAppState(app.id)" @update:modelValue="toggleAppState(app.id)" />
+              <ToggleSwitch color="blue" :model-value="getAppState(app.id)" @update:modelValue="toggleAppState(app.id)" />
             </template>
           </ListCell>
         </div>
@@ -381,10 +421,10 @@ const emit = defineEmits(['back-to-settings'])
         <div class="cell-group mt4">
           <ListCell :title="i18n.t('nsFloatingStyle')" :value="i18n.t('nsDetailed')" chevron />
           <ListCell :title="i18n.t('nsConciseFullscreen')">
-            <template #right><ToggleSwitch v-model="conciseFloating" /></template>
+            <template #right><ToggleSwitch color="blue" v-model="conciseFloating" /></template>
           </ListCell>
           <ListCell :title="i18n.t('nsAntiPeep')" :subtitle="i18n.t('nsAntiPeepSub')" last>
-            <template #right><ToggleSwitch v-model="antiPeepFloating" /></template>
+            <template #right><ToggleSwitch color="blue" v-model="antiPeepFloating" /></template>
           </ListCell>
         </div>
 
@@ -404,147 +444,105 @@ const emit = defineEmits(['back-to-settings'])
             <template #right>
               <div class="ns-app-right">
                 <i class="ns-divider"></i>
-                <ToggleSwitch :model-value="getAppState(app.id)" @update:modelValue="toggleAppState(app.id)" />
+                <ToggleSwitch color="blue" :model-value="getAppState(app.id)" @update:modelValue="toggleAppState(app.id)" />
               </div>
             </template>
           </ListCell>
         </div>
       </div>
 
+      <!-- ============ 状态栏子页 ============ -->
+      <NotifStatusBar v-else-if="subView === 'statusBar'" key="statusBar" @back="back()" />
+
+      <!-- ============ 桌面角标子页 ============ -->
+      <NotifHomeBadge
+        v-else-if="subView === 'homeBadge'"
+        key="homeBadge"
+        :apps="notificationApps"
+        @back="back()"
+      />
+
       <!-- ============ Dynamic Bar 灵动岛子页 ============ -->
       <div v-else-if="subView === 'dynamicBar'" key="dynamicBar" class="ns-page scrollable">
         <AppNavBar :title="i18n.t('nsDynamicBar')" @back="back()" />
 
-        <!-- 卡片左上方小标题：系统应用 -->
-        <div class="group-header mt-first">{{ (i18n.t('nsSystemApps') && i18n.t('nsSystemApps') !== 'nsSystemApps') ? i18n.t('nsSystemApps') : '系统应用' }}</div>
+        <!-- 头图：手机 + 灵动岛 -->
+        <div class="db-hero">
+          <div class="db-hero-phone">
+            <span class="db-hp-dot"></span>
+            <div class="db-hp-grid">
+              <i v-for="n in 12" :key="n" class="db-hp-cell"></i>
+            </div>
+            <span class="db-hp-pill"></span>
+          </div>
+          <div class="db-hero-title">实时浏览重要信息</div>
+          <div class="db-hero-caption">在状态栏、通知中心和锁屏查看实时活动与系统状态。</div>
+          <div class="db-hero-dots"><i class="on"></i><i></i></div>
+        </div>
 
-        <!-- 所有开关集中放置在规范 cell-group 中 -->
+        <div class="group-header">智能服务</div>
         <div class="cell-group">
-          <!-- 系统录音 -->
           <ListCell
-            :title="i18n.t('nsDynamicBarRecorder')"
-            :class="{ 'is-highlight-flash': highlightedIslandKey === 'recorder' }"
-            data-island-key="recorder"
-          >
-            <template #icon>
-              <div class="db-app-icon db-icon-recorder">
-                <img :src="voicememosIconUrl" alt="Voice Memos" class="db-icon-img" />
-              </div>
-            </template>
-            <template #right>
-              <ToggleSwitch
-                :model-value="notificationsStore.islandSettings.recorder"
-                @update:modelValue="(val) => notificationsStore.setIslandEnabled('recorder', val)"
-              />
-            </template>
-          </ListCell>
-
-          <!-- 闹钟 -->
+            title="智慧文本"
+            subtitle="复制文本后智能推荐相关服务。"
+            value="已开启"
+            chevron
+            clickable
+            @click="notificationsStore.setIslandEnabled('smartText', !notificationsStore.islandSettings.smartText)"
+          />
           <ListCell
-            :title="i18n.t('alarm') || '闹钟'"
-            :class="{ 'is-highlight-flash': highlightedIslandKey === 'alarm' }"
-            data-island-key="alarm"
-          >
-            <template #icon>
-              <div class="db-app-icon db-icon-alarm">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path :d="CLOCK_ICONS.alarm" fill="#FFFFFF" />
-                </svg>
-              </div>
-            </template>
-            <template #right>
-              <ToggleSwitch
-                :model-value="notificationsStore.islandSettings.alarm"
-                @update:modelValue="(val) => notificationsStore.setIslandEnabled('alarm', val)"
-              />
-            </template>
-          </ListCell>
-
-          <!-- 倒计时 -->
-          <ListCell
-            :title="i18n.t('nsDynamicBarTimer')"
-            :class="{ 'is-highlight-flash': highlightedIslandKey === 'timer' }"
-            data-island-key="timer"
-          >
-            <template #icon>
-              <div class="db-app-icon db-icon-timer">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path :d="CLOCK_ICONS.timer" fill="#FFFFFF" />
-                </svg>
-              </div>
-            </template>
-            <template #right>
-              <ToggleSwitch
-                :model-value="notificationsStore.islandSettings.timer"
-                @update:modelValue="(val) => notificationsStore.setIslandEnabled('timer', val)"
-              />
-            </template>
-          </ListCell>
-
-          <!-- 秒表 -->
-          <ListCell
-            :title="i18n.t('nsDynamicBarStopwatch')"
-            :class="{ 'is-highlight-flash': highlightedIslandKey === 'stopwatch' }"
-            data-island-key="stopwatch"
-          >
-            <template #icon>
-              <div class="db-app-icon db-icon-stopwatch">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path :d="CLOCK_ICONS.stopwatch" fill="#FFFFFF" />
-                </svg>
-              </div>
-            </template>
-            <template #right>
-              <ToggleSwitch
-                :model-value="notificationsStore.islandSettings.stopwatch"
-                @update:modelValue="(val) => notificationsStore.setIslandEnabled('stopwatch', val)"
-              />
-            </template>
-          </ListCell>
-
-          <!-- 礼拜模式 -->
-          <ListCell
-            :title="i18n.t('nsDynamicBarPrayer')"
-            :class="{ 'is-highlight-flash': highlightedIslandKey === 'prayer' }"
-            data-island-key="prayer"
-          >
-            <template #icon>
-              <div class="db-app-icon db-icon-prayer">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path :d="CLOCK_ICONS.muslim" fill="#FFFFFF" />
-                </svg>
-              </div>
-            </template>
-            <template #right>
-              <ToggleSwitch
-                :model-value="notificationsStore.islandSettings.prayer"
-                @update:modelValue="(val) => notificationsStore.setIslandEnabled('prayer', val)"
-              />
-            </template>
-          </ListCell>
-
-          <!-- 媒体播控 -->
-          <ListCell
-            :title="i18n.t('nsDynamicBarMedia')"
+            title="场景智能"
+            subtitle="根据使用场景智能推荐服务。"
+            value="已开启"
+            chevron
+            clickable
             last
-            :class="{ 'is-highlight-flash': highlightedIslandKey === 'media' }"
-            data-island-key="media"
+            @click="notificationsStore.setIslandEnabled('sceneSmart', !notificationsStore.islandSettings.sceneSmart)"
+          />
+        </div>
+
+        <div class="group-header">系统服务</div>
+        <div class="cell-group">
+          <ListCell
+            v-for="(svc, idx) in ISLAND_SERVICES"
+            :key="svc.key"
+            :title="svc.label"
+            :class="{ 'is-highlight-flash': highlightedIslandKey === svc.key }"
+            :data-island-key="svc.key"
+            :last="idx === ISLAND_SERVICES.length - 1"
           >
             <template #icon>
-              <div class="db-app-icon db-icon-media">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path :d="GLYPHS.music" fill="#FFFFFF" />
+              <div class="db-app-icon" :style="{ background: svc.bg }">
+                <img v-if="svc.img" :src="voicememosIconUrl" alt="Voice Memos" class="db-icon-img" />
+                <svg v-else-if="svc.clock" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path :d="CLOCK_ICONS[svc.clock]" fill="#FFFFFF" />
+                </svg>
+                <svg v-else-if="svc.glyph" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path :d="GLYPHS[svc.glyph]" fill="#FFFFFF" />
+                </svg>
+                <svg
+                  v-else
+                  width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+                >
+                  <path :d="svc.d" />
                 </svg>
               </div>
             </template>
             <template #right>
-              <ToggleSwitch
-                :model-value="notificationsStore.islandSettings.media"
-                @update:modelValue="(val) => notificationsStore.setIslandEnabled('media', val)"
+              <ToggleSwitch color="blue"
+                :model-value="notificationsStore.islandSettings[svc.key]"
+                @update:modelValue="(val) => notificationsStore.setIslandEnabled(svc.key, val)"
               />
             </template>
           </ListCell>
         </div>
+
+        <div class="cell-group db-more-group">
+          <ListCell title="更多服务" subtitle="灵动岛将始终支持下列系统服务。" chevron clickable last />
+        </div>
+
+        <div class="bottom-spacer"></div>
       </div>
 
       <!-- ============ 应用详情子页 ============ -->
@@ -560,7 +558,7 @@ const emit = defineEmits(['back-to-settings'])
         <div class="cell-group">
           <ListCell :title="i18n.t('nsAllowNotif')" last>
             <template #right>
-              <ToggleSwitch :model-value="getAppState(currentDetailApp.id)" @update:modelValue="toggleAppState(currentDetailApp.id)" />
+              <ToggleSwitch color="blue" :model-value="getAppState(currentDetailApp.id)" @update:modelValue="toggleAppState(currentDetailApp.id)" />
             </template>
           </ListCell>
         </div>
@@ -569,7 +567,7 @@ const emit = defineEmits(['back-to-settings'])
         <div v-if="getAppState(currentDetailApp.id)" class="cell-group">
           <ListCell :title="i18n.t('nsLiveActivitiesNotif')" :subtitle="i18n.t('nsLiveActivitiesNotifSub')" last>
             <template #right>
-              <ToggleSwitch :model-value="getAppLiveActivityState(currentDetailApp.id)" @update:modelValue="toggleAppLiveActivityState(currentDetailApp.id)" />
+              <ToggleSwitch color="blue" :model-value="getAppLiveActivityState(currentDetailApp.id)" @update:modelValue="toggleAppLiveActivityState(currentDetailApp.id)" />
             </template>
           </ListCell>
         </div>
@@ -585,7 +583,7 @@ const emit = defineEmits(['back-to-settings'])
               :subtitle="i18n.t('nsHideLockContentSub')"
               last
             >
-              <template #right><ToggleSwitch v-model="localHideLockContent" /></template>
+              <template #right><ToggleSwitch color="blue" v-model="localHideLockContent" /></template>
             </ListCell>
           </div>
 
@@ -610,10 +608,10 @@ const emit = defineEmits(['back-to-settings'])
 
           <div class="cell-group">
             <ListCell :title="i18n.t('nsAllowRing')">
-              <template #right><ToggleSwitch v-model="appToggles.ring" /></template>
+              <template #right><ToggleSwitch color="blue" v-model="appToggles.ring" /></template>
             </ListCell>
             <ListCell :title="i18n.t('nsVibrate')" last>
-              <template #right><ToggleSwitch v-model="appToggles.vibrate" /></template>
+              <template #right><ToggleSwitch color="blue" v-model="appToggles.vibrate" /></template>
             </ListCell>
           </div>
 
@@ -956,6 +954,100 @@ const emit = defineEmits(['back-to-settings'])
   animation: island-cell-flash 0.6s ease-in-out 3 !important;
   border-radius: 12px;
 }
+/* Dynamic Bar 头图 */
+.db-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0 20px;
+}
+
+.db-hero-phone {
+  position: relative;
+  width: 132px;
+  height: 176px;
+  border-radius: 18px;
+  border: 2px solid #C9C9CE;
+  padding: 12px 10px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+}
+
+.db-hp-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1C1C1E;
+  margin-bottom: 10px;
+}
+
+.db-hp-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.db-hp-cell {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 7px;
+  background: #EDEDF0;
+}
+
+.db-hp-pill {
+  position: absolute;
+  left: 50%;
+  top: 82px;
+  transform: translateX(-50%);
+  width: 34px;
+  height: 22px;
+  border-radius: 11px;
+  background: #5B5B60;
+  border: 3px solid #F2F2F7;
+}
+
+.db-hero-title {
+  margin-top: 16px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #111;
+}
+
+.db-hero-caption {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 19px;
+  color: #8E8E93;
+  text-align: center;
+  padding: 0 28px;
+}
+
+.db-hero-dots {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.db-hero-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #D1D1D6;
+}
+
+.db-hero-dots i.on {
+  background: #6E6E73;
+}
+
+.db-more-group {
+  margin-top: 12px;
+}
+
 .ns-card-footer {
   font: 400 13px/1.4 var(--font-stack);
   color: #8E8E93;

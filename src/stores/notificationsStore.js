@@ -55,7 +55,25 @@ export const useNotificationsStore = defineStore('notifications', {
       timer: true,
       stopwatch: true,
       prayer: true,
-      media: true
+      media: true,
+      // —— 真机 Dynamic Bar「系统服务」清单里的其余项（XOS 17 新增）——
+      // 目前只做开关落库，未接入灵动岛渲染；新增键不影响 canShowIsland
+      // （它只在 === false 时拦截，undefined 视为允许）。
+      aiPhoto: true,
+      screenRecord: true,
+      noiseCancel: true,
+      guide: true,
+      hotspot: true,
+      networkBoost: false,
+      flashlight: true,
+      callSummary: true,
+      verification: true,
+      gameCountdown: false,
+      importantDay: true,
+      // —— 智能服务 ——
+      smartText: true,
+      sceneSmart: true,
+      moreServices: true
     }
   }),
 
