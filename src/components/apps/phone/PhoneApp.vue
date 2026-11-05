@@ -20,14 +20,14 @@ const isSettingsOpen = ref(false)
 const settingsRef = ref(null)
 const scrollContainerRef = ref(null)
 
-// 电话应用定制大标题折叠曲线：起手态大标题展开（占高 82px），折叠态紧贴顶栏（46px），完美消除间隙并垂直居中
+// 电话应用定制大标题折叠曲线：紧密贴合分类栏（视觉留白 ~16px，严控间距），折叠态完美与胶囊共线
 const PHONE_TITLE_CURVE = {
-  distance: 64,
-  fromTopInset: 32,
-  toTopInset: 2,
-  fromHeight: 82,
+  distance: 56,
+  fromTopInset: 14,
+  toTopInset: 6,
+  fromHeight: 52,
   toHeight: 46,
-  fromSize: 28,
+  fromSize: 26,
   toSize: 20,
   accessoryRight: 16
 }
@@ -367,6 +367,12 @@ function handleAppWheel(e) {
 .header-titles-block {
   display: flex;
   flex-direction: column;
+}
+
+/* 大标题头实心纯白背景：列表穿透滚动时 100% 遮蔽文字，彻底消除透底 */
+.phone-app :deep(.large-title) {
+  background: #FFFFFF !important;
+  z-index: 12 !important;
 }
 
 .lt-main-title {

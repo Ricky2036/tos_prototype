@@ -163,12 +163,12 @@ function triggerFlashCallBanner() {
 .recents-filter-bar {
   position: sticky;
   top: calc(var(--safe-top, 54px) + var(--title-height, 46px));
-  z-index: 10;
+  z-index: 11;
   background: #FFFFFF;
   display: flex;
   align-items: center;
   width: 100%;
-  height: 46px;
+  height: 44px;
   padding: 0;
   margin: 0;
   box-sizing: border-box;
