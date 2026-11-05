@@ -43,19 +43,19 @@ defineExpose({
 
 <template>
   <div class="phone-settings-page">
-    <!-- 主设置列表 -->
+    <!-- 主设置列表（100% 对齐真机三组白卡片排布与白色圆泡返回键） -->
     <div v-if="!subpage" class="settings-main-view">
       <div class="settings-header">
-        <button class="back-btn" @click="emit('back')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+        <button class="back-btn" title="返回" @click="emit('back')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M15 19l-7-7 7-7" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
         <div class="header-title">设置</div>
       </div>
 
       <div class="settings-list scrollable">
-        <!-- 第 1 组：录音、AI 与 Flash Call -->
+        <!-- 第 1 组卡片（3项）：自动通话录音、AI 通话助手（红点）、Flash Call -->
         <div class="settings-group">
           <div class="setting-item-row" @click="subpage = 'autoRecord'">
             <span class="item-title">自动通话录音</span>
@@ -82,9 +82,7 @@ defineExpose({
           </div>
         </div>
 
-        <div class="group-divider"></div>
-
-        <!-- 第 2 组：安全与网络联动 -->
+        <!-- 第 2 组卡片（7项）：骚扰拦截、陌生号码识别、SIM 卡与网络设置、声音与振动、来电语音播报、来电显示、我的视频秀 -->
         <div class="settings-group">
           <div class="setting-item-row" @click="subpage = 'unknownId'">
             <span class="item-title">骚扰拦截</span>
@@ -113,12 +111,7 @@ defineExpose({
               <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
-        </div>
 
-        <div class="group-divider"></div>
-
-        <!-- 第 3 组：播报、来电显示与视频秀 -->
-        <div class="settings-group">
           <div class="setting-item-row" @click="showVoiceBroadcastModal = true">
             <span class="item-title">来电语音播报</span>
             <div class="right-summary">
@@ -147,9 +140,7 @@ defineExpose({
           </div>
         </div>
 
-        <div class="group-divider"></div>
-
-        <!-- 第 4 组：高级与运营商 -->
+        <!-- 第 3 组卡片（3项）：高级设置、运营商功能、关于 -->
         <div class="settings-group">
           <div class="setting-item-row" @click="subpage = 'advanced'">
             <span class="item-title">高级设置</span>
@@ -245,7 +236,7 @@ defineExpose({
   left: 0;
   right: 0;
   bottom: 0;
-  background: #FFFFFF;
+  background: #F0F1F3;
   z-index: 55;
   display: flex;
   flex-direction: column;
@@ -257,55 +248,84 @@ defineExpose({
   height: 100%;
 }
 
+/* 顶部 Header：白色正圆返回气泡按钮 + 20px 设置粗体标题 */
 .settings-header {
   display: flex;
   align-items: center;
-  /* 严格避开机身状态栏 */
   padding-top: calc(var(--safe-top, 54px) + 8px);
   padding-bottom: 12px;
   padding-left: 16px;
   padding-right: 16px;
-  gap: 12px;
-  background: #FFFFFF;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
+  background: #F0F1F3;
 }
 
 .back-btn {
-  background: none;
-  border: none;
-  padding: 6px;
-  cursor: pointer;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.back-btn:active {
+  background-color: #E8E9EB;
+  transform: scale(0.96);
 }
 
 .header-title {
-  font-size: 19px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
   color: #1C1C1E;
+  margin-left: 12px;
 }
 
 .settings-list {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 20px 40px;
+  padding: 8px 0 40px;
 }
 
+/* 3 大卡片组规范：纯白圆角、规整间距、内缩细分割线 */
 .settings-group {
-  display: flex;
-  flex-direction: column;
+  background: #FFFFFF;
+  border-radius: 18px;
+  margin: 0 16px 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .setting-item-row {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 17px 0;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.04);
+  height: 56px;
+  padding: 0 16px;
   cursor: pointer;
+  background: #FFFFFF;
+  transition: background-color 0.12s ease;
 }
 
 .setting-item-row:active {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: #F8F9FA;
+}
+
+.setting-item-row:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 16px;
+  right: 16px;
+  height: 0.5px;
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .item-title {
@@ -342,10 +362,6 @@ defineExpose({
   flex-shrink: 0;
 }
 
-.group-divider {
-  height: 20px;
-}
-
 /* 关于页面 */
 .about-page {
   position: absolute;
@@ -353,7 +369,7 @@ defineExpose({
   left: 0;
   right: 0;
   bottom: 0;
-  background: #FFFFFF;
+  background: #F0F1F3;
   z-index: 60;
   display: flex;
   flex-direction: column;

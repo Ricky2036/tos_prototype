@@ -153,15 +153,15 @@ function triggerFlashCallBanner() {
   background: #FFFFFF;
 }
 
-/* 筛选分类栏：吸顶常驻，列表上滑时绝不移走 */
+/* 筛选分类栏：吸顶常驻，紧贴折叠大标题下缘，列表上滑时绝不移走 */
 .recents-filter-bar {
   position: sticky;
-  top: calc(var(--safe-top, 54px) + var(--title-height, 72px));
+  top: calc(var(--safe-top, 54px) + var(--title-height, 48px));
   z-index: 11;
   background: #FFFFFF;
   display: flex;
   align-items: center;
-  padding: 4px 24px 8px;
+  padding: 6px 24px 8px;
   gap: 32px;
   border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
 }
@@ -183,7 +183,7 @@ function triggerFlashCallBanner() {
   position: relative;
   background: none;
   border: none;
-  padding: 8px 0;
+  padding: 4px 0 6px;
   font-size: 15px;
   font-weight: 500;
   color: #8E8E93;

@@ -20,9 +20,19 @@ const isSettingsOpen = ref(false)
 const settingsRef = ref(null)
 const scrollContainerRef = ref(null)
 
+// 电话应用定制大标题折叠曲线：紧密贴合分类栏（间距 ~13px），100% 消除红框大空隙
+const PHONE_TITLE_CURVE = {
+  fromTopInset: 14,
+  toTopInset: -2,
+  fromHeight: 54,
+  toHeight: 48,
+  fromSize: 30,
+  toSize: 20
+}
+
 // 大标题折叠契约（规范通用件）
 const { progress: titleProgress, onScroll: onTitleScroll } = useLargeTitle()
-const titleVars = computed(() => largeTitleVars(titleProgress.value))
+const titleVars = computed(() => largeTitleVars(titleProgress.value, PHONE_TITLE_CURVE))
 
 // 悬浮导航 Tab 规范配置
 const tabs = [
@@ -155,10 +165,11 @@ function handleAppWheel(e) {
       @touchmove.passive="handleTouchMove"
       @wheel.passive="handleAppWheel"
     >
-      <!-- 标准吸顶折叠大标题通用件 -->
+      <!-- 标准吸顶折叠大标题通用件：紧凑高度契约，大标题与分类栏垂直间距紧贴 ~13px 对齐真机 -->
       <LargeTitleHeader
         :progress="titleProgress"
         scrim="255, 255, 255"
+        :curve="PHONE_TITLE_CURVE"
       >
         <div class="header-titles-block">
           <div class="lt-main-title">
@@ -332,7 +343,7 @@ function handleAppWheel(e) {
   user-select: none;
 }
 
-/* 主滚动视口：挂载底部遮罩渐隐契约，底栏占 100%-76px ~ 100%-22px，下方彻底透明不透底 */
+/* 主滚动视口：挂载紧凑大标题契约与渐隐遮罩契约，严密贴合真机间距 */
 .phone-scroll-viewport {
   flex: 1;
   width: 100%;
@@ -341,6 +352,9 @@ function handleAppWheel(e) {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   position: relative;
+  --title-height: 48px;
+  --title-top-inset: 8px;
+  --title-inset: 24px;
   --tabbar-fade: linear-gradient(
     to bottom,
     black 0%,
@@ -457,13 +471,13 @@ function handleAppWheel(e) {
   z-index: 45;
 }
 
-/* 规范 FloatingTabBar 胶囊适配：给右侧 FAB 留位 + 垂直上下排布 */
+/* 规范 FloatingTabBar 胶囊适配：一体化乳白磨砂、杜绝灰色滑块底托 */
 .phone-app :deep(.floating-tab-bar) {
   left: 20px;
   transform: none;
-  width: calc(100% - 20px - 20px - 54px - 14px);
+  width: calc(100% - 20px - 20px - 58px - 14px);
   max-width: none;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
   border: 0.5px solid rgba(0, 0, 0, 0.08);
@@ -471,9 +485,10 @@ function handleAppWheel(e) {
   pointer-events: auto;
 }
 
-.phone-app :deep(.floating-tab-bar:not(.theme-dark) .nav-highlight-pill) {
-  background: rgba(0, 0, 0, 0.04);
-  box-shadow: none;
+/* 彻底隐藏死灰色的滑动滑块，还原一体乳白纯净悬浮质感 */
+.phone-app :deep(.nav-sliding-pill-track),
+.phone-app :deep(.nav-highlight-pill) {
+  display: none !important;
 }
 
 .phone-app :deep(.floating-tab-item) {
