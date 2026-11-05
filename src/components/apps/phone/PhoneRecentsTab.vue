@@ -153,13 +153,30 @@ function triggerFlashCallBanner() {
   background: #FFFFFF;
 }
 
-/* 筛选分类栏 */
+/* 筛选分类栏：吸顶常驻，列表上滑时绝不移走 */
 .recents-filter-bar {
+  position: sticky;
+  top: calc(var(--safe-top, 54px) + var(--title-height, 72px));
+  z-index: 11;
+  background: #FFFFFF;
   display: flex;
   align-items: center;
-  padding: 0 24px 8px;
+  padding: 4px 24px 8px;
   gap: 32px;
   border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
+}
+
+/* 向上延伸白色遮挡幕，彻底防止列表滚动时文字从标题间隙穿透漏出 */
+.recents-filter-bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 90px;
+  background: #FFFFFF;
+  pointer-events: none;
+  z-index: -1;
 }
 
 .filter-tab-btn {

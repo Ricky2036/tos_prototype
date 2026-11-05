@@ -236,8 +236,8 @@ function handleAppWheel(e) {
       <FloatingTabBar
         :model-value="phoneStore.currentTab"
         :tabs="tabs"
-        height="54px"
-        bottom="22px"
+        height="58px"
+        bottom="20px"
         accent-color="#00C853"
         :dark="false"
         @update:model-value="switchTab"
@@ -246,13 +246,13 @@ function handleAppWheel(e) {
         <template #tab="{ tab, active }">
           <div class="phone-tab-content" :class="{ active }">
             <div class="tab-icon-wrapper" :class="{ 'icon-active': active }">
-              <!-- 通话记录图标：时钟 -->
-              <svg v-if="tab.id === 'recents'" width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <!-- 通话记录图标：时钟（严格正圆与居中指针） -->
+              <svg v-if="tab.id === 'recents'" width="15" height="15" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="9" :stroke="active ? '#FFFFFF' : '#1C1C1E'" stroke-width="2.2" />
                 <path d="M12 7V12L15 14" :stroke="active ? '#FFFFFF' : '#1C1C1E'" stroke-width="2.2" stroke-linecap="round" />
               </svg>
-              <!-- 联系人图标：头像剪影 -->
-              <svg v-else width="17" height="17" viewBox="0 0 24 24" :fill="active ? '#FFFFFF' : '#1C1C1E'">
+              <!-- 联系人图标：头像剪影（严格正圆头部） -->
+              <svg v-else width="15" height="15" viewBox="0 0 24 24" :fill="active ? '#FFFFFF' : '#1C1C1E'">
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
               </svg>
             </div>
@@ -495,13 +495,27 @@ function handleAppWheel(e) {
 }
 
 .tab-icon-wrapper {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  max-width: 24px !important;
+  max-height: 24px !important;
+  aspect-ratio: 1 / 1 !important;
+  flex-shrink: 0 !important;
+  border-radius: 50% !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   transition: all 0.2s ease;
+}
+
+.tab-icon-wrapper svg {
+  width: 15px !important;
+  height: 15px !important;
+  flex-shrink: 0 !important;
+  display: block !important;
 }
 
 .tab-icon-wrapper.icon-active {
@@ -512,7 +526,10 @@ function handleAppWheel(e) {
   font-size: 11px;
   font-weight: 500;
   color: #1C1C1E;
-  line-height: 1.2;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 1px;
   transition: color 0.2s ease;
 }
 
@@ -525,10 +542,15 @@ function handleAppWheel(e) {
 .phone-fab {
   position: absolute;
   right: 20px;
-  bottom: 22px;
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
+  bottom: 20px;
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  min-height: 58px !important;
+  max-width: 58px !important;
+  max-height: 58px !important;
+  aspect-ratio: 1 / 1 !important;
+  border-radius: 50% !important;
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
