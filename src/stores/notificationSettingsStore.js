@@ -24,7 +24,9 @@ const K = {
   ICON_VPN: 'tos_notif_icon_vpn',
   ICON_DATA_SAVER: 'tos_notif_icon_data_saver',
   BADGE_STYLE: 'tos_notif_badge_style',
-  REMIND_STYLE: 'tos_notif_remind_style'
+  REMIND_STYLE: 'tos_notif_remind_style',
+  CC_LOCK_SCREEN: 'tos_notif_cc_lock_screen',
+  LIVE_ACTIVITY_MORE: 'tos_notif_live_activity_more'
 }
 
 export const BADGE_STYLES = ['数字', '圆点']
@@ -40,6 +42,34 @@ export const useNotificationSettingsStore = defineStore('notificationSettings', 
 
   const badgeStyle = ref(readString(K.BADGE_STYLE, '数字'))
   const remindStyle = ref(readString(K.REMIND_STYLE, '通知图标'))
+  const ccLockScreen = ref(readBool(K.CC_LOCK_SCREEN, true))
+  const liveActivityMore = ref(readBool(K.LIVE_ACTIVITY_MORE, false))
+
+  /** 智慧文本（Dynamic Bar → 智能服务 → 智慧文本）逐服务开关 */
+  const smartTextServices = ref({
+    phone: true,
+    address: true,
+    calendar: true,
+    videoLink: true,
+    forex: true,
+    foreign: true
+  })
+
+  /** 场景智能（Dynamic Bar → 智能服务 → 场景智能）逐服务开关；AI Writing 真机默认关 */
+  const sceneAiServices = ref({
+    aiWriting: false,
+    screenshot: true,
+    docSummary: true
+  })
+
+  /** Dynamic Bar「实时活动」逐应用开关（真机按已安装的实时活动应用列出） */
+  const liveActivityApps = ref({
+    folaxMpl: true,
+    googleMaps: true,
+    trainAlert: true,
+    flight: true,
+    hiTranslate: true
+  })
 
   function setBool(key, value) {
     const map = {
@@ -49,7 +79,9 @@ export const useNotificationSettingsStore = defineStore('notificationSettings', 
       iconAlarm: [iconAlarm, K.ICON_ALARM],
       iconHeadset: [iconHeadset, K.ICON_HEADSET],
       iconVpn: [iconVpn, K.ICON_VPN],
-      iconDataSaver: [iconDataSaver, K.ICON_DATA_SAVER]
+      iconDataSaver: [iconDataSaver, K.ICON_DATA_SAVER],
+      ccLockScreen: [ccLockScreen, K.CC_LOCK_SCREEN],
+      liveActivityMore: [liveActivityMore, K.LIVE_ACTIVITY_MORE]
     }
     if (!map[key]) return false
     const [refObj, storageKey] = map[key]
@@ -62,6 +94,31 @@ export const useNotificationSettingsStore = defineStore('notificationSettings', 
     if (!BADGE_STYLES.includes(value)) return false
     badgeStyle.value = value
     writeRaw(K.BADGE_STYLE, value)
+    return true
+  }
+
+  function setSmartTextService(key, value) {
+    if (!(key in smartTextServices.value)) return false
+    smartTextServices.value = { ...smartTextServices.value, [key]: Boolean(value) }
+    return true
+  }
+
+  function setSceneAiService(key, value) {
+    if (!(key in sceneAiServices.value)) return false
+    sceneAiServices.value = { ...sceneAiServices.value, [key]: Boolean(value) }
+    return true
+  }
+
+  function setLiveActivity(appId, value) {
+    if (!(appId in liveActivityApps.value)) return false
+    liveActivityApps.value = { ...liveActivityApps.value, [appId]: Boolean(value) }
+    return true
+  }
+
+  /** 还原控制中心布局：本原型里控制中心没有独立的排布数据，这里清掉锁屏呼出以外的自定义项 */
+  function resetControlCenterLayout() {
+    ccLockScreen.value = true
+    writeRaw(K.CC_LOCK_SCREEN, 'true')
     return true
   }
 
@@ -95,6 +152,15 @@ export const useNotificationSettingsStore = defineStore('notificationSettings', 
     iconDataSaver,
     badgeStyle,
     remindStyle,
+    ccLockScreen,
+    liveActivityMore,
+    liveActivityApps,
+    smartTextServices,
+    sceneAiServices,
+    setSmartTextService,
+    setSceneAiService,
+    setLiveActivity,
+    resetControlCenterLayout,
     setBool,
     setBadgeStyle,
     setRemindStyle,

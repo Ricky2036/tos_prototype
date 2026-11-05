@@ -64,6 +64,7 @@ export const useNotificationsStore = defineStore('notifications', {
       noiseCancel: true,
       guide: true,
       hotspot: true,
+      videoGen: true,
       networkBoost: false,
       flashlight: true,
       callSummary: true,

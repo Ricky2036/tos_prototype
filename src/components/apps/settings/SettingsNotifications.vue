@@ -8,17 +8,22 @@ import SettingsAppIcon from '../../ui/SettingsAppIcon.vue'
 import NotificationIcon from '../../ui/NotificationIcon.vue'
 import AppIcon from '../../ui/AppIcon.vue'
 import NotifStatusBar from './notifications/NotifStatusBar.vue'
+import NotifControlCenter from './notifications/NotifControlCenter.vue'
+import NotifSmartText from './notifications/NotifSmartText.vue'
+import NotifSceneAi from './notifications/NotifSceneAi.vue'
 import NotifHomeBadge from './notifications/NotifHomeBadge.vue'
 import { getApp } from '../../../config/apps'
 import { seedNotifications } from '../../../config/seedNotifications'
 import { useI18nStore } from '../../../stores/i18nStore'
 import { useNotificationsStore, getIslandKeysForApp } from '../../../stores/notificationsStore'
+import { useNotificationSettingsStore } from '../../../stores/notificationSettingsStore'
 import { formatRelativeTime } from '../../../utils/timeFormat'
 import { CLOCK_ICONS } from '../../apps/clock/clockIcons'
 import { GLYPHS } from '../../../assets/icons/glyphs'
 
 const i18n = useI18nStore()
 const notificationsStore = useNotificationsStore()
+const notifSettings = useNotificationSettingsStore()
 
 const voicememosIconUrl = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/icons/voicememos.png`
 
@@ -212,6 +217,7 @@ const ISLAND_SERVICES = [
   { key: 'noiseCancel', label: '全场景降噪', bg: '#2F6BF6', glyph: 'mic' },
   { key: 'guide', label: '全局引导', bg: '#FFB020', d: 'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.4.3.5.8.5 1.3V16h6v-.8c0-.5.1-1 .5-1.3A6 6 0 0 0 12 3z' },
   { key: 'hotspot', label: '热点', bg: '#34C759', d: 'M4.5 16.5a10 10 0 0 1 0-9M7.8 14a6 6 0 0 1 0-4M18 7.5a10 10 0 0 1 0 9M16.2 10a6 6 0 0 1 0 4M12 13.2a1.4 1.4 0 1 0 0-2.4 1.4 1.4 0 0 0 0 2.4z' },
+  { key: 'videoGen', label: '视频生成', bg: '#7C6BF6', d: 'M4 6h12v12H4zM16 10l4-2v8l-4-2z' },
   { key: 'networkBoost', label: '网络加速', bg: '#5AC8FA', d: 'M13 2 4 14h6l-1 8 9-12h-6z' },
   { key: 'flashlight', label: '手电筒', bg: '#FFB020', d: 'M8 3h8v3l-2 2v11a2 2 0 0 1-2 2h-0a2 2 0 0 1-2-2V8L8 6z' },
   { key: 'callSummary', label: '系统通话摘要', bg: '#2F6BF6', glyph: 'phone' },
@@ -221,6 +227,30 @@ const ISLAND_SERVICES = [
   { key: 'importantDay', label: '重要日', bg: '#FFFFFF', d: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4' },
   { key: 'alarm', label: '闹钟', bg: '#3C3C43', clock: 'alarm' },
   { key: 'prayer', label: '礼拜', bg: '#2F6BF6', clock: 'muslim' }
+]
+
+/**
+ * Dynamic Bar「实时活动」逐应用清单 —— 对齐真机已安装的实时活动应用。
+ * 开关状态存在 notificationSettingsStore.liveActivityApps。
+ */
+const LIVE_ACTIVITY_APPS = [
+  {
+    key: 'folaxMpl',
+    label: 'Folax MPL 助手',
+    subtitle: 'MPL全能AI助手——实时比分、赛程与赛事洞察，一目了然。',
+    bg: '#EFE6FF',
+    d: 'M13 2 4 14h6l-1 8 9-12h-6z'
+  },
+  { key: 'googleMaps', label: 'Google Maps', subtitle: '导航服务', bg: '#E8F0FE', d: 'M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z' },
+  { key: 'trainAlert', label: '国内火车异常提醒', subtitle: '', bg: '#EAF3FF', d: 'M7 3h10a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zm0 4v6h10V7zM7 18l-2 3M17 18l2 3' },
+  { key: 'flight', label: '航班服务', subtitle: '', bg: '#E8F7EE', d: 'M2 15l20-9-4 9 2 1-2 1-6-1-4 3-1-3z' },
+  {
+    key: 'hiTranslate',
+    label: 'Hi Translate',
+    subtitle: '实时翻译服务',
+    bg: '#E7F0FF',
+    d: 'M4 5h9v2H4zM8 3h2v2H8zM5 9h8v2a8 8 0 0 1-8 8v-2a6 6 0 0 0 6-6H5zM13 13h7v2h-3l3 5h-2l-3-5h-2z'
+  }
 ]
 
 const appLiveActivityStates = ref({})
@@ -269,7 +299,7 @@ const emit = defineEmits(['back-to-settings'])
 
         <div class="cell-group mt-first">
           <ListCell :title="i18n.t('nsStatusBar')" chevron clickable @click="go('statusBar')" />
-          <ListCell :title="i18n.t('nsControlCenter')" chevron />
+          <ListCell :title="i18n.t('nsControlCenter')" chevron clickable @click="go('controlCenter')" />
           <ListCell
             :title="i18n.t('nsDynamicBar')"
             subtitle="在状态栏等多场景提供实时信息、系统状态与智能服务。"
@@ -454,6 +484,13 @@ const emit = defineEmits(['back-to-settings'])
       <!-- ============ 状态栏子页 ============ -->
       <NotifStatusBar v-else-if="subView === 'statusBar'" key="statusBar" @back="back()" />
 
+      <!-- ============ 控制中心子页 ============ -->
+      <NotifControlCenter v-else-if="subView === 'controlCenter'" key="controlCenter" @back="back()" />
+
+      <!-- ============ 智慧文本 / 场景智能（四级） ============ -->
+      <NotifSmartText v-else-if="subView === 'smartText'" key="smartText" @back="back()" />
+      <NotifSceneAi v-else-if="subView === 'sceneAi'" key="sceneAi" @back="back()" />
+
       <!-- ============ 桌面角标子页 ============ -->
       <NotifHomeBadge
         v-else-if="subView === 'homeBadge'"
@@ -480,24 +517,58 @@ const emit = defineEmits(['back-to-settings'])
           <div class="db-hero-dots"><i class="on"></i><i></i></div>
         </div>
 
+        <div class="group-header">实时活动</div>
+        <div class="cell-group">
+          <ListCell
+            v-for="(app, idx) in LIVE_ACTIVITY_APPS"
+            :key="app.key"
+            :title="app.label"
+            :subtitle="app.subtitle"
+          >
+            <template #icon>
+              <div class="db-app-icon" :style="{ background: app.bg }">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B5B60" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path :d="app.d" />
+                </svg>
+              </div>
+            </template>
+            <template #right>
+              <ToggleSwitch
+                :model-value="notifSettings.liveActivityApps[app.key]"
+                color="blue"
+                @update:model-value="v => notifSettings.setLiveActivity(app.key, v)"
+              />
+            </template>
+          </ListCell>
+          <ListCell title="更多服务" subtitle="更多支持实时更新通知的服务" last>
+            <template #right>
+              <ToggleSwitch
+                :model-value="notifSettings.liveActivityMore"
+                color="blue"
+                @update:model-value="v => notifSettings.setBool('liveActivityMore', v)"
+              />
+            </template>
+          </ListCell>
+        </div>
+
         <div class="group-header">智能服务</div>
         <div class="cell-group">
           <ListCell
             title="智慧文本"
             subtitle="复制文本后智能推荐相关服务。"
-            value="已开启"
+            :value="notificationsStore.islandSettings.smartText ? '已开启' : '已关闭'"
             chevron
             clickable
-            @click="notificationsStore.setIslandEnabled('smartText', !notificationsStore.islandSettings.smartText)"
+            @click="go('smartText')"
           />
           <ListCell
             title="场景智能"
             subtitle="根据使用场景智能推荐服务。"
-            value="已开启"
+            :value="notificationsStore.islandSettings.sceneSmart ? '已开启' : '已关闭'"
             chevron
             clickable
             last
-            @click="notificationsStore.setIslandEnabled('sceneSmart', !notificationsStore.islandSettings.sceneSmart)"
+            @click="go('sceneAi')"
           />
         </div>
 

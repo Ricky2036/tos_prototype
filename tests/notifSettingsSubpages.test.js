@@ -118,7 +118,7 @@ test('通知与状态栏：状态栏 / Dynamic Bar / 桌面角标 三个入口�
 
 test('Dynamic Bar 子页的每一行 key 都真实存在于 islandSettings（防配置漂移）', () => {
   const src = read('src/components/apps/settings/SettingsNotifications.vue')
-  const block = src.slice(src.indexOf('const ISLAND_SERVICES'), src.indexOf('const appLiveActivityStates'))
+  const block = src.slice(src.indexOf('const ISLAND_SERVICES'), src.indexOf('const LIVE_ACTIVITY_APPS'))
   const keys = [...block.matchAll(/key: '([a-zA-Z]+)'/g)].map(m => m[1])
   assert.ok(keys.length >= 15, `解析到的服务项偏少：${keys.length}`)
 
@@ -156,4 +156,111 @@ test('通知标题不再回落到英文 appId（recorder 等）', () => {
   const zh = read('src/locales/messages.js')
   assert.match(zh, /recorder: '录音'/)
   assert.match(zh, /voicememos: '录音'/)
+})
+
+/* ==================== 控制中心 / 四级页（2026-11-05 补） ==================== */
+test('控制中心页状态：锁屏呼出默认开，还原后回到出厂态', () => {
+  const s = notifSettings()
+  assert.equal(s.ccLockScreen, true)
+  s.setBool('ccLockScreen', false)
+  assert.equal(s.ccLockScreen, false)
+  s.resetControlCenterLayout()
+  assert.equal(s.ccLockScreen, true, '还原后应回到出厂默认（锁屏呼出=开）')
+})
+
+test('实时活动：逐应用开关默认开，未知名被拒绝，更多服务默认关', () => {
+  const s = notifSettings()
+  assert.deepEqual(
+    Object.keys(s.liveActivityApps),
+    ['folaxMpl', 'googleMaps', 'trainAlert', 'flight', 'hiTranslate']
+  )
+  for (const v of Object.values(s.liveActivityApps)) assert.equal(v, true)
+
+  assert.equal(s.setLiveActivity('googleMaps', false), true)
+  assert.equal(s.liveActivityApps.googleMaps, false)
+  assert.equal(s.setLiveActivity('unknownApp', true), false)
+  assert.equal(s.liveActivityMore, false)
+})
+
+test('智慧文本 / 场景智能：逐服务默认值与真机一致', () => {
+  const s = notifSettings()
+  assert.deepEqual(
+    Object.keys(s.smartTextServices),
+    ['phone', 'address', 'calendar', 'videoLink', 'forex', 'foreign']
+  )
+  for (const v of Object.values(s.smartTextServices)) assert.equal(v, true, '智慧文本 6 项默认全开')
+
+  assert.deepEqual(Object.keys(s.sceneAiServices), ['aiWriting', 'screenshot', 'docSummary'])
+  assert.equal(s.sceneAiServices.aiWriting, false, 'AI Writing 真机默认关')
+  assert.equal(s.sceneAiServices.screenshot, true)
+  assert.equal(s.sceneAiServices.docSummary, true)
+
+  assert.equal(s.setSmartTextService('phone', false), true)
+  assert.equal(s.smartTextServices.phone, false)
+  assert.equal(s.setSmartTextService('fax', true), false)
+  assert.equal(s.setSceneAiService('screenshot', false), true)
+  assert.equal(s.sceneAiServices.screenshot, false)
+  assert.equal(s.setSceneAiService('nope', true), false)
+})
+
+test('控制中心 / 智慧文本 / 场景智能 三个新页面都接上了入口与分支', () => {
+  const src = read('src/components/apps/settings/SettingsNotifications.vue')
+  assert.match(src, /go\('controlCenter'\)/, '控制中心行未接线')
+  assert.match(src, /go\('smartText'\)/, '智慧文本行未接线')
+  assert.match(src, /go\('sceneAi'\)/, '场景智能行未接线')
+
+  for (const view of ['controlCenter', 'smartText', 'sceneAi']) {
+    assert.match(src, new RegExp(`subView === '${view}'`), `${view} 缺少渲染分支`)
+  }
+
+  for (const file of ['NotifControlCenter', 'NotifSmartText', 'NotifSceneAi']) {
+    assert.ok(
+      fs.existsSync(`src/components/apps/settings/notifications/${file}.vue`),
+      `${file}.vue 不存在`
+    )
+  }
+})
+
+test('Dynamic Bar 页有「实时活动」分组，且清单 key 全部落在 store 里', () => {
+  const src = read('src/components/apps/settings/SettingsNotifications.vue')
+  assert.match(src, /<div class="group-header">实时活动<\/div>/)
+
+  const block = src.slice(src.indexOf('const LIVE_ACTIVITY_APPS'), src.indexOf('const appLiveActivityStates'))
+  const keys = [...block.matchAll(/key: '([a-zA-Z]+)'/g)].map(m => m[1])
+  assert.ok(keys.length >= 5, `实时活动应用数偏少：${keys.length}`)
+
+  const s = notifSettings()
+  for (const key of keys) {
+    assert.ok(key in s.liveActivityApps, `${key} 不在 liveActivityApps 里`)
+  }
+
+  // 「更多服务」开关行（真机在实时活动卡片内，副标题固定）
+  assert.match(src, /更多支持实时更新通知的服务/)
+})
+
+test('系统服务清单补上了真机的「视频生成」', () => {
+  const src = read('src/components/apps/settings/SettingsNotifications.vue')
+  assert.match(src, /label: '视频生成'/)
+  const s = notifications()
+  assert.ok('videoGen' in s.islandSettings, 'videoGen 必须存在于 islandSettings')
+})
+
+test('状态栏「通知提醒方式」是底部弹层，四选项与真机一致', () => {
+  const sheet = read('src/components/apps/settings/notifications/NotifRemindStyleSheet.vue')
+  for (const opt of ['通知图标', '应用图标', '数字', '无']) {
+    assert.match(sheet, new RegExp(`value: '${opt}'`), `缺少选项 ${opt}`)
+  }
+  const statusBar = read('src/components/apps/settings/notifications/NotifStatusBar.vue')
+  assert.match(statusBar, /NotifRemindStyleSheet/, '状态栏页未挂弹层')
+  assert.match(statusBar, /showRemindSheet = true/, '通知提醒方式行不可点')
+})
+
+test('控制中心页含还原确认弹窗（真机交互）', () => {
+  const src = read('src/components/apps/settings/notifications/NotifControlCenter.vue')
+  assert.match(src, /是否将控制中心还原为出厂默认布局？/)
+  assert.match(src, /取消/)
+  assert.match(src, /还原/)
+  assert.match(src, /resetControlCenterLayout/)
+  // 头图轮播三点
+  assert.match(src, /SLIDES/, '缺少轮播配置')
 })

@@ -3,7 +3,9 @@ import SubPageShell from '../subpage/SubPageShell.vue'
 import ListCell from '../../../ui/ListCell.vue'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 import { useControlStore } from '../../../../stores/controlStore'
+import { ref } from 'vue'
 import { useNotificationSettingsStore } from '../../../../stores/notificationSettingsStore'
+import NotifRemindStyleSheet from './NotifRemindStyleSheet.vue'
 
 /**
  * 状态栏（通知与状态栏 → 状态栏）
@@ -15,6 +17,7 @@ import { useNotificationSettingsStore } from '../../../../stores/notificationSet
 const emit = defineEmits(['back'])
 const control = useControlStore()
 const notifSettings = useNotificationSettingsStore()
+const showRemindSheet = ref(false)
 
 function isOn(row) {
   if (row.kind === 'control') return Boolean(control[row.controlKey])
@@ -37,6 +40,9 @@ function setOn(row, value) {
         title="通知提醒方式"
         :value="notifSettings.remindStyle"
         subtitle="有通知时在状态栏显示单色图标。"
+        chevron
+        clickable
+        @click="showRemindSheet = true"
       />
       <ListCell title="显示电量百分比" last>
         <template #right>
@@ -104,6 +110,10 @@ function setOn(row, value) {
         </template>
       </ListCell>
     </div>
+
+    <Transition name="fade">
+      <NotifRemindStyleSheet v-if="showRemindSheet" @close="showRemindSheet = false" />
+    </Transition>
   </SubPageShell>
 </template>
 

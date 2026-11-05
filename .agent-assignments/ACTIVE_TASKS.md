@@ -212,6 +212,8 @@ Only the integration owner edits this table. Remove or mark a row complete after
 
 | Review | Workbuddy | Settings group 2, part 3 (通知与状态栏): wire the dead 状态栏 row to a new subpage, make 桌面角标 clickable, rebuild Dynamic Bar to the real device (hero + 智能服务 + 系统服务 + 更多服务) while keeping the islandSettings store contract and the deep-link 3-flash highlight | `workbuddy/lane` | `src/components/apps/settings/SettingsNotifications.vue`; `src/components/apps/settings/notifications/**`; `src/stores/notificationSettingsStore.js`; `src/stores/notificationsStore.js` (additive keys only); `src/locales/messages.js` (notification titles); `tests/notifSettingsSubpages.test.js`; `tests/alarmDynamicIsland.test.js` (contract moved to config-driven rows) | `74aed3b` | pending |
 
+| Review | Workbuddy | Settings group 2, part 4 (deeper interactions): add 控制中心 page (3-slide hero + lock-screen toggle + reset confirm dialog), 通知提醒方式 bottom sheet (4 icon options), Dynamic Bar 实时活动 per-app group + 视频生成 row, and two 4th-level pages 智慧文本 / 场景智能 | `workbuddy/lane` | `src/components/apps/settings/SettingsNotifications.vue`; `src/components/apps/settings/notifications/**`; `src/stores/notificationSettingsStore.js`; `src/stores/notificationsStore.js` (videoGen key only); `tests/notifSettingsSubpages.test.js` | `205815c` | pending |
+
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
 
