@@ -55,7 +55,7 @@ function triggerFlashCallBanner() {
 
 <template>
   <div class="phone-recents-tab">
-    <!-- 筛选标签栏：全部类型 | 未接来电 -->
+    <!-- 筛选标签栏：全部类型 | 未接来电（左右 50% 等分、各自水平居中、独立绿色胶囊平滑滑动指示条） -->
     <div class="recents-filter-bar">
       <button
         class="filter-tab-btn"
@@ -63,7 +63,6 @@ function triggerFlashCallBanner() {
         @click="phoneStore.recentsFilter = 'all'"
       >
         全部类型
-        <div v-if="phoneStore.recentsFilter === 'all'" class="filter-indicator"></div>
       </button>
       <button
         class="filter-tab-btn"
@@ -71,8 +70,15 @@ function triggerFlashCallBanner() {
         @click="phoneStore.recentsFilter = 'missed'"
       >
         未接来电
-        <div v-if="phoneStore.recentsFilter === 'missed'" class="filter-indicator"></div>
       </button>
+      <!-- 独立绿色指示条：全轨道平滑滑动切换 -->
+      <div
+        class="filter-indicator-slider"
+        :class="{ 'is-missed': phoneStore.recentsFilter === 'missed' }"
+        aria-hidden="true"
+      >
+        <div class="filter-indicator-pill"></div>
+      </div>
     </div>
 
     <!-- 未接来电状态下的 FLASH CALL 彩色品牌横幅 -->
@@ -157,12 +163,15 @@ function triggerFlashCallBanner() {
 .recents-filter-bar {
   position: sticky;
   top: calc(var(--safe-top, 54px) + var(--title-height, 46px));
-  z-index: 11;
+  z-index: 15;
   background: #FFFFFF;
   display: flex;
   align-items: center;
-  padding: 4px 20px 6px;
-  gap: 28px;
+  width: 100%;
+  height: 46px;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
   border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
 }
 
@@ -173,22 +182,32 @@ function triggerFlashCallBanner() {
   left: 0;
   right: 0;
   bottom: 100%;
-  height: 90px;
+  height: 120px;
   background: #FFFFFF;
   pointer-events: none;
   z-index: -1;
 }
 
+/* 两个 Tab 左右 50% 等分、各自在其半屏内严格水平居中 */
 .filter-tab-btn {
   position: relative;
+  flex: 1 1 50%;
+  width: 50%;
+  height: 100%;
   background: none;
   border: none;
-  padding: 4px 0 8px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 15px;
   font-weight: 500;
   color: #8E8E93;
   cursor: pointer;
-  transition: color 0.18s ease;
+  transition: color 0.2s cubic-bezier(0.25, 1, 0.5, 1), font-weight 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: 2;
+  user-select: none;
 }
 
 .filter-tab-btn.active {
@@ -196,12 +215,29 @@ function triggerFlashCallBanner() {
   font-weight: 600;
 }
 
-.filter-indicator {
+/* 独立绿色胶囊指示条轨道：全宽 50%，在左半区与右半区之间平滑缓动位移 */
+.filter-indicator-slider {
   position: absolute;
+  left: 0;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 30px;
+  width: 50%;
+  height: 3.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transform: translateX(0%);
+  transition: transform 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform;
+  z-index: 3;
+}
+
+.filter-indicator-slider.is-missed {
+  transform: translateX(100%);
+}
+
+.filter-indicator-pill {
+  width: 44px;
   height: 3.5px;
   border-radius: 9999px;
   background-color: #00C853;

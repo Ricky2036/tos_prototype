@@ -20,14 +20,16 @@ const isSettingsOpen = ref(false)
 const settingsRef = ref(null)
 const scrollContainerRef = ref(null)
 
-// 电话应用定制大标题折叠曲线：紧密贴合分类栏（间距 ~13px），100% 消除红框大空隙
+// 电话应用定制大标题折叠曲线：起手态大标题展开（占高 82px），折叠态紧贴顶栏（46px），完美消除间隙并垂直居中
 const PHONE_TITLE_CURVE = {
-  fromTopInset: 6,
-  toTopInset: 4,
-  fromHeight: 46,
+  distance: 64,
+  fromTopInset: 32,
+  toTopInset: 2,
+  fromHeight: 82,
   toHeight: 46,
-  fromSize: 26,
-  toSize: 20
+  fromSize: 28,
+  toSize: 20,
+  accessoryRight: 16
 }
 
 // 大标题折叠契约（规范通用件）
@@ -183,17 +185,17 @@ function handleAppWheel(e) {
           </div>
         </div>
 
-        <!-- 右侧吸顶操作按钮群 -->
+        <!-- 右侧吸顶操作按钮群：高保真原厂白色圆角药丸胶囊 -->
         <template #accessory>
-          <div class="header-actions">
+          <div class="header-actions-pill">
             <button
               class="header-action-btn search-trigger"
               title="搜索"
               @click="phoneStore.isSearchActive = true"
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <circle cx="11" cy="11" r="7.5" stroke="#1C1C1E" stroke-width="2.2" />
-                <line x1="21" y1="21" x2="16.5" y2="16.5" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <circle cx="11" cy="11" r="7.5" stroke="#1C1C1E" stroke-width="2" />
+                <line x1="21" y1="21" x2="16.5" y2="16.5" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" />
               </svg>
             </button>
 
@@ -202,9 +204,9 @@ function handleAppWheel(e) {
               title="设置"
               @click="isSettingsOpen = true"
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="#1C1C1E" stroke-width="2" />
-                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="#1C1C1E" stroke-width="1.8" />
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="#1C1C1E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
               <span class="settings-red-dot"></span>
             </button>
@@ -262,8 +264,8 @@ function handleAppWheel(e) {
                 <circle cx="12" cy="12" r="10" :fill="active ? '#00C853' : '#656668'" />
                 <path d="M12 6.5V12L15.6 15" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
-              <!-- 联系人图标：实心面性人像剪影（未选深灰 #656668，选中纯绿染色 #00C853） -->
-              <svg v-else width="22" height="22" viewBox="0 0 24 24" :fill="active ? '#00C853' : '#656668'">
+              <!-- 联系人图标：实心面性人像剪影（未选纯黑 #1C1C1E，选中纯绿染色 #00C853） -->
+              <svg v-else width="20" height="20" viewBox="0 0 24 24" :fill="active ? '#00C853' : '#1C1C1E'">
                 <circle cx="12" cy="7.2" r="4.2" />
                 <path d="M4.5 19.5c0-3.6 3.4-6.3 7.5-6.3s7.5 2.7 7.5 6.3v0.5H4.5v-0.5z" />
               </svg>
@@ -378,18 +380,24 @@ function handleAppWheel(e) {
   margin-top: 2px;
 }
 
-/* 右上角快捷动作：搜索 & 电话设置 */
-.header-actions {
+/* 右上角快捷动作：高保真原厂白色圆角胶囊药丸，包裹搜索与设置 */
+.header-actions-pill {
   display: flex;
   align-items: center;
-  gap: 16px;
+  height: 38px;
+  background: #FFFFFF;
+  border-radius: 9999px;
+  padding: 2px 6px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border: 0.5px solid rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
 }
 
 .header-action-btn {
   position: relative;
   background: none;
   border: none;
-  padding: 6px;
+  padding: 6px 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -404,12 +412,13 @@ function handleAppWheel(e) {
 
 .settings-red-dot {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 5px;
+  right: 6px;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background-color: #FF3B30;
+  border: 1.5px solid #FFFFFF;
 }
 
 /* 联系人右侧快速字母检索条 */
@@ -497,7 +506,7 @@ function handleAppWheel(e) {
 
 .phone-app :deep(.floating-tab-bar:not(.theme-dark) .nav-highlight-pill) {
   display: block !important;
-  background: rgba(0, 200, 83, 0.12) !important; /* 柔和浅绿高亮背景胶囊，高保真还原原厂 */
+  background: rgba(0, 0, 0, 0.05) !important; /* 柔和浅灰高亮背景胶囊，100% 还原原厂真机 */
   box-shadow: none !important;
   border-radius: 9999px !important;
   width: 100% !important;
