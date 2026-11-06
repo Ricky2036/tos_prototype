@@ -364,9 +364,7 @@ defineExpose({ back })
     </div>
 
     <!-- 自动息屏时间：真机是底部弹层 -->
-    <Transition name="toast-fade">
-      <DisplayAutoSleepSheet v-if="showAutoSleepSheet" @close="showAutoSleepSheet = false" />
-    </Transition>
+    <DisplayAutoSleepSheet :visible="showAutoSleepSheet" @close="showAutoSleepSheet = false" />
 
     <!-- 浮动提示 Toast -->
     <transition name="toast-fade">

@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import SubPageShell from '../subpage/SubPageShell.vue'
 import ListCell from '../../../ui/ListCell.vue'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
+import SheetModal from '../../../ui/SheetModal.vue'
 import { useNotificationSettingsStore } from '../../../../stores/notificationSettingsStore'
 
 /**
@@ -78,18 +79,18 @@ function confirmReset() {
 
     <div class="card-note">控制中心的排布可在下拉后长按编辑。</div>
 
-    <!-- 还原确认弹窗 -->
-    <Transition name="toast-fade">
-      <div v-if="showResetDialog" class="cc-mask" @click.self="showResetDialog = false">
-        <div class="cc-dialog">
-          <div class="cc-dialog-title">是否将控制中心还原为出厂默认布局？</div>
-          <div class="cc-dialog-actions">
-            <button type="button" class="cc-btn ghost" @click="showResetDialog = false">取消</button>
-            <button type="button" class="cc-btn primary" @click="confirmReset">还原</button>
-          </div>
-        </div>
+    <!-- 还原确认弹窗（与其它弹层同一套出现动效） -->
+    <SheetModal
+      :visible="showResetDialog"
+      padding="24px 20px 18px"
+      @close="showResetDialog = false"
+    >
+      <div class="cc-dialog-title">是否将控制中心还原为出厂默认布局？</div>
+      <div class="cc-dialog-actions">
+        <button type="button" class="cc-btn ghost" @click="showResetDialog = false">取消</button>
+        <button type="button" class="cc-btn primary" @click="confirmReset">还原</button>
       </div>
-    </Transition>
+    </SheetModal>
 
     <Transition name="toast-fade">
       <div v-if="resetDone" class="cc-toast">已还原为出厂默认布局</div>
@@ -188,26 +189,6 @@ function confirmReset() {
 
 .cc-dots i.on {
   background: #6E6E73;
-}
-
-/* 确认弹窗 */
-.cc-mask {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.28);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 40px;
-  z-index: 30;
-}
-
-.cc-dialog {
-  width: calc(100% - 32px);
-  background: #FFFFFF;
-  border-radius: 22px;
-  padding: 24px 20px 18px;
-  box-sizing: border-box;
 }
 
 .cc-dialog-title {

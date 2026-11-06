@@ -404,7 +404,7 @@ defineExpose({ back })
     </div><!-- /.ai-main -->
 
     <!-- 智慧翻译隐私协议（首次进入翻译助手时弹出） -->
-    <Transition name="fade">
+    <Transition name="consent-rise" appear>
       <div v-if="showTranslateConsent" class="consent-mask" @click.self="cancelConsent">
         <div class="consent-card">
           <div class="consent-badge">
@@ -632,6 +632,27 @@ defineExpose({ back })
   pointer-events: none;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
   white-space: nowrap;
+}
+
+/* 隐私协议弹窗：与底部弹层同一套「自下而上」的运动语言（居中布局保持不变） */
+.consent-rise-enter-active,
+.consent-rise-leave-active {
+  transition: opacity 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.consent-rise-enter-active .consent-card,
+.consent-rise-leave-active .consent-card {
+  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.consent-rise-enter-from,
+.consent-rise-leave-to {
+  opacity: 0;
+}
+
+.consent-rise-enter-from .consent-card,
+.consent-rise-leave-to .consent-card {
+  transform: translateY(26px) scale(0.98);
 }
 
 .fade-enter-active,

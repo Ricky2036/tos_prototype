@@ -91,9 +91,7 @@ function setOn(row, value) {
       </ListCell>
     </div>
 
-    <Transition name="fade">
-      <NotifRemindStyleSheet v-if="showRemindSheet" @close="showRemindSheet = false" />
-    </Transition>
+    <NotifRemindStyleSheet :visible="showRemindSheet" @close="showRemindSheet = false" />
   </SubPageShell>
 </template>
 

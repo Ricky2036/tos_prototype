@@ -1,9 +1,13 @@
 <script setup>
+import SheetModal from '../../../ui/SheetModal.vue'
 import { useDisplaySettingsStore, AUTO_SLEEP_OPTIONS } from '../../../../stores/displaySettingsStore'
 
 /**
  * 「自动息屏时间」在真机上不是整页，而是底部弹层：标题 + 单选列表 + 取消。
  */
+defineProps({
+  visible: { type: Boolean, default: false }
+})
 const emit = defineEmits(['close'])
 const display = useDisplaySettingsStore()
 
@@ -14,9 +18,8 @@ function pick(option) {
 </script>
 
 <template>
-  <div class="sheet-mask" @click.self="emit('close')">
-    <div class="sheet">
-      <div class="sheet-title">自动息屏时间</div>
+  <SheetModal :visible="visible" padding="18px 12px 12px" @close="emit('close')">
+    <div class="sheet-title">自动息屏时间</div>
       <div class="sheet-options scrollable">
         <button
           v-for="opt in AUTO_SLEEP_OPTIONS"
@@ -29,33 +32,11 @@ function pick(option) {
           <span class="opt-radio" :class="{ checked: display.autoSleep === opt }"></span>
         </button>
       </div>
-      <button class="sheet-cancel" type="button" @click="emit('close')">取消</button>
-    </div>
-  </div>
+    <button class="sheet-cancel" type="button" @click="emit('close')">取消</button>
+  </SheetModal>
 </template>
 
 <style scoped>
-/* 与真机一致：悬浮卡片，四角圆角 + 四周留边（全宽贴底会把白色方角顶出屏幕圆角） */
-.sheet-mask {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.28);
-  display: flex;
-  align-items: flex-end;
-  padding: 0 16px 26px;
-  box-sizing: border-box;
-  z-index: 30;
-}
-
-.sheet {
-  width: 100%;
-  background: #FFFFFF;
-  border-radius: 26px;
-  padding: 18px 12px 12px;
-  box-sizing: border-box;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
-}
-
 .sheet-title {
   text-align: center;
   font-size: 17px;

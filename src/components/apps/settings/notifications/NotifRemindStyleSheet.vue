@@ -1,11 +1,15 @@
 <script setup>
 import { useNotificationSettingsStore } from '../../../../stores/notificationSettingsStore'
 import LIcon from '../../../ui/LIcon.vue'
+import SheetModal from '../../../ui/SheetModal.vue'
 
 /**
  * 通知提醒方式（状态栏 → 通知提醒方式）
  * 真机是底部弹层：4 个带图标的单选（通知图标 / 应用图标 / 数字 / 无）+ 取消。
  */
+defineProps({
+  visible: { type: Boolean, default: false }
+})
 const emit = defineEmits(['close'])
 const notifSettings = useNotificationSettingsStore()
 
@@ -25,9 +29,8 @@ function pick(value) {
 </script>
 
 <template>
-  <div class="rs-mask" @click.self="emit('close')">
-    <div class="rs-sheet">
-      <div class="rs-title">通知提醒方式</div>
+  <SheetModal :visible="visible" padding="20px 16px 14px" @close="emit('close')">
+    <div class="rs-title">通知提醒方式</div>
       <button
         v-for="opt in OPTIONS"
         :key="opt.value"
@@ -52,34 +55,11 @@ function pick(value) {
         <span class="rs-label">{{ opt.value }}</span>
         <span class="rs-radio" :class="{ checked: notifSettings.remindStyle === opt.value }"></span>
       </button>
-      <button class="rs-cancel" type="button" @click="emit('close')">取消</button>
-    </div>
-  </div>
+    <button class="rs-cancel" type="button" @click="emit('close')">取消</button>
+  </SheetModal>
 </template>
 
 <style scoped>
-/* 真机是「悬浮卡片」：左右和底部都留边、四个角都是圆的，
-   不能全宽贴底 —— 那样白色方角会顶出屏幕的圆角。 */
-.rs-mask {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.28);
-  display: flex;
-  align-items: flex-end;
-  padding: 0 16px 26px;
-  box-sizing: border-box;
-  z-index: 30;
-}
-
-.rs-sheet {
-  width: 100%;
-  background: #FFFFFF;
-  border-radius: 26px;
-  padding: 20px 16px 14px;
-  box-sizing: border-box;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
-}
-
 .rs-title {
   text-align: center;
   font-size: 17px;
