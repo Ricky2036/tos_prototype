@@ -72,11 +72,11 @@ const previewStyle = computed(() => ({
         <span>字体大小</span>
         <span class="slider-value">默认</span>
       </div>
-          <HSettingSlider
-            :model-value="display.fontSize"
-            @update:model-value="v => display.setNumber('fontSize', v)"
-            :ticks="3"
-          />
+        <HSettingSlider
+          :model-value="display.fontSize"
+          @update:model-value="v => display.setNumber('fontSize', v)"
+          :steps="5"
+        />
     </div>
 
     <div class="slider-block">
@@ -84,12 +84,11 @@ const previewStyle = computed(() => ({
         <span>字体粗细</span>
         <span class="slider-value">默认</span>
       </div>
-          <HSettingSlider
-            :model-value="display.fontWeight"
-            @update:model-value="v => display.setNumber('fontWeight', v)"
-            :ticks="3"
-          />
-        </div>
+        <HSettingSlider
+          :model-value="display.fontWeight"
+          @update:model-value="v => display.setNumber('fontWeight', v)"
+        />
+    </div>
       </div>
     </div>
   </SubPageShell>

@@ -452,3 +452,67 @@ test('应用全屏显示：用桌面注册的应用与真实图标，不用首�
   assert.doesNotMatch(src, /app\.letter/, '不该再用首字母色块')
   assert.doesNotMatch(src, /bg: '#F97316'/, '不该再有硬编码的品牌色块')
 })
+
+test('滑块控件按真机实测：轨道 10px / 圆点 22px + 3px 蓝环 / 无阴影 / 右端内缩', () => {
+  const src = read('src/components/apps/settings/subpage/HSettingSlider.vue')
+
+  const track = src.slice(src.indexOf('.h-slider-track {'), src.indexOf('.h-slider-fill {'))
+  assert.match(track, /height:\s*10px/, '轨道厚应为 10px（真机实测 10dp）')
+  assert.match(track, /background:\s*#EBEBEB/, '未填充轨道色')
+  assert.match(track, /margin-right:\s*11px/, '右端要内缩半个圆点')
+
+  const fill = src.slice(src.indexOf('.h-slider-fill {'), src.indexOf('.h-slider-thumb {'))
+  assert.match(fill, /background:\s*#3375F6/, '填充色应与真机一致')
+
+  const thumb = src.slice(src.indexOf('.h-slider-thumb {'))
+  assert.match(thumb, /width:\s*22px/, '圆点直径 22px')
+  assert.match(thumb, /border:\s*3px solid #3375F6/, '圆点 = 白底 + 3px 蓝环')
+  assert.doesNotMatch(thumb, /box-shadow/, '圆点不该有灰糊阴影（Ricky 指出过）')
+  assert.match(thumb, /box-sizing:\s*border-box/, '描边不能把圆点撑大')
+
+  // 刻度点：档位制（含首尾）与无极两种形态
+  assert.match(src, /h-slider-tick/, '缺少刻度点')
+  assert.match(src, /steps:\s*\{ type: Number/, '缺少 steps 属性')
+  assert.match(src, /v-for="i in \(steps > 1 \? steps : 0\)"/, '刻度点数量必须等于档位数（含首尾）')
+  assert.match(src, /\(\(i - 1\) \/ \(steps - 1\)\) \* 100/, '刻度点应铺在 0%..100%')
+  assert.match(src, /background:\s*#CECECE/, '未填充刻度点色')
+  assert.match(src, /background:\s*#77ABF8/, '已填充刻度点色')
+  assert.match(src, /Math\.round\(ratio \* segments\) \/ segments/, '档位制取值要吸附到档位')
+})
+
+test('字体页底部是「一张统一白卡」，预览区在其上方', () => {
+  const src = read('src/components/apps/settings/display/DisplayFont.vue')
+  assert.match(src, /class="font-sheet"/, '缺少底部统一卡片')
+  const sheet = src.slice(src.indexOf('.font-sheet {'), src.indexOf('.font-preview {'))
+  assert.match(sheet, /background:\s*#FFFFFF/, '卡片应为白底')
+  assert.match(sheet, /margin-top:\s*auto/, '卡片要固定在下方')
+
+  // 卡片里要同时装下我的字体 / 字体卡 / 两个滑块
+  const sheetStart = src.indexOf('class="font-sheet"')
+  const sheetEnd = src.indexOf('</SubPageShell>')
+  const inside = src.slice(sheetStart, sheetEnd)
+  assert.match(inside, /我的字体/, '卡片内缺少「我的字体」')
+  assert.match(inside, /font-cards/, '卡片内缺少字体卡')
+  assert.match(inside, /字体大小/, '卡片内缺少字号滑块')
+  assert.match(inside, /字体粗细/, '卡片内缺少字重滑块')
+})
+
+test('两种滑块：字体大小 5 档（含首尾）、字体粗细无极', () => {
+  const font = read('src/components/apps/settings/display/DisplayFont.vue')
+  assert.match(font, /:steps="5"/, '字号滑块应是 5 档')
+  // 字重那条不能带 steps
+  const weightBlock = font.slice(font.indexOf('字体粗细'), font.indexOf('</SubPageShell>'))
+  assert.doesNotMatch(weightBlock, /:steps=/, '字重滑块应为无极')
+})
+
+test('声音与振动页音量条也统一到同一套滑块视觉', () => {
+  const src = read('src/components/apps/settings/SettingsSound.vue')
+  const track = src.slice(src.indexOf('.slider-track {'), src.indexOf('.slider-fill {'))
+  assert.match(track, /height:\s*10px/, '音量条轨道应为 10px')
+  assert.match(track, /background:\s*#EBEBEB/, '未填充轨道色')
+  assert.match(track, /margin-right:\s*11px/, '右端内缩半个圆点')
+
+  const thumb = src.slice(src.indexOf('.slider-thumb {'), src.indexOf('.volume-divider'))
+  assert.match(thumb, /border:\s*3px solid #3375F6/, '圆点 = 白底 + 3px 蓝环')
+  assert.doesNotMatch(thumb, /box-shadow/, '音量条圆点也不该有投影')
+})

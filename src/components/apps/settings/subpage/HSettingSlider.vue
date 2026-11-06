@@ -12,8 +12,11 @@ const props = defineProps({
   rightLabel: { type: String, default: '' },
   middleLabel: { type: String, default: '' },
   disabled: { type: Boolean, default: false },
-  /** 轨道刻度点数量（真机字体页的滑块上是 3 个） */
-  ticks: { type: Number, default: 0 }
+  /**
+   * 档位数。0 = 无极（轨道上没有任何点，如振动强度）；
+   * N > 0 = 有 N 档（真机「字体大小」就是 5 档，0/25/50/75/100 每个档位一个点，**含首尾**）。
+   */
+  steps: { type: Number, default: 0 }
 })
 const emit = defineEmits(['update:modelValue'])
 
@@ -25,7 +28,12 @@ function setFromEvent(e) {
   const el = trackRef.value
   if (!el) return
   const r = el.getBoundingClientRect()
-  const ratio = clamp((e.clientX - r.left) / r.width, 0, 1)
+  let ratio = clamp((e.clientX - r.left) / r.width, 0, 1)
+  // 档位制：吸附到最近一档（真机「字体大小」只有 5 档）
+  if (props.steps > 1) {
+    const segments = props.steps - 1
+    ratio = Math.round(ratio * segments) / segments
+  }
   emit('update:modelValue', ratio)
 }
 
@@ -62,11 +70,11 @@ const pct = computed(() => `${clamp(props.modelValue, 0, 1) * 100}%`)
     >
       <div class="h-slider-fill" :style="{ width: pct }"></div>
       <i
-        v-for="n in ticks"
-        :key="n"
+        v-for="i in (steps > 1 ? steps : 0)"
+        :key="i"
         class="h-slider-tick"
-        :style="{ left: `${(n / (ticks + 1)) * 100}%` }"
-        :class="{ covered: (n / (ticks + 1)) * 100 <= parseFloat(pct) }"
+        :style="{ left: `${((i - 1) / (steps - 1)) * 100}%` }"
+        :class="{ covered: ((i - 1) / (steps - 1)) * 100 <= parseFloat(pct) + 0.01 }"
       ></i>
       <div class="h-slider-thumb" :style="{ left: pct }"></div>
     </div>
@@ -126,14 +134,15 @@ const pct = computed(() => `${clamp(props.modelValue, 0, 1) * 100}%`)
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #C7C7CC;
+  /* 真机实测：未填充区 #CECECE，已填充区 #77ABF8（蓝底上更浅的蓝） */
+  background: #CECECE;
   transform: translate(-50%, -50%);
   pointer-events: none;
+  z-index: 2;
 }
 
 .h-slider-tick.covered {
-  background: #FFFFFF;
-  opacity: 0.85;
+  background: #77ABF8;
 }
 
 .h-slider-thumb {

@@ -562,9 +562,11 @@ defineExpose({ back })
 
 .slider-track {
   width: 100%;
-  height: 6px;
-  background: #EDEDF0;
-  border-radius: 3px;
+  /* 与 HSettingSlider 同一套几何（真机实测：轨道 10px / 填充 #3375F6） */
+  height: 10px;
+  background: #EBEBEB;
+  border-radius: 5px;
+  margin-right: 11px;
   position: relative;
   cursor: pointer;
   touch-action: none;
@@ -572,8 +574,8 @@ defineExpose({ back })
 
 .slider-fill {
   height: 100%;
-  background: #007AFF;
-  border-radius: 3px;
+  background: #3375F6;
+  border-radius: 5px;
   position: absolute;
   left: 0;
   top: 0;
@@ -584,12 +586,13 @@ defineExpose({ back })
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
   border-radius: 50%;
   background: #FFFFFF;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  border: 2px solid #007AFF;
+  /* 白底 + 3px 蓝环，无投影（与其它滑块一致） */
+  border: 3px solid #3375F6;
   pointer-events: none;
 }
 
