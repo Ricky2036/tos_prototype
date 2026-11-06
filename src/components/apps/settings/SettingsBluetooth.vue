@@ -1,4 +1,5 @@
 <script setup>
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 import { useNetworkStore } from '../../../stores/networkStore'
 import { useSubPageNav } from '../../../composables/useSubPageNav'
@@ -112,15 +113,7 @@ defineExpose({ back })
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <!-- ================= 1. 全屏三级页：设备详情 ================= -->
       <div v-if="activeSubView === 'devDetail' && targetDev" key="devDetail" class="subpage-view-pane">
-        <div class="bt-nav-bar">
-          <button class="nav-round-btn" aria-label="返回" data-nav-back @click="closeSubView">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <div class="nav-title">设备详情</div>
-          <div class="nav-placeholder"></div>
-        </div>
+        <GlassNavBar title="设备详情" @back="closeSubView" />
 
       <div class="bt-scroll-body scrollable">
         <!-- 居中耳机/设备大图标与标题 (实机 1:1) -->
@@ -202,21 +195,15 @@ defineExpose({ back })
 
     <!-- ================= 2. 蓝牙主界面 ================= -->
     <div v-else key="main" class="subpage-view-pane">
-      <div class="bt-nav-bar">
-        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <div class="nav-title">蓝牙</div>
-        <button class="nav-round-btn" aria-label="更多选项" @click="showToast('蓝牙高级设置')">
+      <GlassNavBar title="蓝牙" @back="emit('back')">
+        <template #right><button class="nav-round-btn" aria-label="更多选项" @click="showToast('蓝牙高级设置')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="5" r="1.5" fill="#1C1C1E" />
             <circle cx="12" cy="12" r="1.5" fill="#1C1C1E" />
             <circle cx="12" cy="19" r="1.5" fill="#1C1C1E" />
           </svg>
-        </button>
-      </div>
+        </button></template>
+      </GlassNavBar>
 
       <!-- 滚动区域 -->
       <div class="bt-scroll-body scrollable">

@@ -1,4 +1,5 @@
 <script setup>
+import GlassNavBar from '../../../ui/GlassNavBar.vue'
 import { computed } from 'vue'
 import { useDeviceStore } from '../../../../stores/deviceStore'
 import ListCell from '../../../ui/ListCell.vue'
@@ -33,14 +34,7 @@ function handleSelectSize(sz) {
 <template>
   <div class="memfusion-page">
     <!-- 顶部导航栏 -->
-    <div class="sub-nav-bar">
-      <button class="nav-round-btn" aria-label="返回" type="button" @click="emit('back')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <div class="nav-title">MemFusion 融合内存</div>
-    </div>
+    <GlassNavBar title="MemFusion 融合内存" @back="emit('back')" />
 
     <!-- 滚动内容区 -->
     <div class="sub-scroll-body scrollable">

@@ -200,7 +200,7 @@ test('三级页统一使用共享外壳，不允许各写一套导航与卡片',
     const src = read(f)
     assert.match(src, /SubPageShell/, `${f} 没有使用共享外壳`)
     // 外壳之外不应再自己画导航栏
-    assert.doesNotMatch(src, /class="nav-round-btn"/, `${f} 自己又写了一版返回键`)
+    assert.doesNotMatch(src, /class="GlassNavBar"/, `${f} 自己又写了一版返回键`)
     // 导航统一走 GlassNavBar（全局控件），页面不再自绘
     assert.ok(!/class="sub-nav"/.test(src), `${f} 还在自己写导航条`)
   }

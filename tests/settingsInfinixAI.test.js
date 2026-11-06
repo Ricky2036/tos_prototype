@@ -13,7 +13,7 @@ test('SettingsInfinixAI.vue implements complete AI suite aligned with real phone
   // Top header & feature card
   assert.match(content, /Infinix AI/, 'Title should be Infinix AI')
   assert.match(content, /系统级 AI 功能一站式管理/, 'Feature description should match real device')
-  assert.match(content, /data-nav-back/, 'Should have back button with data-nav-back')
+  assert.match(content, /GlassNavBar/, 'Should render the shared GlassNavBar (back button lives inside it)')
 
   // Fola 三入口（命名以真机 Infinix X6878 为准：Fola语音 / Fola 之家 / Fola识屏）
   assert.match(content, /Fola语音/, 'Should contain Fola语音')

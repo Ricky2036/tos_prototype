@@ -15,7 +15,7 @@ const emit = defineEmits(['back', 'action'])
 
 <template>
   <div class="sub-shell">
-    <GlassNavBar :title="title" @back="emit('back')">
+    <GlassNavBar :title="title" overlay @back="emit('back')">
       <template v-if="$slots.navRight" #right><slot name="navRight"></slot></template>
     </GlassNavBar>
 

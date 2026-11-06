@@ -17,13 +17,19 @@ defineProps({
   title: { type: String, default: '' },
   showBack: { type: Boolean, default: true },
   /** 右上角是否留出按钮位（无内容时不占位） */
-  right: { type: Boolean, default: false }
+  right: { type: Boolean, default: false },
+  /**
+   * 是否作为浮层压在内容上（内容从玻璃下穿过、被虚化）。
+   * - false（默认）：占位模式，直接替换页面里自绘的导航条，布局不变；
+   * - true：浮层模式，调用方要给内容区留出 `--nav-h` 的顶部内边距。
+   */
+  overlay: { type: Boolean, default: false }
 })
 const emit = defineEmits(['back'])
 </script>
 
 <template>
-  <div class="glass-nav">
+  <div class="glass-nav" :class="{ 'is-overlay': overlay }">
     <!-- 玻璃层：半透明白 + 背景模糊，底部渐隐（内容滚过时被虚化，而不是硬切） -->
     <div class="gn-glass" aria-hidden="true"></div>
 
@@ -55,13 +61,20 @@ const emit = defineEmits(['back'])
 
 <style scoped>
 .glass-nav {
+  position: relative;
+  width: 100%;
+  height: var(--nav-h);
+  flex-shrink: 0;
+  z-index: 12;
+  pointer-events: none; /* 只有按钮和插槽接管事件 */
+}
+
+/* 浮层模式：压在内容上，内容滚过时被虚化（调用方负责给内容留白） */
+.glass-nav.is-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: var(--nav-h);
-  z-index: 12;
-  pointer-events: none; /* 只有按钮和插槽接管事件 */
 }
 
 /* 玻璃底：半透明白 + 模糊 + 底部渐隐 */

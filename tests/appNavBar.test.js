@@ -32,9 +32,9 @@ test('SettingsNotifications pages include AppNavBar headers across all subviews'
   const content = fs.readFileSync(notifSettingsPath, 'utf8')
 
   // Verified presence in all 5 subviews
-  assert.ok(content.includes('<GlassNavBar title="通知与状态栏"'), 'Main subview must render the shared glass nav')
-  assert.ok(content.includes('<GlassNavBar :title="i18n.t(\'nsLockScreenNotif\')"'), 'Lock screen subview must render the shared glass nav')
-  assert.ok(content.includes('<GlassNavBar :title="i18n.t(\'nsFloatingNotif\')"'), 'Floating subview must render the shared glass nav')
-  assert.ok(content.includes('<GlassNavBar :title="i18n.t(\'nsDynamicBar\')"'), 'Dynamic Bar subview must render the shared glass nav')
-  assert.ok(content.includes('<GlassNavBar :title="i18n.notifTitle(currentDetailApp.appId)"'), 'App detail subview must render AppNavBar')
+  assert.ok(/<GlassNavBar[^>]*:title="SETTINGS_TITLES\.notifications"/.test(content), 'Main subview must render the shared glass nav')
+  assert.ok(content.includes('SETTINGS_TITLES.lockScreenNotif'), 'Lock screen subview must render the shared glass nav')
+  assert.ok(content.includes('SETTINGS_TITLES.floatingNotif'), 'Floating subview must render the shared glass nav')
+  assert.ok(content.includes('SETTINGS_TITLES.dynamicBar'), 'Dynamic Bar subview must render the shared glass nav')
+  assert.ok(content.includes('i18n.notifTitle(currentDetailApp.appId)'), 'App detail subview must render the shared glass nav')
 })

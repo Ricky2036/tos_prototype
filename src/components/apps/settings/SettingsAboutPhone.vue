@@ -1,4 +1,5 @@
 <script setup>
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 import { useDeviceStore } from '../../../stores/deviceStore'
 import ListCell from '../../ui/ListCell.vue'
@@ -138,14 +139,7 @@ defineExpose({ back })
       <!-- ================= 二级首页：我的手机 ================= -->
       <div v-else key="aboutMain" class="about-main-container">
         <!-- 顶部导航栏：圆形微灰底返回键 + 左对齐标题 -->
-        <div class="about-nav-bar">
-          <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <div class="nav-title">我的手机</div>
-        </div>
+        <GlassNavBar title="我的手机" @back="emit('back')" />
 
         <!-- 滚动区域 -->
         <div class="about-scroll-body scrollable">

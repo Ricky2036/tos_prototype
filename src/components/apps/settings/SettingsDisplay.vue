@@ -1,4 +1,5 @@
 <script setup>
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 import '../../../styles/layer-transitions.css'
 import { ref, computed } from 'vue'
 import { useControlStore } from '../../../stores/controlStore'
@@ -150,14 +151,7 @@ defineExpose({ back })
     </Transition>
 
     <!-- 顶部导航栏：圆形微投影返回键 + 左对齐大标题 -->
-    <div v-if="!subPage" class="display-nav-bar">
-      <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <div class="nav-title">显示与亮度</div>
-    </div>
+    <GlassNavBar v-if="!subPage" title="显示与亮度" @back="emit('back')" />
 
     <!-- 滚动内容区 -->
     <div v-if="!subPage" class="display-scroll-body">

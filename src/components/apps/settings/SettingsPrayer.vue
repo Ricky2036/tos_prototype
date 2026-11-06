@@ -6,6 +6,7 @@ import { useSystemStore } from '../../../stores/systemStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import GlassNavBar from '../../ui/GlassNavBar.vue'
+import { SETTINGS_TITLES } from '../../../config/settingsTitles'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import TimePickerModal from '../../ui/TimePickerModal.vue'
 import ListCell from '../../ui/ListCell.vue'
@@ -413,7 +414,7 @@ function saveEdit() {
       <!-- ================= 1. 礼拜模式主列表页 ================= -->
       <div v-if="currentView === 'list'" key="list" class="prayer-subpage">
         <!-- 顶部导航：当前菜单名称「礼拜模式」左对齐 -->
-        <GlassNavBar :title="i18n.t('prayerDnd')" @back="emit('back')" />
+        <GlassNavBar :title="SETTINGS_TITLES.prayer" @back="emit('back')" />
 
         <div class="scrollable detail-body">
           <!-- 总开关 -->
@@ -520,7 +521,7 @@ function saveEdit() {
       <!-- ================= 2. 单项礼拜全屏设置页（标题为 x礼，如“晨礼”） ================= -->
       <div v-else-if="currentView === 'edit' && editingPrayer" key="edit" class="prayer-subpage">
         <!-- 顶部导航：标题为对应语言名称，左侧返回按钮「< 礼拜勿扰」 -->
-        <GlassNavBar :title="i18n.prayerName(editingPrayer.id)" :back-label="i18n.t('prayerDnd')" @back="handleEditBack" />
+        <GlassNavBar :title="i18n.prayerName(editingPrayer.id)" @back="handleEditBack" />
 
         <div class="scrollable detail-body">
           <!-- 时间与重复设置卡片（开始时间、结束时间、重复三行合一） -->
@@ -572,7 +573,7 @@ function saveEdit() {
       <!-- ================= 3. 提醒时间全屏二级页 ================= -->
       <div v-else-if="currentView === 'reminder'" key="reminder" class="prayer-subpage">
         <!-- 顶部导航：当前菜单名称「闹钟提醒」，左侧返回按钮「< 礼拜模式」 -->
-        <GlassNavBar :title="tr('prayerAlarmLinkage', '闹钟提醒', 'Alarm Reminder', 'অ্যালার্ম স্মারক')" :back-label="tr('prayerDnd', '礼拜模式', 'Prayer Mode', 'নামাজ মোড')" @back="handleReminderBack" />
+        <GlassNavBar :title="tr('prayerAlarmLinkage', '闹钟提醒', 'Alarm Reminder', 'অ্যালার্ম স্মারক')" @back="handleReminderBack" />
 
         <div class="scrollable detail-body">
           <div class="cell-group">
@@ -602,7 +603,6 @@ function saveEdit() {
       <div v-else-if="currentView === 'aiAnswer'" key="aiAnswer" class="prayer-subpage">
         <GlassNavBar
           :title="tr('aiAnswerNavTitle', 'AI接听', 'AI Answer', 'AI কল রিসিভ')"
-          :back-label="tr('prayerDnd', '礼拜模式', 'Prayer Mode', 'নামাজ মোড')"
           @back="handleAiAnswerBack"
         />
 

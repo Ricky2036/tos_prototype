@@ -7,6 +7,7 @@ import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import GlassNavBar from '../../ui/GlassNavBar.vue'
+import { SETTINGS_TITLES } from '../../../config/settingsTitles'
 import SettingsSearchBar from '../../ui/SettingsSearchBar.vue'
 import SettingsSystemIcon from '../../ui/SettingsSystemIcon.vue'
 import SettingsNotifications from './SettingsNotifications.vue'
@@ -198,10 +199,10 @@ const viewTitles = computed(() => ({
   general: '系统',
   language: '语言与输入法',
   navigation: '系统导航方式',
-  notifications: i18n.t('notifications') || '通知与状态栏',
+  notifications: SETTINGS_TITLES.notifications,
   sound: i18n.t('soundAndVibration') || '声音与振动',
-  dnd: i18n.t('dnd') || '勿扰模式',
-  prayer: i18n.t('prayerDnd') || '礼拜模式',
+  dnd: SETTINGS_TITLES.dnd,
+  prayer: SETTINGS_TITLES.prayer,
   personalization: '主题与个性化',
   about: '我的手机',
   sim: 'SIM 卡与网络设置',

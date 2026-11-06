@@ -1,4 +1,5 @@
 <script setup>
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 
 const emit = defineEmits(['back', 'open-backup', 'open-drive'])
@@ -66,21 +67,8 @@ function handleServiceClick(serviceKey) {
 <template>
   <div class="cloud-home-page">
     <!-- 顶部固定导航栏（视频中圆形返回按钮 + 云服务标题 + 右侧更多按钮） -->
-    <div class="cloud-nav-bar">
-      <button
-        type="button"
-        class="nav-circle-btn"
-        aria-label="返回账号"
-        @click="emit('back')"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 12H5M5 12L12 5M5 12L12 19" />
-        </svg>
-      </button>
-
-      <div class="nav-title">云服务</div>
-
-      <button
+    <GlassNavBar title="云服务" @back="emit('back')">
+      <template #right><button
         type="button"
         class="nav-circle-btn"
         aria-label="更多"
@@ -91,8 +79,8 @@ function handleServiceClick(serviceKey) {
           <circle cx="12" cy="12" r="2" />
           <circle cx="12" cy="18" r="2" />
         </svg>
-      </button>
-    </div>
+      </button></template>
+    </GlassNavBar>
 
     <!-- 页面滚动内容主体 -->
     <div class="cloud-scroll-body scrollable">

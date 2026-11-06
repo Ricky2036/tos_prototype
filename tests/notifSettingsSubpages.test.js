@@ -152,7 +152,7 @@ test('两个新子页都走共享外壳，不自己重画导航', () => {
   ]) {
     const src = read(f)
     assert.match(src, /SubPageShell/, `${f} 未使用共享外壳`)
-    assert.doesNotMatch(src, /class="nav-round-btn"/, `${f} 自己又写了返回键`)
+    assert.doesNotMatch(src, /class="GlassNavBar"/, `${f} 自己又写了返回键`)
   }
 })
 

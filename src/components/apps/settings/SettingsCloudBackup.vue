@@ -2,6 +2,7 @@
 import { ref, reactive, computed, onBeforeUnmount } from 'vue'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import GlassNavBar from '../../ui/GlassNavBar.vue'
+import { SETTINGS_TITLES } from '../../../config/settingsTitles'
 
 const emit = defineEmits(['back'])
 
@@ -465,7 +466,7 @@ function selectFreq(val) {
   <div class="cb-app">
     <!-- ================= 页面 1: 云备份首页 ================= -->
     <div v-if="currentPage === 'home'" class="cb-page">
-      <GlassNavBar title="云备份" @back="emit('back')" />
+      <GlassNavBar :title="SETTINGS_TITLES.cloudBackup" @back="emit('back')" />
 
       <div class="cb-sub-body scrollable">
 
@@ -765,7 +766,6 @@ function selectFreq(val) {
     <div v-else-if="currentPage === 'select' || currentPage === 'restore-select'" class="cb-page cb-sub">
       <GlassNavBar
         :title="pageTitles[currentPage]"
-        back-label="云备份"
         @back="popPage"
       />
 
@@ -834,7 +834,6 @@ function selectFreq(val) {
     <div v-else-if="currentPage === 'progress' || currentPage === 'restore-progress'" class="cb-page cb-sub">
       <GlassNavBar
         :title="currentPage === 'progress' ? '备份中' : '恢复中'"
-        back-label="云备份"
         @back="handleStopClick"
       />
 
@@ -966,7 +965,7 @@ function selectFreq(val) {
 
     <!-- ================= 页面 6: 自动备份设置 ================= -->
     <div v-else-if="currentPage === 'auto'" class="cb-page cb-sub">
-      <GlassNavBar title="自动备份" back-label="云备份" @back="popPage" />
+      <GlassNavBar :title="SETTINGS_TITLES.autoBackup" @back="popPage" />
 
       <div class="cb-sub-body scrollable">
         <div v-if="state.scenario === 'nospace'" class="cb-banner inline">

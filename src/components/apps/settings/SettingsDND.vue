@@ -4,6 +4,7 @@ import { usePrayerStore } from '../../../stores/prayerStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import GlassNavBar from '../../ui/GlassNavBar.vue'
+import { SETTINGS_TITLES } from '../../../config/settingsTitles'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 
 const emit = defineEmits(['back'])
@@ -14,7 +15,7 @@ const i18n = useI18nStore()
 
 <template>
   <div class="settings-dnd">
-    <GlassNavBar :title="i18n.t('dnd')" @back="emit('back')" />
+    <GlassNavBar :title="SETTINGS_TITLES.dnd" @back="emit('back')" />
 
     <div class="scrollable dnd-body">
       <!-- 顶部勿扰与定时开关卡片 -->

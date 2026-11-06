@@ -7,6 +7,7 @@ import LIcon from '../../ui/LIcon.vue'
 import SplitActionCell from '../../ui/SplitActionCell.vue'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import GlassNavBar from '../../ui/GlassNavBar.vue'
+import { SETTINGS_TITLES } from '../../../config/settingsTitles'
 import SettingsAppIcon from '../../ui/SettingsAppIcon.vue'
 import NotificationIcon from '../../ui/NotificationIcon.vue'
 import AppIcon from '../../ui/AppIcon.vue'
@@ -313,7 +314,7 @@ const emit = defineEmits(['back-to-settings'])
     <Transition :name="isBack ? 'slide-back' : 'slide'">
       <!-- ============ 主页 ============ -->
       <div v-if="subView === 'main'" key="main" class="ns-page scrollable">
-        <GlassNavBar title="通知与状态栏" @back="emit('back-to-settings')" />
+        <GlassNavBar overlay :title="SETTINGS_TITLES.notifications" @back="emit('back-to-settings')" />
 
         <div class="cell-group mt-first">
           <ListCell :title="i18n.t('nsStatusBar')" chevron clickable @click="go('statusBar')" />
@@ -413,7 +414,7 @@ const emit = defineEmits(['back-to-settings'])
 
       <!-- ============ 锁屏通知子页 ============ -->
       <div v-else-if="subView === 'lockScreen'" key="lock" class="ns-page scrollable">
-        <GlassNavBar :title="i18n.t('nsLockScreenNotif')" @back="back()" />
+        <GlassNavBar overlay :title="SETTINGS_TITLES.lockScreenNotif" @back="back()" />
 
         <div class="group-header mt-first">{{ i18n.t('nsLockStyle') }}</div>
         <div class="ns-style-cards">
@@ -464,7 +465,7 @@ const emit = defineEmits(['back-to-settings'])
 
       <!-- ============ 悬浮通知子页 ============ -->
       <div v-else-if="subView === 'floatingScreen'" key="float" class="ns-page scrollable">
-        <GlassNavBar :title="i18n.t('nsFloatingNotif')" @back="back()" />
+        <GlassNavBar overlay :title="SETTINGS_TITLES.floatingNotif" @back="back()" />
 
         <div class="cell-group mt4">
           <ListCell
@@ -525,7 +526,7 @@ const emit = defineEmits(['back-to-settings'])
 
       <!-- ============ Dynamic Bar 灵动岛子页 ============ -->
       <div v-else-if="subView === 'dynamicBar'" key="dynamicBar" class="ns-page scrollable">
-        <GlassNavBar :title="i18n.t('nsDynamicBar')" @back="back()" />
+        <GlassNavBar overlay :title="SETTINGS_TITLES.dynamicBar" @back="back()" />
 
         <!-- 头图：手机 + 灵动岛 -->
         <div class="db-hero">
@@ -668,7 +669,7 @@ const emit = defineEmits(['back-to-settings'])
 
       <!-- ============ 应用详情子页 ============ -->
       <div v-else key="detail" class="ns-page scrollable">
-        <GlassNavBar :title="i18n.notifTitle(currentDetailApp.appId)" @back="back()" />
+        <GlassNavBar overlay :title="i18n.notifTitle(currentDetailApp.appId)" @back="back()" />
 
         <div class="ns-app-hero">
           <NotificationIcon :type="currentDetailApp.iconType" :size="64" />

@@ -1,4 +1,5 @@
 <script setup>
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref, computed, onBeforeUnmount } from 'vue'
 import { useAccountStore } from '../../../stores/accountStore'
 
@@ -181,14 +182,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="account-security-page">
     <!-- 顶部导航栏 -->
-    <div class="security-nav-bar">
-      <button class="nav-round-btn" aria-label="返回" @click="emit('back')">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <div class="nav-title">账号安全</div>
-    </div>
+    <GlassNavBar title="账号安全" @back="emit('back')" />
 
     <!-- 主体滚动区域 -->
     <div class="security-scroll-body scrollable">

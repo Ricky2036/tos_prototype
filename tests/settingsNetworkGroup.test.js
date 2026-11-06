@@ -25,7 +25,7 @@ test('SettingsSim.vue implements complete SIM & Network settings aligned with re
   assert.match(content, /网络优化/, 'Should contain network acceleration')
   assert.match(content, /通话设置/, 'Should contain call settings in bottom hints')
   assert.match(content, /短信设置/, 'Should contain SMS settings in bottom hints')
-  assert.match(content, /data-nav-back/, 'Should have back button with data-nav-back')
+  assert.match(content, /GlassNavBar/, 'Should render the shared GlassNavBar (back button lives inside it)')
 })
 
 test('SettingsBluetooth.vue implements complete Bluetooth settings aligned with real phone', () => {
@@ -38,7 +38,7 @@ test('SettingsBluetooth.vue implements complete Bluetooth settings aligned with 
   assert.match(content, /OPPO Enco X3/, 'Should display paired headphone OPPO Enco X3')
   assert.match(content, /可用设备/, 'Should contain available devices section')
   assert.match(content, /22:22:18:AC:40:7C/, 'Should display Bluetooth MAC address')
-  assert.match(content, /data-nav-back/, 'Should have back button with data-nav-back')
+  assert.match(content, /GlassNavBar/, 'Should render the shared GlassNavBar (back button lives inside it)')
 })
 
 test('SettingsSatellite.vue implements complete Starlink Satellite settings aligned with real phone', () => {
@@ -56,7 +56,7 @@ test('SettingsSatellite.vue implements complete Starlink Satellite settings alig
   assert.match(content, /1\. 地区限制/, 'Note item 1: Region restriction')
   assert.match(content, /2\. 环境干扰/, 'Note item 2: Environment interference')
   assert.match(content, /3\. 资费与套餐/, 'Note item 3: Tariffs and plans')
-  assert.match(content, /data-nav-back/, 'Should have back button with data-nav-back')
+  assert.match(content, /GlassNavBar/, 'Should render the shared GlassNavBar (back button lives inside it)')
 })
 
 test('SettingsApp.vue integrates Network & Connection group into navigation and search', () => {

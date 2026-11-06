@@ -47,7 +47,7 @@ test('SettingsAccount.vue contains all UI elements matching reference specificat
 
   // 顶部导航栏
   assert.ok(content.includes('Infinix ID'), 'Navbar must contain Infinix ID title')
-  assert.ok(content.includes('nav-round-btn'), 'Navbar must contain circular action buttons')
+  assert.ok(content.includes('GlassNavBar'), 'Navbar must contain circular action buttons')
 
   // 头像圆形样式
   assert.ok(content.includes('border-radius: 50%'), 'Profile avatar wrap must have circular border-radius')
