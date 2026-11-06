@@ -241,11 +241,11 @@ const ISLAND_SERVICES = [
  * 底色取自真机截图（/tmp/ref/g6/00_now.png）。
  */
 const LIVE_ACTIVITY_APPS = [
-  // 与真机截图（/tmp/ref/g6/00_now.png）一致：当前只列出这三项 + 「更多服务」开关行。
-  // 真机列表是按当前有实时活动的应用动态生成，原型固定这几项近似。
-  { key: 'googleMaps', label: 'Google Maps', subtitle: '导航服务', iconType: 'google', bg: '#FFFFFF' },
-  { key: 'hiTranslate', label: 'Hi Translate', subtitle: '实时翻译服务', custom: 'translate', bg: 'linear-gradient(135deg, #2F6BF6 0%, #4FA3FF 100%)' },
-  { key: 'songRecog', label: '听歌识曲', subtitle: '音乐识别服务', custom: 'song', bg: 'linear-gradient(135deg, #FFE3EC 0%, #E7DBFF 100%)' }
+  // 真机取色（/tmp/ref/g7/03_dynbar.png）：Google/Hi Translate/听歌识曲 都是白底应用图标，
+  // 「更多服务」是 #8792A3 蓝灰底 + 白色四宫格。
+  { key: 'googleMaps', label: 'Google Maps', subtitle: '导航服务', icon: 'mapPin', color: '#EA4335', bg: '#FFFFFF' },
+  { key: 'hiTranslate', label: 'Hi Translate', subtitle: '实时翻译服务', icon: 'languages', color: '#FFFFFF', bg: '#2A64F6' },
+  { key: 'songRecog', label: '听歌识曲', subtitle: '音乐识别服务', ring: true, bg: '#FFFFFF' }
 ]
 
 const appLiveActivityStates = ref({})
@@ -503,14 +503,15 @@ const emit = defineEmits(['back-to-settings'])
           <div class="db-figure">
             <div class="db-figure-phone">
               <span class="db-figure-hole"></span>
-              <span class="db-figure-pill">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFB020" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 7h9l6 3v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z" />
-                </svg>
+              <!-- 图标残影（真机上是虚化的） -->
+              <span class="db-figure-blur"></span>
+              <!-- 状态栏通知条（浅灰宽胶囊，左侧带小图标） -->
+              <span class="db-figure-card">
+                <span class="db-figure-card-icon"></span>
               </span>
-              <div class="db-figure-grid">
-                <i v-for="n in 24" :key="n"></i>
-              </div>
+              <!-- 展开后的灵动岛 -->
+              <span class="db-figure-expand"></span>
+              <!-- 点击/按压指示环 -->
               <span class="db-figure-tap"></span>
             </div>
           </div>
@@ -528,21 +529,16 @@ const emit = defineEmits(['back-to-settings'])
             :subtitle="app.subtitle"
           >
             <template #icon>
-              <div class="db-live-icon" :style="{ background: app.bg }">
-                <NotificationIcon v-if="app.iconType" :type="app.iconType" :size="30" />
-                <svg v-else-if="app.custom === 'translate'" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <text x="2" y="17" font-size="15" font-weight="700" fill="#FFFFFF" font-family="-apple-system, sans-serif">文</text>
-                  <text x="14" y="21" font-size="9" font-weight="700" fill="#FFFFFF" font-family="-apple-system, sans-serif">A</text>
-                </svg>
-                <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="8.6" stroke="url(#songGrad)" stroke-width="2.6" />
-                  <path d="M10 9.4l5 2.6-5 2.6z" fill="#7C6BF6" />
-                  <defs>
-                    <linearGradient id="songGrad" x1="3" y1="3" x2="21" y2="21">
-                      <stop stop-color="#FF7BA8" /><stop offset="1" stop-color="#7C6BF6" />
-                    </linearGradient>
-                  </defs>
-                </svg>
+              <div class="db-live-icon" :class="{ 'has-ring': app.ring }" :style="{ background: app.bg }">
+                <!-- 听歌识曲：白底 + 彩色声波圆环（真机就是这个形态） -->
+                <span v-if="app.ring" class="song-ring"></span>
+                <LIcon
+                  v-else
+                  :name="app.icon"
+                  :size="20"
+                  :stroke-width="2"
+                  :style="{ color: app.color }"
+                />
               </div>
             </template>
             <template #right>
@@ -555,8 +551,8 @@ const emit = defineEmits(['back-to-settings'])
           </ListCell>
           <ListCell title="更多服务" subtitle="更多支持实时更新通知的服务" last>
             <template #icon>
-              <div class="db-live-icon" style="background: #EFEFF2">
-                <LIcon name="grid2x2" :size="17" :stroke-width="2.1" style="color: #6E6E73" />
+              <div class="db-live-icon" style="background: #8792A3">
+                <LIcon name="grid2x2" :size="19" :stroke-width="2.2" style="color: #FFFFFF" />
               </div>
             </template>
             <template #right>
@@ -1072,65 +1068,87 @@ const emit = defineEmits(['back-to-settings'])
   align-items: flex-start;
 }
 
+/* 真机只露手机上半部：机身画满整高，底部被容器裁掉 */
 .db-figure-phone {
   position: relative;
-  width: 200px;
+  width: 204px;
   height: 437px;
   border-radius: 30px;
-  border: 1.5px solid #D3D3D8;
-  background: #F2F2F7;
+  border: 1.6px solid #C7C7CC;
+  background: #FAFAFB;
   box-sizing: border-box;
-  padding: 8px 16px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   flex: none;
 }
 
 .db-figure-hole {
-  width: 8px;
-  height: 8px;
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: #1C1C1E;
-  margin: 6px 0 14px;
 }
 
-.db-figure-pill {
-  width: 74px;
-  height: 26px;
-  border-radius: 13px;
-  background: #111111;
+/* 通知条上方那团被虚化的图标残影 */
+.db-figure-blur {
+  position: absolute;
+  top: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 168px;
+  height: 54px;
+  border-radius: 14px;
+  background: linear-gradient(100deg, #E6EDF8 0%, #F3EEFA 60%, #EAF3F7 100%);
+  filter: blur(7px);
+  opacity: 0.95;
+}
+
+.db-figure-card {
+  position: absolute;
+  top: 146px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 190px;
+  height: 34px;
+  border-radius: 12px;
+  background: #F1F1F3;
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
+  padding-left: 11px;
+  box-sizing: border-box;
+}
+
+.db-figure-card-icon {
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  background: #DCE3F0;
+}
+
+.db-figure-expand {
+  position: absolute;
+  top: 172px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 42px;
+  height: 56px;
+  border-radius: 14px;
+  background: #6E6E73;
   z-index: 2;
 }
 
 .db-figure-tap {
   position: absolute;
-  top: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 58px;
-  height: 58px;
+  top: 178px;
+  left: 54%;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: rgba(120, 120, 128, 0.24);
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px #8E8E93 inset;
   z-index: 3;
-}
-
-.db-figure-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  width: 100%;
-}
-
-.db-figure-grid i {
-  display: block;
-  aspect-ratio: 1;
-  border-radius: 9px;
-  background: #E7E7EA;
 }
 
 /* 实时活动：真实应用图标 + 真机底色 */
@@ -1144,6 +1162,32 @@ const emit = defineEmits(['back-to-settings'])
   flex: none;
   overflow: hidden;
   border: 0.5px solid rgba(0, 0, 0, 0.06);
+}
+
+/* 听歌识曲：白底 + 彩色声波圆环 */
+.db-live-icon.has-ring {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.song-ring {
+  width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  background: conic-gradient(from 200deg, #7FD0E8 0deg, #E8A0B4 120deg, #C6A8E8 240deg, #7FD0E8 360deg);
+  -webkit-mask: radial-gradient(circle, transparent 0 44%, #000 45% 100%);
+  mask: radial-gradient(circle, transparent 0 44%, #000 45% 100%);
+  position: relative;
+}
+
+.song-ring::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #A9A2B3;
 }
 
 .db-hero-title {

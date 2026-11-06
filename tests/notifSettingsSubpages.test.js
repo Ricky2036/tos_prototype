@@ -271,8 +271,13 @@ test('控制中心页含还原确认弹窗（真机交互）', () => {
 
 test('Dynamic Bar 用到的 lucide 图标名必须真实存在（写错会静默渲染空白）', () => {
   const src = read('src/components/apps/settings/SettingsNotifications.vue')
-  const names = [...new Set([...src.matchAll(/lucide: '([A-Za-z0-9-]+)'/g)].map(m => m[1]))]
-  assert.ok(names.length >= 8, `解析到的 lucide 图标偏少：${names.length}`)
+  // 系统服务用 lucide: 'xxx'，实时活动用 icon: 'xxx'，两种写法都要校验
+  // ⚠️ 捕获组要允许连字符，否则「写错成 map-pin」会被正则直接跳过而漏报
+  const serviceIcons = [...src.matchAll(/lucide: '([A-Za-z0-9-]+)'/g)].map(m => m[1])
+  const liveIcons = [...src.matchAll(/icon: '([A-Za-z0-9-]+)'/g)].map(m => m[1])
+  const names = [...new Set([...serviceIcons, ...liveIcons])]
+  assert.ok(serviceIcons.length >= 10, `系统服务图标偏少：${serviceIcons.length}`)
+  assert.ok(liveIcons.length >= 2, `实时活动图标偏少：${liveIcons.length}`)
 
   const lucideSrc = read('src/assets/icons/lucide.js')
   const exportBlock = lucideSrc.slice(lucideSrc.indexOf('export const LUCIDE = {'))

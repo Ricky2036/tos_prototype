@@ -1,5 +1,6 @@
 <script setup>
 import { useNotificationSettingsStore } from '../../../../stores/notificationSettingsStore'
+import LIcon from '../../../ui/LIcon.vue'
 
 /**
  * 通知提醒方式（状态栏 → 通知提醒方式）
@@ -8,11 +9,13 @@ import { useNotificationSettingsStore } from '../../../../stores/notificationSet
 const emit = defineEmits(['close'])
 const notifSettings = useNotificationSettingsStore()
 
+// 真机形态（/tmp/ref/g7/00.png）：都是 ~26px 的小方章——深灰底三点、蓝底对话气泡、
+// 深灰圆形「3」、无底色只有禁止符。颜色取自真机截图。
 const OPTIONS = [
-  { value: '通知图标', icon: 'dots' },
-  { value: '应用图标', icon: 'app' },
-  { value: '数字', icon: 'badge' },
-  { value: '无', icon: 'none' }
+  { value: '通知图标', shape: 'dots', bg: '#3A3A3C' },
+  { value: '应用图标', shape: 'bubble', bg: '#2F6BF6' },
+  { value: '数字', shape: 'badge', bg: '#3A3A3C', round: true },
+  { value: '无', shape: 'none', bg: 'transparent' }
 ]
 
 function pick(value) {
@@ -33,25 +36,18 @@ function pick(value) {
         @click="pick(opt.value)"
       >
         <span class="rs-icon">
-          <!-- 通知图标：三点 -->
-          <svg v-if="opt.icon === 'dots'" width="20" height="20" viewBox="0 0 24 24" fill="#3C3C43">
-            <circle cx="7" cy="12" r="2.2" /><circle cx="12" cy="12" r="2.2" /><circle cx="17" cy="12" r="2.2" />
-          </svg>
-          <!-- 应用图标 -->
-          <svg v-else-if="opt.icon === 'app'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2F6BF6" stroke-width="1.8" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="16" rx="4" />
-            <path d="M7 10h6M7 14h4" stroke-linecap="round" />
-          </svg>
-          <!-- 数字 -->
-          <svg v-else-if="opt.icon === 'badge'" width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="9" fill="#3C3C43" />
-            <text x="12" y="16" text-anchor="middle" font-size="11" font-weight="700" fill="#FFFFFF" font-family="-apple-system, sans-serif">3</text>
-          </svg>
-          <!-- 无 -->
-          <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3C3C43" stroke-width="1.9">
-            <circle cx="12" cy="12" r="8.5" />
-            <path d="M6.2 6.2l11.6 11.6" stroke-linecap="round" />
-          </svg>
+          <span v-if="opt.shape !== 'none'" class="rs-chip" :class="{ round: opt.round }" :style="{ background: opt.bg }">
+            <!-- 通知图标：三点 -->
+            <svg v-if="opt.shape === 'dots'" width="15" height="15" viewBox="0 0 24 24" fill="#FFFFFF">
+              <circle cx="6" cy="12" r="2.1" /><circle cx="12" cy="12" r="2.1" /><circle cx="18" cy="12" r="2.1" />
+            </svg>
+            <!-- 应用图标：对话气泡（复用 lucide） -->
+            <LIcon v-else-if="opt.shape === 'bubble'" name="messageCircle" :size="16" :stroke-width="2.2" style="color: #FFFFFF" />
+            <!-- 数字 -->
+            <span v-else class="rs-badge">3</span>
+          </span>
+          <!-- 无：只有禁止符 -->
+          <LIcon v-else name="ban" :size="24" :stroke-width="2" style="color: #1C1C1E" />
         </span>
         <span class="rs-label">{{ opt.value }}</span>
         <span class="rs-radio" :class="{ checked: notifSettings.remindStyle === opt.value }"></span>
@@ -101,12 +97,32 @@ function pick(value) {
 }
 
 .rs-icon {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
+}
+
+.rs-chip {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rs-chip.round {
+  border-radius: 50%;
+}
+
+.rs-badge {
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1;
 }
 
 .rs-label {

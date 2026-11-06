@@ -281,6 +281,8 @@ test('Dynamic Bar 头图必须是「被裁切的半部手机」（Ricky 2026-11-
   // 机身内部与页面同色，只留描边（真机效果）
   assert.doesNotMatch(phone, /background:\s*#FFFFFF/, '机身不该是白底')
 
-  // 网格要铺到裁切边，不能只有几行
-  assert.match(src, /v-for="n in (1[6-9]|2\d)"[^>]*><\/i>|<i v-for="n in (1[6-9]|2\d)"/, '头图网格格数太少，填不满裁切区')
+  // 构图必须与真机一致：状态栏通知条 + 展开的岛 + 点击指示环
+  assert.match(src, /db-figure-card/, '缺少状态栏通知条')
+  assert.match(src, /db-figure-expand/, '缺少展开后的灵动岛')
+  assert.match(src, /db-figure-tap/, '缺少点击指示环')
 })
