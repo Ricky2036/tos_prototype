@@ -161,3 +161,21 @@ test('Settings home uses the exported Figma system icon set', () => {
     assert.match(app, new RegExp(`SettingsSystemIcon name="${name}"`), `${name} should be used on Settings home`)
   }
 })
+
+test('点击搜索后的底部栏与首页搜索框同一规格（44 高 / 22 圆角 / 左右 16 / 离底 25）', () => {
+  const src = fs.readFileSync(path.resolve('src/components/apps/settings/SettingsSearch.vue'), 'utf-8')
+
+  // 返回圆钮与输入胶囊必须同高 44（原来 48，比首页搜索框大一圈）
+  const btn = src.slice(src.indexOf('.search-back-circle-btn {'), src.indexOf('.search-back-circle-btn:active'))
+  assert.match(btn, /width:\s*44px/, 'back circle should be 44px')
+  assert.match(btn, /height:\s*44px/, 'back circle should be 44px tall')
+
+  const cap = src.slice(src.indexOf('.search-capsule-input-wrap {'), src.indexOf('.search-input'))
+  assert.match(cap, /height:\s*44px/, 'input capsule should be 44px tall')
+  assert.match(cap, /border-radius:\s*22px/, 'input capsule radius should be 22px')
+
+  // 底部栏留白：左右 16、离底 25
+  const bar = src.slice(src.indexOf('.search-bottom-bar {'), src.indexOf('.search-back-circle-btn {'))
+  assert.match(bar, /padding:\s*12px 16px 25px 16px/, 'bottom bar should use 16/25 paddings')
+  assert.match(bar, /gap:\s*16px/, 'gap between back button and capsule should be 16px')
+})

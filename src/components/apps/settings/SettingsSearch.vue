@@ -503,8 +503,9 @@ onMounted(() => {
   right: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 18px calc(var(--safe-bottom, 34px) + 8px) 18px;
+  /* 真机实测：左右 16、与首页搜索框同样的离底 25、圆钮与胶囊间距 ≈16 */
+  gap: 16px;
+  padding: 12px 16px 25px 16px;
   background: linear-gradient(180deg, rgba(248, 249, 250, 0) 0%, rgba(248, 249, 250, 0.95) 24%, #F8F9FA 100%);
   pointer-events: auto;
   box-sizing: border-box;
@@ -512,12 +513,13 @@ onMounted(() => {
 
 /* 左侧圆形返回按钮 */
 .search-back-circle-btn {
-  width: 48px;
-  height: 48px;
+  /* 真机 44（与胶囊同高） */
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: #FFFFFF;
   border: 0.5px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -535,11 +537,12 @@ onMounted(() => {
 /* 右侧胶囊输入框容器 */
 .search-capsule-input-wrap {
   flex: 1;
-  height: 48px;
-  border-radius: 24px;
+  /* 真机 44 高、圆角 22（原来是 48/24，比首页搜索框大一圈） */
+  height: 44px;
+  border-radius: 22px;
   background: #FFFFFF;
   border: 0.5px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
   padding: 0 16px;
