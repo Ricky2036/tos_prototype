@@ -310,9 +310,32 @@ const setTopIn = async (rootSel, t) => {
     for (let i = 0; i < 3; i += 1) { await apply(); await wait(240); await twoFrames() }
     return
   }
-  await apply()
-  await wait(240)
-  await twoFrames()
+  /* 🔴 数值目标同样会被 scroll anchoring 往回修：实测设 36 → 锚定拉到 22，
+     而**样式是按 24 算的**（差一帧），于是 progress 与 scrollTop 对不上 ⇒ 假红。
+     做法：连设到收敛（以稳定后的 scrollTop 作为下一次目标），让「位置」和「样式」在同一帧达成一致。 */
+  const readTop = () => p.evaluate((root) => {
+    const app = document.querySelector(root)
+    const sc = [...app.querySelectorAll('*')].find(
+      (e) => /auto|scroll/.test(getComputedStyle(e).overflowY) && e.scrollHeight - e.clientHeight > 4
+    )
+    return sc ? sc.scrollTop : null
+  }, rootSel)
+
+  let want = t
+  for (let i = 0; i < 3; i += 1) {
+    await p.evaluate(([root, v]) => {
+      const app = document.querySelector(root)
+      const sc = [...app.querySelectorAll('*')].find(
+        (e) => /auto|scroll/.test(getComputedStyle(e).overflowY) && e.scrollHeight - e.clientHeight > 4
+      )
+      if (sc) sc.scrollTop = v
+    }, [rootSel, want])
+    await wait(220)
+    await twoFrames()
+    const now = await readTop()
+    if (now === null || Math.abs(now - want) < 1) break
+    want = now
+  }
 }
 /** 只比「曲线与遮蔽契约」这些量（不含 maxScroll 等页面自有的东西） */
 const curveOf = (x) => JSON.stringify({
