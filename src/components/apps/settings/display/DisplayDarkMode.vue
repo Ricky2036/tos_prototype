@@ -3,7 +3,7 @@ import SubPageShell from '../subpage/SubPageShell.vue'
 import ListCell from '../../../ui/ListCell.vue'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 import { useDisplaySettingsStore } from '../../../../stores/displaySettingsStore'
-import wallpaperPreview from '../../../../assets/img/album-2.jpg'
+import wallpaperPreview from '../../../../assets/img/wallpaper-lock.jpg'
 
 const emit = defineEmits(['back'])
 const display = useDisplaySettingsStore()
@@ -28,6 +28,6 @@ const display = useDisplaySettingsStore()
 
 <style scoped>
 .dark-preview {
-  height: 180px;
+  height: 176px;
 }
 </style>

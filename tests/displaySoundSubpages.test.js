@@ -408,3 +408,25 @@ test('护眼「定时开启」：三档与真机一致，非法值被拒', () =>
   const eyecare = read('src/components/apps/settings/display/DisplayEyeCare.vue')
   assert.match(eyecare, /@click="showSchedule = true"/, '护眼页的「定时开启」必须可点')
 })
+
+test('亮度条端点要与卡片内容边距对齐（滑块居中会外溢半个滑块宽）', () => {
+  const src = read('src/components/apps/settings/SettingsDisplay.vue')
+  const track = src.slice(src.indexOf('.slider-track {'), src.indexOf('.slider-fill {'))
+  const thumb = src.slice(src.indexOf('.slider-thumb {'), src.indexOf('}', src.indexOf('.slider-thumb {')))
+
+  const thumbW = Number((thumb.match(/width:\s*(\d+)px/) || [])[1] || 0)
+  const inset = Number((track.match(/margin-right:\s*(\d+)px/) || [])[1] || 0)
+
+  assert.ok(thumbW > 0, '滑块必须是固定宽度')
+  assert.equal(
+    inset,
+    Math.round(thumbW / 2),
+    `滑块的右内缩应等于半个滑块宽（${thumbW}/2=${thumbW / 2}px），当前 ${inset}px —— 否则 100% 时会顶出卡片`
+  )
+})
+
+test('深色主题设置用真正的壁纸预览，不是商品照', () => {
+  const src = read('src/components/apps/settings/display/DisplayDarkMode.vue')
+  assert.match(src, /wallpaper-lock\.jpg/, '应使用壁纸图')
+  assert.doesNotMatch(src, /album-2\.jpg/, '不该再用专辑/商品照片当壁纸预览')
+})

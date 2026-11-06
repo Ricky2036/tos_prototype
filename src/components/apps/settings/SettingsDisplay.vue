@@ -644,6 +644,9 @@ defineExpose({ back })
   position: relative;
   cursor: pointer;
   touch-action: none;
+  /* 滑块是 22px 且以 left 百分比居中，右端要内缩半个滑块宽，
+     否则 100% 时滑块会顶出卡片右边距（Ricky 2026-11-06 指出「亮度条太长」） */
+  margin-right: 11px;
 }
 
 .slider-fill {
