@@ -1,9 +1,26 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { usePhoneStore } from '../../../stores/phoneStore'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['scroll', 'openFlashCall'])
+
+// 切换分类筛选（吸顶状态保持机制：当处于折叠吸顶状态时切换分类，TAB绝不跳动，标题绝不弹回展开态）
+function selectFilter(filterType) {
+  if (phoneStore.recentsFilter === filterType) return
+  const scroller = document.querySelector('.phone-scroll-viewport')
+  const currentScroll = scroller ? scroller.scrollTop : 0
+  const isCollapsed = currentScroll >= 56
+
+  phoneStore.recentsFilter = filterType
+
+  if (isCollapsed && scroller) {
+    // 强制锚定折叠吸顶位置，杜绝内容变化引起滚动条跳变重置
+    nextTick(() => {
+      scroller.scrollTop = Math.max(currentScroll, 64)
+    })
+  }
+}
 
 // 滑动状态检测
 let touchStartY = 0
@@ -60,14 +77,14 @@ function triggerFlashCallBanner() {
       <button
         class="filter-tab-btn"
         :class="{ active: phoneStore.recentsFilter === 'all' }"
-        @click="phoneStore.recentsFilter = 'all'"
+        @click="selectFilter('all')"
       >
         全部类型
       </button>
       <button
         class="filter-tab-btn"
         :class="{ active: phoneStore.recentsFilter === 'missed' }"
-        @click="phoneStore.recentsFilter = 'missed'"
+        @click="selectFilter('missed')"
       >
         未接来电
       </button>
@@ -156,6 +173,7 @@ function triggerFlashCallBanner() {
   display: flex;
   flex-direction: column;
   width: 100%;
+  min-height: calc(100% + 200px);
   background: #FFFFFF;
 }
 
@@ -365,6 +383,6 @@ function triggerFlashCallBanner() {
 }
 
 .bottom-safe-space {
-  height: 140px;
+  height: 180px;
 }
 </style>

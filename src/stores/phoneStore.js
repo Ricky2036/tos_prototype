@@ -54,7 +54,7 @@ export const usePhoneStore = defineStore('phone', () => {
     gestureAnswer: false
   })
 
-  // 纯模拟通话记录数据（全面消除任何真实个人记录与真实号码）
+  // 纯模拟通话记录数据（全面消除任何真实个人记录与真实号码，按真机截图 1:1 补充丰富数据）
   const recents = ref([
     {
       id: 'r1',
@@ -68,76 +68,97 @@ export const usePhoneStore = defineStore('phone', () => {
     },
     {
       id: 'r2',
-      name: '',
-      number: '181 0000 2233',
+      name: '400 888 8853',
+      number: '400 888 8853',
       type: 'missed',
-      tag: '广东深圳',
-      hd: true,
-      time: '04:45 下午',
+      tag: '中国',
+      hd: false,
+      time: '12:18 下午',
       date: '今天'
     },
     {
       id: 'r3',
-      name: '咨询专线',
-      number: '0755 8888 1814',
+      name: '181 2206 7312',
+      number: '181 2206 7312',
       type: 'missed',
-      tag: '广东深圳',
+      tag: '广东省深圳市',
       hd: true,
-      time: '04:44 下午',
-      date: '今天'
+      time: '11/4',
+      date: '11/4'
     },
     {
       id: 'r4',
-      name: '业务专员',
-      number: '0755 8888 4106',
+      name: '0755 6169 1814',
+      number: '0755 6169 1814',
       type: 'missed',
-      tag: '广东深圳',
+      tag: '广东省深圳市',
       hd: true,
-      time: '04:43 下午',
-      date: '今天'
+      time: '11/4',
+      date: '11/4'
     },
     {
       id: 'r5',
-      name: '顺丰速运',
-      number: '133 0000 5371',
+      name: '0755 6164 4106',
+      number: '0755 6164 4106',
       type: 'missed',
-      tag: '广东深圳',
+      tag: '广东省深圳市',
       hd: true,
-      time: '04:31 下午',
-      date: '今天'
+      time: '11/4',
+      date: '11/4'
     },
     {
       id: 'r6',
-      name: '陈晓敏',
-      number: '136 8888 2233',
-      type: 'incoming',
-      tag: '单位',
+      name: '133 4291 5371',
+      number: '133 4291 5371',
+      type: 'missed',
+      tag: '广东省深圳市',
       hd: true,
-      time: '07:55 上午',
-      date: '今天'
+      time: '11/4',
+      date: '11/4'
     },
     {
       id: 'r7',
-      name: '广州分部',
-      number: '020 8888 0028',
+      name: '020 6294 0028',
+      number: '020 6294 0028',
       type: 'missed',
-      tag: '广东广州',
+      tag: '广东省广州市',
       hd: true,
-      time: '昨天',
+      time: '11/3',
       date: '11/3'
     },
     {
       id: 'r8',
-      name: '全国客服热线',
-      number: '400 100 6859',
+      name: '400 101 6859',
+      number: '400 101 6859',
       type: 'missed',
-      tag: '全国客服',
+      tag: '中国',
       hd: true,
-      time: '前天',
+      time: '11/2',
       date: '11/2'
     },
     {
       id: 'r9',
+      name: 'A老婆',
+      count: 2,
+      number: '139 0000 8822',
+      type: 'missed',
+      tag: '手机',
+      hd: true,
+      time: '11/2',
+      date: '11/2'
+    },
+    {
+      id: 'r10',
+      name: '0753 816 9781',
+      number: '0753 816 9781',
+      type: 'missed',
+      tag: '广东省梅州市',
+      hd: true,
+      time: '10/31',
+      date: '10/31'
+    },
+    {
+      id: 'r11',
       name: '林小敏',
       number: '138 0013 8000',
       type: 'incoming',
@@ -146,6 +167,56 @@ export const usePhoneStore = defineStore('phone', () => {
       hd: true,
       time: '10/30',
       date: '10/30'
+    },
+    {
+      id: 'r12',
+      name: '咨询专线',
+      number: '0755 8888 1814',
+      type: 'missed',
+      tag: '广东深圳',
+      hd: true,
+      time: '10/28',
+      date: '10/28'
+    },
+    {
+      id: 'r13',
+      name: '业务专员',
+      number: '0755 8888 4106',
+      type: 'missed',
+      tag: '广东深圳',
+      hd: true,
+      time: '10/26',
+      date: '10/26'
+    },
+    {
+      id: 'r14',
+      name: '顺丰速运',
+      number: '133 0000 5371',
+      type: 'missed',
+      tag: '广东深圳',
+      hd: true,
+      time: '10/24',
+      date: '10/24'
+    },
+    {
+      id: 'r15',
+      name: '广州分部',
+      number: '020 8888 0028',
+      type: 'missed',
+      tag: '广东广州',
+      hd: true,
+      time: '10/22',
+      date: '10/22'
+    },
+    {
+      id: 'r16',
+      name: '全国客服热线',
+      number: '400 100 6859',
+      type: 'missed',
+      tag: '全国客服',
+      hd: true,
+      time: '10/20',
+      date: '10/20'
     }
   ])
 
