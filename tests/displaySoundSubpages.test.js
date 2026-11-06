@@ -286,3 +286,13 @@ test('Dynamic Bar 头图必须是「被裁切的半部手机」（Ricky 2026-11-
   assert.match(src, /db-figure-expand/, '缺少展开后的灵动岛')
   assert.match(src, /db-figure-tap/, '缺少点击指示环')
 })
+
+test('自动息屏弹层同样是悬浮卡片（四角圆角 + 四周留边）', () => {
+  const src = read('src/components/apps/settings/display/DisplayAutoSleepSheet.vue')
+  const mask = src.slice(src.indexOf('.sheet-mask {'), src.indexOf('.sheet {'))
+  assert.match(mask, /padding:\s*0\s*16px\s*26px/, '遮罩必须留出左右 16px、底部 26px')
+
+  const sheet = src.slice(src.indexOf('.sheet {'), src.indexOf('.sheet-title {'))
+  assert.match(sheet, /border-radius:\s*26px/, '卡片必须四角圆角')
+  assert.doesNotMatch(sheet, /border-radius:\s*2[0-9]px 2[0-9]px 0 0/, '不许只圆上面两角')
+})

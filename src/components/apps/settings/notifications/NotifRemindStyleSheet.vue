@@ -58,21 +58,26 @@ function pick(value) {
 </template>
 
 <style scoped>
+/* 真机是「悬浮卡片」：左右和底部都留边、四个角都是圆的，
+   不能全宽贴底 —— 那样白色方角会顶出屏幕的圆角。 */
 .rs-mask {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.28);
   display: flex;
   align-items: flex-end;
+  padding: 0 16px 26px;
+  box-sizing: border-box;
   z-index: 30;
 }
 
 .rs-sheet {
   width: 100%;
   background: #FFFFFF;
-  border-radius: 22px 22px 0 0;
-  padding: 20px 16px calc(14px + var(--safe-bottom, 0px));
+  border-radius: 26px;
+  padding: 20px 16px 14px;
   box-sizing: border-box;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
 }
 
 .rs-title {

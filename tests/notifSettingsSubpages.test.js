@@ -309,3 +309,15 @@ test('状态栏图标行用到的 lucide 键必须真实存在（写错会渲染
     assert.ok(available.has(name), `LIcon 没有 "${name}" 这个图标`)
   }
 })
+
+test('通知提醒方式是「悬浮卡片」而不是全宽贴底（否则白方角会顶出屏幕圆角）', () => {
+  const src = read('src/components/apps/settings/notifications/NotifRemindStyleSheet.vue')
+
+  const mask = src.slice(src.indexOf('.rs-mask {'), src.indexOf('.rs-sheet {'))
+  assert.match(mask, /padding:\s*0\s*16px\s*26px/, '遮罩必须留出左右 16px、底部 26px（真机实测）')
+
+  const sheet = src.slice(src.indexOf('.rs-sheet {'), src.indexOf('.rs-title {'))
+  assert.match(sheet, /border-radius:\s*26px/, '卡片必须是四角统一圆角')
+  assert.doesNotMatch(sheet, /border-radius:\s*\d+px\s+\d+px\s+0\s+0/, '不许再用「只圆上面两角」的写法')
+  assert.doesNotMatch(sheet, /width:\s*100%[^;]*;\s*$[\s\S]*?border-radius:\s*2[0-9]px 2[0-9]px 0 0/, '不许全宽贴底')
+})

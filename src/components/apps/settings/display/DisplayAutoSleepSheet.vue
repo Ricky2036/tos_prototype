@@ -35,21 +35,25 @@ function pick(option) {
 </template>
 
 <style scoped>
+/* 与真机一致：悬浮卡片，四角圆角 + 四周留边（全宽贴底会把白色方角顶出屏幕圆角） */
 .sheet-mask {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.28);
   display: flex;
   align-items: flex-end;
+  padding: 0 16px 26px;
+  box-sizing: border-box;
   z-index: 30;
 }
 
 .sheet {
   width: 100%;
-  background: #F2F2F7;
-  border-radius: 22px 22px 0 0;
-  padding: 18px 12px calc(12px + var(--safe-bottom, 0px));
+  background: #FFFFFF;
+  border-radius: 26px;
+  padding: 18px 12px 12px;
   box-sizing: border-box;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
 }
 
 .sheet-title {
