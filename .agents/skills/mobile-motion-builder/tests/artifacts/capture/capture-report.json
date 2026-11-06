@@ -1,0 +1,16 @@
+{
+  "tool": "mobile-motion-builder/capture_web.mjs",
+  "url": "http://127.0.0.1:8097/tests/fixtures/demo.html",
+  "viewport": {
+    "width": 393,
+    "height": 852,
+    "deviceScaleFactor": 1
+  },
+  "reducedMotion": "no-preference",
+  "samples": [],
+  "assertions": [],
+  "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8097/tests/fixtures/demo.html\nCall log:\n  - navigating to \"http://127.0.0.1:8097/tests/fixtures/demo.html\", waiting until \"domcontentloaded\"\n\n    at main (/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-antigravity/.agents/skills/mobile-motion-builder/scripts/capture_web.mjs:178:16)",
+  "console": [],
+  "pageErrors": [],
+  "functionalPass": false
+}

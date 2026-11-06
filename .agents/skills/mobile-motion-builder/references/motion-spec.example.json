@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "motion-spec.v1",
+  "meta": {
+    "name": "card-expand-feedback",
+    "targetPlatform": "mobile-web",
+    "framework": "React",
+    "viewport": { "width": 393, "height": 852, "devicePixelRatio": 3 },
+    "reference": {
+      "kind": "video",
+      "path": "reference/card-expand.mp4",
+      "fps": 60,
+      "durationMs": 1180
+    }
+  },
+  "context": {
+    "purpose": "Feedback",
+    "effectSummary": "The tapped card compresses, then expands into the detail surface.",
+    "meaningSummary": "The interface acknowledges the tap and preserves the card's identity during navigation.",
+    "initialState": "feed-card-resting",
+    "targetState": "detail-open"
+  },
+  "elements": [
+    {
+      "id": "source-card",
+      "role": "navigation source card",
+      "locator": { "testId": "feed-card-42" },
+      "transformOrigin": [0.5, 0.5],
+      "provenance": {
+        "kind": "observed",
+        "confidence": 0.96,
+        "evidenceIds": ["frame-0012", "frame-0024"]
+      }
+    }
+  ],
+  "tracks": [
+    {
+      "id": "card-press-scale",
+      "elementId": "source-card",
+      "property": "scale",
+      "unit": "ratio",
+      "from": 1,
+      "to": 0.97,
+      "timing": { "onsetMs": 0, "delayMs": 0, "durationMs": 90, "settlingMs": 90 },
+      "model": { "type": "tween", "easing": "cubic-bezier(0.2, 0, 0, 1)" },
+      "provenance": {
+        "kind": "inferred",
+        "confidence": 0.82,
+        "reason": "Scale estimated from the card bounding box across the press frames."
+      }
+    },
+    {
+      "id": "card-expand-width",
+      "elementId": "source-card",
+      "property": "width",
+      "unit": "px",
+      "from": 346,
+      "to": 393,
+      "timing": { "onsetMs": 90, "delayMs": 0, "durationMs": 410, "settlingMs": 460 },
+      "model": {
+        "type": "spring",
+        "parameterization": "physical",
+        "mass": 1,
+        "stiffness": 260,
+        "damping": 28,
+        "initialVelocity": 0
+      },
+      "provenance": {
+        "kind": "inferred",
+        "confidence": 0.74,
+        "reason": "The reference has a small overshoot and should preserve velocity when retargeted."
+      }
+    }
+  ],
+  "coordination": [
+    { "type": "sequence", "trackIds": ["card-press-scale", "card-expand-width"], "offsetMs": 0 }
+  ],
+  "interaction": {
+    "trigger": "tap",
+    "inputTargetElementId": "source-card",
+    "interruptBehavior": "retarget-preserve-velocity"
+  },
+  "accessibility": {
+    "reducedMotion": "replace-with-fade",
+    "customBehavior": "Skip geometry interpolation and cross-fade between states in 120ms.",
+    "informationEquivalent": true,
+    "systemPreferenceBinding": "@media (prefers-reduced-motion: reduce)"
+  },
+  "acceptance": {
+    "metrics": [
+      {
+        "id": "detail-final-state",
+        "level": "G0-functional",
+        "method": "Assert the detail heading and back control are visible after the tap.",
+        "target": true,
+        "tolerance": false,
+        "hardGate": true
+      },
+      {
+        "id": "source-destination-continuity",
+        "level": "G1-semantic",
+        "method": "Verify the selected card remains identifiable as the detail surface throughout the transition.",
+        "target": true,
+        "tolerance": false,
+        "hardGate": true
+      },
+      {
+        "id": "card-width-rmse",
+        "level": "G3-motion",
+        "method": "Compare normalized tracked card width at reference timestamps.",
+        "target": 0,
+        "tolerance": 0.03,
+        "hardGate": false
+      },
+      {
+        "id": "reduced-motion-equivalence",
+        "level": "G5-quality",
+        "method": "Enable reduced motion and repeat the functional assertion.",
+        "target": true,
+        "tolerance": false,
+        "hardGate": true
+      }
+    ],
+    "maxAutomaticIterations": 3,
+    "minimumImprovement": 0.01,
+    "stopOnHardGateFailure": true
+  }
+}
