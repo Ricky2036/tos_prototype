@@ -224,8 +224,7 @@ test('设置页里所有「手机屏幕示意框」都必须接近真机比例 3
 
   for (const file of files) {
     const src = read(file)
-    let m
-    while ((m = BLOCK.exec(src)) !== null) {
+    for (const m of src.matchAll(BLOCK)) {
       const cls = m[1]
       const body = m[2]
       // 只检查「单个手机屏幕示意框」：名字以 -phone 结尾，或 phone-mini / phone-big

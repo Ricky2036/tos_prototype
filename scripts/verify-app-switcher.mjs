@@ -3213,7 +3213,7 @@ console.log('\n───── 批次 3：松手吸附（需求④⑤）与触�
     await resetFocus0()
     const sh = await page.evaluate(() => {
       const parse = (s) => {
-        const a = /rgba?\(\s*0,\s*0,\s*0,\s*([0-9.]+)\s*\)/.exec(s)
+        const a = s.match(/rgba?\(\s*0,\s*0,\s*0,\s*([0-9.]+)\s*\)/)
         const nums = [...s.matchAll(/(-?[0-9.]+)px/g)].map((x) => parseFloat(x[1]))
         return { a: a ? +a[1] : null, y: nums[0], blur: nums[1] }
       }

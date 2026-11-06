@@ -29,8 +29,7 @@ const dead = []
 for (const file of files) {
   const src = fs.readFileSync(file, 'utf8')
   const cellRe = /<ListCell\b([\s\S]*?)(\/>|>([\s\S]*?)<\/ListCell>)/g
-  let m
-  while ((m = cellRe.exec(src)) !== null) {
+  for (const m of src.matchAll(cellRe)) {
     const attrs = m[1] || ''
     const body = m[3] || ''
     if (!/chevron/.test(attrs)) continue

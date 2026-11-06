@@ -17,7 +17,7 @@ const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'telemetry.db');
 const db = new DatabaseSync(DB_PATH);
 
 // 开启 WAL 模式以提升并发写入性能与读取性能
-db.exec(`
+db.prepare(`
   PRAGMA journal_mode = WAL;
   PRAGMA synchronous = NORMAL;
 
