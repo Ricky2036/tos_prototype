@@ -1,4 +1,5 @@
 <script setup>
+import '../../../styles/layer-transitions.css'
 import { computed, ref } from 'vue'
 import ListCell from '../../ui/ListCell.vue'
 import AiSubPage from './infinixai/AiSubPage.vue'

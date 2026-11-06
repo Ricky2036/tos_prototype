@@ -1,4 +1,5 @@
 <script setup>
+import '../../../styles/layer-transitions.css'
 import { ref, computed } from 'vue'
 import { useControlStore } from '../../../stores/controlStore'
 import { usePrayerStore } from '../../../stores/prayerStore'

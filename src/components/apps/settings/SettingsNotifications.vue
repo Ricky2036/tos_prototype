@@ -1,4 +1,5 @@
 <script setup>
+import '../../../styles/layer-transitions.css'
 import { ref, computed, watch, nextTick } from 'vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import ListCell from '../../ui/ListCell.vue'
@@ -287,7 +288,7 @@ const emit = defineEmits(['back-to-settings'])
 <template>
   <div class="notif-settings">
     <!-- ============ 主视图与子视图统一切换 ============ -->
-    <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
+    <Transition :name="isBack ? 'slide-back' : 'slide'">
       <!-- ============ 主页 ============ -->
       <div v-if="subView === 'main'" key="main" class="ns-page scrollable">
         <AppNavBar :title="i18n.t('notifications')" @back="emit('back-to-settings')" />
@@ -730,54 +731,6 @@ const emit = defineEmits(['back-to-settings'])
 }
 .ns-page::-webkit-scrollbar { display: none; }
 .ns-page { scrollbar-width: none; }
-
-/* ================= 统一设置极速丝滑进退动画 (与 SettingsApp 一致) ================= */
-.slide-enter-active,
-.slide-back-enter-active {
-  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.16s ease;
-}
-.slide-leave-active,
-.slide-back-leave-active {
-  transition: transform 0.12s cubic-bezier(0.4, 0, 1, 1), opacity 0.12s ease;
-}
-
-/* 进入：新页从右滑入 */
-.slide-enter-from {
-  transform: translateX(36px);
-  opacity: 0;
-}
-.slide-enter-to {
-  transform: translateX(0);
-  opacity: 1;
-}
-/* 离开：旧页向左微移退出 */
-.slide-leave-from {
-  transform: translateX(0);
-  opacity: 1;
-}
-.slide-leave-to {
-  transform: translateX(-24px);
-  opacity: 0;
-}
-
-/* 返回进入：旧页从左侧滑回 */
-.slide-back-enter-from {
-  transform: translateX(-24px);
-  opacity: 0;
-}
-.slide-back-enter-to {
-  transform: translateX(0);
-  opacity: 1;
-}
-/* 返回离开：顶页向右滑出 */
-.slide-back-leave-from {
-  transform: translateX(0);
-  opacity: 1;
-}
-.slide-back-leave-to {
-  transform: translateX(36px);
-  opacity: 0;
-}
 
 /* 分组卡片与标题：对齐 SettingsApp 系统规范 */
 .cell-group {

@@ -225,6 +225,18 @@ function confirmReset() {
   color: #FFFFFF;
 }
 
+/* 还原成功后的轻提示：原来这里用了 toast-fade 但没定义类，等于瞬现瞬消 */
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 6px);
+}
+
 .cc-toast {
   position: absolute;
   left: 50%;
