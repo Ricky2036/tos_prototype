@@ -4,15 +4,20 @@ import { usePhoneStore } from '../../../../stores/phoneStore'
 import PhoneAutoRecord from './PhoneAutoRecord.vue'
 import PhoneAiAssistant from './PhoneAiAssistant.vue'
 import PhoneFlashCallSettings from './PhoneFlashCallSettings.vue'
+import PhoneHarassmentInterception from './PhoneHarassmentInterception.vue'
 import PhoneUnknownId from './PhoneUnknownId.vue'
 import PhoneCallDisplayModal from './PhoneCallDisplayModal.vue'
+import PhoneVideoShow from './PhoneVideoShow.vue'
 import PhoneAdvancedSettings from './PhoneAdvancedSettings.vue'
+import PhoneCarrierFeatures from './PhoneCarrierFeatures.vue'
+import PhoneAbout from './PhoneAbout.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['back', 'openSystemSettings'])
 
 // 内部设置子页面导航栈
-const subpage = ref(null) // null | 'autoRecord' | 'aiAssistant' | 'flashCall' | 'unknownId' | 'callDisplay' | 'advanced' | 'about'
+const subpage = ref(null) // null | 'autoRecord' | 'aiAssistant' | 'flashCall' | 'block' | 'unknownId' | 'callDisplay' | 'videoShow' | 'advanced' | 'carrier' | 'about'
+const subpageRef = ref(null)
 const showVoiceBroadcastModal = ref(false)
 
 const voiceBroadcastText = computed(() => {
@@ -31,6 +36,11 @@ defineExpose({
     if (showVoiceBroadcastModal.value) {
       showVoiceBroadcastModal.value = false
       return true
+    }
+    // 若子页面有更深层级的返回操作，优先让子页面处理
+    if (subpageRef.value && typeof subpageRef.value.back === 'function') {
+      const handled = subpageRef.value.back()
+      if (handled) return true
     }
     if (subpage.value) {
       subpage.value = null
@@ -74,7 +84,7 @@ defineExpose({
             </svg>
           </div>
 
-          <div class="setting-item-row" @click="subpage = 'flashCall'">
+          <div class="setting-item-row no-sep" @click="subpage = 'flashCall'">
             <span class="item-title">Flash Call</span>
             <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
               <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -84,7 +94,7 @@ defineExpose({
 
         <!-- 第 2 组卡片（7项）：骚扰拦截、陌生号码识别、SIM 卡与网络设置、声音与振动、来电语音播报、来电显示、我的视频秀 -->
         <div class="settings-group">
-          <div class="setting-item-row" @click="subpage = 'unknownId'">
+          <div class="setting-item-row" @click="subpage = 'block'">
             <span class="item-title">骚扰拦截</span>
             <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
               <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -132,7 +142,7 @@ defineExpose({
             </div>
           </div>
 
-          <div class="setting-item-row">
+          <div class="setting-item-row no-sep" @click="subpage = 'videoShow'">
             <span class="item-title">我的视频秀</span>
             <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
               <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -149,14 +159,14 @@ defineExpose({
             </svg>
           </div>
 
-          <div class="setting-item-row">
+          <div class="setting-item-row" @click="subpage = 'carrier'">
             <span class="item-title">运营商功能</span>
             <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
               <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
 
-          <div class="setting-item-row" @click="subpage = 'about'">
+          <div class="setting-item-row no-sep" @click="subpage = 'about'">
             <span class="item-title">关于</span>
             <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
               <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -168,34 +178,18 @@ defineExpose({
 
     <!-- 各子页面动态挂载 -->
     <Transition name="slide">
-      <PhoneAutoRecord v-if="subpage === 'autoRecord'" @back="handleSubpageBack" />
-      <PhoneAiAssistant v-else-if="subpage === 'aiAssistant'" @back="handleSubpageBack" />
-      <PhoneFlashCallSettings v-else-if="subpage === 'flashCall'" @back="handleSubpageBack" />
-      <PhoneUnknownId v-else-if="subpage === 'unknownId'" @back="handleSubpageBack" />
-      <PhoneCallDisplayModal v-else-if="subpage === 'callDisplay'" @back="handleSubpageBack" />
-      <PhoneAdvancedSettings v-else-if="subpage === 'advanced'" @back="handleSubpageBack" />
-      
-      <!-- 关于页面 -->
-      <div v-else-if="subpage === 'about'" class="about-page">
-        <div class="settings-header">
-          <button class="back-btn" @click="handleSubpageBack">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </button>
-          <div class="header-title">关于</div>
-        </div>
-        <div class="about-body">
-          <div class="app-brand-logo">
-            <svg width="54" height="54" viewBox="0 0 24 24" fill="#00C853">
-              <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-2.2 2.2a15.047 15.047 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.01A11.36 11.36 0 018.57 3.9c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.52c0-.55-.45-1-.99-1z" />
-            </svg>
-          </div>
-          <div class="app-name">SmartCaller 电话</div>
-          <div class="app-version">版本 17.0.0.87</div>
-        </div>
-      </div>
+      <PhoneAutoRecord ref="subpageRef" v-if="subpage === 'autoRecord'" @back="handleSubpageBack" />
+      <PhoneAiAssistant ref="subpageRef" v-else-if="subpage === 'aiAssistant'" @back="handleSubpageBack" />
+      <PhoneFlashCallSettings ref="subpageRef" v-else-if="subpage === 'flashCall'" @back="handleSubpageBack" />
+      <PhoneHarassmentInterception ref="subpageRef" v-else-if="subpage === 'block'" @back="handleSubpageBack" />
+      <PhoneUnknownId ref="subpageRef" v-else-if="subpage === 'unknownId'" @back="handleSubpageBack" />
+      <PhoneCallDisplayModal ref="subpageRef" v-else-if="subpage === 'callDisplay'" @back="handleSubpageBack" />
+      <PhoneVideoShow ref="subpageRef" v-else-if="subpage === 'videoShow'" @back="handleSubpageBack" />
+      <PhoneAdvancedSettings ref="subpageRef" v-else-if="subpage === 'advanced'" @back="handleSubpageBack" />
+      <PhoneCarrierFeatures ref="subpageRef" v-else-if="subpage === 'carrier'" @back="handleSubpageBack" />
+      <PhoneAbout ref="subpageRef" v-else-if="subpage === 'about'" @back="handleSubpageBack" />
     </Transition>
+
     <!-- 来电语音播报选择弹窗 -->
     <Transition name="fade">
       <div
@@ -208,9 +202,9 @@ defineExpose({
           <div class="sheet-options-list">
             <div
               v-for="opt in [
-                { label: '始终', value: 'always' },
+                { label: '永不', value: 'never' },
                 { label: '仅耳机', value: 'headset' },
-                { label: '永不', value: 'never' }
+                { label: '始终', value: 'always' }
               ]"
               :key="opt.value"
               class="sheet-radio-item"
@@ -248,7 +242,6 @@ defineExpose({
   height: 100%;
 }
 
-/* 顶部 Header：白色正圆返回气泡按钮 + 20px 设置粗体标题 */
 .settings-header {
   display: flex;
   align-items: center;
@@ -289,43 +282,35 @@ defineExpose({
 
 .settings-list {
   flex: 1;
-  overflow-y: auto;
-  padding: 8px 0 40px;
+  padding: 12px 16px 40px;
 }
 
-/* 3 大卡片组规范：纯白圆角、规整间距、内缩细分割线 */
+/* 白色卡片分组 */
 .settings-group {
   background: #FFFFFF;
   border-radius: 18px;
-  margin: 0 16px 14px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  margin-bottom: 14px;
 }
 
 .setting-item-row {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 56px;
-  padding: 0 16px;
+  padding: 15px 16px;
+  min-height: 52px;
+  border-bottom: 0.5px solid #F0F1F3;
   cursor: pointer;
-  background: #FFFFFF;
-  transition: background-color 0.12s ease;
+  box-sizing: border-box;
+}
+
+.setting-item-row.no-sep {
+  border-bottom: none;
 }
 
 .setting-item-row:active {
   background-color: #F8F9FA;
-}
-
-.setting-item-row:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 16px;
-  right: 16px;
-  height: 0.5px;
-  background: rgba(0, 0, 0, 0.06);
 }
 
 .item-title {
@@ -341,8 +326,8 @@ defineExpose({
 }
 
 .red-badge-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: #FF3B30;
 }
@@ -350,7 +335,7 @@ defineExpose({
 .right-summary {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .summary-text {
@@ -362,94 +347,50 @@ defineExpose({
   flex-shrink: 0;
 }
 
-/* 关于页面 */
-.about-page {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #F0F1F3;
-  z-index: 60;
-  display: flex;
-  flex-direction: column;
-}
-
-.about-body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-top: 100px;
-}
-
-.app-brand-logo {
-  width: 88px;
-  height: 88px;
-  border-radius: 22px;
-  background: #F0FDF4;
-  border: 1px solid rgba(0, 200, 83, 0.18);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
-.app-name {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1C1C1E;
-  margin-bottom: 6px;
-}
-
-.app-version {
-  font-size: 13px;
-  color: #8E8E93;
-}
-
-/* 底部操作弹窗样式 */
+/* 弹窗遮罩 */
 .settings-modal-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.38);
-  backdrop-filter: blur(4px);
-  z-index: 70;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 100;
   display: flex;
   align-items: flex-end;
+  justify-content: center;
 }
 
 .settings-action-sheet {
   width: 100%;
-  background: #FFFFFF;
+  background: #F8F9FA;
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;
-  padding: 24px 20px calc(var(--safe-bottom, 20px) + 16px);
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
+  padding: 20px 16px calc(var(--safe-bottom, 20px) + 16px);
+  box-sizing: border-box;
 }
 
 .sheet-modal-title {
-  font-size: 19px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
   color: #1C1C1E;
+  text-align: center;
   margin-bottom: 16px;
 }
 
 .sheet-options-list {
-  display: flex;
-  flex-direction: column;
+  background: #FFFFFF;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 12px;
 }
 
 .sheet-radio-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 0;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  border-bottom: 0.5px solid #F0F1F3;
   cursor: pointer;
 }
 
@@ -457,9 +398,12 @@ defineExpose({
   border-bottom: none;
 }
 
+.sheet-radio-item:active {
+  background: #F2F3F5;
+}
+
 .sheet-option-label {
   font-size: 16px;
-  font-weight: 500;
   color: #1C1C1E;
 }
 
@@ -467,11 +411,11 @@ defineExpose({
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 1.8px solid #C7C7CC;
+  border: 2px solid #D1D1D6;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 .custom-radio.checked {
@@ -486,19 +430,44 @@ defineExpose({
 }
 
 .sheet-cancel-btn {
-  margin-top: 20px;
   width: 100%;
-  height: 48px;
-  border-radius: 24px;
-  background-color: #F2F3F5;
-  border: none;
+  height: 50px;
+  background: #FFFFFF;
+  border-radius: 16px;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   color: #1C1C1E;
+  border: none;
   cursor: pointer;
 }
 
 .sheet-cancel-btn:active {
-  background-color: #E5E7EB;
+  background: #F2F3F5;
+}
+
+/* 切换动画 */
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.24s ease;
+}
+
+.slide-enter-from {
+  transform: translateX(100%);
+  opacity: 0.8;
+}
+
+.slide-leave-to {
+  transform: translateX(-20%);
+  opacity: 0;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
