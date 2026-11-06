@@ -638,9 +638,9 @@ defineExpose({ back })
 
 .slider-track {
   flex: 1;
-  height: 6px;
-  background: #EDEDF0;
-  border-radius: 3px;
+  height: 10px;
+  background: #EBEBEB;
+  border-radius: 5px;
   position: relative;
   cursor: pointer;
   touch-action: none;
@@ -651,24 +651,25 @@ defineExpose({ back })
 
 .slider-fill {
   height: 100%;
-  background: #007AFF;
-  border-radius: 3px;
+  background: #3375F6;
+  border-radius: 5px;
   position: absolute;
   left: 0;
   top: 0;
   pointer-events: none;
 }
 
+/* 与 HSettingSlider 同一套视觉：白底 + 3px 蓝环，没有灰糊阴影 */
 .slider-thumb {
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
   width: 22px;
   height: 22px;
+  box-sizing: border-box;
   border-radius: 50%;
   background: #FFFFFF;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  border: 1.5px solid rgba(0, 0, 0, 0.05);
+  border: 3px solid #3375F6;
   pointer-events: none;
 }
 

@@ -45,14 +45,15 @@ const previewStyle = computed(() => ({
 <template>
   <DisplayMyFonts v-if="showMyFonts" @back="closeMyFonts" />
   <SubPageShell v-else title="字体" @back="emit('back')">
-    <!-- 预览区：随字体 / 字号 / 粗细实时变化 -->
-    <div class="font-preview" :style="previewStyle">{{ SAMPLE }}</div>
+    <div class="font-page">
+      <!-- 预览区：随字体 / 字号 / 粗细实时变化 -->
+      <div class="font-preview" :style="previewStyle">{{ SAMPLE }}</div>
 
-    <div class="settings-card">
-      <ListCell title="我的字体" chevron clickable last @click="openMyFonts" />
-    </div>
+      <!-- 底部统一卡片：我的字体 + 字体卡 + 两个滑块都在这一张白卡里，位置固定在下方 -->
+      <div class="font-sheet">
+        <ListCell title="我的字体" chevron clickable last @click="openMyFonts" />
 
-    <div class="font-cards">
+        <div class="font-cards">
       <button
         v-for="f in FONTS"
         :key="f.value"
@@ -71,10 +72,11 @@ const previewStyle = computed(() => ({
         <span>字体大小</span>
         <span class="slider-value">默认</span>
       </div>
-      <HSettingSlider
-        :model-value="display.fontSize"
-        @update:model-value="v => display.setNumber('fontSize', v)"
-      />
+          <HSettingSlider
+            :model-value="display.fontSize"
+            @update:model-value="v => display.setNumber('fontSize', v)"
+            :ticks="3"
+          />
     </div>
 
     <div class="slider-block">
@@ -82,15 +84,35 @@ const previewStyle = computed(() => ({
         <span>字体粗细</span>
         <span class="slider-value">默认</span>
       </div>
-      <HSettingSlider
-        :model-value="display.fontWeight"
-        @update:model-value="v => display.setNumber('fontWeight', v)"
-      />
+          <HSettingSlider
+            :model-value="display.fontWeight"
+            @update:model-value="v => display.setNumber('fontWeight', v)"
+            :ticks="3"
+          />
+        </div>
+      </div>
     </div>
   </SubPageShell>
 </template>
 
 <style scoped>
+.font-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+/* 底部统一卡片：顶到页面底部，内容固定在里面（真机就是这样） */
+.font-sheet {
+  margin-top: auto;
+  background: #FFFFFF;
+  border-radius: 16px 16px 0 0;
+  padding: 6px 16px 14px;
+  margin-left: -16px;
+  margin-right: -16px;
+}
+
 .font-preview {
   padding: 14px 16px 18px;
   color: #111;
@@ -120,10 +142,11 @@ const previewStyle = computed(() => ({
 }
 
 .font-sample {
-  width: 72px;
-  height: 66px;
-  border-radius: 12px;
-  background: #FFFFFF;
+  width: 78px;
+  height: 74px;
+  border-radius: 14px;
+  /* 真机：未选中是浅灰底，选中变白底 + 蓝框 */
+  background: #F2F2F7;
   border: 2px solid transparent;
   display: flex;
   align-items: center;
@@ -133,6 +156,7 @@ const previewStyle = computed(() => ({
 }
 
 .font-card.active .font-sample {
+  background: #FFFFFF;
   border-color: #2F6BF6;
 }
 
