@@ -19,7 +19,7 @@ const emit = defineEmits(['back'])
     </div>
 
     <div class="subpage-body">
-      <!-- 统一白色大卡片容器包裹两个手机模型与按钮，100% 对齐真机 -->
+      <!-- 统一白色大卡片容器包裹两个手机模型、标题文案与单选按钮，100% 对齐真机 -->
       <div class="settings-card call-display-big-card">
         <div class="display-options-row">
           <!-- 模式 1：弹窗显示 -->

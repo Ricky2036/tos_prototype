@@ -133,3 +133,18 @@ test('PhoneApp properly integrates all tabs, keypad, search, settings, and calli
   assert.match(content, /PhoneCallScreen/)
   assert.match(content, /PhoneSettings/)
 })
+
+test('PhoneCallDisplayModal conforms to big-card container and dual phone model layout', () => {
+  const modalPath = path.resolve('src/components/apps/phone/settings/PhoneCallDisplayModal.vue')
+  const content = fs.readFileSync(modalPath, 'utf-8')
+
+  assert.match(content, /call-display-big-card/, 'Must use big-card container wrapping models and controls')
+  assert.match(content, /call_display_banner\.png/)
+  assert.match(content, /call_display_full\.png/)
+  assert.match(content, /弹窗显示/)
+  assert.match(content, /全屏显示/)
+  assert.match(content, /custom-radio/)
+  assert.match(content, /phoneStore\.callDisplayMode\s*=\s*'banner'/)
+  assert.match(content, /phoneStore\.callDisplayMode\s*=\s*'fullscreen'/)
+})
+
