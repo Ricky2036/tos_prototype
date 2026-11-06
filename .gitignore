@@ -35,3 +35,6 @@ code-review-*.html
 .motion/*
 !.motion/baselines/
 !.motion/references/
+
+# 发布应用的本地产物标记（内部用，不入库）
+.wbapp_*.genie
