@@ -2,10 +2,25 @@
 import SubPageShell from '../subpage/SubPageShell.vue'
 import ListCell from '../../../ui/ListCell.vue'
 import HSettingSlider from '../subpage/HSettingSlider.vue'
+import { ref } from 'vue'
 import { useDisplaySettingsStore } from '../../../../stores/displaySettingsStore'
+import DisplayMyFonts from './DisplayMyFonts.vue'
 
 const emit = defineEmits(['back'])
 const display = useDisplaySettingsStore()
+
+const showMyFonts = ref(false)
+const isBack = ref(false)
+
+function openMyFonts() {
+  isBack.value = false
+  showMyFonts.value = true
+}
+
+function closeMyFonts() {
+  isBack.value = true
+  showMyFonts.value = false
+}
 
 const FONTS = [
   { value: 'TransSans', label: 'TransSans' },
@@ -14,9 +29,10 @@ const FONTS = [
 </script>
 
 <template>
-  <SubPageShell title="字体" @back="emit('back')">
+  <DisplayMyFonts v-if="showMyFonts" @back="closeMyFonts" />
+  <SubPageShell v-else title="字体" @back="emit('back')">
     <div class="settings-card">
-      <ListCell title="我的字体" chevron clickable last />
+      <ListCell title="我的字体" chevron clickable last @click="openMyFonts" />
     </div>
 
     <div class="font-cards">

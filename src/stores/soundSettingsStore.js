@@ -19,6 +19,11 @@ const K = {
   TOUCH_FEEDBACK: 'tos_sound_touch_feedback',
   HAPTIC_STRENGTH: 'tos_sound_haptic_strength',
   KEYBOARD_HAPTIC: 'tos_sound_keyboard_haptic',
+  SIM1_VIBRATE_PATTERN: 'tos_sound_sim1_vibrate_pattern',
+  SIM2_VIBRATE_PATTERN: 'tos_sound_sim2_vibrate_pattern',
+  NOTIF_VIBRATE_PATTERN: 'tos_sound_notif_vibrate_pattern',
+  CUSTOM_RINGTONE_SIM: 'tos_sound_custom_ringtone_sim',
+  CUSTOM_RINGTONE_NOTIF: 'tos_sound_custom_ringtone_notif',
   RINGTONE_SIM1: 'tos_sound_ringtone_sim1',
   RINGTONE_SIM2: 'tos_sound_ringtone_sim2',
   NOTIF_RINGTONE: 'tos_sound_notif_ringtone',
@@ -44,6 +49,15 @@ export const RINGTONE_CLASSIC = [
 export const RINGTONE_FUN = [
   'Baa Baa', 'Bicycle Bell', 'Blister', 'Bubble', 'Cat', 'Cave Drip', 'Cluck', 'Cricket'
 ]
+// 来电（SIM）振动模式：真机「其他效果」清单
+export const SIM_VIBRATE_PATTERNS = [
+  '标准', '动感', '飞速', '非洲鼓', '华尔兹', '紧急', '落珠', '切分音', '心动', '中东鼓'
+]
+// 通知振动模式：真机清单与来电不同
+export const NOTIF_VIBRATE_PATTERNS = [
+  '标准', '电报', '动感', '连击', '快速', '鸣笛', '三连音', '舒缓', '心跳', '摇摆'
+]
+
 export const JBL_MODES = [
   { value: 'smart', label: '智能' },
   { value: 'video', label: '视频' },
@@ -61,6 +75,14 @@ export const useSoundSettingsStore = defineStore('soundSettings', () => {
   const touchFeedback = ref(readBool(K.TOUCH_FEEDBACK, true))
   const hapticStrength = ref(readNumber(K.HAPTIC_STRENGTH, 0.25))
   const keyboardHaptic = ref(readBool(K.KEYBOARD_HAPTIC, true))
+
+  // 振动模式：真机默认「跟随音乐节奏」，另有「其他效果」可选，最后一项是「无」
+  const sim1VibratePattern = ref(readString(K.SIM1_VIBRATE_PATTERN, '跟随音乐节奏'))
+  const sim2VibratePattern = ref(readString(K.SIM2_VIBRATE_PATTERN, '跟随音乐节奏'))
+  const notifVibratePattern = ref(readString(K.NOTIF_VIBRATE_PATTERN, '跟随音乐节奏'))
+  // 自定义铃声（选中本地音频文件名，空字符串=用内置铃声）
+  const customRingtoneSim = ref(readString(K.CUSTOM_RINGTONE_SIM, ''))
+  const customRingtoneNotif = ref(readString(K.CUSTOM_RINGTONE_NOTIF, ''))
 
   const ringtoneSim1 = ref(readString(K.RINGTONE_SIM1, 'Elegant'))
   const ringtoneSim2 = ref(readString(K.RINGTONE_SIM2, 'Elegant'))
@@ -94,6 +116,31 @@ export const useSoundSettingsStore = defineStore('soundSettings', () => {
     if (!JBL_MODES.some(m => m.value === v)) return false
     jblMode.value = v
     writeRaw(K.JBL_MODE, v)
+    return true
+  }
+
+  function setVibratePattern(which, pattern) {
+    const map = {
+      sim1: [sim1VibratePattern, K.SIM1_VIBRATE_PATTERN],
+      sim2: [sim2VibratePattern, K.SIM2_VIBRATE_PATTERN],
+      notif: [notifVibratePattern, K.NOTIF_VIBRATE_PATTERN]
+    }
+    if (!map[which]) return false
+    const [refObj, storageKey] = map[which]
+    refObj.value = pattern
+    writeRaw(storageKey, pattern)
+    return true
+  }
+
+  function setCustomRingtone(which, fileName) {
+    const map = {
+      sim: [customRingtoneSim, K.CUSTOM_RINGTONE_SIM],
+      notif: [customRingtoneNotif, K.CUSTOM_RINGTONE_NOTIF]
+    }
+    if (!map[which]) return false
+    const [refObj, storageKey] = map[which]
+    refObj.value = fileName
+    writeRaw(storageKey, fileName)
     return true
   }
 
@@ -167,6 +214,13 @@ export const useSoundSettingsStore = defineStore('soundSettings', () => {
     touchFeedback,
     hapticStrength,
     keyboardHaptic,
+    sim1VibratePattern,
+    sim2VibratePattern,
+    notifVibratePattern,
+    customRingtoneSim,
+    customRingtoneNotif,
+    setVibratePattern,
+    setCustomRingtone,
     ringtoneSim1,
     ringtoneSim2,
     notifRingtone,

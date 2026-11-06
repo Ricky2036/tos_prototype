@@ -294,3 +294,65 @@ test('自动息屏弹层把几何交给 SheetModal（自身不再写遮罩/圆�
   assert.doesNotMatch(src, /class="sheet-mask"/, '不应再自己画遮罩')
   assert.doesNotMatch(src, /border-radius:\s*2\d+px 2\d+px 0 0/, '不应再有「只圆上两角」')
 })
+test('振动模式：来电与通知是两套不同清单，按 SIM 分别存储', async () => {
+  const m = await import('../src/stores/soundSettingsStore.js')
+  assert.deepEqual(m.SIM_VIBRATE_PATTERNS, [
+    '标准', '动感', '飞速', '非洲鼓', '华尔兹', '紧急', '落珠', '切分音', '心动', '中东鼓'
+  ])
+  assert.deepEqual(m.NOTIF_VIBRATE_PATTERNS, [
+    '标准', '电报', '动感', '连击', '快速', '鸣笛', '三连音', '舒缓', '心跳', '摇摆'
+  ])
+
+  setActivePinia(createPinia())
+  const s = m.useSoundSettingsStore()
+  assert.equal(s.sim1VibratePattern, '跟随音乐节奏')
+  assert.equal(s.sim2VibratePattern, '跟随音乐节奏')
+  assert.equal(s.notifVibratePattern, '跟随音乐节奏')
+
+  s.setVibratePattern('sim1', '落珠')
+  assert.equal(s.sim1VibratePattern, '落珠')
+  assert.equal(s.sim2VibratePattern, '跟随音乐节奏', '不应串到 SIM2')
+  assert.equal(s.setVibratePattern('sim3', '标准'), false)
+})
+
+test('自定义铃声：按通道分别记录文件，未知名通道被拒绝', () => {
+  setActivePinia(createPinia())
+  const s = useSoundSettingsStore()
+  assert.equal(s.customRingtoneSim, '', '默认用内置铃声')
+  assert.equal(s.setCustomRingtone('sim', '五彩彝裳'), true)
+  assert.equal(s.customRingtoneSim, '五彩彝裳')
+  assert.equal(s.customRingtoneNotif, '')
+  assert.equal(s.setCustomRingtone('nope', 'x'), false)
+})
+
+test('四级页：我的字体 / 振动模式 / 自定义铃声 都存在且接线', () => {
+  for (const f of [
+    'src/components/apps/settings/display/DisplayMyFonts.vue',
+    'src/components/apps/settings/sound/SoundVibratePattern.vue',
+    'src/components/apps/settings/sound/SoundCustomRingtone.vue'
+  ]) {
+    assert.ok(fs.existsSync(f), `${f} 不存在`)
+  }
+
+  const font = read('src/components/apps/settings/display/DisplayFont.vue')
+  assert.match(font, /@click="openMyFonts"/, '「我的字体」必须可点')
+  assert.match(font, /<DisplayMyFonts v-if="showMyFonts"/, '未挂四级页')
+
+  const ring = read('src/components/apps/settings/sound/SoundRingtone.vue')
+  assert.match(ring, /@click="openNested\('vibrate'\)"/, 'SIM 振动必须可点')
+  assert.match(ring, /@click="openNested\('custom'\)"/, '自定义铃声必须可点')
+
+  const notif = read('src/components/apps/settings/sound/SoundNotifRingtone.vue')
+  assert.match(notif, /@click="openNested\('vibrate'\)"/, '通知振动必须可点')
+  assert.match(notif, /@click="openNested\('custom'\)"/, '通知自定义铃声必须可点')
+})
+
+test('屏幕刷新率：选「高」要先弹功耗确认，确认后才写 store', () => {
+  const src = read('src/components/apps/settings/display/DisplayRefreshRate.vue')
+  assert.match(src, /function choose\(value\)/, '缺少选择拦截')
+  assert.match(src, /showHighConfirm\.value = true/, '选「高」应弹确认')
+  assert.match(src, /切换为高刷新率/, '确认弹窗标题')
+  assert.match(src, /高刷新率将增加耗电，推荐保持智能切换模式。/, '确认弹窗正文')
+  // 未确认前不能直接写 store
+  assert.doesNotMatch(src, /@click="display\.setRefreshRate\(opt\.value\)"/, '不应绕过确认直接切换')
+})
