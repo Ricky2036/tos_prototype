@@ -117,6 +117,7 @@ const emit = defineEmits(['click'])
 }
 
 .lc-title {
+  /* 360 画布的行标题：真机 402.7dp 上的 17dp ≈ 画布 15.2px（不是 17px，会太大太细） */
   font: 500 15.5px/1.3 var(--font-stack);
   font-weight: 500;
   color: #111111;
