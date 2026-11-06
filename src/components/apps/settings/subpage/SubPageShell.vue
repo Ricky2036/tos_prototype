@@ -42,7 +42,8 @@ const emit = defineEmits(['back', 'action'])
 .sub-shell {
   position: absolute;
   inset: 0;
-  background: #F4F5F7;
+  /* 真机页面底色实测 #F0F1F2（原来 #F4F5F7 偏亮，卡片反而显灰） */
+  background: #F0F1F2;
   display: flex;
   flex-direction: column;
   z-index: 20;

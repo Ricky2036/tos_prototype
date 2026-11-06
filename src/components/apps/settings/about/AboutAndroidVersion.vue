@@ -228,12 +228,10 @@ function handleVersionTap() {
 }
 
 .settings-card {
-  background: #FFFFFF;
-  border-radius: 20px;
-  margin-bottom: 14px;
+background: #FFFFFF;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  margin-bottom: 14px;
 }
 
 .scroll-bottom-spacer {

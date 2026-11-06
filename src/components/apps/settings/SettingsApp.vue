@@ -982,7 +982,7 @@ const filteredSearchResults = computed(() => {
 <style scoped>
 .settings-app {
   height: 100%;
-  background: #F4F5F7;
+  background: #F0F1F2;
   overflow: hidden;
   position: relative;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Segoe UI", Roboto, sans-serif;
@@ -1008,11 +1008,10 @@ const filteredSearchResults = computed(() => {
 
 /* ================= 统一卡片规范 ================= */
 .settings-card {
-  margin: 0 16px 12px 16px;
-  background: #FFFFFF;
-  border-radius: 24px;
+background: #FFFFFF;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  margin: 0 16px 12px 16px;
 }
 
 /* 个人账号卡 */
@@ -1176,10 +1175,10 @@ const filteredSearchResults = computed(() => {
   bottom: -20px;
   background: linear-gradient(
     to bottom,
-    rgba(244, 245, 247, 0) 0%,
-    rgba(244, 245, 247, 0.88) 38%,
-    #F4F5F7 68%,
-    #F4F5F7 100%
+    rgba(240, 241, 242, 0) 0%,
+    rgba(240, 241, 242, 0.88) 38%,
+    #F0F1F2 68%,
+    #F0F1F2 100%
   );
   pointer-events: none;
 }

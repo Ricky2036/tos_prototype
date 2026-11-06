@@ -496,10 +496,9 @@ defineExpose({ back })
 }
 
 .settings-card {
-  background: #FFFFFF;
-  border-radius: 18px;
+background: #FFFFFF;
+  border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.04);
   margin-bottom: 14px;
   box-sizing: border-box;
 }

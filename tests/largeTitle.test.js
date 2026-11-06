@@ -212,7 +212,7 @@ test('LargeTitleHeader 源码结构：sticky 本体 + ::before 底幕 + 槽几�
   )
   assert.ok(/rgba\(var\(--title-scrim/.test(before), '底幕基色必须走 --title-scrim（各页底色不同，写死会串色）')
   assert.ok(
-    HEADER.includes("scrim: { type: String, default: '244, 245, 247' }"),
+    HEADER.includes("scrim: { type: String, default: '240, 241, 242' }"),
     '底幕默认基色应为本仓应用默认底色 #F4F5F7'
   )
 

@@ -217,7 +217,7 @@ function handleToggle(row, value) {
 
 /* 卡片 */
 .settings-card {
-  background: #FFFFFF;
+background: #FFFFFF;
   border-radius: 16px;
   overflow: hidden;
   margin-bottom: 12px;

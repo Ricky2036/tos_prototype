@@ -562,12 +562,10 @@ defineExpose({ back })
 
 /* 通用卡片规范 */
 .settings-card {
-  margin-bottom: 12px;
-  background: #FFFFFF;
+background: #FFFFFF;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  margin-bottom: 12px;
 }
 
 /* 图标容器规范 */

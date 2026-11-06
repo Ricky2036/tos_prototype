@@ -435,10 +435,9 @@ defineExpose({ back })
 
 /* 通用设置卡片 */
 .settings-card {
-  background: #FFFFFF;
-  border-radius: 24px;
+background: #FFFFFF;
+  border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
 /* 分组标题 */

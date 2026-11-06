@@ -444,10 +444,9 @@ defineExpose({ back })
 
 /* 通用设置卡片 */
 .settings-card {
-  background: #FFFFFF;
-  border-radius: 24px;
+background: #FFFFFF;
+  border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
 /* 分组标题 */
@@ -561,7 +560,8 @@ defineExpose({ back })
 }
 
 .slider-track {
-  width: 100%;
+  /* ⚠️ 不能写 width:100% + margin-right（两者相加会超出卡片内容区，滑块就顶出去了） */
+  width: auto;
   /* 与 HSettingSlider 同一套几何（真机实测：轨道 10px / 填充 #3375F6） */
   height: 10px;
   background: #EBEBEB;

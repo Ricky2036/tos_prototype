@@ -108,15 +108,15 @@ test('SettingsApp includes floating search bar and standardized card styling', (
   const largeTitleHeader = fs.readFileSync(path.resolve('src/components/ui/LargeTitleHeader.vue'), 'utf-8')
   assert.match(
     largeTitleHeader,
-    /--title-scrim, 244, 245, 247\)/,
-    'Title scrim default must match the tOS neutral tone #F4F5F7'
+    /--title-scrim, 240, 241, 242\)/,
+    'Title scrim default must match the measured tOS tone #F0F1F2'
   )
   assert.match(largeTitleHeader, /0\.24\)/, 'Title mask should fade smoothly into the list')
 
-  // Card border-radius 24px and pure white background
-  assert.match(content, /border-radius:\s*24px/, 'Cards should have standardized 24px border radius')
+  // 卡片规范：16px 圆角 / 纯白底 / 页面底 #F0F1F2（Ricky 2026-11-06 定稿，24px 太圆被打回）
+  assert.match(content, /border-radius:\s*16px/, 'Cards should use the 16px radius spec')
   assert.match(content, /background:\s*#FFFFFF/, 'Cards should have pure white background')
-  assert.match(content, /#F4F5F7/, 'Background should match modern tOS neutral tone')
+  assert.match(content, /#F0F1F2/, 'Background should match the measured tOS neutral tone')
 })
 
 test('SettingsSearchBar component provides search magnifying glass and microphone icon', () => {

@@ -424,11 +424,10 @@ defineExpose({ back })
 
 /* 设置卡片容器 */
 .settings-card {
-  background: #FFFFFF;
+background: #FFFFFF;
   border-radius: 16px;
-  margin-bottom: 16px;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  margin-bottom: 16px;
 }
 
 /* 推荐卡片项 */
