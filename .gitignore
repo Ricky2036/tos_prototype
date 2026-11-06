@@ -37,3 +37,8 @@ code-review-*.html
 !.motion/references/
 # 发布应用的本地产物标记（内部用，不入库）
 .wbapp_*.genie
+
+# 埋点本地数据库（运行时产物，不入库）
+tools/telemetry-server/*.db
+tools/telemetry-server/*.db-shm
+tools/telemetry-server/*.db-wal
