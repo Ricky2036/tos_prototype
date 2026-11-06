@@ -27,10 +27,10 @@ defineExpose({ back })
 <template>
   <div class="settings-apps-page">
     <!-- 顶部导航栏 -->
-    <GlassNavBar title="应用管理" @back="emit('back')" />
+    <GlassNavBar overlay title="应用管理" @back="emit('back')" />
 
     <!-- 滚动区域 -->
-    <div class="apps-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="apps-scroll-body scrollable">
       <!-- 卡片组 1: 应用更新 -->
       <div class="apps-card">
         <ListCell title="应用更新" chevron last @click="showToast('所有系统与第三方应用均已是最新版本')"/>

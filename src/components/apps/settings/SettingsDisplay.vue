@@ -151,10 +151,10 @@ defineExpose({ back })
     </Transition>
 
     <!-- 顶部导航栏：圆形微投影返回键 + 左对齐大标题 -->
-    <GlassNavBar v-if="!subPage" title="显示与亮度" @back="emit('back')" />
+    <GlassNavBar overlay v-if="!subPage" title="显示与亮度" @back="emit('back')" />
 
     <!-- 滚动内容区 -->
-    <div v-if="!subPage" class="display-scroll-body">
+    <div style="padding-top: var(--nav-h)" v-if="!subPage" class="display-scroll-body">
       <!-- 卡片 1: 外观主题模式 -->
       <div class="settings-card theme-card">
         <div class="theme-picker-row">

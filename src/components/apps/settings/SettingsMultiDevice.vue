@@ -92,9 +92,9 @@ defineExpose({ back })
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <!-- ================= 1. 全屏三级页：极速互传 ================= -->
       <div v-if="activeSubView === 'quickShare'" key="quickShare" class="subpage-view-pane">
-        <GlassNavBar title="极速互传" @back="closeSubView" />
+        <GlassNavBar overlay title="极速互传" @back="closeSubView" />
 
-      <div class="md-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="md-scroll-body scrollable">
         <!-- 头部碰一碰传输插画 (实机 1:1) -->
         <div class="graphic-hero-card">
           <div class="two-phones-illustration">
@@ -163,9 +163,9 @@ defineExpose({ back })
 
     <!-- ================= 2. 全屏三级页：投屏 ================= -->
     <div v-else-if="activeSubView === 'cast'" key="cast" class="subpage-view-pane">
-      <GlassNavBar title="投屏" @back="closeSubView" />
+      <GlassNavBar overlay title="投屏" @back="closeSubView" />
 
-      <div class="md-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="md-scroll-body scrollable">
         <div class="settings-card">
           <ListCell title="投屏" last>
             <template #right>
@@ -196,10 +196,10 @@ defineExpose({ back })
 
     <!-- ================= 3. 多设备连接主页 ================= -->
     <div v-else key="main" class="subpage-view-pane">
-      <GlassNavBar title="多设备连接" @back="emit('back')" />
+      <GlassNavBar overlay title="多设备连接" @back="emit('back')" />
 
       <!-- 滚动主体内容 -->
-      <div class="md-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="md-scroll-body scrollable">
         <!-- 分组 1: 常用网络与端口连接 -->
         <div class="settings-card">
           <ListCell

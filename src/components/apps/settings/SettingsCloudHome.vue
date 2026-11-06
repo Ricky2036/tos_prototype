@@ -67,7 +67,7 @@ function handleServiceClick(serviceKey) {
 <template>
   <div class="cloud-home-page">
     <!-- 顶部固定导航栏（视频中圆形返回按钮 + 云服务标题 + 右侧更多按钮） -->
-    <GlassNavBar title="云服务" @back="emit('back')">
+    <GlassNavBar overlay title="云服务" @back="emit('back')">
       <template #right><button
         type="button"
         class="nav-circle-btn"
@@ -83,7 +83,7 @@ function handleServiceClick(serviceKey) {
     </GlassNavBar>
 
     <!-- 页面滚动内容主体 -->
-    <div class="cloud-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="cloud-scroll-body scrollable">
       <!-- 1. 用户信息与会员卡片区域 -->
       <div class="user-hero-card">
         <div class="user-name">Ricky</div>

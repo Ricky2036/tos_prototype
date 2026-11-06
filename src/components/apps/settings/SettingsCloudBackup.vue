@@ -466,9 +466,9 @@ function selectFreq(val) {
   <div class="cb-app">
     <!-- ================= 页面 1: 云备份首页 ================= -->
     <div v-if="currentPage === 'home'" class="cb-page">
-      <GlassNavBar :title="SETTINGS_TITLES.cloudBackup" @back="emit('back')" />
+      <GlassNavBar overlay :title="SETTINGS_TITLES.cloudBackup" @back="emit('back')" />
 
-      <div class="cb-sub-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="cb-sub-body scrollable">
 
       <!-- 权益过期横幅（仅 expired 场景） -->
       <div v-if="state.scenario === 'expired'" class="cb-banner">
@@ -764,12 +764,12 @@ function selectFreq(val) {
 
     <!-- ================= 页面 2: 选择备份数据 / 选择恢复数据 ================= -->
     <div v-else-if="currentPage === 'select' || currentPage === 'restore-select'" class="cb-page cb-sub">
-      <GlassNavBar
+      <GlassNavBar overlay
         :title="pageTitles[currentPage]"
         @back="popPage"
       />
 
-      <div class="cb-sub-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="cb-sub-body scrollable">
         <div class="card cb-stat">
           <div class="cb-stat-item">
             <div class="cb-stat-label">大小</div>
@@ -832,12 +832,12 @@ function selectFreq(val) {
 
     <!-- ================= 页面 3: 备份中 / 恢复中 ================= -->
     <div v-else-if="currentPage === 'progress' || currentPage === 'restore-progress'" class="cb-page cb-sub">
-      <GlassNavBar
+      <GlassNavBar overlay
         :title="currentPage === 'progress' ? '备份中' : '恢复中'"
         @back="handleStopClick"
       />
 
-      <div class="cb-sub-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="cb-sub-body scrollable">
         <!-- 环形进度条 -->
         <div class="cb-ring-wrap">
           <svg class="cb-ring" width="180" height="180" viewBox="0 0 120 120">
@@ -965,9 +965,9 @@ function selectFreq(val) {
 
     <!-- ================= 页面 6: 自动备份设置 ================= -->
     <div v-else-if="currentPage === 'auto'" class="cb-page cb-sub">
-      <GlassNavBar :title="SETTINGS_TITLES.autoBackup" @back="popPage" />
+      <GlassNavBar overlay :title="SETTINGS_TITLES.autoBackup" @back="popPage" />
 
-      <div class="cb-sub-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="cb-sub-body scrollable">
         <div v-if="state.scenario === 'nospace'" class="cb-banner inline">
           <svg width="20" height="20" viewBox="0 0 24 24">
             <path :d="GLYPHS.cloudOff" fill="#FF7A1A" />

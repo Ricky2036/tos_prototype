@@ -66,9 +66,9 @@ defineExpose({ back })
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <!-- 1. SIM 1 详情三级页 -->
       <div v-if="activeSubView === 'sim1Detail'" key="sim1Detail" class="subpage-view-pane">
-        <GlassNavBar title="{{ sim1.name }}" @back="closeSubView" />
+        <GlassNavBar overlay title="{{ sim1.name }}" @back="closeSubView" />
 
-      <div class="sim-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="sim-scroll-body scrollable">
         <div class="settings-card">
           <ListCell title="启用卡1">
             <template #right>
@@ -152,9 +152,9 @@ defineExpose({ back })
 
     <!-- 2. 全屏三级页：流量管理 -->
     <div v-else-if="activeSubView === 'trafficManage'" key="trafficManage" class="subpage-view-pane">
-      <GlassNavBar title="流量管理" @back="closeSubView" />
+      <GlassNavBar overlay title="流量管理" @back="closeSubView" />
 
-      <div class="sim-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="sim-scroll-body scrollable">
         <div class="settings-card traffic-hero-card">
           <div class="traffic-circle">
             <span class="traffic-num">14.28</span>
@@ -189,9 +189,9 @@ defineExpose({ back })
 
     <!-- 3. SIM 卡与网络设置主页 -->
     <div v-else key="main" class="subpage-view-pane">
-      <GlassNavBar title="SIM 卡与网络设置" @back="emit('back')" />
+      <GlassNavBar overlay title="SIM 卡与网络设置" @back="emit('back')" />
 
-      <div class="sim-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="sim-scroll-body scrollable">
         <!-- 头部特性大卡片 -->
         <div class="sim-feature-card">
           <div class="sim-feature-icon-wrap">

@@ -62,10 +62,10 @@ defineExpose({ back })
 <template>
   <div class="settings-battery-page">
     <!-- 顶部导航栏：左对齐真机规范 -->
-    <GlassNavBar title="电池与省电" @back="emit('back')" />
+    <GlassNavBar overlay title="电池与省电" @back="emit('back')" />
 
     <!-- 滚动区域 -->
-    <div class="battery-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="battery-scroll-body scrollable">
       <!-- 顶部电量指示区 -->
       <div class="battery-hero-section">
         <div class="battery-percentage-wrap">

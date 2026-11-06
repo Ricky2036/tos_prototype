@@ -132,9 +132,9 @@ defineExpose({ back })
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <!-- ================= 1. 全屏三级页：网络详情 ================= -->
       <div v-if="activeSubView === 'detail' && selectedNetwork" key="detail" class="subpage-view-pane">
-        <GlassNavBar title="网络详情" @back="closeSubView" />
+        <GlassNavBar overlay title="网络详情" @back="closeSubView" />
 
-      <div class="wifi-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="wifi-scroll-body scrollable">
         <!-- 头部网络居中实体卡片 -->
         <div class="entity-header-box">
           <div class="entity-header-icon-wrap">
@@ -231,7 +231,7 @@ defineExpose({ back })
 
     <!-- ================= 2. WLAN 主界面 ================= -->
     <div v-else key="main" class="subpage-view-pane">
-      <GlassNavBar title="WLAN" @back="emit('back')">
+      <GlassNavBar overlay title="WLAN" @back="emit('back')">
         <template #right><button class="nav-round-btn" aria-label="扫码" @click="handleScan">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="7" height="7" rx="1.5" />
@@ -248,7 +248,7 @@ defineExpose({ back })
           </button></template>
       </GlassNavBar>
 
-      <div class="wifi-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="wifi-scroll-body scrollable">
         <!-- 头部特性大卡片（完全对齐真机 XOS 1:1） -->
         <div class="settings-card wifi-feature-card">
           <div class="wifi-feature-icon-wrap">

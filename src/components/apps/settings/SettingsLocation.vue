@@ -36,10 +36,10 @@ defineExpose({ back })
 <template>
   <div class="settings-location-page">
     <!-- 顶部导航栏 -->
-    <GlassNavBar title="位置信息" @back="emit('back')" />
+    <GlassNavBar overlay title="位置信息" @back="emit('back')" />
 
     <!-- 滚动区域 -->
-    <div class="location-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="location-scroll-body scrollable">
       <!-- 主开关卡片 -->
       <div class="location-card">
         <ListCell title="使用位置信息" last>

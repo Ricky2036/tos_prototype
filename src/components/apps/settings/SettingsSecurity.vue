@@ -73,10 +73,10 @@ defineExpose({ back })
 <template>
   <div class="settings-security-page">
     <!-- 顶部导航栏 -->
-    <GlassNavBar title="密码与安全" @back="emit('back')" />
+    <GlassNavBar overlay title="密码与安全" @back="emit('back')" />
 
     <!-- 滚动区域 -->
-    <div class="security-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="security-scroll-body scrollable">
       <!-- 2x2 四宫格卡片 -->
       <div class="security-grid-cards">
         <!-- 锁屏密码 -->

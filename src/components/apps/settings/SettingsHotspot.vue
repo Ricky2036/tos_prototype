@@ -83,7 +83,7 @@ defineExpose({ back })
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <!-- ================= 1. 全屏三级页：WLAN热点设置 (实机 1:1) ================= -->
       <div v-if="activeSubView === 'config'" key="config" class="subpage-view-pane">
-        <GlassNavBar title="WLAN热点设置" @back="closeSubView">
+        <GlassNavBar overlay title="WLAN热点设置" @back="closeSubView">
         <template #right><button class="nav-round-btn confirm-btn" aria-label="保存" @click="saveHotspotConfig">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"/>
@@ -91,7 +91,7 @@ defineExpose({ back })
           </button></template>
       </GlassNavBar>
 
-      <div class="hotspot-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="hotspot-scroll-body scrollable">
         <div class="group-label">名称</div>
         <div class="settings-card input-card">
           <div class="input-row">
@@ -152,10 +152,10 @@ defineExpose({ back })
 
     <!-- ================= 2. 个人热点主页 (实机 1:1) ================= -->
     <div v-else key="main" class="subpage-view-pane">
-      <GlassNavBar title="个人热点" @back="emit('back')" />
+      <GlassNavBar overlay title="个人热点" @back="emit('back')" />
 
       <!-- 滚动主体内容 -->
-      <div class="hotspot-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="hotspot-scroll-body scrollable">
         <!-- 分组 1: 便携式热点 (实机 1:1，移除假大图标) -->
         <div class="group-label">便携式热点</div>
         <div class="settings-card">

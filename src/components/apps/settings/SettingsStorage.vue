@@ -70,10 +70,10 @@ defineExpose({ back })
 <template>
   <div class="settings-storage-page">
     <!-- 顶部导航栏：左对齐大标题 -->
-    <GlassNavBar title="存储" @back="emit('back')" />
+    <GlassNavBar overlay title="存储" @back="emit('back')" />
 
     <!-- 滚动区域 -->
-    <div class="storage-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="storage-scroll-body scrollable">
       <!-- 顶部存储看板卡片 -->
       <div class="storage-hero-card">
         <div class="storage-header-row">

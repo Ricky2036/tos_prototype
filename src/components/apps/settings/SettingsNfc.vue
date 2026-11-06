@@ -36,10 +36,10 @@ defineExpose({ back })
 <template>
   <div class="settings-nfc-page">
     <!-- 顶部导航栏 -->
-    <GlassNavBar title="NFC" @back="emit('back')" />
+    <GlassNavBar overlay title="NFC" @back="emit('back')" />
 
     <!-- 滚动主体内容 -->
-    <div class="nfc-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="nfc-scroll-body scrollable">
       <!-- 头部 NFC 模拟示意图与提示条 (实机 1:1) -->
       <div class="nfc-banner-card">
         <div class="nfc-phone-graphic">

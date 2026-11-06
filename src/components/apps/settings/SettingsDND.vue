@@ -15,9 +15,9 @@ const i18n = useI18nStore()
 
 <template>
   <div class="settings-dnd">
-    <GlassNavBar :title="SETTINGS_TITLES.dnd" @back="emit('back')" />
+    <GlassNavBar overlay :title="SETTINGS_TITLES.dnd" @back="emit('back')" />
 
-    <div class="scrollable dnd-body">
+    <div style="padding-top: var(--nav-h)" class="scrollable dnd-body">
       <!-- 顶部勿扰与定时开关卡片 -->
       <div class="dnd-card">
         <!-- 勿扰模式开关 -->

@@ -49,10 +49,10 @@ defineExpose({ back })
 <template>
   <div class="settings-accessibility-page">
     <!-- 顶部导航栏：左对齐大标题 -->
-    <GlassNavBar title="辅助功能" @back="emit('back')" />
+    <GlassNavBar overlay title="辅助功能" @back="emit('back')" />
 
     <!-- 滚动内容区 -->
-    <div class="accessibility-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="accessibility-scroll-body scrollable">
       <!-- 顶部特性大卡片：真机悬浮特色晶核徽标 -->
       <!-- 顶部特性大卡片：真机官方高保真晶核徽标 -->
       <div class="accessibility-hero-card">

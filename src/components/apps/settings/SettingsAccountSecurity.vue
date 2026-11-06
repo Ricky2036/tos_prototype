@@ -182,10 +182,10 @@ onBeforeUnmount(() => {
 <template>
   <div class="account-security-page">
     <!-- 顶部导航栏 -->
-    <GlassNavBar title="账号安全" @back="emit('back')" />
+    <GlassNavBar overlay title="账号安全" @back="emit('back')" />
 
     <!-- 主体滚动区域 -->
-    <div class="security-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="security-scroll-body scrollable">
       <!-- 卡片分组 1：基础认证信息（电话、邮箱、紧急联系人） -->
       <div class="security-card-group">
         <!-- 电话号码 -->

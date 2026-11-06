@@ -37,7 +37,7 @@ function handleRelogin() {
 <template>
   <div class="settings-account-page">
     <!-- 顶部导航栏：独立轻圆返回按钮 + 标题 + 独立轻圆扫码按钮 -->
-    <GlassNavBar title="Infinix ID" @back="emit('back')">
+    <GlassNavBar overlay title="Infinix ID" @back="emit('back')">
         <template #right><button class="nav-round-btn" aria-label="扫一扫" @click="showToast('已开启二维码扫描')">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -47,7 +47,7 @@ function handleRelogin() {
       </GlassNavBar>
 
     <!-- 滚动区域 -->
-    <div class="account-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="account-scroll-body scrollable">
       <!-- 个人信息头像与昵称 -->
       <div class="profile-header">
         <div class="profile-avatar-wrap">

@@ -43,9 +43,9 @@ function handleToggle(row, value) {
 
 <template>
   <div class="ai-sub-page">
-    <GlassNavBar title="{{ title }}" @back="emit('back')" />
+    <GlassNavBar overlay title="{{ title }}" @back="emit('back')" />
 
-    <div class="ai-sub-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="ai-sub-body scrollable">
       <!-- 头图区 -->
       <div v-if="hero" class="ai-hero">
         <slot name="hero">

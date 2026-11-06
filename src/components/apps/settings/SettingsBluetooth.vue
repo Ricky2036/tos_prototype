@@ -113,9 +113,9 @@ defineExpose({ back })
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <!-- ================= 1. 全屏三级页：设备详情 ================= -->
       <div v-if="activeSubView === 'devDetail' && targetDev" key="devDetail" class="subpage-view-pane">
-        <GlassNavBar title="设备详情" @back="closeSubView" />
+        <GlassNavBar overlay title="设备详情" @back="closeSubView" />
 
-      <div class="bt-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="bt-scroll-body scrollable">
         <!-- 居中耳机/设备大图标与标题 (实机 1:1) -->
         <div class="dev-detail-hero">
           <div class="dev-detail-icon-wrap">
@@ -195,7 +195,7 @@ defineExpose({ back })
 
     <!-- ================= 2. 蓝牙主界面 ================= -->
     <div v-else key="main" class="subpage-view-pane">
-      <GlassNavBar title="蓝牙" @back="emit('back')">
+      <GlassNavBar overlay title="蓝牙" @back="emit('back')">
         <template #right><button class="nav-round-btn" aria-label="更多选项" @click="showToast('蓝牙高级设置')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="5" r="1.5" fill="#1C1C1E" />
@@ -206,7 +206,7 @@ defineExpose({ back })
       </GlassNavBar>
 
       <!-- 滚动区域 -->
-      <div class="bt-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="bt-scroll-body scrollable">
         <!-- 头部特性大卡片 -->
         <div class="bt-feature-card">
           <div class="bt-feature-icon-wrap">

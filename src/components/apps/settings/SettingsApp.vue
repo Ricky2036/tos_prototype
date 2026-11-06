@@ -852,10 +852,10 @@ const filteredSearchResults = computed(() => {
 
       <!-- ================= 其他二级页 ================= -->
       <div v-else :key="view" class="settings-page">
-        <GlassNavBar :title="viewTitles[view]" @back="pop" />
+        <GlassNavBar overlay :title="viewTitles[view]" @back="pop" />
 
         <!-- 未实现页面的优雅占位 -->
-        <div v-if="view === 'placeholder'" class="scrollable detail-body">
+        <div style="padding-top: var(--nav-h)" v-if="view === 'placeholder'" class="scrollable detail-body">
           <div class="placeholder-icon">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10" />

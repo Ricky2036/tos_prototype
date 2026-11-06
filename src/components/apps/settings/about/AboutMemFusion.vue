@@ -34,10 +34,10 @@ function handleSelectSize(sz) {
 <template>
   <div class="memfusion-page">
     <!-- 顶部导航栏 -->
-    <GlassNavBar title="MemFusion 融合内存" @back="emit('back')" />
+    <GlassNavBar overlay title="MemFusion 融合内存" @back="emit('back')" />
 
     <!-- 滚动内容区 -->
-    <div class="sub-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="sub-scroll-body scrollable">
       <!-- 内存容量概览卡片 -->
       <div class="capacity-overview-card">
         <div class="overview-header">

@@ -139,10 +139,10 @@ defineExpose({ back })
       <!-- ================= 二级首页：我的手机 ================= -->
       <div v-else key="aboutMain" class="about-main-container">
         <!-- 顶部导航栏：圆形微灰底返回键 + 左对齐标题 -->
-        <GlassNavBar title="我的手机" @back="emit('back')" />
+        <GlassNavBar overlay title="我的手机" @back="emit('back')" />
 
         <!-- 滚动区域 -->
-        <div class="about-scroll-body scrollable">
+        <div style="padding-top: var(--nav-h)" class="about-scroll-body scrollable">
           <!-- ================= 卡片 1: XOS 17 品牌横幅卡 ================= -->
           <div class="xos-banner-card">
             <div class="xos-banner-bg-wrap">

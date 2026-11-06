@@ -48,10 +48,10 @@ function handleOpen(item) {
 <template>
   <div class="legal-info-page">
     <!-- 顶部导航栏 -->
-    <GlassNavBar title="法律信息" @back="emit('back')" />
+    <GlassNavBar overlay title="法律信息" @back="emit('back')" />
 
     <!-- 滚动区域 -->
-    <div class="sub-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="sub-scroll-body scrollable">
       <div class="group-header">合规与许可条款</div>
       <div class="settings-card">
         <ListCell

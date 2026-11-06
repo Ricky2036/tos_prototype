@@ -19,10 +19,10 @@ const remainingDays = computed(() => {
 <template>
   <div class="warranty-card-page">
     <!-- 顶部导航栏 -->
-    <GlassNavBar title="电子保修卡" @back="emit('back')" />
+    <GlassNavBar overlay title="电子保修卡" @back="emit('back')" />
 
     <!-- 滚动区域 -->
-    <div class="sub-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="sub-scroll-body scrollable">
       <!-- 官方电子保修卡面 -->
       <div class="warranty-hero-card">
         <div class="card-chip-row">

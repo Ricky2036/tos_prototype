@@ -24,10 +24,10 @@ function copyText(label, val) {
 <template>
   <div class="status-info-page">
     <!-- 顶部导航栏 -->
-    <GlassNavBar title="手机信息" @back="emit('back')" />
+    <GlassNavBar overlay title="手机信息" @back="emit('back')" />
 
     <!-- 滚动区域 -->
-    <div class="sub-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="sub-scroll-body scrollable">
       <!-- 分组 1: SIM 卡状态 -->
       <div class="group-header">SIM 卡状态</div>
       <div class="settings-card">

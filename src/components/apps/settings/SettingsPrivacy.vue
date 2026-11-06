@@ -78,7 +78,7 @@ defineExpose({ back })
     <!-- 二级页面：权限与隐私首页 -->
     <template v-else>
       <!-- 顶部导航栏 -->
-      <GlassNavBar title="权限与隐私" @back="emit('back')">
+      <GlassNavBar overlay title="权限与隐私" @back="emit('back')">
         <template #right><button class="nav-round-btn" aria-label="更多" @click="showToast('隐私保护高级设置')">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="5" r="1.5" fill="#1C1C1E" />
@@ -89,7 +89,7 @@ defineExpose({ back })
       </GlassNavBar>
 
     <!-- 滚动区域 -->
-    <div class="privacy-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="privacy-scroll-body scrollable">
       <!-- 顶部安全评分检测大卡片 -->
       <div class="privacy-score-card">
         <div class="score-badge-wrap">

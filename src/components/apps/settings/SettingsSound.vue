@@ -124,10 +124,10 @@ defineExpose({ back })
     </Transition>
 
     <!-- 顶部导航栏：圆形微投影返回键 + 左对齐大标题 -->
-    <GlassNavBar v-if="!subPage" title="声音与振动" @back="emit('back')" />
+    <GlassNavBar overlay v-if="!subPage" title="声音与振动" @back="emit('back')" />
 
     <!-- 滚动内容区 -->
-    <div v-if="!subPage" class="sound-scroll-body">
+    <div style="padding-top: var(--nav-h)" v-if="!subPage" class="sound-scroll-body">
       <!-- 卡片 1: 响铃/振动/静音模式 + 勿扰模式 + 礼拜模式入口 -->
       <div class="settings-card mode-card">
         <div class="mode-picker-row">

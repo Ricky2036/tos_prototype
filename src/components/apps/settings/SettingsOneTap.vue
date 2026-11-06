@@ -379,7 +379,7 @@ defineExpose({ back })
 <template>
   <div class="onetap-page" aria-label="One-Tap Button">
     <!-- 顶部导航栏: One-Tap Button -->
-    <GlassNavBar title="One-Tap Button" @back="back" />
+    <GlassNavBar overlay title="One-Tap Button" @back="back" />
 
     <!-- 主展示舞台：高精度手机侧边中框 + 真实物理按键与单轨无缝图标位移 -->
     <div

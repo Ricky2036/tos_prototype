@@ -38,9 +38,9 @@ defineExpose({ back })
 
 <template>
   <div class="settings-satellite-page">
-    <GlassNavBar title="星链卫星网络" @back="emit('back')" />
+    <GlassNavBar overlay title="星链卫星网络" @back="emit('back')" />
 
-    <div class="satellite-scroll-content scrollable">
+    <div style="padding-top: var(--nav-h)" class="satellite-scroll-content scrollable">
       <!-- 提示横幅 -->
       <div class="status-banner">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

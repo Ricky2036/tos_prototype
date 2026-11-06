@@ -99,10 +99,10 @@ defineExpose({ back })
 
     <div v-if="!subPage" class="ai-main">
     <!-- 顶部导航栏 -->
-    <GlassNavBar title="Infinix AI" @back="emit('back')" />
+    <GlassNavBar overlay title="Infinix AI" @back="emit('back')" />
 
     <!-- 滚动区域 -->
-    <div class="ai-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="ai-scroll-body scrollable">
       <!-- 头部特性大卡片 -->
       <div class="ai-feature-card">
         <div class="ai-feature-icon-wrap">
