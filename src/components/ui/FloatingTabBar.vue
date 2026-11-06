@@ -214,7 +214,7 @@ function selectTab(tab) {
   padding: 0 18px;
   box-sizing: border-box;
   pointer-events: none;
-  z-index: 25;
+  z-index: 40;
 }
 
 .floating-dock-container > * {
@@ -243,7 +243,7 @@ function selectTab(tab) {
   justify-content: space-between;
   padding: 4px;
   box-sizing: border-box;
-  z-index: 25;
+  z-index: 40;
   user-select: none;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
 }

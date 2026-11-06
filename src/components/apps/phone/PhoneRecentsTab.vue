@@ -47,28 +47,10 @@ function handleInfoClick(e, recent) {
 function handleLongPress(recent) {
   phoneStore.flashCallTarget = recent
 }
-
-function triggerFlashCallBanner() {
-  phoneStore.flashCallTarget = phoneStore.recents[0] || { name: '常用联系人', number: '138 0000 0000' }
-}
 </script>
 
 <template>
   <div class="phone-recents-tab">
-    <!-- 未接来电状态下的 FLASH CALL 彩色品牌横幅 -->
-    <div
-      v-if="phoneStore.recentsFilter === 'missed'"
-      class="flash-call-banner"
-      @click="triggerFlashCallBanner"
-    >
-      <div class="flash-call-glow-text">FLASH CALL</div>
-      <div class="flash-call-dots">
-        <span class="dot d1"></span>
-        <span class="dot d2"></span>
-        <span class="dot d3"></span>
-      </div>
-    </div>
-
     <!-- 通话记录列表（支持滑动手势与折叠联动） -->
     <div class="recents-list">
       <div

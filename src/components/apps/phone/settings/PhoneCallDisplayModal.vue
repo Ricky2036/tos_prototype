@@ -19,32 +19,35 @@ const emit = defineEmits(['back'])
     </div>
 
     <div class="subpage-body">
-      <div class="display-modes-container">
-        <!-- 模式 1：弹窗显示（100% 对齐真机 07_call_display.png 比例与布局） -->
-        <div
-          class="mode-column"
-          @click="phoneStore.callDisplayMode = 'banner'"
-        >
-          <div class="mode-preview-card" :class="{ selected: phoneStore.callDisplayMode === 'banner' }">
-            <img :src="bannerImg" class="preview-img" alt="弹窗显示插画" />
+      <!-- 统一白色大卡片容器包裹两个手机模型与按钮，100% 对齐真机 -->
+      <div class="settings-card call-display-big-card">
+        <div class="display-options-row">
+          <!-- 模式 1：弹窗显示 -->
+          <div
+            class="display-option-col"
+            @click="phoneStore.callDisplayMode = 'banner'"
+          >
+            <div class="model-frame">
+              <img :src="bannerImg" class="phone-img" alt="弹窗显示" />
+            </div>
+            <div class="option-title">弹窗显示</div>
+            <div class="custom-radio" :class="{ checked: phoneStore.callDisplayMode === 'banner' }">
+              <div v-if="phoneStore.callDisplayMode === 'banner'" class="radio-core"></div>
+            </div>
           </div>
-          <div class="mode-label">弹窗显示</div>
-          <div class="mode-radio" :class="{ checked: phoneStore.callDisplayMode === 'banner' }">
-            <div v-if="phoneStore.callDisplayMode === 'banner'" class="radio-dot"></div>
-          </div>
-        </div>
 
-        <!-- 模式 2：全屏显示 -->
-        <div
-          class="mode-column"
-          @click="phoneStore.callDisplayMode = 'fullscreen'"
-        >
-          <div class="mode-preview-card" :class="{ selected: phoneStore.callDisplayMode === 'fullscreen' }">
-            <img :src="fullImg" class="preview-img" alt="全屏显示插画" />
-          </div>
-          <div class="mode-label">全屏显示</div>
-          <div class="mode-radio" :class="{ checked: phoneStore.callDisplayMode === 'fullscreen' }">
-            <div v-if="phoneStore.callDisplayMode === 'fullscreen'" class="radio-dot"></div>
+          <!-- 模式 2：全屏显示 -->
+          <div
+            class="display-option-col"
+            @click="phoneStore.callDisplayMode = 'fullscreen'"
+          >
+            <div class="model-frame">
+              <img :src="fullImg" class="phone-img" alt="全屏显示" />
+            </div>
+            <div class="option-title">全屏显示</div>
+            <div class="custom-radio" :class="{ checked: phoneStore.callDisplayMode === 'fullscreen' }">
+              <div v-if="phoneStore.callDisplayMode === 'fullscreen'" class="radio-core"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -105,75 +108,81 @@ const emit = defineEmits(['back'])
 
 .subpage-body {
   flex: 1;
-  padding: 30px 24px;
+  overflow-y: auto;
+  padding: 12px 16px 24px;
 }
 
-.display-modes-container {
+.call-display-big-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 24px 20px 22px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.display-options-row {
   display: flex;
-  gap: 20px;
   justify-content: center;
+  gap: 24px;
 }
 
-.mode-column {
+.display-option-col {
   flex: 1;
-  max-width: 160px;
+  max-width: 156px;
   display: flex;
   flex-direction: column;
   align-items: center;
   cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s ease;
 }
 
-.mode-preview-card {
+.display-option-col:active {
+  transform: scale(0.98);
+}
+
+.model-frame {
   width: 100%;
-  aspect-ratio: 1 / 1.95;
-  background: #FFFFFF;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  border: 2px solid transparent;
-  transition: all 0.2s ease;
+  max-width: 122px;
+  aspect-ratio: 329 / 644;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.mode-preview-card.selected {
-  border-color: #00C853;
-  box-shadow: 0 6px 20px rgba(0, 200, 83, 0.18);
-}
-
-.preview-img {
+.phone-img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  display: block;
 }
 
-.mode-label {
+.option-title {
   font-size: 15px;
   font-weight: 600;
   color: #1C1C1E;
-  margin-top: 14px;
-  margin-bottom: 10px;
+  margin-top: 18px;
+  margin-bottom: 12px;
+  text-align: center;
 }
 
-.mode-radio {
+.custom-radio {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 2px solid #C7C7CC;
+  border: 2px solid #D1D5DB;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 
-.mode-radio.checked {
+.custom-radio.checked {
   border-color: #00C853;
 }
 
-.radio-dot {
-  width: 12px;
-  height: 12px;
+.radio-core {
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   background: #00C853;
 }

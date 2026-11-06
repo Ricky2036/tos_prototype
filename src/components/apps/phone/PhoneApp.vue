@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { usePhoneStore } from '../../../stores/phoneStore'
 import { useBackHandler } from '../../../composables/backRegistry'
 import { useLargeTitle, largeTitleVars } from '../../../composables/useLargeTitle.js'
@@ -42,13 +42,46 @@ const tabs = [
   { id: 'contacts', name: '联系人' }
 ]
 
-// 切换通话记录分类（全部类型 / 未接来电）：切换时回到列表顶部，两 TAB 互不干扰
+// 切换通话记录分类（全部类型 / 未接来电）：
+// 若已上滑处于吸顶状态，则保持吸顶折叠（严禁跳回大标题，Tab 栏绝对静止），仅列表内容回到顶部（首行紧贴吸顶栏下方）；
+// 若处于默认展开态，则保持在最顶部展开。
 function selectFilter(filterType) {
-  if (phoneStore.recentsFilter === filterType) return
+  if (phoneStore.recentsFilter === filterType) {
+    if (scrollContainerRef.value) {
+      const collapseDistance = PHONE_TITLE_CURVE.distance
+      if (scrollContainerRef.value.scrollTop > collapseDistance) {
+        scrollContainerRef.value.scrollTo({ top: collapseDistance, behavior: 'smooth' })
+      } else {
+        scrollContainerRef.value.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    }
+    return
+  }
+
+  const collapseDistance = PHONE_TITLE_CURVE.distance
+  const wasCollapsed = scrollContainerRef.value && scrollContainerRef.value.scrollTop >= collapseDistance
+
   phoneStore.recentsFilter = filterType
+
   if (scrollContainerRef.value) {
-    scrollContainerRef.value.scrollTop = 0
+    if (wasCollapsed) {
+      scrollContainerRef.value.scrollTop = collapseDistance
+      titleProgress.value = 1
+    } else {
+      scrollContainerRef.value.scrollTop = 0
+      titleProgress.value = 0
+    }
     onTitleScroll({ target: scrollContainerRef.value })
+
+    nextTick(() => {
+      if (scrollContainerRef.value) {
+        if (wasCollapsed) {
+          scrollContainerRef.value.scrollTop = collapseDistance
+          titleProgress.value = 1
+        }
+        onTitleScroll({ target: scrollContainerRef.value })
+      }
+    })
   }
 }
 
@@ -592,6 +625,10 @@ function handleAppWheel(e) {
 }
 
 /* 规范 FloatingTabBar 胶囊适配：严格对齐真机比例（宽 176px，高 54px，48.9% 屏宽），给右侧留出充足呼吸感 */
+.phone-app :deep(.floating-dock-container) {
+  z-index: 40 !important;
+}
+
 .phone-app :deep(.floating-tab-bar) {
   width: 176px;
   max-width: 176px;
