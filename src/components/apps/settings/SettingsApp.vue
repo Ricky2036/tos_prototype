@@ -6,6 +6,7 @@ import { useBackHandler } from '../../../composables/backRegistry'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import AppNavBar from '../../ui/AppNavBar.vue'
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 import SettingsSearchBar from '../../ui/SettingsSearchBar.vue'
 import SettingsSystemIcon from '../../ui/SettingsSystemIcon.vue'
 import SettingsNotifications from './SettingsNotifications.vue'
@@ -850,7 +851,7 @@ const filteredSearchResults = computed(() => {
 
       <!-- ================= 其他二级页 ================= -->
       <div v-else :key="view" class="settings-page">
-        <AppNavBar :title="viewTitles[view]" :back-label="'设置'" @back="pop" />
+        <GlassNavBar :title="viewTitles[view]" @back="pop" />
 
         <!-- 未实现页面的优雅占位 -->
         <div v-if="view === 'placeholder'" class="scrollable detail-body">

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, reactive, computed, onBeforeUnmount } from 'vue'
 import AppNavBar from '../../ui/AppNavBar.vue'
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 
 const emit = defineEmits(['back'])
 
@@ -464,7 +465,7 @@ function selectFreq(val) {
   <div class="cb-app">
     <!-- ================= 页面 1: 云备份首页 ================= -->
     <div v-if="currentPage === 'home'" class="cb-page">
-      <AppNavBar title="云备份" @back="emit('back')" />
+      <GlassNavBar title="云备份" @back="emit('back')" />
 
       <div class="cb-sub-body scrollable">
 
@@ -762,7 +763,7 @@ function selectFreq(val) {
 
     <!-- ================= 页面 2: 选择备份数据 / 选择恢复数据 ================= -->
     <div v-else-if="currentPage === 'select' || currentPage === 'restore-select'" class="cb-page cb-sub">
-      <AppNavBar
+      <GlassNavBar
         :title="pageTitles[currentPage]"
         back-label="云备份"
         @back="popPage"
@@ -831,7 +832,7 @@ function selectFreq(val) {
 
     <!-- ================= 页面 3: 备份中 / 恢复中 ================= -->
     <div v-else-if="currentPage === 'progress' || currentPage === 'restore-progress'" class="cb-page cb-sub">
-      <AppNavBar
+      <GlassNavBar
         :title="currentPage === 'progress' ? '备份中' : '恢复中'"
         back-label="云备份"
         @back="handleStopClick"
@@ -965,7 +966,7 @@ function selectFreq(val) {
 
     <!-- ================= 页面 6: 自动备份设置 ================= -->
     <div v-else-if="currentPage === 'auto'" class="cb-page cb-sub">
-      <AppNavBar title="自动备份" back-label="云备份" @back="popPage" />
+      <GlassNavBar title="自动备份" back-label="云备份" @back="popPage" />
 
       <div class="cb-sub-body scrollable">
         <div v-if="state.scenario === 'nospace'" class="cb-banner inline">
@@ -1150,6 +1151,7 @@ function selectFreq(val) {
 }
 
 .cb-sub-body {
+  padding-top: var(--nav-h);
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;

@@ -82,6 +82,7 @@
 
   /* 安全区 */
   --safe-top: 54px;           /* 状态栏高度 */
+  --nav-h: calc(var(--safe-top) + 46px);  /* 玻璃悬浮导航栏总高（内容要留这个顶部内边距） */
   --safe-bottom: 34px;        /* Home Indicator 区 */
 
   /* 导航条（Home Indicator）

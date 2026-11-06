@@ -1,4 +1,5 @@
 <script setup>
+import GlassNavBar from '../../../ui/GlassNavBar.vue'
 /**
  * 设置三级页通用外壳（显示与亮度 / 声音与振动 等二级页下的子页共用）。
  *
@@ -14,18 +15,9 @@ const emit = defineEmits(['back', 'action'])
 
 <template>
   <div class="sub-shell">
-    <div class="sub-nav">
-      <button class="nav-round-btn" aria-label="返回" type="button" data-nav-back @click="emit('back')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M19 12H5M5 12L12 5M5 12L12 19"
-            stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
-          />
-        </svg>
-      </button>
-      <div class="nav-title">{{ title }}</div>
-      <slot name="navRight"></slot>
-    </div>
+    <GlassNavBar :title="title" @back="emit('back')">
+      <template v-if="$slots.navRight" #right><slot name="navRight"></slot></template>
+    </GlassNavBar>
 
     <div class="sub-body scrollable">
       <slot></slot>
@@ -88,7 +80,8 @@ const emit = defineEmits(['back', 'action'])
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  padding: 4px 16px 0;
+  /* ⚠️ 必须是简写里带上顶部：下面这条 padding 会覆盖前面的 padding-top（实测踩过） */
+  padding: calc(var(--nav-h) + 10px) 16px 0;
   scrollbar-width: none;
 }
 
