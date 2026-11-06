@@ -2,7 +2,7 @@
 import SubPageShell from '../subpage/SubPageShell.vue'
 import ListCell from '../../../ui/ListCell.vue'
 import HSettingSlider from '../subpage/HSettingSlider.vue'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useDisplaySettingsStore } from '../../../../stores/displaySettingsStore'
 import DisplayMyFonts from './DisplayMyFonts.vue'
 
@@ -26,11 +26,28 @@ const FONTS = [
   { value: 'TransSans', label: 'TransSans' },
   { value: 'Roboto', label: 'Roboto' }
 ]
+
+/**
+ * 顶部预览区：真机是「上面预览、下面切换」——拖滑块时预览要实时变。
+ * 滑块 0..1 映射到 13–23px / 300–700 字重。
+ */
+const SAMPLE = '2021年，发表在《自然》杂志的一项研究显示，全球约有三分之一的人存在睡眠问题。规律作息与适度运动，能明显改善睡眠质量。'
+
+const previewStyle = computed(() => ({
+  fontSize: `${(13 + display.fontSize * 10).toFixed(1)}px`,
+  fontWeight: String(Math.round(300 + display.fontWeight * 400)),
+  fontFamily: display.fontFamily === 'Roboto'
+    ? 'Roboto, -apple-system, sans-serif'
+    : '-apple-system, "PingFang SC", "Segoe UI", sans-serif'
+}))
 </script>
 
 <template>
   <DisplayMyFonts v-if="showMyFonts" @back="closeMyFonts" />
   <SubPageShell v-else title="字体" @back="emit('back')">
+    <!-- 预览区：随字体 / 字号 / 粗细实时变化 -->
+    <div class="font-preview" :style="previewStyle">{{ SAMPLE }}</div>
+
     <div class="settings-card">
       <ListCell title="我的字体" chevron clickable last @click="openMyFonts" />
     </div>
@@ -74,6 +91,14 @@ const FONTS = [
 </template>
 
 <style scoped>
+.font-preview {
+  padding: 14px 16px 18px;
+  color: #111;
+  line-height: 1.5;
+  letter-spacing: 0.1px;
+  transition: font-size 0.08s linear, font-weight 0.08s linear;
+}
+
 .font-cards {
   display: flex;
   gap: 12px;

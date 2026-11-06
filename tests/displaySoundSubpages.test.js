@@ -430,3 +430,25 @@ test('深色主题设置用真正的壁纸预览，不是商品照', () => {
   assert.match(src, /wallpaper-lock\.jpg/, '应使用壁纸图')
   assert.doesNotMatch(src, /album-2\.jpg/, '不该再用专辑/商品照片当壁纸预览')
 })
+
+test('字体页：顶部预览区随字体/字号/粗细实时变化（真机是「上预览下切换」）', () => {
+  const src = read('src/components/apps/settings/display/DisplayFont.vue')
+  assert.match(src, /class="font-preview"/, '缺少顶部预览区')
+  assert.match(src, /:style="previewStyle"/, '预览区必须绑定动态样式')
+  assert.match(src, /display\.fontSize/, '字号滑块应驱动预览')
+  assert.match(src, /display\.fontWeight/, '字重滑块应驱动预览')
+  assert.match(src, /display\.fontFamily/, '字体卡应驱动预览')
+
+  // 预览必须排在「我的字体」之前（真机就是上预览、下切换）
+  const previewIdx = src.indexOf('class="font-preview"')
+  const myFontsIdx = src.indexOf('title="我的字体"')
+  assert.ok(previewIdx > 0 && myFontsIdx > previewIdx, '预览区必须在「我的字体」上方')
+})
+
+test('应用全屏显示：用桌面注册的应用与真实图标，不用首字母色块', () => {
+  const src = read('src/components/apps/settings/display/DisplayFullscreenApps.vue')
+  assert.match(src, /from '\.\.\/\.\.\/\.\.\/\.\.\/config\/apps'/, '必须复用桌面应用注册表')
+  assert.match(src, /<img class="app-icon-img"[^>]*:src="app\.image"/, '图标应使用应用自身的 image')
+  assert.doesNotMatch(src, /app\.letter/, '不该再用首字母色块')
+  assert.doesNotMatch(src, /bg: '#F97316'/, '不该再有硬编码的品牌色块')
+})

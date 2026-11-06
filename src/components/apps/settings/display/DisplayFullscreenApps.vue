@@ -1,17 +1,18 @@
 <script setup>
 import SubPageShell from '../subpage/SubPageShell.vue'
+import { APPS as APPS_REGISTRY } from '../../../../config/apps'
 
 const emit = defineEmits(['back'])
 
-// 真机这一页按应用列「自动 / 展示相机孔 / 隐藏相机孔」，首屏为默认「自动」
-const APPS = [
-  { name: 'AHA Prime', bg: '#F97316', letter: 'A' },
-  { name: 'Antigravity', bg: '#6366F1', letter: 'A' },
-  { name: 'ChatGPT', bg: '#111111', letter: 'C' },
-  { name: 'DeepSeek', bg: '#4F6BED', letter: 'D' },
-  { name: 'Epson Smart Panel', bg: '#F4F4F6', letter: 'E' },
-  { name: 'FlClash', bg: '#2F6BF6', letter: 'F' }
-]
+/**
+ * 应用清单：直接用**桌面已注册的应用**（`src/config/apps.js`）和它们的真实图标，
+ * 不再自造首字母色块。真机这一页按应用列「自动 / 展示相机孔 / 隐藏相机孔」，默认「自动」。
+ */
+const APP_IDS = ['camera', 'messages', 'safari', 'weather', 'notes', 'files', 'voicememos', 'calculator', 'settings', 'aimate']
+const APPS = APP_IDS
+  .map((id) => APPS_REGISTRY.find((a) => a.id === id))
+  .filter(Boolean)
+  .map((a) => ({ id: a.id, name: a.name, image: a.image }))
 </script>
 
 <template>
@@ -38,7 +39,7 @@ const APPS = [
         class="app-row"
         :class="{ last: i === APPS.length - 1 }"
       >
-        <span class="app-icon" :style="{ background: app.bg }">{{ app.letter }}</span>
+        <img class="app-icon-img" :src="app.image" :alt="app.name" />
         <span class="app-main">
           <span class="app-name">{{ app.name }}</span>
           <span class="app-mode">自动</span>
@@ -105,16 +106,11 @@ const APPS = [
   padding-bottom: 14px;
 }
 
-.app-icon {
+.app-icon-img {
   width: 34px;
   height: 34px;
   border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #FFFFFF;
-  font-size: 15px;
-  font-weight: 600;
+  object-fit: cover;
   flex: none;
 }
 
