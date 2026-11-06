@@ -317,3 +317,45 @@ test('通知提醒方式把几何交给 SheetModal（自身不再写遮罩/圆�
   assert.doesNotMatch(src, /class="rs-mask"/, '不应再自己画遮罩')
   assert.doesNotMatch(src, /border-radius:\s*2\d+px 2\d+px 0 0/, '不应再有「只圆上两角」')
 })
+
+test('悬浮通知样式：详细/简洁两档，非法值被拒', () => {
+  const s = notifSettings()
+  assert.equal(s.floatStyle, 'detailed')
+  assert.equal(s.setFloatStyle('concise'), true)
+  assert.equal(s.floatStyle, 'concise')
+  assert.equal(s.setFloatStyle('rich'), false)
+})
+
+test('提醒强度 / 通知分组：按应用分别存，默认值对齐真机', () => {
+  const s = notifSettings()
+  assert.equal(s.remindLevelOf('weibo'), 'smart', '默认智能提醒')
+  assert.equal(s.groupingOf('weibo'), 'auto', '默认自动分组')
+
+  assert.equal(s.setRemindLevel('weibo', 'silent'), true)
+  assert.equal(s.remindLevelOf('weibo'), 'silent')
+  assert.equal(s.remindLevelOf('twitter'), 'smart', '不应串到别的应用')
+  assert.equal(s.setRemindLevel('weibo', 'loud'), false)
+
+  assert.equal(s.setGrouping('weibo', 'byApp'), true)
+  assert.equal(s.groupingOf('weibo'), 'byApp')
+  assert.equal(s.groupingOf('twitter'), 'auto')
+  assert.equal(s.setGrouping('weibo', 'random'), false)
+})
+
+test('提醒强度用弹层选项、通知分组用贴行浮层（与真机一致）', () => {
+  const src = read('src/components/apps/settings/SettingsNotifications.vue')
+  assert.match(src, /import SheetOptionPicker/, '提醒强度应使用底部弹层')
+  assert.match(src, /import AnchorMenu/, '通知分组应使用贴行浮层')
+  assert.match(src, /title="提醒强度"/, '缺少提醒强度弹层')
+  assert.match(src, /class="cell-group allow-overflow"/, '承载浮层的卡片必须允许溢出')
+  assert.match(src, /@click="showGroupingMenu = !showGroupingMenu"/, '分组行必须可点')
+})
+
+test('悬浮通知样式弹层：两张预览卡 + 取消', () => {
+  const src = read('src/components/apps/settings/notifications/NotifFloatStyleSheet.vue')
+  assert.match(src, /<SheetModal/, '应复用统一弹层控件')
+  assert.match(src, /value: 'detailed'/, '缺少详细档')
+  assert.match(src, /value: 'concise'/, '缺少简洁档')
+  assert.match(src, /fs-card\.active/, '缺少选中态样式')
+  assert.match(src, />取消</, '缺少取消按钮')
+})

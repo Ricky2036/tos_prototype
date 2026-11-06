@@ -65,6 +65,13 @@ export const useDisplaySettingsStore = defineStore('displaySettings', () => {
     writeRaw(K.THEME_SCHEDULE, v)
   }
 
+  function setEyeCareSchedule(v) {
+    if (!['off', 'scheduled', 'sunset'].includes(v)) return false
+    eyeCareSchedule.value = v
+    writeRaw(K.EYE_CARE_SCHEDULE, v)
+    return true
+  }
+
   function setColorMode(v) {
     if (!['vivid', 'original'].includes(v)) return false
     colorMode.value = v
@@ -175,6 +182,7 @@ export const useDisplaySettingsStore = defineStore('displaySettings', () => {
     gestureQuickSize,
     strongLightMode,
     setThemeSchedule,
+    setEyeCareSchedule,
     setColorMode,
     setRefreshRate,
     setAutoSleep,

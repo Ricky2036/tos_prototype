@@ -8,10 +8,11 @@ const read = (p) => fs.readFileSync(path.resolve(p), 'utf-8')
 
 /**
  * 「带箭头但点不动」是本项目反复出现的体验缺陷（行看起来可点、真机可进入）。
- * 基线：补齐 桌面角标样式 / 我的字体 / 振动模式 / 自定义铃声(×2) / 自定义应用刷新率 后剩 5 个，
+ * 基线：补齐 桌面角标样式 / 我的字体 / 振动模式 / 自定义铃声(×2) / 自定义应用刷新率 /
+ *       定时开启 / 悬浮通知样式 / 提醒强度 / 通知分组 后只剩 1 个（实时活动的「更多服务」），
  * 修一个减一，但**不许再增加**。
  */
-const BASELINE = 5
+const BASELINE = 1
 
 const runAudit = () =>
   execFileSync(process.execPath, ['scripts/audit-settings-dead-entries.mjs'], {

@@ -392,3 +392,19 @@ test('ListCell 支持禁用态（置灰 + 不触发点击）', () => {
   assert.match(src, /@click="!disabled && emit\('click'\)"/, '禁用时不应再派发 click')
   assert.match(src, /\.list-cell\.is-disabled/, '缺少禁用态样式')
 })
+
+test('护眼「定时开启」：三档与真机一致，非法值被拒', () => {
+  setActivePinia(createPinia())
+  const d = useDisplaySettingsStore()
+  assert.equal(d.eyeCareSchedule, 'off')
+  assert.equal(d.setEyeCareSchedule('sunset'), true)
+  assert.equal(d.eyeCareSchedule, 'sunset')
+  assert.equal(d.setEyeCareSchedule('always'), false)
+
+  const page = read('src/components/apps/settings/display/DisplayEyeCareSchedule.vue')
+  for (const label of ['已关闭', '定时开启', '日落至日出']) {
+    assert.match(page, new RegExp(`label: '${label}'`), `缺少选项 ${label}`)
+  }
+  const eyecare = read('src/components/apps/settings/display/DisplayEyeCare.vue')
+  assert.match(eyecare, /@click="showSchedule = true"/, '护眼页的「定时开启」必须可点')
+})

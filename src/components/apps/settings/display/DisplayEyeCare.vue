@@ -3,15 +3,21 @@ import SubPageShell from '../subpage/SubPageShell.vue'
 import ListCell from '../../../ui/ListCell.vue'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 import HSettingSlider from '../subpage/HSettingSlider.vue'
+import { ref } from 'vue'
 import { useDisplaySettingsStore } from '../../../../stores/displaySettingsStore'
+import DisplayEyeCareSchedule from './DisplayEyeCareSchedule.vue'
 import fieldPreview from '../../../../assets/img/personalization/generated/person-field.jpg'
 
 const emit = defineEmits(['back'])
 const display = useDisplaySettingsStore()
+
+const showSchedule = ref(false)
+const SCHEDULE_LABEL = { off: '已关闭', scheduled: '定时开启', sunset: '日落至日出' }
 </script>
 
 <template>
-  <SubPageShell title="护眼模式" @back="emit('back')">
+  <DisplayEyeCareSchedule v-if="showSchedule" @back="showSchedule = false" />
+  <SubPageShell v-else title="护眼模式" @back="emit('back')">
     <div class="section-header">睡眠健康</div>
     <div class="eye-preview-wrap">
       <img class="sub-preview-img eye-preview" :src="fieldPreview" alt="护眼效果预览" />
@@ -50,7 +56,13 @@ const display = useDisplaySettingsStore()
           />
         </template>
       </ListCell>
-      <ListCell title="定时开启" value="已关闭" chevron clickable />
+      <ListCell
+        title="定时开启"
+        :value="SCHEDULE_LABEL[display.eyeCareSchedule] || '已关闭'"
+        chevron
+        clickable
+        @click="showSchedule = true"
+      />
       <div class="slider-row">
         <HSettingSlider
           :model-value="display.eyeCareTemp"

@@ -12,6 +12,9 @@ import AppIcon from '../../ui/AppIcon.vue'
 import NotifStatusBar from './notifications/NotifStatusBar.vue'
 import NotifControlCenter from './notifications/NotifControlCenter.vue'
 import NotifSmartText from './notifications/NotifSmartText.vue'
+import NotifFloatStyleSheet from './notifications/NotifFloatStyleSheet.vue'
+import SheetOptionPicker from '../../ui/SheetOptionPicker.vue'
+import AnchorMenu from '../../ui/AnchorMenu.vue'
 import NotifSceneAi from './notifications/NotifSceneAi.vue'
 import NotifHomeBadge from './notifications/NotifHomeBadge.vue'
 import { getApp } from '../../../config/apps'
@@ -279,6 +282,24 @@ function openAppDetail(app) {
   go('appDetail')
 }
 
+/* 悬浮通知样式 / 提醒强度 / 通知分组（真机：前两个是弹层，分组是贴行的小浮层） */
+const showFloatStyleSheet = ref(false)
+const showRemindLevelPicker = ref(false)
+const showGroupingMenu = ref(false)
+
+const FLOAT_STYLE_LABEL = { detailed: '详细', concise: '简洁' }
+const REMIND_LEVELS = [
+  { value: 'smart', label: '智能提醒', subtitle: '根据使用行为将不重要的通知自动设为静音' },
+  { value: 'followApp', label: '跟随应用', subtitle: '按照应用默认方式提醒' },
+  { value: 'silent', label: '静音', subtitle: '应用通知将无任何提醒' }
+]
+const REMIND_LABEL = { smart: '智能提醒', followApp: '跟随应用', silent: '静音' }
+const GROUPING_OPTIONS = [
+  { value: 'auto', label: '自动' },
+  { value: 'byApp', label: '按应用' }
+]
+const GROUPING_LABEL = { auto: '自动', byApp: '按应用' }
+
 const appToggles = ref({ allow: true, badge: true, floating: true, lockScreen: true, ring: true, vibrate: true })
 function toggleAppSetting(key) { appToggles.value[key] = !appToggles.value[key] }
 
@@ -445,7 +466,13 @@ const emit = defineEmits(['back-to-settings'])
         <AppNavBar :title="i18n.t('nsFloatingNotif')" @back="back()" />
 
         <div class="cell-group mt4">
-          <ListCell :title="i18n.t('nsFloatingStyle')" :value="i18n.t('nsDetailed')" chevron />
+          <ListCell
+            :title="i18n.t('nsFloatingStyle')"
+            :value="FLOAT_STYLE_LABEL[notifSettings.floatStyle] || '详细'"
+            chevron
+            clickable
+            @click="showFloatStyleSheet = true"
+          />
           <ListCell :title="i18n.t('nsConciseFullscreen')">
             <template #right><ToggleSwitch color="blue" v-model="conciseFloating" /></template>
           </ListCell>
@@ -667,9 +694,31 @@ const emit = defineEmits(['back-to-settings'])
 
         <template v-if="getAppState(currentDetailApp.id)">
           <!-- 卡片 3：提醒强度与通知分组 -->
-          <div class="cell-group">
-            <ListCell :title="i18n.t('nsRemindLevel')" :value="i18n.t('nsSmartReminder')" chevron />
-            <ListCell :title="i18n.t('nsGrouping')" :value="i18n.t('nsAuto')" chevron :last="globalHideLockContent" />
+          <div class="cell-group allow-overflow">
+            <ListCell
+              :title="i18n.t('nsRemindLevel')"
+              :value="REMIND_LABEL[notifSettings.remindLevelOf(currentDetailApp.id)] || '智能提醒'"
+              chevron
+              clickable
+              @click="showRemindLevelPicker = true"
+            />
+            <div class="anchor-wrap">
+              <ListCell
+                :title="i18n.t('nsGrouping')"
+                :value="GROUPING_LABEL[notifSettings.groupingOf(currentDetailApp.id)] || '自动'"
+                chevron
+                clickable
+                :last="globalHideLockContent"
+                @click="showGroupingMenu = !showGroupingMenu"
+              />
+              <AnchorMenu
+                :visible="showGroupingMenu"
+                :options="GROUPING_OPTIONS"
+                :model-value="notifSettings.groupingOf(currentDetailApp.id)"
+                @update:model-value="v => notifSettings.setGrouping(currentDetailApp.id, v)"
+                @close="showGroupingMenu = false"
+              />
+            </div>
             <ListCell
               v-if="!globalHideLockContent"
               :title="i18n.t('nsHideLockContent')"
@@ -715,6 +764,24 @@ const emit = defineEmits(['back-to-settings'])
         </template>
       </div>
     </Transition>
+
+    <!-- 悬浮通知样式（真机：两张预览卡 + 取消） -->
+    <NotifFloatStyleSheet
+      :visible="showFloatStyleSheet"
+      :model-value="notifSettings.floatStyle"
+      @update:model-value="v => notifSettings.setFloatStyle(v)"
+      @close="showFloatStyleSheet = false"
+    />
+
+    <!-- 提醒强度（真机：底部弹层，三条带说明的选项） -->
+    <SheetOptionPicker
+      :visible="showRemindLevelPicker"
+      title="提醒强度"
+      :options="REMIND_LEVELS"
+      :model-value="currentDetailApp ? notifSettings.remindLevelOf(currentDetailApp.id) : 'smart'"
+      @update:model-value="v => currentDetailApp && notifSettings.setRemindLevel(currentDetailApp.id, v)"
+      @close="showRemindLevelPicker = false"
+    />
   </div>
 </template>
 
@@ -1003,6 +1070,16 @@ const emit = defineEmits(['back-to-settings'])
   animation: island-cell-flash 0.6s ease-in-out 3 !important;
   border-radius: 12px;
 }
+.anchor-wrap {
+  position: relative;
+  z-index: 30;
+}
+
+/* 承载下拉浮层的卡片不能裁切，否则浮层会被切掉一半 */
+.cell-group.allow-overflow {
+  overflow: visible;
+}
+
 /* Dynamic Bar 头图 */
 .db-hero {
   display: flex;
