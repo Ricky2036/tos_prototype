@@ -63,6 +63,21 @@ test('phoneStore manages call logs, contacts, keypad, and settings properly', ()
   // 7. Duplicate Contacts Banner
   store.dismissDuplicateBanner()
   assert.equal(store.duplicateBannerVisible, false)
+
+  // 8. Designated Numbers Management
+  assert.ok(store.settings.designatedNumbers.length >= 2)
+  store.addDesignatedNumber('188 9999 0000')
+  assert.ok(store.settings.designatedNumbers.includes('188 9999 0000'))
+  store.removeDesignatedNumber('188 9999 0000')
+  assert.equal(store.settings.designatedNumbers.includes('188 9999 0000'), false)
+
+  // 9. Speed Dial & Blacklist
+  store.setSpeedDial(2, '测试联系人')
+  assert.equal(store.settings.speedDial[2], '测试联系人')
+  store.addBlackListNumber('10086')
+  assert.ok(store.settings.blackList.includes('10086'))
+  store.removeBlackListNumber('10086')
+  assert.equal(store.settings.blackList.includes('10086'), false)
 })
 
 test('All Phone app components follow strict design rules without AI vertical borders', () => {
@@ -78,9 +93,13 @@ test('All Phone app components follow strict design rules without AI vertical bo
     'src/components/apps/phone/settings/PhoneAutoRecord.vue',
     'src/components/apps/phone/settings/PhoneAiAssistant.vue',
     'src/components/apps/phone/settings/PhoneFlashCallSettings.vue',
+    'src/components/apps/phone/settings/PhoneHarassmentInterception.vue',
     'src/components/apps/phone/settings/PhoneUnknownId.vue',
     'src/components/apps/phone/settings/PhoneCallDisplayModal.vue',
-    'src/components/apps/phone/settings/PhoneAdvancedSettings.vue'
+    'src/components/apps/phone/settings/PhoneVideoShow.vue',
+    'src/components/apps/phone/settings/PhoneAdvancedSettings.vue',
+    'src/components/apps/phone/settings/PhoneCarrierFeatures.vue',
+    'src/components/apps/phone/settings/PhoneAbout.vue'
   ]
 
   for (const relPath of componentPaths) {
