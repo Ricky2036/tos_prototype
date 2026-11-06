@@ -94,6 +94,7 @@ function handleContactClick(contact) {
   position: relative;
   width: 100%;
   background: #FFFFFF;
+  margin-top: calc(var(--title-progress, 0) * 38px);
 }
 
 /* 重复联系人提醒 */

@@ -51,7 +51,35 @@ export const usePhoneStore = defineStore('phone', () => {
     vibrateOnCallAction: true,
     flipToMute: false,
     pickupToAnswer: false,
-    gestureAnswer: false
+    gestureAnswer: false,
+    designatedNumbers: ['138 0013 8000', '136 8888 2233'],
+    aiMyLanguage: '英语',
+    aiMyVoice: '男',
+    aiMuteMyVoice: false,
+    aiTargetLanguage: '英语',
+    aiTargetVoice: '男',
+    aiAutoUpdate: '仅 WLAN',
+    blockStranger: false,
+    blockHidden: false,
+    blockKeywords: [],
+    blackList: ['4000595558'],
+    whiteList: [],
+    blockNotify: '拦截后通知',
+    speedDial: {
+      1: '语音邮件',
+      2: '陈晓敏',
+      3: 'A老婆',
+      4: null,
+      5: null,
+      6: null,
+      7: null,
+      8: null,
+      9: null
+    },
+    ttyMode: 'TTY 关闭',
+    hearingAid: false,
+    carrierVideoCall: true,
+    carrierAccount: '中国电信'
   })
 
   // 纯模拟通话记录数据（全面消除任何真实个人记录与真实号码，按真机截图 1:1 补充丰富数据）
@@ -412,6 +440,39 @@ export const usePhoneStore = defineStore('phone', () => {
     })
   }
 
+  // 指定号码录音管理
+  function addDesignatedNumber(num) {
+    if (!num || !num.trim()) return
+    const clean = num.trim()
+    if (!settings.value.designatedNumbers.includes(clean)) {
+      settings.value.designatedNumbers.push(clean)
+    }
+  }
+
+  function removeDesignatedNumber(num) {
+    settings.value.designatedNumbers = settings.value.designatedNumbers.filter(n => n !== num)
+  }
+
+  // 快速拨号绑定
+  function setSpeedDial(key, nameOrNum) {
+    if (key >= 2 && key <= 9) {
+      settings.value.speedDial[key] = nameOrNum
+    }
+  }
+
+  // 黑名单管理
+  function addBlackListNumber(num) {
+    if (!num || !num.trim()) return
+    const clean = num.trim()
+    if (!settings.value.blackList.includes(clean)) {
+      settings.value.blackList.push(clean)
+    }
+  }
+
+  function removeBlackListNumber(num) {
+    settings.value.blackList = settings.value.blackList.filter(n => n !== num)
+  }
+
   return {
     currentTab,
     recentsFilter,
@@ -437,6 +498,11 @@ export const usePhoneStore = defineStore('phone', () => {
     endCall,
     dismissDuplicateBanner,
     mergeDuplicates,
-    addFlashCallReply
+    addFlashCallReply,
+    addDesignatedNumber,
+    removeDesignatedNumber,
+    setSpeedDial,
+    addBlackListNumber,
+    removeBlackListNumber
   }
 })

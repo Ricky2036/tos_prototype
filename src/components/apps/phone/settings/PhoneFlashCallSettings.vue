@@ -2,12 +2,18 @@
 import { ref } from 'vue'
 import { usePhoneStore } from '../../../../stores/phoneStore'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
+import flashCallHeroImg from '../../../../assets/img/phone_settings/flash_call_hero.png'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['back'])
 
 const isAddingNew = ref(false)
 const newReplyText = ref('')
+
+function openAddDialog() {
+  newReplyText.value = ''
+  isAddingNew.value = true
+}
 
 function handleAddNew() {
   if (newReplyText.value.trim()) {
@@ -16,6 +22,16 @@ function handleAddNew() {
     isAddingNew.value = false
   }
 }
+
+defineExpose({
+  back() {
+    if (isAddingNew.value) {
+      isAddingNew.value = false
+      return true
+    }
+    return false
+  }
+})
 </script>
 
 <template>
@@ -30,48 +46,42 @@ function handleAddNew() {
     </div>
 
     <div class="subpage-body scrollable">
-      <!-- 顶部插画卡片 -->
+      <!-- 顶部功能插画卡片（100% 对齐真机比例与卡片风格） -->
       <div class="flash-hero-card">
-        <div class="mockup-frame">
-          <div class="mockup-screen">
-            <div class="pill-bar"></div>
-            <div class="flash-call-pill">
-              <span class="pill-text">FLASH CALL</span>
-              <div class="finger-circle"></div>
-            </div>
-            <div class="pill-bar"></div>
-            <div class="pill-bar"></div>
-            <div class="pill-bar"></div>
-            <div class="mockup-footer-pill"></div>
-          </div>
+        <div class="hero-image-wrap">
+          <img :src="flashCallHeroImg" class="hero-img" alt="Flash Call 插画" />
         </div>
         <div class="hero-desc-text">
-          滑动通话记录，即可使用；即时消息需满足以下条件才可发送成功：双方均支持即时消息、使用同一运营商 SIM 卡，且通话时为 4G/5G 网络。
+          滑动通话记录，即可使用；<br />
+          即时消息需满足以下条件才可发送成功：双方均支持即时消息、使用同一运营商 SIM 卡，且通话时为 4G/5G 网络。
         </div>
       </div>
 
-      <!-- 主功能开关 -->
-      <div class="settings-row item-switch">
-        <div class="row-label">Flash Call</div>
-        <ToggleSwitch v-model="phoneStore.settings.flashCallEnabled" />
-      </div>
+      <!-- 第 1 组卡片：主开关与联系人筛选 -->
+      <div class="settings-card">
+        <div class="settings-row item-switch">
+          <div class="row-label">Flash Call</div>
+          <ToggleSwitch v-model="phoneStore.settings.flashCallEnabled" />
+        </div>
 
-      <template v-if="phoneStore.settings.flashCallEnabled">
-        <div class="settings-row item-switch with-sub">
+        <div v-if="phoneStore.settings.flashCallEnabled" class="settings-row item-switch with-sub no-sep">
           <div class="label-col">
             <div class="row-label">仅接收联系人消息</div>
             <div class="row-sub">仅接收通讯录联系人的 Flash Call 消息。</div>
           </div>
           <ToggleSwitch v-model="phoneStore.settings.flashCallOnlyContacts" />
         </div>
+      </div>
 
-        <!-- 快捷回复模版列表 -->
+      <template v-if="phoneStore.settings.flashCallEnabled">
+        <!-- 第 2 组卡片：快捷回复模版列表 -->
         <div class="section-caption">快捷回复</div>
-        <div class="replies-card">
+        <div class="settings-card">
           <div
-            v-for="rep in phoneStore.settings.flashCallReplies"
+            v-for="(rep, idx) in phoneStore.settings.flashCallReplies"
             :key="rep.id"
             class="settings-row reply-item"
+            :class="{ 'no-sep': idx === phoneStore.settings.flashCallReplies.length - 1 }"
             @click="rep.enabled = !rep.enabled"
           >
             <div class="row-label">{{ rep.text }}</div>
@@ -81,32 +91,52 @@ function handleAddNew() {
               </svg>
             </div>
           </div>
+        </div>
 
-          <!-- 新增自定义回复输入态 -->
-          <div v-if="isAddingNew" class="add-input-box">
-            <input
-              v-model="newReplyText"
-              class="new-reply-input"
-              placeholder="输入快捷回复内容"
-              @keyup.enter="handleAddNew"
-            />
-            <div class="input-actions">
-              <button class="btn-cancel" @click="isAddingNew = false">取消</button>
-              <button class="btn-confirm" @click="handleAddNew">确定</button>
+        <!-- 第 3 组卡片：自定义快捷回复 -->
+        <div class="section-caption">自定义快捷回复</div>
+        <div class="settings-card">
+          <div class="settings-row add-item no-sep" @click="openAddDialog">
+            <div class="add-left">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00C853" stroke-width="2.2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 8v8M8 12h8" stroke-linecap="round" />
+              </svg>
+              <span class="add-text">新增自定义快捷回复</span>
             </div>
-          </div>
-
-          <!-- 新增按钮 -->
-          <button v-else class="add-reply-btn" @click="isAddingNew = true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00C853" stroke-width="2.2" stroke-linecap="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
+              <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span>新增自定义快捷回复</span>
-          </button>
+          </div>
         </div>
       </template>
     </div>
+
+    <!-- 新增快捷回复弹窗（100% 对齐真机 03_flash_call_add_custom_dialog.png） -->
+    <Transition name="fade">
+      <div v-if="isAddingNew" class="modal-overlay" @click.self="isAddingNew = false">
+        <div class="alert-dialog-card">
+          <div class="dialog-title">新增自定义快捷回复</div>
+          <div class="dialog-body">
+            <div class="input-container">
+              <input
+                v-model="newReplyText"
+                maxlength="35"
+                class="dialog-input"
+                placeholder="最多输入35个字符"
+                autofocus
+                @keyup.enter="handleAddNew"
+              />
+              <div class="char-count">{{ newReplyText.length }}/35</div>
+            </div>
+          </div>
+          <div class="dialog-actions">
+            <button class="dialog-btn cancel" @click="isAddingNew = false">取消</button>
+            <button class="dialog-btn confirm" :disabled="!newReplyText.trim()" @click="handleAddNew">完成</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -163,99 +193,74 @@ function handleAddNew() {
 
 .subpage-body {
   flex: 1;
-  padding: 16px 20px 40px;
+  padding: 12px 16px 40px;
 }
 
-/* 顶部插画卡片 */
+/* 顶部引导卡片 */
 .flash-hero-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px 16px 16px;
-  background: #F9FAFB;
+  padding: 16px 16px 18px;
+  background: #FFFFFF;
   border-radius: 20px;
-  margin-bottom: 24px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  margin-bottom: 16px;
 }
 
-.mockup-frame {
-  width: 140px;
-  height: 200px;
-  border: 3px solid #D1D5DB;
-  border-radius: 24px;
-  padding: 14px 10px;
-  background: #F0F1F3;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
-}
-
-.mockup-screen {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  height: 100%;
-}
-
-.pill-bar {
-  height: 12px;
-  background: #F3F4F6;
-  border-radius: 6px;
-}
-
-.flash-call-pill {
-  position: relative;
-  height: 18px;
-  background: #E0F2FE;
-  border-radius: 9px;
+.hero-image-wrap {
+  width: 100%;
+  max-width: 290px;
+  aspect-ratio: 1.1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  border-radius: 14px;
 }
 
-.pill-text {
-  font-size: 8px;
-  font-weight: 800;
-  color: #0284C7;
-  letter-spacing: 1px;
-}
-
-.finger-circle {
-  position: absolute;
-  right: 18px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.25);
-  border: 2px solid #FFFFFF;
-}
-
-.mockup-footer-pill {
-  height: 14px;
-  width: 60%;
-  background: #E5E7EB;
-  border-radius: 7px;
-  margin-top: auto;
+.hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .hero-desc-text {
   font-size: 13px;
-  color: #6B7280;
+  color: #8E8E93;
   text-align: center;
   line-height: 1.5;
-  margin-top: 16px;
+  margin-top: 14px;
 }
 
-/* 开关行 */
+/* 规范白卡 */
+.settings-card {
+  background: #FFFFFF;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  margin-bottom: 14px;
+}
+
+.section-caption {
+  font-size: 13px;
+  font-weight: 500;
+  color: #8E8E93;
+  margin: 16px 8px 8px;
+}
+
 .settings-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 0;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.04);
+  padding: 15px 16px;
+  min-height: 52px;
+  border-bottom: 0.5px solid #F0F1F3;
+  box-sizing: border-box;
 }
 
-.with-sub {
-  align-items: flex-start;
+.settings-row.no-sep {
+  border-bottom: none;
 }
 
 .row-label {
@@ -264,28 +269,51 @@ function handleAddNew() {
   color: #1C1C1E;
 }
 
+.with-sub {
+  align-items: flex-start;
+}
+
+.label-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 240px;
+}
+
 .row-sub {
   font-size: 13px;
   color: #8E8E93;
-  margin-top: 4px;
+  line-height: 1.4;
 }
 
-.section-caption {
-  font-size: 13px;
-  color: #8E8E93;
-  margin: 24px 0 8px;
-}
-
-/* 快捷回复项 */
-.reply-item {
+.reply-item,
+.add-item {
   cursor: pointer;
 }
 
+.reply-item:active,
+.add-item:active {
+  background-color: #F8F9FA;
+}
+
+.add-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.add-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1C1C1E;
+}
+
+/* 复选框样式（对齐真机绿色圆角方框） */
 .custom-checkbox {
   width: 20px;
   height: 20px;
-  border-radius: 5px;
-  border: 1.5px solid #D1D1D6;
+  border-radius: 6px;
+  border: 1.8px solid #C7C7CC;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -293,63 +321,98 @@ function handleAddNew() {
 }
 
 .custom-checkbox.checked {
-  background-color: #00C853;
+  background: #00C853;
   border-color: #00C853;
 }
 
-.add-reply-btn {
+/* 弹窗遮罩与对话框 */
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 100;
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: none;
-  border: none;
-  padding: 16px 0;
-  font-size: 15px;
-  font-weight: 500;
-  color: #00C853;
-  cursor: pointer;
+  justify-content: center;
 }
 
-.add-input-box {
+.alert-dialog-card {
+  width: calc(100% - 48px);
+  max-width: 320px;
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 24px 20px 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.dialog-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1C1C1E;
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.input-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 0;
+  gap: 6px;
+  margin-bottom: 20px;
 }
 
-.new-reply-input {
-  padding: 10px 14px;
-  border-radius: 10px;
+.dialog-input {
+  width: 100%;
+  height: 44px;
   border: 1px solid #E5E7EB;
-  font-size: 14px;
+  border-radius: 12px;
+  padding: 0 14px;
+  font-size: 15px;
+  color: #1C1C1E;
   outline: none;
+  box-sizing: border-box;
 }
-.new-reply-input:focus {
+
+.dialog-input:focus {
   border-color: #00C853;
 }
 
-.input-actions {
+.char-count {
+  font-size: 12px;
+  color: #8E8E93;
+  text-align: right;
+  padding-right: 4px;
+}
+
+.dialog-actions {
   display: flex;
-  justify-content: flex-end;
   gap: 12px;
 }
 
-.btn-cancel,
-.btn-confirm {
-  padding: 6px 14px;
-  border-radius: 8px;
+.dialog-btn {
+  flex: 1;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
   border: none;
-  font-size: 13px;
   cursor: pointer;
 }
 
-.btn-cancel {
-  background: #F3F4F6;
-  color: #6B7280;
+.dialog-btn.cancel {
+  background: #F2F3F5;
+  color: #555555;
 }
 
-.btn-confirm {
+.dialog-btn.confirm {
   background: #00C853;
   color: #FFFFFF;
+}
+
+.dialog-btn.confirm:disabled {
+  background: #E0E2E5;
+  color: #A0A4A8;
 }
 </style>

@@ -1,5 +1,7 @@
 <script setup>
 import { usePhoneStore } from '../../../../stores/phoneStore'
+import bannerImg from '../../../../assets/img/phone_settings/call_display_banner.png'
+import fullImg from '../../../../assets/img/phone_settings/call_display_full.png'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['back'])
@@ -18,18 +20,13 @@ const emit = defineEmits(['back'])
 
     <div class="subpage-body">
       <div class="display-modes-container">
-        <!-- 模式 1：弹窗显示 -->
+        <!-- 模式 1：弹窗显示（100% 对齐真机 07_call_display.png 比例与布局） -->
         <div
-          class="mode-card"
-          :class="{ active: phoneStore.callDisplayMode === 'banner' }"
+          class="mode-column"
           @click="phoneStore.callDisplayMode = 'banner'"
         >
-          <div class="card-mockup-frame">
-            <!-- 灵动岛弹窗模拟 -->
-            <div class="island-banner-mock">
-              <div class="island-btn red"></div>
-              <div class="island-btn green"></div>
-            </div>
+          <div class="mode-preview-card" :class="{ selected: phoneStore.callDisplayMode === 'banner' }">
+            <img :src="bannerImg" class="preview-img" alt="弹窗显示插画" />
           </div>
           <div class="mode-label">弹窗显示</div>
           <div class="mode-radio" :class="{ checked: phoneStore.callDisplayMode === 'banner' }">
@@ -39,16 +36,11 @@ const emit = defineEmits(['back'])
 
         <!-- 模式 2：全屏显示 -->
         <div
-          class="mode-card"
-          :class="{ active: phoneStore.callDisplayMode === 'fullscreen' }"
+          class="mode-column"
           @click="phoneStore.callDisplayMode = 'fullscreen'"
         >
-          <div class="card-mockup-frame full-frame">
-            <div class="full-mockup-top"></div>
-            <div class="full-call-actions">
-              <div class="full-btn red"></div>
-              <div class="full-btn green"></div>
-            </div>
+          <div class="mode-preview-card" :class="{ selected: phoneStore.callDisplayMode === 'fullscreen' }">
+            <img :src="fullImg" class="preview-img" alt="全屏显示插画" />
           </div>
           <div class="mode-label">全屏显示</div>
           <div class="mode-radio" :class="{ checked: phoneStore.callDisplayMode === 'fullscreen' }">
@@ -113,7 +105,7 @@ const emit = defineEmits(['back'])
 
 .subpage-body {
   flex: 1;
-  padding: 40px 20px;
+  padding: 30px 24px;
 }
 
 .display-modes-container {
@@ -122,89 +114,53 @@ const emit = defineEmits(['back'])
   justify-content: center;
 }
 
-.mode-card {
+.mode-column {
   flex: 1;
-  max-width: 170px;
+  max-width: 160px;
   display: flex;
   flex-direction: column;
   align-items: center;
   cursor: pointer;
 }
 
-.card-mockup-frame {
+.mode-preview-card {
   width: 100%;
-  height: 250px;
-  border: 2px solid #E5E7EB;
-  border-radius: 28px;
-  background: #F0F1F3;
-  padding: 12px 10px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  aspect-ratio: 1 / 1.95;
+  background: #FFFFFF;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  transition: border-color 0.18s ease;
+  justify-content: center;
 }
 
-.mode-card.active .card-mockup-frame {
+.mode-preview-card.selected {
   border-color: #00C853;
+  box-shadow: 0 6px 20px rgba(0, 200, 83, 0.18);
 }
 
-/* 灵动岛弹窗模拟 */
-.island-banner-mock {
+.preview-img {
   width: 100%;
-  height: 32px;
-  background: #000000;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  padding: 0 10px;
+  height: 100%;
+  object-fit: contain;
 }
-
-.island-btn {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-}
-.island-btn.red { background: #EF4444; }
-.island-btn.green { background: #10B981; }
-
-/* 全屏模拟 */
-.full-frame {
-  justify-content: space-between;
-}
-.full-mockup-top {
-  width: 50%;
-  height: 12px;
-  background: #E5E7EB;
-  border-radius: 6px;
-}
-.full-call-actions {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-.full-btn {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-}
-.full-btn.red { background: #EF4444; }
-.full-btn.green { background: #10B981; }
 
 .mode-label {
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   color: #1C1C1E;
-  margin: 16px 0 10px;
+  margin-top: 14px;
+  margin-bottom: 10px;
 }
 
 .mode-radio {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 2px solid #D1D1D6;
+  border: 2px solid #C7C7CC;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -219,6 +175,6 @@ const emit = defineEmits(['back'])
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background-color: #00C853;
+  background: #00C853;
 }
 </style>

@@ -22,7 +22,7 @@ const scrollContainerRef = ref(null)
 
 // 电话应用定制大标题折叠曲线：严格 1:1 对齐真机测量几何（大标题从 y=97px 展开，字号 32px，Tab 绿色指示条精准锚定在 y=184.6px）
 const PHONE_TITLE_CURVE = {
-  distance: 64,
+  distance: 38,
   fromTopInset: 42,
   toTopInset: 4,
   fromHeight: 84,
@@ -33,7 +33,7 @@ const PHONE_TITLE_CURVE = {
 }
 
 // 大标题折叠契约（规范通用件）
-const { progress: titleProgress, onScroll: onTitleScroll } = useLargeTitle()
+const { progress: titleProgress, onScroll: onTitleScroll } = useLargeTitle({ distance: PHONE_TITLE_CURVE.distance })
 const titleVars = computed(() => largeTitleVars(titleProgress.value, PHONE_TITLE_CURVE))
 
 // 悬浮导航 Tab 规范配置
@@ -41,6 +41,16 @@ const tabs = [
   { id: 'recents', name: '通话记录' },
   { id: 'contacts', name: '联系人' }
 ]
+
+// 切换通话记录分类（全部类型 / 未接来电）：切换时回到列表顶部，两 TAB 互不干扰
+function selectFilter(filterType) {
+  if (phoneStore.recentsFilter === filterType) return
+  phoneStore.recentsFilter = filterType
+  if (scrollContainerRef.value) {
+    scrollContainerRef.value.scrollTop = 0
+    onTitleScroll({ target: scrollContainerRef.value })
+  }
+}
 
 // 联系人快速检索字母表
 const alphabetList = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '#']
@@ -167,52 +177,79 @@ function handleAppWheel(e) {
       @touchmove.passive="handleTouchMove"
       @wheel.passive="handleAppWheel"
     >
-      <!-- 标准吸顶折叠大标题通用件：紧凑高度契约，大标题与分类栏垂直间距紧贴 ~13px 对齐真机 -->
-      <LargeTitleHeader
-        :progress="titleProgress"
-        scrim="255, 255, 255"
-        :curve="PHONE_TITLE_CURVE"
-      >
-        <div class="header-titles-block">
-          <div class="lt-main-title">
-            {{ phoneStore.currentTab === 'recents' ? '通话记录' : '联系人' }}
+      <!-- 吸顶组合顶栏：承载大标题吸顶折叠与分类标签栏，二者共同构成固定头部 -->
+      <div class="phone-sticky-header">
+        <LargeTitleHeader
+          :progress="titleProgress"
+          scrim="255, 255, 255"
+          :curve="PHONE_TITLE_CURVE"
+        >
+          <div class="header-titles-block">
+            <div class="lt-main-title">
+              {{ phoneStore.currentTab === 'recents' ? '通话记录' : '联系人' }}
+            </div>
+            <div
+              v-if="phoneStore.currentTab === 'contacts' && titleProgress < 0.25"
+              class="contacts-sub-count"
+            >
+              {{ phoneStore.contacts.length }} 位联系人
+            </div>
           </div>
-          <div
-            v-if="phoneStore.currentTab === 'contacts' && titleProgress < 0.25"
-            class="contacts-sub-count"
+
+          <!-- 右侧吸顶操作按钮群：高保真原厂白色圆角药丸胶囊 -->
+          <template #accessory>
+            <div class="header-actions-pill">
+              <button
+                class="header-action-btn search-trigger"
+                title="搜索"
+                @click="phoneStore.isSearchActive = true"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <circle cx="11" cy="11" r="7.5" stroke="#1C1C1E" stroke-width="2" />
+                  <line x1="21" y1="21" x2="16.5" y2="16.5" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </button>
+
+              <button
+                class="header-action-btn settings-trigger"
+                title="设置"
+                @click="isSettingsOpen = true"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="#1C1C1E" stroke-width="1.8" />
+                  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="#1C1C1E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                <span class="settings-red-dot"></span>
+              </button>
+            </div>
+          </template>
+        </LargeTitleHeader>
+
+        <!-- 筛选标签栏：全部类型 | 未接来电（随大标题同步上推，吸顶停靠在展开大标题下方） -->
+        <div v-if="phoneStore.currentTab === 'recents'" class="recents-filter-bar">
+          <button
+            class="filter-tab-btn"
+            :class="{ active: phoneStore.recentsFilter === 'all' }"
+            @click="selectFilter('all')"
           >
-            {{ phoneStore.contacts.length }} 位联系人
+            全部类型
+          </button>
+          <button
+            class="filter-tab-btn"
+            :class="{ active: phoneStore.recentsFilter === 'missed' }"
+            @click="selectFilter('missed')"
+          >
+            未接来电
+          </button>
+          <div
+            class="filter-indicator-slider"
+            :class="{ 'is-missed': phoneStore.recentsFilter === 'missed' }"
+            aria-hidden="true"
+          >
+            <div class="filter-indicator-pill"></div>
           </div>
         </div>
-
-        <!-- 右侧吸顶操作按钮群：高保真原厂白色圆角药丸胶囊 -->
-        <template #accessory>
-          <div class="header-actions-pill">
-            <button
-              class="header-action-btn search-trigger"
-              title="搜索"
-              @click="phoneStore.isSearchActive = true"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <circle cx="11" cy="11" r="7.5" stroke="#1C1C1E" stroke-width="2" />
-                <line x1="21" y1="21" x2="16.5" y2="16.5" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" />
-              </svg>
-            </button>
-
-            <button
-              class="header-action-btn settings-trigger"
-              title="设置"
-              @click="isSettingsOpen = true"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="#1C1C1E" stroke-width="1.8" />
-                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="#1C1C1E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-              <span class="settings-red-dot"></span>
-            </button>
-          </div>
-        </template>
-      </LargeTitleHeader>
+      </div>
 
       <!-- 核心视图标签页内容 -->
       <PhoneRecentsTab v-if="phoneStore.currentTab === 'recents'" />
@@ -245,62 +282,62 @@ function handleAppWheel(e) {
     </Transition>
 
     <!-- 底部悬浮双体导航栏（通用控件 FloatingTabBar + 独立操作球，全天候常驻屏幕底端） -->
-    <div class="phone-nav-wrapper">
-      <FloatingTabBar
-        :model-value="phoneStore.currentTab"
-        :tabs="tabs"
-        height="54px"
-        bottom="18px"
-        accent-color="#00C853"
-        :dark="false"
-        @update:model-value="switchTab"
-        @change="switchTab"
-      >
-        <template #tab="{ tab, active }">
-          <div class="phone-tab-content" :class="{ active }">
-            <div class="tab-icon-wrapper" :class="{ 'icon-active': active }">
-              <!-- 通话记录图标：实心面性时钟剪影（未选深灰 #656668，选中纯绿染色 #00C853） -->
-              <svg v-if="tab.id === 'recents'" width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" :fill="active ? '#00C853' : '#656668'" />
-                <path d="M12 6.5V12L15.6 15" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-              <!-- 联系人图标：实心面性人像剪影（未选纯黑 #1C1C1E，选中纯绿染色 #00C853） -->
-              <svg v-else width="20" height="20" viewBox="0 0 24 24" :fill="active ? '#00C853' : '#1C1C1E'">
-                <circle cx="12" cy="7.2" r="4.2" />
-                <path d="M4.5 19.5c0-3.6 3.4-6.3 7.5-6.3s7.5 2.7 7.5 6.3v0.5H4.5v-0.5z" />
-              </svg>
-            </div>
-            <span class="tab-name">{{ tab.name }}</span>
+    <FloatingTabBar
+      :model-value="phoneStore.currentTab"
+      :tabs="tabs"
+      height="54px"
+      bottom="28px"
+      accent-color="#00C853"
+      :dark="false"
+      @update:model-value="switchTab"
+      @change="switchTab"
+    >
+      <template #tab="{ tab, active }">
+        <div class="phone-tab-content" :class="{ active }">
+          <div class="tab-icon-wrapper" :class="{ 'icon-active': active }">
+            <!-- 通话记录图标：实心面性时钟剪影（未选深灰 #656668，选中纯绿染色 #00C853） -->
+            <svg v-if="tab.id === 'recents'" width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" :fill="active ? '#00C853' : '#656668'" />
+              <path d="M12 6.5V12L15.6 15" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <!-- 联系人图标：实心面性人像剪影（未选纯黑 #1C1C1E，选中纯绿染色 #00C853） -->
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" :fill="active ? '#00C853' : '#1C1C1E'">
+              <circle cx="12" cy="7.2" r="4.2" />
+              <path d="M4.5 19.5c0-3.6 3.4-6.3 7.5-6.3s7.5 2.7 7.5 6.3v0.5H4.5v-0.5z" />
+            </svg>
           </div>
-        </template>
-      </FloatingTabBar>
+          <span class="tab-name">{{ tab.name }}</span>
+        </div>
+      </template>
 
-      <!-- 右侧：独立圆形悬浮操作球 (FAB) -->
-      <button
-        class="phone-fab"
-        :class="{ 'keypad-active': phoneStore.isKeypadOpen && phoneStore.currentTab === 'recents' }"
-        :title="phoneStore.currentTab === 'recents' ? (phoneStore.isKeypadOpen ? '收起拨号盘' : '打开拨号盘') : '新建联系人'"
-        @click="handleFabClick"
-      >
-        <!-- 通话记录：3x3 绿色圆点拨号盘（高保真还原原厂录屏） -->
-        <svg v-if="phoneStore.currentTab === 'recents'" width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <circle cx="5" cy="5" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
-          <circle cx="12" cy="5" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
-          <circle cx="19" cy="5" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
-          <circle cx="5" cy="12" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
-          <circle cx="12" cy="12" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
-          <circle cx="19" cy="12" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
-          <circle cx="5" cy="19" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
-          <circle cx="12" cy="19" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
-          <circle cx="19" cy="19" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
-        </svg>
-        <!-- 联系人：+ 新建 -->
-        <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round">
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </button>
-    </div>
+      <!-- 右侧：独立圆形悬浮操作球 (FAB) 挂载到通用底栏的 #action 槽 -->
+      <template #action>
+        <button
+          class="phone-fab"
+          :class="{ 'keypad-active': phoneStore.isKeypadOpen && phoneStore.currentTab === 'recents' }"
+          :title="phoneStore.currentTab === 'recents' ? (phoneStore.isKeypadOpen ? '收起拨号盘' : '打开拨号盘') : '新建联系人'"
+          @click="handleFabClick"
+        >
+          <!-- 通话记录：3x3 绿色圆点拨号盘（高保真还原原厂录屏） -->
+          <svg v-if="phoneStore.currentTab === 'recents'" width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <circle cx="5" cy="5" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+            <circle cx="12" cy="5" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+            <circle cx="19" cy="5" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+            <circle cx="5" cy="12" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+            <circle cx="12" cy="12" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+            <circle cx="19" cy="12" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+            <circle cx="5" cy="19" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+            <circle cx="12" cy="19" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+            <circle cx="19" cy="19" r="2.2" :fill="phoneStore.isKeypadOpen ? '#2E7D32' : '#00C853'" />
+          </svg>
+          <!-- 联系人：+ 新建 -->
+          <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
+      </template>
+    </FloatingTabBar>
 
 
     <!-- 全局弹层组件集合 -->
@@ -347,6 +384,7 @@ function handleAppWheel(e) {
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
+  overflow-anchor: none;
   -webkit-overflow-scrolling: touch;
   position: relative;
   --title-height: 48px;
@@ -455,13 +493,93 @@ function handleAppWheel(e) {
   transform: scale(1.3);
 }
 
+/* 吸顶组合顶栏：承载大标题吸顶折叠与分类标签栏，二者共同构成固定头部 */
+.phone-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  background: #FFFFFF;
+  width: 100%;
+}
+
+/* 筛选分类栏：随大标题同步上推，吸顶停靠在展开大标题下方 */
+.recents-filter-bar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 46px;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  background: #FFFFFF;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+/* 两个 Tab 左右 50% 等分、各自在其半屏内严格水平居中 */
+.filter-tab-btn {
+  position: relative;
+  flex: 1 1 50%;
+  width: 50%;
+  height: 100%;
+  background: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: #656668;
+  cursor: pointer;
+  transition: color 0.18s ease, font-weight 0.18s ease;
+  z-index: 2;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.filter-tab-btn.active {
+  color: #1C1C1E;
+  font-weight: 700;
+}
+
+/* 独立平滑滑动绿色指示条 */
+.filter-indicator-slider {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 50%;
+  height: 3.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transform: translateX(0%);
+  transition: transform 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform;
+  z-index: 3;
+}
+
+.filter-indicator-slider.is-missed {
+  transform: translateX(100%);
+}
+
+.filter-indicator-pill {
+  width: 52px;
+  height: 3.5px;
+  border-radius: 9999px;
+  background-color: #00C853;
+}
+
 /* 底部纯白柔和渐变托底：彻底消解任何列表穿透与漏底 */
 .phone-bottom-fade-scrim {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 110px;
+  height: 120px;
   background: linear-gradient(
     to bottom,
     rgba(255, 255, 255, 0) 0%,
@@ -473,19 +591,8 @@ function handleAppWheel(e) {
   z-index: 20;
 }
 
-/* 底部通用悬浮栏包装层（全天候常驻屏幕顶层） */
-.phone-nav-wrapper {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 45;
-}
-
 /* 规范 FloatingTabBar 胶囊适配：严格对齐真机比例（宽 176px，高 54px，48.9% 屏宽），给右侧留出充足呼吸感 */
 .phone-app :deep(.floating-tab-bar) {
-  left: 18px;
-  bottom: 18px;
-  transform: none;
   width: 176px;
   max-width: 176px;
   height: 54px;
@@ -590,9 +697,6 @@ function handleAppWheel(e) {
 
 /* 右侧独立圆形悬浮操作球 (FAB)：严格 54px × 54px，与胶囊高度对齐 */
 .phone-fab {
-  position: absolute;
-  right: 18px;
-  bottom: 18px;
   width: 54px !important;
   height: 54px !important;
   min-width: 54px !important;
@@ -611,7 +715,6 @@ function handleAppWheel(e) {
   justify-content: center;
   cursor: pointer;
   pointer-events: auto;
-  z-index: 45;
   transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.2s ease;
 }
 
@@ -636,7 +739,7 @@ function handleAppWheel(e) {
   border-top-left-radius: 28px;
   border-top-right-radius: 28px;
   box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.05);
-  padding-bottom: calc(var(--safe-bottom, 20px) + 54px + 14px);
+  padding-bottom: calc(28px + 54px + 12px);
   will-change: transform;
 }
 

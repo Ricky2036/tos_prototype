@@ -132,18 +132,27 @@ const formattedNumber = computed(() => {
   padding: 4px 18px 8px;
 }
 
-/* 顶部号码回显 */
+/* 顶部号码回显：默认未输入时高度收起为 0，输入文字后平滑增高展现，对齐真机交互规范 */
 .keypad-display-row {
-  height: 44px;
+  height: 0;
+  max-height: 0;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transform: translateY(6px);
+  margin-bottom: 0;
+  transition: height 0.22s cubic-bezier(0.25, 1, 0.5, 1), max-height 0.22s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.18s ease, transform 0.2s ease, margin 0.2s ease;
+  will-change: height, opacity;
 }
 
 .keypad-display-row.visible {
+  height: 46px;
+  max-height: 46px;
   opacity: 1;
+  transform: translateY(0);
+  margin-bottom: 4px;
 }
 
 .dialed-number-text {
