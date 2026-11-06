@@ -38,7 +38,7 @@ test('SettingsApp.vue exists and includes all 8 standardized card groups matchin
 
   // Group 4: AI, Personalization, Display, Sound & Notifications (5 items)
   assert.match(content, /Infinix AI/, 'Should contain Infinix AI')
-  assert.match(content, /壁纸与个性化/, 'Should contain 壁纸与个性化')
+  assert.match(content, /主题与个性化/, 'Should contain 主题与个性化')
   assert.match(content, /显示与亮度/, 'Should contain 显示与亮度')
   assert.match(content, /声音与振动/, 'Should contain 声音与振动')
   assert.match(content, /通知与状态栏/, 'Should contain 通知与状态栏')

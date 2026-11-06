@@ -20,6 +20,7 @@ export const SETTINGS_TITLES = {
   homeBadge: '桌面角标',
 
   // 其它二级页
+  personalization: '主题与个性化',
   cloudBackup: '云备份',
   autoBackup: '自动备份',
   dnd: '勿扰模式',

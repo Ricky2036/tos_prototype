@@ -6,6 +6,24 @@ import path from 'node:path'
 const read = (p) => fs.readFileSync(path.resolve(p), 'utf-8')
 const NAV = 'src/components/ui/GlassNavBar.vue'
 
+/** 取某个 CSS 选择器的规则体（花括号配对），避免 slice 被新插入的规则干扰 */
+function ruleBody(src, selector) {
+  // ⚠️ 必须锚定行首：`.glass-nav.is-dark .gn-glass {` 里也含 `.gn-glass {`，
+  // 用 indexOf 会先命中深色变体（实测踩过）
+  const m = src.match(new RegExp(`^${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{`, 'm'))
+  const start = m ? m.index : -1
+  if (start < 0) return ''
+  let i = src.indexOf('{', start) + 1
+  let depth = 1
+  while (i < src.length && depth > 0) {
+    if (src[i] === '{') depth += 1
+    else if (src[i] === '}') depth -= 1
+    i += 1
+  }
+  return src.slice(start, i)
+}
+
+
 /**
  * 真机（Ricky 2026-11-06 定稿）：
  * 二级/三级页顶部是**玻璃悬浮导航**——两个半透明圆形按钮 + **左对齐**标题，
@@ -13,7 +31,7 @@ const NAV = 'src/components/ui/GlassNavBar.vue'
  */
 test('玻璃导航：半透明 + 背景模糊 + 底部渐隐遮罩', () => {
   const src = read(NAV)
-  const glass = src.slice(src.indexOf('.gn-glass {'), src.indexOf('.gn-btn {'))
+  const glass = ruleBody(src, '.gn-glass')
   assert.match(glass, /background:\s*rgba\(255, 255, 255, 0\.7/, '玻璃层应是半透明白')
   assert.match(glass, /backdrop-filter:\s*blur\(/, '玻璃层必须做背景模糊')
   assert.match(glass, /mask-image:\s*linear-gradient\(180deg/, '底部要渐隐，避免一条硬边切内容')
@@ -21,7 +39,7 @@ test('玻璃导航：半透明 + 背景模糊 + 底部渐隐遮罩', () => {
 
 test('玻璃按钮：半透明 + 模糊 + 阴影（不是纯白实心）', () => {
   const src = read(NAV)
-  const btn = src.slice(src.indexOf('.gn-btn {'), src.indexOf('.gn-back {'))
+  const btn = ruleBody(src, '.gn-btn')
   assert.match(btn, /background:\s*rgba\(255, 255, 255, 0\.6/, '按钮底色应半透明白')
   assert.match(btn, /backdrop-filter:\s*blur\(/, '按钮要毛玻璃')
   assert.match(btn, /box-shadow:/, '按钮要有阴影')
@@ -30,7 +48,7 @@ test('玻璃按钮：半透明 + 模糊 + 阴影（不是纯白实心）', () =>
 
 test('标题**左对齐**紧跟返回按钮（不是居中）', () => {
   const src = read(NAV)
-  const title = src.slice(src.indexOf('.gn-title {'), src.indexOf('.gn-right {'))
+  const title = ruleBody(src, '.gn-title')
   assert.match(title, /justify-content:\s*flex-start/, '标题必须左对齐')
   assert.doesNotMatch(title, /justify-content:\s*center/, '标题不能居中（真机是左对齐）')
   assert.match(title, /left:\s*72px/, '标题左缘要避开返回按钮')

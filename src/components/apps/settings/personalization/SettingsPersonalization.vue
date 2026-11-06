@@ -12,7 +12,8 @@ import personFieldWallpaper from '../../../../assets/img/personalization/generat
 
 import { useDepthSegmentation, getPresetDepthSubject } from '../../../../composables/useDepthSegmentation.js'
 import { useSystemChrome } from '../../../../composables/useSystemChrome.js'
-import FloatingHeader from '../../../ui/FloatingHeader.vue'
+import GlassNavBar from '../../../ui/GlassNavBar.vue'
+import { SETTINGS_TITLES } from '../../../../config/settingsTitles'
 import FloatingBottomPill from '../../../ui/FloatingBottomPill.vue'
 import ActionSheetModal from '../../../ui/ActionSheetModal.vue'
 
@@ -307,10 +308,12 @@ const menuItems = [
 
 <template>
   <div class="personalization-root">
-    <!-- 顶部通用悬浮标题导航条 -->
-    <FloatingHeader
+    <!-- 顶部导航：与其它设置页同一控件，深色肤色 -->
+    <GlassNavBar
       v-if="screen !== 'preview'"
-      :title="pageTitle"
+      overlay
+      tone="dark"
+      :title="SETTINGS_TITLES.personalization"
       @back="goBack"
     />
 
@@ -522,11 +525,8 @@ const menuItems = [
           }"
         ></div>
 
-        <!-- 悬浮顶部返回按钮 -->
-        <FloatingHeader
-          transparent
-          @back="goBack"
-        />
+        <!-- 悬浮顶部返回按钮（与其它页同一控件，深色肤色） -->
+        <GlassNavBar overlay tone="dark" :title="''" @back="goBack" />
 
         <!-- 悬浮底部「应用」胶囊按钮 -->
         <FloatingBottomPill
@@ -573,7 +573,8 @@ const menuItems = [
   overflow-x: hidden;
   scrollbar-width: none;
   box-sizing: border-box;
-  padding-top: calc(var(--safe-top, 24px) + 54px);
+  /* 与统一导航同高（--nav-h = safe-top + 46） */
+  padding-top: var(--nav-h);
   padding-bottom: calc(var(--safe-bottom, 20px) + 32px);
 }
 .personalization-scroll::-webkit-scrollbar { display: none; }

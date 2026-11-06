@@ -23,13 +23,19 @@ defineProps({
    * - false（默认）：占位模式，直接替换页面里自绘的导航条，布局不变；
    * - true：浮层模式，调用方要给内容区留出 `--nav-h` 的顶部内边距。
    */
-  overlay: { type: Boolean, default: false }
+  overlay: { type: Boolean, default: false },
+  /**
+   * 深色底页面（如主题与个性化）用 dark：
+   * 玻璃改成深色半透明、按钮改成浅色半透明、标题白字；
+   * **尺寸/位置/圆角仍与浅色一致**（真机两种肤色共用一套几何）。
+   */
+  tone: { type: String, default: 'light' }
 })
 const emit = defineEmits(['back'])
 </script>
 
 <template>
-  <div class="glass-nav" :class="{ 'is-overlay': overlay }">
+  <div class="glass-nav" :class="{ 'is-overlay': overlay, 'is-dark': tone === 'dark' }">
     <!-- 玻璃层：半透明白 + 背景模糊，底部渐隐（内容滚过时被虚化，而不是硬切） -->
     <div class="gn-glass" aria-hidden="true"></div>
 
@@ -67,6 +73,26 @@ const emit = defineEmits(['back'])
   flex-shrink: 0;
   z-index: 12;
   pointer-events: none; /* 只有按钮和插槽接管事件 */
+}
+
+/* ===== 深色变体：只换肤色，几何尺寸与浅色完全一致 ===== */
+.glass-nav.is-dark .gn-glass {
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.glass-nav.is-dark .gn-btn {
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 2px 10px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.28);
+}
+
+.glass-nav.is-dark .gn-btn :deep(svg path) {
+  stroke: #FFFFFF;
+}
+
+.glass-nav.is-dark .gn-title {
+  color: #FFFFFF;
 }
 
 /* 浮层模式：压在内容上，内容滚过时被虚化（调用方负责给内容留白） */

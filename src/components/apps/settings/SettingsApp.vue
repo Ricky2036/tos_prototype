@@ -262,7 +262,7 @@ const allSearchableItems = [
   { id: 'folaHome', title: 'Fola 之家', group: 'Infinix AI', action: () => push('infinixAi') },
   { id: 'circleSearch', title: '圈定即搜', group: 'Infinix AI', action: () => push('infinixAi') },
   { id: 'aiCall', title: 'AI通话助手', group: 'Infinix AI', action: () => push('infinixAi') },
-  { id: 'wallpaper', title: '壁纸与个性化', group: '个性化', action: () => push('personalization') },
+  { id: 'wallpaper', title: SETTINGS_TITLES.personalization, group: '个性化', action: () => push('personalization') },
   { id: 'display', title: '显示与亮度', group: '显示', action: () => push('display') },
   { id: 'sound', title: '声音与振动', group: '声音', action: () => push('sound') },
   { id: 'notifications', title: '通知与状态栏', group: '通知', action: () => push('notifications') },
@@ -479,8 +479,8 @@ const filteredSearchResults = computed(() => {
                 </template>
               </ListCell>
 
-              <!-- 壁纸与个性化 -->
-              <ListCell title="壁纸与个性化" chevron @click="push('personalization')">
+              <!-- 主题与个性化（与页内标题同源） -->
+              <ListCell :title="SETTINGS_TITLES.personalization" chevron @click="push('personalization')">
                 <template #icon>
                   <div class="squircle-icon bg-wallpaper">
                     <SettingsSystemIcon name="wallpaper" :size="19" />
