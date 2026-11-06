@@ -1160,10 +1160,10 @@ background: #FFFFFF;
 /* ================= 底部悬浮搜索栏 ================= */
 .settings-floating-search {
   position: absolute;
-  /* 真机实测：离屏幕底 ≈44（safe-bottom 34 + 10），左右各 16 */
-  bottom: 44px;
-  left: 16px;
-  right: 16px;
+  /* 真机实测：左右边距 ≈27、离屏幕底 ≈25（贴在 home 指示条上方），不是贴边 16 */
+  bottom: 25px;
+  left: 27px;
+  right: 27px;
   z-index: 10;
   pointer-events: auto;
 }
@@ -1172,10 +1172,10 @@ background: #FFFFFF;
   content: '';
   position: absolute;
   z-index: -1;
-  left: -16px;
-  right: -16px;
+  left: -27px;
+  right: -27px;
   top: -34px;
-  bottom: -44px;
+  bottom: -25px;
   background: linear-gradient(
     to bottom,
     rgba(240, 241, 242, 0) 0%,
@@ -1187,8 +1187,8 @@ background: #FFFFFF;
 }
 
 .scroll-bottom-spacer {
-  /* 搜索框 44 + 底距 44 + 让它完整露出 */
-  height: 104px;
+  /* 搜索框 44 + 底距 25 + 余量 */
+  height: 92px;
   width: 100%;
   flex: none;
 }
