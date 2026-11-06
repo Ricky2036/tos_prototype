@@ -24,7 +24,7 @@ test('SettingsAccountLogin.vue matches Image 2 reference layout and components',
   const content = fs.readFileSync(filePath, 'utf-8')
 
   // 1. 顶栏：圆形返回按钮 + 右侧胶囊双操作 (扫码 + 帮助)
-  assert.ok(content.includes('nav-round-btn'), 'Must have circular back button')
+  assert.ok(content.includes('login-nav-bar'), 'Login page keeps its capsule nav (documented exception)')
   assert.ok(content.includes('nav-capsule-group'), 'Must have capsule button group on right')
   assert.ok(content.includes('capsule-icon-btn'), 'Must have capsule icon buttons')
 

@@ -15,7 +15,7 @@ test('SettingsSecurity.vue implements password & security aligned with real phon
 
   // Navigation
   assert.match(content, /密码与安全/)
-  assert.match(content, /data-nav-back/)
+  assert.match(content, /GlassNavBar/)
 
   // 2x2 cards
   assert.match(content, /锁屏密码/)
@@ -41,7 +41,7 @@ test('SettingsPrivacy.vue implements privacy & permissions aligned with real pho
 
   // Navigation
   assert.match(content, /权限与隐私/)
-  assert.match(content, /data-nav-back/)
+  assert.match(content, /GlassNavBar/)
 
   // Score card
   assert.match(content, /53/)
@@ -84,7 +84,7 @@ test('SettingsAppsManage.vue implements app management aligned with real phone',
 
   // Navigation
   assert.match(content, /应用管理/)
-  assert.match(content, /data-nav-back/)
+  assert.match(content, /GlassNavBar/)
 
   // Features
   assert.match(content, /应用更新/)
@@ -109,7 +109,7 @@ test('SettingsLocation.vue implements location services aligned with real phone'
 
   // Navigation
   assert.match(content, /位置信息/)
-  assert.match(content, /data-nav-back/)
+  assert.match(content, /GlassNavBar/)
 
   // Main switch & permissions
   assert.match(content, /使用位置信息/)

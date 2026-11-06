@@ -1,0 +1,520 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
+import { setActivePinia, createPinia } from 'pinia'
+import {
+  useDisplaySettingsStore, AUTO_SLEEP_OPTIONS, THEME_SCHEDULE_OPTIONS
+} from '../src/stores/displaySettingsStore.js'
+import {
+  useSoundSettingsStore, RINGTONE_CLASSIC, RINGTONE_FUN, JBL_MODES
+} from '../src/stores/soundSettingsStore.js'
+
+const display = () => {
+  setActivePinia(createPinia())
+  return useDisplaySettingsStore()
+}
+const sound = () => {
+  setActivePinia(createPinia())
+  return useSoundSettingsStore()
+}
+const read = (p) => fs.readFileSync(path.resolve(p), 'utf-8')
+
+/* ==================== 显示与亮度：默认态对齐真机 ==================== */
+test('显示与亮度默认态对齐真机 XOS 17', () => {
+  const d = display()
+  assert.equal(d.themeSchedule, 'off')
+  assert.equal(d.darkWallpaperDim, true)
+  assert.equal(d.sleepAssist, false)
+  assert.equal(d.eyeCare, false)
+  assert.equal(d.colorMode, 'original')
+  assert.equal(d.colorTemp, 0.5)
+  assert.equal(d.refreshRate, 'auto')
+  assert.equal(d.autoSleep, '10 分钟')
+  assert.equal(d.fontFamily, 'TransSans')
+  assert.equal(d.displaySize, 'standard')
+  assert.equal(d.gestureQuickSize, true)
+  assert.equal(d.strongLightMode, true)
+})
+
+test('显示与亮度：非法选项被拒绝，合法值写回', () => {
+  const d = display()
+  assert.equal(d.setColorMode('rainbow'), false)
+  assert.equal(d.setColorMode('vivid'), true)
+  assert.equal(d.colorMode, 'vivid')
+
+  assert.equal(d.setRefreshRate('120'), false)
+  assert.equal(d.setRefreshRate('high'), true)
+  assert.equal(d.refreshRate, 'high')
+
+  assert.equal(d.setAutoSleep('3 分钟'), false)
+  assert.equal(d.setAutoSleep('1 分钟'), true)
+
+  assert.equal(d.setDisplaySize('giant'), false)
+  assert.equal(d.setFontFamily('Comic'), false)
+  assert.equal(d.setBool('notAKey', true), false)
+
+  assert.equal(d.setNumber('colorTemp', 2), true)
+  assert.equal(d.colorTemp, 1, '越界值应被夹到 1')
+})
+
+test('定时切换主题的三档取值与真机一致', () => {
+  assert.deepEqual(
+    THEME_SCHEDULE_OPTIONS.map(o => o.label),
+    ['已关闭', '定时切换', '日落至日出']
+  )
+  const d = display()
+  assert.equal(d.themeScheduleLabel(), '已关闭')
+  d.setThemeSchedule('sunset')
+  assert.equal(d.themeScheduleLabel(), '日落至日出')
+})
+
+test('自动息屏的六个档位与真机一致', () => {
+  assert.deepEqual(AUTO_SLEEP_OPTIONS, ['15 秒', '30 秒', '1 分钟', '2 分钟', '5 分钟', '10 分钟'])
+})
+
+/* ==================== 声音与振动：默认态对齐真机 ==================== */
+test('声音与振动默认态对齐真机 XOS 17', () => {
+  const s = sound()
+  assert.equal(s.soundMode, 'ring')
+  assert.equal(s.touchFeedback, true)
+  assert.equal(s.keyboardHaptic, true)
+  assert.equal(s.ringtoneSim1, 'Elegant')
+  assert.equal(s.ringtoneSim2, 'Elegant')
+  assert.equal(s.notifRingtone, 'Acclivity')
+  assert.equal(s.ringtoneCrescendo, false)
+  assert.equal(s.vibrateLoudSpeaker, false)
+  assert.equal(s.jblMode, 'smart')
+  assert.equal(s.equalizer, true)
+  assert.equal(s.noiseSystem, '标准降噪')
+  assert.equal(s.noiseNet, '标准降噪')
+
+  // 提示音：锁屏 / 触摸默认关，其余默认开
+  assert.equal(s.promptDial, true)
+  assert.equal(s.promptScreenshot, true)
+  assert.equal(s.promptDelete, true)
+  assert.equal(s.promptLock, false)
+  assert.equal(s.promptCharge, true)
+  assert.equal(s.promptTouch, false)
+})
+
+test('声音：铃声按 SIM 分别写入，未知通道被拒绝', () => {
+  const s = sound()
+  assert.equal(s.setRingtone('sim1', 'Grace'), true)
+  assert.equal(s.ringtoneSim1, 'Grace')
+  assert.equal(s.ringtoneSim2, 'Elegant', '不应串到 SIM2')
+
+  assert.equal(s.setRingtone('notif', 'Cat'), true)
+  assert.equal(s.notifRingtone, 'Cat')
+
+  assert.equal(s.setRingtone('sim3', 'Grace'), false)
+})
+
+test('声音：JBL 四模式 / 降噪通道 / 振动强度夹值', () => {
+  const s = sound()
+  assert.deepEqual(JBL_MODES.map(m => m.label), ['智能', '视频', '游戏', '音乐'])
+  assert.equal(s.setJblMode('cinema'), false)
+  assert.equal(s.setJblMode('game'), true)
+  assert.equal(s.jblMode, 'game')
+
+  assert.equal(s.setNoiseMode('system', '深度降噪'), true)
+  assert.equal(s.noiseSystem, '深度降噪')
+  assert.equal(s.noiseNet, '标准降噪', '不应串到网络通话')
+  assert.equal(s.setNoiseMode('bluetooth', '关闭'), false)
+
+  s.setNumber('vibrateCall', -1)
+  assert.equal(s.vibrateCall, 0)
+  s.setNumber('vibrateNotif', 5)
+  assert.equal(s.vibrateNotif, 1)
+})
+
+test('真机铃声清单与参考图一致', () => {
+  assert.deepEqual(RINGTONE_CLASSIC, [
+    'Desk phone', 'Drumming', 'Fast Pace', 'Fixed Telephone', 'Grace', 'Graceful Time', 'Landline'
+  ])
+  assert.deepEqual(RINGTONE_FUN, [
+    'Baa Baa', 'Bicycle Bell', 'Blister', 'Bubble', 'Cat', 'Cave Drip', 'Cluck', 'Cricket'
+  ])
+})
+
+/* ==================== 二级页结构：所有行都接到三级页 ==================== */
+test('显示与亮度页：9 个三级页全部接线，且补上了「强光模式」', () => {
+  const src = read('src/components/apps/settings/SettingsDisplay.vue')
+
+  // 强光模式（真机在自动调节亮度下方，带副标题与开关）
+  assert.match(src, /title="强光模式"/)
+  assert.match(src, /在强光下提高屏幕亮度，但会增加耗电与发热。/)
+  assert.match(src, /strongLightMode/)
+
+  for (const key of [
+    'scheduleTheme', 'darkMode', 'eyeCare', 'colorStyle',
+    'refreshRate', 'autoSleep', 'font', 'size', 'fullscreenApps'
+  ]) {
+    assert.match(src, new RegExp(`openSubPage\\('${key}'\\)`), `缺少 ${key} 的入口`)
+  }
+
+  // 不允许再有「只弹提示」的死入口
+  assert.doesNotMatch(src, /handleItemTap\(/)
+})
+
+test('声音与振动页：7 个三级页全部接线', () => {
+  const src = read('src/components/apps/settings/SettingsSound.vue')
+  for (const key of ['haptics', 'ringtone', 'notifRingtone', 'vibration', 'jbl', 'noise', 'prompts']) {
+    assert.match(src, new RegExp(`openSubPage\\('${key}'\\)`), `缺少 ${key} 的入口`)
+  }
+  assert.doesNotMatch(src, /handleItemTap\(/)
+})
+
+test('16 个三级页组件文件都存在，且都被二级页引用', () => {
+  const displayPages = [
+    'DisplayScheduleTheme', 'DisplayDarkMode', 'DisplayEyeCare', 'DisplayColorStyle',
+    'DisplayRefreshRate', 'DisplayFont', 'DisplaySize', 'DisplayFullscreenApps'
+  ]
+  const soundPages = [
+    'SoundHaptics', 'SoundRingtone', 'SoundNotifRingtone', 'SoundVibration',
+    'SoundJbl', 'SoundNoiseReduction', 'SoundPrompts'
+  ]
+
+  for (const name of displayPages) {
+    const p = `src/components/apps/settings/display/${name}.vue`
+    assert.ok(fs.existsSync(p), `${p} 不存在`)
+    assert.match(read('src/components/apps/settings/SettingsDisplay.vue'), new RegExp(name))
+  }
+  for (const name of soundPages) {
+    const p = `src/components/apps/settings/sound/${name}.vue`
+    assert.ok(fs.existsSync(p), `${p} 不存在`)
+    assert.match(read('src/components/apps/settings/SettingsSound.vue'), new RegExp(name))
+  }
+
+  // 自动息屏是弹层而不是整页（真机如此）
+  assert.ok(fs.existsSync('src/components/apps/settings/display/DisplayAutoSleepSheet.vue'))
+})
+
+test('三级页统一使用共享外壳，不允许各写一套导航与卡片', () => {
+  const files = [
+    ...fs.readdirSync('src/components/apps/settings/display').map(f => `src/components/apps/settings/display/${f}`),
+    ...fs.readdirSync('src/components/apps/settings/sound').map(f => `src/components/apps/settings/sound/${f}`)
+  ].filter(f => f.endsWith('.vue') && !f.endsWith('DisplayAutoSleepSheet.vue'))
+
+  for (const f of files) {
+    const src = read(f)
+    assert.match(src, /SubPageShell/, `${f} 没有使用共享外壳`)
+    // 外壳之外不应再自己画导航栏
+    assert.doesNotMatch(src, /class="GlassNavBar"/, `${f} 自己又写了一版返回键`)
+    // 导航统一走 GlassNavBar（全局控件），页面不再自绘
+    assert.ok(!/class="sub-nav"/.test(src), `${f} 还在自己写导航条`)
+  }
+})
+
+/* ==================== 手机示意框比例守卫（2026-11-05 Ricky 打回） ==================== */
+test('设置页里所有「手机屏幕示意框」都必须接近真机比例 360:788 ≈ 0.457', () => {
+  const ROOT = 'src/components/apps/settings'
+  const files = []
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, entry.name)
+      if (entry.isDirectory()) walk(p)
+      else if (entry.name.endsWith('.vue')) files.push(p)
+    }
+  }
+  walk(ROOT)
+
+  const BLOCK = /\.([\w-]*phone[\w-]*)\s*\{([^}]*)\}/g
+  const checked = []
+
+  for (const file of files) {
+    const src = read(file)
+    let m
+    while ((m = BLOCK.exec(src)) !== null) {
+      const cls = m[1]
+      const body = m[2]
+      // 只检查「单个手机屏幕示意框」：名字以 -phone 结尾，或 phone-mini / phone-big
+      // （.two-phones-illustration 这类是并排容器的外层，不是单个屏幕，跳过）
+      const isPhoneFrame = /-phone$/.test(cls) || cls === 'phone' || /^phone-(mini|big)$/.test(cls)
+      if (!isPhoneFrame) continue
+
+      const w = body.match(/width:\s*([\d.]+)px/)
+      const h = body.match(/height:\s*([\d.]+)px/)
+      if (!w || !h) continue
+
+      const ratio = Number(w[1]) / Number(h[1])
+      checked.push({ file, cls, ratio })
+      assert.ok(
+        ratio >= 0.40 && ratio <= 0.52,
+        `${file} 的 .${cls} 宽高比 ${ratio.toFixed(3)} 不像手机屏幕（应在 0.40–0.52，真机是 0.457）`
+      )
+    }
+  }
+
+  assert.ok(checked.length >= 6, `扫到的手机示意框偏少：${checked.length}`)
+})
+
+test('手机示意框的内部内容不许挤在顶部（要用 space-evenly / space-between 铺开）', () => {
+  const targets = [
+    ['src/components/apps/settings/notifications/NotifControlCenter.vue', '.cc-phone', 'align-content: space-evenly'],
+    ['src/components/apps/settings/display/DisplaySize.vue', '.size-phone', 'justify-content: space-between'],
+    ['src/components/apps/settings/display/DisplayRefreshRate.vue', '.rate-phone', 'justify-content: space-between']
+  ]
+  for (const [file, cls, expect] of targets) {
+    const src = read(file)
+    const block = src.slice(src.indexOf(`${cls} {`), src.indexOf('}', src.indexOf(`${cls} {`)))
+    assert.ok(block.includes(expect) || src.includes(expect), `${file} 的 ${cls} 缺少「${expect}」`)
+  }
+})
+
+test('Dynamic Bar 头图必须是「被裁切的半部手机」（Ricky 2026-11-05 指出）', () => {
+  const src = read('src/components/apps/settings/SettingsNotifications.vue')
+
+  // 容器定高 + 裁切
+  const wrap = src.slice(src.indexOf('.db-figure {'), src.indexOf('.db-figure-phone {'))
+  assert.match(wrap, /overflow:\s*hidden/, '头图容器必须裁切')
+  const wrapH = wrap.match(/height:\s*(\d+)px/)
+  assert.ok(wrapH, '头图容器必须有固定高度')
+
+  // 机器本身比容器高 ⇒ 底部被切掉，只露上半部
+  const phone = src.slice(src.indexOf('.db-figure-phone {'), src.indexOf('.db-figure-hole {'))
+  const phoneH = phone.match(/height:\s*(\d+)px/)
+  assert.ok(phoneH, '.db-figure-phone 必须有高度')
+  assert.ok(
+    Number(phoneH[1]) > Number(wrapH[1]) * 1.5,
+    `手机高度(${phoneH[1]}) 应远大于容器(${wrapH[1]})，否则就不是「半部手机」`
+  )
+
+  // 机身内部与页面同色，只留描边（真机效果）
+  assert.doesNotMatch(phone, /background:\s*#FFFFFF/, '机身不该是白底')
+
+  // 构图必须与真机一致：状态栏通知条 + 展开的岛 + 点击指示环
+  assert.match(src, /db-figure-card/, '缺少状态栏通知条')
+  assert.match(src, /db-figure-expand/, '缺少展开后的灵动岛')
+  assert.match(src, /db-figure-tap/, '缺少点击指示环')
+})
+
+test('自动息屏弹层把几何交给 SheetModal（自身不再写遮罩/圆角）', () => {
+  const src = read('src/components/apps/settings/display/DisplayAutoSleepSheet.vue')
+  assert.match(src, /<SheetModal[^>]*:visible="visible"/, '应以 visible 驱动统一弹层控件')
+  assert.match(src, /<SheetModal[^>]*padding="18px 12px 12px"/, '卡片内边距应由调用方显式给出')
+  assert.doesNotMatch(src, /class="sheet-mask"/, '不应再自己画遮罩')
+  assert.doesNotMatch(src, /border-radius:\s*2\d+px 2\d+px 0 0/, '不应再有「只圆上两角」')
+})
+test('振动模式：来电与通知是两套不同清单，按 SIM 分别存储', async () => {
+  const m = await import('../src/stores/soundSettingsStore.js')
+  assert.deepEqual(m.SIM_VIBRATE_PATTERNS, [
+    '标准', '动感', '飞速', '非洲鼓', '华尔兹', '紧急', '落珠', '切分音', '心动', '中东鼓'
+  ])
+  assert.deepEqual(m.NOTIF_VIBRATE_PATTERNS, [
+    '标准', '电报', '动感', '连击', '快速', '鸣笛', '三连音', '舒缓', '心跳', '摇摆'
+  ])
+
+  setActivePinia(createPinia())
+  const s = m.useSoundSettingsStore()
+  assert.equal(s.sim1VibratePattern, '跟随音乐节奏')
+  assert.equal(s.sim2VibratePattern, '跟随音乐节奏')
+  assert.equal(s.notifVibratePattern, '跟随音乐节奏')
+
+  s.setVibratePattern('sim1', '落珠')
+  assert.equal(s.sim1VibratePattern, '落珠')
+  assert.equal(s.sim2VibratePattern, '跟随音乐节奏', '不应串到 SIM2')
+  assert.equal(s.setVibratePattern('sim3', '标准'), false)
+})
+
+test('自定义铃声：按通道分别记录文件，未知名通道被拒绝', () => {
+  setActivePinia(createPinia())
+  const s = useSoundSettingsStore()
+  assert.equal(s.customRingtoneSim, '', '默认用内置铃声')
+  assert.equal(s.setCustomRingtone('sim', '五彩彝裳'), true)
+  assert.equal(s.customRingtoneSim, '五彩彝裳')
+  assert.equal(s.customRingtoneNotif, '')
+  assert.equal(s.setCustomRingtone('nope', 'x'), false)
+})
+
+test('四级页：我的字体 / 振动模式 / 自定义铃声 都存在且接线', () => {
+  for (const f of [
+    'src/components/apps/settings/display/DisplayMyFonts.vue',
+    'src/components/apps/settings/sound/SoundVibratePattern.vue',
+    'src/components/apps/settings/sound/SoundCustomRingtone.vue'
+  ]) {
+    assert.ok(fs.existsSync(f), `${f} 不存在`)
+  }
+
+  const font = read('src/components/apps/settings/display/DisplayFont.vue')
+  assert.match(font, /@click="openMyFonts"/, '「我的字体」必须可点')
+  assert.match(font, /<DisplayMyFonts v-if="showMyFonts"/, '未挂四级页')
+
+  const ring = read('src/components/apps/settings/sound/SoundRingtone.vue')
+  assert.match(ring, /@click="openNested\('vibrate'\)"/, 'SIM 振动必须可点')
+  assert.match(ring, /@click="openNested\('custom'\)"/, '自定义铃声必须可点')
+
+  const notif = read('src/components/apps/settings/sound/SoundNotifRingtone.vue')
+  assert.match(notif, /@click="openNested\('vibrate'\)"/, '通知振动必须可点')
+  assert.match(notif, /@click="openNested\('custom'\)"/, '通知自定义铃声必须可点')
+})
+
+test('屏幕刷新率：选「高」要先弹功耗确认，确认后才写 store', () => {
+  const src = read('src/components/apps/settings/display/DisplayRefreshRate.vue')
+  assert.match(src, /function choose\(value\)/, '缺少选择拦截')
+  assert.match(src, /showHighConfirm\.value = true/, '选「高」应弹确认')
+  assert.match(src, /切换为高刷新率/, '确认弹窗标题')
+  assert.match(src, /高刷新率将增加耗电，推荐保持智能切换模式。/, '确认弹窗正文')
+  // 未确认前不能直接写 store
+  assert.doesNotMatch(src, /@click="display\.setRefreshRate\(opt\.value\)"/, '不应绕过确认直接切换')
+})
+
+test('自定义应用刷新率与「高」绑定：非高亮率档位禁用且不可进', () => {
+  setActivePinia(createPinia())
+  const d = useDisplaySettingsStore()
+
+  d.setRefreshRate('auto')
+  assert.equal(d.canCustomizePerApp(), false, '智能切换下不可自定义')
+  d.setRefreshRate('standard')
+  assert.equal(d.canCustomizePerApp(), false, '标准下不可自定义')
+  d.setRefreshRate('high')
+  assert.equal(d.canCustomizePerApp(), true, '只有「高」可以自定义')
+
+  // store 自己也要挡住（不只是 UI 禁用）
+  d.setRefreshRate('auto')
+  assert.equal(d.setPerAppRefresh('douyin', 'high'), false, '非高亮率档位写入应被拒绝')
+  assert.equal(d.perAppRefreshOf('douyin'), 'auto')
+
+  d.setRefreshRate('high')
+  assert.equal(d.setPerAppRefresh('douyin', 'high'), true)
+  assert.equal(d.perAppRefreshOf('douyin'), 'high')
+  assert.equal(d.setPerAppRefresh('douyin', 'ultra'), false, '非法档位被拒')
+})
+
+test('刷新率页：该行用 disabled 表达绑定关系，而不是静默无响应', () => {
+  const src = read('src/components/apps/settings/display/DisplayRefreshRate.vue')
+  assert.match(src, /:disabled="!display\.canCustomizePerApp\(\)"/, '缺少禁用态绑定')
+  assert.match(src, /showAppRefresh = true/, '可点时应进入四级页')
+  assert.match(src, /<DisplayAppRefreshRate v-if="showAppRefresh"/, '未挂四级页')
+})
+
+test('ListCell 支持禁用态（置灰 + 不触发点击）', () => {
+  const src = read('src/components/ui/ListCell.vue')
+  assert.match(src, /disabled: \{ type: Boolean/, '缺少 disabled prop')
+  assert.match(src, /@click="!disabled && emit\('click'\)"/, '禁用时不应再派发 click')
+  assert.match(src, /\.list-cell\.is-disabled/, '缺少禁用态样式')
+})
+
+test('护眼「定时开启」：三档与真机一致，非法值被拒', () => {
+  setActivePinia(createPinia())
+  const d = useDisplaySettingsStore()
+  assert.equal(d.eyeCareSchedule, 'off')
+  assert.equal(d.setEyeCareSchedule('sunset'), true)
+  assert.equal(d.eyeCareSchedule, 'sunset')
+  assert.equal(d.setEyeCareSchedule('always'), false)
+
+  const page = read('src/components/apps/settings/display/DisplayEyeCareSchedule.vue')
+  for (const label of ['已关闭', '定时开启', '日落至日出']) {
+    assert.match(page, new RegExp(`label: '${label}'`), `缺少选项 ${label}`)
+  }
+  const eyecare = read('src/components/apps/settings/display/DisplayEyeCare.vue')
+  assert.match(eyecare, /@click="showSchedule = true"/, '护眼页的「定时开启」必须可点')
+})
+
+test('亮度条端点要与卡片内容边距对齐（滑块居中会外溢半个滑块宽）', () => {
+  const src = read('src/components/apps/settings/SettingsDisplay.vue')
+  const track = src.slice(src.indexOf('.slider-track {'), src.indexOf('.slider-fill {'))
+  const thumb = src.slice(src.indexOf('.slider-thumb {'), src.indexOf('}', src.indexOf('.slider-thumb {')))
+
+  const thumbW = Number((thumb.match(/width:\s*(\d+)px/) || [])[1] || 0)
+  const inset = Number((track.match(/margin-right:\s*(\d+)px/) || [])[1] || 0)
+
+  assert.ok(thumbW > 0, '滑块必须是固定宽度')
+  assert.equal(
+    inset,
+    Math.round(thumbW / 2),
+    `滑块的右内缩应等于半个滑块宽（${thumbW}/2=${thumbW / 2}px），当前 ${inset}px —— 否则 100% 时会顶出卡片`
+  )
+})
+
+test('深色主题设置用真正的壁纸预览，不是商品照', () => {
+  const src = read('src/components/apps/settings/display/DisplayDarkMode.vue')
+  assert.match(src, /wallpaper-lock\.jpg/, '应使用壁纸图')
+  assert.doesNotMatch(src, /album-2\.jpg/, '不该再用专辑/商品照片当壁纸预览')
+})
+
+test('字体页：顶部预览区随字体/字号/粗细实时变化（真机是「上预览下切换」）', () => {
+  const src = read('src/components/apps/settings/display/DisplayFont.vue')
+  assert.match(src, /class="font-preview"/, '缺少顶部预览区')
+  assert.match(src, /:style="previewStyle"/, '预览区必须绑定动态样式')
+  assert.match(src, /display\.fontSize/, '字号滑块应驱动预览')
+  assert.match(src, /display\.fontWeight/, '字重滑块应驱动预览')
+  assert.match(src, /display\.fontFamily/, '字体卡应驱动预览')
+
+  // 预览必须排在「我的字体」之前（真机就是上预览、下切换）
+  const previewIdx = src.indexOf('class="font-preview"')
+  const myFontsIdx = src.indexOf('title="我的字体"')
+  assert.ok(previewIdx > 0 && myFontsIdx > previewIdx, '预览区必须在「我的字体」上方')
+})
+
+test('应用全屏显示：用桌面注册的应用与真实图标，不用首字母色块', () => {
+  const src = read('src/components/apps/settings/display/DisplayFullscreenApps.vue')
+  assert.match(src, /from '\.\.\/\.\.\/\.\.\/\.\.\/config\/apps'/, '必须复用桌面应用注册表')
+  assert.match(src, /<img class="app-icon-img"[^>]*:src="app\.image"/, '图标应使用应用自身的 image')
+  assert.doesNotMatch(src, /app\.letter/, '不该再用首字母色块')
+  assert.doesNotMatch(src, /bg: '#F97316'/, '不该再有硬编码的品牌色块')
+})
+
+test('滑块控件按真机实测：轨道 10px / 圆点 22px + 3px 蓝环 / 无阴影 / 右端内缩', () => {
+  const src = read('src/components/apps/settings/subpage/HSettingSlider.vue')
+
+  const track = src.slice(src.indexOf('.h-slider-track {'), src.indexOf('.h-slider-fill {'))
+  assert.match(track, /height:\s*10px/, '轨道厚应为 10px（真机实测 10dp）')
+  assert.match(track, /background:\s*#EBEBEB/, '未填充轨道色')
+  assert.match(track, /margin-right:\s*11px/, '右端要内缩半个圆点')
+
+  const fill = src.slice(src.indexOf('.h-slider-fill {'), src.indexOf('.h-slider-thumb {'))
+  assert.match(fill, /background:\s*#3375F6/, '填充色应与真机一致')
+
+  const thumb = src.slice(src.indexOf('.h-slider-thumb {'))
+  assert.match(thumb, /width:\s*22px/, '圆点直径 22px')
+  assert.match(thumb, /border:\s*3px solid #3375F6/, '圆点 = 白底 + 3px 蓝环')
+  assert.doesNotMatch(thumb, /box-shadow/, '圆点不该有灰糊阴影（Ricky 指出过）')
+  assert.match(thumb, /box-sizing:\s*border-box/, '描边不能把圆点撑大')
+
+  // 刻度点：档位制（含首尾）与无极两种形态
+  assert.match(src, /h-slider-tick/, '缺少刻度点')
+  assert.match(src, /steps:\s*\{ type: Number/, '缺少 steps 属性')
+  assert.match(src, /v-for="i in \(steps > 1 \? steps : 0\)"/, '刻度点数量必须等于档位数（含首尾）')
+  assert.match(src, /\(\(i - 1\) \/ \(steps - 1\)\) \* 100/, '刻度点应铺在 0%..100%')
+  assert.match(src, /background:\s*#CECECE/, '未填充刻度点色')
+  assert.match(src, /background:\s*#77ABF8/, '已填充刻度点色')
+  assert.match(src, /Math\.round\(ratio \* segments\) \/ segments/, '档位制取值要吸附到档位')
+})
+
+test('字体页底部是「一张统一白卡」，预览区在其上方', () => {
+  const src = read('src/components/apps/settings/display/DisplayFont.vue')
+  assert.match(src, /class="font-sheet"/, '缺少底部统一卡片')
+  const sheet = src.slice(src.indexOf('.font-sheet {'), src.indexOf('.font-preview {'))
+  assert.match(sheet, /background:\s*#FFFFFF/, '卡片应为白底')
+  assert.match(sheet, /margin-top:\s*auto/, '卡片要固定在下方')
+
+  // 卡片里要同时装下我的字体 / 字体卡 / 两个滑块
+  const sheetStart = src.indexOf('class="font-sheet"')
+  const sheetEnd = src.indexOf('</SubPageShell>')
+  const inside = src.slice(sheetStart, sheetEnd)
+  assert.match(inside, /我的字体/, '卡片内缺少「我的字体」')
+  assert.match(inside, /font-cards/, '卡片内缺少字体卡')
+  assert.match(inside, /字体大小/, '卡片内缺少字号滑块')
+  assert.match(inside, /字体粗细/, '卡片内缺少字重滑块')
+})
+
+test('两种滑块：字体大小 5 档（含首尾）、字体粗细无极', () => {
+  const font = read('src/components/apps/settings/display/DisplayFont.vue')
+  assert.match(font, /:steps="5"/, '字号滑块应是 5 档')
+  // 字重那条不能带 steps
+  const weightBlock = font.slice(font.indexOf('字体粗细'), font.indexOf('</SubPageShell>'))
+  assert.doesNotMatch(weightBlock, /:steps=/, '字重滑块应为无极')
+})
+
+test('声音与振动页音量条也统一到同一套滑块视觉', () => {
+  const src = read('src/components/apps/settings/SettingsSound.vue')
+  const track = src.slice(src.indexOf('.slider-track {'), src.indexOf('.slider-fill {'))
+  assert.match(track, /height:\s*10px/, '音量条轨道应为 10px')
+  assert.match(track, /background:\s*#EBEBEB/, '未填充轨道色')
+  assert.match(track, /margin-right:\s*11px/, '右端内缩半个圆点')
+
+  const thumb = src.slice(src.indexOf('.slider-thumb {'), src.indexOf('.volume-divider'))
+  assert.match(thumb, /border:\s*3px solid #3375F6/, '圆点 = 白底 + 3px 蓝环')
+  assert.doesNotMatch(thumb, /box-shadow/, '音量条圆点也不该有投影')
+})

@@ -1,4 +1,5 @@
 <script setup>
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 import { useAccountStore } from '../../../stores/accountStore'
 import walletIcon from '../../../assets/icons/wallet-entry-icon.png'
@@ -36,25 +37,17 @@ function handleRelogin() {
 <template>
   <div class="settings-account-page">
     <!-- 顶部导航栏：独立轻圆返回按钮 + 标题 + 独立轻圆扫码按钮 -->
-    <div class="account-nav-bar">
-      <button class="nav-round-btn" aria-label="返回" @click="emit('back')">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-
-      <div class="nav-title">Infinix ID</div>
-
-      <button class="nav-round-btn" aria-label="扫一扫" @click="showToast('已开启二维码扫描')">
+    <GlassNavBar overlay title="Infinix ID" @back="emit('back')">
+        <template #right><button class="nav-round-btn" aria-label="扫一扫" @click="showToast('已开启二维码扫描')">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           <line x1="7" y1="12" x2="17" y2="12" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round"/>
         </svg>
-      </button>
-    </div>
+      </button></template>
+      </GlassNavBar>
 
     <!-- 滚动区域 -->
-    <div class="account-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="account-scroll-body scrollable">
       <!-- 个人信息头像与昵称 -->
       <div class="profile-header">
         <div class="profile-avatar-wrap">

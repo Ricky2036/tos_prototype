@@ -1,8 +1,14 @@
 <script setup>
-import { ref } from 'vue'
+import GlassNavBar from '../../ui/GlassNavBar.vue'
+import '../../../styles/layer-transitions.css'
+import { computed, ref } from 'vue'
 import ListCell from '../../ui/ListCell.vue'
+import AiSubPage from './infinixai/AiSubPage.vue'
+import { AI_SUB_PAGES } from './infinixai/pages.js'
+import { useInfinixAiSettingsStore } from '../../../stores/infinixAiSettingsStore'
 
 const emit = defineEmits(['back'])
+const aiStore = useInfinixAiSettingsStore()
 
 // 提示反馈
 const toastText = ref('')
@@ -15,7 +21,62 @@ function showToast(msg) {
   }, 2200)
 }
 
+/* ==================== 三级页 ==================== */
+const subPage = ref(null)
+const isBack = ref(false)
+const pageConfig = computed(() => (subPage.value ? AI_SUB_PAGES[subPage.value] : null))
+
+// 翻译助手：真机首次进入会先弹「智慧翻译」隐私协议
+const showTranslateConsent = ref(false)
+const pendingSubPage = ref(null)
+
+function openSubPage(key) {
+  if (!key || !AI_SUB_PAGES[key]) {
+    showToast('该入口在真机上是独立应用界面，本原型暂不复刻')
+    return
+  }
+  if (key === 'translate' && !aiStore.translateConsentAccepted) {
+    pendingSubPage.value = key
+    showTranslateConsent.value = true
+    return
+  }
+  isBack.value = false
+  subPage.value = key
+}
+
+function closeSubPage() {
+  isBack.value = true
+  subPage.value = null
+}
+
+function acceptConsent() {
+  aiStore.acceptTranslateConsent()
+  showTranslateConsent.value = false
+  if (pendingSubPage.value) {
+    isBack.value = false
+    subPage.value = pendingSubPage.value
+    pendingSubPage.value = null
+  }
+}
+
+function cancelConsent() {
+  showTranslateConsent.value = false
+  pendingSubPage.value = null
+}
+
+function onSubRowClick(row) {
+  if (row && row.title) showToast(`「${row.title}」为演示入口`)
+}
+
 function back() {
+  if (showTranslateConsent.value) {
+    cancelConsent()
+    return true
+  }
+  if (subPage.value) {
+    closeSubPage()
+    return true
+  }
   emit('back')
   return true
 }
@@ -25,18 +86,23 @@ defineExpose({ back })
 
 <template>
   <div class="settings-ai-page">
+    <!-- ==================== 三级页 ==================== -->
+    <Transition :name="isBack ? 'slide-back' : 'slide'">
+      <AiSubPage
+        v-if="subPage && pageConfig"
+        :key="subPage"
+        v-bind="pageConfig"
+        @back="closeSubPage"
+        @row-click="onSubRowClick"
+      />
+    </Transition>
+
+    <div v-if="!subPage" class="ai-main">
     <!-- 顶部导航栏 -->
-    <div class="ai-nav-bar">
-      <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <div class="nav-title">Infinix AI</div>
-    </div>
+    <GlassNavBar overlay title="Infinix AI" @back="emit('back')" />
 
     <!-- 滚动区域 -->
-    <div class="ai-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="ai-scroll-body scrollable">
       <!-- 头部特性大卡片 -->
       <div class="ai-feature-card">
         <div class="ai-feature-icon-wrap">
@@ -58,14 +124,14 @@ defineExpose({ back })
         <div class="ai-feature-desc">系统级 AI 功能一站式管理。高效工作、灵感创作、智慧生活，由此轻松开启。</div>
       </div>
 
-      <!-- 分组 1: Folax 核心入口 -->
+      <!-- ================= 卡片 1: Fola 三大入口 ================= -->
       <div class="settings-card">
         <ListCell
-          title="Folax语音"
+          title="Fola语音"
           subtitle="AI智慧助手，一句话帮你搞定各种事。"
           chevron
           clickable
-          @click="showToast('正在调起 Folax 语音助手设置')"
+          @click="openSubPage('folaxVoice')"
         >
           <template #icon>
             <div class="ai-icon-box bg-folax">
@@ -77,54 +143,46 @@ defineExpose({ back })
           </template>
         </ListCell>
         <ListCell
-          title="Folax识屏"
-          subtitle="一键识别屏幕，轻松提取文字内容。"
+          title="Fola 之家"
+          subtitle="你的专属 AI 伙伴，时刻相伴。"
           chevron
-          last
           clickable
-          @click="showToast('Folax 识屏已就绪，双指长按屏幕即可触发')"
+          @click="openSubPage('None')"
+        >
+          <template #icon>
+            <div class="ai-icon-box bg-blue">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 11l8-7 8 7v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>
+              </svg>
+            </div>
+          </template>
+        </ListCell>
+        <ListCell
+          title="Fola识屏"
+          subtitle="一键识别屏幕，轻松提取文字内容。"
+          chevron last
+          clickable
+          @click="openSubPage('folaScreen')"
         >
           <template #icon>
             <div class="ai-icon-box bg-orange">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
                 <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" />
-                <line x1="8" y1="12" x2="16" y2="12" />
+                <path d="M9 9l6 6M15 9l-6 6" />
               </svg>
             </div>
           </template>
         </ListCell>
       </div>
 
-      <!-- 分组 2: AI Buddy 伙伴 -->
-      <div class="settings-card">
-        <ListCell
-          title="AI Buddy"
-          subtitle="你的专属 AI 伙伴，时刻相伴。"
-          chevron
-          last
-          clickable
-          @click="showToast('AI Buddy 桌面伴侣已启动')"
-        >
-          <template #icon>
-            <div class="ai-icon-box bg-blue">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="5" width="18" height="14" rx="4" />
-                <circle cx="9" cy="12" r="1.5" fill="#fff" />
-                <circle cx="15" cy="12" r="1.5" fill="#fff" />
-              </svg>
-            </div>
-          </template>
-        </ListCell>
-      </div>
-
-      <!-- 分组 3: 智慧交互与搜索 -->
+      <!-- ================= 卡片 2: 智慧交互与搜索 ================= -->
       <div class="settings-card">
         <ListCell
           title="智慧建议"
           subtitle="提供一步直达的智慧建议服务。"
           chevron
           clickable
-          @click="showToast('智慧建议场景卡片已更新')"
+          @click="openSubPage('smartSuggestion')"
         >
           <template #icon>
             <div class="ai-icon-box bg-cyan">
@@ -139,10 +197,9 @@ defineExpose({ back })
         <ListCell
           title="圈定即搜"
           subtitle="长按加画圈，迅速搜索内容。"
-          chevron
-          last
+          chevron last
           clickable
-          @click="showToast('长按导航条或主屏幕底端即可圈定即搜')"
+          @click="openSubPage('circleSearch')"
         >
           <template #icon>
             <div class="ai-icon-box bg-circle-search">
@@ -156,14 +213,14 @@ defineExpose({ back })
         </ListCell>
       </div>
 
-      <!-- 分组 4: 通讯与语音记录 -->
+      <!-- ================= 卡片 3: 通话、字幕与记录 ================= -->
       <div class="settings-card">
         <ListCell
           title="AI通话助手"
           subtitle="使用AI能力，帮你轻松搞定电话沟通。"
           chevron
           clickable
-          @click="showToast('AI 通话翻译与通话实时字幕已开启')"
+          @click="openSubPage('aiCall')"
         >
           <template #icon>
             <div class="ai-icon-box bg-green">
@@ -178,7 +235,7 @@ defineExpose({ back })
           subtitle="为支持的视频应用提供实时字幕和翻译。"
           chevron
           clickable
-          @click="showToast('AI 实时双语字幕已就绪')"
+          @click="openSubPage('aiSubtitle')"
         >
           <template #icon>
             <div class="ai-icon-box bg-indigo">
@@ -195,7 +252,7 @@ defineExpose({ back })
           subtitle="将录音转写成文本，生成摘要。"
           chevron
           clickable
-          @click="showToast('AI 智能会议纪要与摘要就绪')"
+          @click="openSubPage('recordSummary')"
         >
           <template #icon>
             <div class="ai-icon-box bg-coral">
@@ -206,11 +263,11 @@ defineExpose({ back })
           </template>
         </ListCell>
         <ListCell
-          title="AI 录"
+          title="AI 录音"
           subtitle="语音录制、文字转写、智能摘要一站式 AI 记录。"
           chevron
           clickable
-          @click="showToast('一站式 AI 记录模式已启用')"
+          @click="openSubPage('aiRecord')"
         >
           <template #icon>
             <div class="ai-icon-box bg-purple">
@@ -227,7 +284,7 @@ defineExpose({ back })
           subtitle="在您聊天或阅读的时候，借助智能翻译无障碍沟通和阅读。"
           chevron
           clickable
-          @click="showToast('跨语言翻译引擎已就绪')"
+          @click="openSubPage('translate')"
         >
           <template #icon>
             <div class="ai-icon-box bg-cobalt">
@@ -242,10 +299,9 @@ defineExpose({ back })
         <ListCell
           title="社交助手"
           subtitle="提供社交场景下双向翻译、通话摘要等 AI 功能。"
-          chevron
-          last
+          chevron last
           clickable
-          @click="showToast('WhatsApp / 微信社交辅助已就绪')"
+          @click="openSubPage('social')"
         >
           <template #icon>
             <div class="ai-icon-box bg-bright-blue">
@@ -257,14 +313,14 @@ defineExpose({ back })
         </ListCell>
       </div>
 
-      <!-- 分组 5: 创作与办公效率 -->
+      <!-- ================= 卡片 4: 创作与办公效率 ================= -->
       <div class="settings-card">
         <ListCell
           title="AI写作助手"
           subtitle="对文本进行重写、校对拼写和语法、生成摘要、查询。"
           chevron
           clickable
-          @click="showToast('AI 写作工具栏已集成至输入法')"
+          @click="openSubPage('aiWriting')"
         >
           <template #icon>
             <div class="ai-icon-box bg-emerald">
@@ -280,14 +336,13 @@ defineExpose({ back })
           subtitle="AI 解锁想象，轻松定制专属个性壁纸和主题。"
           chevron
           clickable
-          @click="showToast('已唤起 AI 随心壁纸生成工作台')"
+          @click="openSubPage('aiTheme')"
         >
           <template #icon>
             <div class="ai-icon-box bg-sky">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 19l7-7 3 3-7 7-3-3z"/>
                 <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
-                <path d="M2 2l7.586 7.586"/>
                 <circle cx="11" cy="11" r="2"/>
               </svg>
             </div>
@@ -298,7 +353,7 @@ defineExpose({ back })
           subtitle="将简单几笔的草图一键转换成精美效果图。"
           chevron
           clickable
-          @click="showToast('AI 涂鸦成图功能已就绪')"
+          @click="openSubPage('smartNote')"
         >
           <template #icon>
             <div class="ai-icon-box bg-amber">
@@ -311,10 +366,9 @@ defineExpose({ back })
         <ListCell
           title="文档助手"
           subtitle="自动分析提取文档关键信息，生成摘要。"
-          chevron
-          last
+          chevron last
           clickable
-          @click="showToast('支持 PDF/Word/PPT 一键萃取')"
+          @click="openSubPage('docAssistant')"
         >
           <template #icon>
             <div class="ai-icon-box bg-warm-yellow">
@@ -341,6 +395,32 @@ defineExpose({ back })
       <!-- 底部安全留白 -->
       <div class="scroll-bottom-spacer"></div>
     </div>
+
+    </div><!-- /.ai-main -->
+
+    <!-- 智慧翻译隐私协议（首次进入翻译助手时弹出） -->
+    <Transition name="consent-rise" appear>
+      <div v-if="showTranslateConsent" class="consent-mask" @click.self="cancelConsent">
+        <div class="consent-card">
+          <div class="consent-badge">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M6 6l12 12M18 6L6 18" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div class="consent-title">智慧翻译</div>
+          <p class="consent-text">
+            感谢您对我们的信任并使用我们的产品和服务。为了提供更好的产品和服务，我们需要访问互联网、调用您设备的部分权限、收集和使用您的部分数据，我们处理您数据的法律依据为您的授权同意或履行与您订立的合同所需。
+          </p>
+          <p class="consent-text">
+            通过点击“同意”，您知悉并同意我们《用户协议》与《隐私政策》所述条款。
+          </p>
+          <div class="consent-actions">
+            <button class="consent-btn ghost" type="button" @click="cancelConsent">取消</button>
+            <button class="consent-btn primary" type="button" @click="acceptConsent">同意</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <!-- 轻提示 (Toast) -->
     <Transition name="fade">
@@ -476,12 +556,10 @@ defineExpose({ back })
 
 /* 通用卡片规范 */
 .settings-card {
-  margin-bottom: 12px;
-  background: #FFFFFF;
-  border-radius: 24px;
+background: #FFFFFF;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  margin-bottom: 12px;
 }
 
 /* 图标容器规范 */
@@ -549,6 +627,27 @@ defineExpose({ back })
   white-space: nowrap;
 }
 
+/* 隐私协议弹窗：与底部弹层同一套「自下而上」的运动语言（居中布局保持不变） */
+.consent-rise-enter-active,
+.consent-rise-leave-active {
+  transition: opacity 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.consent-rise-enter-active .consent-card,
+.consent-rise-leave-active .consent-card {
+  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.consent-rise-enter-from,
+.consent-rise-leave-to {
+  opacity: 0;
+}
+
+.consent-rise-enter-from .consent-card,
+.consent-rise-leave-to .consent-card {
+  transform: translateY(26px) scale(0.98);
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -558,4 +657,85 @@ defineExpose({ back })
   opacity: 0;
   transform: translate(-50%, 8px);
 }
+/* 二级页容器 */
+.ai-main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* 智慧翻译隐私协议 */
+.consent-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  z-index: 40;
+}
+
+.consent-card {
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 22px;
+  padding: 22px 20px 18px;
+  position: relative;
+}
+
+.consent-badge {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #22C55E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+}
+
+.consent-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.consent-text {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 21px;
+  color: #3C3C43;
+}
+
+.consent-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.consent-btn {
+  flex: 1;
+  height: 44px;
+  border: none;
+  border-radius: 22px;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.consent-btn.ghost {
+  background: #F2F2F7;
+  color: #2F6BF6;
+}
+
+.consent-btn.primary {
+  background: #2F6BF6;
+  color: #FFFFFF;
+}
 </style>
+

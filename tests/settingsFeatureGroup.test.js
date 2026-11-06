@@ -15,7 +15,7 @@ test('SettingsAccessibility.vue implements accessibility features aligned with r
 
   // Navigation
   assert.match(content, /辅助功能/)
-  assert.match(content, /data-nav-back/)
+  assert.match(content, /GlassNavBar/)
 
   // Hero card
   assert.match(content, /通过视力、肢体活动能力、听力、语音和认知方面/)
@@ -54,7 +54,7 @@ test('SettingsOneTap.vue implements flagship action button customizer aligned wi
 
   // Navigation & dark immersion
   assert.match(content, /One-Tap Button/)
-  assert.match(content, /data-nav-back/)
+  assert.match(content, /GlassNavBar/)
   assert.match(content, /#000000/)
 
   // Physical chassis & glowing capsule
@@ -83,7 +83,7 @@ test('SettingsBattery.vue implements battery & power saving aligned with real ph
 
   // Navigation
   assert.match(content, /电池与省电/)
-  assert.match(content, /data-nav-back/)
+  assert.match(content, /GlassNavBar/)
 
   // Battery percentage & remaining
   assert.match(content, /91/)
@@ -120,7 +120,7 @@ test('SettingsStorage.vue implements storage management aligned with real phone'
 
   // Navigation
   assert.match(content, /存储/)
-  assert.match(content, /data-nav-back/)
+  assert.match(content, /GlassNavBar/)
 
   // Storage hero & cleanup
   assert.match(content, /清理/)

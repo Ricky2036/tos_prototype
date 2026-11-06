@@ -1,4 +1,6 @@
 <script setup>
+import GlassNavBar from '../../ui/GlassNavBar.vue'
+import '../../../styles/layer-transitions.css'
 import { ref, computed } from 'vue'
 import { useControlStore } from '../../../stores/controlStore'
 import { usePrayerStore } from '../../../stores/prayerStore'
@@ -6,6 +8,13 @@ import { useI18nStore } from '../../../stores/i18nStore'
 import LIcon from '../../ui/LIcon.vue'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
+import SoundHaptics from './sound/SoundHaptics.vue'
+import SoundRingtone from './sound/SoundRingtone.vue'
+import SoundNotifRingtone from './sound/SoundNotifRingtone.vue'
+import SoundVibration from './sound/SoundVibration.vue'
+import SoundJbl from './sound/SoundJbl.vue'
+import SoundNoiseReduction from './sound/SoundNoiseReduction.vue'
+import SoundPrompts from './sound/SoundPrompts.vue'
 
 const emit = defineEmits(['back', 'open-dnd', 'open-prayer'])
 const control = useControlStore()
@@ -38,8 +47,18 @@ function setSoundMode(mode) {
   control.setSoundMode(mode)
 }
 
-function handleItemTap(name) {
-  showToast(`已进入${name}设置`)
+/* ==================== 三级页 ==================== */
+const subPage = ref(null)
+const isBack = ref(false)
+
+function openSubPage(key) {
+  isBack.value = false
+  subPage.value = key
+}
+
+function closeSubPage() {
+  isBack.value = true
+  subPage.value = null
 }
 
 // 音量滑块拖拽交互
@@ -80,6 +99,10 @@ function onSliderPointerUp(channel, e) {
 }
 
 function back() {
+  if (subPage.value) {
+    closeSubPage()
+    return true
+  }
   emit('back')
   return true
 }
@@ -89,18 +112,22 @@ defineExpose({ back })
 
 <template>
   <div class="settings-sound-page">
+    <!-- ==================== 三级页 ==================== -->
+    <Transition :name="isBack ? 'slide-back' : 'slide'">
+      <SoundHaptics v-if="subPage === 'haptics'" key="haptics" @back="closeSubPage" />
+      <SoundRingtone v-else-if="subPage === 'ringtone'" key="ringtone" @back="closeSubPage" />
+      <SoundNotifRingtone v-else-if="subPage === 'notifRingtone'" key="notifRingtone" @back="closeSubPage" />
+      <SoundVibration v-else-if="subPage === 'vibration'" key="vibration" @back="closeSubPage" />
+      <SoundJbl v-else-if="subPage === 'jbl'" key="jbl" @back="closeSubPage" />
+      <SoundNoiseReduction v-else-if="subPage === 'noise'" key="noise" @back="closeSubPage" />
+      <SoundPrompts v-else-if="subPage === 'prompts'" key="prompts" @back="closeSubPage" />
+    </Transition>
+
     <!-- 顶部导航栏：圆形微投影返回键 + 左对齐大标题 -->
-    <div class="sound-nav-bar">
-      <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <div class="nav-title">声音与振动</div>
-    </div>
+    <GlassNavBar overlay v-if="!subPage" title="声音与振动" @back="emit('back')" />
 
     <!-- 滚动内容区 -->
-    <div class="sound-scroll-body">
+    <div style="padding-top: var(--nav-h)" v-if="!subPage" class="sound-scroll-body">
       <!-- 卡片 1: 响铃/振动/静音模式 + 勿扰模式 + 礼拜模式入口 -->
       <div class="settings-card mode-card">
         <div class="mode-picker-row">
@@ -270,7 +297,7 @@ defineExpose({ back })
           chevron
           clickable
           last
-          @click="handleItemTap('触感反馈')"
+          @click="openSubPage('haptics')"
         />
       </div>
 
@@ -282,14 +309,14 @@ defineExpose({ back })
           subtitle="SIM1:  Elegant&#10;SIM2:  Elegant"
           chevron
           clickable
-          @click="handleItemTap('来电铃声')"
+          @click="openSubPage('ringtone')"
         />
         <ListCell
           title="通知铃声"
           subtitle="Acclivity"
           chevron
           clickable
-          @click="handleItemTap('通知铃声')"
+          @click="openSubPage('notifRingtone')"
         />
         <ListCell title="来电铃声渐响" last>
           <template #right>
@@ -305,7 +332,7 @@ defineExpose({ back })
           chevron
           clickable
           last
-          @click="handleItemTap('振动强度')"
+          @click="openSubPage('vibration')"
         />
       </div>
 
@@ -317,7 +344,7 @@ defineExpose({ back })
           value="智能"
           chevron
           clickable
-          @click="handleItemTap('JBL 音效实验室')"
+          @click="openSubPage('jbl')"
         />
         <ListCell
           title="全场景降噪"
@@ -325,7 +352,7 @@ defineExpose({ back })
           chevron
           clickable
           last
-          @click="handleItemTap('全场景降噪')"
+          @click="openSubPage('noise')"
         />
       </div>
 
@@ -336,7 +363,7 @@ defineExpose({ back })
           chevron
           clickable
           last
-          @click="handleItemTap('提示音')"
+          @click="openSubPage('prompts')"
         />
       </div>
 
@@ -411,10 +438,9 @@ defineExpose({ back })
 
 /* 通用设置卡片 */
 .settings-card {
-  background: #FFFFFF;
-  border-radius: 24px;
+background: #FFFFFF;
+  border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
 /* 分组标题 */
@@ -528,10 +554,13 @@ defineExpose({ back })
 }
 
 .slider-track {
-  width: 100%;
-  height: 6px;
-  background: #EDEDF0;
-  border-radius: 3px;
+  /* ⚠️ 不能写 width:100% + margin-right（两者相加会超出卡片内容区，滑块就顶出去了） */
+  width: auto;
+  /* 与 HSettingSlider 同一套几何（真机实测：轨道 10px / 填充 #3375F6） */
+  height: 10px;
+  background: #EBEBEB;
+  border-radius: 5px;
+  margin-right: 11px;
   position: relative;
   cursor: pointer;
   touch-action: none;
@@ -539,8 +568,8 @@ defineExpose({ back })
 
 .slider-fill {
   height: 100%;
-  background: #007AFF;
-  border-radius: 3px;
+  background: #3375F6;
+  border-radius: 5px;
   position: absolute;
   left: 0;
   top: 0;
@@ -551,12 +580,13 @@ defineExpose({ back })
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
   border-radius: 50%;
   background: #FFFFFF;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  border: 2px solid #007AFF;
+  /* 白底 + 3px 蓝环，无投影（与其它滑块一致） */
+  border: 3px solid #3375F6;
   pointer-events: none;
 }
 

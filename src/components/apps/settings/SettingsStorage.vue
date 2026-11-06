@@ -1,4 +1,5 @@
 <script setup>
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
@@ -69,17 +70,10 @@ defineExpose({ back })
 <template>
   <div class="settings-storage-page">
     <!-- 顶部导航栏：左对齐大标题 -->
-    <div class="storage-nav-bar">
-      <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <div class="nav-title">存储</div>
-    </div>
+    <GlassNavBar overlay title="存储" @back="emit('back')" />
 
     <!-- 滚动区域 -->
-    <div class="storage-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="storage-scroll-body scrollable">
       <!-- 顶部存储看板卡片 -->
       <div class="storage-hero-card">
         <div class="storage-header-row">
@@ -424,11 +418,10 @@ defineExpose({ back })
 
 /* 设置卡片容器 */
 .settings-card {
-  background: #FFFFFF;
+background: #FFFFFF;
   border-radius: 16px;
-  margin-bottom: 16px;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  margin-bottom: 16px;
 }
 
 /* 推荐卡片项 */

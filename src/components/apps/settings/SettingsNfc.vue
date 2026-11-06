@@ -1,4 +1,5 @@
 <script setup>
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 import { useNetworkStore } from '../../../stores/networkStore'
 import ListCell from '../../ui/ListCell.vue'
@@ -35,17 +36,10 @@ defineExpose({ back })
 <template>
   <div class="settings-nfc-page">
     <!-- 顶部导航栏 -->
-    <div class="nfc-nav-bar">
-      <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <div class="nav-title">NFC</div>
-    </div>
+    <GlassNavBar overlay title="NFC" @back="emit('back')" />
 
     <!-- 滚动主体内容 -->
-    <div class="nfc-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="nfc-scroll-body scrollable">
       <!-- 头部 NFC 模拟示意图与提示条 (实机 1:1) -->
       <div class="nfc-banner-card">
         <div class="nfc-phone-graphic">
@@ -246,10 +240,9 @@ defineExpose({ back })
 }
 
 .settings-card {
-  background: #FFFFFF;
-  border-radius: 18px;
+background: #FFFFFF;
+  border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.04);
   margin-bottom: 14px;
   box-sizing: border-box;
 }

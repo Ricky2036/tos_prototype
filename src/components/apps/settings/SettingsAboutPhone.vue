@@ -1,4 +1,5 @@
 <script setup>
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 import { useDeviceStore } from '../../../stores/deviceStore'
 import ListCell from '../../ui/ListCell.vue'
@@ -138,17 +139,10 @@ defineExpose({ back })
       <!-- ================= 二级首页：我的手机 ================= -->
       <div v-else key="aboutMain" class="about-main-container">
         <!-- 顶部导航栏：圆形微灰底返回键 + 左对齐标题 -->
-        <div class="about-nav-bar">
-          <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <div class="nav-title">我的手机</div>
-        </div>
+        <GlassNavBar overlay title="我的手机" @back="emit('back')" />
 
         <!-- 滚动区域 -->
-        <div class="about-scroll-body scrollable">
+        <div style="padding-top: var(--nav-h)" class="about-scroll-body scrollable">
           <!-- ================= 卡片 1: XOS 17 品牌横幅卡 ================= -->
           <div class="xos-banner-card">
             <div class="xos-banner-bg-wrap">
@@ -536,12 +530,10 @@ defineExpose({ back })
 
 /* ================= 通用卡片样式 ================= */
 .settings-card {
-  background: #FFFFFF;
-  border-radius: 20px;
-  margin-bottom: 14px;
+background: #FFFFFF;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  margin-bottom: 14px;
 }
 
 .cell-title-with-info {

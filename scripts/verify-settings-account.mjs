@@ -1,10 +1,19 @@
+import fs from 'node:fs'
 import { chromium } from 'playwright'
+
+const OUT =
+  process.env.ARTIFACT_DIR || '/tmp/vwork/settings-account'
+
+// 端口可由命令行覆盖：node scripts/verify-settings-account.mjs <port>（默认 5555 = tos-workbuddy canonical）
+const PORT = process.argv[2] || '5555'
+const BASE = `http://127.0.0.1:${PORT}/`
 
 const CHROME =
   process.env.PLAYWRIGHT_CHROME ||
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 
 async function run() {
+  fs.mkdirSync(OUT, { recursive: true })
   const browser = await chromium.launch({
     executablePath: CHROME,
     headless: true
@@ -15,8 +24,8 @@ async function run() {
   })
   const page = await ctx.newPage()
 
-  console.log('Navigating to http://localhost:1111/...')
-  await page.goto('http://localhost:1111/', { waitUntil: 'networkidle' })
+  console.log(`${'Navigating to'} ${BASE}`)
+  await page.goto(BASE, { waitUntil: 'networkidle' })
   await page.waitForTimeout(800)
 
   // 1. 解锁手机
@@ -39,7 +48,7 @@ async function run() {
 
   // 3. 截取设置首页
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_settings_home.png'
+    path: OUT + '/verify_settings_home.png'
   })
   console.log('Saved verify_settings_home.png')
 
@@ -51,7 +60,7 @@ async function run() {
 
   // 5. 截取 Infinix ID 账号页面顶部
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_account_page_top.png'
+    path: OUT + '/verify_account_page_top.png'
   })
   console.log('Saved verify_account_page_top.png')
 
@@ -65,7 +74,7 @@ async function run() {
   }
 
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_account_page_bottom.png'
+    path: OUT + '/verify_account_page_bottom.png'
   })
   console.log('Saved verify_account_page_bottom.png')
 
@@ -75,7 +84,7 @@ async function run() {
     await logoutBtn.click()
     await page.waitForTimeout(400)
     await page.screenshot({
-      path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_account_logout_modal.png'
+      path: OUT + '/verify_account_logout_modal.png'
     })
     console.log('Saved verify_account_logout_modal.png')
 
@@ -90,7 +99,7 @@ async function run() {
     await backBtn.click()
     await page.waitForTimeout(600)
     await page.screenshot({
-      path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_back_to_settings.png'
+      path: OUT + '/verify_back_to_settings.png'
     })
     console.log('Saved verify_back_to_settings.png')
   }

@@ -1,4 +1,5 @@
 <script setup>
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
@@ -77,24 +78,18 @@ defineExpose({ back })
     <!-- 二级页面：权限与隐私首页 -->
     <template v-else>
       <!-- 顶部导航栏 -->
-      <div class="privacy-nav-bar">
-      <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <div class="nav-title">权限与隐私</div>
-      <button class="nav-round-btn" aria-label="更多" @click="showToast('隐私保护高级设置')">
+      <GlassNavBar overlay title="权限与隐私" @back="emit('back')">
+        <template #right><button class="nav-round-btn" aria-label="更多" @click="showToast('隐私保护高级设置')">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="5" r="1.5" fill="#1C1C1E" />
           <circle cx="12" cy="12" r="1.5" fill="#1C1C1E" />
           <circle cx="12" cy="19" r="1.5" fill="#1C1C1E" />
         </svg>
-      </button>
-    </div>
+      </button></template>
+      </GlassNavBar>
 
     <!-- 滚动区域 -->
-    <div class="privacy-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="privacy-scroll-body scrollable">
       <!-- 顶部安全评分检测大卡片 -->
       <div class="privacy-score-card">
         <div class="score-badge-wrap">

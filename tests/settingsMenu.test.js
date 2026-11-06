@@ -38,7 +38,7 @@ test('SettingsApp.vue exists and includes all 8 standardized card groups matchin
 
   // Group 4: AI, Personalization, Display, Sound & Notifications (5 items)
   assert.match(content, /Infinix AI/, 'Should contain Infinix AI')
-  assert.match(content, /壁纸与个性化/, 'Should contain 壁纸与个性化')
+  assert.match(content, /主题与个性化/, 'Should contain 主题与个性化')
   assert.match(content, /显示与亮度/, 'Should contain 显示与亮度')
   assert.match(content, /声音与振动/, 'Should contain 声音与振动')
   assert.match(content, /通知与状态栏/, 'Should contain 通知与状态栏')
@@ -108,15 +108,15 @@ test('SettingsApp includes floating search bar and standardized card styling', (
   const largeTitleHeader = fs.readFileSync(path.resolve('src/components/ui/LargeTitleHeader.vue'), 'utf-8')
   assert.match(
     largeTitleHeader,
-    /--title-scrim, 244, 245, 247\)/,
-    'Title scrim default must match the tOS neutral tone #F4F5F7'
+    /--title-scrim, 240, 241, 242\)/,
+    'Title scrim default must match the measured tOS tone #F0F1F2'
   )
   assert.match(largeTitleHeader, /0\.24\)/, 'Title mask should fade smoothly into the list')
 
-  // Card border-radius 24px and pure white background
-  assert.match(content, /border-radius:\s*24px/, 'Cards should have standardized 24px border radius')
+  // 卡片规范：16px 圆角 / 纯白底 / 页面底 #F0F1F2（Ricky 2026-11-06 定稿，24px 太圆被打回）
+  assert.match(content, /border-radius:\s*16px/, 'Cards should use the 16px radius spec')
   assert.match(content, /background:\s*#FFFFFF/, 'Cards should have pure white background')
-  assert.match(content, /#F4F5F7/, 'Background should match modern tOS neutral tone')
+  assert.match(content, /#F0F1F2/, 'Background should match the measured tOS neutral tone')
 })
 
 test('SettingsSearchBar component provides search magnifying glass and microphone icon', () => {
@@ -129,8 +129,11 @@ test('SettingsSearchBar component provides search magnifying glass and microphon
   assert.ok(fs.existsSync(MICROPHONE_ICON_PATH), 'Exported Figma microphone SVG should exist')
   assert.match(fs.readFileSync(MICROPHONE_ICON_PATH, 'utf-8'), /^<svg\b/, 'Microphone asset should be a real SVG')
   assert.match(content, /btn-clear/, 'Should render clear button when input has value')
-  assert.match(content, /border-radius:\s*24px/, 'Search bar should have capsule 24px radius')
-  assert.match(content, /height:\s*48px/, 'Search bar should have 48px height')
+  assert.match(content, /border-radius:\s*22px/, 'Search bar radius should be half of the 44px height')
+  // 毛玻璃：半透明白 + 背景模糊（Ricky 2026-11-06 明确要求）
+  assert.match(content, /background:\s*rgba\(255, 255, 255, 0\.7/, 'Search bar should be translucent white')
+  assert.match(content, /backdrop-filter:\s*blur\(/, 'Search bar must blur the content behind it')
+  assert.match(content, /height:\s*44px/, 'Search bar height should be 44px (measured on device)')
 })
 
 test('ListCell styling complies with updated squircle icon and divider norms', () => {
@@ -157,4 +160,22 @@ test('Settings home uses the exported Figma system icon set', () => {
   for (const name of FIGMA_SETTING_ICONS) {
     assert.match(app, new RegExp(`SettingsSystemIcon name="${name}"`), `${name} should be used on Settings home`)
   }
+})
+
+test('点击搜索后的底部栏与首页搜索框同一规格（44 高 / 22 圆角 / 左右 16 / 离底 25）', () => {
+  const src = fs.readFileSync(path.resolve('src/components/apps/settings/SettingsSearch.vue'), 'utf-8')
+
+  // 返回圆钮与输入胶囊必须同高 44（原来 48，比首页搜索框大一圈）
+  const btn = src.slice(src.indexOf('.search-back-circle-btn {'), src.indexOf('.search-back-circle-btn:active'))
+  assert.match(btn, /width:\s*44px/, 'back circle should be 44px')
+  assert.match(btn, /height:\s*44px/, 'back circle should be 44px tall')
+
+  const cap = src.slice(src.indexOf('.search-capsule-input-wrap {'), src.indexOf('.search-input'))
+  assert.match(cap, /height:\s*44px/, 'input capsule should be 44px tall')
+  assert.match(cap, /border-radius:\s*22px/, 'input capsule radius should be 22px')
+
+  // 底部栏留白：左右 16、离底 25
+  const bar = src.slice(src.indexOf('.search-bottom-bar {'), src.indexOf('.search-back-circle-btn {'))
+  assert.match(bar, /padding:\s*12px 16px 25px 16px/, 'bottom bar should use 16/25 paddings')
+  assert.match(bar, /gap:\s*12px/, 'gap between back button and capsule should be 12px (measured)')
 })

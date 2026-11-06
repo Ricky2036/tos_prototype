@@ -6,6 +6,8 @@ import { useBackHandler } from '../../../composables/backRegistry'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import AppNavBar from '../../ui/AppNavBar.vue'
+import GlassNavBar from '../../ui/GlassNavBar.vue'
+import { SETTINGS_TITLES } from '../../../config/settingsTitles'
 import SettingsSearchBar from '../../ui/SettingsSearchBar.vue'
 import SettingsSystemIcon from '../../ui/SettingsSystemIcon.vue'
 import SettingsNotifications from './SettingsNotifications.vue'
@@ -197,10 +199,10 @@ const viewTitles = computed(() => ({
   general: '系统',
   language: '语言与输入法',
   navigation: '系统导航方式',
-  notifications: i18n.t('notifications') || '通知与状态栏',
+  notifications: SETTINGS_TITLES.notifications,
   sound: i18n.t('soundAndVibration') || '声音与振动',
-  dnd: i18n.t('dnd') || '勿扰模式',
-  prayer: i18n.t('prayerDnd') || '礼拜模式',
+  dnd: SETTINGS_TITLES.dnd,
+  prayer: SETTINGS_TITLES.prayer,
   personalization: '主题与个性化',
   about: '我的手机',
   sim: 'SIM 卡与网络设置',
@@ -255,12 +257,12 @@ const allSearchableItems = [
   { id: 'hotspot', title: '个人热点', group: '网络与连接', action: () => push('hotspot') },
   { id: 'nfc', title: 'NFC', group: '网络与连接', action: () => push('nfc') },
   { id: 'infinixAi', title: 'Infinix AI', group: '特色功能', action: () => push('infinixAi') },
-  { id: 'folaxVoice', title: 'Folax语音', group: 'Infinix AI', action: () => push('infinixAi') },
-  { id: 'folaxScreen', title: 'Folax识屏', group: 'Infinix AI', action: () => push('infinixAi') },
-  { id: 'aiBuddy', title: 'AI Buddy', group: 'Infinix AI', action: () => push('infinixAi') },
+  { id: 'folaxVoice', title: 'Fola语音', group: 'Infinix AI', action: () => push('infinixAi') },
+  { id: 'folaxScreen', title: 'Fola识屏', group: 'Infinix AI', action: () => push('infinixAi') },
+  { id: 'folaHome', title: 'Fola 之家', group: 'Infinix AI', action: () => push('infinixAi') },
   { id: 'circleSearch', title: '圈定即搜', group: 'Infinix AI', action: () => push('infinixAi') },
   { id: 'aiCall', title: 'AI通话助手', group: 'Infinix AI', action: () => push('infinixAi') },
-  { id: 'wallpaper', title: '壁纸与个性化', group: '个性化', action: () => push('personalization') },
+  { id: 'wallpaper', title: SETTINGS_TITLES.personalization, group: '个性化', action: () => push('personalization') },
   { id: 'display', title: '显示与亮度', group: '显示', action: () => push('display') },
   { id: 'sound', title: '声音与振动', group: '声音', action: () => push('sound') },
   { id: 'notifications', title: '通知与状态栏', group: '通知', action: () => push('notifications') },
@@ -477,8 +479,8 @@ const filteredSearchResults = computed(() => {
                 </template>
               </ListCell>
 
-              <!-- 壁纸与个性化 -->
-              <ListCell title="壁纸与个性化" chevron @click="push('personalization')">
+              <!-- 主题与个性化（与页内标题同源） -->
+              <ListCell :title="SETTINGS_TITLES.personalization" chevron @click="push('personalization')">
                 <template #icon>
                   <div class="squircle-icon bg-wallpaper">
                     <SettingsSystemIcon name="wallpaper" :size="19" />
@@ -850,10 +852,10 @@ const filteredSearchResults = computed(() => {
 
       <!-- ================= 其他二级页 ================= -->
       <div v-else :key="view" class="settings-page">
-        <AppNavBar :title="viewTitles[view]" :back-label="'设置'" @back="pop" />
+        <GlassNavBar overlay :title="viewTitles[view]" @back="pop" />
 
         <!-- 未实现页面的优雅占位 -->
-        <div v-if="view === 'placeholder'" class="scrollable detail-body">
+        <div style="padding-top: var(--nav-h)" v-if="view === 'placeholder'" class="scrollable detail-body">
           <div class="placeholder-icon">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10" />
@@ -982,7 +984,7 @@ const filteredSearchResults = computed(() => {
 <style scoped>
 .settings-app {
   height: 100%;
-  background: #F4F5F7;
+  background: #F0F1F2;
   overflow: hidden;
   position: relative;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Segoe UI", Roboto, sans-serif;
@@ -1008,11 +1010,10 @@ const filteredSearchResults = computed(() => {
 
 /* ================= 统一卡片规范 ================= */
 .settings-card {
-  margin: 0 16px 12px 16px;
-  background: #FFFFFF;
-  border-radius: 24px;
+background: #FFFFFF;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  margin: 0 16px 12px 16px;
 }
 
 /* 个人账号卡 */
@@ -1159,9 +1160,10 @@ const filteredSearchResults = computed(() => {
 /* ================= 底部悬浮搜索栏 ================= */
 .settings-floating-search {
   position: absolute;
-  bottom: 20px;
-  left: 16px;
-  right: 16px;
+  /* 真机实测：左右边距 ≈27、离屏幕底 ≈25（贴在 home 指示条上方），不是贴边 16 */
+  bottom: 25px;
+  left: 27px;
+  right: 27px;
   z-index: 10;
   pointer-events: auto;
 }
@@ -1170,22 +1172,23 @@ const filteredSearchResults = computed(() => {
   content: '';
   position: absolute;
   z-index: -1;
-  left: -16px;
-  right: -16px;
+  left: -27px;
+  right: -27px;
   top: -34px;
-  bottom: -20px;
+  bottom: -25px;
   background: linear-gradient(
     to bottom,
-    rgba(244, 245, 247, 0) 0%,
-    rgba(244, 245, 247, 0.88) 38%,
-    #F4F5F7 68%,
-    #F4F5F7 100%
+    rgba(240, 241, 242, 0) 0%,
+    rgba(240, 241, 242, 0.88) 38%,
+    #F0F1F2 68%,
+    #F0F1F2 100%
   );
   pointer-events: none;
 }
 
 .scroll-bottom-spacer {
-  height: 86px;
+  /* 搜索框 44 + 底距 25 + 余量 */
+  height: 92px;
   width: 100%;
   flex: none;
 }

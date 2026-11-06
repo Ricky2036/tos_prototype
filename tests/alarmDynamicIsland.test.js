@@ -276,7 +276,10 @@ test('SettingsNotifications places recorder notification settings item at the to
   assert.match(content, /id:\s*'recorder'/, 'Must specify id recorder')
   assert.match(content, /appId:\s*'recorder'/, 'Must specify appId recorder')
   assert.match(content, /iconType:\s*'recorder'/, 'Must specify iconType recorder')
-  assert.match(content, /notificationsStore\.islandSettings\.recorder/, 'Must link recorder toggle with notificationsStore islandSettings')
+  // 灵动岛开关统一由配置驱动的行绑定到 store（2026-11-05 重构后不再是逐行字面量）
+  assert.match(content, /notificationsStore\.islandSettings\[svc\.key\]/, 'Island toggles must be bound to notificationsStore.islandSettings')
+  assert.match(content, /setIslandEnabled\(svc\.key, val\)/, 'Island toggles must write back through setIslandEnabled')
+  assert.match(content, /\{ key: 'recorder', label: '录音'/, 'recorder 必须仍是系统服务清单里的一行')
 })
 
 test('notifIcons and i18nStore provide recorder icon and title definitions', () => {
@@ -345,12 +348,11 @@ test('SettingsNotifications and Island components implement deep jump with 3-fla
   assert.match(notifContent, /is-highlight-flash/, 'Must bind is-highlight-flash class')
   assert.match(notifContent, /@keyframes island-cell-flash/, 'Must define 3-cycle island-cell-flash keyframes')
   assert.match(notifContent, /animation:\s*island-cell-flash 0\.6s ease-in-out 3/, 'Must flash exactly 3 times')
-  assert.match(notifContent, /data-island-key="recorder"/, 'Must annotate recorder row')
-  assert.match(notifContent, /data-island-key="alarm"/, 'Must annotate alarm row')
-  assert.match(notifContent, /data-island-key="timer"/, 'Must annotate timer row')
-  assert.match(notifContent, /data-island-key="stopwatch"/, 'Must annotate stopwatch row')
-  assert.match(notifContent, /data-island-key="prayer"/, 'Must annotate prayer row')
-  assert.match(notifContent, /data-island-key="media"/, 'Must annotate media row')
+  // 深链靠 data-island-key 定位行；重构后由配置驱动统一挂载
+  assert.match(notifContent, /:data-island-key="svc\.key"/, 'Must annotate island rows for deep-link highlight')
+  for (const key of ['recorder', 'alarm', 'timer', 'stopwatch', 'prayer', 'media']) {
+    assert.match(notifContent, new RegExp(`key: '${key}'`), `${key} 必须在系统服务清单里（否则深链高亮落空）`)
+  }
 
   const storePath = path.resolve(__dirname, '../src/stores/notificationsStore.js')
   const storeContent = fs.readFileSync(storePath, 'utf8')

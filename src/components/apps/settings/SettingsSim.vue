@@ -1,4 +1,5 @@
 <script setup>
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 import { useNetworkStore } from '../../../stores/networkStore'
 import { useSubPageNav } from '../../../composables/useSubPageNav'
@@ -65,16 +66,9 @@ defineExpose({ back })
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <!-- 1. SIM 1 详情三级页 -->
       <div v-if="activeSubView === 'sim1Detail'" key="sim1Detail" class="subpage-view-pane">
-        <div class="sim-nav-bar">
-          <button class="nav-round-btn" aria-label="返回" data-nav-back @click="closeSubView">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <div class="nav-title">{{ sim1.name }}</div>
-        </div>
+        <GlassNavBar overlay title="{{ sim1.name }}" @back="closeSubView" />
 
-      <div class="sim-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="sim-scroll-body scrollable">
         <div class="settings-card">
           <ListCell title="启用卡1">
             <template #right>
@@ -158,16 +152,9 @@ defineExpose({ back })
 
     <!-- 2. 全屏三级页：流量管理 -->
     <div v-else-if="activeSubView === 'trafficManage'" key="trafficManage" class="subpage-view-pane">
-      <div class="sim-nav-bar">
-        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="closeSubView">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <div class="nav-title">流量管理</div>
-      </div>
+      <GlassNavBar overlay title="流量管理" @back="closeSubView" />
 
-      <div class="sim-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="sim-scroll-body scrollable">
         <div class="settings-card traffic-hero-card">
           <div class="traffic-circle">
             <span class="traffic-num">14.28</span>
@@ -202,16 +189,9 @@ defineExpose({ back })
 
     <!-- 3. SIM 卡与网络设置主页 -->
     <div v-else key="main" class="subpage-view-pane">
-      <div class="sim-nav-bar">
-        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <div class="nav-title">SIM 卡与网络设置</div>
-      </div>
+      <GlassNavBar overlay title="SIM 卡与网络设置" @back="emit('back')" />
 
-      <div class="sim-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="sim-scroll-body scrollable">
         <!-- 头部特性大卡片 -->
         <div class="sim-feature-card">
           <div class="sim-feature-icon-wrap">
@@ -509,10 +489,9 @@ defineExpose({ back })
 }
 
 .settings-card {
-  background: #FFFFFF;
-  border-radius: 18px;
+background: #FFFFFF;
+  border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.04);
   margin-bottom: 14px;
   box-sizing: border-box;
 }

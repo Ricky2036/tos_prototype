@@ -310,9 +310,32 @@ const setTopIn = async (rootSel, t) => {
     for (let i = 0; i < 3; i += 1) { await apply(); await wait(240); await twoFrames() }
     return
   }
-  await apply()
-  await wait(240)
-  await twoFrames()
+  /* 🔴 数值目标同样会被 scroll anchoring 往回修：实测设 36 → 锚定拉到 22，
+     而**样式是按 24 算的**（差一帧），于是 progress 与 scrollTop 对不上 ⇒ 假红。
+     做法：连设到收敛（以稳定后的 scrollTop 作为下一次目标），让「位置」和「样式」在同一帧达成一致。 */
+  const readTop = () => p.evaluate((root) => {
+    const app = document.querySelector(root)
+    const sc = [...app.querySelectorAll('*')].find(
+      (e) => /auto|scroll/.test(getComputedStyle(e).overflowY) && e.scrollHeight - e.clientHeight > 4
+    )
+    return sc ? sc.scrollTop : null
+  }, rootSel)
+
+  let want = t
+  for (let i = 0; i < 3; i += 1) {
+    await p.evaluate(([root, v]) => {
+      const app = document.querySelector(root)
+      const sc = [...app.querySelectorAll('*')].find(
+        (e) => /auto|scroll/.test(getComputedStyle(e).overflowY) && e.scrollHeight - e.clientHeight > 4
+      )
+      if (sc) sc.scrollTop = v
+    }, [rootSel, want])
+    await wait(220)
+    await twoFrames()
+    const now = await readTop()
+    if (now === null || Math.abs(now - want) < 1) break
+    want = now
+  }
 }
 /** 只比「曲线与遮蔽契约」这些量（不含 maxScroll 等页面自有的东西） */
 const curveOf = (x) => JSON.stringify({
@@ -474,7 +497,7 @@ assert(`  热区让位生效：.edge-cc 高 ${a1.ccH}（原 64）、.edge-nc 高
 /* 状态栏带遮蔽契约：底幕顶部 99% 不透明、且覆盖范围 ≥ 状态栏带高
    （逐档像素取证在 /tmp/photos/probe-statusbar-clearance.mjs + sb-diff.py：
      全档带内照片内容彩斑占比 0%；图标墨迹止于设计 y31，滚动新增墨迹起于 y34 —— 零行交叠） */
-assert(`底幕起手基色 = 应用默认底色 244,245,247（实测 ${t1.scrimRGB}）`, t1.scrimRGB === '244,245,247', t1.scrimRGB)
+assert(`底幕起手基色 = 应用默认底色 240,241,242（实测 ${t1.scrimRGB}）`, t1.scrimRGB === '240,241,242', t1.scrimRGB)
 assert(`  底幕顶部 ≥99% 不透明（实测 alpha ${t1.scrimAlpha}）`, t1.scrimAlpha >= 0.99, t1.scrimAlpha)
 const opaquePct = Number(/^(\d+)%:/.exec(t1.scrimStops[1] || '')[1])
 assert(`  99% 不透明区一直延伸到 ${opaquePct}% 条高 = ${(opaquePct / 100 * 118).toFixed(0)}px ≥ 状态栏带 54px`,

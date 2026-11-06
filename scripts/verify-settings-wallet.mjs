@@ -1,10 +1,19 @@
+import fs from 'node:fs'
 import { chromium } from 'playwright'
+
+const OUT =
+  process.env.ARTIFACT_DIR || '/tmp/vwork/settings-wallet'
+
+// 端口可由命令行覆盖：node scripts/verify-settings-wallet.mjs <port>（默认 5555 = tos-workbuddy canonical）
+const PORT = process.argv[2] || '5555'
+const BASE = `http://127.0.0.1:${PORT}/`
 
 const CHROME =
   process.env.PLAYWRIGHT_CHROME ||
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 
 async function run() {
+  fs.mkdirSync(OUT, { recursive: true })
   const browser = await chromium.launch({
     executablePath: CHROME,
     headless: true
@@ -15,8 +24,8 @@ async function run() {
   })
   const page = await ctx.newPage()
 
-  console.log('Navigating to http://localhost:1111/...')
-  await page.goto('http://localhost:1111/', { waitUntil: 'networkidle' })
+  console.log(`${'Navigating to'} ${BASE}`)
+  await page.goto(BASE, { waitUntil: 'networkidle' })
   await page.waitForTimeout(1000)
 
   // 1. 解锁手机
@@ -39,7 +48,7 @@ async function run() {
 
   // 截取设置首页（验证头像恢复）
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_settings_home_restored_avatar.png'
+    path: OUT + '/verify_settings_home_restored_avatar.png'
   })
   console.log('Saved verify_settings_home_restored_avatar.png')
 
@@ -51,7 +60,7 @@ async function run() {
 
   // 截取账号中心顶部（验证头像、查找图标、面形图标）
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_account_top_restored.png'
+    path: OUT + '/verify_account_top_restored.png'
   })
   console.log('Saved verify_account_top_restored.png')
 
@@ -65,7 +74,7 @@ async function run() {
 
   // 截取账号中心展示钱包入口与设备列表的画面
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_wallet_entry_in_account.png'
+    path: OUT + '/verify_wallet_entry_in_account.png'
   })
   console.log('Saved verify_wallet_entry_in_account.png')
 
@@ -77,7 +86,7 @@ async function run() {
 
   // 截取卡包页面完整视图
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_wallet_pack_page.png'
+    path: OUT + '/verify_wallet_pack_page.png'
   })
   console.log('Saved verify_wallet_pack_page.png')
 
@@ -89,7 +98,7 @@ async function run() {
 
   // 截取点击添加卡券后的轻提示反馈
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_wallet_toast_add.png'
+    path: OUT + '/verify_wallet_toast_add.png'
   })
   console.log('Saved verify_wallet_toast_add.png')
 
@@ -112,7 +121,7 @@ async function run() {
 
   // 截取返回后回到 Infinix ID 页面
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_back_to_account.png'
+    path: OUT + '/verify_back_to_account.png'
   })
   console.log('Saved verify_back_to_account.png')
 
@@ -123,7 +132,7 @@ async function run() {
   await page.waitForTimeout(600)
 
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_back_to_settings_home.png'
+    path: OUT + '/verify_back_to_settings_home.png'
   })
   console.log('Saved verify_back_to_settings_home.png')
 

@@ -1,4 +1,5 @@
 <script setup>
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 import { useNetworkStore } from '../../../stores/networkStore'
 import { useSystemStore } from '../../../stores/systemStore'
@@ -91,17 +92,9 @@ defineExpose({ back })
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <!-- ================= 1. 全屏三级页：极速互传 ================= -->
       <div v-if="activeSubView === 'quickShare'" key="quickShare" class="subpage-view-pane">
-        <div class="md-nav-bar">
-          <button class="nav-round-btn" aria-label="返回" data-nav-back @click="closeSubView">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <div class="nav-title">极速互传</div>
-          <div class="nav-placeholder"></div>
-        </div>
+        <GlassNavBar overlay title="极速互传" @back="closeSubView" />
 
-      <div class="md-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="md-scroll-body scrollable">
         <!-- 头部碰一碰传输插画 (实机 1:1) -->
         <div class="graphic-hero-card">
           <div class="two-phones-illustration">
@@ -170,17 +163,9 @@ defineExpose({ back })
 
     <!-- ================= 2. 全屏三级页：投屏 ================= -->
     <div v-else-if="activeSubView === 'cast'" key="cast" class="subpage-view-pane">
-      <div class="md-nav-bar">
-        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="closeSubView">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <div class="nav-title">投屏</div>
-        <div class="nav-placeholder"></div>
-      </div>
+      <GlassNavBar overlay title="投屏" @back="closeSubView" />
 
-      <div class="md-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="md-scroll-body scrollable">
         <div class="settings-card">
           <ListCell title="投屏" last>
             <template #right>
@@ -211,18 +196,10 @@ defineExpose({ back })
 
     <!-- ================= 3. 多设备连接主页 ================= -->
     <div v-else key="main" class="subpage-view-pane">
-      <div class="md-nav-bar">
-        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <div class="nav-title">多设备连接</div>
-        <div class="nav-placeholder"></div>
-      </div>
+      <GlassNavBar overlay title="多设备连接" @back="emit('back')" />
 
       <!-- 滚动主体内容 -->
-      <div class="md-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="md-scroll-body scrollable">
         <!-- 分组 1: 常用网络与端口连接 -->
         <div class="settings-card">
           <ListCell
@@ -484,10 +461,9 @@ defineExpose({ back })
 }
 
 .settings-card {
-  background: #FFFFFF;
-  border-radius: 18px;
+background: #FFFFFF;
+  border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.04);
   margin-bottom: 14px;
   box-sizing: border-box;
 }

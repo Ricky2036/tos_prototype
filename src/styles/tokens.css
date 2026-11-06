@@ -77,10 +77,12 @@
   --radius-widget: 22px;
   --radius-card: 22px;
   --radius-cell-group: 16px;
+  --bg-page-settings: #F0F1F2;   /* 设置页底色（真机实测） */
   --radius-module: 18px;      /* 控制中心模块 */
 
   /* 安全区 */
   --safe-top: 54px;           /* 状态栏高度 */
+  --nav-h: calc(var(--safe-top) + 46px);  /* 玻璃悬浮导航栏总高（内容要留这个顶部内边距） */
   --safe-bottom: 34px;        /* Home Indicator 区 */
 
   /* 导航条（Home Indicator）

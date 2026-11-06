@@ -1,22 +1,36 @@
 <script setup>
+import '../../../styles/layer-transitions.css'
 import { ref, computed, watch, nextTick } from 'vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import ListCell from '../../ui/ListCell.vue'
+import LIcon from '../../ui/LIcon.vue'
 import SplitActionCell from '../../ui/SplitActionCell.vue'
 import AppNavBar from '../../ui/AppNavBar.vue'
+import GlassNavBar from '../../ui/GlassNavBar.vue'
+import { SETTINGS_TITLES } from '../../../config/settingsTitles'
 import SettingsAppIcon from '../../ui/SettingsAppIcon.vue'
 import NotificationIcon from '../../ui/NotificationIcon.vue'
 import AppIcon from '../../ui/AppIcon.vue'
+import NotifStatusBar from './notifications/NotifStatusBar.vue'
+import NotifControlCenter from './notifications/NotifControlCenter.vue'
+import NotifSmartText from './notifications/NotifSmartText.vue'
+import NotifFloatStyleSheet from './notifications/NotifFloatStyleSheet.vue'
+import SheetOptionPicker from '../../ui/SheetOptionPicker.vue'
+import AnchorMenu from '../../ui/AnchorMenu.vue'
+import NotifSceneAi from './notifications/NotifSceneAi.vue'
+import NotifHomeBadge from './notifications/NotifHomeBadge.vue'
 import { getApp } from '../../../config/apps'
 import { seedNotifications } from '../../../config/seedNotifications'
 import { useI18nStore } from '../../../stores/i18nStore'
 import { useNotificationsStore, getIslandKeysForApp } from '../../../stores/notificationsStore'
+import { useNotificationSettingsStore } from '../../../stores/notificationSettingsStore'
 import { formatRelativeTime } from '../../../utils/timeFormat'
 import { CLOCK_ICONS } from '../../apps/clock/clockIcons'
 import { GLYPHS } from '../../../assets/icons/glyphs'
 
 const i18n = useI18nStore()
 const notificationsStore = useNotificationsStore()
+const notifSettings = useNotificationSettingsStore()
 
 const voicememosIconUrl = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/icons/voicememos.png`
 
@@ -195,6 +209,51 @@ function toggleAppState(id) {
   notificationsStore.toggleAppNotification(id)
 }
 
+/**
+ * Dynamic Bar「系统服务」清单 —— 顺序与图标对齐真机 Infinix X6878（XOS 17）。
+ * key 全部落在 notificationsStore.islandSettings（开关的单一来源）：
+ * recorder / alarm / timer / stopwatch / prayer / media 六项有真实渲染逻辑；
+ * 其余为真机新增项，先记录开关状态（新增键在 canShowIsland 里被视为允许，不影响既有行为）。
+ */
+const ISLAND_SERVICES = [
+  // bg 全部来自真机截图取色（/tmp/ref/g6 采样），icon 优先复用仓里已有图标：
+  // lucide=LIcon / clock=CLOCK_ICONS / glyph=GLYPHS / app=应用真实图标 PNG
+  { key: 'aiPhoto', label: 'AI 修图', bg: 'linear-gradient(135deg, #8A82C6 0%, #6E96DC 100%)', lucide: 'wandSparkles' },
+  { key: 'timer', label: '定时器', bg: '#2E67F5', clock: 'timer' },
+  { key: 'screenRecord', label: '录屏', bg: '#EA7260', lucide: 'video' },
+  { key: 'recorder', label: '录音', bg: '#EA7B49', lucide: 'audioLines' },
+  { key: 'stopwatch', label: '秒表', bg: '#2E67F5', clock: 'stopwatch' },
+  { key: 'alarm', label: '闹钟', bg: '#EB9335', clock: 'alarm' },
+  { key: 'noiseCancel', label: '全场景降噪', bg: '#2E66F6', lucide: 'micVocal' },
+  { key: 'guide', label: '全局引导', bg: '#F2C357', lucide: 'lightbulb' },
+  { key: 'hotspot', label: '热点', bg: '#63C979', lucide: 'radioTower' },
+  { key: 'flashlight', label: '手电筒', bg: '#F1B83F', lucide: 'flashlight' },
+  { key: 'callSummaryWhatsapp', label: 'WhatsApp 通话摘要', bg: '#61C856', glyph: 'phone' },
+  { key: 'callSummary', label: '系统通话摘要', bg: '#2E66F6', glyph: 'phone' },
+  { key: 'verification', label: '应用验证码', bg: '#3A83F7', lucide: 'key' },
+  { key: 'media', label: '音乐播放', bg: '#E83C3C', lucide: 'play', filled: true },
+  { key: 'gameCountdown', label: '游戏倒计时', bg: '#61BDF4', lucide: 'grid2x2' },
+  { key: 'importantDay', label: '重要日', bg: '#FFFFFF', light: true, lucide: 'calendarDays', color: '#FF3B30' },
+  { key: 'videoGen', label: '视频生成', bg: '#7C6BF6', lucide: 'film' },
+  { key: 'networkBoost', label: '网络加速', bg: '#5AC8FA', lucide: 'zap' },
+  // 礼拜在真机这一版没出现在列表里，但灵动岛有对应模板，必须留一行给它的开关
+  { key: 'prayer', label: '礼拜', bg: '#2E66F6', clock: 'muslim' }
+]
+
+/**
+ * Dynamic Bar「实时活动」逐应用清单。
+ * 真机是按当前有实时活动的应用动态列出；原型用固定几项近似。
+ * 图标优先复用：能对上 NotificationIcon 类型（google / whatsapp …）就直接用真实应用图标。
+ * 底色取自真机截图（/tmp/ref/g6/00_now.png）。
+ */
+const LIVE_ACTIVITY_APPS = [
+  // 真机取色（/tmp/ref/g7/03_dynbar.png）：Google/Hi Translate/听歌识曲 都是白底应用图标，
+  // 「更多服务」是 #8792A3 蓝灰底 + 白色四宫格。
+  { key: 'googleMaps', label: 'Google Maps', subtitle: '导航服务', icon: 'mapPin', color: '#EA4335', bg: '#FFFFFF' },
+  { key: 'hiTranslate', label: 'Hi Translate', subtitle: '实时翻译服务', icon: 'languages', color: '#FFFFFF', bg: '#2A64F6' },
+  { key: 'songRecog', label: '听歌识曲', subtitle: '音乐识别服务', ring: true, bg: '#FFFFFF' }
+]
+
 const appLiveActivityStates = ref({})
 function getAppLiveActivityState(id) {
   const islandKeys = getIslandKeysForApp(id)
@@ -225,6 +284,24 @@ function openAppDetail(app) {
   go('appDetail')
 }
 
+/* 悬浮通知样式 / 提醒强度 / 通知分组（真机：前两个是弹层，分组是贴行的小浮层） */
+const showFloatStyleSheet = ref(false)
+const showRemindLevelPicker = ref(false)
+const showGroupingMenu = ref(false)
+
+const FLOAT_STYLE_LABEL = { detailed: '详细', concise: '简洁' }
+const REMIND_LEVELS = [
+  { value: 'smart', label: '智能提醒', subtitle: '根据使用行为将不重要的通知自动设为静音' },
+  { value: 'followApp', label: '跟随应用', subtitle: '按照应用默认方式提醒' },
+  { value: 'silent', label: '静音', subtitle: '应用通知将无任何提醒' }
+]
+const REMIND_LABEL = { smart: '智能提醒', followApp: '跟随应用', silent: '静音' }
+const GROUPING_OPTIONS = [
+  { value: 'auto', label: '自动' },
+  { value: 'byApp', label: '按应用' }
+]
+const GROUPING_LABEL = { auto: '自动', byApp: '按应用' }
+
 const appToggles = ref({ allow: true, badge: true, floating: true, lockScreen: true, ring: true, vibrate: true })
 function toggleAppSetting(key) { appToggles.value[key] = !appToggles.value[key] }
 
@@ -234,15 +311,22 @@ const emit = defineEmits(['back-to-settings'])
 <template>
   <div class="notif-settings">
     <!-- ============ 主视图与子视图统一切换 ============ -->
-    <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
+    <Transition :name="isBack ? 'slide-back' : 'slide'">
       <!-- ============ 主页 ============ -->
       <div v-if="subView === 'main'" key="main" class="ns-page scrollable">
-        <AppNavBar :title="i18n.t('notifications')" @back="emit('back-to-settings')" />
+        <GlassNavBar overlay :title="SETTINGS_TITLES.notifications" @back="emit('back-to-settings')" />
 
         <div class="cell-group mt-first">
-          <ListCell :title="i18n.t('nsStatusBar')" chevron />
-          <ListCell :title="i18n.t('nsControlCenter')" chevron />
-          <ListCell :title="i18n.t('nsDynamicBar')" chevron last @click="go('dynamicBar')" />
+          <ListCell :title="i18n.t('nsStatusBar')" chevron clickable @click="go('statusBar')" />
+          <ListCell :title="i18n.t('nsControlCenter')" chevron clickable @click="go('controlCenter')" />
+          <ListCell
+            :title="i18n.t('nsDynamicBar')"
+            subtitle="在状态栏等多场景提供实时信息、系统状态与智能服务。"
+            chevron
+            clickable
+            last
+            @click="go('dynamicBar')"
+          />
         </div>
 
         <div class="group-header">{{ i18n.t('nsType') }}</div>
@@ -260,19 +344,24 @@ const emit = defineEmits(['back-to-settings'])
             </div>
             <span class="pm-label">{{ i18n.t('nsFloatingNotif') }}</span>
           </div>
-          <div class="ns-type-card">
+          <div class="ns-type-card" @click="go('homeBadge')">
             <div class="phone-mini pm-grid-wrap">
               <div class="pm-grid">
                 <i v-for="i in 16" :key="i" class="pm-cell" :class="{ badge: i === 3 }"></i>
               </div>
             </div>
-            <span class="pm-label">{{ i18n.t('nsHomeBadge') }}</span>
+            <span class="pm-label">
+              {{ i18n.t('nsHomeBadge') }}
+              <svg width="6" height="10" viewBox="0 0 7 12" fill="none">
+                <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </span>
           </div>
         </div>
 
         <div class="cell-group">
           <ListCell :title="i18n.t('nsHideLockContent')" :subtitle="i18n.t('nsHideLockContentSub')">
-            <template #right><ToggleSwitch v-model="globalHideLockContent" /></template>
+            <template #right><ToggleSwitch color="blue" v-model="globalHideLockContent" /></template>
           </ListCell>
           <ListCell :subtitle="i18n.t('nsSmartReminderSub')">
             <template #title>
@@ -283,7 +372,7 @@ const emit = defineEmits(['back-to-settings'])
                 </svg>
               </div>
             </template>
-            <template #right><ToggleSwitch v-model="smartReminder" /></template>
+            <template #right><ToggleSwitch color="blue" v-model="smartReminder" /></template>
           </ListCell>
           <ListCell :subtitle="i18n.t('nsAdaptiveNotifSub')" last>
             <template #title>
@@ -294,7 +383,7 @@ const emit = defineEmits(['back-to-settings'])
                 </svg>
               </div>
             </template>
-            <template #right><ToggleSwitch v-model="adaptiveNotif" /></template>
+            <template #right><ToggleSwitch color="blue" v-model="adaptiveNotif" /></template>
           </ListCell>
         </div>
 
@@ -325,7 +414,7 @@ const emit = defineEmits(['back-to-settings'])
 
       <!-- ============ 锁屏通知子页 ============ -->
       <div v-else-if="subView === 'lockScreen'" key="lock" class="ns-page scrollable">
-        <AppNavBar :title="i18n.t('nsLockScreenNotif')" @back="back()" />
+        <GlassNavBar overlay :title="SETTINGS_TITLES.lockScreenNotif" @back="back()" />
 
         <div class="group-header mt-first">{{ i18n.t('nsLockStyle') }}</div>
         <div class="ns-style-cards">
@@ -350,7 +439,7 @@ const emit = defineEmits(['back-to-settings'])
         <div class="cell-group">
           <ListCell :title="i18n.t('nsWakeOnNotif')" :subtitle="i18n.t('nsWakeOnNotifSub')" :value="i18n.t('nsEnabled')" />
           <ListCell :title="i18n.t('nsOnlyNewOnLock')" :subtitle="i18n.t('nsOnlyNewOnLockSub')" last>
-            <template #right><ToggleSwitch v-model="onlyNewOnLock" /></template>
+            <template #right><ToggleSwitch color="blue" v-model="onlyNewOnLock" /></template>
           </ListCell>
         </div>
 
@@ -368,7 +457,7 @@ const emit = defineEmits(['back-to-settings'])
               </div>
             </template>
             <template #right>
-              <ToggleSwitch :model-value="getAppState(app.id)" @update:modelValue="toggleAppState(app.id)" />
+              <ToggleSwitch color="blue" :model-value="getAppState(app.id)" @update:modelValue="toggleAppState(app.id)" />
             </template>
           </ListCell>
         </div>
@@ -376,15 +465,21 @@ const emit = defineEmits(['back-to-settings'])
 
       <!-- ============ 悬浮通知子页 ============ -->
       <div v-else-if="subView === 'floatingScreen'" key="float" class="ns-page scrollable">
-        <AppNavBar :title="i18n.t('nsFloatingNotif')" @back="back()" />
+        <GlassNavBar overlay :title="SETTINGS_TITLES.floatingNotif" @back="back()" />
 
         <div class="cell-group mt4">
-          <ListCell :title="i18n.t('nsFloatingStyle')" :value="i18n.t('nsDetailed')" chevron />
+          <ListCell
+            :title="i18n.t('nsFloatingStyle')"
+            :value="FLOAT_STYLE_LABEL[notifSettings.floatStyle] || '详细'"
+            chevron
+            clickable
+            @click="showFloatStyleSheet = true"
+          />
           <ListCell :title="i18n.t('nsConciseFullscreen')">
-            <template #right><ToggleSwitch v-model="conciseFloating" /></template>
+            <template #right><ToggleSwitch color="blue" v-model="conciseFloating" /></template>
           </ListCell>
           <ListCell :title="i18n.t('nsAntiPeep')" :subtitle="i18n.t('nsAntiPeepSub')" last>
-            <template #right><ToggleSwitch v-model="antiPeepFloating" /></template>
+            <template #right><ToggleSwitch color="blue" v-model="antiPeepFloating" /></template>
           </ListCell>
         </div>
 
@@ -404,152 +499,177 @@ const emit = defineEmits(['back-to-settings'])
             <template #right>
               <div class="ns-app-right">
                 <i class="ns-divider"></i>
-                <ToggleSwitch :model-value="getAppState(app.id)" @update:modelValue="toggleAppState(app.id)" />
+                <ToggleSwitch color="blue" :model-value="getAppState(app.id)" @update:modelValue="toggleAppState(app.id)" />
               </div>
             </template>
           </ListCell>
         </div>
       </div>
 
+      <!-- ============ 状态栏子页 ============ -->
+      <NotifStatusBar v-else-if="subView === 'statusBar'" key="statusBar" @back="back()" />
+
+      <!-- ============ 控制中心子页 ============ -->
+      <NotifControlCenter v-else-if="subView === 'controlCenter'" key="controlCenter" @back="back()" />
+
+      <!-- ============ 智慧文本 / 场景智能（四级） ============ -->
+      <NotifSmartText v-else-if="subView === 'smartText'" key="smartText" @back="back()" />
+      <NotifSceneAi v-else-if="subView === 'sceneAi'" key="sceneAi" @back="back()" />
+
+      <!-- ============ 桌面角标子页 ============ -->
+      <NotifHomeBadge
+        v-else-if="subView === 'homeBadge'"
+        key="homeBadge"
+        :apps="notificationApps"
+        @back="back()"
+      />
+
       <!-- ============ Dynamic Bar 灵动岛子页 ============ -->
       <div v-else-if="subView === 'dynamicBar'" key="dynamicBar" class="ns-page scrollable">
-        <AppNavBar :title="i18n.t('nsDynamicBar')" @back="back()" />
+        <GlassNavBar overlay :title="SETTINGS_TITLES.dynamicBar" @back="back()" />
 
-        <!-- 卡片左上方小标题：系统应用 -->
-        <div class="group-header mt-first">{{ (i18n.t('nsSystemApps') && i18n.t('nsSystemApps') !== 'nsSystemApps') ? i18n.t('nsSystemApps') : '系统应用' }}</div>
+        <!-- 头图：手机 + 灵动岛 -->
+        <div class="db-hero">
+          <div class="db-figure">
+            <div class="db-figure-phone">
+              <span class="db-figure-hole"></span>
+              <!-- 图标残影（真机上是虚化的） -->
+              <span class="db-figure-blur"></span>
+              <!-- 状态栏通知条（浅灰宽胶囊，左侧带小图标） -->
+              <span class="db-figure-card">
+                <span class="db-figure-card-icon"></span>
+              </span>
+              <!-- 展开后的灵动岛 -->
+              <span class="db-figure-expand"></span>
+              <!-- 点击/按压指示环 -->
+              <span class="db-figure-tap"></span>
+            </div>
+          </div>
+          <div class="db-hero-title">实时浏览重要信息</div>
+          <div class="db-hero-caption">在状态栏、通知中心和锁屏查看实时活动与系统状态。</div>
+          <div class="db-hero-dots"><i class="on"></i><i></i></div>
+        </div>
 
-        <!-- 所有开关集中放置在规范 cell-group 中 -->
+        <div class="group-header">实时活动</div>
         <div class="cell-group">
-          <!-- 系统录音 -->
           <ListCell
-            :title="i18n.t('nsDynamicBarRecorder')"
-            :class="{ 'is-highlight-flash': highlightedIslandKey === 'recorder' }"
-            data-island-key="recorder"
+            v-for="(app, idx) in LIVE_ACTIVITY_APPS"
+            :key="app.key"
+            :title="app.label"
+            :subtitle="app.subtitle"
           >
             <template #icon>
-              <div class="db-app-icon db-icon-recorder">
-                <img :src="voicememosIconUrl" alt="Voice Memos" class="db-icon-img" />
+              <div class="db-live-icon" :class="{ 'has-ring': app.ring }" :style="{ background: app.bg }">
+                <!-- 听歌识曲：白底 + 彩色声波圆环（真机就是这个形态） -->
+                <span v-if="app.ring" class="song-ring"></span>
+                <LIcon
+                  v-else
+                  :name="app.icon"
+                  :size="20"
+                  :stroke-width="2"
+                  :style="{ color: app.color }"
+                />
               </div>
             </template>
             <template #right>
               <ToggleSwitch
-                :model-value="notificationsStore.islandSettings.recorder"
-                @update:modelValue="(val) => notificationsStore.setIslandEnabled('recorder', val)"
+                :model-value="notifSettings.liveActivityApps[app.key]"
+                color="blue"
+                @update:model-value="v => notifSettings.setLiveActivity(app.key, v)"
               />
             </template>
           </ListCell>
-
-          <!-- 闹钟 -->
-          <ListCell
-            :title="i18n.t('alarm') || '闹钟'"
-            :class="{ 'is-highlight-flash': highlightedIslandKey === 'alarm' }"
-            data-island-key="alarm"
-          >
+          <ListCell title="更多服务" subtitle="更多支持实时更新通知的服务" last>
             <template #icon>
-              <div class="db-app-icon db-icon-alarm">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path :d="CLOCK_ICONS.alarm" fill="#FFFFFF" />
-                </svg>
+              <div class="db-live-icon" style="background: #8792A3">
+                <LIcon name="grid2x2" :size="19" :stroke-width="2.2" style="color: #FFFFFF" />
               </div>
             </template>
             <template #right>
               <ToggleSwitch
-                :model-value="notificationsStore.islandSettings.alarm"
-                @update:modelValue="(val) => notificationsStore.setIslandEnabled('alarm', val)"
-              />
-            </template>
-          </ListCell>
-
-          <!-- 倒计时 -->
-          <ListCell
-            :title="i18n.t('nsDynamicBarTimer')"
-            :class="{ 'is-highlight-flash': highlightedIslandKey === 'timer' }"
-            data-island-key="timer"
-          >
-            <template #icon>
-              <div class="db-app-icon db-icon-timer">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path :d="CLOCK_ICONS.timer" fill="#FFFFFF" />
-                </svg>
-              </div>
-            </template>
-            <template #right>
-              <ToggleSwitch
-                :model-value="notificationsStore.islandSettings.timer"
-                @update:modelValue="(val) => notificationsStore.setIslandEnabled('timer', val)"
-              />
-            </template>
-          </ListCell>
-
-          <!-- 秒表 -->
-          <ListCell
-            :title="i18n.t('nsDynamicBarStopwatch')"
-            :class="{ 'is-highlight-flash': highlightedIslandKey === 'stopwatch' }"
-            data-island-key="stopwatch"
-          >
-            <template #icon>
-              <div class="db-app-icon db-icon-stopwatch">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path :d="CLOCK_ICONS.stopwatch" fill="#FFFFFF" />
-                </svg>
-              </div>
-            </template>
-            <template #right>
-              <ToggleSwitch
-                :model-value="notificationsStore.islandSettings.stopwatch"
-                @update:modelValue="(val) => notificationsStore.setIslandEnabled('stopwatch', val)"
-              />
-            </template>
-          </ListCell>
-
-          <!-- 礼拜模式 -->
-          <ListCell
-            :title="i18n.t('nsDynamicBarPrayer')"
-            :class="{ 'is-highlight-flash': highlightedIslandKey === 'prayer' }"
-            data-island-key="prayer"
-          >
-            <template #icon>
-              <div class="db-app-icon db-icon-prayer">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path :d="CLOCK_ICONS.muslim" fill="#FFFFFF" />
-                </svg>
-              </div>
-            </template>
-            <template #right>
-              <ToggleSwitch
-                :model-value="notificationsStore.islandSettings.prayer"
-                @update:modelValue="(val) => notificationsStore.setIslandEnabled('prayer', val)"
-              />
-            </template>
-          </ListCell>
-
-          <!-- 媒体播控 -->
-          <ListCell
-            :title="i18n.t('nsDynamicBarMedia')"
-            last
-            :class="{ 'is-highlight-flash': highlightedIslandKey === 'media' }"
-            data-island-key="media"
-          >
-            <template #icon>
-              <div class="db-app-icon db-icon-media">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path :d="GLYPHS.music" fill="#FFFFFF" />
-                </svg>
-              </div>
-            </template>
-            <template #right>
-              <ToggleSwitch
-                :model-value="notificationsStore.islandSettings.media"
-                @update:modelValue="(val) => notificationsStore.setIslandEnabled('media', val)"
+                :model-value="notifSettings.liveActivityMore"
+                color="blue"
+                @update:model-value="v => notifSettings.setBool('liveActivityMore', v)"
               />
             </template>
           </ListCell>
         </div>
+
+        <div class="group-header">智能服务</div>
+        <div class="cell-group">
+          <ListCell
+            title="智慧文本"
+            subtitle="复制文本后智能推荐相关服务。"
+            :value="notificationsStore.islandSettings.smartText ? '已开启' : '已关闭'"
+            chevron
+            clickable
+            @click="go('smartText')"
+          />
+          <ListCell
+            title="场景智能"
+            subtitle="根据使用场景智能推荐服务。"
+            :value="notificationsStore.islandSettings.sceneSmart ? '已开启' : '已关闭'"
+            chevron
+            clickable
+            last
+            @click="go('sceneAi')"
+          />
+        </div>
+
+        <div class="group-header">系统服务</div>
+        <div class="cell-group">
+          <ListCell
+            v-for="(svc, idx) in ISLAND_SERVICES"
+            :key="svc.key"
+            :title="svc.label"
+            :class="{ 'is-highlight-flash': highlightedIslandKey === svc.key }"
+            :data-island-key="svc.key"
+            :last="idx === ISLAND_SERVICES.length - 1"
+          >
+            <template #icon>
+              <div class="db-app-icon" :class="{ 'is-light': svc.light }" :style="{ background: svc.bg }">
+                <LIcon
+                  v-if="svc.lucide"
+                  :name="svc.lucide"
+                  :size="17"
+                  :stroke-width="2.1"
+                  :filled="Boolean(svc.filled)"
+                  :style="{ color: svc.color || '#FFFFFF' }"
+                />
+                <svg v-else-if="svc.clock" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path :d="CLOCK_ICONS[svc.clock]" fill="#FFFFFF" />
+                </svg>
+                <svg v-else-if="svc.glyph" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path :d="GLYPHS[svc.glyph]" fill="#FFFFFF" />
+                </svg>
+                <svg
+                  v-else
+                  width="18" height="18" viewBox="0 0 24 24" fill="none"
+                  stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+                >
+                  <path :d="svc.d" />
+                </svg>
+              </div>
+            </template>
+            <template #right>
+              <ToggleSwitch color="blue"
+                :model-value="notificationsStore.islandSettings[svc.key]"
+                @update:modelValue="(val) => notificationsStore.setIslandEnabled(svc.key, val)"
+              />
+            </template>
+          </ListCell>
+        </div>
+
+        <div class="cell-group db-more-group">
+          <ListCell title="更多服务" subtitle="灵动岛将始终支持下列系统服务。" chevron clickable last />
+        </div>
+
+        <div class="bottom-spacer"></div>
       </div>
 
       <!-- ============ 应用详情子页 ============ -->
       <div v-else key="detail" class="ns-page scrollable">
-        <AppNavBar :title="i18n.notifTitle(currentDetailApp.appId)" @back="back()" />
+        <GlassNavBar overlay :title="i18n.notifTitle(currentDetailApp.appId)" @back="back()" />
 
         <div class="ns-app-hero">
           <NotificationIcon :type="currentDetailApp.iconType" :size="64" />
@@ -560,7 +680,7 @@ const emit = defineEmits(['back-to-settings'])
         <div class="cell-group">
           <ListCell :title="i18n.t('nsAllowNotif')" last>
             <template #right>
-              <ToggleSwitch :model-value="getAppState(currentDetailApp.id)" @update:modelValue="toggleAppState(currentDetailApp.id)" />
+              <ToggleSwitch color="blue" :model-value="getAppState(currentDetailApp.id)" @update:modelValue="toggleAppState(currentDetailApp.id)" />
             </template>
           </ListCell>
         </div>
@@ -569,23 +689,45 @@ const emit = defineEmits(['back-to-settings'])
         <div v-if="getAppState(currentDetailApp.id)" class="cell-group">
           <ListCell :title="i18n.t('nsLiveActivitiesNotif')" :subtitle="i18n.t('nsLiveActivitiesNotifSub')" last>
             <template #right>
-              <ToggleSwitch :model-value="getAppLiveActivityState(currentDetailApp.id)" @update:modelValue="toggleAppLiveActivityState(currentDetailApp.id)" />
+              <ToggleSwitch color="blue" :model-value="getAppLiveActivityState(currentDetailApp.id)" @update:modelValue="toggleAppLiveActivityState(currentDetailApp.id)" />
             </template>
           </ListCell>
         </div>
 
         <template v-if="getAppState(currentDetailApp.id)">
           <!-- 卡片 3：提醒强度与通知分组 -->
-          <div class="cell-group">
-            <ListCell :title="i18n.t('nsRemindLevel')" :value="i18n.t('nsSmartReminder')" chevron />
-            <ListCell :title="i18n.t('nsGrouping')" :value="i18n.t('nsAuto')" chevron :last="globalHideLockContent" />
+          <div class="cell-group allow-overflow">
+            <ListCell
+              :title="i18n.t('nsRemindLevel')"
+              :value="REMIND_LABEL[notifSettings.remindLevelOf(currentDetailApp.id)] || '智能提醒'"
+              chevron
+              clickable
+              @click="showRemindLevelPicker = true"
+            />
+            <div class="anchor-wrap">
+              <ListCell
+                :title="i18n.t('nsGrouping')"
+                :value="GROUPING_LABEL[notifSettings.groupingOf(currentDetailApp.id)] || '自动'"
+                chevron
+                clickable
+                :last="globalHideLockContent"
+                @click="showGroupingMenu = !showGroupingMenu"
+              />
+              <AnchorMenu
+                :visible="showGroupingMenu"
+                :options="GROUPING_OPTIONS"
+                :model-value="notifSettings.groupingOf(currentDetailApp.id)"
+                @update:model-value="v => notifSettings.setGrouping(currentDetailApp.id, v)"
+                @close="showGroupingMenu = false"
+              />
+            </div>
             <ListCell
               v-if="!globalHideLockContent"
               :title="i18n.t('nsHideLockContent')"
               :subtitle="i18n.t('nsHideLockContentSub')"
               last
             >
-              <template #right><ToggleSwitch v-model="localHideLockContent" /></template>
+              <template #right><ToggleSwitch color="blue" v-model="localHideLockContent" /></template>
             </ListCell>
           </div>
 
@@ -610,10 +752,10 @@ const emit = defineEmits(['back-to-settings'])
 
           <div class="cell-group">
             <ListCell :title="i18n.t('nsAllowRing')">
-              <template #right><ToggleSwitch v-model="appToggles.ring" /></template>
+              <template #right><ToggleSwitch color="blue" v-model="appToggles.ring" /></template>
             </ListCell>
             <ListCell :title="i18n.t('nsVibrate')" last>
-              <template #right><ToggleSwitch v-model="appToggles.vibrate" /></template>
+              <template #right><ToggleSwitch color="blue" v-model="appToggles.vibrate" /></template>
             </ListCell>
           </div>
 
@@ -624,6 +766,24 @@ const emit = defineEmits(['back-to-settings'])
         </template>
       </div>
     </Transition>
+
+    <!-- 悬浮通知样式（真机：两张预览卡 + 取消） -->
+    <NotifFloatStyleSheet
+      :visible="showFloatStyleSheet"
+      :model-value="notifSettings.floatStyle"
+      @update:model-value="v => notifSettings.setFloatStyle(v)"
+      @close="showFloatStyleSheet = false"
+    />
+
+    <!-- 提醒强度（真机：底部弹层，三条带说明的选项） -->
+    <SheetOptionPicker
+      :visible="showRemindLevelPicker"
+      title="提醒强度"
+      :options="REMIND_LEVELS"
+      :model-value="currentDetailApp ? notifSettings.remindLevelOf(currentDetailApp.id) : 'smart'"
+      @update:model-value="v => currentDetailApp && notifSettings.setRemindLevel(currentDetailApp.id, v)"
+      @close="showRemindLevelPicker = false"
+    />
   </div>
 </template>
 
@@ -636,58 +796,12 @@ const emit = defineEmits(['back-to-settings'])
 .ns-page {
   height: 100%;
   overflow-y: auto;
+  /* 导航是悬浮 overlay，内容从它下面滚过（被玻璃层虚化），这里留出它的高度 */
+  padding-top: var(--nav-h);
   padding-bottom: 28px;
 }
 .ns-page::-webkit-scrollbar { display: none; }
 .ns-page { scrollbar-width: none; }
-
-/* ================= 统一设置极速丝滑进退动画 (与 SettingsApp 一致) ================= */
-.slide-enter-active,
-.slide-back-enter-active {
-  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.16s ease;
-}
-.slide-leave-active,
-.slide-back-leave-active {
-  transition: transform 0.12s cubic-bezier(0.4, 0, 1, 1), opacity 0.12s ease;
-}
-
-/* 进入：新页从右滑入 */
-.slide-enter-from {
-  transform: translateX(36px);
-  opacity: 0;
-}
-.slide-enter-to {
-  transform: translateX(0);
-  opacity: 1;
-}
-/* 离开：旧页向左微移退出 */
-.slide-leave-from {
-  transform: translateX(0);
-  opacity: 1;
-}
-.slide-leave-to {
-  transform: translateX(-24px);
-  opacity: 0;
-}
-
-/* 返回进入：旧页从左侧滑回 */
-.slide-back-enter-from {
-  transform: translateX(-24px);
-  opacity: 0;
-}
-.slide-back-enter-to {
-  transform: translateX(0);
-  opacity: 1;
-}
-/* 返回离开：顶页向右滑出 */
-.slide-back-leave-from {
-  transform: translateX(0);
-  opacity: 1;
-}
-.slide-back-leave-to {
-  transform: translateX(36px);
-  opacity: 0;
-}
 
 /* 分组卡片与标题：对齐 SettingsApp 系统规范 */
 .cell-group {
@@ -904,6 +1018,10 @@ const emit = defineEmits(['back-to-settings'])
   min-width: 0;
   flex: 1;
 }
+.db-app-icon.is-light {
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+}
+
 .db-app-icon {
   width: 36px;
   height: 36px;
@@ -956,6 +1074,193 @@ const emit = defineEmits(['back-to-settings'])
   animation: island-cell-flash 0.6s ease-in-out 3 !important;
   border-radius: 12px;
 }
+.anchor-wrap {
+  position: relative;
+  z-index: 30;
+}
+
+/* 承载下拉浮层的卡片不能裁切，否则浮层会被切掉一半 */
+.cell-group.allow-overflow {
+  overflow: visible;
+}
+
+/* Dynamic Bar 头图 */
+.db-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0 18px;
+}
+
+/* 头图只露手机上半部：容器裁切，机器本身画满整高（真机截图就是这个效果） */
+.db-figure {
+  width: 100%;
+  height: 246px;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* 真机只露手机上半部：机身画满整高，底部被容器裁掉 */
+.db-figure-phone {
+  position: relative;
+  width: 204px;
+  height: 437px;
+  border-radius: 30px;
+  border: 1.6px solid #C7C7CC;
+  background: #FAFAFB;
+  box-sizing: border-box;
+  flex: none;
+}
+
+.db-figure-hole {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #1C1C1E;
+}
+
+/* 通知条上方那团被虚化的图标残影 */
+.db-figure-blur {
+  position: absolute;
+  top: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 168px;
+  height: 54px;
+  border-radius: 14px;
+  background: linear-gradient(100deg, #E6EDF8 0%, #F3EEFA 60%, #EAF3F7 100%);
+  filter: blur(7px);
+  opacity: 0.95;
+}
+
+.db-figure-card {
+  position: absolute;
+  top: 146px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 190px;
+  height: 34px;
+  border-radius: 12px;
+  background: #F1F1F3;
+  display: flex;
+  align-items: center;
+  padding-left: 11px;
+  box-sizing: border-box;
+}
+
+.db-figure-card-icon {
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  background: #DCE3F0;
+}
+
+.db-figure-expand {
+  position: absolute;
+  top: 172px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 42px;
+  height: 56px;
+  border-radius: 14px;
+  background: #6E6E73;
+  z-index: 2;
+}
+
+.db-figure-tap {
+  position: absolute;
+  top: 178px;
+  left: 54%;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px #8E8E93 inset;
+  z-index: 3;
+}
+
+/* 实时活动：真实应用图标 + 真机底色 */
+.db-live-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  overflow: hidden;
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+}
+
+/* 听歌识曲：白底 + 彩色声波圆环 */
+.db-live-icon.has-ring {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.song-ring {
+  width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  background: conic-gradient(from 200deg, #7FD0E8 0deg, #E8A0B4 120deg, #C6A8E8 240deg, #7FD0E8 360deg);
+  -webkit-mask: radial-gradient(circle, transparent 0 44%, #000 45% 100%);
+  mask: radial-gradient(circle, transparent 0 44%, #000 45% 100%);
+  position: relative;
+}
+
+.song-ring::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #A9A2B3;
+}
+
+.db-hero-title {
+  margin-top: 16px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #111;
+}
+
+.db-hero-caption {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 19px;
+  color: #8E8E93;
+  text-align: center;
+  padding: 0 28px;
+}
+
+.db-hero-dots {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.db-hero-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #D1D1D6;
+}
+
+.db-hero-dots i.on {
+  background: #6E6E73;
+}
+
+.db-more-group {
+  margin-top: 12px;
+}
+
 .ns-card-footer {
   font: 400 13px/1.4 var(--font-stack);
   color: #8E8E93;

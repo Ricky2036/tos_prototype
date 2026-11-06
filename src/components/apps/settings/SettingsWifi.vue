@@ -1,4 +1,5 @@
 <script setup>
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 import { useNetworkStore } from '../../../stores/networkStore'
 import { useSubPageNav } from '../../../composables/useSubPageNav'
@@ -131,17 +132,9 @@ defineExpose({ back })
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <!-- ================= 1. 全屏三级页：网络详情 ================= -->
       <div v-if="activeSubView === 'detail' && selectedNetwork" key="detail" class="subpage-view-pane">
-        <div class="wifi-nav-bar">
-          <button class="nav-round-btn" aria-label="返回" data-nav-back @click="closeSubView">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <div class="nav-title">网络详情</div>
-          <div class="nav-placeholder"></div>
-        </div>
+        <GlassNavBar overlay title="网络详情" @back="closeSubView" />
 
-      <div class="wifi-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="wifi-scroll-body scrollable">
         <!-- 头部网络居中实体卡片 -->
         <div class="entity-header-box">
           <div class="entity-header-icon-wrap">
@@ -238,33 +231,24 @@ defineExpose({ back })
 
     <!-- ================= 2. WLAN 主界面 ================= -->
     <div v-else key="main" class="subpage-view-pane">
-      <div class="wifi-nav-bar">
-        <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <div class="nav-title">WLAN</div>
-        <div class="nav-actions">
-          <button class="nav-round-btn" aria-label="扫码" @click="handleScan">
+      <GlassNavBar overlay title="WLAN" @back="emit('back')">
+        <template #right><button class="nav-round-btn" aria-label="扫码" @click="handleScan">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="7" height="7" rx="1.5" />
               <rect x="14" y="3" width="7" height="7" rx="1.5" />
               <rect x="3" y="14" width="7" height="7" rx="1.5" />
               <path d="M14 14h3v3h-3zM20 14v6M14 20h3" />
             </svg>
-          </button>
-          <button class="nav-round-btn" aria-label="更多选项" @click="showToast('WLAN 高级设置与偏好')">
+          </button><button class="nav-round-btn" aria-label="更多选项" @click="showToast('WLAN 高级设置与偏好')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="5" r="1.5" fill="#1C1C1E" />
               <circle cx="12" cy="12" r="1.5" fill="#1C1C1E" />
               <circle cx="12" cy="19" r="1.5" fill="#1C1C1E" />
             </svg>
-          </button>
-        </div>
-      </div>
+          </button></template>
+      </GlassNavBar>
 
-      <div class="wifi-scroll-body scrollable">
+      <div style="padding-top: var(--nav-h)" class="wifi-scroll-body scrollable">
         <!-- 头部特性大卡片（完全对齐真机 XOS 1:1） -->
         <div class="settings-card wifi-feature-card">
           <div class="wifi-feature-icon-wrap">
@@ -738,10 +722,9 @@ defineExpose({ back })
 }
 
 .settings-card {
-  background: #FFFFFF;
-  border-radius: 18px;
+background: #FFFFFF;
+  border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.04);
   margin-bottom: 14px;
   box-sizing: border-box;
 }

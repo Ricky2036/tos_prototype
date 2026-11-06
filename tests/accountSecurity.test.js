@@ -41,7 +41,7 @@ test('SettingsAccountSecurity.vue matches all 3 card groups and items from refer
 
   // 顶部导航栏
   assert.ok(content.includes('账号安全'), 'Must contain 账号安全 title')
-  assert.ok(content.includes('nav-round-btn'), 'Navbar must contain circular back button')
+  assert.ok(content.includes('GlassNavBar'), 'Navbar must contain circular back button')
 
   // 分组 1: 电话号码、电子邮箱、紧急联系人
   assert.ok(content.includes('电话号码'), 'Group 1 must include 电话号码')

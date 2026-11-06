@@ -31,7 +31,7 @@ defineExpose({ focus, inputRef })
 <template>
   <div class="settings-search-bar" @click="focus">
     <div class="search-left">
-      <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8" />
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
@@ -54,7 +54,7 @@ defineExpose({ focus, inputRef })
         </svg>
       </button>
       <div v-else class="mic-icon-wrap" title="语音搜索">
-        <img class="mic-icon" :src="microphoneIcon" width="18" height="18" alt="" aria-hidden="true" draggable="false" />
+        <img class="mic-icon" :src="microphoneIcon" width="20" height="20" alt="" aria-hidden="true" draggable="false" />
       </div>
     </div>
   </div>
@@ -62,15 +62,20 @@ defineExpose({ focus, inputRef })
 
 <style scoped>
 .settings-search-bar {
-  height: 48px;
-  background: #FFFFFF;
-  border-radius: 24px;
+  /* 真机实测 44（原来是 48，偏大） */
+  height: 44px;
+  /* 毛玻璃：半透明白 + 背景模糊，内容滚过时能透出来（Ricky 2026-11-06） */
+  background: rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 22px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
-  border: 0.5px solid rgba(0, 0, 0, 0.05);
+  /* 真机几乎没有投影，只有极轻的一层，避免看起来「飘」 */
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  border: 0.5px solid rgba(0, 0, 0, 0.04);
   cursor: text;
   user-select: none;
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
@@ -100,7 +105,7 @@ defineExpose({ focus, inputRef })
   border: none;
   background: transparent;
   outline: none;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.4;
   color: #111111;
   font-family: inherit;

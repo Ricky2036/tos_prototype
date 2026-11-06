@@ -1,12 +1,19 @@
 import { chromium } from 'playwright'
+import fs from 'node:fs'
+
+// 端口可由命令行覆盖：node scripts/verify-settings-search.mjs <port>（默认 5555 = tos-workbuddy canonical）
+const PORT = process.argv[2] || '5555'
+const BASE = `http://127.0.0.1:${PORT}/`
 
 const CHROME =
   process.env.PLAYWRIGHT_CHROME ||
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 
-const ARTIFACT_DIR = '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7'
+const ARTIFACT_DIR =
+  process.env.ARTIFACT_DIR || '/tmp/vwork/settings-search'
 
 async function run() {
+  fs.mkdirSync(ARTIFACT_DIR, { recursive: true })
   const browser = await chromium.launch({
     executablePath: CHROME,
     headless: true
@@ -17,8 +24,8 @@ async function run() {
   })
   const page = await ctx.newPage()
 
-  console.log('1. Navigating to http://localhost:1111/...')
-  await page.goto('http://localhost:1111/', { waitUntil: 'networkidle' })
+  console.log(`${'1. Navigating to'} ${BASE}`)
+  await page.goto(BASE, { waitUntil: 'networkidle' })
   await page.waitForTimeout(600)
 
   const phoneScreen = page.locator('.screen-container, .phone-frame, #phone-viewport, .device-screen').first()

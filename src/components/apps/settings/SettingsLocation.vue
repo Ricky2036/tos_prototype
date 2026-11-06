@@ -1,4 +1,5 @@
 <script setup>
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
@@ -35,18 +36,10 @@ defineExpose({ back })
 <template>
   <div class="settings-location-page">
     <!-- 顶部导航栏 -->
-    <div class="location-nav-bar">
-      <button class="nav-round-btn" aria-label="返回" data-nav-back @click="emit('back')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <div class="nav-title">位置信息</div>
-      <div class="nav-placeholder"></div>
-    </div>
+    <GlassNavBar overlay title="位置信息" @back="emit('back')" />
 
     <!-- 滚动区域 -->
-    <div class="location-scroll-body scrollable">
+    <div style="padding-top: var(--nav-h)" class="location-scroll-body scrollable">
       <!-- 主开关卡片 -->
       <div class="location-card">
         <ListCell title="使用位置信息" last>

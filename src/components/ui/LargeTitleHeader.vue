@@ -40,8 +40,8 @@ const props = defineProps({
  *  写成 `const lt = useLargeTitle()` 再传 `:progress="lt.progress"` 时拿到的是 ComputedRef 本身，
  *  2026-10-12 就因此静默退化成恒 0（**且不报错**）。归一化逻辑在 `asProgress()` 里，单测行为级覆盖。 */
 progress: { type: [Number, Object], default: 0 },
-  /** 底幕基色，RGB 三元组串（默认跟随应用默认底色 #F4F5F7） */
-  scrim: { type: String, default: '244, 245, 247' },
+  /** 底幕基色，RGB 三元组串（默认跟随设置页底色 #F0F1F2） */
+  scrim: { type: String, default: '240, 241, 242' },
   zIndex: { type: [Number, String], default: 12 },
   /** 折叠曲线覆写 —— 正常页面别动，见 useLargeTitle.js */
   curve: { type: Object, default: () => ({}) }
@@ -92,8 +92,8 @@ const vars = computed(() => ({
   inset: 0;
   background: linear-gradient(
     to bottom,
-    rgba(var(--title-scrim, 244, 245, 247), 0.99) 0%,
-    rgba(var(--title-scrim, 244, 245, 247), 0.99) 72%,
+    rgba(var(--title-scrim, 240, 241, 242), 0.99) 0%,
+    rgba(var(--title-scrim, 240, 241, 242), 0.99) 72%,
     rgba(var(--title-scrim, 244, 245, 247), 0.7) 84%,
     rgba(var(--title-scrim, 244, 245, 247), 0.24) 94%,
     rgba(var(--title-scrim, 244, 245, 247), 0) 100%

@@ -165,7 +165,7 @@ watch(() => store.notice, (v) => { if (v) scheduleNoticeClear() })
              底幕透明度和折叠进度同值 ⇒ 内容从下面穿过时被盖住，不会与状态栏图标重叠。 -->
         <LargeTitleHeader
           :progress="titleProgress"
-          scrim="244, 245, 247"
+          scrim="240, 241, 242"
           data-photos-title-bar
         >
           <span data-photos-title>{{ ph('title') }}</span>
@@ -316,7 +316,7 @@ watch(() => store.notice, (v) => { if (v) scheduleNoticeClear() })
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: var(--bg-grouped, #f2f2f7);
+  background: #F0F1F2;
   color: var(--label, #111);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', sans-serif;
   -webkit-tap-highlight-color: transparent;
