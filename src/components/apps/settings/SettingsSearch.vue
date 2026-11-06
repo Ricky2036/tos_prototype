@@ -503,8 +503,8 @@ onMounted(() => {
   right: 0;
   display: flex;
   align-items: center;
-  /* 真机实测：左右 16、与首页搜索框同样的离底 25、圆钮与胶囊间距 ≈16 */
-  gap: 16px;
+  /* 真机实测：左右 16、离底 25；圆钮 16..60、胶囊从 72 起 ⇒ **间距 12**（不是 16） */
+  gap: 12px;
   padding: 12px 16px 25px 16px;
   background: linear-gradient(180deg, rgba(248, 249, 250, 0) 0%, rgba(248, 249, 250, 0.95) 24%, #F8F9FA 100%);
   pointer-events: auto;

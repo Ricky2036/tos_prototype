@@ -177,5 +177,5 @@ test('点击搜索后的底部栏与首页搜索框同一规格（44 高 / 22 �
   // 底部栏留白：左右 16、离底 25
   const bar = src.slice(src.indexOf('.search-bottom-bar {'), src.indexOf('.search-back-circle-btn {'))
   assert.match(bar, /padding:\s*12px 16px 25px 16px/, 'bottom bar should use 16/25 paddings')
-  assert.match(bar, /gap:\s*16px/, 'gap between back button and capsule should be 16px')
+  assert.match(bar, /gap:\s*12px/, 'gap between back button and capsule should be 12px (measured)')
 })
