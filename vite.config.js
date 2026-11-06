@@ -346,8 +346,25 @@ function saveDefaultsPlugin() {
   }
 }
 
+/* ===================== tOS 使用量统计无感探针插件 ===================== */
+function tosTelemetryPlugin() {
+  return {
+    name: 'tos-telemetry-plugin',
+    configureServer(server) {
+      import('./scripts/telemetry.mjs').then(m => {
+        m.trackEvent('dev_start', { port: server.config.server.port || 5555 }).catch(() => {})
+      }).catch(() => {})
+    },
+    buildStart() {
+      import('./scripts/telemetry.mjs').then(m => {
+        m.trackEvent('build', { mode: 'production' }).catch(() => {})
+      }).catch(() => {})
+    }
+  }
+}
+
 export default defineConfig({
-  plugins: [vue(), autoTranscodePlugin(), saveDefaultsPlugin()],
+  plugins: [vue(), autoTranscodePlugin(), saveDefaultsPlugin(), tosTelemetryPlugin()],
   base: './',
   server: {
     host: '127.0.0.1',
