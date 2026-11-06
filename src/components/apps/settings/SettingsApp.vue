@@ -1160,7 +1160,8 @@ background: #FFFFFF;
 /* ================= 底部悬浮搜索栏 ================= */
 .settings-floating-search {
   position: absolute;
-  bottom: 20px;
+  /* 真机实测：离屏幕底 ≈44（safe-bottom 34 + 10），左右各 16 */
+  bottom: 44px;
   left: 16px;
   right: 16px;
   z-index: 10;
@@ -1174,7 +1175,7 @@ background: #FFFFFF;
   left: -16px;
   right: -16px;
   top: -34px;
-  bottom: -20px;
+  bottom: -44px;
   background: linear-gradient(
     to bottom,
     rgba(240, 241, 242, 0) 0%,
@@ -1186,7 +1187,8 @@ background: #FFFFFF;
 }
 
 .scroll-bottom-spacer {
-  height: 86px;
+  /* 搜索框 44 + 底距 44 + 让它完整露出 */
+  height: 104px;
   width: 100%;
   flex: none;
 }

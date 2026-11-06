@@ -62,13 +62,17 @@ defineExpose({ focus, inputRef })
 
 <style scoped>
 .settings-search-bar {
-  height: 48px;
-  background: #FFFFFF;
-  border-radius: 24px;
+  /* 真机实测 44（原来是 48，偏大） */
+  height: 44px;
+  /* 毛玻璃：半透明白 + 背景模糊，内容滚过时能透出来（Ricky 2026-11-06） */
+  background: rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 22px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 14px;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
   border: 0.5px solid rgba(0, 0, 0, 0.05);
   cursor: text;

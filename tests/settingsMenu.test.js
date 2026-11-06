@@ -129,8 +129,11 @@ test('SettingsSearchBar component provides search magnifying glass and microphon
   assert.ok(fs.existsSync(MICROPHONE_ICON_PATH), 'Exported Figma microphone SVG should exist')
   assert.match(fs.readFileSync(MICROPHONE_ICON_PATH, 'utf-8'), /^<svg\b/, 'Microphone asset should be a real SVG')
   assert.match(content, /btn-clear/, 'Should render clear button when input has value')
-  assert.match(content, /border-radius:\s*24px/, 'Search bar should have capsule 24px radius')
-  assert.match(content, /height:\s*48px/, 'Search bar should have 48px height')
+  assert.match(content, /border-radius:\s*22px/, 'Search bar radius should be half of the 44px height')
+  // 毛玻璃：半透明白 + 背景模糊（Ricky 2026-11-06 明确要求）
+  assert.match(content, /background:\s*rgba\(255, 255, 255, 0\.7/, 'Search bar should be translucent white')
+  assert.match(content, /backdrop-filter:\s*blur\(/, 'Search bar must blur the content behind it')
+  assert.match(content, /height:\s*44px/, 'Search bar height should be 44px (measured on device)')
 })
 
 test('ListCell styling complies with updated squircle icon and divider norms', () => {
