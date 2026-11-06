@@ -5,7 +5,9 @@ import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 import NotificationIcon from '../../../ui/NotificationIcon.vue'
 import { useI18nStore } from '../../../../stores/i18nStore'
 import { useNotificationsStore } from '../../../../stores/notificationsStore'
-import { useNotificationSettingsStore } from '../../../../stores/notificationSettingsStore'
+import { useNotificationSettingsStore, BADGE_STYLES } from '../../../../stores/notificationSettingsStore'
+import SheetOptionPicker from '../../../ui/SheetOptionPicker.vue'
+import { ref } from 'vue'
 
 /**
  * 桌面角标（通知与状态栏 → 通知类型 → 桌面角标）
@@ -20,6 +22,10 @@ const i18n = useI18nStore()
 const notificationsStore = useNotificationsStore()
 const notifSettings = useNotificationSettingsStore()
 
+// 桌面角标样式：数字 / 圆点（选项集与 store 的校验白名单同源）
+const showStylePicker = ref(false)
+const badgeOptions = BADGE_STYLES.map(v => ({ value: v, label: v }))
+
 function isOn(id) {
   return notificationsStore.isAppNotificationEnabled(id)
 }
@@ -32,7 +38,14 @@ function toggle(id) {
 <template>
   <SubPageShell title="桌面角标" @back="emit('back')">
     <div class="settings-card">
-      <ListCell title="桌面角标样式" :value="notifSettings.badgeStyle" chevron clickable last />
+      <ListCell
+        title="桌面角标样式"
+        :value="notifSettings.badgeStyle"
+        chevron
+        clickable
+        last
+        @click="showStylePicker = true"
+      />
     </div>
 
     <div class="section-header">已开启桌面角标权限</div>
@@ -60,6 +73,14 @@ function toggle(id) {
         </template>
       </ListCell>
     </div>
+    <SheetOptionPicker
+      :visible="showStylePicker"
+      title="桌面角标样式"
+      :options="badgeOptions"
+      :model-value="notifSettings.badgeStyle"
+      @update:model-value="v => notifSettings.setBadgeStyle(v)"
+      @close="showStylePicker = false"
+    />
   </SubPageShell>
 </template>
 
