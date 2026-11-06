@@ -187,9 +187,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Optimize high-resolution wallpapers, sample photos, and avatars to significantly slim down repository size | `antigravity/lane` | None (locks released) | `4bb1573` | `78aaedf` |
 | Merged | Antigravity | Fix app switcher resume state leak where lingering switcher overlay causes tapping resumed app to return to home screen | `antigravity/lane` | None (locks released) | `06f2077` | `2b6d45c` |
 | Review | Workbuddy | Adopt `scripts/run-e2e.mjs` as the single regression entry (daily = `--changed`, delivery = `--all --jobs 4`); document the cadence in `AGENTS.md`; fix the 6 verify scripts whose default port is the stale `5678` | `workbuddy/lane` | `scripts/run-e2e.mjs`; `AGENTS.md` (add-only section); `scripts/verify-cc-row.mjs`; `scripts/verify-cc-status-bar.mjs`; `scripts/verify-status-bar.mjs`; `scripts/verify-status-bar-camera.mjs`; `scripts/verify-status-bluetooth.mjs`; `scripts/verify-status-icon-size.mjs` | `68f7c50` | `93a6caa` |
-
 | Review | Workbuddy | Fix the three verify scripts left red by `93a6caa` (render-always status-bar slots defeating DOM counting; DevConsole structure drift breaking `.pc-tab-btn` / `.pc-card-duo`) | `workbuddy/lane` | `scripts/verify-status-bar.mjs`; `scripts/verify-status-icon-size.mjs`; `scripts/verify-cc-row.mjs` | `1d157dc` | `09140a9` |
-
 > Leftover after `93a6caa` — **RESOLVED in `09140a9`.** Root causes as diagnosed:
 > `.status-bar .sb-ind` is now always rendered as 5 fixed slots (`vibrate20 / mute30 / hotspot40 /
 > bluetooth50 / dnd60`) with `display: none` controlling visibility, so counting
@@ -200,19 +198,15 @@ Only the integration owner edits this table. Remove or mark a row complete after
 > `verify-cc-row.mjs` was rewritten against the new DevConsole (module `<select id="desktop-module-select">`
 > plus `.pc-duo-row > .pc-duo-item`). Teeth tests: 5 negative controls, all red. 6 scripts now green,
 > 59 PASS / 0 FAIL.
-
 | Merged | Antigravity | Correct clock edit button visibility, replace photo favorite icon with pure heart, and bind sharesheet to global navigation bar | `antigravity/lane` | None (locks released) | `2b6d45c` | `ad06b92` |
 | Merged | Antigravity | Real-device Settings secondary pages replication (About phone, SIM & networks, Bluetooth, Starlink, Infinix AI suite, Security & Privacy 13px rounded cards & palette, One-Tap midframe track carousel, Accessibility vector icons, Battery desktop app rankings, Display, Sound & vibration) | `antigravity/lane` | None (locks released) | `ad06b92` | `f436e54` |
 | Merged | Antigravity | Integrate full privacy indicator lifecycle prototype (status bar capsule with 3s auto-collapse, Control Center dynamic capsule, frosted glass alert modal, 24h privacy dashboard donut chart, permission timeline, 3-state permission manager) | `antigravity/lane` | None (locks released) | `f436e54` | `a9b7529` |
 | Merged | Antigravity | Release tOS Prototype 2.5: OS16 Dynamic Island 14 native templates, About Phone tertiary subpages, Network group replica, Privacy center linkage, security gate fixes & asset slimming | `antigravity/lane` | None (locks released) | `7443909` | `07eff26` |
-
 | Review | Workbuddy | Settings group 2 (Infinix AI → 通知与状态栏) second/third-level replication, part 1: restructure Infinix AI list to the real device (4 cards / 15 rows / Fola naming) and build all 14 settings-type third-level pages from a shared config-driven shell, incl. the 智慧翻译 first-entry consent dialog | `workbuddy/lane` | `src/components/apps/settings/SettingsInfinixAI.vue`; `src/components/apps/settings/infinixai/**`; `src/stores/infinixAiSettingsStore.js`; `src/components/apps/settings/SettingsApp.vue` (search index titles only); `tests/infinixAiSettings.test.js`; `tests/settingsInfinixAI.test.js` | `fadc48d` | pending |
-
 | Review | Workbuddy | Settings group 2, part 2 (显示与亮度 / 声音与振动): build all 16 third-level pages off a shared `SubPageShell` (incl. the 自动息屏时间 bottom sheet, 强光模式 row added to display, SIM-split ringtone pickers, JBL 4-mode grid, per-app fullscreen list) + two new stores for the toggles/sliders | `workbuddy/lane` | `src/components/apps/settings/SettingsDisplay.vue`; `src/components/apps/settings/SettingsSound.vue`; `src/components/apps/settings/display/**`; `src/components/apps/settings/sound/**`; `src/components/apps/settings/subpage/**`; `src/stores/displaySettingsStore.js`; `src/stores/soundSettingsStore.js`; `src/utils/localPrefs.js`; `tests/displaySoundSubpages.test.js` | `5203ae7` | pending |
-
 | Review | Workbuddy | Settings group 2, part 3 (通知与状态栏): wire the dead 状态栏 row to a new subpage, make 桌面角标 clickable, rebuild Dynamic Bar to the real device (hero + 智能服务 + 系统服务 + 更多服务) while keeping the islandSettings store contract and the deep-link 3-flash highlight | `workbuddy/lane` | `src/components/apps/settings/SettingsNotifications.vue`; `src/components/apps/settings/notifications/**`; `src/stores/notificationSettingsStore.js`; `src/stores/notificationsStore.js` (additive keys only); `src/locales/messages.js` (notification titles); `tests/notifSettingsSubpages.test.js`; `tests/alarmDynamicIsland.test.js` (contract moved to config-driven rows) | `74aed3b` | pending |
-
 | Review | Workbuddy | Settings group 2, part 4 (deeper interactions): add 控制中心 page (3-slide hero + lock-screen toggle + reset confirm dialog), 通知提醒方式 bottom sheet (4 icon options), Dynamic Bar 实时活动 per-app group + 视频生成 row, and two 4th-level pages 智慧文本 / 场景智能 | `workbuddy/lane` | `src/components/apps/settings/SettingsNotifications.vue`; `src/components/apps/settings/notifications/**`; `src/stores/notificationSettingsStore.js`; `src/stores/notificationsStore.js` (videoGen key only); `tests/notifSettingsSubpages.test.js` | `205815c` | pending |
+| Active | Antigravity | Correct clock edit button visibility, replace photo favorite icon with pure heart, and bind sharesheet to global navigation bar | `antigravity/lane` | None (locks released) | `2b6d45c` | `ad06b92` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 

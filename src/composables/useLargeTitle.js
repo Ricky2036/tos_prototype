@@ -124,7 +124,7 @@ export function useLargeTitle(options = {}) {
 
   /** 直接挂到滚动容器：`@scroll.passive="onScroll"` */
   function onScroll(event) {
-    const el = event && event.currentTarget
+    const el = event && (event.currentTarget || event.target)
     scrollTop.value = el ? el.scrollTop : 0
   }
 

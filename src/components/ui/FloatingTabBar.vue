@@ -62,7 +62,83 @@ function selectTab(tab) {
 </script>
 
 <template>
+  <!-- 当挂载伴生 action 槽（如电话应用的独立操作球 FAB）时，以浮动停靠栏容器统一承载基线与底边距 -->
+  <div
+    v-if="$slots.action"
+    class="floating-dock-container"
+    :style="{
+      bottom: formattedBottom,
+      '--tab-accent': accentColor
+    }"
+  >
+    <nav
+      class="floating-tab-bar variant-dock-pill"
+      :class="{ 'theme-dark': dark, 'glass-effect': glass }"
+      :style="{ height: formattedHeight }"
+      :aria-label="ariaLabel"
+    >
+      <!-- 滑动高亮底托胶囊 -->
+      <div
+        v-if="tabs.length > 0"
+        class="nav-sliding-pill-track"
+        :style="{
+          width: `calc((100% - 8px) / ${tabsCount})`,
+          transform: `translateX(${activeIndex * 100}%)`
+        }"
+        aria-hidden="true"
+      >
+        <div class="nav-highlight-pill"></div>
+      </div>
+
+      <!-- Tab 列表 -->
+      <div
+        v-for="(tab, index) in tabs"
+        :key="tab.id"
+        class="floating-tab-item"
+        :class="{ active: modelValue === tab.id }"
+        role="tab"
+        :aria-selected="modelValue === tab.id"
+        :tabindex="modelValue === tab.id ? 0 : -1"
+        @click="selectTab(tab)"
+      >
+        <slot name="tab" :tab="tab" :active="modelValue === tab.id" :index="index">
+          <!-- 图标区域 -->
+          <div class="tab-icon-wrap">
+            <slot name="icon" :tab="tab" :active="modelValue === tab.id" :index="index">
+              <svg
+                v-if="tab.icon"
+                class="tab-icon-svg"
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  :d="tab.icon"
+                  :fill="modelValue === tab.id ? accentColor : '#FFFFFF'"
+                />
+              </svg>
+            </slot>
+            <!-- 徽标支持 -->
+            <span v-if="tab.badge" class="tab-badge">{{ tab.badge }}</span>
+          </div>
+
+          <!-- 标签文本 -->
+          <slot name="label" :tab="tab" :active="modelValue === tab.id" :index="index">
+            <span class="tab-label-text">{{ tab.name }}</span>
+          </slot>
+        </slot>
+      </div>
+    </nav>
+
+    <!-- 伴生独立操作球槽 -->
+    <div class="floating-dock-action" :style="{ height: formattedHeight }">
+      <slot name="action" />
+    </div>
+  </div>
+
+  <!-- 常规居中单胶囊底栏（时钟、相册等） -->
   <nav
+    v-else
     class="floating-tab-bar"
     :class="{ 'theme-dark': dark, 'glass-effect': glass }"
     :style="{
@@ -127,6 +203,31 @@ function selectTab(tab) {
 </template>
 
 <style scoped>
+/* 悬浮停靠栏容器：当挂载独立操作球 (FAB) 时统一承载左右双体部件的水平基线与底边距 */
+.floating-dock-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.floating-dock-container > * {
+  pointer-events: auto;
+}
+
+.floating-dock-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .floating-tab-bar {
   position: absolute;
   left: 50%;
@@ -142,9 +243,18 @@ function selectTab(tab) {
   justify-content: space-between;
   padding: 4px;
   box-sizing: border-box;
-  z-index: 25;
+  z-index: 40;
   user-select: none;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
+}
+
+.floating-tab-bar.variant-dock-pill {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  width: 176px;
+  max-width: 176px;
 }
 
 .floating-tab-bar.glass-effect {
