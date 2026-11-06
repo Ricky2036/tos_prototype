@@ -356,3 +356,39 @@ test('屏幕刷新率：选「高」要先弹功耗确认，确认后才写 stor
   // 未确认前不能直接写 store
   assert.doesNotMatch(src, /@click="display\.setRefreshRate\(opt\.value\)"/, '不应绕过确认直接切换')
 })
+
+test('自定义应用刷新率与「高」绑定：非高亮率档位禁用且不可进', () => {
+  setActivePinia(createPinia())
+  const d = useDisplaySettingsStore()
+
+  d.setRefreshRate('auto')
+  assert.equal(d.canCustomizePerApp(), false, '智能切换下不可自定义')
+  d.setRefreshRate('standard')
+  assert.equal(d.canCustomizePerApp(), false, '标准下不可自定义')
+  d.setRefreshRate('high')
+  assert.equal(d.canCustomizePerApp(), true, '只有「高」可以自定义')
+
+  // store 自己也要挡住（不只是 UI 禁用）
+  d.setRefreshRate('auto')
+  assert.equal(d.setPerAppRefresh('douyin', 'high'), false, '非高亮率档位写入应被拒绝')
+  assert.equal(d.perAppRefreshOf('douyin'), 'auto')
+
+  d.setRefreshRate('high')
+  assert.equal(d.setPerAppRefresh('douyin', 'high'), true)
+  assert.equal(d.perAppRefreshOf('douyin'), 'high')
+  assert.equal(d.setPerAppRefresh('douyin', 'ultra'), false, '非法档位被拒')
+})
+
+test('刷新率页：该行用 disabled 表达绑定关系，而不是静默无响应', () => {
+  const src = read('src/components/apps/settings/display/DisplayRefreshRate.vue')
+  assert.match(src, /:disabled="!display\.canCustomizePerApp\(\)"/, '缺少禁用态绑定')
+  assert.match(src, /showAppRefresh = true/, '可点时应进入四级页')
+  assert.match(src, /<DisplayAppRefreshRate v-if="showAppRefresh"/, '未挂四级页')
+})
+
+test('ListCell 支持禁用态（置灰 + 不触发点击）', () => {
+  const src = read('src/components/ui/ListCell.vue')
+  assert.match(src, /disabled: \{ type: Boolean/, '缺少 disabled prop')
+  assert.match(src, /@click="!disabled && emit\('click'\)"/, '禁用时不应再派发 click')
+  assert.match(src, /\.list-cell\.is-disabled/, '缺少禁用态样式')
+})

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { readBool, readNumber, readString, writeRaw } from '../utils/localPrefs.js'
+import { readBool, readNumber, readString, writeRaw, readJson } from '../utils/localPrefs.js'
 
 /**
  * 「显示与亮度」及其三级页的状态。
@@ -19,6 +19,7 @@ const K = {
   COLOR_MODE: 'tos_display_color_mode',
   COLOR_TEMP: 'tos_display_color_temp',
   REFRESH_RATE: 'tos_display_refresh_rate',
+  PER_APP_REFRESH: 'tos_display_per_app_refresh',
   AUTO_SLEEP: 'tos_display_auto_sleep',
   FONT_FAMILY: 'tos_display_font_family',
   FONT_SIZE: 'tos_display_font_size',
@@ -45,6 +46,12 @@ export const useDisplaySettingsStore = defineStore('displaySettings', () => {
   const colorMode = ref(readString(K.COLOR_MODE, 'original'))
   const colorTemp = ref(readNumber(K.COLOR_TEMP, 0.5))
   const refreshRate = ref(readString(K.REFRESH_RATE, 'auto'))
+
+  /**
+   * 逐应用刷新率：真机上「自定义应用刷新率」只在选了「高」之后才可进（与高绑定）。
+   * 这里存 appId -> 'auto' | 'standard' | 'high'
+   */
+  const perAppRefresh = ref(readJson(K.PER_APP_REFRESH, {}))
   const autoSleep = ref(readString(K.AUTO_SLEEP, '10 分钟'))
   const fontFamily = ref(readString(K.FONT_FAMILY, 'TransSans'))
   const fontSize = ref(readNumber(K.FONT_SIZE, 0.35))
@@ -63,6 +70,23 @@ export const useDisplaySettingsStore = defineStore('displaySettings', () => {
     colorMode.value = v
     writeRaw(K.COLOR_MODE, v)
     return true
+  }
+
+  /** 「自定义应用刷新率」是否可用：与「高」绑定，只有高刷新率档位才能逐应用设置 */
+  function canCustomizePerApp() {
+    return refreshRate.value === 'high'
+  }
+
+  function setPerAppRefresh(appId, value) {
+    if (!canCustomizePerApp()) return false
+    if (!['auto', 'standard', 'high'].includes(value)) return false
+    perAppRefresh.value = { ...perAppRefresh.value, [appId]: value }
+    writeRaw(K.PER_APP_REFRESH, JSON.stringify(perAppRefresh.value))
+    return true
+  }
+
+  function perAppRefreshOf(appId) {
+    return perAppRefresh.value[appId] || 'auto'
   }
 
   function setRefreshRate(v) {
@@ -139,6 +163,10 @@ export const useDisplaySettingsStore = defineStore('displaySettings', () => {
     colorMode,
     colorTemp,
     refreshRate,
+    perAppRefresh,
+    canCustomizePerApp,
+    setPerAppRefresh,
+    perAppRefreshOf,
     autoSleep,
     fontFamily,
     fontSize,

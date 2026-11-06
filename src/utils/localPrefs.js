@@ -38,3 +38,14 @@ export function readString(key, fallback) {
   const raw = readRaw(key)
   return raw === null ? fallback : raw
 }
+
+export function readJson(key, fallback) {
+  const raw = readRaw(key)
+  if (!raw) return fallback
+  try {
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : fallback
+  } catch {
+    return fallback
+  }
+}

@@ -14,13 +14,18 @@ const props = defineProps({
   value: { type: String, default: '' },
   chevron: { type: Boolean, default: false },
   clickable: { type: Boolean, default: false },
+  disabled: { type: Boolean, default: false }, // 置灰且不响应点击（真机「与某档绑定」的行就是这样）
   last: { type: Boolean, default: false }   // 组内最后一条：无分隔线
 })
 const emit = defineEmits(['click'])
 </script>
 
 <template>
-  <div class="list-cell" :class="{ clickable: chevron || clickable }" @click="emit('click')">
+  <div
+    class="list-cell"
+    :class="{ clickable: (chevron || clickable) && !disabled, 'is-disabled': disabled }"
+    @click="!disabled && emit('click')"
+  >
     <slot name="icon">
       <div v-if="glyph || iconText" class="lc-icon" :style="{ background: iconBg }">
         <svg v-if="glyph" width="17" height="17" viewBox="0 0 24 24">
@@ -53,6 +58,11 @@ const emit = defineEmits(['click'])
 </template>
 
 <style scoped>
+.list-cell.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 .list-cell {
   display: flex;
   align-items: center;

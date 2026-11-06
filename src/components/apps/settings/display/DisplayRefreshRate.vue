@@ -3,6 +3,7 @@ import SubPageShell from '../subpage/SubPageShell.vue'
 import ListCell from '../../../ui/ListCell.vue'
 import { ref } from 'vue'
 import SheetModal from '../../../ui/SheetModal.vue'
+import DisplayAppRefreshRate from './DisplayAppRefreshRate.vue'
 import { useDisplaySettingsStore } from '../../../../stores/displaySettingsStore'
 
 const emit = defineEmits(['back'])
@@ -10,6 +11,8 @@ const display = useDisplaySettingsStore()
 
 // 真机：选「高」会先弹功耗确认，确认后才真的切
 const showHighConfirm = ref(false)
+// 自定义应用刷新率与「高」绑定：只有高亮率档位才可进
+const showAppRefresh = ref(false)
 
 function choose(value) {
   if (value === 'high' && display.refreshRate !== 'high') {
@@ -32,7 +35,8 @@ const OPTIONS = [
 </script>
 
 <template>
-  <SubPageShell title="屏幕刷新率" @back="emit('back')">
+  <DisplayAppRefreshRate v-if="showAppRefresh" @back="showAppRefresh = false" />
+  <SubPageShell v-else title="屏幕刷新率" @back="emit('back')">
     <div class="rate-previews">
       <div class="rate-col">
         <div class="rate-phone">
@@ -69,7 +73,14 @@ const OPTIONS = [
           <span class="opt-radio" :class="{ checked: display.refreshRate === opt.value }"></span>
         </template>
       </ListCell>
-      <ListCell title="自定义应用刷新率" chevron clickable last />
+      <ListCell
+        title="自定义应用刷新率"
+        chevron
+        clickable
+        :disabled="!display.canCustomizePerApp()"
+        last
+        @click="display.canCustomizePerApp() && (showAppRefresh = true)"
+      />
     </div>
 
     <div class="card-note">
