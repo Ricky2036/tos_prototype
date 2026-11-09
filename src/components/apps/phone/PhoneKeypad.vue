@@ -1,8 +1,18 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { usePhoneStore } from '../../../stores/phoneStore'
 
 const phoneStore = usePhoneStore()
+const toastText = ref('')
+let toastTimer = null
+
+function showToast(msg) {
+  toastText.value = msg
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => {
+    toastText.value = ''
+  }, 1800)
+}
 
 const KEYS = [
   { num: '1', sub: 'voicemail' },
@@ -19,12 +29,43 @@ const KEYS = [
   { num: '#', sub: '' }
 ]
 
-function handleKeyPress(key) {
-  phoneStore.appendKey(key.num)
+// 长按快速拨号计时器
+let keyPressTimer = null
+let isLongPressTriggered = false
+
+function handleKeyTouchStart(k) {
+  isLongPressTriggered = false
+  clearTimeout(keyPressTimer)
+  keyPressTimer = setTimeout(() => {
+    isLongPressTriggered = true
+    handleKeyLongPress(k)
+  }, 600)
 }
 
-function handleZeroLongPress() {
-  phoneStore.appendKey('+')
+function handleKeyTouchEnd() {
+  clearTimeout(keyPressTimer)
+}
+
+function handleKeyClick(k) {
+  if (isLongPressTriggered) {
+    isLongPressTriggered = false
+    return
+  }
+  phoneStore.appendKey(k.num)
+}
+
+function handleKeyLongPress(k) {
+  if (k.num === '0') {
+    phoneStore.appendKey('+')
+  } else if (k.num === '1') {
+    phoneStore.dialSpeedKey(1)
+  } else if (/[2-9]/.test(k.num)) {
+    const keyNum = parseInt(k.num, 10)
+    const success = phoneStore.dialSpeedKey(keyNum)
+    if (!success) {
+      showToast(`按键 ${keyNum} 未设置快速拨号，可在设置中添加`)
+    }
+  }
 }
 
 function handleBackspace() {
@@ -34,6 +75,8 @@ function handleBackspace() {
 function handleCall() {
   if (phoneStore.dialedNumber) {
     phoneStore.startCall(phoneStore.dialedNumber, false)
+  } else if (matchedContact.value) {
+    phoneStore.startCall(matchedContact.value, false)
   }
 }
 
@@ -50,10 +93,55 @@ const formattedNumber = computed(() => {
   if (n.length <= 7) return `${n.slice(0, 3)} ${n.slice(3)}`
   return `${n.slice(0, 3)} ${n.slice(3, 7)} ${n.slice(7)}`
 })
+
+// 智能联系人联想匹配（输入号码时在键盘上方浮出最佳匹配联系人）
+const matchedContact = computed(() => {
+  const clean = phoneStore.dialedNumber.replace(/\D/g, '')
+  if (!clean || clean.length < 2) return null
+  return phoneStore.contacts.find(c => c.number.replace(/\D/g, '').includes(clean)) || null
+})
+
+// 顶部手柄下滑收起键盘
+let dragStartY = 0
+function handleDragStart(e) {
+  if (e.touches?.length) {
+    dragStartY = e.touches[0].clientY
+  }
+}
+
+function handleDragMove(e) {
+  if (!e.touches?.length) return
+  const dy = e.touches[0].clientY - dragStartY
+  if (dy > 30) {
+    phoneStore.isKeypadOpen = false
+  }
+}
 </script>
 
 <template>
   <div class="phone-keypad-panel">
+    <!-- 顶部下滑收起拖拽手柄 -->
+    <div
+      class="keypad-drag-bar"
+      @touchstart.passive="handleDragStart"
+      @touchmove.passive="handleDragMove"
+      @click="phoneStore.isKeypadOpen = false"
+    >
+      <div class="drag-pill"></div>
+    </div>
+
+    <!-- 智能联系人联想推荐胶囊条 -->
+    <div v-if="matchedContact" class="contact-suggest-pill" @click="phoneStore.startCall(matchedContact)">
+      <div class="suggest-avatar" :style="{ backgroundColor: matchedContact.color || '#3B82F6' }">
+        {{ matchedContact.name?.slice(0, 1) }}
+      </div>
+      <div class="suggest-info">
+        <span class="suggest-name">{{ matchedContact.name }}</span>
+        <span class="suggest-num">{{ matchedContact.number }}</span>
+      </div>
+      <div class="suggest-call-btn">呼叫</div>
+    </div>
+
     <!-- 顶部拨号回显条（输入时滑入） -->
     <div class="keypad-display-row" :class="{ visible: phoneStore.dialedNumber }">
       <div class="dialed-number-text">{{ formattedNumber }}</div>
@@ -68,8 +156,10 @@ const formattedNumber = computed(() => {
       >
         <button
           class="keypad-circle-btn"
-          @click="handleKeyPress(k)"
-          @contextmenu.prevent="k.num === '0' ? handleZeroLongPress() : null"
+          @click="handleKeyClick(k)"
+          @touchstart.passive="handleKeyTouchStart(k)"
+          @touchend.passive="handleKeyTouchEnd"
+          @contextmenu.prevent="handleKeyLongPress(k)"
         >
           <span class="key-digit">{{ k.num }}</span>
           <!-- 1 键语音信箱图标 -->
@@ -121,6 +211,13 @@ const formattedNumber = computed(() => {
         </svg>
       </button>
     </div>
+
+    <!-- 快速提示条 -->
+    <Transition name="fade">
+      <div v-if="toastText" class="keypad-toast">
+        {{ toastText }}
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -129,7 +226,81 @@ const formattedNumber = computed(() => {
   display: flex;
   flex-direction: column;
   background: transparent;
-  padding: 4px 18px 8px;
+  padding: 0 18px 8px;
+  position: relative;
+}
+
+/* 顶部拖拽手柄 */
+.keypad-drag-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  cursor: pointer;
+}
+
+.drag-pill {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: #E5E7EB;
+}
+
+/* 智能联想条 */
+.contact-suggest-pill {
+  display: flex;
+  align-items: center;
+  padding: 6px 14px;
+  background: #F2F3F5;
+  border-radius: 999px;
+  margin: 0 auto 6px;
+  gap: 8px;
+  cursor: pointer;
+  max-width: 90%;
+  animation: fadeIn 0.2s ease;
+}
+
+.suggest-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.suggest-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.suggest-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1C1C1E;
+  white-space: nowrap;
+}
+
+.suggest-num {
+  font-size: 12px;
+  color: #8E8E93;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggest-call-btn {
+  font-size: 12px;
+  font-weight: 600;
+  color: #00C853;
+  flex-shrink: 0;
 }
 
 /* 顶部号码回显：默认未输入时高度收起为 0，输入文字后平滑增高展现，对齐真机交互规范 */
@@ -285,5 +456,20 @@ const formattedNumber = computed(() => {
 .main-call-btn:active {
   transform: scale(0.93);
   background-color: #00B348;
+}
+
+.keypad-toast {
+  position: absolute;
+  top: -42px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: #FFFFFF;
+  font-size: 13px;
+  padding: 7px 16px;
+  border-radius: 18px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 50;
 }
 </style>

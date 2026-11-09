@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { usePhoneStore } from '../../../../stores/phoneStore'
 import PhoneAutoRecord from './PhoneAutoRecord.vue'
+import PhoneNoiseReduction from './PhoneNoiseReduction.vue'
 import PhoneAiAssistant from './PhoneAiAssistant.vue'
 import PhoneFlashCallSettings from './PhoneFlashCallSettings.vue'
 import PhoneHarassmentInterception from './PhoneHarassmentInterception.vue'
@@ -65,10 +66,20 @@ defineExpose({
       </div>
 
       <div class="settings-list scrollable">
-        <!-- 第 1 组卡片（3项）：自动通话录音、AI 通话助手（红点）、Flash Call -->
+        <!-- 第 1 组卡片（4项）：自动通话录音、全场景降噪、AI 通话助手（红点）、Flash Call -->
         <div class="settings-group">
           <div class="setting-item-row" @click="subpage = 'autoRecord'">
             <span class="item-title">自动通话录音</span>
+            <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
+              <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="setting-item-row with-subtitle" @click="subpage = 'noiseReduction'">
+            <div class="title-sub-col">
+              <span class="item-title">全场景降噪</span>
+              <span class="item-subtitle">智能降低语音场景中的噪声。</span>
+            </div>
             <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
               <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -179,6 +190,7 @@ defineExpose({
     <!-- 各子页面动态挂载 -->
     <Transition name="slide">
       <PhoneAutoRecord ref="subpageRef" v-if="subpage === 'autoRecord'" @back="handleSubpageBack" />
+      <PhoneNoiseReduction ref="subpageRef" v-else-if="subpage === 'noiseReduction'" @back="handleSubpageBack" />
       <PhoneAiAssistant ref="subpageRef" v-else-if="subpage === 'aiAssistant'" @back="handleSubpageBack" />
       <PhoneFlashCallSettings ref="subpageRef" v-else-if="subpage === 'flashCall'" @back="handleSubpageBack" />
       <PhoneHarassmentInterception ref="subpageRef" v-else-if="subpage === 'block'" @back="handleSubpageBack" />
@@ -317,6 +329,17 @@ defineExpose({
   font-size: 16px;
   font-weight: 500;
   color: #1C1C1E;
+}
+
+.title-sub-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.item-subtitle {
+  font-size: 13px;
+  color: #8E8E93;
 }
 
 .title-with-badge {

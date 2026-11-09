@@ -107,6 +107,15 @@ const SUITES = [
     id: 'volume-glass',
     script: 'probe-volume-glass.mjs',
     covers: ['src/components/system/ControlCenter.vue', 'src/stores/controlStore.js', 'src/styles/']
+  },
+  {
+    id: 'phone',
+    script: 'verify-phone-flow.mjs',
+    covers: [
+      'src/components/apps/phone/',
+      'src/stores/phoneStore.js',
+      'tests/phoneApp.test.js'
+    ]
   }
 ]
 

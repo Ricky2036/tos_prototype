@@ -78,6 +78,51 @@ test('phoneStore manages call logs, contacts, keypad, and settings properly', ()
   assert.ok(store.settings.blackList.includes('10086'))
   store.removeBlackListNumber('10086')
   assert.equal(store.settings.blackList.includes('10086'), false)
+
+  // 10. Recents deletion & clearing
+  const firstId = store.recents[0].id
+  store.removeRecent(firstId)
+  assert.equal(store.recents.some(r => r.id === firstId), false)
+
+  // 11. Contact Management (Add, Update, Remove)
+  const initialContactsCount = store.contacts.length
+  const createdContact = store.addContact({
+    name: '测试新朋友',
+    number: '138 0000 8899',
+    tag: '常用',
+    company: '测试科技'
+  })
+  assert.ok(createdContact)
+  assert.equal(store.contacts.length, initialContactsCount + 1)
+  assert.equal(createdContact.name, '测试新朋友')
+  assert.equal(createdContact.tag, '常用')
+
+  store.updateContact(createdContact.id, { name: '测试新朋友改名' })
+  assert.equal(store.contacts.find(c => c.id === createdContact.id)?.name, '测试新朋友改名')
+
+  store.removeContact(createdContact.id)
+  assert.equal(store.contacts.length, initialContactsCount)
+
+  // 12. Speed Dial execution
+  store.dialSpeedKey(1) // 语音邮件
+  assert.ok(store.activeCall)
+  assert.equal(store.activeCall.name, '语音邮件')
+  store.endCall()
+
+  // 13. Whitelist & Block Keywords
+  store.addWhiteListNumber('138 0000 0001')
+  assert.ok(store.settings.whiteList.includes('138 0000 0001'))
+  store.removeWhiteListNumber('138 0000 0001')
+  assert.equal(store.settings.whiteList.includes('138 0000 0001'), false)
+
+  store.addBlockKeyword('推销')
+  assert.ok(store.settings.blockKeywords.includes('推销'))
+  store.removeBlockKeyword('推销')
+  assert.equal(store.settings.blockKeywords.includes('推销'), false)
+
+  // 14. Noise Reduction Settings
+  assert.equal(store.settings.noiseReductionSystem, '标准降噪')
+  assert.equal(store.settings.noiseReductionVoip, '标准降噪')
 })
 
 test('All Phone app components follow strict design rules without AI vertical borders', () => {
@@ -89,8 +134,13 @@ test('All Phone app components follow strict design rules without AI vertical bo
     'src/components/apps/phone/PhoneSearch.vue',
     'src/components/apps/phone/PhoneFlashCallModal.vue',
     'src/components/apps/phone/PhoneCallScreen.vue',
+    'src/components/apps/phone/PhoneCallDetailModal.vue',
+    'src/components/apps/phone/PhoneContactDetailModal.vue',
+    'src/components/apps/phone/PhoneAddContactModal.vue',
+    'src/components/apps/phone/PhoneMergeModal.vue',
     'src/components/apps/phone/settings/PhoneSettings.vue',
     'src/components/apps/phone/settings/PhoneAutoRecord.vue',
+    'src/components/apps/phone/settings/PhoneNoiseReduction.vue',
     'src/components/apps/phone/settings/PhoneAiAssistant.vue',
     'src/components/apps/phone/settings/PhoneFlashCallSettings.vue',
     'src/components/apps/phone/settings/PhoneHarassmentInterception.vue',
@@ -123,6 +173,10 @@ test('PhoneApp properly integrates all tabs, keypad, search, settings, and calli
   assert.match(content, /import PhoneSearch from '\.\/PhoneSearch\.vue'/)
   assert.match(content, /import PhoneFlashCallModal from '\.\/PhoneFlashCallModal\.vue'/)
   assert.match(content, /import PhoneCallScreen from '\.\/PhoneCallScreen\.vue'/)
+  assert.match(content, /import PhoneCallDetailModal from '\.\/PhoneCallDetailModal\.vue'/)
+  assert.match(content, /import PhoneContactDetailModal from '\.\/PhoneContactDetailModal\.vue'/)
+  assert.match(content, /import PhoneAddContactModal from '\.\/PhoneAddContactModal\.vue'/)
+  assert.match(content, /import PhoneMergeModal from '\.\/PhoneMergeModal\.vue'/)
   assert.match(content, /import PhoneSettings from '\.\/settings\/PhoneSettings\.vue'/)
 
   assert.match(content, /PhoneRecentsTab/)
@@ -131,6 +185,10 @@ test('PhoneApp properly integrates all tabs, keypad, search, settings, and calli
   assert.match(content, /PhoneSearch/)
   assert.match(content, /PhoneFlashCallModal/)
   assert.match(content, /PhoneCallScreen/)
+  assert.match(content, /PhoneCallDetailModal/)
+  assert.match(content, /PhoneContactDetailModal/)
+  assert.match(content, /PhoneAddContactModal/)
+  assert.match(content, /PhoneMergeModal/)
   assert.match(content, /PhoneSettings/)
 })
 
