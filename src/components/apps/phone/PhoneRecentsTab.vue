@@ -5,75 +5,157 @@ import { usePhoneStore } from '../../../stores/phoneStore'
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['scroll', 'openFlashCall', 'openDetail'])
 
-// 侧滑操作状态：当前滑开操作栏的记录 ID
-const swipedRowId = ref(null)
+// 跟手滑动状态管理（参考 NotificationCenter.vue 契约）
+const swipeOffsets = ref({}) // recentId -> offset number
+const activeSwipeId = ref(null)
+const transitionRowId = ref(null)
 
-// 滑动手势检测
-let touchStartX = 0
-let touchStartY = 0
-let isHorizontalDrag = false
+let pointerStartX = 0
+let pointerStartY = 0
+let pointerInitialOffset = 0
+let pointerId = null
+let pointerTarget = null
+let gestureDecided = false
+let isSwiping = false
+let lastSwipeEndTime = 0
+let justSwipedId = null
 let longPressTimer = null
 
-function handleTouchStart(e, r) {
-  if (e.touches?.length) {
-    touchStartX = e.touches[0].clientX
-    touchStartY = e.touches[0].clientY
-    isHorizontalDrag = false
-
-    // 长按手势检测（500ms 触发 Flash Call）
-    clearTimeout(longPressTimer)
-    longPressTimer = setTimeout(() => {
-      phoneStore.flashCallTarget = r
-    }, 550)
+function getRowContentStyle(id) {
+  const offset = swipeOffsets.value[id] || 0
+  return {
+    transform: `translateX(${offset}px)`
   }
 }
 
-function handleTouchMove(e, r) {
-  if (!e.touches?.length) return
-  const dx = e.touches[0].clientX - touchStartX
-  const dy = e.touches[0].clientY - touchStartY
+function onRowPointerDown(e, r) {
+  if (e.target.closest('.info-btn, .swipe-btn, button')) return
 
-  // 如果有明显移动，取消长按
-  if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-    clearTimeout(longPressTimer)
-  }
+  activeSwipeId.value = r.id
+  pointerStartX = e.clientX
+  pointerStartY = e.clientY
+  pointerInitialOffset = swipeOffsets.value[r.id] || 0
+  gestureDecided = false
+  isSwiping = false
+  pointerId = e.pointerId
+  pointerTarget = e.currentTarget
 
-  // 垂直移动：收起拨号盘
-  if (Math.abs(dy) > Math.abs(dx)) {
-    if (dy < -30 && phoneStore.isKeypadOpen) {
-      phoneStore.isKeypadOpen = false
-    }
-    return
-  }
-
-  // 水平滑动判定
-  if (Math.abs(dx) > 15) {
-    isHorizontalDrag = true
-    if (dx < -45) {
-      // 向左滑开操作菜单
-      swipedRowId.value = r.id
-    } else if (dx > 45 && swipedRowId.value === r.id) {
-      // 向右滑动收回
-      swipedRowId.value = null
-    }
-  }
-}
-
-function handleTouchEnd(e, r) {
   clearTimeout(longPressTimer)
+  longPressTimer = setTimeout(() => {
+    if (!isSwiping) {
+      phoneStore.flashCallTarget = r
+    }
+  }, 550)
 }
 
-function handleItemClick(recent) {
-  if (swipedRowId.value) {
-    swipedRowId.value = null
+function onRowPointerMove(e, r) {
+  if (activeSwipeId.value !== r.id) return
+  const dx = e.clientX - pointerStartX
+  const dy = e.clientY - pointerStartY
+
+  if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+    clearTimeout(longPressTimer)
+  }
+
+  if (!gestureDecided) {
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+      gestureDecided = true
+      if (Math.abs(dx) > Math.abs(dy)) {
+        isSwiping = true
+        try {
+          pointerTarget?.setPointerCapture(pointerId)
+        } catch (_) {}
+      } else {
+        isSwiping = false
+        // 垂直移动：收起拨号盘
+        if (dy < -20 && phoneStore.isKeypadOpen) {
+          phoneStore.isKeypadOpen = false
+        }
+      }
+    }
+  }
+
+  if (isSwiping) {
+    e.preventDefault?.()
+    let nextOffset = pointerInitialOffset + dx
+    // 右拉阻尼
+    if (nextOffset > 0) nextOffset = nextOffset * 0.2
+    // 左拉阻尼
+    if (nextOffset < -136) nextOffset = -136 + (nextOffset + 136) * 0.2
+
+    swipeOffsets.value = {
+      ...swipeOffsets.value,
+      [r.id]: nextOffset
+    }
+  }
+}
+
+function onRowPointerUp(e, r) {
+  clearTimeout(longPressTimer)
+  if (activeSwipeId.value !== r.id) return
+
+  if (isSwiping) {
+    lastSwipeEndTime = Date.now()
+    justSwipedId = r.id
+    transitionRowId.value = r.id
+
+    setTimeout(() => {
+      if (justSwipedId === r.id) justSwipedId = null
+    }, 350)
+    setTimeout(() => {
+      if (transitionRowId.value === r.id) transitionRowId.value = null
+    }, 280)
+
+    const currentOffset = swipeOffsets.value[r.id] || 0
+    if (currentOffset < -45) {
+      const newOffsets = {}
+      newOffsets[r.id] = -136
+      swipeOffsets.value = newOffsets
+    } else {
+      const next = { ...swipeOffsets.value }
+      delete next[r.id]
+      swipeOffsets.value = next
+    }
+  }
+
+  try {
+    pointerTarget?.releasePointerCapture(pointerId)
+  } catch (_) {}
+  activeSwipeId.value = null
+  isSwiping = false
+  gestureDecided = false
+  pointerTarget = null
+  pointerId = null
+}
+
+function handleItemClick(e, r) {
+  // 1. 如果刚完成滑动操作（350ms 内），拦截合成的 click 事件，严禁误触发拨号
+  if (Date.now() - lastSwipeEndTime < 350 || justSwipedId === r.id) {
+    justSwipedId = null
     return
   }
-  phoneStore.startCall(recent)
+
+  // 2. 如果当前行正处于滑开状态，点击行为是收起菜单，绝不拨号
+  if ((swipeOffsets.value[r.id] || 0) < -10) {
+    const next = { ...swipeOffsets.value }
+    delete next[r.id]
+    swipeOffsets.value = next
+    return
+  }
+
+  // 3. 如果列表中有其他行处于滑开状态，点击任意行先关闭所有滑开的菜单，不拨号
+  if (Object.values(swipeOffsets.value).some(v => v < -10)) {
+    swipeOffsets.value = {}
+    return
+  }
+
+  // 4. 正常点击无滑开状态才进入拨号
+  phoneStore.startCall(r)
 }
 
 function handleInfoClick(e, recent) {
   e.stopPropagation()
-  swipedRowId.value = null
+  swipeOffsets.value = {}
   phoneStore.selectedRecent = recent
 }
 
@@ -85,13 +167,17 @@ function handleLongPress(recent) {
 function handleDeleteRecent(e, id) {
   e.stopPropagation()
   phoneStore.removeRecent(id)
-  swipedRowId.value = null
+  const next = { ...swipeOffsets.value }
+  delete next[id]
+  swipeOffsets.value = next
 }
 
 function handleQuickCall(e, recent) {
   e.stopPropagation()
   phoneStore.startCall(recent)
-  swipedRowId.value = null
+  const next = { ...swipeOffsets.value }
+  delete next[recent.id]
+  swipeOffsets.value = next
 }
 </script>
 
@@ -115,20 +201,16 @@ function handleQuickCall(e, recent) {
         v-for="r in phoneStore.filteredRecents"
         :key="r.id"
         class="recent-swipe-cell"
-        :class="{ 'is-swiped': swipedRowId === r.id }"
-        @touchstart.passive="handleTouchStart($event, r)"
-        @touchmove.passive="handleTouchMove($event, r)"
-        @touchend.passive="handleTouchEnd($event, r)"
       >
         <!-- 侧滑露出的操作底板（呼叫与删除） -->
-        <div class="swipe-actions-bg">
-          <button class="swipe-btn btn-call" title="呼叫" @click="handleQuickCall($event, r)">
+        <div class="swipe-actions-bg" :class="{ 'is-active': (swipeOffsets[r.id] || 0) < -2 }">
+          <button class="swipe-btn btn-call" title="呼叫" @click.stop="handleQuickCall($event, r)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="#FFFFFF">
               <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-2.2 2.2a15.047 15.047 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.01A11.36 11.36 0 018.57 3.9c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.52c0-.55-.45-1-.99-1z" />
             </svg>
             <span class="swipe-label">呼叫</span>
           </button>
-          <button class="swipe-btn btn-delete" title="删除" @click="handleDeleteRecent($event, r.id)">
+          <button class="swipe-btn btn-delete" title="删除" @click.stop="handleDeleteRecent($event, r.id)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2">
               <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
             </svg>
@@ -136,10 +218,19 @@ function handleQuickCall(e, recent) {
           </button>
         </div>
 
-        <!-- 前景主要内容行 -->
+        <!-- 前景主要内容行（1:1 跟手滑动） -->
         <div
           class="recent-row-content"
-          @click="handleItemClick(r)"
+          :style="getRowContentStyle(r.id)"
+          :class="{
+            'is-swiping': activeSwipeId === r.id,
+            'has-swipe-transition': transitionRowId === r.id
+          }"
+          @pointerdown="onRowPointerDown($event, r)"
+          @pointermove="onRowPointerMove($event, r)"
+          @pointerup="onRowPointerUp($event, r)"
+          @pointercancel="onRowPointerUp($event, r)"
+          @click="handleItemClick($event, r)"
           @contextmenu.prevent="handleLongPress(r)"
         >
           <!-- 通话方向/状态图标 -->
@@ -236,9 +327,10 @@ function handleQuickCall(e, recent) {
   width: 100%;
   overflow: hidden;
   background: #FFFFFF;
+  touch-action: pan-y;
 }
 
-/* 侧滑底板 */
+/* 侧滑底板：仅当滑动时展示与激活点击 */
 .swipe-actions-bg {
   position: absolute;
   top: 0;
@@ -247,6 +339,14 @@ function handleQuickCall(e, recent) {
   display: flex;
   width: 136px;
   z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.swipe-actions-bg.is-active {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .swipe-btn {
@@ -279,7 +379,7 @@ function handleQuickCall(e, recent) {
   color: #FFFFFF;
 }
 
-/* 前景内容行（侧滑移动） */
+/* 前景内容行（跟手滑动） */
 .recent-row-content {
   position: relative;
   display: flex;
@@ -290,8 +390,18 @@ function handleQuickCall(e, recent) {
   cursor: pointer;
   user-select: none;
   z-index: 2;
-  transition: transform 0.22s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.15s ease;
+  touch-action: pan-y;
   will-change: transform;
+}
+
+/* 正在跟手滑动：无 transition，实时像素对齐 */
+.recent-row-content.is-swiping {
+  transition: none !important;
+}
+
+/* 松手后的平滑回弹 / 吸附过渡 */
+.recent-row-content.has-swipe-transition {
+  transition: transform 0.28s cubic-bezier(0.25, 1, 0.5, 1) !important;
 }
 
 .recent-swipe-cell.is-swiped .recent-row-content {

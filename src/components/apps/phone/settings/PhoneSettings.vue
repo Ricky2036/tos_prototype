@@ -17,6 +17,8 @@ import PhoneVideoShow from './PhoneVideoShow.vue'
 import PhoneAdvancedSettings from './PhoneAdvancedSettings.vue'
 import PhoneCarrierFeatures from './PhoneCarrierFeatures.vue'
 import PhoneAbout from './PhoneAbout.vue'
+import SettingsSim from '../../settings/SettingsSim.vue'
+import SettingsSound from '../../settings/SettingsSound.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['back', 'openSystemSettings'])
@@ -113,14 +115,14 @@ defineExpose({
               </svg>
             </div>
 
-            <div class="setting-item-row" data-action="open-system-sim" @click="emit('openSystemSettings', 'sim')">
+            <div class="setting-item-row" data-action="open-system-sim" @click="openSubView('sim')">
               <span class="item-title">SIM 卡与网络设置</span>
               <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
                 <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
 
-            <div class="setting-item-row" data-action="open-system-sound" @click="emit('openSystemSettings', 'sound')">
+            <div class="setting-item-row" data-action="open-system-sound" @click="openSubView('sound')">
               <span class="item-title">声音与振动</span>
               <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
                 <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -193,6 +195,8 @@ defineExpose({
       <PhoneAdvancedSettings ref="subpageRef" v-else-if="subpage === 'advanced'" key="advanced" class="subpage-view-pane" @back="closeSubView" />
       <PhoneCarrierFeatures ref="subpageRef" v-else-if="subpage === 'carrier'" key="carrier" class="subpage-view-pane" @back="closeSubView" />
       <PhoneAbout ref="subpageRef" v-else-if="subpage === 'about'" key="about" class="subpage-view-pane" @back="closeSubView" />
+      <SettingsSim ref="subpageRef" v-else-if="subpage === 'sim'" key="sim" class="subpage-view-pane" @back="closeSubView" />
+      <SettingsSound ref="subpageRef" v-else-if="subpage === 'sound'" key="sound" class="subpage-view-pane" @back="closeSubView" />
     </Transition>
 
     <!-- 来电语音播报选择弹窗（规范 SheetOptionPicker） -->

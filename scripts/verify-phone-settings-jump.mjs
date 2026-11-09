@@ -58,7 +58,94 @@ try {
   const phoneApp = page.locator('.phone-app')
   assert('电话应用窗口可见', await phoneApp.isVisible())
 
-  head('2. 进入电话设置页面')
+  head('2. 拨号盘小横条手柄 (Drag Pill) 渲染与滑动收起过渡')
+  const dragPill = page.locator('.keypad-drag-bar .drag-pill')
+  assert('拨号盘顶部小横条手柄可见', await dragPill.isVisible())
+  const pillBg = await dragPill.evaluate((el) => getComputedStyle(el).backgroundColor)
+  assert('小横条手柄具备足够对比度灰阶 (#C4C7CC)', pillBg.includes('196') || pillBg.includes('209') || pillBg.includes('199') || pillBg.includes('197') || pillBg.includes('198'), pillBg)
+
+  // 测试轻滑列表收起拨号盘
+  const scroller = page.locator('.phone-scroll-viewport')
+  await page.evaluate(() => {
+    const s = document.querySelector('.phone-scroll-viewport')
+    s.scrollTop = 40
+    s.dispatchEvent(new Event('scroll'))
+  })
+  await page.waitForTimeout(400)
+  assert('列表滑动后拨号盘顺滑收起', !(await page.locator('.keypad-drawer-wrap').isVisible()))
+
+  head('3. 通话记录列表跟手侧滑交互与防止误拨号')
+  const firstCell = page.locator('.recent-swipe-cell').first()
+  const firstRowContent = firstCell.locator('.recent-row-content')
+  assert('首条通话记录行可见', await firstRowContent.isVisible())
+
+  // 获取首行坐标进行跟手拖拽模拟（取行中央偏右区域，避开右侧详情按钮与左侧图标）
+  const rowBox = await firstRowContent.boundingBox()
+  assert('拿到通话记录行几何位置', !!rowBox)
+
+  const startX = rowBox.x + rowBox.width / 2
+  const startY = rowBox.y + rowBox.height / 2
+
+  // 1) 模拟 PointerDown
+  await page.mouse.move(startX, startY)
+  await page.mouse.down()
+  await page.waitForTimeout(50)
+
+  // 2) 模拟向左拖拽 70px (触发跟手拖拽)
+  await page.mouse.move(startX - 70, startY, { steps: 5 })
+  await page.waitForTimeout(50)
+
+  const midOffset = await firstRowContent.evaluate((el) => {
+    const t = getComputedStyle(el).transform
+    if (!t || t === 'none') return 0
+    const m = t.match(/matrix\([^,]+,[^,]+,[^,]+,[^,]+,\s*([^,]+),/)
+    return m ? parseFloat(m[1]) : 0
+  })
+  assert('跟手滑动过程中位移实时响应 (< -20px)', midOffset < -20, midOffset)
+
+  // 3) 继续拖拽至 -100px 并释放
+  await page.mouse.move(startX - 100, startY, { steps: 3 })
+  await page.mouse.up()
+  await page.waitForTimeout(350)
+
+  // 4) 验证吸附至 -136px
+  const finalOffset = await firstRowContent.evaluate((el) => {
+    const t = getComputedStyle(el).transform
+    if (!t || t === 'none') return 0
+    const m = t.match(/matrix\([^,]+,[^,]+,[^,]+,[^,]+,\s*([^,]+),/)
+    return m ? parseFloat(m[1]) : 0
+  })
+  assert('松手后平滑吸附到操作栏宽度 (-136px)', Math.abs(finalOffset - (-136)) < 5, finalOffset)
+
+  // 5) 严禁误触发拨号
+  const isCalling = await page.evaluate(() => {
+    const p = window.usePhoneStore ? window.usePhoneStore() : null
+    return !!p?.activeCall
+  })
+  assert('滑动后松手绝不触发误拨号', !isCalling)
+
+  // 6) 验证呼叫与删除操作按钮处于激活态
+  const swipeActions = firstCell.locator('.swipe-actions-bg')
+  assert('呼叫与删除底板激活可见', await swipeActions.isVisible())
+  await page.screenshot({ path: `${OUT}/01-follow-finger-swiped.png` })
+
+  // 7) 点击处于滑开状态的行：只收起菜单，绝不拨号
+  await firstRowContent.click()
+  await page.waitForTimeout(350)
+  const isCallingAfterClick = await page.evaluate(() => {
+    const p = window.usePhoneStore ? window.usePhoneStore() : null
+    return !!p?.activeCall
+  })
+  assert('点击滑开状态的行不触发拨号', !isCallingAfterClick)
+  const closedOffset = await firstRowContent.evaluate((el) => {
+    const t = getComputedStyle(el).transform
+    if (!t || t === 'none') return 0
+    const m = t.match(/matrix\([^,]+,[^,]+,[^,]+,[^,]+,\s*([^,]+),/)
+    return m ? parseFloat(m[1]) : 0
+  })
+  assert('点击滑开状态行后顺利归位收起 (offset ≈ 0)', Math.abs(closedOffset) < 5, closedOffset)
+
+  head('4. 进入电话设置页面')
   const settingsBtn = page.locator('.header-action-btn.settings-trigger')
   assert('设置齿轮图标可见', await settingsBtn.isVisible())
   await settingsBtn.click()
@@ -66,69 +153,43 @@ try {
 
   const phoneSettings = page.locator('.phone-settings-page')
   assert('通话设置主页面可见', await phoneSettings.isVisible())
-  await page.screenshot({ path: `${OUT}/settings-jump-01-phone-settings.png` })
 
-  head('3. 测试 SIM 卡与网络设置跳转系统设置')
+  head('5. 测试 SIM 卡与网络设置：复用二级菜单加载动画')
   const simRow = page.locator('.phone-settings-page [data-action="open-system-sim"]')
   assert('SIM 卡与网络设置入口可见', await simRow.isVisible())
   await simRow.click()
-  await page.waitForTimeout(800)
-
-  // 验证当前应用已切换为 settings
-  const activeApp = await page.evaluate(() => window.__system?.activeAppId)
-  assert('当前激活应用切换为 settings', activeApp === 'settings', activeApp)
-
-  // 验证设置页面呈现 SIM 卡与网络设置子页
-  const simPage = page.locator('.sim-scroll-body')
-  assert('系统设置 SIM 卡与网络设置页面可见', await simPage.isVisible())
-  await page.screenshot({ path: `${OUT}/settings-jump-02-system-sim.png` })
-
-  // 点击系统设置 SIM 页导航栏返回
-  const navBack = page.locator('.settings-app [data-nav-back]').first()
-  assert('SIM 页返回按钮可见', await navBack.isVisible())
-  await navBack.click()
-  await page.waitForTimeout(500)
-
-  // 验证返回至系统设置主页
-  const settingsMain = page.locator('.settings-app .settings-scroll-container')
-  assert('返回至系统设置主页', await settingsMain.isVisible())
-  await page.screenshot({ path: `${OUT}/settings-jump-03-system-main.png` })
-
-  head('4. 切回电话应用并测试 声音与振动 跳转系统设置')
-  await page.evaluate(() => {
-    if (window.__system?.openApp) {
-      window.__system.openApp('phone')
-    }
-  })
-  await page.waitForTimeout(800)
-
-  const settingsBtnAgain = page.locator('.header-action-btn.settings-trigger')
-  assert('重新进入电话设置：设置齿轮可见', await settingsBtnAgain.isVisible())
-  await settingsBtnAgain.click()
   await page.waitForTimeout(400)
 
-  assert('切回电话应用设置页面', await phoneSettings.isVisible())
+  // 验证在当前窗口中以二级子页滑入呈现，不使用系统应用启动动画
+  const simSubpage = page.locator('.phone-settings-page .subpage-view-pane .sim-scroll-body')
+  assert('SIM 卡与网络设置以二级子页流畅挂载呈现', await simSubpage.isVisible())
+  await page.screenshot({ path: `${OUT}/02-settings-sim-subpage.png` })
 
+  // 点击子页导航栏返回
+  const simNavBack = page.locator('.phone-settings-page .subpage-view-pane [data-nav-back]').first()
+  assert('SIM 页返回按钮可见', await simNavBack.isVisible())
+  await simNavBack.click()
+  await page.waitForTimeout(400)
+
+  assert('平滑返回至通话设置主列表', await page.locator('.settings-main-view').isVisible())
+
+  head('6. 测试 声音与振动：复用二级菜单加载动画')
   const soundRow = page.locator('.phone-settings-page [data-action="open-system-sound"]')
   assert('声音与振动入口可见', await soundRow.isVisible())
   await soundRow.click()
-  await page.waitForTimeout(800)
+  await page.waitForTimeout(400)
 
-  const activeAppAfterSound = await page.evaluate(() => window.__system?.activeAppId)
-  assert('当前激活应用切换为 settings', activeAppAfterSound === 'settings', activeAppAfterSound)
+  const soundSubpage = page.locator('.phone-settings-page .subpage-view-pane .sound-scroll-body')
+  assert('声音与振动以二级子页流畅挂载呈现', await soundSubpage.isVisible())
+  await page.screenshot({ path: `${OUT}/03-settings-sound-subpage.png` })
 
-  const soundPage = page.locator('.sound-scroll-body')
-  assert('系统设置声音与振动页面可见', await soundPage.isVisible())
-  await page.screenshot({ path: `${OUT}/settings-jump-04-system-sound.png` })
-
-  // 点击系统设置声音页导航栏返回
-  const soundNavBack = page.locator('.settings-app [data-nav-back]').first()
+  // 点击子页导航栏返回
+  const soundNavBack = page.locator('.phone-settings-page .subpage-view-pane [data-nav-back]').first()
   assert('声音与振动页返回按钮可见', await soundNavBack.isVisible())
   await soundNavBack.click()
-  await page.waitForTimeout(500)
+  await page.waitForTimeout(400)
 
-  assert('再次返回至系统设置主页', await settingsMain.isVisible())
-  await page.screenshot({ path: `${OUT}/settings-jump-05-system-main-after-sound.png` })
+  assert('再次平滑返回至通话设置主列表', await page.locator('.settings-main-view').isVisible())
 
 } catch (err) {
   fails.push(`Exception: ${err.message}`)

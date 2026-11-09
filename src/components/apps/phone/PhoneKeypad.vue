@@ -235,15 +235,24 @@ function handleDragMove(e) {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 20px;
+  height: 24px;
+  padding-top: 10px;
+  padding-bottom: 6px;
   cursor: pointer;
+  user-select: none;
 }
 
 .drag-pill {
-  width: 36px;
+  width: 38px;
   height: 4px;
   border-radius: 2px;
-  background: #E5E7EB;
+  background: #C4C7CC;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.keypad-drag-bar:active .drag-pill {
+  background: #9CA3AF;
+  transform: scaleY(1.2);
 }
 
 /* 智能联想条 */

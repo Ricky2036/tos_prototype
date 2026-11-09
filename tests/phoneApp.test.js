@@ -206,22 +206,46 @@ test('PhoneCallDisplayModal conforms to big-card container and dual phone model 
   assert.match(content, /phoneStore\.callDisplayMode\s*=\s*'fullscreen'/)
 })
 
-test('PhoneSettings routes SIM and Sound entries to system settings via notificationsStore and systemStore', () => {
+test('PhoneSettings loads SIM and Sound subpages using secondary menu slide animation', () => {
   const settingsPath = path.resolve('src/components/apps/phone/settings/PhoneSettings.vue')
   const settingsContent = fs.readFileSync(settingsPath, 'utf-8')
-  assert.match(settingsContent, /openSystemSettings.*'sim'/, 'SIM row must emit openSystemSettings with sim')
-  assert.match(settingsContent, /openSystemSettings.*'sound'/, 'Sound row must emit openSystemSettings with sound')
-
-  const appPath = path.resolve('src/components/apps/phone/PhoneApp.vue')
-  const appContent = fs.readFileSync(appPath, 'utf-8')
-  assert.match(appContent, /useSystemStore/)
-  assert.match(appContent, /useNotificationsStore/)
-  assert.match(appContent, /notificationsStore\.setTargetView\(category\)/)
-  assert.match(appContent, /systemStore\.openApp\('settings'\)/)
+  assert.match(settingsContent, /import SettingsSim from '\.\.\/\.\.\/settings\/SettingsSim\.vue'/)
+  assert.match(settingsContent, /import SettingsSound from '\.\.\/\.\.\/settings\/SettingsSound\.vue'/)
+  assert.match(settingsContent, /openSubView\('sim'\)/, 'SIM row must open subview sim')
+  assert.match(settingsContent, /openSubView\('sound'\)/, 'Sound row must open subview sound')
+  assert.match(settingsContent, /SettingsSim ref="subpageRef" v-else-if="subpage === 'sim'"/)
+  assert.match(settingsContent, /SettingsSound ref="subpageRef" v-else-if="subpage === 'sound'"/)
 
   const sysSettingsPath = path.resolve('src/components/apps/settings/SettingsApp.vue')
   const sysSettingsContent = fs.readFileSync(sysSettingsPath, 'utf-8')
   assert.match(sysSettingsContent, /initialStack = \['main', notificationsStore\.targetView\]/)
   assert.match(sysSettingsContent, /stack\.value = \['main', newTarget\]/)
+})
+
+test('PhoneRecentsTab implements follow-finger swipe gestures and accidental dial prevention', () => {
+  const recentsPath = path.resolve('src/components/apps/phone/PhoneRecentsTab.vue')
+  const content = fs.readFileSync(recentsPath, 'utf-8')
+
+  assert.match(content, /swipeOffsets/)
+  assert.match(content, /activeSwipeId/)
+  assert.match(content, /onRowPointerDown/)
+  assert.match(content, /onRowPointerMove/)
+  assert.match(content, /onRowPointerUp/)
+  assert.match(content, /lastSwipeEndTime/)
+  assert.match(content, /is-swiping/)
+  assert.match(content, /has-swipe-transition/)
+})
+
+test('PhoneKeypad contains clearly visible drag pill handle and smooth drawer slide', () => {
+  const keypadPath = path.resolve('src/components/apps/phone/PhoneKeypad.vue')
+  const keypadContent = fs.readFileSync(keypadPath, 'utf-8')
+  assert.match(keypadContent, /keypad-drag-bar/)
+  assert.match(keypadContent, /drag-pill/)
+  assert.match(keypadContent, /#C4C7CC/)
+
+  const appPath = path.resolve('src/components/apps/phone/PhoneApp.vue')
+  const appContent = fs.readFileSync(appPath, 'utf-8')
+  assert.match(appContent, /keypad-slide-enter-active/)
+  assert.match(appContent, /keypad-slide-leave-active/)
 })
 

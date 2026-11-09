@@ -954,16 +954,18 @@ function handleAppWheel(e) {
   will-change: transform;
 }
 
-/* 转场动效 */
-.keypad-slide-enter-active,
+/* 转场动效：拨号盘抽屉纯净平滑滑动，移除突兀透明度快闪，保证丝滑滑出视口 */
+.keypad-slide-enter-active {
+  transition: transform 0.32s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
 .keypad-slide-leave-active {
-  transition: transform 0.28s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease;
+  transition: transform 0.28s cubic-bezier(0.32, 1, 0.32, 1);
 }
 
 .keypad-slide-enter-from,
 .keypad-slide-leave-to {
   transform: translateY(100%);
-  opacity: 0;
 }
 
 .floating-fade-enter-active,
