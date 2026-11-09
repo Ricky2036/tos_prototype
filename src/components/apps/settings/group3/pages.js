@@ -215,15 +215,9 @@ export const GROUP3_PAGES = {
 
   appLock: {
     title: '应用锁',
-    sections: [
-      { rows: [{ title: '应用锁', subtitle: '打开应用需要验证密码', toggle: 'appLockEnabled' }] },
-      { header: '已加锁应用', rows: [
-        { title: '微信', appIcon: 'wechat', toggle: 'lockWechat' },
-        { title: '相册', appIcon: 'gallery', toggle: 'lockGallery' },
-        { title: '信息', appIcon: 'message', toggle: 'lockMessage' }
-      ] },
-      { note: '加锁后，打开应用需通过隐私密码、指纹或面部识别验证。' }
-    ]
+    hero: { variant: 'lock', caption: '请输入锁屏密码，以继续管理应用锁。', dots: 0 },
+    sections: [{ note: '验证通过后，可为单个应用设置打开时的密码或生物识别验证。' }],
+    cta: '验证锁屏密码'
   },
 
   /* ==================== 权限与隐私 ==================== */
@@ -255,14 +249,20 @@ export const GROUP3_PAGES = {
   },
 
   cloneMoreApps: {
-    title: '体验更多应用',
+    title: '更多应用',
     sections: [
-      { header: '支持双开的应用', rows: [
-        { title: 'WhatsApp', appIcon: 'generic', toggle: 'cloneWhatsapp' },
-        { title: '抖音', appIcon: 'douyin', toggle: 'cloneDouyin' },
-        { title: 'Messenger', appIcon: 'facebook', toggle: 'cloneMessenger' }
-      ] },
-      { note: '未列出的应用暂不支持双开。' }
+      { note: '下列应用在双开下可能使用体验不佳。' },
+      { rows: [
+        { title: 'Carlcare', appImage: '/icons/drawer/carlcare.png', toggle: 'cloneCarlcare' },
+        { title: 'Crush Block', appImage: '/icons/drawer/crushblock.png', toggle: 'cloneCrushBlock' },
+        { title: 'DeepSeek', appImage: '/icons/drawer/deepseek.png', toggle: 'cloneDeepSeek' },
+        { title: 'Grok', appImage: '/icons/drawer/grok.png', toggle: 'cloneGrok' },
+        { title: 'Hola', appImage: '/icons/drawer/hola.png', toggle: 'cloneHola' },
+        { title: 'Vita Mahjong', appIcon: 'generic', toggle: 'cloneVitaMahjong' },
+        { title: 'WPS Office', appIcon: 'generic', toggle: 'cloneWps' },
+        { title: 'X', appImage: '/icons/x.png', toggle: 'cloneX' },
+        { title: '文件极客', appIcon: 'generic', toggle: 'cloneFileExpert' }
+      ] }
     ]
   },
 
@@ -525,14 +525,23 @@ export const GROUP3_PAGES = {
   appDetail: {
     title: '应用信息',
     sections: [
-      { rows: [
-        { title: '版本号', value: '1.0.0', chevron: false },
-        { title: '存储占用', value: '1.61 GB', chevron: true, action: 'appStorage' },
-        { title: '权限', value: '8 项', chevron: true, action: 'appPermissionsDetail' },
-        { title: '通知', value: '已允许', chevron: true, action: 'appNotifications' },
-        { title: '默认打开方式', chevron: true, action: 'appOpenByDefault' }
+      { appHero: true },
+      { tripleActions: [
+        { label: '开启', icon: 'externalLink' },
+        { label: '卸载', icon: 'trash2' },
+        { label: '强行停止', icon: 'xCircle' }
       ] },
-      { rows: [{ title: '强行停止', chevron: false }, { title: '卸载', chevron: false }] }
+      { rows: [
+        { title: '通知', value: '允许', chevron: true, action: 'appNotifications' },
+        { title: '权限', subtitle: '权限的设备和通知', chevron: true, action: 'appPermissionsDetail' }
+      ] },
+      { rows: [
+        { title: '存储和缓存', value: '1.57 GB', chevron: true, action: 'appStorage' },
+        { title: '移动数据和 WLAN', value: '0 B', chevron: true, action: 'appDataUsage' },
+        { title: '设备使用时间', chevron: true, action: 'screenTime' },
+        { title: '电池', chevron: true, action: 'appBattery' },
+        { title: '默认打开', subtitle: '允许打开支持的链接', chevron: true, action: 'appOpenByDefault' }
+      ] }
     ]
   },
 
@@ -545,18 +554,18 @@ export const GROUP3_PAGES = {
     title: '默认应用',
     sections: [
       { header: '系统', rows: [
-        { title: '电话', appIcon: 'phone', value: '电话', chevron: true, action: 'defaultAppPicker' },
-        { title: '短信', appIcon: 'message', value: '短信', chevron: true, action: 'defaultAppPicker' },
-        { title: '浏览器', appIcon: 'chrome', value: 'Chrome', chevron: true, action: 'defaultAppPicker' },
-        { title: '数字助理', appIcon: 'folax', value: 'Folax', chevron: true, action: 'defaultAppPicker' },
-        { title: '桌面', appIcon: 'generic', value: 'XOS桌面系统', chevron: true, action: 'defaultAppPicker' },
-        { title: '图片', appIcon: 'gallery', value: '智能图库', chevron: true, action: 'defaultAppPicker' },
-        { title: '音频', appIcon: 'generic', value: 'Visha播放器', chevron: true, action: 'defaultAppPicker' },
-        { title: '视频', appIcon: 'generic', value: 'Visha播放器', chevron: true, action: 'defaultAppPicker' },
-        { title: 'APK', appIcon: 'generic', value: '软件包安装程序', chevron: true, action: 'defaultAppPicker' },
-        { title: '钱包', appIcon: 'generic', value: '钱包', chevron: true, action: 'defaultAppPicker' },
-        { title: '来电显示与骚扰电话屏蔽', appIcon: 'phone', value: 'Synergy Nexus', chevron: true, action: 'defaultAppPicker' },
-        { title: '应用商店', appIcon: 'generic', value: 'App Center', chevron: true, action: 'defaultAppPicker' }
+        { title: '电话', appImage: '/icons/phone.png', value: '电话', chevron: true, action: 'defaultAppPicker', actionTitle: true },
+        { title: '短信', appImage: '/icons/messages.png', value: '短信', chevron: true, action: 'defaultAppPicker', actionTitle: true },
+        { title: '浏览器', appImage: '/icons/safari.png', value: 'Chrome', chevron: true, action: 'defaultAppPicker', actionTitle: true },
+        { title: '数字助理', appImage: '/icons/drawer/folax.png', value: 'Folax', chevron: true, action: 'defaultAppPicker', actionTitle: true },
+        { title: '桌面', appImage: '/icons/drawer/theme.png', value: 'XOS桌面系统', chevron: true, action: 'defaultAppPicker', actionTitle: true },
+        { title: '图片', appImage: '/icons/drawer/smartgallery.png', value: '智能图库', chevron: true, action: 'defaultAppPicker', actionTitle: true },
+        { title: '音频', appImage: '/icons/drawer/qqmusic.png', value: 'Visha播放器', chevron: true, action: 'defaultAppPicker', actionTitle: true },
+        { title: '视频', appImage: '/icons/drawer/tencent_video.png', value: 'Visha播放器', chevron: true, action: 'defaultAppPicker', actionTitle: true },
+        { title: 'APK', appImage: '/icons/drawer/appcenter.png', value: '软件包安装程序', chevron: true, action: 'defaultAppPicker', actionTitle: true },
+        { title: '钱包', appImage: '/icons/drawer/wallet.png', value: '钱包', chevron: true, action: 'defaultAppPicker', actionTitle: true },
+        { title: '来电显示与骚扰电话屏蔽', appImage: '/icons/phone.png', value: 'Synergy Nexus', chevron: true, action: 'defaultAppPicker', actionTitle: true },
+        { title: '应用商店', appImage: '/icons/drawer/appcenter.png', value: 'App Center', chevron: true, action: 'defaultAppPicker', actionTitle: true }
       ] }
     ]
   },
@@ -564,38 +573,56 @@ export const GROUP3_PAGES = {
   defaultAppPicker: {
     title: '选择默认应用',
     sections: [
-      { rows: [
-        { title: '系统默认', radio: 'defaultAppChoice', radioValue: '系统默认' },
-        { title: 'Chrome', appIcon: 'chrome', radio: 'defaultAppChoice', radioValue: 'Chrome' },
-        { title: 'Folax', appIcon: 'folax', radio: 'defaultAppChoice', radioValue: 'Folax' }
-      ] }
+      { dynamicRows: 'defaultAppPicker' },
+      { dynamicNote: 'defaultAppPicker' }
     ]
   },
 
   screenTime: {
-    title: '屏幕使用时间',
+    title: '应用活动详情',
     sections: [
+      { usage: {
+        dropdown: '屏幕使用时间',
+        value: '2小时44分钟',
+        unit: '今天',
+        date: '11月9日周一',
+        ticks: ['3小时', '2小时', '1小时', '0小时'],
+        bars: [
+          { label: '周一', h: 0.91 }, { label: '周二', h: 0 }, { label: '周三', h: 0 },
+          { label: '周四', h: 0 }, { label: '周五', h: 0 }, { label: '周六', h: 0 }, { label: '周日', h: 0 }
+        ]
+      } },
+      { tip: {
+        title: '为应用设置定时器',
+        text: '大多数应用都可以设置每日定时器。应用定时器倒数完毕后，相应应用在当天剩下的时间都将处于暂停状态。'
+      } },
       { rows: [
-        { title: '今日使用', value: '3 小时 42 分', chevron: false },
-        { title: '解锁次数', value: '86 次', chevron: false },
-        { title: '通知数', value: '212 条', chevron: false }
-      ] },
-      { header: '使用最多的应用', rows: [
-        { title: '微信', appIcon: 'wechat', value: '1 小时 12 分', chevron: false },
-        { title: '抖音', appIcon: 'douyin', value: '58 分钟', chevron: false },
-        { title: '哔哩哔哩', appIcon: 'bilibili', value: '34 分钟', chevron: false }
-      ] },
-      { rows: [{ title: '应用使用时间限制', chevron: true, action: 'appTimeLimit' }] }
+        { title: '设置', appImage: '/icons/settings.png', subtitle: '58分钟', timer: true, chevron: true, action: 'appTimer', actionTitle: true },
+        { title: '梦游社', appIcon: 'generic', subtitle: '33分钟', timer: true, chevron: true, action: 'appTimer', actionTitle: true },
+        { title: '抖音', appImage: '/icons/drawer/douyin.png', subtitle: '32分钟', timer: true, chevron: true, action: 'appTimer', actionTitle: true },
+        { title: '电话', appImage: '/icons/phone.png', subtitle: '24分钟', info: true, chevron: true, action: 'appTimer', actionTitle: true },
+        { title: '小红书', appIcon: 'generic', subtitle: '7分钟', timer: true, chevron: true, action: 'appTimer', actionTitle: true },
+        { title: 'Transsioner', appIcon: 'generic', subtitle: '5分钟', timer: true, chevron: true, action: 'appTimer', actionTitle: true },
+        { title: 'Telegram', appImage: '/icons/telegram.png', subtitle: '3分钟', timer: true, chevron: true, action: 'appTimer', actionTitle: true },
+        { title: 'Feedback', appIcon: 'generic', subtitle: '2分钟', timer: true, chevron: true, action: 'appTimer', actionTitle: true },
+        { title: 'Phone Master', appImage: '/icons/drawer/phonemaster.png', subtitle: '1分钟', timer: true, chevron: true, action: 'appTimer', actionTitle: true },
+        { title: '喜马拉雅', appImage: '/icons/drawer/ximalaya.png', subtitle: '不到 1分钟', timer: true, chevron: true, action: 'appTimer', actionTitle: true },
+        { title: '微信', appImage: '/icons/wechat.png', subtitle: '不到 1分钟', timer: true, chevron: true, action: 'appTimer', actionTitle: true },
+        { title: 'Google', appImage: '/icons/google.png', subtitle: '不到 1分钟', timer: true, chevron: true, action: 'appTimer', actionTitle: true }
+      ] }
     ]
   },
 
-  appTimeLimit: {
-    title: '应用使用时间限制',
+  appTimer: {
+    title: '应用定时器',
     sections: [
       { rows: [
-        { title: '抖音', appIcon: 'douyin', value: '2 小时', chevron: true, action: 'appTimeLimitPicker', actionTitle: true },
-        { title: '微信', appIcon: 'wechat', value: '不限', chevron: true, action: 'appTimeLimitPicker', actionTitle: true }
-      ] }
+        { title: '不限', radio: 'appTimer', radioValue: '不限' },
+        { title: '30 分钟', radio: 'appTimer', radioValue: '30 分钟' },
+        { title: '1 小时', radio: 'appTimer', radioValue: '1 小时' },
+        { title: '2 小时', radio: 'appTimer', radioValue: '2 小时' }
+      ] },
+      { note: '定时器倒数完毕后，该应用在当天剩下的时间都将处于暂停状态。' }
     ]
   },
 
@@ -615,23 +642,66 @@ export const GROUP3_PAGES = {
   cloudMedia: {
     title: '云端媒体设置',
     sections: [
-      { header: '云端媒体提供方', rows: [
-        { title: 'Google 相册', appIcon: 'google', radio: 'cloudMediaProvider', radioValue: 'Google 相册' },
-        { title: '仅本机存储', radio: 'cloudMediaProvider', radioValue: '仅本机存储' }
-      ] },
-      { rows: [{ title: '自动备份', subtitle: '通过 Wi-Fi 自动备份照片与视频。', toggle: 'cloudMediaAutoBackup' }] }
+      { note: '在应用或网站要求您选择照片或视频时，轻松访问您的云端媒体内容' },
+      { accentHeader: '访问以下来源的云端媒体内容' },
+      { rows: [
+        { title: 'Google 相册', subtitle: 'oppocjz@gmail.com', appImage: '/icons/drawer/smartgallery.png',
+          radio: 'cloudMediaProvider', radioValue: 'Google 相册', gear: true, chevron: true, action: 'cloudMediaAccount' },
+        { title: '无', icon: 'cloud-off', radio: 'cloudMediaProvider', radioValue: '无' }
+      ] }
     ]
   },
 
   autoStart: {
     title: '自启动管理',
     sections: [
-      { header: '已允许自启动', rows: [
-        { title: '微信', appIcon: 'wechat', toggle: 'autoStartWechat' },
-        { title: 'Folax', appIcon: 'folax', toggle: 'autoStartFolax' },
-        { title: '时钟', appIcon: 'generic', toggle: 'autoStartClock' }
+      { note: '禁止应用后台启动，将更省电和使用流畅，但部分应用接受数据可能延迟' },
+      { rows: [{ title: '全部管理', toggle: 'autoStartMaster' }] },
+      { rows: [
+        { title: 'AHA Prime', subtitle: '已允许', appImage: '/icons/drawer/ahaprime.png', toggle: 'autoStartAhaPrime' },
+        { title: 'Antigravity', subtitle: '已允许', appImage: '/icons/drawer/antigravity.png', toggle: 'autoStartAntigravity' },
+        { title: 'ChatGPT', subtitle: '已允许', appImage: '/icons/drawer/chatgpt.png', toggle: 'autoStartChatgpt' },
+        { title: 'DeepSeek', subtitle: '已允许', appImage: '/icons/drawer/deepseek.png', toggle: 'autoStartDeepseek' },
+        { title: 'Epson Smart Panel', subtitle: '已允许', appImage: '/icons/drawer/epson.png', toggle: 'autoStartEpson' },
+        { title: 'FlClash', subtitle: '已允许', appImage: '/icons/drawer/flclash.png', toggle: 'autoStartFlclash' },
+        { title: 'Grok', subtitle: '已允许', appImage: '/icons/drawer/grok.png', toggle: 'autoStartGrok' },
+        { title: 'Hi Translate', subtitle: '已允许', appImage: '/icons/drawer/hitranslate.png', toggle: 'autoStartHiTranslate' }
+      ] }
+    ],
+    cta: '智能优化'
+  },
+
+  appDataUsage: {
+    title: '移动数据和 WLAN',
+    sections: [
+      { rows: [
+        { title: '总计', value: '0 B', chevron: false },
+        { title: 'WLAN 数据用量', value: '0 B', chevron: false },
+        { title: '移动数据用量', value: '0 B', chevron: false }
       ] },
-      { note: '关闭后应用在开机或后台被唤醒时不会自动运行，可能延迟消息接收。' }
+      { rows: [{ title: '后台数据', toggle: 'appBackgroundData' }] }
+    ]
+  },
+
+  appBattery: {
+    title: '电池',
+    sections: [
+      { rows: [
+        { title: '上次充满后的耗电量', value: '2%', chevron: false },
+        { title: '后台活动', value: '受管理', chevron: false }
+      ] },
+      { note: '系统会限制该应用在后台的活动，以延长续航。' }
+    ]
+  },
+
+  cloudMediaAccount: {
+    title: 'Google 相册',
+    sections: [
+      { rows: [
+        { title: '账号', value: 'oppocjz@gmail.com', chevron: false },
+        { title: '云端媒体', toggle: 'cloudMediaEnabled' }
+      ] },
+      { note: '在应用或网站要求您选择照片或视频时，可访问此账号下的云端媒体内容。' }
     ]
   },
 
@@ -806,14 +876,14 @@ export const GROUP3_PAGES = {
     ]
   },
   appStorage: {
-    title: '存储占用',
+    title: '存储和缓存',
     sections: [
       { rows: [
-        { title: '应用大小', value: '1.61 GB', chevron: false },
+        { title: '应用大小', value: '1.57 GB', chevron: false },
         { title: '用户数据', value: '842 MB', chevron: false },
         { title: '缓存', value: '126 MB', chevron: false }
       ] },
-      { rows: [{ title: '清除缓存', chevron: false, run: true }] }
+      { rows: [{ title: '清除缓存', run: true, chevron: false }] }
     ]
   },
   appPermissionsDetail: {

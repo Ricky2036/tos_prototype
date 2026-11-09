@@ -65,6 +65,12 @@ async function clickRow(page, scope, text) {
   await page.waitForTimeout(380)
 }
 
+async function clickLink(page, scope, text) {
+  const loc = page.locator(`${scope} .recommend-link-item`, { hasText: text }).first()
+  await loc.click({ timeout: 5000 })
+  await page.waitForTimeout(380)
+}
+
 async function clickCard(page, scope, text) {
   // 只取 <button>：外层容器 .security-grid-cards 也含 "grid-card" 子串，
   // 命中它会点在四宫格中间的空隙上，看起来「点了没反应」。
@@ -237,8 +243,12 @@ async function run() {
   check('C 默认应用：12 行', (await visibleCount(page, '.sub-shell .list-cell')) >= 12)
   await shot(page, '12_default_apps')
   await clickRow(page, '.sub-shell', '浏览器')
-  await expectSubPage(page, 'C 选择默认应用（四级）', '选择默认应用')
-  check('C 选择默认应用：单选项 3 个', (await visibleCount(page, '.sub-shell .opt-radio')) === 3)
+  await expectSubPage(page, 'C 选择默认应用（四级）', '浏览器')
+  check('C 选择默认应用：真机 2 个候选', (await visibleCount(page, '.sub-shell .opt-radio')) === 2)
+  const pickerNames = await page.evaluate(() => [...document.querySelectorAll('.sub-shell .lc-title')].map(e => e.textContent.trim()))
+  check('C 选择默认应用：候选是 Chrome / 浏览器', pickerNames.includes('Chrome') && pickerNames.includes('浏览器'), pickerNames.join(','))
+  check('C 选择默认应用：带分类说明',
+    (await page.locator('.sub-shell .card-note').first().textContent().catch(() => ''))?.includes('浏览网页') === true)
   await backFromSub(page)
   await backFromSub(page)
 
@@ -247,6 +257,70 @@ async function run() {
   check('C 联系人存储：单选项 3 个', (await visibleCount(page, '.sub-shell .opt-radio')) === 3)
   await shot(page, '13_contacts_storage')
   await backFromSub(page)
+
+  /* ---------- C 补充：按真机重做的三级/四级页 ---------- */
+  // 应用信息：桌面同源头部 + 三按钮 + 真机行名
+  await clickRow(page, '.settings-apps-page', '应用列表')
+  await clickRow(page, '.sub-shell', 'AI Mate')
+  await expectSubPage(page, 'C 应用信息', '应用信息')
+  check('C 应用信息：应用头部可见', (await visibleCount(page, '.sub-shell .g3-app-hero')) === 1)
+  check('C 应用信息：头部显示刚点的应用',
+    (await page.locator('.sub-shell .g3-app-hero-name').first().textContent().catch(() => ''))?.trim() === 'AI Mate')
+  check('C 应用信息：开启/卸载/强行停止 3 按钮', (await visibleCount(page, '.sub-shell .g3-triple-btn')) === 3)
+  const detailNames = await page.evaluate(() => [...document.querySelectorAll('.sub-shell .lc-title')].map(e => e.textContent.trim()))
+  check('C 应用信息：真机行名齐全',
+    ['通知', '权限', '存储和缓存', '移动数据和 WLAN', '设备使用时间', '电池', '默认打开'].every(t => detailNames.includes(t)),
+    detailNames.join(','))
+  await shot(page, '19_app_info')
+  await backFromSub(page)
+  await backFromSub(page)
+
+  // 日历/时钟与桌面同一套自绘图标（不是 PNG）
+  await clickRow(page, '.settings-apps-page', '应用列表')
+  const liveIcons = await page.evaluate(() => ({
+    calendar: [...document.querySelectorAll('.sub-shell .g3-live-icon .calendar-face')].filter(e => e.getBoundingClientRect().width > 0).length,
+    clock: [...document.querySelectorAll('.sub-shell .g3-live-icon .clock-face')].filter(e => e.getBoundingClientRect().width > 0).length
+  }))
+  check('C 应用列表：日历/时钟复用桌面自绘图标', liveIcons.calendar === 1 && liveIcons.clock === 1, JSON.stringify(liveIcons))
+  await backFromSub(page)
+
+  // 屏幕使用时间 = 应用活动详情
+  await clickRow(page, '.settings-apps-page', '屏幕使用时间')
+  await expectSubPage(page, 'C 屏幕使用时间', '应用活动详情')
+  check('C 屏幕使用时间：总时长 2小时44分钟',
+    (await page.locator('.sub-shell .g3-usage-value').first().textContent().catch(() => ''))?.trim() === '2小时44分钟')
+  check('C 屏幕使用时间：周柱状图 7 根', (await visibleCount(page, '.sub-shell .g3-bar-col')) === 7)
+  check('C 屏幕使用时间：定时器提示卡', (await visibleCount(page, '.sub-shell .g3-tip')) === 1)
+  check('C 屏幕使用时间：应用用时行 ≥10', (await visibleCount(page, '.sub-shell .list-cell')) >= 10)
+  await shot(page, '20_screen_time')
+  await backFromSub(page)
+
+  // 云端媒体设置
+  await clickRow(page, '.settings-apps-page', '云端媒体设置')
+  await expectSubPage(page, 'C 云端媒体设置', '云端媒体设置')
+  check('C 云端媒体设置：蓝色分组小标题', (await visibleCount(page, '.sub-shell .g3-accent-header')) === 1)
+  check('C 云端媒体设置：2 个来源单选', (await visibleCount(page, '.sub-shell .opt-radio')) === 2)
+  check('C 云端媒体设置：齿轮入口可见', (await visibleCount(page, '.sub-shell .g3-gear')) === 1)
+  await shot(page, '21_cloud_media')
+  await backFromSub(page)
+
+  // 自启动管理（推荐链接）
+  await clickLink(page, '.settings-apps-page', '自启动管理')
+  await expectSubPage(page, 'C 自启动管理', '自启动管理')
+  check('C 自启动管理：全部管理 + 8 应用', (await visibleCount(page, '.sub-shell .list-cell')) === 9)
+  check('C 自启动管理：智能优化按钮', (await visibleCount(page, '.sub-shell .sub-action-btn')) === 1)
+  await shot(page, '22_autostart')
+  await backFromSub(page)
+
+  // 应用双开 → 更多应用
+  await clickRow(page, '.settings-apps-page', '应用双开')
+  await clickRow(page, '.sub-shell', '体验更多应用')
+  await expectSubPage(page, 'C 更多应用', '更多应用')
+  check('C 更多应用：真机 9 个候选', (await visibleCount(page, '.sub-shell .list-cell')) === 9)
+  await shot(page, '23_more_apps')
+  await backFromSub(page)
+  await backFromSub(page)
+
   await backFromSecondary(page, '.settings-apps-page')
 
   /* ==================== D. 位置信息 ==================== */

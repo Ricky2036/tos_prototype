@@ -254,13 +254,18 @@ test('应用列表直接读桌面注册表，不再硬编码应用名与假图�
   assert.equal(APPS.find(a => a.id === 'calendar').image, undefined)
   assert.match(DRAWER_APPS.find(a => a.id === 'calendar').icon, /calendar\.png/)
   assert.match(DRAWER_APPS.find(a => a.id === 'clock').icon, /clock\.png/)
-  // special 应用必须指向【真实存在】的资源，不能只信 DRAWER_APPS 里那个坏路径
-  for (const file of ['public/icons/drawer/calendar_alt.png', 'public/icons/drawer/clock.png']) {
-    assert.ok(fs.existsSync(path.resolve(file)), `${file} 不存在，special 应用图标会空白`)
-  }
-  assert.match(src, /SPECIAL_APP_ICONS[\s\S]*calendar_alt\.png[\s\S]*clock\.png/)
-  assert.ok(APPS.every(a => a.image || DRAWER_APPS.find(d => d.id === a.id)?.icon || getApp(a.id)?.image),
-    '每个已注册应用都必须解析得到真实图标')
+  // 🔴 日历/时钟与桌面同源：直接复用桌面 AppIcon 组件（星期+日期 / 实时指针），
+  //    不再拿 drawer 里的静态 PNG 冒充（真机上两者长得不一样）。
+  assert.match(src, /import AppIcon from '\.\.\/\.\.\/\.\.\/ui\/AppIcon\.vue'/)
+  assert.match(src, /app\.special \? getApp\(app\.id\) : null/, 'special 应用要传 AppIcon 配置')
+  assert.match(src, /:app="row\.appLive"[\s\S]*:launch-on-click="false"/, '列表里不能触发打开应用')
+  assert.doesNotMatch(src, /calendar_alt\.png|\/icons\/clock\.png/, '不再用静态 PNG 冒充桌面自绘图标')
+  assert.doesNotMatch(src, /SPECIAL_APP_ICONS/)
+  const desktop = stripComments(read('src/components/ui/AppIcon.vue'))
+  assert.match(desktop, /app\.special === 'calendar'/)
+  assert.match(desktop, /app\.special === 'clock'/)
+  assert.ok(APPS.every(a => a.special || a.image || DRAWER_APPS.find(d => d.id === a.id)?.icon || getApp(a.id)?.image),
+    '每个已注册应用都必须解析得到真实图标或走桌面自绘')
 })
 
 test('应用列表搜索栏用首页同一个 SettingsSearchBar，且外壳提供 bottom 插槽', () => {
@@ -297,4 +302,60 @@ test('定位守卫有牙齿：把应用列表的 bottom 改掉必须立刻红', 
   assert.deepEqual(dockDecls(sub, 'g3-floating-search'), dockDecls(home, 'settings-floating-search'))
   const broken = sub.replace('bottom: 25px;', 'bottom: 8px;')
   assert.notDeepEqual(dockDecls(broken, 'g3-floating-search'), dockDecls(home, 'settings-floating-search'))
+})
+
+/* ==================== 应用管理三级/四级页：真机形态 ==================== */
+test('应用管理子页按真机重做：应用信息 / 活动详情 / 云端媒体 / 自启动 / 默认应用', () => {
+  const p = GROUP3_PAGES
+  // 应用信息：图标+名称+版本头部、开启/卸载/强行停止三按钮、真机行名
+  assert.ok(p.appDetail.sections.some(x => x.appHero))
+  assert.equal(p.appDetail.sections.find(x => x.tripleActions).tripleActions.length, 3)
+  const detailRows = p.appDetail.sections.flatMap(x => x.rows || []).map(r => r.title)
+  for (const t of ['通知', '权限', '存储和缓存', '移动数据和 WLAN', '设备使用时间', '电池', '默认打开']) {
+    assert.ok(detailRows.includes(t), `应用信息缺「${t}」`)
+  }
+
+  // 屏幕使用时间＝应用活动详情：总时长 + 周柱状图 + 可关闭提示卡 + 应用用时列表
+  assert.equal(p.screenTime.title, '应用活动详情')
+  const usage = p.screenTime.sections.find(x => x.usage).usage
+  assert.equal(usage.value, '2小时44分钟')
+  assert.equal(usage.bars.length, 7)
+  assert.ok(p.screenTime.sections.some(x => x.tip))
+  assert.ok(p.screenTime.sections.flatMap(x => x.rows || []).some(r => r.timer && r.action === 'appTimer'))
+  assert.equal(p.appTimer.title, '应用定时器')
+
+  // 云端媒体：说明 + 蓝色分组标题 + 2 个单选（Google 相册带齿轮、无）
+  assert.ok(p.cloudMedia.sections.some(x => x.accentHeader === '访问以下来源的云端媒体内容'))
+  const mediaRows = p.cloudMedia.sections.flatMap(x => x.rows || [])
+  assert.equal(mediaRows.length, 2)
+  assert.equal(mediaRows[0].gear, true)
+  assert.equal(mediaRows[1].title, '无')
+  assert.ok(!mediaRows.some(r => /自动备份/.test(r.title)), '真机没有「自动备份」开关')
+
+  // 自启动：全部管理总开关 + 8 个应用（已允许）+ 智能优化
+  const autoRows = p.autoStart.sections.flatMap(x => x.rows || [])
+  assert.equal(autoRows[0].toggle, 'autoStartMaster')
+  assert.equal(autoRows.length, 9)
+  assert.ok(autoRows.slice(1).every(r => r.subtitle === '已允许' && r.toggle))
+  assert.equal(p.autoStart.cta, '智能优化')
+
+  // 默认应用：每行带真实图标，四级页按分类名出动态候选
+  assert.ok(p.defaultApps.sections[0].rows.every(r => r.appImage && r.actionTitle))
+  assert.ok(p.defaultAppPicker.sections.some(x => x.dynamicRows === 'defaultAppPicker'))
+  assert.ok(p.defaultAppPicker.sections.some(x => x.dynamicNote === 'defaultAppPicker'))
+
+  // 应用双开「更多应用」按真机 9 个、应用锁改为密码验证引导
+  assert.equal(p.cloneMoreApps.title, '更多应用')
+  assert.equal(p.cloneMoreApps.sections.flatMap(x => x.rows || []).length, 9)
+  assert.equal(p.appLock.cta, '验证锁屏密码')
+})
+
+test('真机形态守卫有牙齿：删掉柱状图 / 三按钮必须立刻红', () => {
+  const p = GROUP3_PAGES
+  assert.equal(p.screenTime.sections.find(x => x.usage).usage.bars.length, 7)
+  const broken = { ...p.screenTime, sections: p.screenTime.sections.filter(x => !x.usage) }
+  assert.equal(broken.sections.some(x => x.usage), false)
+  assert.equal(p.appDetail.sections.find(x => x.tripleActions).tripleActions.length, 3)
+  const broken2 = { ...p.appDetail, sections: p.appDetail.sections.filter(x => !x.tripleActions) }
+  assert.equal(broken2.sections.some(x => x.tripleActions), false)
 })
