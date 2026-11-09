@@ -211,5 +211,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 
 | Merged | Workbuddy | Settings group 3 (安全与隐私 → 位置信息): build the third/fourth-level subpages for 4 secondary pages (密码与安全 / 权限与隐私 / 应用管理 / 位置信息) from real-device capture, config-driven shared renderer + store + layer transitions, and wire every dead toast/chevron entry | `workbuddy/lane` | None (locks released) | `6613b8e` | `fa2a8a2` |
 | Merged | Antigravity | Real-device Phone app and settings interaction completion (Call detail drawer, contact detail drawer, add contact modal, merge duplicates modal, noise reduction subpage, swipe actions, DTMF keypad & AI call summary) | `antigravity/lane` | None (locks released) | `6613b8e` | `87d3945` |
+| Merged | Antigravity | Phone settings direct navigation to system settings (SIM and Sound subpages) | `antigravity/lane` | None (locks released) | `941ea16` | `082f856` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
