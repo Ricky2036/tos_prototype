@@ -243,43 +243,46 @@ function handleQuickCall(e, recent) {
 
 <template>
   <div class="phone-recents-tab" :class="{ 'is-dialing': !!phoneStore.dialedNumber }">
-    <!-- 1. 号码输入时的智能匹配联系人列表与快速动作（1:1 对齐真机） -->
+    <!-- 1. 号码输入时的智能匹配联系人列表与快速动作（1:1 对齐真机：有匹配时仅展示联系人，无匹配时才出现新建联系人等菜单） -->
     <div v-if="phoneStore.dialedNumber" class="matched-section">
-      <div v-if="matchingContacts.length > 0" class="matched-group-title">所有联系人</div>
-      <div
-        v-for="c in matchingContacts"
-        :key="c.id"
-        class="matched-contact-row"
-        @click="phoneStore.startCall(c)"
-      >
-        <div class="contact-avatar-circle" :style="{ backgroundColor: c.color || '#3B82F6' }">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="#FFFFFF">
-            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-          </svg>
-        </div>
-        <div class="matched-info-col">
-          <div class="matched-name">{{ c.name }}</div>
-          <div class="matched-sub-row">
-            <span class="matched-type-tag">{{ c.company ? '单位' : '手机' }}</span>
-            <span class="matched-number-line">
-              <span
-                v-for="(part, idx) in highlightMatch(c.number, phoneStore.dialedNumber)"
-                :key="idx"
-                :class="{ 'match-green': part.matched }"
-              >{{ part.text }}</span>
-            </span>
+      <!-- 有匹配联系人时：展示分组标题与匹配联系人列表，底部不出现新建联系人入口 -->
+      <template v-if="matchingContacts.length > 0">
+        <div class="matched-group-title">所有联系人</div>
+        <div
+          v-for="c in matchingContacts"
+          :key="c.id"
+          class="matched-contact-row"
+          @click="phoneStore.startCall(c)"
+        >
+          <div class="contact-avatar-circle" :style="{ backgroundColor: c.color || '#3B82F6' }">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#FFFFFF">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+            </svg>
           </div>
+          <div class="matched-info-col">
+            <div class="matched-name">{{ c.name }}</div>
+            <div class="matched-sub-row">
+              <span class="matched-type-tag">{{ c.company ? '单位' : '手机' }}</span>
+              <span class="matched-number-line">
+                <span
+                  v-for="(part, idx) in highlightMatch(c.number, phoneStore.dialedNumber)"
+                  :key="idx"
+                  :class="{ 'match-green': part.matched }"
+                >{{ part.text }}</span>
+              </span>
+            </div>
+          </div>
+          <button class="info-btn" title="查看联系人详情" @click.stop="phoneStore.selectedContact = c">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="#1C1C1E" stroke-width="1.8" />
+              <path d="M12 11V17M12 7.5V8" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </button>
         </div>
-        <button class="info-btn" title="查看联系人详情" @click.stop="phoneStore.selectedContact = c">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" stroke="#1C1C1E" stroke-width="1.8" />
-            <path d="M12 11V17M12 7.5V8" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" />
-          </svg>
-        </button>
-      </div>
+      </template>
 
-      <!-- 快捷动作列表（新建联系人 / 添加到现有联系人 / 发送短信） -->
-      <div class="matched-actions-list">
+      <!-- 没有匹配联系人时：才出现新建联系人/添加到现有联系人/发送短信菜单（1:1 对齐真机） -->
+      <div v-else class="matched-actions-list">
         <div class="matched-action-item" @click="handleCreateContact">
           <div class="action-icon-circle">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round">

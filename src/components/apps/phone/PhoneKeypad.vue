@@ -269,33 +269,34 @@ function handleDragEnd() {
   transform: scaleY(1.2);
 }
 
-/* 顶部号码回显栏（输入时展示，对齐真机顶部 ⋮ 号码 ⌫ 布局） */
+/* 顶部号码回显栏（输入时展示，对齐真机顶部 ⋮ 号码 ⌫ 布局，留白舒适匀称） */
 .keypad-dialed-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 48px;
-  padding: 0 4px 6px;
-  margin-bottom: 2px;
+  height: 52px;
+  padding: 14px 10px 0;
+  margin-bottom: 14px;
 }
 
 .keypad-dialed-text {
   flex: 1;
   text-align: center;
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 500;
   color: #1C1C1E;
-  letter-spacing: 0.8px;
+  letter-spacing: 1px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .header-action-btn {
   background: none;
   border: none;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -303,6 +304,7 @@ function handleDragEnd() {
   border-radius: 50%;
   transition: background-color 0.15s ease;
   visibility: visible !important;
+  flex-shrink: 0;
 }
 
 .header-action-btn:active {
@@ -310,7 +312,7 @@ function handleDragEnd() {
 }
 
 .dialed-number-text {
-  font-size: 28px;
+  font-size: 32px;
 }
 
 /* 3x4 按键网格：严格正圆单元格 */
