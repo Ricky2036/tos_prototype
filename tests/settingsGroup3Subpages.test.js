@@ -464,3 +464,73 @@ test('台账守卫有牙齿：删 source / 塞假数值 / 造孤立页都必须�
   assert.equal(numRe.test('总计 1.57 GB'), true)
   assert.equal(numRe.test('当前位置'), false)
 })
+
+/* ==================== 可点即生效：全量点击语义守卫 ==================== */
+/** 把配置里所有行按「点击后应该发生什么」分类，任何一类都不能没有对应处理分支。 */
+function classifyRows() {
+  const stat = { action: 0, deeplink: 0, radio: 0, toggle: 0, run: 0, deadChevron: 0, disabled: 0, plain: 0 }
+  for (const pg of Object.values(GROUP3_PAGES)) {
+    for (const sec of pg.sections || []) {
+      for (const r of sec.rows || []) {
+        if (r.disabled) stat.disabled++
+        else if (r.openAppNotifications) stat.deeplink++
+        else if (r.radio) stat.radio++
+        else if (r.toggle) stat.toggle++
+        else if (r.action) stat.action++
+        else if (r.run) stat.run++
+        else if (r.chevron) stat.deadChevron++
+        else stat.plain++
+      }
+    }
+  }
+  return stat
+}
+
+test('每一行都有明确点击语义，不存在「看起来能点但被吞掉」的行', () => {
+  const stat = classifyRows()
+  assert.equal(stat.deadChevron, 0, '带箭头却没有任何下一层/反馈的行')
+  for (const k of ['action', 'deeplink', 'radio', 'toggle', 'run']) {
+    assert.ok(stat[k] > 0, `${k} 类行不应为 0（守卫覆盖会失去意义）`)
+  }
+  // 基线：记录当前规模，避免有人误删大批交互行而不被发现
+  assert.ok(stat.radio >= 19 && stat.toggle >= 78 && stat.action >= 100)
+})
+
+test('渲染器对五类可点行都有明确副作用，且不许再把 toggle/radio 直接 return', () => {
+  const src = stripComments(read(RENDERER))
+  assert.match(src, /if \(row\.openAppNotifications\)[\s\S]*setAppTarget/, '深链分支')
+  assert.match(src, /if \(row\.radio\)[\s\S]*onRadio\(row\)/, '单选整行点击要能选中')
+  assert.match(src, /if \(row\.toggle\)[\s\S]*onToggle\(row, !store\.getSwitch/, '开关整行点击要能翻转')
+  assert.match(src, /if \(row\.action\)[\s\S]*emit\('navigate'/, '导航分支')
+  assert.match(src, /else if \(row\.chevron \|\| row\.run\)[\s\S]*emit\('action'/, '动作/箭头反馈分支')
+  assert.doesNotMatch(src, /if \(row\.toggle \|\| row\.radio \|\| row\.disabled\) return/, '回退到把整行点击吞掉的旧写法')
+
+  // 看起来能点的非行控件也必须有反馈
+  assert.match(src, /g3-triple-btn[\s\S]*@click="emit\('action'/, '三按钮')
+  assert.match(src, /g3-usage-dropdown[\s\S]*@click="emit\('action'/, '使用时长下拉')
+  assert.match(src, /g3-usage-arrow[\s\S]*@click="emit\('action'/, '日期切换箭头')
+  assert.match(src, /g3-gear[\s\S]*@click\.stop="emit\('navigate'/, '云端媒体齿轮')
+  assert.match(src, /g3-tip-close[\s\S]*@click="tipDismissed = true"/, '提示卡关闭')
+})
+
+test('点击守卫有牙齿：把 radio 分支去掉 / 恢复旧 return 写法都要报红', () => {
+  const src = stripComments(read(RENDERER))
+  assert.match(src, /if \(row\.radio\)[\s\S]*onRadio\(row\)/)
+  const noRadio = src.replace('  if (row.radio) {\n    onRadio(row)\n    return\n  }\n', '')
+  // `function onRadio(row)` 定义本身也含这个字面量，所以用调用次数对比而不是 doesNotMatch
+  const countCalls = (t) => (t.match(/onRadio\(row\)/g) || []).length
+  assert.equal(countCalls(noRadio), countCalls(src) - 1, '删掉 radio 分支后调用点应少一处')
+  const oldBug = "if (row.toggle || row.radio || row.disabled) return"
+  assert.doesNotMatch(src, new RegExp(oldBug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+  assert.match(oldBug, /row\.radio/) // 旧写法确实存在过，判据本身有效
+})
+
+test('四个二级页的自定义链接（非 ListCell）也都有点击处理', () => {
+  for (const file of Object.values(SECONDARY)) {
+    const src = stripComments(read(file))
+    const custom = [...src.matchAll(/<div class="(recommend-link-item|recommend-link|privacy-policy-link)"([^>]*)>/g)]
+    for (const m of custom) {
+      assert.match(m[2], /@click=/, `${file} 的 .${m[1]} 没有点击处理`)
+    }
+  }
+})

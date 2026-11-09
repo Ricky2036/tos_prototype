@@ -46,6 +46,20 @@ async function visibleCount(page, selector) {
   }, selector)
 }
 
+async function expectToast(page, name, keyword) {
+  const txt = await page.locator('.security-toast, .privacy-toast, .apps-toast, .location-toast')
+    .first().textContent().catch(() => '')
+  check(name, Boolean(txt && txt.includes(keyword)), `toast="${txt}"`)
+}
+
+async function checkedRowTitle(page) {
+  return page.evaluate(() => {
+    const rows = [...document.querySelectorAll('.sub-shell .list-cell')]
+    const hit = rows.find(r => r.querySelector('.opt-radio.checked'))
+    return hit ? (hit.querySelector('.lc-title')?.textContent || '').trim() : ''
+  })
+}
+
 async function rectOf(page, selector) {
   return page.evaluate((sel) => {
     const el = document.querySelector(sel)
@@ -60,7 +74,8 @@ async function navTitle(page, scope = '.sub-shell') {
 }
 
 async function clickRow(page, scope, text) {
-  const loc = page.locator(`${scope} .lc-title`, { hasText: text }).first()
+  // link 行用 #title 插槽渲染成 .g3-link-title，不是 ListCell 默认的 .lc-title
+  const loc = page.locator(`${scope} .lc-title, ${scope} .g3-link-title`, { hasText: text }).first()
   await loc.click({ timeout: 5000 })
   await page.waitForTimeout(380)
 }
@@ -129,6 +144,11 @@ async function run() {
   await clickCard(page, '.settings-security-page', '锁屏密码')
   await expectSubPage(page, 'A 锁屏密码', '锁屏密码')
   await shot(page, '02_lock_password')
+  // 蓝链（非 ListCell）也要能点
+  await page.locator('.sub-shell .g3-link', { hasText: '防盗警报' }).first().click()
+  await page.waitForTimeout(380)
+  await expectSubPage(page, 'A 你可能想找蓝链可点', '防盗警报')
+  await backFromSub(page)
   await clickRow(page, '.sub-shell', '数字密码')
   await expectSubPage(page, 'A 数字密码（四级）', '数字密码')
   check('A 数字密码：头图可见', (await visibleCount(page, '.sub-shell .g3-hero')) === 1)
@@ -272,6 +292,8 @@ async function run() {
     ['通知', '权限', '存储和缓存', '移动数据和 WLAN', '设备使用时间', '电池', '默认打开'].every(t => detailNames.includes(t)),
     detailNames.join(','))
   await shot(page, '19_app_info')
+  await page.locator('.sub-shell .g3-triple-btn', { hasText: '开启' }).first().click()
+  await expectToast(page, 'C 应用信息：三按钮有反馈', '开启')
 
   // 存储和缓存（真机 137_storage）
   await clickRow(page, '.sub-shell', '存储和缓存')
@@ -280,6 +302,8 @@ async function run() {
   check('C 存储：真机六行', ['总计', '应用大小', '用户数据', '清除存储空间', '缓存', '清理缓存'].every(t => storageNames.includes(t)), storageNames.join(','))
   check('C 存储：两条蓝色操作链接', (await visibleCount(page, '.sub-shell .g3-link-title')) === 2)
   await shot(page, '24_storage')
+  await clickRow(page, '.sub-shell', '清理缓存')
+  await expectToast(page, 'C 存储：动作行点击有反馈', '清理缓存')
   await backFromSub(page)
 
   // 移动数据和 WLAN（真机 138_data_wlan）
@@ -306,6 +330,19 @@ async function run() {
   await expectSubPage(page, 'C 应用电池用量', '应用的电池用量')
   check('C 应用电池用量：已优化 / 无限制两单选', (await visibleCount(page, '.sub-shell .opt-radio')) === 2)
   await shot(page, '27_battery')
+
+  // 🔴 回归重点：这一页以前「压根儿点不了」——radio / toggle 整行点击全被吞掉
+  await clickRow(page, '.sub-shell', '无限制')
+  check('C 电池：点整行可切换单选', (await checkedRowTitle(page)) === '无限制', await checkedRowTitle(page))
+  const swBefore = await page.locator('.sub-shell .toggle-switch').first().getAttribute('aria-checked')
+  await clickRow(page, '.sub-shell', '允许后台使用')
+  const swAfter = await page.locator('.sub-shell .toggle-switch').first().getAttribute('aria-checked')
+  check('C 电池：点整行可切换开关', swBefore !== swAfter, `${swBefore} → ${swAfter}`)
+  const swBefore2 = swAfter
+  await page.locator('.sub-shell .toggle-switch').first().click()
+  await page.waitForTimeout(180)
+  const swAfter2 = await page.locator('.sub-shell .toggle-switch').first().getAttribute('aria-checked')
+  check('C 电池：点开关本体只翻转一次（无双切）', swBefore2 !== swAfter2, `${swBefore2} → ${swAfter2}`)
   await backFromSub(page)
 
   await backFromSub(page)
@@ -328,6 +365,8 @@ async function run() {
   check('C 屏幕使用时间：周柱状图 7 根', (await visibleCount(page, '.sub-shell .g3-bar-col')) === 7)
   check('C 屏幕使用时间：定时器提示卡', (await visibleCount(page, '.sub-shell .g3-tip')) === 1)
   check('C 屏幕使用时间：应用用时行 ≥10', (await visibleCount(page, '.sub-shell .list-cell')) >= 10)
+  await page.locator('.sub-shell .g3-usage-dropdown', { hasText: '屏幕使用时间' }).first().click()
+  await expectToast(page, 'C 使用时长：下拉维度点击有反馈', '屏幕使用时间')
   await shot(page, '20_screen_time')
   await backFromSub(page)
 
@@ -337,6 +376,12 @@ async function run() {
   check('C 云端媒体设置：蓝色分组小标题', (await visibleCount(page, '.sub-shell .g3-accent-header')) === 1)
   check('C 云端媒体设置：2 个来源单选', (await visibleCount(page, '.sub-shell .opt-radio')) === 2)
   check('C 云端媒体设置：齿轮入口可见', (await visibleCount(page, '.sub-shell .g3-gear')) === 1)
+  await clickRow(page, '.sub-shell', '无')
+  check('C 云端媒体：点整行可切换单选', (await checkedRowTitle(page)) === '无', await checkedRowTitle(page))
+  await page.locator('.sub-shell .g3-gear').first().click()
+  await page.waitForTimeout(380)
+  await expectSubPage(page, 'C 云端媒体账号（四级）', 'Google 相册')
+  await backFromSub(page)
   await shot(page, '21_cloud_media')
   await backFromSub(page)
 
@@ -372,6 +417,8 @@ async function run() {
   await expectSubPage(page, 'D 位置信息权限（四级）', '位置信息权限')
   check('D 位置信息权限：3 个授权单选', (await visibleCount(page, '.sub-shell .opt-radio')) === 3)
   check('D 位置信息权限：精确位置开关', (await visibleCount(page, '.sub-shell .toggle-switch')) >= 1)
+  await clickRow(page, '.sub-shell', '不允许')
+  check('D 位置信息权限：点整行可切换授权单选', (await checkedRowTitle(page)) === '不允许', await checkedRowTitle(page))
   await shot(page, '16_app_location_permission')
   await backFromSub(page)
   await backFromSub(page)
@@ -434,6 +481,28 @@ async function run() {
     ['允许通知', '提醒强度', '提醒方式'].every(t => notifText.includes(t)))
   check('E 通知：group3 自编通知页已不存在', !notifText.includes('关闭后该应用将不再发送通知'))
   await shot(page, '28_notif_deeplink')
+
+  /* ==================== F. 设置里最后一个死入口「更多服务」 ==================== */
+  // 重新加载以摆脱 appDetail 子页，走一遍真实用户路径
+  await page.goto(BASE, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(600)
+  await page.evaluate(() => window.__system?.unlock?.())
+  await page.waitForTimeout(350)
+  await page.evaluate(() => window.__system?.openApp?.('settings'))
+  await page.waitForTimeout(700)
+  await clickRow(page, home, '通知与状态栏')
+  await clickRow(page, '.notif-settings', 'Dynamic Bar')
+  await page.waitForTimeout(400)
+  // Dynamic Bar 页有两处「更多服务」：实时活动分组里带开关的那条、以及
+  // .db-more-group 里带 chevron 的那条。要验证的是后者能点进子页。
+  const moreRow = page.locator('.notif-settings .db-more-group .lc-title', { hasText: '更多服务' }).first()
+  check('F 更多服务：带箭头的行存在', (await moreRow.count()) === 1)
+  await moreRow.click()
+  await page.waitForTimeout(600)
+  const notifTitles = await page.locator('.notif-settings .gn-title').allTextContents()
+  check('F 更多服务：可点进子页', notifTitles.some(t => t.trim() === '更多服务'), notifTitles.join('|'))
+  check('F 更多服务：系统服务开关清单可见', (await visibleCount(page, '.notif-settings .toggle-switch')) >= 5)
+  await shot(page, '29_more_services')
 
   check('全程 0 控制台错误', consoleErrors.length === 0, consoleErrors.slice(0, 3).join(' | '))
 

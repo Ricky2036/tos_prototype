@@ -665,9 +665,31 @@ const emit = defineEmits(['back-to-settings'])
         </div>
 
         <div class="cell-group db-more-group">
-          <ListCell title="更多服务" subtitle="灵动岛将始终支持下列系统服务。" chevron clickable last />
+          <ListCell title="更多服务" subtitle="灵动岛将始终支持下列系统服务。" chevron clickable last @click="go('moreServices')" />
         </div>
 
+        <div class="bottom-spacer"></div>
+      </div>
+
+      <!-- ============ 更多服务：Dynamic Bar 支持的系统服务清单 ============ -->
+      <div v-else-if="subView === 'moreServices'" key="moreServices" class="ns-page scrollable">
+        <GlassNavBar overlay title="更多服务" @back="back()" />
+        <div class="cell-group mt-first">
+          <ListCell
+            v-for="(svc, idx) in ISLAND_SERVICES"
+            :key="svc.key"
+            :title="svc.label"
+            :last="idx === ISLAND_SERVICES.length - 1"
+          >
+            <template #right>
+              <ToggleSwitch
+                color="blue"
+                :model-value="notificationsStore.islandSettings[svc.key]"
+                @update:modelValue="(val) => notificationsStore.setIslandEnabled(svc.key, val)"
+              />
+            </template>
+          </ListCell>
+        </div>
         <div class="bottom-spacer"></div>
       </div>
 

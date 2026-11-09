@@ -150,11 +150,23 @@ function filteredRows(sec) {
 }
 
 function onRowClick(row) {
-  if (row.toggle || row.radio || row.disabled) return
+  if (row.disabled) return
   // 「通知 / 管理通知」跳到【现有】的 SettingsNotifications 应用详情子页，
   // 不走 group3 自己的页面栈。setAppTarget 会被 SettingsApp 的 watch 消费。
   if (row.openAppNotifications) {
     notificationsStore.setAppTarget(store.selectedApp.appId || 'wechat')
+    return
+  }
+  // 🔴 以前这里写 `if (row.toggle || row.radio) return`，把整行点击全吞了：
+  //    19 个单选项点不动、78 个开关行点整行没反应（只有点开关本体才有效）。
+  //    现在按行类型给每种「看起来能点」的行一个明确副作用。
+  if (row.radio) {
+    onRadio(row)
+    return
+  }
+  if (row.toggle) {
+    // 开关本体带 @click.stop，不会冒泡到这里造成二次翻转
+    onToggle(row, !store.getSwitch(row.toggle))
     return
   }
   if (row.action === 'appDetail') {
@@ -272,7 +284,12 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
         <!-- 应用活动详情：下拉 + 总时长 + 周柱状图 + 日期切换 -->
         <div v-else-if="sec.usage" class="g3-usage">
           <div class="g3-usage-dropdowns">
-            <span v-for="d in (sec.usage.dropdowns || [sec.usage.dropdown])" :key="d" class="g3-usage-dropdown">
+            <span
+              v-for="d in (sec.usage.dropdowns || [sec.usage.dropdown])"
+              :key="d"
+              class="g3-usage-dropdown"
+              @click="emit('action', d)"
+            >
               {{ d }}<LIcon name="chevronDown" :size="13" :stroke-width="2" />
             </span>
           </div>
@@ -295,9 +312,9 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
             </div>
           </div>
           <div class="g3-usage-date">
-            <LIcon name="chevronLeft" :size="16" :stroke-width="2" />
+            <LIcon name="chevronLeft" :size="16" :stroke-width="2" class="g3-usage-arrow" @click="emit('action', '上一天')" />
             <span>{{ sec.usage.date }}</span>
-            <LIcon name="chevronRight" :size="16" :stroke-width="2" />
+            <LIcon name="chevronRight" :size="16" :stroke-width="2" class="g3-usage-arrow" @click="emit('action', '下一天')" />
           </div>
         </div>
 
@@ -673,6 +690,8 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
 /* ===== 应用活动详情 ===== */
 .g3-usage { display: flex; flex-direction: column; align-items: center; padding: 10px 0 16px; }
 .g3-usage-dropdowns { display: flex; gap: 10px; margin-bottom: 14px; }
+.g3-usage-dropdown { cursor: pointer; }
+.g3-usage-arrow { cursor: pointer; }
 .g3-usage-dropdown {
   display: inline-flex; align-items: center; gap: 5px;
   background: #DCEBFF; color: #1C5FD6;
