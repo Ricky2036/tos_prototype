@@ -206,3 +206,22 @@ test('PhoneCallDisplayModal conforms to big-card container and dual phone model 
   assert.match(content, /phoneStore\.callDisplayMode\s*=\s*'fullscreen'/)
 })
 
+test('PhoneSettings routes SIM and Sound entries to system settings via notificationsStore and systemStore', () => {
+  const settingsPath = path.resolve('src/components/apps/phone/settings/PhoneSettings.vue')
+  const settingsContent = fs.readFileSync(settingsPath, 'utf-8')
+  assert.match(settingsContent, /openSystemSettings.*'sim'/, 'SIM row must emit openSystemSettings with sim')
+  assert.match(settingsContent, /openSystemSettings.*'sound'/, 'Sound row must emit openSystemSettings with sound')
+
+  const appPath = path.resolve('src/components/apps/phone/PhoneApp.vue')
+  const appContent = fs.readFileSync(appPath, 'utf-8')
+  assert.match(appContent, /useSystemStore/)
+  assert.match(appContent, /useNotificationsStore/)
+  assert.match(appContent, /notificationsStore\.setTargetView\(category\)/)
+  assert.match(appContent, /systemStore\.openApp\('settings'\)/)
+
+  const sysSettingsPath = path.resolve('src/components/apps/settings/SettingsApp.vue')
+  const sysSettingsContent = fs.readFileSync(sysSettingsPath, 'utf-8')
+  assert.match(sysSettingsContent, /initialStack = \['main', notificationsStore\.targetView\]/)
+  assert.match(sysSettingsContent, /stack\.value = \['main', newTarget\]/)
+})
+

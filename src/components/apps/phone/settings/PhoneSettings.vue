@@ -113,14 +113,14 @@ defineExpose({
               </svg>
             </div>
 
-            <div class="setting-item-row" @click="emit('openSystemSettings', 'sim')">
+            <div class="setting-item-row" data-action="open-system-sim" @click="emit('openSystemSettings', 'sim')">
               <span class="item-title">SIM 卡与网络设置</span>
               <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
                 <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
 
-            <div class="setting-item-row" @click="emit('openSystemSettings', 'sound')">
+            <div class="setting-item-row" data-action="open-system-sound" @click="emit('openSystemSettings', 'sound')">
               <span class="item-title">声音与振动</span>
               <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
                 <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>

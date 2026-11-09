@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed, nextTick } from 'vue'
 import { usePhoneStore } from '../../../stores/phoneStore'
+import { useSystemStore } from '../../../stores/systemStore'
+import { useNotificationsStore } from '../../../stores/notificationsStore'
 import { useBackHandler } from '../../../composables/backRegistry'
 import { useLargeTitle, largeTitleVars } from '../../../composables/useLargeTitle.js'
 import LargeTitleHeader from '../../ui/LargeTitleHeader.vue'
@@ -19,6 +21,8 @@ import PhoneSettings from './settings/PhoneSettings.vue'
 
 const props = defineProps({ app: Object })
 const phoneStore = usePhoneStore()
+const systemStore = useSystemStore()
+const notificationsStore = useNotificationsStore()
 
 const isSettingsOpen = ref(false)
 const settingsRef = ref(null)
@@ -180,7 +184,8 @@ function handleContactSaved() {
 }
 
 function handleOpenSystemSettings(category) {
-  // 系统设置透传预留
+  notificationsStore.setTargetView(category)
+  systemStore.openApp('settings')
 }
 
 function handleFabClick() {
@@ -489,6 +494,7 @@ function handleAppWheel(e) {
         ref="settingsRef"
         @back="isSettingsOpen = false"
         @open-system-settings="handleOpenSystemSettings"
+        @openSystemSettings="handleOpenSystemSettings"
       />
     </Transition>
 

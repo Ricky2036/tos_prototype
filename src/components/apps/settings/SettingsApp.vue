@@ -68,7 +68,7 @@ const deviceStore = useDeviceStore()
 const network = useNetworkStore()
 const { timeShort } = useClock()
 
-/* 内部导航栈：支持从礼拜卡片、通知灵动岛、账号引导通知直接深链跳转 */
+/* 内部导航栈：支持从礼拜卡片、通知灵动岛、账号引导通知、电话设置等直接深链跳转 */
 let initialStack = ['main']
 if (prayerStore.targetView === 'prayer') {
   initialStack = ['main', 'sound', 'prayer']
@@ -80,6 +80,9 @@ if (prayerStore.targetView === 'prayer') {
   notificationsStore.targetView = null
 } else if (notificationsStore.targetView === 'accountLogin') {
   initialStack = ['main', 'accountLogin']
+  notificationsStore.targetView = null
+} else if (notificationsStore.targetView) {
+  initialStack = ['main', notificationsStore.targetView]
   notificationsStore.targetView = null
 }
 const stack = ref(initialStack)
@@ -100,16 +103,18 @@ watch(
 watch(
   () => notificationsStore.targetView,
   (newTarget) => {
+    if (!newTarget) return
+    isBack.value = false
     if (newTarget === 'notifications') {
-      isBack.value = false
       stack.value = ['main', 'notifications']
     } else if (newTarget === 'account') {
-      isBack.value = false
       stack.value = ['main', 'account']
       notificationsStore.targetView = null
     } else if (newTarget === 'accountLogin') {
-      isBack.value = false
       stack.value = ['main', 'accountLogin']
+      notificationsStore.targetView = null
+    } else {
+      stack.value = ['main', newTarget]
       notificationsStore.targetView = null
     }
   }
