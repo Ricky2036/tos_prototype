@@ -32,6 +32,8 @@ export const usePhoneStore = defineStore('phone', () => {
     autoRecord: true,
     recordScope: 'custom', // 'all' | 'custom'
     recordUnknown: false,
+    noiseReductionSystem: '标准降噪', // '关闭' | '标准降噪' | '深度降噪'
+    noiseReductionVoip: '标准降噪', // '关闭' | '标准降噪' | '深度降噪'
     aiSummary: true,
     aiTranslate: true,
     flashCallEnabled: true,
@@ -327,6 +329,10 @@ export const usePhoneStore = defineStore('phone', () => {
   // 重复联系人横幅可见性
   const duplicateBannerVisible = ref(true)
 
+  // 弹窗状态与选中详情对象
+  const selectedRecent = ref(null) // 通话详情弹窗对象
+  const selectedContact = ref(null) // 联系人详情弹窗对象
+
   // 过滤后的通话记录列表
   const filteredRecents = computed(() => {
     if (recentsFilter.value === 'missed') {
@@ -339,7 +345,7 @@ export const usePhoneStore = defineStore('phone', () => {
   const groupedContacts = computed(() => {
     const map = {}
     for (const c of contacts.value) {
-      const key = c.initial || '#'
+      const key = (c.initial || '#').toUpperCase()
       if (!map[key]) map[key] = []
       map[key].push(c)
     }
@@ -384,13 +390,17 @@ export const usePhoneStore = defineStore('phone', () => {
   let callTimer = null
   function startCall(target, isVideo = false) {
     const name = typeof target === 'string' ? target : (target?.name || target?.number)
-    const number = typeof target === 'string' ? target : target?.number
+    const number = typeof target === 'string' ? target : (target?.number || target?.name)
     activeCall.value = {
       name: name || number,
       number: number || name,
       duration: 0,
       status: 'calling', // 呼叫中
-      isVideo
+      isVideo,
+      isMuted: false,
+      isSpeaker: false,
+      isRecording: false,
+      dtmfLogs: ''
     }
     
     // 模拟 1.8 秒后接通
@@ -421,13 +431,97 @@ export const usePhoneStore = defineStore('phone', () => {
     dialedNumber.value = ''
   }
 
+  // 删除单条通话记录
+  function removeRecent(id) {
+    recents.value = recents.value.filter(r => r.id !== id)
+    if (selectedRecent.value?.id === id) {
+      selectedRecent.value = null
+    }
+  }
+
+  // 清空通话记录
+  function clearRecents(filterType = 'all') {
+    if (filterType === 'missed') {
+      recents.value = recents.value.filter(r => r.type !== 'missed')
+    } else {
+      recents.value = []
+    }
+    selectedRecent.value = null
+  }
+
   // 合并重复联系人
   function dismissDuplicateBanner() {
     duplicateBannerVisible.value = false
   }
 
   function mergeDuplicates() {
+    // 模拟合并重复联系人
     duplicateBannerVisible.value = false
+  }
+
+  // 新增联系人
+  const AVATAR_COLORS = ['#4F46E5', '#6366F1', '#0EA5E9', '#EC4899', '#8B5CF6', '#10B981', '#3B82F6', '#14B8A6', '#F59E0B']
+  function addContact({ name, number, tag = '手机', company = '' }) {
+    if (!name?.trim() && !number?.trim()) return null
+    const finalName = name?.trim() || number?.trim()
+    const finalNumber = number?.trim() || ''
+    
+    // 简易拼音首字母推导
+    let initial = '#'
+    const firstChar = finalName[0]
+    if (/[a-zA-Z]/.test(firstChar)) {
+      initial = firstChar.toUpperCase()
+    } else if (/[\u4e00-\u9fa5]/.test(firstChar)) {
+      // 简单中文首字母映射（覆盖常见姓氏）
+      const pinyinMap = {
+        '李': 'L', '王': 'W', '张': 'Z', '刘': 'L', '陈': 'C', '杨': 'Y', '黄': 'H', '赵': 'Z',
+        '吴': 'W', '周': 'Z', '徐': 'X', '孙': 'S', '马': 'M', '朱': 'Z', '胡': 'H', '郭': 'G',
+        '何': 'H', '高': 'G', '林': 'L', '罗': 'L', '郑': 'Z', '梁': 'L', '谢': 'X', '宋': 'S',
+        '唐': 'T', '许': 'X', '韩': 'H', '冯': 'F', '邓': 'D', '曹': 'C', '彭': 'P', '曾': 'Z',
+        '肖': 'X', '田': 'T', '董': 'D', '袁': 'Y', '潘': 'P', '于': 'Y', '蒋': 'J', '蔡': 'C',
+        '余': 'Y', '杜': 'D', '叶': 'Y', '程': 'C', '苏': 'S', '魏': 'W', '吕': 'L', '丁': 'D',
+        '任': 'R', '沈': 'S', '姚': 'Y', '卢': 'L', '姜': 'J', '崔': 'C', '钟': 'Z', '谭': 'T',
+        '陆': 'L', '汪': 'W', '范': 'F', '金': 'J', '石': 'S', '廖': 'L', '贾': 'J', '夏': 'X',
+        '韦': 'W', '付': 'F', '方': 'F', '白': 'B', '邹': 'Z', '孟': 'M', '熊': 'X', '秦': 'Q',
+        '邱': 'Q', '江': 'J', '尹': 'Y', '薛': 'X', '闫': 'Y', '段': 'D', '雷': 'L', '侯': 'H',
+        '龙': 'L', '史': 'S', '陶': 'T', '黎': 'L', '贺': 'H', '顾': 'G', '毛': 'M', '郝': 'H',
+        '龚': 'G', '邵': 'S', '万': 'W', '钱': 'Q', '严': 'Y', '覃': 'T', '武': 'W', '戴': 'D',
+        '莫': 'M', '孔': 'K', '向': 'X', '汤': 'T', '安': 'A', '爱': 'A', '阿': 'A'
+      }
+      initial = pinyinMap[firstChar] || '#'
+    }
+
+    const newContact = {
+      id: 'c_' + Date.now(),
+      name: finalName,
+      number: finalNumber,
+      tag,
+      company,
+      initial,
+      pinyin: finalName.toLowerCase(),
+      color: AVATAR_COLORS[contacts.value.length % AVATAR_COLORS.length]
+    }
+    contacts.value.unshift(newContact)
+    return newContact
+  }
+
+  // 更新联系人
+  function updateContact(id, data) {
+    const idx = contacts.value.findIndex(c => c.id === id)
+    if (idx !== -1) {
+      contacts.value[idx] = { ...contacts.value[idx], ...data }
+      if (selectedContact.value?.id === id) {
+        selectedContact.value = contacts.value[idx]
+      }
+    }
+  }
+
+  // 删除联系人
+  function removeContact(id) {
+    contacts.value = contacts.value.filter(c => c.id !== id)
+    if (selectedContact.value?.id === id) {
+      selectedContact.value = null
+    }
   }
 
   // 添加自定义快捷回复
@@ -438,6 +532,10 @@ export const usePhoneStore = defineStore('phone', () => {
       text: text.trim(),
       enabled: true
     })
+  }
+
+  function removeFlashCallReply(id) {
+    settings.value.flashCallReplies = settings.value.flashCallReplies.filter(r => r.id !== id)
   }
 
   // 指定号码录音管理
@@ -453,11 +551,29 @@ export const usePhoneStore = defineStore('phone', () => {
     settings.value.designatedNumbers = settings.value.designatedNumbers.filter(n => n !== num)
   }
 
-  // 快速拨号绑定
+  // 快速拨号绑定与触发
   function setSpeedDial(key, nameOrNum) {
     if (key >= 2 && key <= 9) {
       settings.value.speedDial[key] = nameOrNum
     }
+  }
+
+  function dialSpeedKey(key) {
+    if (key === 1) {
+      startCall({ name: '语音邮件', number: '10086' })
+      return true
+    }
+    const target = settings.value.speedDial[key]
+    if (target) {
+      const foundContact = contacts.value.find(c => c.name === target || c.number === target)
+      if (foundContact) {
+        startCall(foundContact)
+      } else {
+        startCall({ name: target, number: target })
+      }
+      return true
+    }
+    return false
   }
 
   // 黑名单管理
@@ -473,6 +589,32 @@ export const usePhoneStore = defineStore('phone', () => {
     settings.value.blackList = settings.value.blackList.filter(n => n !== num)
   }
 
+  // 白名单管理
+  function addWhiteListNumber(num) {
+    if (!num || !num.trim()) return
+    const clean = num.trim()
+    if (!settings.value.whiteList.includes(clean)) {
+      settings.value.whiteList.push(clean)
+    }
+  }
+
+  function removeWhiteListNumber(num) {
+    settings.value.whiteList = settings.value.whiteList.filter(n => n !== num)
+  }
+
+  // 自定义短信拦截短语
+  function addBlockKeyword(kw) {
+    if (!kw || !kw.trim()) return
+    const clean = kw.trim()
+    if (!settings.value.blockKeywords.includes(clean)) {
+      settings.value.blockKeywords.push(clean)
+    }
+  }
+
+  function removeBlockKeyword(kw) {
+    settings.value.blockKeywords = settings.value.blockKeywords.filter(k => k !== kw)
+  }
+
   return {
     currentTab,
     recentsFilter,
@@ -483,6 +625,8 @@ export const usePhoneStore = defineStore('phone', () => {
     activeCall,
     flashCallTarget,
     callDisplayMode,
+    selectedRecent,
+    selectedContact,
     settings,
     recents,
     contacts,
@@ -496,13 +640,24 @@ export const usePhoneStore = defineStore('phone', () => {
     toggleKeypad,
     startCall,
     endCall,
+    removeRecent,
+    clearRecents,
+    addContact,
+    updateContact,
+    removeContact,
     dismissDuplicateBanner,
     mergeDuplicates,
     addFlashCallReply,
+    removeFlashCallReply,
     addDesignatedNumber,
     removeDesignatedNumber,
     setSpeedDial,
+    dialSpeedKey,
     addBlackListNumber,
-    removeBlackListNumber
+    removeBlackListNumber,
+    addWhiteListNumber,
+    removeWhiteListNumber,
+    addBlockKeyword,
+    removeBlockKeyword
   }
 })

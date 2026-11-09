@@ -11,6 +11,10 @@ import PhoneKeypad from './PhoneKeypad.vue'
 import PhoneSearch from './PhoneSearch.vue'
 import PhoneFlashCallModal from './PhoneFlashCallModal.vue'
 import PhoneCallScreen from './PhoneCallScreen.vue'
+import PhoneCallDetailModal from './PhoneCallDetailModal.vue'
+import PhoneContactDetailModal from './PhoneContactDetailModal.vue'
+import PhoneAddContactModal from './PhoneAddContactModal.vue'
+import PhoneMergeModal from './PhoneMergeModal.vue'
 import PhoneSettings from './settings/PhoneSettings.vue'
 
 const props = defineProps({ app: Object })
@@ -19,6 +23,14 @@ const phoneStore = usePhoneStore()
 const isSettingsOpen = ref(false)
 const settingsRef = ref(null)
 const scrollContainerRef = ref(null)
+const scrubberRef = ref(null)
+
+const isAddContactOpen = ref(false)
+const editingContact = ref(null)
+const addContactInitial = ref(null)
+const isMergeOpen = ref(false)
+const activeScrubLetter = ref(null)
+let scrubTimer = null
 
 // 电话应用定制大标题折叠曲线：严格 1:1 对齐真机测量几何（大标题从 y=97px 展开，字号 32px，Tab 绿色指示条精准锚定在 y=184.6px）
 const PHONE_TITLE_CURVE = {
@@ -94,6 +106,24 @@ useBackHandler(() => {
     phoneStore.endCall()
     return true
   }
+  if (isAddContactOpen.value) {
+    isAddContactOpen.value = false
+    editingContact.value = null
+    addContactInitial.value = null
+    return true
+  }
+  if (isMergeOpen.value) {
+    isMergeOpen.value = false
+    return true
+  }
+  if (phoneStore.selectedContact) {
+    phoneStore.selectedContact = null
+    return true
+  }
+  if (phoneStore.selectedRecent) {
+    phoneStore.selectedRecent = null
+    return true
+  }
   if (isSettingsOpen.value) {
     if (settingsRef.value?.back?.()) return true
     isSettingsOpen.value = false
@@ -130,26 +160,76 @@ function switchTab(tabName) {
   }
 }
 
+function handleOpenAddContact(initial = null) {
+  editingContact.value = null
+  addContactInitial.value = initial
+  isAddContactOpen.value = true
+}
+
+function handleEditContact(contact) {
+  phoneStore.selectedContact = null
+  editingContact.value = contact
+  addContactInitial.value = null
+  isAddContactOpen.value = true
+}
+
+function handleContactSaved() {
+  isAddContactOpen.value = false
+  editingContact.value = null
+  addContactInitial.value = null
+}
+
+function handleOpenSystemSettings(category) {
+  // 系统设置透传预留
+}
+
 function handleFabClick() {
   if (phoneStore.currentTab === 'recents') {
     phoneStore.isKeypadOpen = !phoneStore.isKeypadOpen
   } else {
-    // 联系人页：新建联系人模拟行为
-    const newMock = {
-      id: 'c_' + Date.now(),
-      name: '新联系人',
-      number: '139 1234 5678',
-      color: '#34D399'
-    }
-    phoneStore.contacts.unshift(newMock)
-    phoneStore.startCall(newMock)
+    handleOpenAddContact()
   }
 }
 
 function scrollToLetter(letter) {
+  activeScrubLetter.value = letter
+  if (scrubTimer) clearTimeout(scrubTimer)
+  scrubTimer = setTimeout(() => {
+    activeScrubLetter.value = null
+  }, 700)
+
   const el = document.getElementById(`section-${letter}`)
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  if (el && scrollContainerRef.value) {
+    const containerRect = scrollContainerRef.value.getBoundingClientRect()
+    const elRect = el.getBoundingClientRect()
+    const targetTop = scrollContainerRef.value.scrollTop + (elRect.top - containerRect.top) - 90
+    scrollContainerRef.value.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' })
+  }
+}
+
+function updateScrubLetterFromTouch(touch) {
+  if (!scrubberRef.value) return
+  const rect = scrubberRef.value.getBoundingClientRect()
+  const y = touch.clientY - rect.top
+  const totalH = rect.height
+  if (totalH <= 0) return
+  const ratio = Math.max(0, Math.min(1, y / totalH))
+  const index = Math.min(alphabetList.length - 1, Math.floor(ratio * alphabetList.length))
+  const letter = alphabetList[index]
+  if (letter && letter !== activeScrubLetter.value) {
+    scrollToLetter(letter)
+  }
+}
+
+function handleScrubberTouchStart(e) {
+  if (e.touches?.length) {
+    updateScrubLetterFromTouch(e.touches[0])
+  }
+}
+
+function handleScrubberTouchMove(e) {
+  if (e.touches?.length) {
+    updateScrubLetterFromTouch(e.touches[0])
   }
 }
 
@@ -286,18 +366,30 @@ function handleAppWheel(e) {
 
       <!-- 核心视图标签页内容 -->
       <PhoneRecentsTab v-if="phoneStore.currentTab === 'recents'" />
-      <PhoneContactsTab v-else />
+      <PhoneContactsTab
+        v-else
+        @open-merge-duplicates="isMergeOpen = true"
+        @open-add-contact="handleOpenAddContact"
+      />
     </div>
 
     <!-- 联系人右侧快速字母检索条（固定悬浮于应用视口右侧） -->
     <div
       v-if="phoneStore.currentTab === 'contacts' && !phoneStore.isKeypadOpen"
+      ref="scrubberRef"
       class="alphabet-scrubber-fixed"
+      @touchstart.passive="handleScrubberTouchStart"
+      @touchmove.passive="handleScrubberTouchMove"
     >
+      <!-- 字母气泡指示器 -->
+      <div v-if="activeScrubLetter" class="scrubber-bubble">
+        {{ activeScrubLetter }}
+      </div>
       <span
         v-for="letter in alphabetList"
         :key="letter"
         class="scrubber-letter"
+        :class="{ active: activeScrubLetter === letter }"
         @click="scrollToLetter(letter)"
       >
         {{ letter }}
@@ -376,7 +468,10 @@ function handleAppWheel(e) {
     <!-- 全局弹层组件集合 -->
     <!-- 1. 搜索页 -->
     <Transition name="fade">
-      <PhoneSearch v-if="phoneStore.isSearchActive" />
+      <PhoneSearch
+        v-if="phoneStore.isSearchActive"
+        @open-add-contact="handleOpenAddContact"
+      />
     </Transition>
 
     <!-- 2. Flash Call 快捷回复弹窗 -->
@@ -393,6 +488,44 @@ function handleAppWheel(e) {
         v-if="isSettingsOpen"
         ref="settingsRef"
         @back="isSettingsOpen = false"
+        @open-system-settings="handleOpenSystemSettings"
+      />
+    </Transition>
+
+    <!-- 5. 通话详情抽屉 -->
+    <Transition name="fade">
+      <PhoneCallDetailModal
+        v-if="phoneStore.selectedRecent"
+        @close="phoneStore.selectedRecent = null"
+        @open-add-contact="handleOpenAddContact"
+      />
+    </Transition>
+
+    <!-- 6. 联系人详情抽屉 -->
+    <Transition name="fade">
+      <PhoneContactDetailModal
+        v-if="phoneStore.selectedContact"
+        @close="phoneStore.selectedContact = null"
+        @edit="handleEditContact"
+      />
+    </Transition>
+
+    <!-- 7. 新建/编辑联系人模态框 -->
+    <Transition name="fade">
+      <PhoneAddContactModal
+        v-if="isAddContactOpen"
+        :edit-contact="editingContact"
+        :initial-data="addContactInitial"
+        @close="isAddContactOpen = false; editingContact = null; addContactInitial = null"
+        @saved="handleContactSaved"
+      />
+    </Transition>
+
+    <!-- 8. 合并重复联系人弹窗 -->
+    <Transition name="fade">
+      <PhoneMergeModal
+        v-if="isMergeOpen"
+        @close="isMergeOpen = false"
       />
     </Transition>
   </div>
@@ -521,9 +654,44 @@ function handleAppWheel(e) {
   cursor: pointer;
 }
 
-.scrubber-letter:active {
+.scrubber-letter:active,
+.scrubber-letter.active {
   color: #00C853;
   transform: scale(1.3);
+}
+
+.scrubber-bubble {
+  position: absolute;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(28, 28, 30, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #FFFFFF;
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  z-index: 50;
+  animation: popIn 0.15s ease-out;
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
 }
 
 /* 吸顶组合顶栏：承载大标题吸顶折叠与分类标签栏，二者共同构成固定头部 */

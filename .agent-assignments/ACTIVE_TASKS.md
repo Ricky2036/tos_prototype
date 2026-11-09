@@ -209,9 +209,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Correct clock edit button visibility, replace photo favorite icon with pure heart, and bind sharesheet to global navigation bar | `antigravity/lane` | None (locks released) | `2b6d45c` | `ad06b92` |
 | Merged | Antigravity | Add anonymous telemetry probe, sqlite receiver server, and vite plugin | `antigravity/lane` | None (locks released) | `42f177a` | `f12d313` |
 
+| Merged | Workbuddy | Settings group 3 (安全与隐私 → 位置信息): build the third/fourth-level subpages for 4 secondary pages (密码与安全 / 权限与隐私 / 应用管理 / 位置信息) from real-device capture, config-driven shared renderer + store + layer transitions, and wire every dead toast/chevron entry | `workbuddy/lane` | None (locks released) | `6613b8e` | `fa2a8a2` |
+| Merged | Antigravity | Real-device Phone app and settings interaction completion (Call detail drawer, contact detail drawer, add contact modal, merge duplicates modal, noise reduction subpage, swipe actions, DTMF keypad & AI call summary) | `antigravity/lane` | None (locks released) | `6613b8e` | `87d3945` |
+
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
-
-
-
-
-| Review | Workbuddy | Settings group 3 (安全与隐私 → 位置信息): build the third/fourth-level subpages for 4 secondary pages (密码与安全 / 权限与隐私 / 应用管理 / 位置信息) from real-device capture, config-driven shared renderer + store + layer transitions, and wire every dead toast/chevron entry | `workbuddy/lane` | `src/components/apps/settings/SettingsSecurity.vue`; `SettingsPrivacy.vue`; `SettingsAppsManage.vue`; `SettingsLocation.vue`; `src/components/apps/settings/group3/**`; `src/stores/settingsGroup3Store.js`; `tests/settingsGroup3Subpages.test.js` | `6613b8e` | `fa2a8a2` |

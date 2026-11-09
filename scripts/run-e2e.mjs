@@ -122,6 +122,15 @@ const SUITES = [
       'src/styles/layer-transitions.css',
       'tests/settingsGroup3Subpages.test.js'
     ]
+  },
+  {
+    id: 'phone',
+    script: 'verify-phone-flow.mjs',
+    covers: [
+      'src/components/apps/phone/',
+      'src/stores/phoneStore.js',
+      'tests/phoneApp.test.js'
+    ]
   }
 ]
 
