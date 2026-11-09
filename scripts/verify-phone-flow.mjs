@@ -122,16 +122,44 @@ try {
   assert('输入号码检索联系人时隐藏通话记录Tab', !(await page.locator('.recents-filter-bar').isVisible()))
   assert('拨号下方列表展示匹配联系人', await page.locator('.matched-contact-row').first().isVisible())
   assert('有匹配联系人时底部不展示新建联系人', !(await page.locator('.matched-actions-list').isVisible()))
+  assert('拨号盘顶部无小横条手柄', !(await page.locator('.drag-pill, .keypad-drag-bar').isVisible()))
   assert('拨号盘左侧视频通话按钮复用控制中心录屏图标', await page.locator('.video-call-btn .l-icon').isVisible())
   assert('拨号盘底部右侧无多余删除按钮', !(await page.locator('.keypad-actions-row .backspace-btn').isVisible()))
   assert('号码栏退格键为面性图标', await page.locator('.backspace-btn-top svg path[fill="#1C1C1E"]').isVisible())
+
+  // 点击三点菜单验证更多选项弹窗
+  const menuBtn = page.locator('.header-action-btn.menu-btn')
+  await menuBtn.click()
+  await page.waitForTimeout(200)
+  assert('三点菜单弹出层可见', await page.locator('.keypad-more-menu').isVisible())
+  assert('菜单包含延长暂停时间2秒', await page.locator('.more-menu-item', { hasText: '延长暂停时间2秒' }).isVisible())
+  assert('菜单包含延长等待时间', await page.locator('.more-menu-item', { hasText: '延长等待时间' }).isVisible())
+  await page.screenshot({ path: `${OUT}/04-keypad-more-menu.png` })
+
+  // 点击延长暂停时间2秒追加逗号
+  await page.locator('.more-menu-item', { hasText: '延长暂停时间2秒' }).click()
+  await page.waitForTimeout(200)
+  const textWithPause = await page.locator('.dialed-number-text').textContent()
+  assert('追加暂停控制符逗号 (136,)', textWithPause?.includes('136,'))
+
+  // 再次打开菜单追加等待时间分号
+  await menuBtn.click()
+  await page.waitForTimeout(200)
+  await page.locator('.more-menu-item', { hasText: '延长等待时间' }).click()
+  await page.waitForTimeout(200)
+  const textWithWait = await page.locator('.dialed-number-text').textContent()
+  assert('追加等待控制符分号 (136,;)', textWithWait?.includes('136,;'))
+
   await page.screenshot({ path: `${OUT}/04-keypad-dialing.png` })
 
   // 点击退格清空
   const backspaceBtn = page.locator('.action-aux-btn.backspace-btn, .backspace-btn-top').first()
-  await backspaceBtn.click()
-  await backspaceBtn.click()
-  await backspaceBtn.click()
+  for (let i = 0; i < 5; i++) {
+    if (await backspaceBtn.isVisible()) {
+      await backspaceBtn.click()
+      await page.waitForTimeout(50)
+    }
+  }
   await page.waitForTimeout(200)
 
   head('5. 联系人页面与字母检索条交互 (PhoneContactsTab)')

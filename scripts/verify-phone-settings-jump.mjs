@@ -58,11 +58,8 @@ try {
   const phoneApp = page.locator('.phone-app')
   assert('电话应用窗口可见', await phoneApp.isVisible())
 
-  head('2. 拨号盘小横条手柄 (Drag Pill) 渲染与滑动收起过渡')
-  const dragPill = page.locator('.keypad-drag-bar .drag-pill')
-  assert('拨号盘顶部小横条手柄可见', await dragPill.isVisible())
-  const pillBg = await dragPill.evaluate((el) => getComputedStyle(el).backgroundColor)
-  assert('小横条手柄具备足够对比度灰阶 (#C4C7CC)', pillBg.includes('196') || pillBg.includes('209') || pillBg.includes('199') || pillBg.includes('197') || pillBg.includes('198'), pillBg)
+  head('2. 拨号盘无小横条手柄且支持滑动顺滑收起过渡')
+  assert('对齐真机规范：拨号盘顶部无小横条手柄', !(await page.locator('.drag-pill, .keypad-drag-bar').isVisible()))
 
   // 测试轻滑列表收起拨号盘
   const scroller = page.locator('.phone-scroll-viewport')

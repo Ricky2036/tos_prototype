@@ -236,12 +236,15 @@ test('PhoneRecentsTab implements follow-finger swipe gestures and accidental dia
   assert.match(content, /has-swipe-transition/)
 })
 
-test('PhoneKeypad contains clearly visible drag pill handle and smooth drawer slide', () => {
+test('PhoneKeypad aligns with real device without top drag pill, supports more options menu and smooth drawer slide', () => {
   const keypadPath = path.resolve('src/components/apps/phone/PhoneKeypad.vue')
   const keypadContent = fs.readFileSync(keypadPath, 'utf-8')
-  assert.match(keypadContent, /keypad-drag-bar/)
-  assert.match(keypadContent, /drag-pill/)
-  assert.match(keypadContent, /#C4C7CC/)
+  // 真机规范铁律：拨号盘顶部绝对没有小横条拖拽手柄
+  assert.doesNotMatch(keypadContent, /keypad-drag-bar/)
+  assert.doesNotMatch(keypadContent, /drag-pill/)
+  // 包含三点更多选项菜单（延长暂停时间2秒 / 延长等待时间）
+  assert.match(keypadContent, /延长暂停时间2秒/)
+  assert.match(keypadContent, /延长等待时间/)
 
   const appPath = path.resolve('src/components/apps/phone/PhoneApp.vue')
   const appContent = fs.readFileSync(appPath, 'utf-8')

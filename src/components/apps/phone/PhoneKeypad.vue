@@ -1,11 +1,31 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { usePhoneStore } from '../../../stores/phoneStore'
 import LIcon from '../../ui/LIcon.vue'
 
 const phoneStore = usePhoneStore()
 const toastText = ref('')
 let toastTimer = null
+
+const isMoreMenuOpen = ref(false)
+
+watch(() => phoneStore.dialedNumber, (val) => {
+  if (!val) isMoreMenuOpen.value = false
+})
+
+function toggleMoreMenu() {
+  isMoreMenuOpen.value = !isMoreMenuOpen.value
+}
+
+function handleAppendPause() {
+  phoneStore.appendKey(',')
+  isMoreMenuOpen.value = false
+}
+
+function handleAppendWait() {
+  phoneStore.appendKey(';')
+  isMoreMenuOpen.value = false
+}
 
 function showToast(msg) {
   toastText.value = msg
@@ -90,62 +110,23 @@ function handleVideoCall() {
 const formattedNumber = computed(() => {
   const n = phoneStore.dialedNumber
   if (!n) return ''
+  if (n.includes(',') || n.includes(';')) {
+    return n
+  }
   if (n.length <= 3) return n
   if (n.length <= 7) return `${n.slice(0, 3)} ${n.slice(3)}`
   return `${n.slice(0, 3)} ${n.slice(3, 7)} ${n.slice(7)}`
 })
-
-// 顶部手柄跟手下滑收起键盘
-let dragStartY = 0
-const dragCurrentY = ref(0)
-const isDraggingPill = ref(false)
-
-function handleDragStart(e) {
-  if (e.touches?.length) {
-    dragStartY = e.touches[0].clientY
-    dragCurrentY.value = 0
-    isDraggingPill.value = true
-  }
-}
-
-function handleDragMove(e) {
-  if (!isDraggingPill.value || !e.touches?.length) return
-  const dy = e.touches[0].clientY - dragStartY
-  if (dy > 0) {
-    dragCurrentY.value = dy
-  }
-}
-
-function handleDragEnd() {
-  if (!isDraggingPill.value) return
-  if (dragCurrentY.value > 40) {
-    phoneStore.isKeypadOpen = false
-  }
-  dragCurrentY.value = 0
-  isDraggingPill.value = false
-}
 </script>
 
 <template>
   <div
     class="phone-keypad-panel"
-    :style="isDraggingPill && dragCurrentY > 0 ? { transform: `translateY(${dragCurrentY}px)`, transition: 'none' } : {}"
+    :class="{ 'is-empty': !phoneStore.dialedNumber }"
   >
-    <!-- 顶部手柄条与回显栏：未输入时展示拖拽小横条，输入时展示数字与退格（1:1 对齐真机） -->
-    <div
-      v-if="!phoneStore.dialedNumber"
-      class="keypad-drag-bar"
-      @touchstart.passive="handleDragStart"
-      @touchmove.passive="handleDragMove"
-      @touchend.passive="handleDragEnd"
-      @click="phoneStore.isKeypadOpen = false"
-    >
-      <div class="drag-pill"></div>
-    </div>
-
-    <!-- 顶部拨号回显与操作栏（输入时展示，1:1 对齐真机） -->
-    <div v-else class="keypad-dialed-header">
-      <button class="header-action-btn" title="清空" @click="phoneStore.clearNumber">
+    <!-- 顶部拨号回显与操作栏（输入时展示，1:1 对齐真机，无输入时完全无小横条） -->
+    <div v-if="phoneStore.dialedNumber" class="keypad-dialed-header">
+      <button class="header-action-btn menu-btn" title="更多选项" @click.stop="toggleMoreMenu">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="5" r="1.8" fill="#1C1C1E" />
           <circle cx="12" cy="12" r="1.8" fill="#1C1C1E" />
@@ -160,6 +141,19 @@ function handleDragEnd() {
           <line x1="17.2" y1="9.2" x2="12" y2="14.8" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" />
         </svg>
       </button>
+
+      <!-- 遮罩与更多选项弹出菜单（延长暂停时间2秒 / 延长等待时间） -->
+      <div v-if="isMoreMenuOpen" class="keypad-menu-backdrop" @click="isMoreMenuOpen = false"></div>
+      <Transition name="fade-scale">
+        <div v-if="isMoreMenuOpen" class="keypad-more-menu">
+          <button class="more-menu-item" @click="handleAppendPause">
+            延长暂停时间2秒
+          </button>
+          <button class="more-menu-item" @click="handleAppendWait">
+            延长等待时间
+          </button>
+        </div>
+      </Transition>
     </div>
 
     <!-- 3x4 严格正圆形按键网格 -->
@@ -230,29 +224,9 @@ function handleDragEnd() {
   position: relative;
 }
 
-/* 顶部拖拽手柄 */
-.keypad-drag-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 28px;
-  padding-top: 10px;
-  padding-bottom: 8px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.drag-pill {
-  width: 36px;
-  height: 4px;
-  border-radius: 2px;
-  background: #B0B3B8; /* fallback: #C4C7CC */
-  transition: background-color 0.15s ease, transform 0.15s ease;
-}
-
-.keypad-drag-bar:active .drag-pill {
-  background: #8E8E93;
-  transform: scaleY(1.2);
+/* 未输入数字时，纯白留白顶距（对齐真机无小横条设计） */
+.phone-keypad-panel.is-empty {
+  padding-top: 22px;
 }
 
 /* 顶部号码回显栏（输入时展示，对齐真机顶部 ⋮ 号码 ⌫ 布局，留白舒适匀称） */
@@ -263,6 +237,59 @@ function handleDragEnd() {
   height: 52px;
   padding: 14px 10px 0;
   margin-bottom: 14px;
+  position: relative;
+}
+
+/* 更多选项下拉菜单浮层与遮罩 */
+.keypad-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: transparent;
+}
+
+.keypad-more-menu {
+  position: absolute;
+  top: 56px;
+  left: 4px;
+  z-index: 50;
+  background: #FFFFFF;
+  border-radius: 20px;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 8px 6px;
+  min-width: 196px;
+  display: flex;
+  flex-direction: column;
+}
+
+.more-menu-item {
+  background: none;
+  border: none;
+  padding: 13px 18px;
+  font-size: 15px;
+  font-weight: 400;
+  color: #1C1C1E;
+  text-align: left;
+  border-radius: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+
+.more-menu-item:active {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.fade-scale-enter-active,
+.fade-scale-leave-active {
+  transition: opacity 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-origin: top left;
+}
+
+.fade-scale-enter-from,
+.fade-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.92);
 }
 
 .keypad-dialed-text {
