@@ -1,5 +1,6 @@
 <script setup>
 import { usePhoneStore } from '../../../../stores/phoneStore'
+import GlassNavBar from '../../../ui/GlassNavBar.vue'
 import bannerImg from '../../../../assets/img/phone_settings/call_display_banner.png'
 import fullImg from '../../../../assets/img/phone_settings/call_display_full.png'
 
@@ -9,17 +10,10 @@ const emit = defineEmits(['back'])
 
 <template>
   <div class="phone-settings-subpage">
-    <div class="subpage-header">
-      <button class="back-btn" title="返回" @click="emit('back')">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M15 19l-7-7 7-7" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
-      <div class="header-title">来电显示</div>
-    </div>
+    <GlassNavBar overlay title="来电显示" @back="emit('back')" />
 
     <div class="subpage-body">
-      <!-- 统一白色大卡片容器包裹两个手机模型、标题文案与单选按钮，100% 对齐真机 -->
+      <!-- 统一白色大卡片容器包裹两个手机模型、标题文案与单选按钮 -->
       <div class="settings-card call-display-big-card">
         <div class="display-options-row">
           <!-- 模式 1：弹窗显示 -->
@@ -62,61 +56,24 @@ const emit = defineEmits(['back'])
   left: 0;
   right: 0;
   bottom: 0;
-  background: #F0F1F3;
+  background: #F0F1F2;
   z-index: 60;
   display: flex;
   flex-direction: column;
 }
 
-.subpage-header {
-  display: flex;
-  align-items: center;
-  padding-top: calc(var(--safe-top, 54px) + 8px);
-  padding-bottom: 12px;
-  padding-left: 16px;
-  padding-right: 16px;
-  background: #F0F1F3;
-}
-
-.back-btn {
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
-  min-height: 38px;
-  border-radius: 50%;
-  background: #FFFFFF;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.1s ease;
-}
-
-.back-btn:active {
-  background-color: #E8E9EB;
-  transform: scale(0.96);
-}
-
-.header-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1C1C1E;
-  margin-left: 12px;
-}
-
 .subpage-body {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 16px 24px;
+  padding: calc(var(--nav-h) + 12px) 16px 24px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .call-display-big-card {
   background: #FFFFFF;
   border-radius: 20px;
   padding: 24px 20px 22px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .display-options-row {

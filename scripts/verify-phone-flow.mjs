@@ -171,8 +171,9 @@ try {
   const formInputs = page.locator('.input-card .form-input')
   await formInputs.nth(0).fill('测试联系人小助手')
   await formInputs.nth(1).fill('138 6666 9999')
+  await page.waitForSelector('.header-btn.save-btn:not([disabled])')
   await page.locator('.header-btn.save-btn').click()
-  await page.waitForTimeout(400)
+  await page.waitForTimeout(600)
   assert('保存联系人并关闭弹窗', !(await addModal.isVisible()))
 
   head('8. 联系人详情抽屉 (PhoneContactDetailModal)')
@@ -189,13 +190,14 @@ try {
   await page.waitForTimeout(300)
   assert('联系人详情抽屉关闭', !(await contactDetail.isVisible()))
 
-  head('9. 设置页与全场景降噪 (PhoneNoiseReduction)')
+  head('9. 设置页与全场景降噪、陌生号码识别 SheetOptionPicker')
   const settingsBtn = page.locator('.header-action-btn.settings-trigger')
   await settingsBtn.click()
   await page.waitForTimeout(400)
 
   const settingsPage = page.locator('.phone-settings-page')
   assert('进入电话设置主页', await settingsPage.isVisible())
+  assert('设置主页使用悬浮玻璃导航 GlassNavBar', await settingsPage.locator('.glass-nav .gn-title').textContent().then(t => t?.includes('设置')))
   assert('设置主页包含全场景降噪项', (await settingsPage.textContent())?.includes('全场景降噪'))
   await page.screenshot({ path: `${OUT}/09-phone-settings.png` })
 
@@ -204,17 +206,59 @@ try {
   await noiseRow.click()
   await page.waitForTimeout(400)
 
-  assert('进入全场景降噪子页面', (await page.locator('.subpage-header .header-title').textContent())?.includes('全场景降噪'))
+  assert('进入全场景降噪子页面', (await page.locator('.phone-settings-subpage .glass-nav .gn-title').textContent())?.includes('全场景降噪'))
   assert('显示声波能量动画组件', await page.locator('.sound-wave-graphic').isVisible())
   await page.screenshot({ path: `${OUT}/10-noise-reduction.png` })
 
+  // 打开降噪模式弹窗 SheetOptionPicker
+  const systemNoiseRow = page.locator('.settings-row', { hasText: '系统通话' }).first()
+  await systemNoiseRow.click()
+  await page.waitForTimeout(300)
+  const noisePicker = page.locator('.sheet-mask')
+  assert('降噪模式 SheetOptionPicker 升起', await noisePicker.isVisible())
+  await page.screenshot({ path: `${OUT}/10-b-noise-picker.png` })
+
+  // 关闭降噪弹窗
+  await page.locator('.picker-cancel').click()
+  await page.waitForTimeout(300)
+
   // 返回设置主页
-  await page.locator('.subpage-header .back-btn').click()
+  await page.locator('.phone-settings-subpage [data-nav-back]').click()
+  await page.waitForTimeout(400)
+  assert('返回设置主列表', await page.locator('.settings-main-view').isVisible())
+
+  // 进入陌生号码识别页面
+  const unknownIdRow = page.locator('.setting-item-row', { hasText: '陌生号码识别' }).first()
+  await unknownIdRow.click()
+  await page.waitForTimeout(400)
+
+  assert('进入陌生号码识别子页面', (await page.locator('.phone-settings-subpage .glass-nav .gn-title').textContent())?.includes('陌生号码识别'))
+  await page.screenshot({ path: `${OUT}/10-c-unknown-id.png` })
+
+  // 点击自动更新数据，唤起 SheetOptionPicker
+  const autoUpdateRow = page.locator('.settings-row', { hasText: '自动更新数据' }).first()
+  await autoUpdateRow.click()
+  await page.waitForTimeout(300)
+
+  const autoUpdatePicker = page.locator('.sheet-mask')
+  assert('自动更新数据 SheetOptionPicker 升起', await autoUpdatePicker.isVisible())
+  assert('SheetOptionPicker 包含仅在 WLAN 选项', (await autoUpdatePicker.textContent())?.includes('仅在 WLAN 下备份恢复数据'))
+  await page.screenshot({ path: `${OUT}/10-d-auto-update-picker.png` })
+
+  // 选中“在任何网络下备份恢复数据”并自动关闭
+  const alwaysOption = page.locator('.picker-row', { hasText: '在任何网络下备份恢复数据' }).first()
+  await alwaysOption.click()
+  await page.waitForTimeout(300)
+  assert('自动更新数据弹窗选毕自动关闭', !(await page.locator('.sheet-mask').isVisible()))
+  assert('更新设置行文案同步变更', (await autoUpdateRow.textContent())?.includes('在任何网络下备份恢复数据'))
+
+  // 从陌生号码识别返回设置主页
+  await page.locator('.phone-settings-subpage [data-nav-back]').click()
   await page.waitForTimeout(400)
   assert('返回设置主列表', await page.locator('.settings-main-view').isVisible())
 
   // 返回电话应用首页
-  await page.locator('.settings-header .back-btn').click()
+  await page.locator('.settings-main-view [data-nav-back]').click()
   await page.waitForTimeout(450)
   assert('返回电话主界面', !(await settingsPage.isVisible()))
 

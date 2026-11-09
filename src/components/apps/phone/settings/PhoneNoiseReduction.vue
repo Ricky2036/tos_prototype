@@ -1,6 +1,8 @@
 <script setup>
 import { ref } from 'vue'
 import { usePhoneStore } from '../../../../stores/phoneStore'
+import GlassNavBar from '../../../ui/GlassNavBar.vue'
+import SheetOptionPicker from '../../../ui/SheetOptionPicker.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['back'])
@@ -35,17 +37,10 @@ defineExpose({
 
 <template>
   <div class="phone-settings-subpage">
-    <div class="subpage-header">
-      <button class="back-btn" title="返回" @click="emit('back')">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M15 19l-7-7 7-7" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
-      <div class="header-title">全场景降噪</div>
-    </div>
+    <GlassNavBar overlay title="全场景降噪" @back="emit('back')" />
 
     <div class="subpage-body scrollable">
-      <!-- 顶部降噪模式说明卡片（对齐真机 1:1 结构） -->
+      <!-- 顶部降噪模式说明卡片 -->
       <div class="noise-hero-card">
         <div class="sound-wave-graphic">
           <div class="wave-bar h-1"></div>
@@ -87,39 +82,15 @@ defineExpose({
       </div>
     </div>
 
-    <!-- 模式选择弹窗 -->
-    <Transition name="fade">
-      <div v-if="activeModal" class="modal-overlay" @click.self="activeModal = null">
-        <div class="action-sheet-card">
-          <div class="sheet-title">{{ activeModal === 'system' ? '系统通话降噪' : '网络通话降噪' }}</div>
-          <div class="sheet-options">
-            <div
-              v-for="opt in modeOptions"
-              :key="opt.label"
-              class="sheet-radio-row"
-              @click="handleSelectMode(opt.label)"
-            >
-              <div class="radio-label-col">
-                <span class="sheet-label">{{ opt.label }}</span>
-                <span class="sheet-sub">{{ opt.desc }}</span>
-              </div>
-              <div
-                class="custom-radio"
-                :class="{
-                  checked: (activeModal === 'system' ? phoneStore.settings.noiseReductionSystem : phoneStore.settings.noiseReductionVoip) === opt.label
-                }"
-              >
-                <div
-                  v-if="(activeModal === 'system' ? phoneStore.settings.noiseReductionSystem : phoneStore.settings.noiseReductionVoip) === opt.label"
-                  class="radio-inner"
-                ></div>
-              </div>
-            </div>
-          </div>
-          <button class="sheet-cancel-btn" @click="activeModal = null">取消</button>
-        </div>
-      </div>
-    </Transition>
+    <!-- 模式选择弹窗（规范 SheetOptionPicker） -->
+    <SheetOptionPicker
+      :visible="!!activeModal"
+      :title="activeModal === 'system' ? '系统通话降噪' : '网络通话降噪'"
+      :options="modeOptions.map(opt => ({ label: opt.label, value: opt.label, subtitle: opt.desc }))"
+      :modelValue="activeModal === 'system' ? phoneStore.settings.noiseReductionSystem : phoneStore.settings.noiseReductionVoip"
+      @pick="handleSelectMode"
+      @close="activeModal = null"
+    />
   </div>
 </template>
 
@@ -130,53 +101,17 @@ defineExpose({
   left: 0;
   right: 0;
   bottom: 0;
-  background: #F0F1F3;
+  background: #F0F1F2;
   z-index: 60;
   display: flex;
   flex-direction: column;
 }
 
-.subpage-header {
-  display: flex;
-  align-items: center;
-  padding-top: calc(var(--safe-top, 54px) + 8px);
-  padding-bottom: 12px;
-  padding-left: 16px;
-  padding-right: 16px;
-  background: #F0F1F3;
-}
-
-.back-btn {
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
-  min-height: 38px;
-  border-radius: 50%;
-  background: #FFFFFF;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.1s ease;
-}
-
-.back-btn:active {
-  background-color: #E8E9EB;
-  transform: scale(0.96);
-}
-
-.header-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1C1C1E;
-  margin-left: 12px;
-}
-
 .subpage-body {
   flex: 1;
-  padding: 12px 16px 40px;
+  padding: calc(var(--nav-h) + 10px) 16px 40px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .noise-hero-card {
@@ -274,111 +209,5 @@ defineExpose({
 .summary-text {
   font-size: 14px;
   color: #8E8E93;
-}
-
-.modal-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 100;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.action-sheet-card {
-  width: 100%;
-  background: #F8F9FA;
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
-  padding: 20px 16px calc(var(--safe-bottom, 20px) + 16px);
-  box-sizing: border-box;
-}
-
-.sheet-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: #1C1C1E;
-  text-align: center;
-  margin-bottom: 16px;
-}
-
-.sheet-options {
-  background: #FFFFFF;
-  border-radius: 16px;
-  overflow: hidden;
-  margin-bottom: 12px;
-}
-
-.sheet-radio-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 0.5px solid #F0F1F3;
-  cursor: pointer;
-}
-
-.sheet-radio-row:last-child {
-  border-bottom: none;
-}
-
-.sheet-radio-row:active {
-  background: #F2F3F5;
-}
-
-.radio-label-col {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.sheet-label {
-  font-size: 16px;
-  color: #1C1C1E;
-}
-
-.sheet-sub {
-  font-size: 12px;
-  color: #8E8E93;
-}
-
-.custom-radio {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 2px solid #D1D1D6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-}
-
-.custom-radio.checked {
-  border-color: #00C853;
-}
-
-.radio-inner {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background-color: #00C853;
-}
-
-.sheet-cancel-btn {
-  width: 100%;
-  height: 50px;
-  background: #FFFFFF;
-  border-radius: 16px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #1C1C1E;
-  border: none;
-  cursor: pointer;
 }
 </style>

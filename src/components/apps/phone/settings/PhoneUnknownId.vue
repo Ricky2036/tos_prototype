@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue'
 import { usePhoneStore } from '../../../../stores/phoneStore'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
+import GlassNavBar from '../../../ui/GlassNavBar.vue'
+import SheetOptionPicker from '../../../ui/SheetOptionPicker.vue'
 import unknownHeroImg from '../../../../assets/img/phone_settings/unknown_id_hero.png'
 
 const phoneStore = usePhoneStore()
@@ -50,17 +52,10 @@ defineExpose({
 
 <template>
   <div class="phone-settings-subpage">
-    <div class="subpage-header">
-      <button class="back-btn" title="返回" @click="emit('back')">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M15 19l-7-7 7-7" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
-      <div class="header-title">陌生号码识别</div>
-    </div>
+    <GlassNavBar overlay title="陌生号码识别" @back="emit('back')" />
 
     <div class="subpage-body scrollable">
-      <!-- 顶部插画卡片（100% 对齐真机手机真机比例 1:1.99 与卡片微框） -->
+      <!-- 顶部插画卡片（对齐真机手机真机比例与四边细边框） -->
       <div class="id-hero-card">
         <div class="hero-image-wrap">
           <img :src="unknownHeroImg" class="hero-img" alt="陌生号码识别插画" />
@@ -119,32 +114,18 @@ defineExpose({
       </div>
     </div>
 
-    <!-- 自动更新数据 ActionSheet -->
-    <Transition name="fade">
-      <div v-if="showAutoUpdateModal" class="modal-overlay" @click.self="showAutoUpdateModal = false">
-        <div class="action-sheet-card">
-          <div class="sheet-title">自动更新数据</div>
-          <div class="sheet-options">
-            <div
-              v-for="opt in [
-                { label: '仅在 WLAN 下备份恢复数据', value: 'wlan_only' },
-                { label: '在任何网络下备份恢复数据', value: 'always' },
-                { label: '关闭', value: 'never' }
-              ]"
-              :key="opt.value"
-              class="sheet-radio-row"
-              @click="phoneStore.settings.autoUpdateData = opt.value; showAutoUpdateModal = false"
-            >
-              <span class="sheet-label">{{ opt.label }}</span>
-              <div class="custom-radio" :class="{ checked: phoneStore.settings.autoUpdateData === opt.value }">
-                <div v-if="phoneStore.settings.autoUpdateData === opt.value" class="radio-inner"></div>
-              </div>
-            </div>
-          </div>
-          <button class="sheet-cancel-btn" @click="showAutoUpdateModal = false">取消</button>
-        </div>
-      </div>
-    </Transition>
+    <!-- 自动更新数据选择弹窗（规范 SheetOptionPicker） -->
+    <SheetOptionPicker
+      :visible="showAutoUpdateModal"
+      title="自动更新数据"
+      :options="[
+        { label: '仅在 WLAN 下备份恢复数据', value: 'wlan_only' },
+        { label: '在任何网络下备份恢复数据', value: 'always' },
+        { label: '关闭', value: 'never' }
+      ]"
+      v-model="phoneStore.settings.autoUpdateData"
+      @close="showAutoUpdateModal = false"
+    />
 
     <!-- 轻量提示条 -->
     <Transition name="fade">
@@ -162,56 +143,20 @@ defineExpose({
   left: 0;
   right: 0;
   bottom: 0;
-  background: #F0F1F3;
+  background: #F0F1F2;
   z-index: 60;
   display: flex;
   flex-direction: column;
 }
 
-.subpage-header {
-  display: flex;
-  align-items: center;
-  padding-top: calc(var(--safe-top, 54px) + 8px);
-  padding-bottom: 12px;
-  padding-left: 16px;
-  padding-right: 16px;
-  background: #F0F1F3;
-}
-
-.back-btn {
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
-  min-height: 38px;
-  border-radius: 50%;
-  background: #FFFFFF;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.1s ease;
-}
-
-.back-btn:active {
-  background-color: #E8E9EB;
-  transform: scale(0.96);
-}
-
-.header-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1C1C1E;
-  margin-left: 12px;
-}
-
 .subpage-body {
   flex: 1;
-  padding: 12px 16px 40px;
+  padding: calc(var(--nav-h) + 10px) 16px 40px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* 顶部真实比例卡片 */
+/* 顶部卡片 */
 .id-hero-card {
   display: flex;
   flex-direction: column;
@@ -302,100 +247,6 @@ defineExpose({
   color: #8E8E93;
 }
 
-/* 弹窗与单选框 */
-.modal-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 100;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.action-sheet-card {
-  width: 100%;
-  background: #F8F9FA;
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
-  padding: 20px 16px calc(var(--safe-bottom, 20px) + 16px);
-  box-sizing: border-box;
-}
-
-.sheet-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: #1C1C1E;
-  text-align: center;
-  margin-bottom: 16px;
-}
-
-.sheet-options {
-  background: #FFFFFF;
-  border-radius: 16px;
-  overflow: hidden;
-  margin-bottom: 12px;
-}
-
-.sheet-radio-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  border-bottom: 0.5px solid #F0F1F3;
-  cursor: pointer;
-}
-
-.sheet-radio-row:last-child {
-  border-bottom: none;
-}
-
-.sheet-radio-row:active {
-  background: #F2F3F5;
-}
-
-.sheet-label {
-  font-size: 16px;
-  color: #1C1C1E;
-}
-
-.custom-radio {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 2px solid #D1D1D6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-}
-
-.custom-radio.checked {
-  border-color: #00C853;
-}
-
-.radio-inner {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background-color: #00C853;
-}
-
-.sheet-cancel-btn {
-  width: 100%;
-  height: 50px;
-  background: #FFFFFF;
-  border-radius: 16px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #1C1C1E;
-  border: none;
-  cursor: pointer;
-}
-
 .toast-tip {
   position: absolute;
   bottom: 80px;
@@ -408,5 +259,15 @@ defineExpose({
   border-radius: 20px;
   z-index: 120;
   pointer-events: none;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import GlassNavBar from '../../../ui/GlassNavBar.vue'
 
 const emit = defineEmits(['back'])
 
@@ -14,14 +15,7 @@ const videoItems = [
 
 <template>
   <div class="phone-settings-subpage">
-    <div class="subpage-header">
-      <button class="back-btn" title="返回" @click="emit('back')">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M15 19l-7-7 7-7" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
-      <div class="header-title">我的视频秀</div>
-    </div>
+    <GlassNavBar overlay title="我的视频秀" @back="emit('back')" />
 
     <div class="subpage-body scrollable">
       <div class="section-caption">已下载</div>
@@ -55,53 +49,17 @@ const videoItems = [
   left: 0;
   right: 0;
   bottom: 0;
-  background: #F0F1F3;
+  background: #F0F1F2;
   z-index: 60;
   display: flex;
   flex-direction: column;
 }
 
-.subpage-header {
-  display: flex;
-  align-items: center;
-  padding-top: calc(var(--safe-top, 54px) + 8px);
-  padding-bottom: 12px;
-  padding-left: 16px;
-  padding-right: 16px;
-  background: #F0F1F3;
-}
-
-.back-btn {
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
-  min-height: 38px;
-  border-radius: 50%;
-  background: #FFFFFF;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.1s ease;
-}
-
-.back-btn:active {
-  background-color: #E8E9EB;
-  transform: scale(0.96);
-}
-
-.header-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1C1C1E;
-  margin-left: 12px;
-}
-
 .subpage-body {
   flex: 1;
-  padding: 12px 16px 40px;
+  padding: calc(var(--nav-h) + 10px) 16px 40px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .section-caption {
