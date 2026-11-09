@@ -4,8 +4,11 @@ import SubPageShell from '../subpage/SubPageShell.vue'
 import ListCell from '../../../ui/ListCell.vue'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 import LIcon from '../../../ui/LIcon.vue'
+import SettingsSearchBar from '../../../ui/SettingsSearchBar.vue'
 import { APP_ICONS, getGroup3Page } from './pages.js'
 import { useSettingsGroup3Store } from '../../../../stores/settingsGroup3Store.js'
+import { APPS, getApp } from '../../../../config/apps.js'
+import { DRAWER_APPS } from '../../../../config/drawerApps.js'
 
 /**
  * 第三组卡片三级/四级页通用渲染器。
@@ -68,11 +71,45 @@ function isTextBadge(icon) {
   return icon === '123' || icon === '258'
 }
 
-function filteredRows(rows) {
-  if (!props.pageKey || !page.value?.search) return rows || []
+/* 应用列表直接读桌面注册表：名字、图标路径与桌面/Dock/抽屉是同一份数据。
+   ⚠️ 日历/时钟是 special 自绘图标，APPS 里没有 image，而 getApp 命中 primary 后
+   不会再查 DRAWER_APPS；且 DRAWER_APPS 写的 /icons/calendar.png 并不存在。
+   应用抽屉实际用的是 drawer/ 下这套资源，这里显式兜底，否则会渲染空白图标。 */
+const SPECIAL_APP_ICONS = {
+  calendar: '/icons/drawer/calendar_alt.png',
+  clock: '/icons/drawer/clock.png'
+}
+
+function resolveAppImage(app) {
+  return app.image || SPECIAL_APP_ICONS[app.id] ||
+    DRAWER_APPS.find(d => d.id === app.id)?.icon || getApp(app.id)?.image || ''
+}
+
+const APP_SIZES = ['8.68 MB', '170 MB', '469 MB', '593 MB', '785 MB', '858 MB', '1.61 GB', '2.31 GB', '2.77 GB', '3.42 GB']
+const registeredAppRows = computed(() => {
+  return [...APPS]
+    .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
+    .map((app, i) => ({
+      title: app.name,
+      appId: app.id,
+      appImage: resolveAppImage(app),
+      value: APP_SIZES[(app.id.length + i) % APP_SIZES.length],
+      chevron: true,
+      action: 'appDetail'
+    }))
+})
+
+function rowsFor(sec) {
+  // ⚠️ useRegisteredApps 是【页面级】标志，不是 section 级。
+  return page.value?.useRegisteredApps ? registeredAppRows.value : (sec.rows || [])
+}
+
+function filteredRows(sec) {
+  const rows = rowsFor(sec)
+  if (!props.pageKey || !page.value?.search) return rows
   const q = query.value.trim().toLowerCase()
-  if (!q) return rows || []
-  return (rows || []).filter(r => (r.title || '').toLowerCase().includes(q))
+  if (!q) return rows
+  return rows.filter(r => (r.title || '').toLowerCase().includes(q))
 }
 
 function onRowClick(row) {
@@ -207,9 +244,9 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
         <!-- 卡片 -->
         <template v-else>
           <div v-if="sec.header" class="section-header">{{ sec.header }}</div>
-          <div v-if="filteredRows(sec.rows).length" class="settings-card">
+          <div v-if="filteredRows(sec).length" class="settings-card">
             <ListCell
-              v-for="(row, ri) in filteredRows(sec.rows)"
+              v-for="(row, ri) in filteredRows(sec)"
               :key="`${row.title}-${ri}`"
               :title="row.title"
               :subtitle="row.subtitle || ''"
@@ -217,10 +254,13 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
               :chevron="Boolean(row.chevron) && !row.toggle && !row.radio"
               :clickable="Boolean(row.toggle || row.radio || row.chevron || row.run)"
               :disabled="Boolean(row.disabled)"
-              :last="ri === filteredRows(sec.rows).length - 1"
+              :last="ri === filteredRows(sec).length - 1"
               @click="onRowClick(row)"
             >
-              <template v-if="row.appIcon" #icon>
+              <template v-if="row.appImage" #icon>
+                <img class="g3-app-icon is-image" :src="row.appImage" alt="" draggable="false" />
+              </template>
+              <template v-else-if="row.appIcon" #icon>
                 <div class="g3-app-icon" :style="appIconStyle(row.appIcon)">{{ appIconText(row.appIcon) }}</div>
               </template>
               <template v-else-if="row.icon && isTextBadge(row.icon)" #icon>
@@ -247,15 +287,19 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
         </template>
       </template>
 
-      <!-- 底部搜索框（应用列表） -->
-      <div v-if="page.search" class="g3-search">
-        <LIcon name="search" :size="17" :stroke-width="2" />
-        <input v-model="query" type="search" placeholder="搜索" aria-label="搜索应用" />
-      </div>
+      <!-- 与首页一致的底部留白：44 搜索框 + 25 底距 + 余量 -->
+      <div v-if="page.search" class="g3-search-spacer"></div>
 
       <div v-if="page.footerBadge" class="g3-footer-badge">
         <LIcon name="shieldCheck" :size="13" :stroke-width="2" />
         <span>{{ page.footerBadge }}</span>
+      </div>
+    </template>
+
+    <!-- 统一控件：与设置首页同一个 SettingsSearchBar，位置/渐隐参数也完全一致 -->
+    <template #bottom>
+      <div v-if="page?.search" class="g3-floating-search">
+        <SettingsSearchBar v-model="query" placeholder="搜索" @clear="query = ''" />
       </div>
     </template>
   </SubPageShell>
@@ -353,6 +397,10 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
 .g3-notes p { margin: 0 0 8px; font-size: 13px; line-height: 19px; color: #8E8E93; }
 
 /* ===== 行内图标 ===== */
+.g3-app-icon.is-image {
+  object-fit: cover;
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+}
 .g3-app-icon {
   width: 36px;
   height: 36px;
@@ -391,29 +439,39 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
   flex: none;
 }
 
-/* ===== 底部搜索框 ===== */
-.g3-search {
-  position: sticky;
-  bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 44px;
-  padding: 0 16px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  color: #8E8E93;
-  margin-top: 4px;
+/* ===== 底部悬浮搜索栏 =====
+   ⚠️ 参数逐项对齐 SettingsApp.vue 的 .settings-floating-search（真机实测）：
+   左右 27 / 离屏底 25 / 高 44（在 SettingsSearchBar 内）/ 底部渐隐遮罩。
+   有单测守卫比对两处数值，改一边不改进另一边会立刻红。 */
+.g3-floating-search {
+  position: absolute;
+  bottom: 25px;
+  left: 27px;
+  right: 27px;
+  z-index: 10;
+  pointer-events: auto;
 }
-.g3-search input {
-  flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
-  font-family: inherit;
-  font-size: 15px;
-  color: #1C1C1E;
+.g3-floating-search::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -27px;
+  right: -27px;
+  top: -34px;
+  bottom: -25px;
+  background: linear-gradient(
+    to bottom,
+    rgba(240, 241, 242, 0) 0%,
+    rgba(240, 241, 242, 0.88) 38%,
+    #F0F1F2 68%,
+    #F0F1F2 100%
+  );
+  pointer-events: none;
+}
+.g3-search-spacer {
+  height: 92px;
+  width: 100%;
+  flex: none;
 }
 
 .g3-footer-badge {

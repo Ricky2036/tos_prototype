@@ -14,6 +14,8 @@ import {
   useSettingsGroup3Store
 } from '../src/stores/settingsGroup3Store.js'
 import { useGroup3Nav } from '../src/components/apps/settings/group3/useGroup3Nav.js'
+import { APPS, getApp } from '../src/config/apps.js'
+import { DRAWER_APPS } from '../src/config/drawerApps.js'
 
 const read = (p) => fs.readFileSync(path.resolve(p), 'utf-8')
 /* 结构类断言一律先剥注释，避免注释里写了同名值却「假绿」 */
@@ -214,4 +216,85 @@ test('子页栈：入口前进、四级页叠加、返回逐层消费', () => {
   assert.equal(nav.open('不存在的入口'), false)
   assert.equal(nav.onNavigate({ key: 'recentLocation', title: '' }), true)
   assert.equal(nav.current.value.key, 'recentLocation')
+})
+
+/* ==================== 应用列表：注册表驱动 + 统一搜索控件 ==================== */
+/** 从 scoped CSS 里取某个类的定位声明（先剥注释，防注释里写同值假绿） */
+function dockDecls(src, className) {
+  const clean = stripComments(src)
+  const m = clean.match(new RegExp(`\\.${className}\\s*\\{([^}]*)\\}`))
+  if (!m) return null
+  const body = m[1]
+  const pick = (key) => {
+    const hit = body.match(new RegExp(`${key}:\\s*(-?[0-9.]+)px`))
+    return hit ? Number(hit[1]) : null
+  }
+  return { bottom: pick('bottom'), left: pick('left'), right: pick('right'), zIndex: pick('z-index') }
+}
+
+test('应用列表直接读桌面注册表，不再硬编码应用名与假图标', () => {
+  const pages = GROUP3_PAGES.appList
+  assert.equal(pages.useRegisteredApps, true)
+  assert.deepEqual(pages.sections[0].rows, [], '应用行必须由注册表生成，配置里不留硬编码')
+  const raw = stripComments(read('src/components/apps/settings/group3/pages.js'))
+  // 只约束 appList 块本身：别的三级页（如位置权限分组）按真机写死应用名是合理的
+  const appListBlock = raw.match(/  appList:\s*\{[\s\S]*?\n  \},/)?.[0] || ''
+  assert.match(appListBlock, /useRegisteredApps: true/)
+  assert.doesNotMatch(appListBlock, /appIcon:|appImage:/, '应用列表配置里不应再有硬编码图标')
+
+  const src = stripComments(read(RENDERER))
+  assert.match(src, /import \{ APPS, getApp \} from '\.\.\/\.\.\/\.\.\/\.\.\/config\/apps\.js'/)
+  assert.match(src, /resolveAppImage\(app\)/, '图标必须取自注册表')
+  assert.match(src, /DRAWER_APPS\.find/, 'special 应用要从抽屉注册表补图')
+  assert.match(src, /row\.appImage[\s\S]*<img/, '列表图标必须是真实 <img>，不是首字色块')
+  assert.match(src, /\.sort\(\(a, b\) => a\.name\.localeCompare/, '按 A-Z 排序')
+
+  // 注册表本身可用：日历/时钟在 APPS 无 image，DRAWER_APPS 里有真实 PNG
+  assert.ok(APPS.length >= 30)
+  assert.equal(APPS.find(a => a.id === 'calendar').image, undefined)
+  assert.match(DRAWER_APPS.find(a => a.id === 'calendar').icon, /calendar\.png/)
+  assert.match(DRAWER_APPS.find(a => a.id === 'clock').icon, /clock\.png/)
+  // special 应用必须指向【真实存在】的资源，不能只信 DRAWER_APPS 里那个坏路径
+  for (const file of ['public/icons/drawer/calendar_alt.png', 'public/icons/drawer/clock.png']) {
+    assert.ok(fs.existsSync(path.resolve(file)), `${file} 不存在，special 应用图标会空白`)
+  }
+  assert.match(src, /SPECIAL_APP_ICONS[\s\S]*calendar_alt\.png[\s\S]*clock\.png/)
+  assert.ok(APPS.every(a => a.image || DRAWER_APPS.find(d => d.id === a.id)?.icon || getApp(a.id)?.image),
+    '每个已注册应用都必须解析得到真实图标')
+})
+
+test('应用列表搜索栏用首页同一个 SettingsSearchBar，且外壳提供 bottom 插槽', () => {
+  const src = stripComments(read(RENDERER))
+  assert.match(src, /import SettingsSearchBar from '\.\.\/\.\.\/\.\.\/ui\/SettingsSearchBar\.vue'/)
+  assert.match(src, /<SettingsSearchBar\s+v-model="query"/)
+  assert.match(src, /<template #bottom>/)
+  assert.doesNotMatch(src, /class="g3-search"/, '自绘搜索框已废弃')
+  assert.doesNotMatch(src, /position:\s*sticky/, '搜索栏不能 sticky 在内容流里')
+  const shell = stripComments(read('src/components/apps/settings/subpage/SubPageShell.vue'))
+  assert.match(shell, /<slot name="bottom"><\/slot>/)
+})
+
+test('两处搜索栏定位参数完全一致（左右 27 / 离底 25 / 渐隐遮罩）', () => {
+  const home = stripComments(read('src/components/apps/settings/SettingsApp.vue'))
+  const sub = stripComments(read(RENDERER))
+  const a = dockDecls(home, 'settings-floating-search')
+  const b = dockDecls(sub, 'g3-floating-search')
+  assert.deepEqual(b, a, '应用列表与首页的悬浮搜索栏定位必须一致')
+  assert.equal(a.bottom, 25)
+  assert.equal(a.left, 27)
+  assert.equal(a.right, 27)
+  assert.match(sub, /\.g3-search-spacer\s*\{[\s\S]*?height:\s*92px/, '底部留白要能滚过搜索栏')
+  for (const decl of ['left: -27px', 'right: -27px', 'top: -34px', 'bottom: -25px']) {
+    const re = new RegExp(decl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    assert.match(home, re)
+    assert.match(sub, re)
+  }
+})
+
+test('定位守卫有牙齿：把应用列表的 bottom 改掉必须立刻红', () => {
+  const home = stripComments(read('src/components/apps/settings/SettingsApp.vue'))
+  const sub = stripComments(read(RENDERER))
+  assert.deepEqual(dockDecls(sub, 'g3-floating-search'), dockDecls(home, 'settings-floating-search'))
+  const broken = sub.replace('bottom: 25px;', 'bottom: 8px;')
+  assert.notDeepEqual(dockDecls(broken, 'g3-floating-search'), dockDecls(home, 'settings-floating-search'))
 })

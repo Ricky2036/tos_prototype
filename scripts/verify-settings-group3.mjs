@@ -46,6 +46,15 @@ async function visibleCount(page, selector) {
   }, selector)
 }
 
+async function rectOf(page, selector) {
+  return page.evaluate((sel) => {
+    const el = document.querySelector(sel)
+    if (!el) return null
+    const r = el.getBoundingClientRect()
+    return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height }
+  }, selector)
+}
+
 async function navTitle(page, scope = '.sub-shell') {
   return page.locator(`${scope} .gn-title`).first().textContent().catch(() => '')
 }
@@ -102,6 +111,9 @@ async function run() {
 
   const home = '.settings-scroll-container'
   check('设置首页已打开', (await visibleCount(page, `${home} .settings-card`)) >= 6)
+  // 首页悬浮搜索栏作为「位置基准」：后面应用列表的搜索栏要和它逐像素对齐
+  const homeDock = await rectOf(page, '.settings-floating-search')
+  check('首页搜索栏可量测', Boolean(homeDock) && homeDock.height > 0)
 
   /* ==================== A. 密码与安全 ==================== */
   await clickRow(page, home, '密码与安全')
@@ -174,10 +186,48 @@ async function run() {
 
   await clickRow(page, '.settings-apps-page', '应用列表')
   await expectSubPage(page, 'C 应用列表', '应用列表')
-  check('C 应用列表：搜索框可见', (await visibleCount(page, '.sub-shell .g3-search')) === 1)
-  check('C 应用列表：应用行 ≥10', (await visibleCount(page, '.sub-shell .list-cell')) >= 10)
+  check('C 应用列表：统一搜索控件可见', (await visibleCount(page, '.sub-shell .settings-search-bar')) === 1)
+  check('C 应用列表：不再有自绘搜索框', (await visibleCount(page, '.sub-shell .g3-search')) === 0)
+  check('C 应用列表：应用行覆盖全部注册应用', (await visibleCount(page, '.sub-shell .list-cell')) >= 30)
+
+  // 全部图标必须是桌面注册表的真实 PNG，且真的解码渲染出来了（不数空节点）
+  const icons = await page.evaluate(() => [...document.querySelectorAll('.sub-shell .g3-app-icon.is-image')].map(img => ({
+    src: img.getAttribute('src') || '',
+    w: img.getBoundingClientRect().width,
+    loaded: img.complete && img.naturalWidth > 0
+  })))
+  check('C 应用列表：≥30 个真实应用图标', icons.length >= 30, `实际 ${icons.length}`)
+  check('C 应用列表：图标全部来自 /icons 且加载成功',
+    icons.every(i => i.src.startsWith('/icons/') && i.w > 0 && i.loaded),
+    icons.filter(i => !i.loaded).map(i => i.src).slice(0, 3).join(','))
+
+  const names = await page.evaluate(() => [...document.querySelectorAll('.sub-shell .lc-title')].map(e => e.textContent.trim()))
+  check('C 应用列表：应用名来自注册表', names.includes('电话') && names.includes('AI Mate') && names.includes('支付宝'),
+    `共 ${names.length} 行`)
+  check('C 应用列表：不再出现硬编码的第三方应用名', !names.some(n => ['哔哩哔哩', '大众点评', '叮咚买菜', '抖音极速版'].includes(n)))
+
+  // 位置与首页同一把尺 A/B：left/right/bottom/height 逐项对齐
+  const subDock = await rectOf(page, '.g3-floating-search')
+  check('C 应用列表：搜索栏位置与首页一致',
+    Boolean(subDock && homeDock) &&
+    Math.abs(subDock.left - homeDock.left) < 1.5 &&
+    Math.abs(subDock.right - homeDock.right) < 1.5 &&
+    Math.abs(subDock.bottom - homeDock.bottom) < 1.5 &&
+    Math.abs(subDock.height - homeDock.height) < 1.5,
+    subDock ? `首页 ${JSON.stringify(homeDock)} / 列表 ${JSON.stringify(subDock)}` : '量不到列表搜索栏')
+
   await shot(page, '11_app_list')
-  await clickRow(page, '.sub-shell', '哔哩哔哩')
+
+  // 搜索框真的能过滤注册应用
+  await page.locator('.sub-shell .search-input').fill('微')
+  await page.waitForTimeout(220)
+  const filtered = await page.evaluate(() => [...document.querySelectorAll('.sub-shell .lc-title')].map(e => e.textContent.trim()))
+  check('C 应用列表：搜索「微」过滤到微信', filtered.length >= 1 && filtered.length <= 3 && filtered.every(n => n.includes('微')),
+    filtered.join(','))
+  await page.locator('.sub-shell .search-input').fill('')
+  await page.waitForTimeout(220)
+
+  await clickRow(page, '.sub-shell', 'AI Mate')
   await expectSubPage(page, 'C 应用信息（四级）', '应用信息')
   await backFromSub(page)
   await backFromSub(page)

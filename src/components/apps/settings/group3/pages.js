@@ -516,22 +516,10 @@ export const GROUP3_PAGES = {
     title: '应用列表',
     sort: '按A-Z排序',
     search: true,
-    sections: [
-      { rows: [
-        { title: '哔哩哔哩', appIcon: 'bilibili', value: '1.61 GB', chevron: true, action: 'appDetail' },
-        { title: '大众点评', appIcon: 'dianping', value: '858 MB', chevron: true, action: 'appDetail' },
-        { title: '电话', appIcon: 'phone', value: '8.68 MB', chevron: true, action: 'appDetail' },
-        { title: '叮咚买菜', appIcon: 'dingdong', value: '469 MB', chevron: true, action: 'appDetail' },
-        { title: '钉钉', appIcon: 'generic', value: '1.62 GB', chevron: true, action: 'appDetail' },
-        { title: '动卡空间', appIcon: 'generic', value: '383 MB', chevron: true, action: 'appDetail' },
-        { title: '抖音', appIcon: 'douyin', value: '2.77 GB', chevron: true, action: 'appDetail' },
-        { title: '抖音极速版', appIcon: 'douyin', value: '2.31 GB', chevron: true, action: 'appDetail' },
-        { title: '抖音商城', appIcon: 'douyin', value: '785 MB', chevron: true, action: 'appDetail' },
-        { title: '豆包', appIcon: 'generic', value: '593 MB', chevron: true, action: 'appDetail' },
-        { title: '高德地图', appIcon: 'amap', value: '170 MB', chevron: true, action: 'appDetail' },
-        { title: '微信', appIcon: 'wechat', value: '3.42 GB', chevron: true, action: 'appDetail' }
-      ] }
-    ]
+    // ⚠️ 应用名与图标不在这里硬编码：由 Group3SubPage 从桌面注册表 APPS / getApp 生成。
+    //    桌面新增应用后这里自动同步，也不会再出现「首字色块冒充应用图标」。
+    useRegisteredApps: true,
+    sections: [{ rows: [] }]
   },
 
   appDetail: {

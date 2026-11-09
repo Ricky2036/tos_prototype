@@ -24,6 +24,9 @@ const emit = defineEmits(['back', 'action'])
       <div class="sub-bottom-space" :class="{ 'has-action': floatingAction }"></div>
     </div>
 
+    <!-- 底部悬浮层插槽：应用列表的搜索栏等「贴屏底、不随内容滚动」的控件走这里 -->
+    <slot name="bottom"></slot>
+
     <div v-if="floatingAction" class="sub-floating-action">
       <button type="button" class="sub-action-btn" @click="emit('action')">{{ floatingAction }}</button>
     </div>
