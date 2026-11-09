@@ -3,8 +3,15 @@ import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
+import Group3SubPage from './group3/Group3SubPage.vue'
+import { useGroup3Nav } from './group3/useGroup3Nav.js'
+import '../../../styles/layer-transitions.css'
 
 const emit = defineEmits(['back', 'navigate'])
+const {
+  stack: g3Stack, current: g3Current, isBack: g3IsBack,
+  open: openG3, close: closeG3, consumeBack: consumeG3Back, onNavigate: onG3Navigate
+} = useGroup3Nav('location')
 
 // 提示反馈
 const toastText = ref('')
@@ -26,6 +33,7 @@ function toggleLocation() {
 }
 
 function back() {
+  if (consumeG3Back()) return true
   emit('back')
   return true
 }
@@ -55,13 +63,13 @@ defineExpose({ back })
           title="应用位置信息权限"
           subtitle="20 个应用（共 81 个应用）有权获取位置信息"
           chevron
-          @click="showToast('管理各应用的前台/后台定位权限')"
+          @click="openG3('locationPermission')"
         />
         <ListCell
           title="位置信息服务"
           chevron
           last
-          @click="showToast('高精度定位、Wi-Fi 扫描与蓝牙辅助定位已就绪')"
+          @click="openG3('locationServices')"
         />
       </div>
 
@@ -73,7 +81,7 @@ defineExpose({ back })
           title="Folax"
           subtitle="7分钟前"
           chevron
-          @click="showToast('Folax 语音助手获取了当前模糊位置')"
+          @click="openG3('appLocationPermission')"
         >
           <template #icon>
             <div class="app-icon-squircle bg-folax">
@@ -97,7 +105,7 @@ defineExpose({ back })
           title="天气"
           subtitle="64分钟前"
           chevron
-          @click="showToast('天气应用更新了本地实时气象数据')"
+          @click="openG3('appLocationPermission')"
         >
           <template #icon>
             <div class="app-icon-squircle bg-weather">
@@ -114,7 +122,7 @@ defineExpose({ back })
           title="Transsioner"
           subtitle="101分钟前"
           chevron
-          @click="showToast('Transsioner 传音内测社区验证了接入地区')"
+          @click="openG3('appLocationPermission')"
         >
           <template #icon>
             <div class="app-icon-squircle bg-transsioner">
@@ -131,7 +139,7 @@ defineExpose({ back })
           title="查看全部"
           chevron
           last
-          @click="showToast('已展示近 24 小时全部 12 次位置请求记录')"
+          @click="openG3('recentLocation')"
         />
       </div>
 
@@ -141,6 +149,18 @@ defineExpose({ back })
     <!-- 交互提示轻吐司 -->
     <Transition name="fade">
       <div v-if="toastText" class="location-toast">{{ toastText }}</div>
+    </Transition>
+    <!-- 三级/四级页：统一层级转场 + 配置驱动渲染器 -->
+    <Transition :name="g3IsBack ? 'slide-back' : 'slide'">
+      <Group3SubPage
+        v-if="g3Current"
+        :key="`${g3Current.key}-${g3Stack.length}`"
+        :page-key="g3Current.key"
+        :title-override="g3Current.title"
+        @back="closeG3"
+        @navigate="onG3Navigate"
+        @action="msg => showToast(`${msg} 已在原型中收录`)"
+      />
     </Transition>
   </div>
 </template>

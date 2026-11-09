@@ -3,9 +3,9 @@
  * e2e 批跑器（run-e2e）—— **只跑该跑的、能并发、出耗时表**
  * =====================================================
  * 为什么需要它（2026-10-14 实测，本机 1080×900 @2x）：
- *   全量 8 套**串行 315 s**。逐套墙钟：recorder 69.1 · mori 59.1 · aimate 51.1 ·
+ *   全量 9 套（含 settings-group3）**串行 ~355 s**。逐套墙钟：recorder 69.1 · mori 59.1 · aimate 51.1 ·
  *   printer 45.6 · cc-volume 31.6 · photos 29.5 · hw-volume 16.7 · volume-glass 12.2。
- *   **4 并发跑同一批 = 81.8 s（3.85×），8 套全绿。**
+ *   **4 并发跑同一批 = 81.8 s（3.85×），原 8 套全绿。**
  *   而绝大多数改动只影响其中 1~2 套 —— 不动这一层，每次收尾都要等 5 分钟。
  *
  * 时间到底花在哪（同日拆解实验，photos 套件 28.4 s）：
@@ -107,6 +107,21 @@ const SUITES = [
     id: 'volume-glass',
     script: 'probe-volume-glass.mjs',
     covers: ['src/components/system/ControlCenter.vue', 'src/stores/controlStore.js', 'src/styles/']
+  },
+  {
+    id: 'settings-group3',
+    script: 'verify-settings-group3.mjs',
+    covers: [
+      'src/components/apps/settings/SettingsSecurity.vue',
+      'src/components/apps/settings/SettingsPrivacy.vue',
+      'src/components/apps/settings/SettingsAppsManage.vue',
+      'src/components/apps/settings/SettingsLocation.vue',
+      'src/components/apps/settings/group3/',
+      'src/components/apps/settings/subpage/SubPageShell.vue',
+      'src/stores/settingsGroup3Store.js',
+      'src/styles/layer-transitions.css',
+      'tests/settingsGroup3Subpages.test.js'
+    ]
   }
 ]
 

@@ -3,13 +3,15 @@ import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
-import PrivacySettingsPages from '../../privacy/PrivacySettingsPages.vue'
+import Group3SubPage from './group3/Group3SubPage.vue'
+import { useGroup3Nav } from './group3/useGroup3Nav.js'
+import '../../../styles/layer-transitions.css'
 
 const emit = defineEmits(['back', 'navigate'])
-const privacyPagesRef = ref(null)
-
-// 页面状态：null 为当前隐私首页，'history' 为隐私信息中心，'settings' 为应用权限管理
-const currentSubpage = ref(null)
+const {
+  stack: g3Stack, current: g3Current, isBack: g3IsBack,
+  open: openG3, close: closeG3, consumeBack: consumeG3Back, onNavigate: onG3Navigate
+} = useGroup3Nav('privacy')
 
 // 提示反馈
 const toastText = ref('')
@@ -36,27 +38,8 @@ function toggleMic() {
   showToast(micAccess.value ? '已恢复麦克风访问权限' : '已关闭所有应用的麦克风访问')
 }
 
-function openDashboard() {
-  currentSubpage.value = 'history'
-}
-
-function openAppPermissions() {
-  currentSubpage.value = 'settings'
-}
-
-function closeSubpage() {
-  currentSubpage.value = null
-}
-
 function back() {
-  if (currentSubpage.value) {
-    if (privacyPagesRef.value?.back) {
-      privacyPagesRef.value.back()
-    } else {
-      currentSubpage.value = null
-    }
-    return true
-  }
+  if (consumeG3Back()) return true
   emit('back')
   return true
 }
@@ -66,20 +49,24 @@ defineExpose({ back })
 
 <template>
   <div class="settings-privacy-page">
-    <!-- 三级页面：嵌入的隐私信息中心 / 应用权限管理 -->
-    <PrivacySettingsPages
-      v-if="currentSubpage"
-      ref="privacyPagesRef"
-      :page="currentSubpage"
-      embedded
-      @back="closeSubpage"
-    />
+    <!-- 三级/四级页：统一层级转场 + 配置驱动渲染器 -->
+    <Transition :name="g3IsBack ? 'slide-back' : 'slide'">
+      <Group3SubPage
+        v-if="g3Current"
+        :key="`${g3Current.key}-${g3Stack.length}`"
+        :page-key="g3Current.key"
+        :title-override="g3Current.title"
+        @back="closeG3"
+        @navigate="onG3Navigate"
+        @action="msg => showToast(`${msg} 已在原型中收录`)"
+      />
+    </Transition>
 
     <!-- 二级页面：权限与隐私首页 -->
-    <template v-else>
+    <template v-if="!g3Current">
       <!-- 顶部导航栏 -->
       <GlassNavBar overlay title="权限与隐私" @back="emit('back')">
-        <template #right><button class="nav-round-btn" aria-label="更多" @click="showToast('隐私保护高级设置')">
+        <template #right><button class="nav-round-btn" aria-label="更多" @click="openG3('morePrivacy')">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="5" r="1.5" fill="#1C1C1E" />
           <circle cx="12" cy="12" r="1.5" fill="#1C1C1E" />
@@ -110,7 +97,7 @@ defineExpose({ back })
       <!-- 2列网格卡片组（10个功能模块） -->
       <div class="privacy-grid">
         <!-- 1. XHide -->
-        <button class="grid-card" @click="showToast('进入 XHide 私密柜')">
+        <button class="grid-card" @click="openG3('xhide')">
           <div class="icon-wrap bg-xhide">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
@@ -123,7 +110,7 @@ defineExpose({ back })
         </button>
 
         <!-- 2. XClone -->
-        <button class="grid-card" @click="showToast('进入 XClone 应用双开')">
+        <button class="grid-card" @click="openG3('appClone')">
           <div class="icon-wrap bg-xclone">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="6" width="18" height="12" rx="6" stroke="#FFFFFF" stroke-width="2"/>
@@ -135,7 +122,7 @@ defineExpose({ back })
         </button>
 
         <!-- 3. 应用锁 -->
-        <button class="grid-card" @click="showToast('进入应用锁管理')">
+        <button class="grid-card" @click="openG3('appLock')">
           <div class="icon-wrap bg-applock">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <rect x="5" y="11" width="14" height="10" rx="2.5" fill="#FFFFFF"/>
@@ -147,7 +134,7 @@ defineExpose({ back })
         </button>
 
         <!-- 4. 防偷窥 -->
-        <button class="grid-card" @click="showToast('防偷窥保护已开启')">
+        <button class="grid-card" @click="openG3('antiPeek')">
           <div class="icon-wrap bg-anti-peep">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M12 2L4 5V11C4 16.52 7.42 21.62 12 23C16.58 21.62 20 16.52 20 11V5L12 2Z" fill="#FFFFFF" fill-opacity="0.3"/>
@@ -160,7 +147,7 @@ defineExpose({ back })
         </button>
 
         <!-- 5. AI 防诈骗 -->
-        <button class="grid-card" @click="showToast('AI 防诈骗守护实时生效中')">
+        <button class="grid-card" @click="openG3('aiAntiFraud')">
           <div class="icon-wrap bg-ai-fraud">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M12 2L4 5V11C4 16.52 7.42 21.62 12 23C16.58 21.62 20 16.52 20 11V5L12 2Z" fill="#FFFFFF"/>
@@ -172,7 +159,7 @@ defineExpose({ back })
         </button>
 
         <!-- 6. 屏幕共享隐私保护 -->
-        <button class="grid-card" @click="showToast('屏幕共享隐私遮蔽已启用')">
+        <button class="grid-card" @click="openG3('screenSharePrivacy')">
           <div class="icon-wrap bg-cast-privacy">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="3" width="20" height="14" rx="2"/>
@@ -186,7 +173,7 @@ defineExpose({ back })
         </button>
 
         <!-- 7. 借出模式 -->
-        <button class="grid-card" @click="showToast('进入借出模式配置')">
+        <button class="grid-card" @click="openG3('lendMode')">
           <div class="icon-wrap bg-lend-mode">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 11V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/>
@@ -198,7 +185,7 @@ defineExpose({ back })
         </button>
 
         <!-- 8. 双系统 -->
-        <button class="grid-card" @click="showToast('配置独立工作与隐私系统')">
+        <button class="grid-card" @click="openG3('dualSystem')">
           <div class="icon-wrap bg-dual-system">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <rect x="4" y="4" width="7" height="16" rx="2" fill="#FFFFFF"/>
@@ -210,7 +197,7 @@ defineExpose({ back })
         </button>
 
         <!-- 9. 支付环境保护 -->
-        <button class="grid-card" @click="showToast('支付环境安全检测通过')">
+        <button class="grid-card" @click="openG3('paymentProtection')">
           <div class="icon-wrap bg-pay-safe">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="3" width="18" height="18" rx="5" fill="#FFFFFF"/>
@@ -222,7 +209,7 @@ defineExpose({ back })
         </button>
 
         <!-- 10. 广告管控 -->
-        <button class="grid-card" @click="showToast('已阻断恶意应用弹窗')">
+        <button class="grid-card" @click="openG3('adControl')">
           <div class="icon-wrap bg-ad-block">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="3" width="18" height="18" rx="5" fill="#FFFFFF"/>
@@ -236,10 +223,10 @@ defineExpose({ back })
 
       <!-- 隐私功能列表卡片 -->
       <div class="privacy-card">
-        <ListCell title="维修模式" subtitle="保护机主隐私信息" chevron @click="showToast('维修模式可在送修时隐藏个人数据')"/>
-        <ListCell title="安全键盘" subtitle="不收集用户输入的信息" chevron @click="showToast('密码输入时自动切换为系统独立安全键盘')"/>
-        <ListCell title="解锁安全保护" subtitle="保护锁屏密码及生物识别信息" chevron @click="showToast('防暴力破解与生物识别防伪保护已激活')"/>
-        <ListCell title="隐私保护策略" chevron last @click="showToast('查看隐私保护技术白皮书')"/>
+        <ListCell title="维修模式" subtitle="保护机主隐私信息" chevron @click="openG3('repairMode')"/>
+        <ListCell title="安全键盘" subtitle="不收集用户输入的信息" chevron @click="openG3('secureKeyboard')"/>
+        <ListCell title="解锁安全保护" subtitle="保护锁屏密码及生物识别信息" chevron @click="openG3('unlockProtection')"/>
+        <ListCell title="隐私保护策略" chevron last @click="openG3('privacyPolicyPage')"/>
       </div>
 
       <!-- 分组：敏感权限 -->
@@ -263,18 +250,18 @@ defineExpose({ back })
           </template>
         </ListCell>
 
-        <ListCell title="隐私风险记录" chevron last @click="showToast('近 7 天未发现未经授权的敏感权限访问')"/>
+        <ListCell title="隐私风险记录" chevron last @click="openG3('privacyRiskLog')"/>
       </div>
 
       <!-- 分组：权限设置 -->
       <div class="section-title">权限设置</div>
       <div class="privacy-card">
-        <ListCell title="隐私信息中心" subtitle="显示最近使用过权限的应用。" chevron @click="openDashboard"/>
-        <ListCell title="应用权限管理" subtitle="管理应用的隐私权限使用行为。" chevron @click="openAppPermissions"/>
-        <ListCell title="健康数据共享" subtitle="管理应用对健康数据的访问权限。" chevron @click="showToast('健康数据暂未向第三方授权')"/>
-        <ListCell title="位置数据分享方面的更新" subtitle="查看改变了位置数据分享方式的应用。" chevron @click="showToast('无位置数据共享变更记录')"/>
-        <ListCell title="特殊应用权限" subtitle="管理应用获取和使用特殊权限。" chevron @click="showToast('管理悬浮窗、修改系统设置等特殊权限')"/>
-        <ListCell title="更多" subtitle="更多隐私相关设置。" chevron last @click="showToast('高级隐私配置')"/>
+        <ListCell title="隐私信息中心" subtitle="显示最近使用过权限的应用。" chevron @click="openG3('privacyDashboard')"/>
+        <ListCell title="应用权限管理" subtitle="管理应用的隐私权限使用行为。" chevron @click="openG3('appPermissions')"/>
+        <ListCell title="健康数据共享" subtitle="管理应用对健康数据的访问权限。" chevron @click="openG3('healthData')"/>
+        <ListCell title="位置数据分享方面的更新" subtitle="查看改变了位置数据分享方式的应用。" chevron @click="openG3('locationDataUpdates')"/>
+        <ListCell title="特殊应用权限" subtitle="管理应用获取和使用特殊权限。" chevron @click="openG3('specialAppAccess')"/>
+        <ListCell title="更多" subtitle="更多隐私相关设置。" chevron last @click="openG3('morePrivacy')"/>
       </div>
 
       <!-- 分组：国际认证 -->
@@ -308,7 +295,7 @@ defineExpose({ back })
       </div>
 
       <!-- 底部链接 -->
-      <div class="privacy-policy-link" @click="showToast('查看完整隐私政策')">
+      <div class="privacy-policy-link" @click="openG3('privacyPolicyPage')">
         隐私政策
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
           <path d="M9 18L15 12L9 6" stroke="#007AFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>

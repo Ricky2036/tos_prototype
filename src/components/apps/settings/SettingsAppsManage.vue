@@ -2,8 +2,15 @@
 import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 import ListCell from '../../ui/ListCell.vue'
+import Group3SubPage from './group3/Group3SubPage.vue'
+import { useGroup3Nav } from './group3/useGroup3Nav.js'
+import '../../../styles/layer-transitions.css'
 
 const emit = defineEmits(['back', 'navigate'])
+const {
+  stack: g3Stack, current: g3Current, isBack: g3IsBack,
+  open: openG3, close: closeG3, consumeBack: consumeG3Back, onNavigate: onG3Navigate
+} = useGroup3Nav('appsManage')
 
 // 提示反馈
 const toastText = ref('')
@@ -17,6 +24,7 @@ function showToast(msg) {
 }
 
 function back() {
+  if (consumeG3Back()) return true
   emit('back')
   return true
 }
@@ -33,31 +41,31 @@ defineExpose({ back })
     <div style="padding-top: var(--nav-h)" class="apps-scroll-body scrollable">
       <!-- 卡片组 1: 应用更新 -->
       <div class="apps-card">
-        <ListCell title="应用更新" chevron last @click="showToast('所有系统与第三方应用均已是最新版本')"/>
+        <ListCell title="应用更新" chevron last @click="openG3('appUpdate')"/>
       </div>
 
       <!-- 卡片组 2: 应用核心管理 (4项) -->
       <div class="apps-card">
-        <ListCell title="应用列表" chevron @click="showToast('已加载 81 个应用，包含 32 个系统应用')"/>
-        <ListCell title="系统应用恢复" chevron @click="showToast('未发现可恢复的已卸载系统内置应用')"/>
+        <ListCell title="应用列表" chevron @click="openG3('appList')"/>
+        <ListCell title="系统应用恢复" chevron @click="openG3('appRestore')"/>
         <ListCell
           title="应用双开"
           subtitle="同时使用两个相同的应用。"
           chevron
-          @click="showToast('支持微信、WhatsApp、Facebook 等应用双开分身')"
+          @click="openG3('appClone')"
         />
-        <ListCell title="默认应用" chevron last @click="showToast('当前默认桌面：tOS Launcher，默认浏览器：Chrome')"/>
+        <ListCell title="默认应用" chevron last @click="openG3('defaultApps')"/>
       </div>
 
       <!-- 卡片组 3: 辅助与媒体管理 (3项) -->
       <div class="apps-card">
-        <ListCell title="屏幕使用时间" chevron @click="showToast('今日屏幕使用时间：3小时42分钟')"/>
-        <ListCell title="联系人存储" chevron @click="showToast('联系人账户同步正常，已存储 628 位联系人')"/>
+        <ListCell title="屏幕使用时间" chevron @click="openG3('screenTime')"/>
+        <ListCell title="联系人存储" chevron @click="openG3('contactsStorage')"/>
         <ListCell
           title="云端媒体设置"
           chevron
           last
-          @click="showToast('云端媒体提供方：Google 相册，自动备份已开启')"
+          @click="openG3('cloudMedia')"
         >
           <template #value>
             <span class="media-service-tag">Google 相册</span>
@@ -69,9 +77,9 @@ defineExpose({ back })
       <div class="recommend-box">
         <div class="recommend-title">你可能想找</div>
         <div class="recommend-links">
-          <div class="recommend-link-item" @click="showToast('进入自启动管理')">自启动管理</div>
-          <div class="recommend-link-item" @click="showToast('进入应用锁配置')">应用锁</div>
-          <div class="recommend-link-item" @click="showToast('管理悬浮窗与修改系统设置等特殊权限')">特殊应用权限</div>
+          <div class="recommend-link-item" @click="openG3('autoStart')">自启动管理</div>
+          <div class="recommend-link-item" @click="openG3('appLock')">应用锁</div>
+          <div class="recommend-link-item" @click="openG3('specialAppAccess')">特殊应用权限</div>
         </div>
       </div>
 
@@ -81,6 +89,18 @@ defineExpose({ back })
     <!-- 交互提示轻吐司 -->
     <Transition name="fade">
       <div v-if="toastText" class="apps-toast">{{ toastText }}</div>
+    </Transition>
+    <!-- 三级/四级页：统一层级转场 + 配置驱动渲染器 -->
+    <Transition :name="g3IsBack ? 'slide-back' : 'slide'">
+      <Group3SubPage
+        v-if="g3Current"
+        :key="`${g3Current.key}-${g3Stack.length}`"
+        :page-key="g3Current.key"
+        :title-override="g3Current.title"
+        @back="closeG3"
+        @navigate="onG3Navigate"
+        @action="msg => showToast(`${msg} 已在原型中收录`)"
+      />
     </Transition>
   </div>
 </template>

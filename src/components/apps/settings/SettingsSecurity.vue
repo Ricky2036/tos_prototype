@@ -2,8 +2,15 @@
 import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 import ListCell from '../../ui/ListCell.vue'
+import Group3SubPage from './group3/Group3SubPage.vue'
+import { useGroup3Nav } from './group3/useGroup3Nav.js'
+import '../../../styles/layer-transitions.css'
 
 const emit = defineEmits(['back', 'navigate'])
+const {
+  stack: g3Stack, current: g3Current, isBack: g3IsBack,
+  open: openG3, close: closeG3, consumeBack: consumeG3Back, onNavigate: onG3Navigate
+} = useGroup3Nav('security')
 
 // 提示反馈
 const toastText = ref('')
@@ -63,6 +70,7 @@ function handlePrivacyPasswordTap() {
 }
 
 function back() {
+  if (consumeG3Back()) return true
   emit('back')
   return true
 }
@@ -80,7 +88,7 @@ defineExpose({ back })
       <!-- 2x2 四宫格卡片 -->
       <div class="security-grid-cards">
         <!-- 锁屏密码 -->
-        <button class="grid-card-item" @click="handleLockScreenTap">
+        <button class="grid-card-item" @click="openG3('lockScreenPassword')">
           <div class="grid-icon-wrap">
             <svg width="44" height="44" viewBox="0 0 32 32" fill="none">
               <path d="M10,0L22,0A10,10 0,0 1,32 10L32,22A10,10 0,0 1,22 32L10,32A10,10 0,0 1,0 22L0,10A10,10 0,0 1,10 0z" fill="#2E67F5"/>
@@ -92,7 +100,7 @@ defineExpose({ back })
         </button>
 
         <!-- 指纹 -->
-        <button class="grid-card-item" @click="handleFingerprintTap">
+        <button class="grid-card-item" @click="openG3('fingerprint')">
           <div class="grid-icon-wrap">
             <svg width="44" height="44" viewBox="0 0 32 32" fill="none">
               <path d="M10,0L22,0A10,10 0,0 1,32 10L32,22A10,10 0,0 1,22 32L10,32A10,10 0,0 1,0 22L0,10A10,10 0,0 1,10 0z" fill="#2E67F5"/>
@@ -104,7 +112,7 @@ defineExpose({ back })
         </button>
 
         <!-- 面部识别 -->
-        <button class="grid-card-item" @click="handleFaceTap">
+        <button class="grid-card-item" @click="openG3('faceRecognition')">
           <div class="grid-icon-wrap">
             <svg width="44" height="44" viewBox="0 0 32 32" fill="none">
               <path d="M10,0L22,0A10,10 0,0 1,32 10L32,22A10,10 0,0 1,22 32L10,32A10,10 0,0 1,0 22L0,10A10,10 0,0 1,10 0z" fill="#63C97A"/>
@@ -120,7 +128,7 @@ defineExpose({ back })
         </button>
 
         <!-- 隐私密码 -->
-        <button class="grid-card-item" @click="handlePrivacyPasswordTap">
+        <button class="grid-card-item" @click="openG3('privacyPassword')">
           <div class="grid-icon-wrap">
             <svg width="44" height="44" viewBox="0 0 32 32" fill="none">
               <path d="M10,0L22,0A10,10 0,0 1,32 10L32,22A10,10 0,0 1,22 32L10,32A10,10 0,0 1,0 22L0,10A10,10 0,0 1,10 0z" fill="#69BBF6"/>
@@ -136,10 +144,10 @@ defineExpose({ back })
 
       <!-- 系统安全列表卡片 -->
       <div class="security-card">
-        <ListCell title="手机防盗" chevron @click="showToast('手机防盗服务已开启，支持远程定位与设备锁定')">
+        <ListCell title="手机防盗" chevron @click="openG3('antiTheft')">
         </ListCell>
 
-        <ListCell title="系统安全" chevron @click="showToast('系统内核安全防护运行中，未发现安全威胁')">
+        <ListCell title="系统安全" chevron @click="openG3('systemSecurity')">
         </ListCell>
 
         <ListCell
@@ -147,7 +155,7 @@ defineExpose({ back })
           subtitle="2026年7月1日"
           chevron
           last
-          @click="showToast('已安装最新 Google Play 安全更新')"
+          @click="openG3('playSystemUpdate')"
         >
         </ListCell>
       </div>
@@ -155,7 +163,7 @@ defineExpose({ back })
       <!-- 你可能想找卡片 -->
       <div class="recommend-box">
         <div class="recommend-title">你可能想找</div>
-        <div class="recommend-link" @click="showToast('跳转应用锁管理')">应用锁</div>
+        <div class="recommend-link" @click="openG3('appLock')">应用锁</div>
       </div>
 
       <!-- 底部安全徽标 -->
@@ -174,6 +182,18 @@ defineExpose({ back })
     <!-- 交互提示轻吐司 -->
     <Transition name="fade">
       <div v-if="toastText" class="security-toast">{{ toastText }}</div>
+    </Transition>
+    <!-- 三级/四级页：统一层级转场 + 配置驱动渲染器 -->
+    <Transition :name="g3IsBack ? 'slide-back' : 'slide'">
+      <Group3SubPage
+        v-if="g3Current"
+        :key="`${g3Current.key}-${g3Stack.length}`"
+        :page-key="g3Current.key"
+        :title-override="g3Current.title"
+        @back="closeG3"
+        @navigate="onG3Navigate"
+        @action="msg => showToast(`${msg} 已在原型中收录`)"
+      />
     </Transition>
   </div>
 </template>

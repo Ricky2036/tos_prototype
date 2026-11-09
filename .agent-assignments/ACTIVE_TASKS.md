@@ -214,3 +214,4 @@ Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
 
 
+| Review | Workbuddy | Settings group 3 (安全与隐私 → 位置信息): build the third/fourth-level subpages for 4 secondary pages (密码与安全 / 权限与隐私 / 应用管理 / 位置信息) from real-device capture, config-driven shared renderer + store + layer transitions, and wire every dead toast/chevron entry | `workbuddy/lane` | `src/components/apps/settings/SettingsSecurity.vue`; `SettingsPrivacy.vue`; `SettingsAppsManage.vue`; `SettingsLocation.vue`; `src/components/apps/settings/group3/**`; `src/stores/settingsGroup3Store.js`; `tests/settingsGroup3Subpages.test.js` | `6613b8e` | pending |
