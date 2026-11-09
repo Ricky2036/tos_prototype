@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { usePhoneStore } from '../../../stores/phoneStore'
+import LIcon from '../../ui/LIcon.vue'
 
 const phoneStore = usePhoneStore()
 const toastText = ref('')
@@ -153,10 +154,10 @@ function handleDragEnd() {
       </button>
       <div class="keypad-dialed-text dialed-number-text">{{ formattedNumber }}</div>
       <button class="header-action-btn backspace-btn-top backspace-btn" title="退格删除" @click="handleBackspace" @contextmenu.prevent="phoneStore.clearNumber">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          <line x1="18" y1="9" x2="12" y2="15" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" />
-          <line x1="12" y1="9" x2="18" y2="15" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" />
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M8.2 3.5h11.8c1.65 0 3 1.35 3 3v11c0 1.65-1.35 3-3 3H8.2c-.8 0-1.56-.32-2.12-.88L1.6 13.98a2.8 2.8 0 0 1 0-3.96L6.08 4.38c.56-.56 1.32-.88 2.12-.88z" fill="#1C1C1E" />
+          <line x1="12" y1="9.2" x2="17.2" y2="14.8" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" />
+          <line x1="17.2" y1="9.2" x2="12" y2="14.8" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" />
         </svg>
       </button>
     </div>
@@ -189,18 +190,15 @@ function handleDragEnd() {
       </div>
     </div>
 
-    <!-- 底部操作栏：视频通话 / 主拨号绿色大圆钮 / 退格删除（对齐真机录屏规范） -->
+    <!-- 底部操作栏：视频通话 / 主拨号绿色大圆钮（对齐真机规范：左侧视频通话，中间绿色拨号，右侧无删除按键） -->
     <div class="keypad-actions-row">
-      <!-- 左侧：视频通话按钮（常驻） -->
+      <!-- 左侧：视频通话按钮（复用控制中心录屏图标，常驻） -->
       <button
         class="action-aux-btn video-call-btn"
         title="视频通话"
         @click="handleVideoCall"
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <rect x="2" y="6" width="13" height="12" rx="2.5" stroke="#1C1C1E" stroke-width="2" />
-          <path d="M15 10.2L20.2 6.8C20.7 6.4 21.5 6.8 21.5 7.5V16.5C21.5 17.2 20.7 17.6 20.2 17.2L15 13.8" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <LIcon name="video" :size="26" />
       </button>
 
       <!-- 绿色大圆拨号按键 -->
@@ -210,20 +208,8 @@ function handleDragEnd() {
         </svg>
       </button>
 
-      <!-- 右侧：退格键（有输入时可见） -->
-      <button
-        class="action-aux-btn backspace-btn"
-        :class="{ visible: phoneStore.dialedNumber }"
-        title="删除"
-        @click="handleBackspace"
-        @contextmenu.prevent="phoneStore.clearNumber"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          <line x1="18" y1="9" x2="12" y2="15" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" />
-          <line x1="12" y1="9" x2="18" y2="15" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" />
-        </svg>
-      </button>
+      <!-- 右侧：平衡占位（保持中间绿色拨号键严格居中） -->
+      <div class="action-aux-placeholder" aria-hidden="true"></div>
     </div>
 
     <!-- 快速提示条 -->
@@ -303,7 +289,6 @@ function handleDragEnd() {
   cursor: pointer;
   border-radius: 50%;
   transition: background-color 0.15s ease;
-  visibility: visible !important;
   flex-shrink: 0;
 }
 
@@ -380,11 +365,12 @@ function handleDragEnd() {
   margin-top: 3px;
 }
 
-/* 底部操作区 */
+/* 底部操作区（对齐真机规范：3列网格对齐，左侧视频通话，中间绿色大圆拨号，右侧无删除按钮） */
 .keypad-actions-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  justify-items: center;
   align-items: center;
-  justify-content: space-around;
   margin-top: 14px;
   padding: 0 10px;
 }
@@ -399,25 +385,21 @@ function handleDragEnd() {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  opacity: 0.35;
-  transition: opacity 0.15s ease, background-color 0.15s ease;
-}
-
-.action-aux-btn.active,
-.action-aux-btn.visible {
+  color: #1C1C1E;
   opacity: 1;
+  transition: background-color 0.15s ease, transform 0.12s ease;
 }
 
 .action-aux-btn:active {
   background-color: rgba(0, 0, 0, 0.05);
+  transform: scale(0.92);
 }
 
-.backspace-btn {
+.action-aux-placeholder {
+  width: 54px;
+  height: 54px;
   visibility: hidden;
-}
-
-.backspace-btn.visible {
-  visibility: visible;
+  pointer-events: none;
 }
 
 /* 主拨号大绿键 */
