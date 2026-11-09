@@ -242,7 +242,7 @@ function handleQuickCall(e, recent) {
 </script>
 
 <template>
-  <div class="phone-recents-tab">
+  <div class="phone-recents-tab" :class="{ 'is-dialing': !!phoneStore.dialedNumber }">
     <!-- 1. 号码输入时的智能匹配联系人列表与快速动作（1:1 对齐真机） -->
     <div v-if="phoneStore.dialedNumber" class="matched-section">
       <div v-if="matchingContacts.length > 0" class="matched-group-title">所有联系人</div>
@@ -423,6 +423,12 @@ function handleQuickCall(e, recent) {
   margin-top: calc(var(--title-progress, 0) * 38px);
 }
 
+.phone-recents-tab.is-dialing {
+  margin-top: 0 !important;
+  padding-top: calc(var(--safe-top, 44px) + 8px);
+  min-height: calc(100% + 400px);
+}
+
 /* 空状态 */
 .recents-empty-state {
   display: flex;
@@ -557,13 +563,13 @@ function handleQuickCall(e, recent) {
 /* 输入号码时智能匹配联系人列表与快速动作（1:1 对齐真机） */
 .matched-section {
   width: 100%;
-  padding: 8px 0 0;
+  padding: 0;
   background: #FFFFFF;
 }
 
 .matched-group-title {
-  padding: 6px 20px 4px;
-  font-size: 13px;
+  padding: 8px 20px 6px;
+  font-size: 13.5px;
   font-weight: 500;
   color: #8E8E93;
 }

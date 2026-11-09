@@ -119,6 +119,7 @@ try {
 
   const dialedDisplay = await page.locator('.dialed-number-text').textContent()
   assert('输入数字正确回显 136', dialedDisplay?.includes('136'))
+  assert('输入号码检索联系人时隐藏通话记录Tab', !(await page.locator('.recents-filter-bar').isVisible()))
   assert('拨号下方列表展示匹配联系人', await page.locator('.matched-contact-row').first().isVisible())
   await page.screenshot({ path: `${OUT}/04-keypad-dialing.png` })
 

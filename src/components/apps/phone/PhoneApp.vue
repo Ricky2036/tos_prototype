@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { usePhoneStore } from '../../../stores/phoneStore'
 import { useSystemStore } from '../../../stores/systemStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
@@ -153,6 +153,19 @@ useBackHandler(() => {
   return false
 })
 
+// 键入号码检索联系人时重置滚动视口，对齐真机检索流
+watch(
+  () => phoneStore.dialedNumber,
+  (newVal, oldVal) => {
+    if (Boolean(newVal) !== Boolean(oldVal)) {
+      if (scrollContainerRef.value) {
+        scrollContainerRef.value.scrollTop = 0
+        onTitleScroll({ target: scrollContainerRef.value })
+      }
+    }
+  }
+)
+
 function switchTab(tabName) {
   phoneStore.currentTab = tabName
   if (tabName === 'contacts') {
@@ -295,8 +308,8 @@ function handleAppWheel(e) {
       @touchmove.passive="handleTouchMove"
       @wheel.passive="handleAppWheel"
     >
-      <!-- 吸顶组合顶栏：承载大标题吸顶折叠与分类标签栏，二者共同构成固定头部 -->
-      <div class="phone-sticky-header">
+      <!-- 吸顶组合顶栏：承载大标题吸顶折叠与分类标签栏（输入号码检索联系人时隐藏，1:1 对齐真机） -->
+      <div v-if="!phoneStore.dialedNumber" class="phone-sticky-header">
         <LargeTitleHeader
           :progress="titleProgress"
           scrim="255, 255, 255"
