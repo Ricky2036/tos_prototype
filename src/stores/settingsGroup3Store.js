@@ -116,6 +116,8 @@ export const GROUP3_SWITCH_DEFAULTS = {
   appOpenLinks: false,
   trustedPlaceUnlock: true,
   appBackgroundData: true,
+  appUnlimitedData: false,
+  appBatteryBackground: true,
   cloudMediaEnabled: true
 }
 
@@ -127,7 +129,8 @@ export const GROUP3_CHOICE_DEFAULTS = {
   locationGrant: '仅在使用该应用时允许',
   premiumSmsGrant: '每次询问',
   appTimeLimit: '不限',
-  appTimer: '不限'
+  appTimer: '不限',
+  appBatteryMode: '已优化'
 }
 
 function persistSwitches(state) {

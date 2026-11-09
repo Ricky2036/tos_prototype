@@ -272,6 +272,42 @@ async function run() {
     ['通知', '权限', '存储和缓存', '移动数据和 WLAN', '设备使用时间', '电池', '默认打开'].every(t => detailNames.includes(t)),
     detailNames.join(','))
   await shot(page, '19_app_info')
+
+  // 存储和缓存（真机 137_storage）
+  await clickRow(page, '.sub-shell', '存储和缓存')
+  await expectSubPage(page, 'C 存储', '存储')
+  const storageNames = await page.evaluate(() => [...document.querySelectorAll('.sub-shell .lc-title, .sub-shell .g3-link-title')].map(e => e.textContent.trim()))
+  check('C 存储：真机六行', ['总计', '应用大小', '用户数据', '清除存储空间', '缓存', '清理缓存'].every(t => storageNames.includes(t)), storageNames.join(','))
+  check('C 存储：两条蓝色操作链接', (await visibleCount(page, '.sub-shell .g3-link-title')) === 2)
+  await shot(page, '24_storage')
+  await backFromSub(page)
+
+  // 移动数据和 WLAN（真机 138_data_wlan）
+  await clickRow(page, '.sub-shell', '移动数据和 WLAN')
+  await expectSubPage(page, 'C 移动数据用量', '移动数据用量')
+  const dataText = await page.evaluate(() => document.querySelector('.sub-shell .sub-body')?.textContent || '')
+  check('C 移动数据用量：真机数值', dataText.includes('234 MB') && dataText.includes('225 MB') && dataText.includes('9.01 MB'))
+  check('C 移动数据用量：两个流量开关', (await visibleCount(page, '.sub-shell .toggle-switch')) === 2)
+  await shot(page, '25_data_usage')
+  await backFromSub(page)
+
+  // 设备使用时间＝单应用使用时间（真机 139_usage），标题显示应用名
+  await clickRow(page, '.sub-shell', '设备使用时间')
+  await expectSubPage(page, 'C 单应用使用时间', 'AI Mate')
+  check('C 单应用使用时间：两个下拉维度', (await visibleCount(page, '.sub-shell .g3-usage-dropdown')) === 2)
+  check('C 单应用使用时间：应用图标', (await visibleCount(page, '.sub-shell .g3-usage-app-icon')) === 1)
+  check('C 单应用使用时间：设置分组 + 两行',
+    (await visibleCount(page, '.sub-shell .g3-accent-header')) === 1 && (await visibleCount(page, '.sub-shell .list-cell')) === 2)
+  await shot(page, '26_app_screen_time')
+  await backFromSub(page)
+
+  // 电池（真机 140_battery）
+  await clickRow(page, '.sub-shell', '电池')
+  await expectSubPage(page, 'C 应用电池用量', '应用的电池用量')
+  check('C 应用电池用量：已优化 / 无限制两单选', (await visibleCount(page, '.sub-shell .opt-radio')) === 2)
+  await shot(page, '27_battery')
+  await backFromSub(page)
+
   await backFromSub(page)
   await backFromSub(page)
 
@@ -375,6 +411,23 @@ async function run() {
     return hit
   })
   check('层级转场样式已注入', trans)
+
+  /* ==================== E. 通知深链到现有应用通知设置页 ==================== */
+  await backFromSecondary(page, '.settings-location-page')
+  await clickRow(page, home, '应用管理')
+  await clickRow(page, '.settings-apps-page', '应用列表')
+  await clickRow(page, '.sub-shell', 'AI Mate')
+  await clickRow(page, '.sub-shell', '通知')
+  await page.waitForTimeout(650)
+  check('E 通知：跳到现有的 SettingsNotifications', (await visibleCount(page, '.notif-settings')) === 1)
+  check('E 通知：标题是刚点的应用名',
+    (await page.locator('.notif-settings .ns-hero-title').first().textContent().catch(() => ''))?.trim() === 'AI Mate')
+  const notifText = await page.evaluate(() => document.querySelector('.notif-settings')?.textContent || '')
+  check('E 通知：含允许通知 / 提醒强度 / 提醒方式',
+    ['允许通知', '提醒强度', '提醒方式'].every(t => notifText.includes(t)))
+  check('E 通知：group3 自编通知页已不存在', !notifText.includes('关闭后该应用将不再发送通知'))
+  await shot(page, '28_notif_deeplink')
+
   check('全程 0 控制台错误', consoleErrors.length === 0, consoleErrors.slice(0, 3).join(' | '))
 
   await browser.close()

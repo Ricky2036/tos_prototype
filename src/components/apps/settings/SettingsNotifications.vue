@@ -113,9 +113,12 @@ function resolveApp(appId) {
   if (!appId) return notificationApps.value?.[0] || { id: 'recorder', appId: 'recorder', iconType: 'recorder', time: Date.now() }
   const found = notificationApps.value?.find(a => a.appId === appId || a.id === appId)
   if (found) return found
+  // 从「应用管理 → 应用信息 → 通知」深链进来时，appId 可能不在通知列表里。
+  // 标题要用桌面注册表里的中文名，否则会把 'aimate' 这类 id 原样显示出来。
   return {
     id: appId,
     appId,
+    name: getApp(appId)?.name || i18n.appName(appId),
     iconType: appId,
     time: Date.now()
   }
@@ -669,11 +672,11 @@ const emit = defineEmits(['back-to-settings'])
 
       <!-- ============ 应用详情子页 ============ -->
       <div v-else key="detail" class="ns-page scrollable">
-        <GlassNavBar overlay :title="i18n.notifTitle(currentDetailApp.appId)" @back="back()" />
+        <GlassNavBar overlay :title="currentDetailApp.name || i18n.notifTitle(currentDetailApp.appId)" @back="back()" />
 
         <div class="ns-app-hero">
           <NotificationIcon :type="currentDetailApp.iconType" :size="64" />
-          <h1 class="ns-hero-title">{{ i18n.notifTitle(currentDetailApp.appId) }}</h1>
+          <h1 class="ns-hero-title">{{ currentDetailApp.name || i18n.notifTitle(currentDetailApp.appId) }}</h1>
         </div>
 
         <!-- 卡片 1：总开关（允许通知） -->

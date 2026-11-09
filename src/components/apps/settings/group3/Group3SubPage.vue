@@ -10,6 +10,7 @@ import { APP_ICONS, getGroup3Page } from './pages.js'
 import { useSettingsGroup3Store } from '../../../../stores/settingsGroup3Store.js'
 import { APPS, getApp } from '../../../../config/apps.js'
 import { DRAWER_APPS } from '../../../../config/drawerApps.js'
+import { useNotificationsStore } from '../../../../stores/notificationsStore.js'
 
 /**
  * 第三组卡片三级/四级页通用渲染器。
@@ -25,8 +26,13 @@ const props = defineProps({
 const emit = defineEmits(['back', 'navigate', 'action'])
 
 const store = useSettingsGroup3Store()
+const notificationsStore = useNotificationsStore()
 const page = computed(() => getGroup3Page(props.pageKey))
-const title = computed(() => props.titleOverride || page.value?.title || '设置')
+const title = computed(() => {
+  // 单应用使用时间页：真机标题栏显示应用名，不是页面配置里的固定标题
+  if (page.value?.titleFrom === 'selectedApp') return store.selectedApp.name
+  return props.titleOverride || page.value?.title || '设置'
+})
 const query = ref('')
 const tipDismissed = ref(false)
 
@@ -145,6 +151,12 @@ function filteredRows(sec) {
 
 function onRowClick(row) {
   if (row.toggle || row.radio || row.disabled) return
+  // 「通知 / 管理通知」跳到【现有】的 SettingsNotifications 应用详情子页，
+  // 不走 group3 自己的页面栈。setAppTarget 会被 SettingsApp 的 watch 消费。
+  if (row.openAppNotifications) {
+    notificationsStore.setAppTarget(store.selectedApp.appId || 'wechat')
+    return
+  }
   if (row.action === 'appDetail') {
     store.setSelectedApp({ name: row.title, appId: row.appId, size: row.value, version: 'V1.0.0' })
   }
@@ -259,7 +271,18 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
 
         <!-- 应用活动详情：下拉 + 总时长 + 周柱状图 + 日期切换 -->
         <div v-else-if="sec.usage" class="g3-usage">
-          <div class="g3-usage-dropdown">{{ sec.usage.dropdown }}<LIcon name="chevronDown" :size="13" :stroke-width="2" /></div>
+          <div class="g3-usage-dropdowns">
+            <span v-for="d in (sec.usage.dropdowns || [sec.usage.dropdown])" :key="d" class="g3-usage-dropdown">
+              {{ d }}<LIcon name="chevronDown" :size="13" :stroke-width="2" />
+            </span>
+          </div>
+          <div v-if="sec.usage.appIcon" class="g3-usage-app-icon">
+            <AppIcon
+              v-if="heroApp?.special"
+              :app="heroApp" :size="40" :show-label="false" :show-badge="false" :launch-on-click="false"
+            />
+            <img v-else :src="heroApp?.image || '/icons/settings.png'" alt="" draggable="false" />
+          </div>
           <div class="g3-usage-value">{{ sec.usage.value }}</div>
           <div class="g3-usage-unit">{{ sec.usage.unit }}</div>
           <div class="g3-usage-chart">
@@ -356,6 +379,7 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
               :last="ri === filteredRows(sec).length - 1"
               @click="onRowClick(row)"
             >
+              <template v-if="row.link" #title><span class="g3-link-title">{{ row.title }}</span></template>
               <template v-if="row.appLive" #icon>
                 <div class="g3-live-icon">
                   <AppIcon
@@ -648,11 +672,16 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
 
 /* ===== 应用活动详情 ===== */
 .g3-usage { display: flex; flex-direction: column; align-items: center; padding: 10px 0 16px; }
+.g3-usage-dropdowns { display: flex; gap: 10px; margin-bottom: 14px; }
 .g3-usage-dropdown {
   display: inline-flex; align-items: center; gap: 5px;
   background: #DCEBFF; color: #1C5FD6;
-  font-size: 13px; padding: 7px 16px; border-radius: 18px; margin-bottom: 14px;
+  font-size: 13px; padding: 7px 16px; border-radius: 18px;
 }
+.g3-usage-app-icon { width: 40px; height: 40px; border-radius: 12px; overflow: hidden; margin-bottom: 8px; }
+.g3-usage-app-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.g3-usage-app-icon :deep(.app-icon) { background: none; border: 0; padding: 0; width: 40px; gap: 0; }
+.g3-link-title { color: #2F6BF6; font-size: 15px; }
 .g3-usage-value { font-size: 34px; font-weight: 300; color: #1C1C1E; line-height: 1.15; }
 .g3-usage-unit { font-size: 13px; color: #8E8E93; margin-bottom: 16px; }
 .g3-usage-chart { width: 100%; display: flex; gap: 8px; }

@@ -6,6 +6,8 @@ import { setActivePinia, createPinia } from 'pinia'
 import {
   GROUP3_PAGES,
   GROUP3_ENTRY_MAP,
+  PAGE_SOURCES,
+  PAGE_EVIDENCE,
   getGroup3Page
 } from '../src/components/apps/settings/group3/pages.js'
 import {
@@ -44,7 +46,7 @@ function collectPageIssues(pages, switchKeys, choiceKeys) {
         if (row.action && !pages[row.action]) issues.push(`${key}: action -> ${row.action} 不存在`)
         if (row.toggle && !(row.toggle in switchKeys)) issues.push(`${key}: toggle ${row.toggle} 不在 store`)
         if (row.radio && !(row.radio in choiceKeys)) issues.push(`${key}: radio ${row.radio} 不在 store`)
-        if (row.chevron && !row.action) issues.push(`${key}: "${row.title}" 带箭头但没有下一层页面`)
+        if (row.chevron && !row.action && !row.openAppNotifications && !row.run) issues.push(`${key}: "${row.title}" 带箭头但没有下一层页面`)
       }
       for (const link of sec.links || []) {
         if (link.action && !pages[link.action]) issues.push(`${key}: link -> ${link.action} 不存在`)
@@ -358,4 +360,105 @@ test('真机形态守卫有牙齿：删掉柱状图 / 三按钮必须立刻红',
   assert.equal(p.appDetail.sections.find(x => x.tripleActions).tripleActions.length, 3)
   const broken2 = { ...p.appDetail, sections: p.appDetail.sections.filter(x => !x.tripleActions) }
   assert.equal(broken2.sections.some(x => x.tripleActions), false)
+})
+
+/* ==================== 通知深链 + 应用信息四个子页（真机 131~140） ==================== */
+test('「通知」跳到现有的应用通知设置页，不再打开 group3 自编页', () => {
+  const notifRow = GROUP3_PAGES.appDetail.sections.flatMap(x => x.rows || []).find(r => r.title === '通知')
+  assert.equal(notifRow.openAppNotifications, true)
+  assert.equal(notifRow.action, undefined, '不能落到 group3 自己的页面')
+  assert.equal(GROUP3_PAGES.appNotifications, undefined, '编造的「应用通知」页应已删除')
+
+  const src = stripComments(read(RENDERER))
+  assert.match(src, /useNotificationsStore/)
+  assert.match(src, /notificationsStore\.setAppTarget\(store\.selectedApp\.appId/, '要用现有深链 setAppTarget')
+  const notif = stripComments(read('src/components/apps/settings/SettingsNotifications.vue'))
+  assert.match(notif, /subView === 'appDetail'|v-else key="detail"/, '现有通知设置页必须有 appDetail 子页')
+  assert.match(notif, /currentDetailApp\.name \|\| i18n\.notifTitle/, '深链进来的应用要显示中文名')
+  const store = stripComments(read('src/stores/notificationsStore.js'))
+  assert.match(store, /setAppTarget\(appId\)/)
+})
+
+test('应用信息四个子页按真机重做：存储 / 移动数据用量 / 单应用使用时间 / 电池用量', () => {
+  const p = GROUP3_PAGES
+  const rows = (k) => p[k].sections.flatMap(x => x.rows || [])
+
+  assert.equal(p.appStorage.title, '存储')
+  assert.deepEqual(rows('appStorage').map(r => r.title), ['总计', '应用大小', '用户数据', '清除存储空间', '缓存', '清理缓存'])
+  assert.equal(rows('appStorage')[0].value, '1.57 GB')
+  assert.equal(rows('appStorage')[2].value, '0.91 GB')
+  assert.ok(rows('appStorage').filter(r => r.link).length === 2, '真机两条蓝色操作链接')
+
+  assert.equal(p.appDataUsage.title, '移动数据用量')
+  assert.deepEqual(rows('appDataUsage').map(r => r.title), ['总计', '前台', '后台', '后台流量', '不限制数据流量'])
+  assert.equal(rows('appDataUsage')[0].value, '234 MB')
+  assert.equal(rows('appDataUsage')[2].value, '9.01 MB')
+
+  assert.equal(p.appScreenTime.titleFrom, 'selectedApp', '标题栏要显示应用名')
+  const usage = p.appScreenTime.sections.find(x => x.usage).usage
+  assert.deepEqual(usage.dropdowns, ['屏幕使用时间', '每天'])
+  assert.equal(usage.value, '0分钟')
+  assert.equal(usage.appIcon, true)
+  assert.ok(p.appScreenTime.sections.some(x => x.accentHeader === '设置'))
+  const stRows = rows('appScreenTime').map(r => r.title)
+  assert.deepEqual(stRows, ['应用定时器', '管理通知'])
+  assert.equal(rows('appScreenTime')[1].openAppNotifications, true)
+
+  assert.equal(p.appBattery.title, '应用的电池用量')
+  assert.ok(p.appBattery.sections.some(x => x.header === '管理电池用量'))
+  assert.deepEqual(rows('appBattery').map(r => r.title), ['允许后台使用', '已优化', '无限制'])
+  assert.equal(rows('appBattery')[1].radio, 'appBatteryMode')
+})
+
+/* ==================== 全量取证台账：防「瞎编页面」回潮 ==================== */
+test('每个页面都登记取证来源，device 页必须带真机截图编号', () => {
+  const keys = Object.keys(GROUP3_PAGES)
+  assert.equal(Object.keys(PAGE_SOURCES).length, keys.length, '来源台账与页面数要一一对应')
+  for (const k of keys) {
+    assert.ok(['device', 'derived', 'placeholder'].includes(PAGE_SOURCES[k]), `${k} 的 source 非法`)
+    if (GROUP3_PAGES[k].source) assert.equal(GROUP3_PAGES[k].source, PAGE_SOURCES[k], `${k} 内联 source 与台账不一致`)
+    if (PAGE_SOURCES[k] === 'device') {
+      assert.ok(PAGE_EVIDENCE[k], `${k} 标了 device 却没有证据编号`)
+    }
+  }
+  assert.equal(Object.keys(PAGE_SOURCES).filter(k => !GROUP3_PAGES[k]).length, 0, '台账里有多余 key')
+})
+
+test('推导页不许编具体数值/假地址/假日期；不许有孤立页面', () => {
+  const numRe = /(\d[\d.]*\s*(GB|MB|KB|B|分钟|小时|次|条|张|个应用|%)|20\d\d年|深圳市|V\d)/i
+  const bad = []
+  for (const [k, pg] of Object.entries(GROUP3_PAGES)) {
+    if (PAGE_SOURCES[k] !== 'derived') continue
+    for (const sec of pg.sections || []) {
+      for (const r of sec.rows || []) {
+        const t = [r.title, r.subtitle, r.value].filter(Boolean).join('|')
+        if (numRe.test(t)) bad.push(`${k}: ${t}`)
+      }
+      for (const n of [sec.note, ...(sec.notes || [])].filter(Boolean)) {
+        if (numRe.test(n)) bad.push(`${k}: note ${n}`)
+      }
+    }
+  }
+  assert.deepEqual(bad, [], `推导页仍有编造数值：\n${bad.join('\n')}`)
+
+  // appDetail 由渲染器动态生成 action，是唯一允许「无静态引用」的页面
+  const used = new Set([...Object.values(GROUP3_ENTRY_MAP).flatMap(m => Object.values(m)), 'appDetail'])
+  for (const pg of Object.values(GROUP3_PAGES)) {
+    for (const sec of pg.sections || []) {
+      for (const r of sec.rows || []) if (r.action) used.add(r.action)
+      for (const l of sec.links || []) if (l.action) used.add(l.action)
+    }
+  }
+  assert.deepEqual(Object.keys(GROUP3_PAGES).filter(k => !used.has(k)), [], '存在没有入口的孤立页面')
+})
+
+test('台账守卫有牙齿：删 source / 塞假数值 / 造孤立页都必须被抓到', () => {
+  const keys = Object.keys(GROUP3_PAGES)
+  assert.equal(Object.keys(PAGE_SOURCES).length, keys.length)
+  const brokenSources = { ...PAGE_SOURCES }
+  delete brokenSources[keys[0]]
+  assert.notEqual(Object.keys(brokenSources).length, keys.length)
+  const numRe = /(\d[\d.]*\s*(GB|MB|KB|B|分钟|小时|次|条|张|个应用|%)|20\d\d年|深圳市|V\d)/i
+  assert.equal(numRe.test('总计 1.57 GB'), true)
+  assert.equal(numRe.test('当前位置'), false)
 })
