@@ -1,9 +1,60 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { usePhoneStore } from '../../../stores/phoneStore'
 
 const phoneStore = usePhoneStore()
-const emit = defineEmits(['scroll', 'openFlashCall', 'openDetail'])
+const emit = defineEmits(['scroll', 'openFlashCall', 'openDetail', 'openAddContact'])
+
+// 匹配的联系人（在输入号码时直接在下方以列表形式展示，1:1 对齐真机）
+const matchingContacts = computed(() => {
+  const raw = phoneStore.dialedNumber.replace(/\D/g, '')
+  if (!raw) return []
+  return phoneStore.contacts.filter(c => {
+    const cleanNum = c.number.replace(/\D/g, '')
+    const cleanPin = (c.pinyin || '').toLowerCase()
+    return cleanNum.includes(raw) || cleanPin.includes(raw)
+  })
+})
+
+function highlightMatch(num, query) {
+  if (!query) return [{ text: num, matched: false }]
+  const cleanQ = query.replace(/\D/g, '')
+  if (!cleanQ) return [{ text: num, matched: false }]
+  const cleanNum = num.replace(/\D/g, '')
+  const idx = cleanNum.indexOf(cleanQ)
+  if (idx === -1) return [{ text: num, matched: false }]
+  let currentClean = 0
+  let startCharIdx = -1
+  let endCharIdx = -1
+  for (let i = 0; i < num.length; i++) {
+    if (/\d/.test(num[i])) {
+      if (currentClean === idx && startCharIdx === -1) startCharIdx = i
+      if (currentClean === idx + cleanQ.length - 1) {
+        endCharIdx = i + 1
+        break
+      }
+      currentClean++
+    }
+  }
+  if (startCharIdx === -1 || endCharIdx === -1) return [{ text: num, matched: false }]
+  return [
+    { text: num.slice(0, startCharIdx), matched: false },
+    { text: num.slice(startCharIdx, endCharIdx), matched: true },
+    { text: num.slice(endCharIdx), matched: false }
+  ]
+}
+
+function handleCreateContact() {
+  emit('openAddContact', { number: phoneStore.dialedNumber })
+}
+
+function handleAddToExisting() {
+  phoneStore.currentTab = 'contacts'
+}
+
+function handleSendMessage() {
+  phoneStore.startCall({ name: '短信服务', number: phoneStore.dialedNumber })
+}
 
 // 跟手滑动状态管理（参考 NotificationCenter.vue 契约）
 const swipeOffsets = ref({}) // recentId -> offset number
@@ -25,6 +76,15 @@ function getRowContentStyle(id) {
   const offset = swipeOffsets.value[id] || 0
   return {
     transform: `translateX(${offset}px)`
+  }
+}
+
+function getActionsStyle(id) {
+  const offset = swipeOffsets.value[id] || 0
+  const progress = Math.min(1, Math.max(0, -offset / 136))
+  const tx = (1 - progress) * 36
+  return {
+    transform: `translateX(${tx}px)`
   }
 }
 
@@ -183,8 +243,78 @@ function handleQuickCall(e, recent) {
 
 <template>
   <div class="phone-recents-tab">
-    <!-- 空状态提示 -->
-    <div v-if="phoneStore.filteredRecents.length === 0" class="recents-empty-state">
+    <!-- 1. 号码输入时的智能匹配联系人列表与快速动作（1:1 对齐真机） -->
+    <div v-if="phoneStore.dialedNumber" class="matched-section">
+      <div v-if="matchingContacts.length > 0" class="matched-group-title">所有联系人</div>
+      <div
+        v-for="c in matchingContacts"
+        :key="c.id"
+        class="matched-contact-row"
+        @click="phoneStore.startCall(c)"
+      >
+        <div class="contact-avatar-circle" :style="{ backgroundColor: c.color || '#3B82F6' }">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#FFFFFF">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+          </svg>
+        </div>
+        <div class="matched-info-col">
+          <div class="matched-name">{{ c.name }}</div>
+          <div class="matched-sub-row">
+            <span class="matched-type-tag">{{ c.company ? '单位' : '手机' }}</span>
+            <span class="matched-number-line">
+              <span
+                v-for="(part, idx) in highlightMatch(c.number, phoneStore.dialedNumber)"
+                :key="idx"
+                :class="{ 'match-green': part.matched }"
+              >{{ part.text }}</span>
+            </span>
+          </div>
+        </div>
+        <button class="info-btn" title="查看联系人详情" @click.stop="phoneStore.selectedContact = c">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="#1C1C1E" stroke-width="1.8" />
+            <path d="M12 11V17M12 7.5V8" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- 快捷动作列表（新建联系人 / 添加到现有联系人 / 发送短信） -->
+      <div class="matched-actions-list">
+        <div class="matched-action-item" @click="handleCreateContact">
+          <div class="action-icon-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </div>
+          <span class="action-item-label">新建联系人</span>
+        </div>
+        <div class="matched-action-item" @click="handleAddToExisting">
+          <div class="action-icon-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+              <circle cx="8.5" cy="7" r="4" />
+              <line x1="20" y1="8" x2="20" y2="14" />
+              <line x1="23" y1="11" x2="17" y2="11" />
+            </svg>
+          </div>
+          <span class="action-item-label">添加到现有联系人</span>
+        </div>
+        <div class="matched-action-item" @click="handleSendMessage">
+          <div class="action-icon-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
+            </svg>
+          </div>
+          <span class="action-item-label">发送短信</span>
+        </div>
+      </div>
+      <!-- 底部安全留白 -->
+      <div class="bottom-safe-space"></div>
+    </div>
+
+    <!-- 2. 空状态提示（未输入号码且无记录） -->
+    <div v-else-if="phoneStore.filteredRecents.length === 0" class="recents-empty-state">
       <div class="empty-icon-wrap">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
           <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
@@ -195,30 +325,32 @@ function handleQuickCall(e, recent) {
       </div>
     </div>
 
-    <!-- 通话记录列表（支持滑动手势与折叠联动） -->
+    <!-- 3. 通话记录列表（支持滑动手势与折叠联动） -->
     <div v-else class="recents-list">
       <div
         v-for="r in phoneStore.filteredRecents"
         :key="r.id"
         class="recent-swipe-cell"
       >
-        <!-- 侧滑露出的操作底板（呼叫与删除） -->
+        <!-- 侧滑露出的操作底板（呼叫与删除，带跟手视差） -->
         <div class="swipe-actions-bg" :class="{ 'is-active': (swipeOffsets[r.id] || 0) < -2 }">
-          <button class="swipe-btn btn-call" title="呼叫" @click.stop="handleQuickCall($event, r)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#FFFFFF">
-              <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-2.2 2.2a15.047 15.047 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.01A11.36 11.36 0 018.57 3.9c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.52c0-.55-.45-1-.99-1z" />
-            </svg>
-            <span class="swipe-label">呼叫</span>
-          </button>
-          <button class="swipe-btn btn-delete" title="删除" @click.stop="handleDeleteRecent($event, r.id)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2">
-              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-            </svg>
-            <span class="swipe-label">删除</span>
-          </button>
+          <div class="swipe-actions-inner" :style="getActionsStyle(r.id)">
+            <button class="swipe-btn btn-call" title="呼叫" @click.stop="handleQuickCall($event, r)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#FFFFFF">
+                <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-2.2 2.2a15.047 15.047 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.01A11.36 11.36 0 018.57 3.9c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.52c0-.55-.45-1-.99-1z" />
+              </svg>
+              <span class="swipe-label">呼叫</span>
+            </button>
+            <button class="swipe-btn btn-delete" title="删除" @click.stop="handleDeleteRecent($event, r.id)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2">
+                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+              </svg>
+              <span class="swipe-label">删除</span>
+            </button>
+          </div>
         </div>
 
-        <!-- 前景主要内容行（1:1 跟手滑动） -->
+        <!-- 前景主要内容行（1:1 跟手滑动，纯白底色完全覆盖底板） -->
         <div
           class="recent-row-content"
           :style="getRowContentStyle(r.id)"
@@ -342,11 +474,20 @@ function handleQuickCall(e, recent) {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
+  overflow: hidden;
 }
 
 .swipe-actions-bg.is-active {
   opacity: 1;
   pointer-events: auto;
+}
+
+.swipe-actions-inner {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+  transition: transform 0.1s linear;
 }
 
 .swipe-btn {
@@ -385,7 +526,7 @@ function handleQuickCall(e, recent) {
   display: flex;
   align-items: center;
   padding: 13px 20px;
-  background: #FFFFFF;
+  background-color: #FFFFFF;
   border-bottom: 0.5px solid rgba(0, 0, 0, 0.04);
   cursor: pointer;
   user-select: none;
@@ -394,9 +535,10 @@ function handleQuickCall(e, recent) {
   will-change: transform;
 }
 
-/* 正在跟手滑动：无 transition，实时像素对齐 */
+/* 正在跟手滑动：无 transition，实时像素对齐，背景绝对纯白不透明 */
 .recent-row-content.is-swiping {
   transition: none !important;
+  background-color: #FFFFFF !important;
 }
 
 /* 松手后的平滑回弹 / 吸附过渡 */
@@ -409,7 +551,118 @@ function handleQuickCall(e, recent) {
 }
 
 .recent-row-content:active {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: #FAFAFA;
+}
+
+/* 输入号码时智能匹配联系人列表与快速动作（1:1 对齐真机） */
+.matched-section {
+  width: 100%;
+  padding: 8px 0 0;
+  background: #FFFFFF;
+}
+
+.matched-group-title {
+  padding: 6px 20px 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #8E8E93;
+}
+
+.matched-contact-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.matched-contact-row:active {
+  background-color: #F8F9FA;
+}
+
+.contact-avatar-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 14px;
+}
+
+.matched-info-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.matched-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1C1C1E;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.matched-sub-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #8E8E93;
+}
+
+.matched-type-tag {
+  font-size: 12px;
+  color: #8E8E93;
+}
+
+.matched-number-line {
+  letter-spacing: 0.2px;
+}
+
+.match-green {
+  color: #00C853;
+  font-weight: 600;
+}
+
+.matched-actions-list {
+  padding: 12px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.matched-action-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  gap: 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.matched-action-item:active {
+  background-color: #F8F9FA;
+}
+
+.action-icon-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #F2F3F5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.action-item-label {
+  font-size: 16px;
+  color: #1C1C1E;
+  font-weight: 400;
 }
 
 .call-type-icon {

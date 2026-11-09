@@ -75,8 +75,8 @@ function handleBackspace() {
 function handleCall() {
   if (phoneStore.dialedNumber) {
     phoneStore.startCall(phoneStore.dialedNumber, false)
-  } else if (matchedContact.value) {
-    phoneStore.startCall(matchedContact.value, false)
+  } else if (phoneStore.recents.length > 0) {
+    phoneStore.startCall(phoneStore.recents[0], false)
   }
 }
 
@@ -94,57 +94,71 @@ const formattedNumber = computed(() => {
   return `${n.slice(0, 3)} ${n.slice(3, 7)} ${n.slice(7)}`
 })
 
-// 智能联系人联想匹配（输入号码时在键盘上方浮出最佳匹配联系人）
-const matchedContact = computed(() => {
-  const clean = phoneStore.dialedNumber.replace(/\D/g, '')
-  if (!clean || clean.length < 2) return null
-  return phoneStore.contacts.find(c => c.number.replace(/\D/g, '').includes(clean)) || null
-})
-
-// 顶部手柄下滑收起键盘
+// 顶部手柄跟手下滑收起键盘
 let dragStartY = 0
+const dragCurrentY = ref(0)
+const isDraggingPill = ref(false)
+
 function handleDragStart(e) {
   if (e.touches?.length) {
     dragStartY = e.touches[0].clientY
+    dragCurrentY.value = 0
+    isDraggingPill.value = true
   }
 }
 
 function handleDragMove(e) {
-  if (!e.touches?.length) return
+  if (!isDraggingPill.value || !e.touches?.length) return
   const dy = e.touches[0].clientY - dragStartY
-  if (dy > 30) {
+  if (dy > 0) {
+    dragCurrentY.value = dy
+  }
+}
+
+function handleDragEnd() {
+  if (!isDraggingPill.value) return
+  if (dragCurrentY.value > 40) {
     phoneStore.isKeypadOpen = false
   }
+  dragCurrentY.value = 0
+  isDraggingPill.value = false
 }
 </script>
 
 <template>
-  <div class="phone-keypad-panel">
-    <!-- 顶部下滑收起拖拽手柄 -->
+  <div
+    class="phone-keypad-panel"
+    :style="isDraggingPill && dragCurrentY > 0 ? { transform: `translateY(${dragCurrentY}px)`, transition: 'none' } : {}"
+  >
+    <!-- 顶部手柄条与回显栏：未输入时展示拖拽小横条，输入时展示数字与退格（1:1 对齐真机） -->
     <div
+      v-if="!phoneStore.dialedNumber"
       class="keypad-drag-bar"
       @touchstart.passive="handleDragStart"
       @touchmove.passive="handleDragMove"
+      @touchend.passive="handleDragEnd"
       @click="phoneStore.isKeypadOpen = false"
     >
       <div class="drag-pill"></div>
     </div>
 
-    <!-- 智能联系人联想推荐胶囊条 -->
-    <div v-if="matchedContact" class="contact-suggest-pill" @click="phoneStore.startCall(matchedContact)">
-      <div class="suggest-avatar" :style="{ backgroundColor: matchedContact.color || '#3B82F6' }">
-        {{ matchedContact.name?.slice(0, 1) }}
-      </div>
-      <div class="suggest-info">
-        <span class="suggest-name">{{ matchedContact.name }}</span>
-        <span class="suggest-num">{{ matchedContact.number }}</span>
-      </div>
-      <div class="suggest-call-btn">呼叫</div>
-    </div>
-
-    <!-- 顶部拨号回显条（输入时滑入） -->
-    <div class="keypad-display-row" :class="{ visible: phoneStore.dialedNumber }">
-      <div class="dialed-number-text">{{ formattedNumber }}</div>
+    <!-- 顶部拨号回显与操作栏（输入时展示，1:1 对齐真机） -->
+    <div v-else class="keypad-dialed-header">
+      <button class="header-action-btn" title="清空" @click="phoneStore.clearNumber">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="5" r="1.8" fill="#1C1C1E" />
+          <circle cx="12" cy="12" r="1.8" fill="#1C1C1E" />
+          <circle cx="12" cy="19" r="1.8" fill="#1C1C1E" />
+        </svg>
+      </button>
+      <div class="keypad-dialed-text dialed-number-text">{{ formattedNumber }}</div>
+      <button class="header-action-btn backspace-btn-top backspace-btn" title="退格删除" @click="handleBackspace" @contextmenu.prevent="phoneStore.clearNumber">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <line x1="18" y1="9" x2="12" y2="15" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" />
+          <line x1="12" y1="9" x2="18" y2="15" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" />
+        </svg>
+      </button>
     </div>
 
     <!-- 3x4 严格正圆形按键网格 -->
@@ -235,111 +249,68 @@ function handleDragMove(e) {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 24px;
+  height: 28px;
   padding-top: 10px;
-  padding-bottom: 6px;
+  padding-bottom: 8px;
   cursor: pointer;
   user-select: none;
 }
 
 .drag-pill {
-  width: 38px;
+  width: 36px;
   height: 4px;
   border-radius: 2px;
-  background: #C4C7CC;
+  background: #B0B3B8; /* fallback: #C4C7CC */
   transition: background-color 0.15s ease, transform 0.15s ease;
 }
 
 .keypad-drag-bar:active .drag-pill {
-  background: #9CA3AF;
+  background: #8E8E93;
   transform: scaleY(1.2);
 }
 
-/* 智能联想条 */
-.contact-suggest-pill {
+/* 顶部号码回显栏（输入时展示，对齐真机顶部 ⋮ 号码 ⌫ 布局） */
+.keypad-dialed-header {
   display: flex;
   align-items: center;
-  padding: 6px 14px;
-  background: #F2F3F5;
-  border-radius: 999px;
-  margin: 0 auto 6px;
-  gap: 8px;
-  cursor: pointer;
-  max-width: 90%;
-  animation: fadeIn 0.2s ease;
+  justify-content: space-between;
+  height: 48px;
+  padding: 0 4px 6px;
+  margin-bottom: 2px;
 }
 
-.suggest-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  color: #FFFFFF;
-  font-size: 11px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.suggest-info {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.keypad-dialed-text {
   flex: 1;
-  overflow: hidden;
-}
-
-.suggest-name {
-  font-size: 13px;
-  font-weight: 600;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 500;
   color: #1C1C1E;
-  white-space: nowrap;
-}
-
-.suggest-num {
-  font-size: 12px;
-  color: #8E8E93;
+  letter-spacing: 0.8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.suggest-call-btn {
-  font-size: 12px;
-  font-weight: 600;
-  color: #00C853;
-  flex-shrink: 0;
-}
-
-/* 顶部号码回显：默认未输入时高度收起为 0，输入文字后平滑增高展现，对齐真机交互规范 */
-.keypad-display-row {
-  height: 0;
-  max-height: 0;
-  overflow: hidden;
+.header-action-btn {
+  background: none;
+  border: none;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  transform: translateY(6px);
-  margin-bottom: 0;
-  transition: height 0.22s cubic-bezier(0.25, 1, 0.5, 1), max-height 0.22s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.18s ease, transform 0.2s ease, margin 0.2s ease;
-  will-change: height, opacity;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background-color 0.15s ease;
+  visibility: visible !important;
 }
 
-.keypad-display-row.visible {
-  height: 46px;
-  max-height: 46px;
-  opacity: 1;
-  transform: translateY(0);
-  margin-bottom: 4px;
+.header-action-btn:active {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .dialed-number-text {
-  font-size: 27px;
-  font-weight: 500;
-  color: #1C1C1E;
-  letter-spacing: 1px;
+  font-size: 28px;
 }
 
 /* 3x4 按键网格：严格正圆单元格 */

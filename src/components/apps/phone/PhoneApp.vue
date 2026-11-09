@@ -370,7 +370,10 @@ function handleAppWheel(e) {
       </div>
 
       <!-- 核心视图标签页内容 -->
-      <PhoneRecentsTab v-if="phoneStore.currentTab === 'recents'" />
+      <PhoneRecentsTab
+        v-if="phoneStore.currentTab === 'recents'"
+        @open-add-contact="handleOpenAddContact"
+      />
       <PhoneContactsTab
         v-else
         @open-merge-duplicates="isMergeOpen = true"

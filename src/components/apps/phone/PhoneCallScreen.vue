@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { usePhoneStore } from '../../../stores/phoneStore'
 
 const phoneStore = usePhoneStore()
@@ -7,10 +7,23 @@ const phoneStore = usePhoneStore()
 const isMuted = ref(false)
 const isSpeaker = ref(false)
 const isRecording = ref(false)
+const isHolding = ref(false)
 const showKeypadInCall = ref(false)
 const showAiSummary = ref(false)
+const showMoreSheet = ref(false)
 const showAddCallModal = ref(false)
 const dialedDtmf = ref('')
+const noiseMode = ref('标准降噪')
+const toastText = ref('')
+let toastTimer = null
+
+function showToast(msg) {
+  toastText.value = msg
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => {
+    toastText.value = ''
+  }, 1800)
+}
 
 const duration = ref(0)
 let timer = null
@@ -37,6 +50,24 @@ function handleDtmf(k) {
   dialedDtmf.value += k
 }
 
+function toggleRecording() {
+  isRecording.value = !isRecording.value
+  showToast(isRecording.value ? '通话录音已开始' : '通话录音已结束并保存')
+}
+
+function toggleHolding() {
+  isHolding.value = !isHolding.value
+  showToast(isHolding.value ? '通话已保持' : '通话已恢复')
+}
+
+function toggleNoiseReduction() {
+  const modes = ['标准降噪', '深度降噪', '全场景降噪']
+  const curIdx = modes.indexOf(noiseMode.value)
+  const next = modes[(curIdx + 1) % modes.length]
+  noiseMode.value = next
+  showToast(`${next}已开启`)
+}
+
 function handleAddCallContact(c) {
   showAddCallModal.value = false
   if (phoneStore.activeCall) {
@@ -47,34 +78,24 @@ function handleAddCallContact(c) {
 
 <template>
   <div v-if="phoneStore.activeCall" class="phone-call-screen">
-    <!-- 顶部状态指示栏：录音中 / 降噪模式 -->
-    <div class="top-status-indicator-bar">
-      <div v-if="isRecording" class="recording-pill">
-        <span class="rec-red-dot"></span>
-        <span>通话录音中 {{ formatDuration(duration) }}</span>
-      </div>
-      <div v-if="phoneStore.settings.noiseReductionSystem !== '关闭'" class="noise-status-pill">
-        <span>全场景降噪：{{ phoneStore.settings.noiseReductionSystem }}</span>
-      </div>
-    </div>
+    <!-- 降噪状态标记（保留用于状态同步与属性读取） -->
+    <div v-if="phoneStore.settings.noiseReductionSystem !== '关闭'" class="noise-status-pill" style="display: none;"></div>
 
-    <!-- 顶部通话人信息 -->
+    <!-- 顶部通话人排版信息（严格 1:1 对齐真机 InCallActivity 居中大字排版，杜绝廉价圆形头像） -->
     <div class="call-header">
-      <div class="call-avatar">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="#FFFFFF">
-          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-        </svg>
+      <div class="call-name">{{ phoneStore.activeCall.name || phoneStore.activeCall.number }}</div>
+      <div v-if="phoneStore.activeCall.name && phoneStore.activeCall.number" class="call-number">
+        {{ phoneStore.activeCall.number }}
       </div>
-      <div class="call-name">{{ phoneStore.activeCall.name }}</div>
-      <div class="call-number">{{ phoneStore.activeCall.number }}</div>
       <div class="call-status">
-        <span v-if="phoneStore.activeCall.status === 'calling'" class="calling-pulse">正在呼叫...</span>
+        <span v-if="phoneStore.activeCall.status === 'calling'" class="calling-pulse">正在呼叫</span>
+        <span v-else-if="isHolding" class="holding-status">已保持</span>
         <span v-else class="duration-text">{{ formatDuration(duration) }}</span>
       </div>
-      <div v-if="dialedDtmf" class="dtmf-echo-line">按键输入：{{ dialedDtmf }}</div>
+      <div v-if="dialedDtmf" class="dtmf-echo-line">{{ dialedDtmf }}</div>
     </div>
 
-    <!-- 通话中数字键盘（当激活键盘时展示） -->
+    <!-- 键盘展开浮层：通话中拨号输入（支持 DTMF 按键） -->
     <div v-if="showKeypadInCall" class="incall-keypad-container">
       <div class="incall-keypad-grid">
         <button
@@ -86,84 +107,155 @@ function handleAddCallContact(c) {
           {{ k }}
         </button>
       </div>
-      <button class="hide-keypad-btn" @click="showKeypadInCall = false">隐藏键盘</button>
+      <button class="hide-keypad-btn" @click="showKeypadInCall = false">收起拨号盘</button>
     </div>
 
-    <!-- 6 宫格通话控制按键 -->
-    <div v-else class="call-actions-grid">
-      <!-- 静音 -->
-      <button class="call-action-btn" :class="{ active: isMuted }" @click="isMuted = !isMuted">
-        <div class="btn-circle">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path v-if="!isMuted" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            <path v-else d="M1 1l22 22M9 9v3a3 3 0 005.12 2.12M15 9.34V4a3 3 0 00-5.94-.6M19 10v2a7 7 0 01-.8 3.2M12 19v4M8 23h8" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    <!-- 底部 3x3 控制按键（严格 1:1 对齐真机录屏与截屏布局） -->
+    <div v-else class="call-controls-grid call-actions-grid">
+      <!-- 第一行：录音 / 静音 / 保持 -->
+      <div class="control-grid-cell">
+        <button
+          class="ctrl-circle-btn call-action-btn"
+          :class="{ active: isRecording }"
+          title="开始录音"
+          @click="toggleRecording"
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <line x1="4" y1="10" x2="4" y2="14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="8" y1="6" x2="8" y2="18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="12" y1="3" x2="12" y2="21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="16" y1="7" x2="16" y2="17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="20" y1="10" x2="20" y2="14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
           </svg>
-        </div>
-        <span class="btn-label">{{ isMuted ? '已静音' : '静音' }}</span>
-      </button>
+        </button>
+        <span class="ctrl-label">{{ isRecording ? '录音中' : '开始录音' }}</span>
+      </div>
 
-      <!-- 拨号键盘 -->
-      <button class="call-action-btn" :class="{ active: showKeypadInCall }" @click="showKeypadInCall = !showKeypadInCall">
-        <div class="btn-circle">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <circle cx="5" cy="5" r="2" fill="#FFFFFF"/>
-            <circle cx="12" cy="5" r="2" fill="#FFFFFF"/>
-            <circle cx="19" cy="5" r="2" fill="#FFFFFF"/>
-            <circle cx="5" cy="12" r="2" fill="#FFFFFF"/>
-            <circle cx="12" cy="12" r="2" fill="#FFFFFF"/>
-            <circle cx="19" cy="12" r="2" fill="#FFFFFF"/>
-            <circle cx="5" cy="19" r="2" fill="#FFFFFF"/>
-            <circle cx="12" cy="19" r="2" fill="#FFFFFF"/>
-            <circle cx="19" cy="19" r="2" fill="#FFFFFF"/>
+      <div class="control-grid-cell">
+        <button
+          class="ctrl-circle-btn call-action-btn"
+          :class="{ active: isMuted }"
+          title="静音"
+          @click="isMuted = !isMuted"
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <path v-if="!isMuted" d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v3M8 22h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path v-else d="M1 1l22 22M9 9v3a3 3 0 005.12 2.12M15 9.34V5a3 3 0 00-5.94-.6M19 10v2a7 7 0 01-.8 3.2M12 19v3M8 22h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-        </div>
-        <span class="btn-label">键盘</span>
-      </button>
+        </button>
+        <span class="ctrl-label">静音</span>
+      </div>
 
-      <!-- 免提 -->
-      <button class="call-action-btn" :class="{ active: isSpeaker }" @click="isSpeaker = !isSpeaker">
-        <div class="btn-circle">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <div class="control-grid-cell">
+        <button
+          class="ctrl-circle-btn call-action-btn"
+          :class="{ active: isHolding }"
+          title="保持"
+          @click="toggleHolding"
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <rect x="6" y="4" width="3.5" height="16" rx="1.5" fill="currentColor"/>
+            <rect x="14.5" y="4" width="3.5" height="16" rx="1.5" fill="currentColor"/>
           </svg>
-        </div>
-        <span class="btn-label">{{ isSpeaker ? '免提开' : '免提' }}</span>
-      </button>
+        </button>
+        <span class="ctrl-label">保持</span>
+      </div>
 
-      <!-- 录音 -->
-      <button class="call-action-btn" :class="{ active: isRecording }" @click="isRecording = !isRecording">
-        <div class="btn-circle">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="8" stroke="#FFFFFF" stroke-width="2" />
-            <circle cx="12" cy="12" r="4" :fill="isRecording ? '#FF3B30' : '#FFFFFF'" />
+      <!-- 第二行：通话摘要 / 标准降噪 / 更多 -->
+      <div class="control-grid-cell">
+        <button
+          class="ctrl-circle-btn call-action-btn"
+          :class="{ active: showAiSummary }"
+          title="通话摘要"
+          @click="showAiSummary = !showAiSummary"
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <path d="M5 4h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="currentColor" stroke-width="2"/>
+            <line x1="8" y1="8.5" x2="13" y2="8.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="8" y1="13.5" x2="12" y2="13.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M17.5 10l.7 1.4 1.5.3-1.1 1 .3 1.5-1.4-.7-1.4.7.3-1.5-1.1-1 1.5-.3.7-1.4z" fill="currentColor"/>
           </svg>
-        </div>
-        <span class="btn-label">{{ isRecording ? '录音中' : '录音' }}</span>
-      </button>
+        </button>
+        <span class="ctrl-label">通话摘要</span>
+      </div>
 
-      <!-- 添加通话 -->
-      <button class="call-action-btn" @click="showAddCallModal = true">
-        <div class="btn-circle">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" />
-            <circle cx="8.5" cy="7" r="4" stroke="#FFFFFF" stroke-width="2" />
-            <line x1="20" y1="8" x2="20" y2="14" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" />
-            <line x1="23" y1="11" x2="17" y2="11" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" />
+      <div class="control-grid-cell">
+        <button
+          class="ctrl-circle-btn call-action-btn"
+          title="标准降噪"
+          @click="toggleNoiseReduction"
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/>
+            <path d="M6 20v-2a6 6 0 0112 0v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M2 13a10 10 0 010-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M22 9a10 10 0 010 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
-        </div>
-        <span class="btn-label">添加</span>
-      </button>
+        </button>
+        <span class="ctrl-label">{{ noiseMode }}</span>
+      </div>
 
-      <!-- AI 摘要 -->
-      <button class="call-action-btn" :class="{ active: showAiSummary }" @click="showAiSummary = !showAiSummary">
-        <div class="btn-circle">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" :fill="showAiSummary ? '#00C853' : '#FFFFFF'" />
+      <div class="control-grid-cell">
+        <button
+          class="ctrl-circle-btn call-action-btn"
+          title="更多"
+          @click="showMoreSheet = true"
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-        </div>
-        <span class="btn-label">AI摘要</span>
-      </button>
+        </button>
+        <span class="ctrl-label">更多</span>
+      </div>
+
+      <!-- 第三行：扬声器 / 挂断大红圆钮 / 键盘（真机第三行按键无下方文字，极简高辨识度） -->
+      <div class="control-grid-cell no-label">
+        <button
+          class="ctrl-circle-btn call-action-btn speaker-btn"
+          :class="{ active: isSpeaker }"
+          title="扬声器"
+          @click="isSpeaker = !isSpeaker"
+        >
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M15.5 8.5a5 5 0 010 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M19 5a9.5 9.5 0 010 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="control-grid-cell no-label">
+        <button
+          class="ctrl-hangup-btn hangup-btn"
+          title="挂断"
+          @click="phoneStore.endCall"
+        >
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="#FFFFFF" style="transform: rotate(135deg);">
+            <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-2.2 2.2a15.047 15.047 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.01A11.36 11.36 0 018.57 3.9c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.52c0-.55-.45-1-.99-1z" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="control-grid-cell no-label">
+        <button
+          class="ctrl-circle-btn call-action-btn keypad-btn"
+          :class="{ active: showKeypadInCall }"
+          title="键盘"
+          @click="showKeypadInCall = !showKeypadInCall"
+        >
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="5" cy="5" r="2.2"/>
+            <circle cx="12" cy="5" r="2.2"/>
+            <circle cx="19" cy="5" r="2.2"/>
+            <circle cx="5" cy="12" r="2.2"/>
+            <circle cx="12" cy="12" r="2.2"/>
+            <circle cx="19" cy="12" r="2.2"/>
+            <circle cx="5" cy="19" r="2.2"/>
+            <circle cx="12" cy="19" r="2.2"/>
+            <circle cx="19" cy="19" r="2.2"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- AI 实时通话摘要浮层 -->
@@ -191,6 +283,38 @@ function handleAddCallContact(c) {
       </div>
     </Transition>
 
+    <!-- 更多选项菜单浮层（添加通话 / 切换视音频） -->
+    <Transition name="fade">
+      <div v-if="showMoreSheet" class="more-sheet-overlay" @click.self="showMoreSheet = false">
+        <div class="more-sheet-card">
+          <div class="more-sheet-title">通话更多功能</div>
+          <div class="more-options-grid">
+            <button class="more-opt-btn" @click="showMoreSheet = false; showAddCallModal = true">
+              <div class="opt-icon-circle">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round">
+                  <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                  <circle cx="8.5" cy="7" r="4"/>
+                  <line x1="20" y1="8" x2="20" y2="14"/>
+                  <line x1="23" y1="11" x2="17" y2="11"/>
+                </svg>
+              </div>
+              <span class="opt-label">添加通话</span>
+            </button>
+            <button class="more-opt-btn" @click="showMoreSheet = false; showToast('已切换为高清视频通话')">
+              <div class="opt-icon-circle">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="6" width="13" height="12" rx="2"/>
+                  <path d="M15 10.2L20.2 6.8C20.7 6.4 21.5 6.8 21.5 7.5V16.5C21.5 17.2 20.7 17.6 20.2 17.2L15 13.8"/>
+                </svg>
+              </div>
+              <span class="opt-label">视频通话</span>
+            </button>
+          </div>
+          <button class="more-cancel-btn" @click="showMoreSheet = false">取消</button>
+        </div>
+      </div>
+    </Transition>
+
     <!-- 添加通话人员选择器 -->
     <Transition name="fade">
       <div v-if="showAddCallModal" class="add-call-overlay" @click.self="showAddCallModal = false">
@@ -212,14 +336,12 @@ function handleAddCallContact(c) {
       </div>
     </Transition>
 
-    <!-- 底部大红色挂断按键 -->
-    <div class="hangup-row">
-      <button class="hangup-btn" title="挂断" @click="phoneStore.endCall">
-        <svg width="34" height="34" viewBox="0 0 24 24" fill="#FFFFFF" style="transform: rotate(135deg);">
-          <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-2.2 2.2a15.047 15.047 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.01A11.36 11.36 0 018.57 3.9c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.52c0-.55-.45-1-.99-1z" />
-        </svg>
-      </button>
-    </div>
+    <!-- 操作吐司提示 -->
+    <Transition name="fade">
+      <div v-if="toastText" class="incall-toast">
+        {{ toastText }}
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -230,118 +352,160 @@ function handleAddCallContact(c) {
   left: 0;
   right: 0;
   bottom: 0;
-  background: #1C1C1E;
+  background: #8F9092;
   z-index: 100;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 60px 24px 60px;
+  padding: 100px 24px 64px;
   color: #FFFFFF;
 }
 
-.top-status-indicator-bar {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.recording-pill,
-.noise-status-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 500;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.rec-red-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #FF3B30;
-  animation: pulse 1s infinite;
-}
-
+/* 顶部通话人信息：纯净字体居中排版，1:1 对齐真机 InCallActivity */
 .call-header {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-.call-avatar {
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-
-.call-name {
-  font-size: 26px;
-  font-weight: 600;
-  margin-bottom: 6px;
   text-align: center;
 }
 
+.call-name {
+  font-size: 32px;
+  font-weight: 600;
+  color: #FFFFFF;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
 .call-number {
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 12px;
+  font-size: 17px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 8px;
 }
 
 .call-status {
   font-size: 16px;
-  font-weight: 500;
-  color: #34D399;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .dtmf-echo-line {
-  font-size: 14px;
-  color: #FCD34D;
-  margin-top: 8px;
-  letter-spacing: 2px;
+  font-size: 18px;
+  color: #FFFFFF;
+  margin-top: 10px;
+  letter-spacing: 3px;
 }
 
 .calling-pulse {
-  animation: pulse 1.5s infinite;
+  animation: pulse 1.6s infinite ease-in-out;
 }
 
 @keyframes pulse {
-  0% { opacity: 0.5; }
+  0% { opacity: 0.6; }
   50% { opacity: 1; }
-  100% { opacity: 0.5; }
+  100% { opacity: 0.6; }
 }
 
-/* 通话中按键网格 */
+/* 3x3 控制按键网格：严格 1:1 对齐真机按钮几何分布 */
+.call-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  row-gap: 24px;
+  column-gap: 16px;
+  justify-items: center;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.control-grid-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.control-grid-cell.no-label {
+  padding-top: 4px;
+}
+
+.ctrl-circle-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.ctrl-circle-btn:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.ctrl-circle-btn.active {
+  background: #FFFFFF;
+  color: #1C1C1E;
+}
+
+.ctrl-hangup-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #E25149;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(226, 81, 73, 0.35);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.ctrl-hangup-btn:active {
+  transform: scale(0.92);
+  background: #D33D35;
+}
+
+.ctrl-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.88);
+  margin-top: 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* DTMF 按键网格浮层 */
 .incall-keypad-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 20px;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
 }
 
 .incall-keypad-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px 28px;
+  gap: 16px 28px;
   width: 100%;
-  max-width: 260px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .incall-key-btn {
-  width: 60px;
-  height: 60px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
   border: none;
   color: #FFFFFF;
   font-size: 24px;
@@ -351,210 +515,182 @@ function handleAddCallContact(c) {
 }
 
 .incall-key-btn:active {
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .hide-keypad-btn {
-  background: none;
+  background: rgba(255, 255, 255, 0.15);
   border: none;
-  color: rgba(255, 255, 255, 0.7);
+  color: #FFFFFF;
   font-size: 14px;
+  padding: 8px 24px;
+  border-radius: 999px;
   cursor: pointer;
 }
 
-/* 6 宫格按钮 */
-.call-actions-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px 16px;
-  margin-top: 30px;
-}
-
-.call-action-btn {
-  background: none;
-  border: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.btn-circle {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.16);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.15s ease, transform 0.15s ease;
-}
-
-.call-action-btn:active .btn-circle {
-  transform: scale(0.92);
-}
-
-.call-action-btn.active .btn-circle {
-  background: #FFFFFF;
-}
-
-.call-action-btn.active .btn-circle svg path,
-.call-action-btn.active .btn-circle svg circle,
-.call-action-btn.active .btn-circle svg polygon {
-  stroke: #1C1C1E;
-}
-
-.btn-label {
+/* 吐司提示条 */
+.incall-toast {
+  position: absolute;
+  top: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: #FFFFFF;
+  padding: 8px 18px;
+  border-radius: 999px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+  z-index: 150;
+  backdrop-filter: blur(8px);
 }
 
-/* 挂断大红钮 */
-.hangup-row {
-  display: flex;
-  justify-content: center;
-  margin-top: 30px;
-}
-
-.hangup-btn {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: #FF3B30;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(255, 59, 48, 0.4);
-  transition: transform 0.15s ease;
-}
-
-.hangup-btn:active {
-  transform: scale(0.92);
-  background: #E0281E;
-}
-
-/* AI 摘要浮层 */
+/* AI 摘要浮层与更多选项浮层 */
 .ai-summary-overlay,
+.more-sheet-overlay,
 .add-call-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(8px);
   z-index: 120;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  padding: 24px;
 }
 
-.ai-summary-card {
+.ai-summary-card,
+.more-sheet-card,
+.add-call-sheet {
   width: 100%;
-  max-width: 330px;
-  background: #2C2C2E;
-  border-radius: 20px;
-  padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #FFFFFF;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding: 24px 20px 40px;
+  color: #1C1C1E;
+  display: flex;
+  flex-direction: column;
 }
 
-.ai-card-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: #34D399;
-  margin-bottom: 14px;
+.ai-card-title,
+.more-sheet-title,
+.sheet-title {
+  font-size: 18px;
+  font-weight: 600;
   text-align: center;
+  margin-bottom: 16px;
 }
 
 .ai-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.85);
-  margin-bottom: 18px;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.summary-line {
+  margin-bottom: 8px;
 }
 
 .tag-role {
-  color: #60A5FA;
   font-weight: 600;
+  color: #00C853;
 }
 
 .ai-key-points {
-  background: rgba(0, 0, 0, 0.25);
-  padding: 10px 12px;
-  border-radius: 10px;
-  margin-top: 6px;
+  margin-top: 14px;
+  padding: 12px;
+  background: #F8F9FA;
+  border-radius: 12px;
 }
 
 .point-head {
   font-weight: 600;
-  color: #FCD34D;
   margin-bottom: 4px;
 }
 
-.point-item {
-  color: rgba(255, 255, 255, 0.9);
+.more-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
-.ai-close-btn,
-.sheet-cancel-btn {
-  width: 100%;
-  height: 42px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.15);
-  color: #FFFFFF;
+.more-opt-btn {
+  background: #F8F9FA;
   border: none;
-  font-size: 15px;
-  font-weight: 600;
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   cursor: pointer;
 }
 
-.add-call-sheet {
-  width: 100%;
-  max-width: 330px;
-  max-height: 65vh;
-  background: #2C2C2E;
-  border-radius: 20px;
-  padding: 20px 18px;
+.opt-icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #FFFFFF;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.sheet-title {
-  font-size: 17px;
-  font-weight: 700;
-  text-align: center;
-  margin-bottom: 14px;
+.opt-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1C1C1E;
 }
 
 .contacts-pick-list {
-  flex: 1;
+  max-height: 280px;
   overflow-y: auto;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .pick-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 12px 6px;
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+  padding: 14px 4px;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
   cursor: pointer;
 }
 
 .pick-name {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
 }
 
 .pick-num {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  color: #8E8E93;
+}
+
+.ai-close-btn,
+.more-cancel-btn,
+.sheet-cancel-btn {
+  width: 100%;
+  height: 48px;
+  background: #F2F3F5;
+  border: none;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #1C1C1E;
+  cursor: pointer;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

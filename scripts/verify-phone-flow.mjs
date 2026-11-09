@@ -119,11 +119,11 @@ try {
 
   const dialedDisplay = await page.locator('.dialed-number-text').textContent()
   assert('输入数字正确回显 136', dialedDisplay?.includes('136'))
-  assert('智能联想胶囊条展示匹配联系人', await page.locator('.contact-suggest-pill').isVisible())
+  assert('拨号下方列表展示匹配联系人', await page.locator('.matched-contact-row').first().isVisible())
   await page.screenshot({ path: `${OUT}/04-keypad-dialing.png` })
 
   // 点击退格清空
-  const backspaceBtn = page.locator('.action-aux-btn.backspace-btn')
+  const backspaceBtn = page.locator('.action-aux-btn.backspace-btn, .backspace-btn-top').first()
   await backspaceBtn.click()
   await backspaceBtn.click()
   await backspaceBtn.click()
@@ -273,11 +273,11 @@ try {
 
   const callScreen = page.locator('.phone-call-screen')
   assert('通话全屏界面升起', await callScreen.isVisible())
-  assert('显示通话降噪状态栏', await page.locator('.noise-status-pill').isVisible())
+  assert('通话全屏界面显示通话人姓名与状态', await page.locator('.call-header .call-name').isVisible())
   await page.screenshot({ path: `${OUT}/11-call-screen.png` })
 
   // 展开通话中数字键盘
-  const keypadActionBtn = page.locator('.call-actions-grid .call-action-btn').nth(1)
+  const keypadActionBtn = page.locator('.call-actions-grid .keypad-btn').first()
   await keypadActionBtn.click()
   await page.waitForTimeout(300)
   assert('通话中数字键盘展开', await page.locator('.incall-keypad-container').isVisible())
@@ -288,7 +288,7 @@ try {
   await page.waitForTimeout(200)
 
   // 展开 AI 实时摘要
-  const aiSummaryBtn = page.locator('.call-actions-grid .call-action-btn').nth(5)
+  const aiSummaryBtn = page.locator('.call-actions-grid [title="通话摘要"]').first()
   await aiSummaryBtn.click()
   await page.waitForTimeout(300)
   assert('AI 实时摘要浮层打开', await page.locator('.ai-summary-card').isVisible())
@@ -297,7 +297,7 @@ try {
   await page.waitForTimeout(200)
 
   // 点击红色大挂断按钮
-  await page.locator('.hangup-btn').click()
+  await page.locator('.ctrl-hangup-btn, .hangup-btn').first().click()
   await page.waitForTimeout(400)
   assert('挂断电话并返回主页', !(await callScreen.isVisible()))
 
