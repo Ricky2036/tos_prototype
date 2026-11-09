@@ -422,6 +422,13 @@ async function run() {
   check('E 通知：跳到现有的 SettingsNotifications', (await visibleCount(page, '.notif-settings')) === 1)
   check('E 通知：标题是刚点的应用名',
     (await page.locator('.notif-settings .ns-hero-title').first().textContent().catch(() => ''))?.trim() === 'AI Mate')
+  const heroImg = await page.evaluate(() => {
+    const el = document.querySelector('.notif-settings .ns-app-hero-img')
+    if (!el) return null
+    return { src: el.getAttribute('src') || '', loaded: el.complete && el.naturalWidth > 0, w: el.getBoundingClientRect().width }
+  })
+  check('E 通知：头部是真实应用图标且已解码',
+    Boolean(heroImg && heroImg.src.startsWith('/icons/') && heroImg.loaded && heroImg.w > 0), JSON.stringify(heroImg))
   const notifText = await page.evaluate(() => document.querySelector('.notif-settings')?.textContent || '')
   check('E 通知：含允许通知 / 提醒强度 / 提醒方式',
     ['允许通知', '提醒强度', '提醒方式'].every(t => notifText.includes(t)))

@@ -119,6 +119,7 @@ function resolveApp(appId) {
     id: appId,
     appId,
     name: getApp(appId)?.name || i18n.appName(appId),
+    appImage: getApp(appId)?.image || '',
     iconType: appId,
     time: Date.now()
   }
@@ -675,7 +676,14 @@ const emit = defineEmits(['back-to-settings'])
         <GlassNavBar overlay :title="currentDetailApp.name || i18n.notifTitle(currentDetailApp.appId)" @back="back()" />
 
         <div class="ns-app-hero">
-          <NotificationIcon :type="currentDetailApp.iconType" :size="64" />
+          <img
+            v-if="currentDetailApp.appImage"
+            class="ns-app-hero-img"
+            :src="currentDetailApp.appImage"
+            alt=""
+            draggable="false"
+          />
+          <NotificationIcon v-else :type="currentDetailApp.iconType" :size="64" />
           <h1 class="ns-hero-title">{{ currentDetailApp.name || i18n.notifTitle(currentDetailApp.appId) }}</h1>
         </div>
 
@@ -1007,6 +1015,7 @@ const emit = defineEmits(['back-to-settings'])
 
 /* 应用详情 */
 .ns-app-hero { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 24px 0 26px; }
+.ns-app-hero-img { width: 64px; height: 64px; border-radius: 16px; object-fit: cover; display: block; }
 .ns-hero-title { font: 600 20px/1 var(--font-stack); color: #1c1c1e; letter-spacing: 0.3px; }
 
 /* Dynamic Bar 专属行与图标 */

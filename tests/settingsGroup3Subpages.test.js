@@ -375,6 +375,8 @@ test('「通知」跳到现有的应用通知设置页，不再打开 group3 自
   const notif = stripComments(read('src/components/apps/settings/SettingsNotifications.vue'))
   assert.match(notif, /subView === 'appDetail'|v-else key="detail"/, '现有通知设置页必须有 appDetail 子页')
   assert.match(notif, /currentDetailApp\.name \|\| i18n\.notifTitle/, '深链进来的应用要显示中文名')
+  assert.match(notif, /appImage: getApp\(appId\)\?\.image/, '深链进来的应用要带真实图标')
+  assert.match(notif, /class="ns-app-hero-img"[\s\S]*:src="currentDetailApp\.appImage"/, '头部要渲染真实 PNG')
   const store = stripComments(read('src/stores/notificationsStore.js'))
   assert.match(store, /setAppTarget\(appId\)/)
 })
