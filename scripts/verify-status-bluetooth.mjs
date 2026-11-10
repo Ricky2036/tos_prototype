@@ -27,7 +27,12 @@ async function openCC() {
 }
 async function tap(id) {
   await page.click(`[data-id="${id}"] .gb-wrap`, { force: true })
-  await page.waitForTimeout(350)
+  await page.waitForTimeout(250)
+  if (id === 'dnd') {
+    await page.click('[data-cc-focus-mode="dnd"] .focus-switcher-main', { force: true })
+    await page.waitForTimeout(150)
+  }
+  await page.waitForTimeout(200)
 }
 async function setCtl(fn) {
   await page.evaluate(fn)

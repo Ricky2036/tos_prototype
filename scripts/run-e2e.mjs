@@ -181,6 +181,23 @@ const SUITES = [
     ]
   },
   {
+    id: 'focus',
+    script: 'verify-focus-flow.mjs',
+    covers: [
+      'src/components/apps/settings/focus/',
+      'src/components/apps/settings/SettingsApp.vue',
+      'src/components/apps/settings/SettingsDND.vue',
+      'src/components/apps/settings/SettingsSound.vue',
+      'src/stores/focusSettingsStore.js',
+      'src/components/system/cc/FocusSwitcher.vue',
+      'src/components/system/cc/GridButton.vue',
+      'src/components/system/ControlCenter.vue',
+      'src/utils/privacyControlLayout.js',
+      'tests/focusSettings.test.js',
+      'tests/privacyControlLayout.test.js'
+    ]
+  },
+  {
     id: 'phone',
     script: 'verify-phone-flow.mjs',
     covers: [

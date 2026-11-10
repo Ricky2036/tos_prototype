@@ -1,3 +1,18 @@
+/* 专注模式：模式图标、创建向导与过滤条件统一使用 lucide，禁止手绘 SVG */
+import graduationCap from 'lucide-static/icons/graduation-cap.svg?raw'
+import briefcase from 'lucide-static/icons/briefcase.svg?raw'
+import dumbbell from 'lucide-static/icons/dumbbell.svg?raw'
+import flower2 from 'lucide-static/icons/flower-2.svg?raw'
+import rocket from 'lucide-static/icons/rocket.svg?raw'
+import car from 'lucide-static/icons/car.svg?raw'
+import smile from 'lucide-static/icons/smile.svg?raw'
+import book from 'lucide-static/icons/book.svg?raw'
+import gamepad2 from 'lucide-static/icons/gamepad-2.svg?raw'
+import music from 'lucide-static/icons/music.svg?raw'
+import mail from 'lucide-static/icons/mail.svg?raw'
+import compass from 'lucide-static/icons/compass.svg?raw'
+import batteryMedium from 'lucide-static/icons/battery-medium.svg?raw'
+import phone from 'lucide-static/icons/phone.svg?raw'
 import navigation from 'lucide-static/icons/navigation.svg?raw'
 import messageCircle from 'lucide-static/icons/message-circle.svg?raw'
 /* lucide-static 图标集中导入 + 定制控制中心矢量图标（100% 用户原始 SVG） */
@@ -593,6 +608,8 @@ export const LUCIDE = {
   bot, wandSparkles, bookOpen, calendarDays, notebookPen, sticker,
   hourglass, footprints, triangleAlert, circleCheck, circleAlert, messageSquare, database, clock, bedDouble,
   navigation, messageCircle,
+  /* 专注模式 */
+  graduationCap, briefcase, dumbbell, flower2, rocket, car, smile, book, gamepad2, music, mail, compass, batteryMedium, phone,
   /* 首页卡动作（AI Mori 卡：拍照） */
   camera,
   /* One-Tap / 设置通用标准图标 */

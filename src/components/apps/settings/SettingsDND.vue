@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import '../../../styles/layer-transitions.css'
 import { useControlStore } from '../../../stores/controlStore'
+import { useFocusSettingsStore } from '../../../stores/focusSettingsStore.js'
 import { usePrayerStore } from '../../../stores/prayerStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import { SETTINGS_TITLES } from '../../../config/settingsTitles'
@@ -27,6 +28,7 @@ import DndRepeatSheet from './dnd/DndRepeatSheet.vue'
  */
 const emit = defineEmits(['back'])
 const control = useControlStore()
+const focus = useFocusSettingsStore()
 const prayerStore = usePrayerStore()
 const i18n = useI18nStore()
 const dnd = useDndSettingsStore()
@@ -118,7 +120,7 @@ function onRepeatConfirm(days) {
           <div class="dnd-cell">
             <span class="dc-title">{{ i18n.t('dnd') }}</span>
             <div class="dc-right">
-              <ToggleSwitch v-model="control.doNotDisturb" />
+              <ToggleSwitch :model-value="focus.state.activeId === 'dnd'" @update:model-value="$event ? focus.activate('dnd') : focus.deactivate()" />
             </div>
           </div>
 

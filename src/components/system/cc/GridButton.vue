@@ -403,7 +403,8 @@ function onResizeDown(e) {
             transition: resizing ? 'none' : 'opacity 0.25s ease-out 0.08s, transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)'
           }"
         >
-          {{ i18n.ccLabel(item.id) }}
+          <template v-if="item.id === 'dnd'"><span class="gb-focus-label">专注模式</span><LIcon name="chevronDown" :size="13" /></template>
+          <template v-else>{{ i18n.ccLabel(item.id) }}</template>
         </span>
       </div>
 
@@ -555,7 +556,11 @@ function onResizeDown(e) {
   color: #fff;
   margin-left: calc(8px * var(--cc-k, 1));
   transform-origin: left center;
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
+.gb-focus-label { white-space: nowrap; }
 
 /* 响铃三段无缝位移与缩放 */
 .gb-sound {

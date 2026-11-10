@@ -182,7 +182,7 @@ defineExpose({ back })
         <!-- 勿扰模式入口 -->
         <ListCell
           title="勿扰模式"
-          :value="control.doNotDisturb ? '已开启' : '已关闭'"
+          :value="control.dnd ? '已开启' : '已关闭'"
           chevron
           clickable
           @click="emit('open-dnd')"

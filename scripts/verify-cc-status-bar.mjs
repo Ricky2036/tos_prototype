@@ -23,7 +23,12 @@ async function openCC() {
 }
 async function tap(id) {
   await page.click(`[data-id="${id}"] .gb-wrap`, { force: true })
-  await page.waitForTimeout(350)
+  await page.waitForTimeout(250)
+  if (id === 'dnd') {
+    await page.click('[data-cc-focus-mode="dnd"] .focus-switcher-main', { force: true })
+    await page.waitForTimeout(150)
+  }
+  await page.waitForTimeout(200)
 }
 // 取 CC 状态行里所有 .cc-ind 图标对应的开关磁贴 data-id（同源证明）
 async function ccIndTileIds() {

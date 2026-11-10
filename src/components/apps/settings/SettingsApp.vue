@@ -35,6 +35,8 @@ import SettingsHotspot from './SettingsHotspot.vue'
 import SettingsNfc from './SettingsNfc.vue'
 import SettingsInfinixAI from './SettingsInfinixAI.vue'
 import SettingsModes from './SettingsModes.vue'
+import SettingsFocus from './focus/SettingsFocus.vue'
+import LIcon from '../../ui/LIcon.vue'
 import SettingsSecurity from './SettingsSecurity.vue'
 import SettingsPrivacy from './SettingsPrivacy.vue'
 import SettingsAppsManage from './SettingsAppsManage.vue'
@@ -144,6 +146,7 @@ function pop() {
 /* 全局侧滑返回：子页 → 首页逐层消费 */
 const notifRef = ref(null)
 const dndRef = ref(null)
+const focusRef = ref(null)
 const prayerRef = ref(null)
 const personalizationRef = ref(null)
 const aboutPhoneRef = ref(null)
@@ -181,6 +184,7 @@ useBackHandler(() => {
   if (view.value === 'appsManage' && appsManageRef.value?.back?.()) return true
   if (view.value === 'location' && locationRef.value?.back?.()) return true
   if (view.value === 'dnd' && dndRef.value?.back?.()) return true
+  if (view.value === 'focus' && focusRef.value?.back?.()) return true
   if (view.value === 'accessibility' && accessibilityRef.value?.back?.()) return true
   if (view.value === 'display' && displayRef.value?.back?.()) return true
   if (view.value === 'sound' && soundRef.value?.back?.()) return true
@@ -214,6 +218,7 @@ const viewTitles = computed(() => ({
   notifications: SETTINGS_TITLES.notifications,
   sound: i18n.t('soundAndVibration') || '声音与振动',
   dnd: SETTINGS_TITLES.dnd,
+  focus: '专注模式',
   prayer: SETTINGS_TITLES.prayer,
   personalization: '主题与个性化',
   about: '我的手机',
@@ -270,6 +275,7 @@ const allSearchableItems = [
   { id: 'hotspot', title: '个人热点', group: '网络与连接', action: () => push('hotspot') },
   { id: 'nfc', title: 'NFC', group: '网络与连接', action: () => push('nfc') },
   { id: 'infinixAi', title: 'Infinix AI', group: '特色功能', action: () => push('infinixAi') },
+  { id: 'systemFocus', title: '专注模式', group: '特色功能', action: () => push('focus') },
   { id: 'modes', title: '模式和日常程序', group: '特色功能', action: () => push('modes') },
   { id: 'modesSleep', title: '睡眠模式', group: '模式和日常程序', action: () => push('modes') },
   { id: 'modesTheater', title: '影院模式', group: '模式和日常程序', action: () => push('modes') },
@@ -465,6 +471,13 @@ function handleSearchNavigate(item) {
                   <div class="squircle-icon bg-infinix-ai">
                     <SettingsSystemIcon name="ai" :size="19" />
                   </div>
+                </template>
+              </ListCell>
+
+              <!-- 专注模式：iOS 完整流程，入口位于 Infinix AI 正下方 -->
+              <ListCell title="专注模式" chevron data-setting-row="focus" @click="push('focus')">
+                <template #icon>
+                  <div class="squircle-icon" style="background:#5E5CE6"><LIcon name="moon" :size="19" /></div>
                 </template>
               </ListCell>
 
@@ -697,6 +710,11 @@ function handleSearchNavigate(item) {
       <!-- ================= 声音与振动 ================= -->
       <div v-else-if="view === 'sound'" key="sound" class="settings-page">
         <SettingsSound ref="soundRef" @back="pop" @open-dnd="push('dnd')" @open-prayer="push('prayer')" />
+      </div>
+
+      <!-- ================= 专注模式（完整创建、编辑与自动化流程） ================= -->
+      <div v-else-if="view === 'focus'" key="focus" class="settings-page">
+        <SettingsFocus ref="focusRef" @back="pop" />
       </div>
 
       <!-- ================= 勿扰模式 (含礼拜模式入口) ================= -->
