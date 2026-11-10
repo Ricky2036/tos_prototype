@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import DhShell from './DhShell.vue'
+import LIcon from '../../../ui/LIcon.vue'
 import { useDigitalHealthStore } from '../../../../stores/digitalHealthStore.js'
 
 /**
@@ -43,10 +44,7 @@ function grant(key) {
     <!-- ① 停止服务警告 -->
     <section class="dh-warn" data-dh-walking-warn>
       <span class="dh-warn-icon">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-          <path d="M12 5.4v8.2" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" />
-          <circle cx="12" cy="18" r="1.5" fill="#FFFFFF" />
-        </svg>
+        <LIcon name="circleAlert" :size="17" :stroke-width="2.4" />
       </span>
       <p class="dh-warn-text">
         “看路提醒”功能将于 2027 年停止服务。请探索我们的其他数字健康工具，了解它们如何帮助您专注于当下，实现手机使用与日常生活的健康平衡。
@@ -56,13 +54,7 @@ function grant(key) {
     <!-- ② 引导 -->
     <template v-if="step === 'intro'">
       <div class="dh-walk-hero">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="13.4" cy="3.9" r="2.1" fill="#1A73E8" />
-          <path
-            d="M12.6 8.2l-2.9 4.3 3 2.4-.7 5.5M9.7 12.5L6.4 16M15.1 11.2l3.3 2.2M13.4 14.9l3.1 5.3"
-            stroke="#1A73E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-          />
-        </svg>
+        <LIcon name="footprints" :size="26" :stroke-width="1.9" />
       </div>
 
       <h2 class="dh-walk-title">“看路提醒”会提醒您留意脚下</h2>
@@ -123,10 +115,7 @@ function grant(key) {
 
     <!-- 已开启 -->
     <div v-else class="dh-walk-done" data-dh-walking-done>
-      <svg width="46" height="46" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <circle cx="12" cy="12" r="11" fill="#E6F4EA" />
-        <path d="M6.8 12.4l3.4 3.4 7-7.2" stroke="#1E8E3E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
+      <span class="dh-done-icon"><LIcon name="circleCheck" :size="42" :stroke-width="1.8" /></span>
       <strong class="dh-walk-done-title">看路提醒已开启</strong>
       <span class="dh-walk-done-sub">走动时看屏幕，会收到一次轻提示</span>
     </div>
@@ -200,6 +189,8 @@ function grant(key) {
   gap: 6px;
   padding: 44px 0 12px;
 }
+
+.dh-done-icon { color: #1E8E3E; display: flex; }
 
 .dh-walk-done-title { font-size: 18px; font-weight: 600; color: #1F1F1F; }
 .dh-walk-done-sub { font-size: 13px; color: #5F6368; }

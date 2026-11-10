@@ -1,4 +1,6 @@
 <script setup>
+import LIcon from '../../../ui/LIcon.vue'
+
 /**
  * 数字健康专用的 Material 开关（真机 Google Digital Wellbeing 用的是 Material 3 开关）。
  *
@@ -28,9 +30,7 @@ function onClick() {
     @click.stop="onClick"
   >
     <span class="dh-switch-knob">
-      <svg v-if="modelValue" width="14" height="14" viewBox="0 0 24 24" fill="none">
-        <path d="M5 12.6L9.6 17.2L19 7.8" stroke="#1A73E8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
+      <LIcon v-if="modelValue" name="check" :size="15" :stroke-width="3" />
     </span>
   </button>
 </template>
@@ -67,5 +67,5 @@ function onClick() {
   transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 
-.dh-switch.on .dh-switch-knob { transform: translateX(18px); }
+.dh-switch.on .dh-switch-knob { transform: translateX(18px); color: #1A73E8; }
 </style>

@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import DhShell from './DhShell.vue'
 import DhDialog from './DhDialog.vue'
 import DhOverflowMenu from './DhOverflowMenu.vue'
+import LIcon from '../../../ui/LIcon.vue'
 import RegisteredAppIcon from '../../../ui/RegisteredAppIcon.vue'
 import { useDigitalHealthStore } from '../../../../stores/digitalHealthStore.js'
 import { dhAppMetric, dhWeekBars, dhMetricLabel, formatDuration, DH_WEEK_LABELS } from './dhData.js'
@@ -21,7 +22,7 @@ import { dhAppMetric, dhWeekBars, dhMetricLabel, formatDuration, DH_WEEK_LABELS 
 const props = defineProps({
   app: { type: Object, required: true }
 })
-const emit = defineEmits(['back', 'toast', 'open-activity'])
+const emit = defineEmits(['back', 'toast', 'overflow', 'open-activity'])
 const dh = useDigitalHealthStore()
 
 /* ---------- 指标 / 周期胶囊 ---------- */
@@ -120,7 +121,7 @@ const limitText = computed(() => (dh.limitFor(props.app.id) ? formatDuration(dh.
 <template>
   <DhShell :title="app.name" @back="emit('back')">
     <template #right>
-      <DhOverflowMenu @pick="emit('toast', $event)" />
+      <DhOverflowMenu @pick="emit('overflow', $event)" />
     </template>
 
     <!-- ① 指标 / 周期胶囊 -->
@@ -128,9 +129,7 @@ const limitText = computed(() => (dh.limitFor(props.app.id) ? formatDuration(dh.
       <div class="dh-pill-wrap">
         <button type="button" class="dh-chip" data-dh-metric @click.stop="toggleMenu('metric')">
           {{ metricLabel }}
-          <svg width="9" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
-            <path d="M1 1L5 5L9 1" stroke="#174EA6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <LIcon name="chevronDown" :size="14" :stroke-width="2.2" />
         </button>
         <Transition name="dh-drop">
           <div v-if="openMenu === 'metric'" class="dh-drop" data-dh-metric-menu>
@@ -149,9 +148,7 @@ const limitText = computed(() => (dh.limitFor(props.app.id) ? formatDuration(dh.
       <div class="dh-pill-wrap">
         <button type="button" class="dh-chip" data-dh-period @click.stop="toggleMenu('period')">
           {{ periodLabel }}
-          <svg width="9" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
-            <path d="M1 1L5 5L9 1" stroke="#174EA6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <LIcon name="chevronDown" :size="14" :stroke-width="2.2" />
         </button>
         <Transition name="dh-drop">
           <div v-if="openMenu === 'period'" class="dh-drop" data-dh-period-menu>
@@ -200,15 +197,11 @@ const limitText = computed(() => (dh.limitFor(props.app.id) ? formatDuration(dh.
     <!-- ④ 日期回看 -->
     <div class="dh-dayrow">
       <button type="button" class="dh-dayarrow" data-dh-prev-day @click="prevDay">
-        <svg width="9" height="14" viewBox="0 0 9 14" fill="none">
-          <path d="M7.5 1.5L2 7L7.5 12.5" stroke="#5F6368" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <LIcon name="chevronLeft" :size="15" :stroke-width="2" />
       </button>
       <span class="dh-daytext" data-dh-day-text>{{ dayText }}</span>
       <button type="button" class="dh-dayarrow" :disabled="dayOffset === 0" data-dh-next-day @click="nextDay">
-        <svg width="9" height="14" viewBox="0 0 9 14" fill="none">
-          <path d="M1.5 1.5L7 7L1.5 12.5" stroke="#5F6368" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <LIcon name="chevronRight" :size="15" :stroke-width="2" />
       </button>
     </div>
 
@@ -216,12 +209,7 @@ const limitText = computed(() => (dh.limitFor(props.app.id) ? formatDuration(dh.
     <div class="dh-label">设置</div>
     <div class="dh-card">
       <button type="button" class="dh-row" data-dh-open-timer @click="openDialog">
-        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M7 3.4h10M7 20.6h10M8 3.4v3.1c0 1 .5 1.9 1.3 2.6L12 11.5l2.7-2.4c.8-.7 1.3-1.6 1.3-2.6V3.4M8 20.6v-3.1c0-1 .5-1.9 1.3-2.6L12 12.5l2.7 2.4c.8.7 1.3 1.6 1.3 2.6v3.1"
-            stroke="#1F1F1F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
-          />
-        </svg>
+        <LIcon name="hourglass" :size="20" />
         <span class="dh-row-main">
           <span class="dh-row-title">应用定时器</span>
           <span class="dh-row-sub" data-dh-limit-text>{{ limitText }}</span>
@@ -229,12 +217,7 @@ const limitText = computed(() => (dh.limitFor(props.app.id) ? formatDuration(dh.
       </button>
       <div class="dh-divider"></div>
       <button type="button" class="dh-row" data-dh-open-notif @click="emit('toast', '应用通知设置需在系统设置中调整')">
-        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M12 3.3a5.6 5.6 0 00-5.6 5.6v3.2L4.8 15.4h14.4l-1.6-3.3V8.9A5.6 5.6 0 0012 3.3zM9.6 18.2a2.4 2.4 0 004.8 0"
-            stroke="#1F1F1F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
-          />
-        </svg>
+        <LIcon name="bell" :size="20" />
         <span class="dh-row-main">
           <span class="dh-row-title">管理通知</span>
         </span>

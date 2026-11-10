@@ -12,7 +12,7 @@ import { dhUsageRows, dhWeekBars, dhDonutSegments, formatDuration, DH_TOTAL_MINU
  * ⚠️ 数据全部来自 `dhData.js` 的确定性假数据，与应用定时器/主页环形图同源，
  *    总和必须等于 `DH_TOTAL_MINUTES`（单测会校验，避免三处互相打脸）。
  */
-const emit = defineEmits(['back', 'toast'])
+const emit = defineEmits(['back', 'toast', 'overflow'])
 const rows = dhUsageRows(99)
 const bars = dhWeekBars('total', 'time')
 const segs = dhDonutSegments()
@@ -36,7 +36,7 @@ const legend = computed(() => segs.map((s, i) => ({
 <template>
   <DhShell title="应用活动" @back="emit('back')">
     <template #right>
-      <DhOverflowMenu @pick="emit('toast', $event)" />
+      <DhOverflowMenu @pick="emit('overflow', $event)" />
     </template>
 
     <div class="dh-hero">

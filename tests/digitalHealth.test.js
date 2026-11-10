@@ -9,7 +9,7 @@ import {
 import {
   DH_TOTAL_MINUTES, DH_UNLOCKS, DH_NOTIFICATIONS, DH_SEG_COLORS, DH_METRICS,
   formatDuration, dhDonutSegments, dhUsageRows, dhWeekBars,
-  dhAppMetric, dhMetricTotals, dhMetricLabel, dhMetricUnit
+  dhAppMetric, dhMetricTotals, dhMetricLabel, dhMetricUnit, DH_OVERFLOW_ITEMS
 } from '../src/components/apps/settings/digitalhealth/dhData.js'
 import { getRegisteredApps } from '../src/composables/useRegisteredApps.js'
 
@@ -286,4 +286,150 @@ test('牙齿：把总数改成不等、把配色写硬、把入口改回未实�
     assert.ok(guard(mutant) === false, `守卫没抓到变异体：${name}`)
     assert.ok(guard(originals[i]), `守卫在本体上就红了：${name}`)
   })
+})
+
+/* ==================== 睡眠模式完整流程 ==================== */
+
+test('睡眠时间表：默认 23:00–07:00 工作日，起止必须是 HH:mm', () => {
+  const s = fresh()
+  assert.deepEqual(s.state.sleep.schedule, { start: '23:00', end: '07:00', days: [1, 2, 3, 4, 5] })
+  assert.deepEqual(s.setSleepSchedule({ start: '22:30' }), { start: '22:30', end: '07:00', days: [1, 2, 3, 4, 5] })
+  s.setSleepSchedule({ start: '9:00' })
+  assert.equal(s.state.sleep.schedule.start, '22:30', '不合法的 HH:mm 必须被忽略')
+  s.setSleepSchedule({ end: '7:0' })
+  assert.equal(s.state.sleep.schedule.end, '07:00')
+})
+
+test('重复日：可增删、去重、排序，越界值被丢弃', () => {
+  const s = fresh()
+  s.toggleSleepDay(0)
+  assert.deepEqual(s.state.sleep.schedule.days, [0, 1, 2, 3, 4, 5])
+  s.toggleSleepDay(1)
+  assert.deepEqual(s.state.sleep.schedule.days, [0, 2, 3, 4, 5])
+  assert.equal(s.toggleSleepDay(9), false)
+  s.setSleepSchedule({ days: [6, 6, 3, 3, 12] })
+  assert.deepEqual(s.state.sleep.schedule.days, [3, 6], '要排序去重并丢掉 12')
+})
+
+test('开启 / 关闭睡眠模式：since 跟着置位与清空', () => {
+  const s = fresh()
+  assert.equal(s.state.sleep.since, null)
+  s.setSleepEnabled(true)
+  assert.equal(s.state.sleep.enabled, true)
+  assert.ok(s.state.sleep.since > 0, '开启要记下时刻')
+  s.setSleepEnabled(false)
+  assert.equal(s.state.sleep.since, null, '关闭要把时刻清掉')
+})
+
+test('睡眠通知过滤：允许所有通知时两条例外清单都拦掉', () => {
+  const s = fresh()
+  assert.deepEqual(s.state.sleep.notify, { allowAll: true, contactExceptions: [], appExceptions: [] })
+  assert.equal(s.toggleSleepApp('wechat'), false, '全部放行时不该能勾例外')
+  assert.equal(s.toggleSleepContact('妈妈'), false)
+  s.setSleepAllowAll(false)
+  assert.equal(s.toggleSleepApp('wechat'), true)
+  assert.equal(s.toggleSleepContact('妈妈'), true)
+  assert.deepEqual(s.state.sleep.notify.appExceptions, ['wechat'])
+  assert.deepEqual(s.state.sleep.notify.contactExceptions, ['妈妈'])
+  s.toggleSleepApp('wechat')
+  assert.deepEqual(s.state.sleep.notify.appExceptions, [])
+})
+
+test('睡眠屏幕选项：只认 dimWallpaper / grayscale', () => {
+  const s = fresh()
+  assert.deepEqual(s.state.sleep.screen, { dimWallpaper: true, grayscale: true })
+  assert.equal(s.setSleepScreen('grayscale', false), true)
+  assert.equal(s.state.sleep.screen.grayscale, false)
+  assert.equal(s.setSleepScreen('不存在', true), false)
+})
+
+/* ==================== 专注模式完整流程 ==================== */
+
+test('专注时间表：新增 / 删除，起止相同或没选重复日都存不进去', () => {
+  const s = fresh()
+  assert.deepEqual(s.state.focusSchedules, [])
+  assert.equal(s.addFocusSchedule({ name: 'a', start: '09:00', end: '09:00', days: [1] }), '', '起止相同要拒绝')
+  assert.equal(s.addFocusSchedule({ name: 'a', start: '09:00', end: '10:00', days: [] }), '', '没选重复日要拒绝')
+  assert.equal(s.addFocusSchedule({ name: 'a', start: '9:0', end: '10:00', days: [1] }), '', '时间格式要校验')
+  const id = s.addFocusSchedule({ name: '上午专注', start: '09:00', end: '12:00', days: [5, 1, 1] })
+  assert.ok(id)
+  assert.equal(s.state.focusSchedules.length, 1)
+  const one = s.state.focusSchedules[0]
+  assert.equal(one.name, '上午专注')
+  assert.deepEqual(one.days, [1, 5], '重复日要排序去重')
+  s.removeFocusSchedule(id)
+  assert.deepEqual(s.state.focusSchedules, [])
+  assert.equal(s.removeFocusSchedule('不存在'), undefined, '删不存在的不能抛')
+})
+
+test('专注运行态：开启写入 name/minutes/startedAt，结束后清空', () => {
+  const s = fresh()
+  assert.equal(s.state.focusRunning, null)
+  s.startFocus({ name: '上午专注', minutes: 25 })
+  assert.equal(s.state.focusRunning.name, '上午专注')
+  assert.equal(s.state.focusRunning.minutes, 25)
+  assert.ok(s.state.focusRunning.startedAt > 0)
+  s.stopFocus()
+  assert.equal(s.state.focusRunning, null)
+})
+
+/* ==================== ⋮ 菜单 ==================== */
+
+test('⋮ 五项都有 key，且 DhInfoPage 能渲染对应页面', () => {
+  assert.deepEqual(DH_OVERFLOW_ITEMS.map(i => i.key), ['feedback', 'data', 'privacy', 'terms', 'licenses'])
+  assert.deepEqual(DH_OVERFLOW_ITEMS.map(i => i.label), ['发送反馈', '管理数据', '隐私权政策', '服务条款', '开源许可'])
+  const src = strip(read(`${DH_DIR}/DhInfoPage.vue`))
+  for (const { key } of DH_OVERFLOW_ITEMS) {
+    assert.ok(new RegExp(`${key}:\\s*\\{`).test(src), `DhInfoPage 没有 ${key} 页`)
+  }
+  // 菜单项必须 emit key，而不是中文 label
+  const menu = strip(read(`${DH_DIR}/DhOverflowMenu.vue`))
+  assert.ok(menu.includes("emit('pick', key)"), '菜单要把 key 抛给调用方')
+  assert.ok(!menu.includes("emit('pick', item.label)"), '不能把中文 label 当 key 抛出去')
+})
+
+test('反馈：空内容不入库，最多留 20 条', () => {
+  const s = fresh()
+  assert.equal(s.pushFeedback('   '), false)
+  assert.deepEqual(s.state.feedback, [])
+  for (let i = 0; i < 25; i += 1) s.pushFeedback(`反馈 ${i}`)
+  assert.equal(s.state.feedback.length, 20)
+  assert.equal(s.state.feedback[19].text, '反馈 24')
+})
+
+/* ==================== 图标契约（Ricky：优先用系统已有图标） ==================== */
+
+test('数字健康里除插画外不许再有手绘图标，全部走 LIcon（lucide）', () => {
+  // 白名单：这几个 <svg> 是**插画**（人物、床、走路的女孩），不是图标
+  const ILLUSTRATION = {
+    'DhSleepMode.vue': 'dh-sleep-art',
+    'DhSleepSettings.vue': 'dh-art-card',
+    'DhWalking.vue': 'dh-walk-art'
+  }
+  const files = fs.readdirSync(path.resolve(DH_DIR)).filter(f => f.endsWith('.vue'))
+  for (const f of files) {
+    if (f === 'DigitalHealthApp.vue') continue // 主页环形图是数据图表
+    const src = strip(read(`${DH_DIR}/${f}`))
+    if (ILLUSTRATION[f]) {
+      const count = (src.match(/<svg/g) || []).length
+      assert.equal(count, 1, `${f} 只允许 1 处插画 <svg>，实际 ${count}`)
+      continue
+    }
+    const count = (src.match(/<svg/g) || []).length
+    assert.equal(count, 0, `${f} 里还有 ${count} 处手绘 <svg>，应改用 <LIcon name="…">`)
+  }
+})
+
+test('用到的 LIcon 名字必须真的在 lucide 注册表里（写错 name 不报错但渲染空白）', () => {
+  const lucide = read('src/assets/icons/lucide.js')
+  const exported = lucide.slice(lucide.indexOf('export const LUCIDE'))
+  const used = new Set()
+  for (const f of fs.readdirSync(path.resolve(DH_DIR)).filter(x => x.endsWith('.vue'))) {
+    const src = strip(read(`${DH_DIR}/${f}`))
+    for (const m of src.matchAll(/<LIcon[^>]*\bname="([^"]+)"/g)) used.add(m[1])
+  }
+  assert.ok(used.size >= 10, `用到的图标太少：${[...used].join(',')}`)
+  for (const name of used) {
+    assert.ok(new RegExp(`\\b${name}\\b`).test(exported), `lucide 注册表里没有 ${name}`)
+  }
 })

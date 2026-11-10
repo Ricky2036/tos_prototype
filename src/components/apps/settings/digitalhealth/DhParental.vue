@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import DhShell from './DhShell.vue'
 import DhDialog from './DhDialog.vue'
+import LIcon from '../../../ui/LIcon.vue'
 import { useDigitalHealthStore } from '../../../../stores/digitalHealthStore.js'
 
 /**
@@ -61,9 +62,7 @@ function notLinked() {
             <span class="dh-row-title">{{ r.title }}</span>
             <span class="dh-row-sub">{{ r.sub }}</span>
           </span>
-          <svg class="dh-chev" width="8" height="13" viewBox="0 0 8 13" fill="none" aria-hidden="true">
-            <path d="M1.4 1.4L6.6 6.5L1.4 11.6" stroke="#747775" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <LIcon class="dh-chev" name="chevronRight" :size="16" />
         </button>
         <div v-if="i < LIMITED.length - 1" class="dh-divider"></div>
       </template>
@@ -76,9 +75,7 @@ function notLinked() {
             <span class="dh-row-title">{{ r.title }}</span>
             <span class="dh-row-sub">{{ r.sub }}</span>
           </span>
-          <svg class="dh-chev" width="8" height="13" viewBox="0 0 8 13" fill="none" aria-hidden="true">
-            <path d="M1.4 1.4L6.6 6.5L1.4 11.6" stroke="#747775" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <LIcon class="dh-chev" name="chevronRight" :size="16" />
         </button>
         <div v-if="i < FILTERS.length - 1" class="dh-divider"></div>
       </template>
@@ -90,9 +87,7 @@ function notLinked() {
           <span class="dh-row-title">{{ pinSet ? '更改家长控制 PIN 码' : '设置家长控制 PIN 码' }}</span>
           <span v-if="pinSet" class="dh-row-sub" data-dh-pin-value>已设置：{{ dh.state.parental.pin }}</span>
         </span>
-        <svg class="dh-chev" width="8" height="13" viewBox="0 0 8 13" fill="none" aria-hidden="true">
-          <path d="M1.4 1.4L6.6 6.5L1.4 11.6" stroke="#747775" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <LIcon class="dh-chev" name="chevronRight" :size="16" />
       </button>
     </section>
 
@@ -103,9 +98,7 @@ function notLinked() {
           <span class="dh-row-title">Google Family Link</span>
           <span class="dh-row-sub">家长可以使用自己的手机管理这些设置、查看设备位置信息，以及执行其他操作</span>
         </span>
-        <svg class="dh-chev" width="8" height="13" viewBox="0 0 8 13" fill="none" aria-hidden="true">
-          <path d="M1.4 1.4L6.6 6.5L1.4 11.6" stroke="#747775" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <LIcon class="dh-chev" name="chevronRight" :size="16" />
       </button>
     </section>
 

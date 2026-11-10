@@ -103,6 +103,22 @@ export function dhWeekBars(appId, metric = 'time') {
   }))
 }
 
+/** ⋮ 菜单五项（真机 dh_80_overflow），key 直接对应 DhInfoPage 的页面 */
+export const DH_OVERFLOW_ITEMS = [
+  { key: 'feedback', label: '发送反馈' },
+  { key: 'data', label: '管理数据' },
+  { key: 'privacy', label: '隐私权政策' },
+  { key: 'terms', label: '服务条款' },
+  { key: 'licenses', label: '开源许可' }
+]
+
+/** 夜间允许打扰的联系人（真机「联系人 → 某些人例外」用的收藏联系人清单） */
+export const DH_CONTACTS = [
+  { id: 'c-mom', name: '妈妈' },
+  { id: 'c-zhang', name: '张伟' },
+  { id: 'c-li', name: '李娜' }
+]
+
 /** 应用定时器主页：全部注册应用 + 当前是否设了定时器 */
 export function dhLimitLabel(minutes) {
   if (!minutes) return ''

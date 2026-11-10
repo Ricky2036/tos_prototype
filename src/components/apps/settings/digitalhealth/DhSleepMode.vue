@@ -2,52 +2,92 @@
 import { computed, ref } from 'vue'
 import DhShell from './DhShell.vue'
 import DhSwitch from './DhSwitch.vue'
+import LIcon from '../../../ui/LIcon.vue'
 import DhOverflowMenu from './DhOverflowMenu.vue'
-import { useDigitalHealthStore, DH_SLEEP_MODES } from '../../../../stores/digitalHealthStore.js'
+import { useDigitalHealthStore, DH_SLEEP_MODES, DH_DAY_FULL } from '../../../../stores/digitalHealthStore.js'
 
 /**
- * 睡眠模式（真机 dh_61_sleep，WindDownActivity）。
+ * 睡眠模式（真机 dh_61_sleep / dh_72_sleep_start，WindDownActivity）。
  *
- * 真机结构：说明文字（页面底色上）→ 浅蓝卡「睡眠模式已关闭 + 立即开启 + 插画」
+ * 真机结构：说明文字 → 浅蓝卡「睡眠模式已关闭 + 立即开启 + 插画」
  * → 浅蓝卡「"睡觉"日常安排」（可展开为单选 启用时间表 / 在充电时开启 / 无 + 闹钟行为）
- * → 浅蓝卡「模式自定义选项」（副文案两行）→ 点击进「睡眠」自定义页。
+ * → 浅蓝卡「模式自定义选项」→ 点进「睡眠」自定义页。
+ *
+ * 开启后的变化（Ricky 2026-11-10 要求补全）：
+ *   ① 顶部出现运行条「睡眠模式运行中 · 07:00 结束」
+ *   ② 卡内文案变「睡眠模式已开启」，按钮变「立即关闭」，并补一行时间表信息
+ *   ③ 主页「睡眠模式」副文案变「已开启」
  */
-const emit = defineEmits(['back', 'open-settings', 'toast'])
+const emit = defineEmits(['back', 'open-settings', 'open-schedule', 'toast'])
 const dh = useDigitalHealthStore()
 
-const scheduleOpen = ref(false)
-const modeText = computed(() => (dh.state.sleep.mode === '无' ? '未设置' : dh.state.sleep.mode))
+/** 已选过日常安排时默认展开：从「睡眠时间表」返回后能直接看到汇总行 */
+const scheduleOpen = ref(dh.state.sleep.mode !== '无')
+const sleep = computed(() => dh.state.sleep)
+const modeText = computed(() => (sleep.value.mode === '无' ? '未设置' : sleep.value.mode))
+
+const daysText = computed(() => {
+  const d = sleep.value.schedule.days
+  if (!d.length) return '未选择'
+  if (d.length === 7) return '每天'
+  if (d.length === 5 && [1, 2, 3, 4, 5].every(x => d.includes(x))) return '工作日'
+  if (d.length === 2 && d.includes(0) && d.includes(6)) return '周末'
+  return d.map(x => DH_DAY_FULL[x]).join('、')
+})
+
+const scheduleLine = computed(() => `${sleep.value.schedule.start} – ${sleep.value.schedule.end} · ${daysText.value}`)
+
+/** 已开启时用结束时间做一句人话文案（真机同样在卡内提示几点结束） */
+const endHint = computed(() => `将于 ${sleep.value.schedule.end} 结束`)
 
 function toggleSleep() {
-  const next = !dh.state.sleep.enabled
+  const next = !sleep.value.enabled
   dh.setSleepEnabled(next)
-  emit('toast', next ? '睡眠模式已开启' : '睡眠模式已关闭')
+  emit('toast', next ? `睡眠模式已开启，${endHint.value}` : '睡眠模式已关闭')
 }
 function pickMode(mode) {
   dh.setSleepMode(mode)
+  if (mode === '启用时间表' && !sleep.value.schedule.days.length) {
+    emit('toast', '时间表还没选重复日，去设置一下')
+    emit('open-schedule')
+  }
 }
 </script>
 
 <template>
   <DhShell title="睡眠模式" @back="emit('back')">
     <template #right>
-      <DhOverflowMenu @pick="emit('toast', $event)" />
+      <DhOverflowMenu @pick="emit('overflow', $event)" />
     </template>
+
+    <!-- ① 运行条：只在开启时出现 -->
+    <div v-if="sleep.enabled" class="dh-running" data-dh-sleep-running>
+      <span class="dh-running-dot"></span>
+      <span class="dh-running-main">
+        <strong>睡眠模式运行中</strong>
+        <span>{{ endHint }} · 通知已静音</span>
+      </span>
+      <button type="button" class="dh-running-end" data-dh-sleep-end @click="toggleSleep">结束</button>
+    </div>
 
     <p class="dh-note">
       在睡眠时间内，此模式会将设备静音、调暗壁纸并将屏幕调成黑白色。仅闹钟和重要来电会发出提醒。
     </p>
 
-    <!-- ① 开关卡 + 插画 -->
+    <!-- ② 开关卡 + 插画 -->
     <section class="dh-blue-card dh-sleep-hero" data-dh-sleep-card>
       <div class="dh-sleep-hero-main">
-        <span class="dh-sleep-state" data-dh-sleep-state>{{ dh.state.sleep.enabled ? '睡眠模式已开启' : '睡眠模式已关闭' }}</span>
+        <span class="dh-sleep-state" data-dh-sleep-state>{{ sleep.enabled ? '睡眠模式已开启' : '睡眠模式已关闭' }}</span>
+        <span
+          v-if="sleep.enabled && sleep.mode !== '无'"
+          class="dh-sleep-sched"
+          data-dh-sleep-sched-line
+        >{{ scheduleLine }}</span>
         <button type="button" class="dh-pill" data-dh-sleep-toggle @click="toggleSleep">
-          {{ dh.state.sleep.enabled ? '立即关闭' : '立即开启' }}
+          {{ sleep.enabled ? '立即关闭' : '立即开启' }}
         </button>
       </div>
 
-      <!-- 真机插画：戴眼罩的侧脸 + 紫色上衣 + 一侧灰色圆点 -->
       <svg class="dh-sleep-art" width="112" height="104" viewBox="0 0 120 110" fill="none" aria-hidden="true">
         <circle cx="30" cy="62" r="15" fill="#DADCE0" opacity="0.75" />
         <path d="M60 108c0-20 8-32 22-32s22 12 22 32z" fill="#9C7BA8" />
@@ -60,24 +100,16 @@ function pickMode(mode) {
       </svg>
     </section>
 
-    <!-- ② 「睡觉」日常安排 -->
+    <!-- ③ 「睡觉」日常安排 -->
     <section class="dh-blue-card">
       <button type="button" class="dh-row dh-sched" data-dh-schedule @click="scheduleOpen = !scheduleOpen">
-        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <rect x="3.4" y="5" width="17.2" height="15.6" rx="2.4" stroke="#1F1F1F" stroke-width="1.6" />
-          <path d="M3.4 9.6h17.2M7.8 3.2v3.4M16.2 3.2v3.4" stroke="#1F1F1F" stroke-width="1.6" stroke-linecap="round" />
-          <circle cx="8.2" cy="13.4" r="1.15" fill="#1F1F1F" />
-          <circle cx="12" cy="13.4" r="1.15" fill="#1F1F1F" />
-          <circle cx="15.8" cy="13.4" r="1.15" fill="#1F1F1F" />
-        </svg>
+        <LIcon name="calendarDays" :size="21" />
         <span class="dh-row-main">
           <span class="dh-row-title">“睡觉”日常安排</span>
           <span class="dh-row-sub" data-dh-schedule-sub>{{ modeText }}</span>
         </span>
         <span class="dh-round-chev" :class="{ open: scheduleOpen }">
-          <svg width="11" height="7" viewBox="0 0 12 8" fill="none">
-            <path d="M1.4 1.8L6 6.4L10.6 1.8" stroke="#3C4043" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <LIcon name="chevronDown" :size="16" :stroke-width="2.2" />
         </span>
       </button>
 
@@ -90,18 +122,35 @@ function pickMode(mode) {
           :data-dh-sleep-mode="mode"
           @click="pickMode(mode)"
         >
-          <span class="opt-radio" :class="{ checked: dh.state.sleep.mode === mode }"></span>
+          <span class="opt-radio" :class="{ checked: sleep.mode === mode }"></span>
           <span class="dh-opt-label">{{ mode }}</span>
+        </button>
+
+        <!-- 选了「启用时间表」才露出时间表行 -->
+        <button
+          v-if="sleep.mode === '启用时间表'"
+          type="button"
+          class="dh-row dh-sched-row"
+          data-dh-open-schedule
+          @click="emit('open-schedule')"
+        >
+          <LIcon name="clock" :size="19" />
+          <span class="dh-row-main">
+            <span class="dh-row-title">时间表</span>
+            <span class="dh-row-sub" data-dh-schedule-line>{{ scheduleLine }}</span>
+          </span>
+          <LIcon name="chevronRight" :size="16" />
         </button>
 
         <div class="dh-divider"></div>
         <div class="dh-row dh-alarm">
+          <LIcon name="bell" :size="19" />
           <span class="dh-row-main">
             <span class="dh-row-title">闹钟行为</span>
             <span class="dh-row-sub">睡眠期间到点时正常响铃</span>
           </span>
           <DhSwitch
-            :model-value="dh.state.sleep.alarmBehavior"
+            :model-value="sleep.alarmBehavior"
             data-dh-alarm-switch
             @update:model-value="dh.setAlarmBehavior($event)"
           />
@@ -109,16 +158,10 @@ function pickMode(mode) {
       </div>
     </section>
 
-    <!-- ③ 模式自定义选项 -->
+    <!-- ④ 模式自定义选项 -->
     <section class="dh-blue-card">
       <button type="button" class="dh-row" data-dh-sleep-custom @click="emit('open-settings')">
-        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="3.1" stroke="#1F1F1F" stroke-width="1.6" />
-          <path
-            d="M12 3.2l1 2.4 2.6-.5 1.3 2.3-1.7 2 1.7 2-1.3 2.3-2.6-.5-1 2.4-1-2.4-2.6.5-1.3-2.3 1.7-2-1.7-2 1.3-2.3 2.6.5z"
-            stroke="#1F1F1F" stroke-width="1.5" stroke-linejoin="round"
-          />
-        </svg>
+        <LIcon name="settings" :size="21" />
         <span class="dh-row-main">
           <span class="dh-row-title">模式自定义选项</span>
           <span class="dh-row-sub">设置通知过滤条件、睡眠时间的屏幕选项等</span>
@@ -129,6 +172,49 @@ function pickMode(mode) {
 </template>
 
 <style scoped>
+/* 运行条：真机开启后会在内容顶部压一条浅蓝提示 */
+.dh-running {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #D7E5FB;
+  border-radius: 14px;
+  padding: 11px 12px 11px 14px;
+  margin: 4px 0 12px;
+}
+
+.dh-running-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1A73E8;
+  flex: none;
+}
+
+.dh-running-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+.dh-running-main strong { font-size: 13.5px; font-weight: 600; color: #174EA6; }
+.dh-running-main span { font-size: 12px; color: #3C5A88; }
+
+.dh-running-end {
+  border: none;
+  background: transparent;
+  color: #174EA6;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 6px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  flex: none;
+}
+.dh-running-end:active { background: rgba(23, 78, 166, 0.1); }
+
 .dh-sleep-hero {
   display: flex;
   align-items: center;
@@ -141,11 +227,12 @@ function pickMode(mode) {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 14px;
+  gap: 10px;
   flex: 1;
 }
 
 .dh-sleep-state { font-size: 16px; color: #1F1F1F; }
+.dh-sleep-sched { font-size: 12px; color: #3C5A88; margin-top: -4px; }
 
 .dh-sleep-art { flex: none; }
 
@@ -160,11 +247,14 @@ function pickMode(mode) {
   align-items: center;
   justify-content: center;
   flex: none;
+  color: #3C4043;
   transition: transform 0.18s ease;
 }
 .dh-round-chev.open { transform: rotate(180deg); }
 
 .dh-sched-body { padding: 0 0 4px; }
+
+.dh-sched-row { padding: 10px 16px; color: #3C4043; }
 
 .dh-opt {
   display: flex;

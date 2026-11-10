@@ -1,14 +1,16 @@
 <script setup>
 import { ref, onBeforeUnmount } from 'vue'
+import LIcon from '../../../ui/LIcon.vue'
+import { DH_OVERFLOW_ITEMS } from './dhData.js'
 
 /**
- * 数字健康页面右上角的 ⋮ 菜单（真机 dh_80：五条，白卡右上角弹出）。
- * 真机：发送反馈 / 管理数据 / 隐私权政策 / 服务条款 / 开源许可。
- * 这五条都是外部网页或系统页，本原型里统一回一条 toast，不做假页面。
+ * 数字健康页面右上角的 ⋮ 菜单（真机 dh_80_overflow：五条，白卡右上角弹出）。
+ * 真机：发送反馈 / 管理数据 / 隐私权政策 / 服务条款 / 开源许可 —— 五条都是**真页面**，
+ * 所以这里只 emit key，由调用方推 `info:<key>` 页（`DhInfoPage.vue`）。
  */
 const emit = defineEmits(['pick'])
 const open = ref(false)
-const ITEMS = ['发送反馈', '管理数据', '隐私权政策', '服务条款', '开源许可']
+const ITEMS = DH_OVERFLOW_ITEMS
 
 function toggle(e) {
   e?.stopPropagation()
@@ -19,10 +21,10 @@ function close() {
   open.value = false
   document.removeEventListener('click', close)
 }
-function pick(label) {
+function pick(key) {
   open.value = false
   document.removeEventListener('click', close)
-  emit('pick', label)
+  emit('pick', key)
 }
 onBeforeUnmount(() => document.removeEventListener('click', close))
 </script>
@@ -30,21 +32,18 @@ onBeforeUnmount(() => document.removeEventListener('click', close))
 <template>
   <div class="dh-overflow-anchor">
     <button type="button" class="dh-overflow-btn" data-dh-overflow aria-label="更多" @click="toggle">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="#1F1F1F">
-        <circle cx="12" cy="5" r="2" />
-        <circle cx="12" cy="12" r="2" />
-        <circle cx="12" cy="19" r="2" />
-      </svg>
+      <LIcon name="moreVertical" :size="18" :stroke-width="2.2" />
     </button>
     <Transition name="dh-menu">
       <div v-if="open" class="dh-overflow-menu" data-dh-overflow-menu>
         <button
           v-for="item in ITEMS"
-          :key="item"
+          :key="item.key"
           type="button"
           class="dh-overflow-item"
-          @click.stop="pick(item)"
-        >{{ item }}</button>
+          :data-dh-overflow-item="item.key"
+          @click.stop="pick(item.key)"
+        >{{ item.label }}</button>
       </div>
     </Transition>
   </div>
@@ -63,10 +62,11 @@ onBeforeUnmount(() => document.removeEventListener('click', close))
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  color: #1F1F1F;
 }
 .dh-overflow-btn:active { background: rgba(0, 0, 0, 0.06); }
 
-/* 真机：贴着 ⋮ 下方、右对齐，宽约 150，白卡 8 圆角 + 阴影 */
+/* 真机：贴着 ⋮ 下方、右对齐，宽约 150，白卡 8 圆角 + 阴影，条目无图标无分隔线 */
 .dh-overflow-menu {
   position: absolute;
   top: 38px;
@@ -85,7 +85,7 @@ onBeforeUnmount(() => document.removeEventListener('click', close))
   border: none;
   background: transparent;
   text-align: left;
-  padding: 11px 16px;
+  padding: 13px 16px;
   font-size: 14px;
   color: #1F1F1F;
   font-family: inherit;

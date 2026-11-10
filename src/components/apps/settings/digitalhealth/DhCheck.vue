@@ -1,4 +1,6 @@
 <script setup>
+import LIcon from '../../../ui/LIcon.vue'
+
 /**
  * 数字健康里的 Material 方形复选框（真机 dh_62 未选 / dh_63 已选）。
  *
@@ -22,9 +24,7 @@ const emit = defineEmits(['toggle'])
     :disabled="disabled"
     @click.stop="emit('toggle')"
   >
-    <svg v-if="checked" width="14" height="14" viewBox="0 0 24 24" fill="none">
-      <path d="M5 12.6L9.6 17.2L19 7.8" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-    </svg>
+    <LIcon v-if="checked" name="check" :size="15" :stroke-width="3" />
   </button>
 </template>
 
@@ -45,6 +45,7 @@ const emit = defineEmits(['toggle'])
 }
 
 .dh-check.on {
+  color: #FFFFFF;
   border-color: #1A73E8;
   background: #1A73E8;
 }

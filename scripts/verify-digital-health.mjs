@@ -197,17 +197,50 @@ async function run() {
   })
   check('B11 环心两行文字作为一组与圆环同心（±3px）', center.dx <= 3 && center.dy <= 3, JSON.stringify(center))
 
-  /* ==================== C. ⋮ 菜单 ==================== */
+  /* ==================== C. ⋮ 五项落到真实页面 ==================== */
   await click(page, '[data-dh-overflow]', 380)
   const menuItems = await page.evaluate(() =>
     [...document.querySelectorAll('[data-dh-overflow-menu] .dh-overflow-item')].map(e => e.textContent.trim()))
   check('C1 ⋮ 菜单五项且顺序对齐真机',
     menuItems.join('|') === '发送反馈|管理数据|隐私权政策|服务条款|开源许可', JSON.stringify(menuItems))
-  await page.locator('[data-dh-overflow-menu] .dh-overflow-item', { hasText: '隐私权政策' }).first().click()
-  await page.waitForTimeout(320)
-  check('C2 点菜单项出 toast', (await toastText(page)) === '隐私权政策', await toastText(page))
   await shot(page, '02_overflow')
-  await page.waitForTimeout(1700)
+  await page.locator('[data-dh-overflow-menu] .dh-overflow-item', { hasText: '隐私权政策' }).first().click()
+  await page.waitForTimeout(560)
+  check('C2 点「隐私权政策」进真实文档页', (await text(page, '.glass-nav .gn-title')) === '隐私权政策')
+  const docSections = await visibleCount(page, '.dh-doc-card')
+  check('C3 文档页有多段正文卡（≥4）', docSections >= 4, `实际 ${docSections}`)
+  check('C4 文档页有「最后更新」', (await text(page, '.dh-doc-meta')).includes('最后更新'))
+  await shot(page, '03_privacy')
+  await back(page)
+  check('C5 返回后回到数字健康主页', (await visibleCount(page, '[data-dh-home]')) === 1)
+
+  // 发送反馈
+  await click(page, '[data-dh-overflow]', 360)
+  await page.locator('[data-dh-overflow-menu] .dh-overflow-item', { hasText: '发送反馈' }).first().click()
+  await page.waitForTimeout(560)
+  check('C6 点「发送反馈」进表单页', (await text(page, '.glass-nav .gn-title')) === '发送反馈')
+  check('C7 空内容时发送禁用', await page.evaluate(() => document.querySelector('[data-dh-feedback-send]')?.disabled === true))
+  await page.locator('[data-dh-feedback-input]').fill('统计口径有点奇怪，希望看到按小时拆分的曲线。')
+  await page.waitForTimeout(300)
+  check('C8 填了内容后发送可点', await page.evaluate(() => document.querySelector('[data-dh-feedback-send]')?.disabled === false))
+  await click(page, '[data-dh-feedback-send]', 480)
+  check('C9 发送后出现已收到提示', (await visibleCount(page, '[data-dh-feedback-sent]')) === 1)
+  await shot(page, '04_feedback')
+  await back(page)
+
+  // 管理数据
+  await click(page, '[data-dh-overflow]', 360)
+  await page.locator('[data-dh-overflow-menu] .dh-overflow-item', { hasText: '管理数据' }).first().click()
+  await page.waitForTimeout(560)
+  check('C10 点「管理数据」进数据页', (await text(page, '.glass-nav .gn-title')) === '管理数据')
+  check('C11 有导出与删除两行',
+    (await visibleCount(page, '[data-dh-data-export]')) === 1 && (await visibleCount(page, '[data-dh-data-delete]')) === 1)
+  await click(page, '[data-dh-data-delete]', 420)
+  check('C12 删除前有确认对话框', (await text(page, '.dh-dialog-title')) === '删除使用数据？')
+  await shot(page, '05_data_confirm')
+  await click(page, '[data-dh-dialog-cancel]', 420)
+  check('C13 取消后对话框关闭', (await visibleCount(page, '[data-dh-data-confirm]')) === 0)
+  await back(page)
 
   /* ==================== D. 「在应用列表中显示图标」开关 + 持久化 ==================== */
   const iconSwitchBefore = await ariaChecked(page, '[data-dh-icon-switch]')
@@ -297,38 +330,92 @@ async function run() {
   await shot(page, '07_activity')
   await back(page)
 
-  /* ==================== G. 睡眠模式 ==================== */
+  /* ==================== G. 睡眠模式（完整流程） ==================== */
   await click(page, '[data-dh-row="sleep"]', 620)
   check('G1 标题「睡眠模式」', (await text(page, '.glass-nav .gn-title')) === '睡眠模式')
   check('G2 初始态「睡眠模式已关闭」', (await text(page, '[data-dh-sleep-state]')) === '睡眠模式已关闭')
-  await shot(page, '08_sleep')
-  await click(page, '[data-dh-sleep-toggle]', 420)
-  check('G3 点立即开启后变「睡眠模式已开启」', (await text(page, '[data-dh-sleep-state]')) === '睡眠模式已开启')
+  check('G2b 关闭时没有运行条', (await visibleCount(page, '[data-dh-sleep-running]')) === 0)
+  await shot(page, '06_sleep_before')
+
+  await click(page, '[data-dh-sleep-toggle]', 520)
+  check('G3 点立即开启后文案变「睡眠模式已开启」', (await text(page, '[data-dh-sleep-state]')) === '睡眠模式已开启')
+  check('G4 开启后顶部出现运行条', (await visibleCount(page, '[data-dh-sleep-running]')) === 1)
+  check('G5 运行条写明结束时间', (await text(page, '[data-dh-sleep-running]')).includes('07:00 结束'), await text(page, '[data-dh-sleep-running]'))
+  check('G6 主按钮变「立即关闭」', (await text(page, '[data-dh-sleep-toggle]')) === '立即关闭')
+  await shot(page, '07_sleep_enabled')
+  await click(page, '[data-dh-sleep-end]', 520)
+  check('G7 运行条上的「结束」能关掉睡眠模式', (await visibleCount(page, '[data-dh-sleep-running]')) === 0)
+  check('G8 关闭后文案回到「睡眠模式已关闭」', (await text(page, '[data-dh-sleep-state]')) === '睡眠模式已关闭')
+  await click(page, '[data-dh-sleep-toggle]', 520)
+
   await click(page, '[data-dh-schedule]', 420)
   const modes = await visibleCount(page, '[data-dh-sleep-mode]')
-  check('G4 日常安排展开后有 3 个单选', modes === 3, `实际 ${modes}`)
-  check('G5 默认选中「无」', await page.evaluate(() => {
+  check('G9 日常安排展开后有 3 个单选', modes === 3, `实际 ${modes}`)
+  check('G10 默认选中「无」', await page.evaluate(() => {
     const el = document.querySelector('[data-dh-sleep-mode="无"] .opt-radio')
     return el?.classList.contains('checked')
   }))
-  await click(page, '[data-dh-sleep-mode="在充电时开启"]', 340)
-  check('G6 选「在充电时开启」后副文案同步', (await text(page, '[data-dh-schedule-sub]')) === '在充电时开启')
-  check('G7 单选圆点跟着选中', await page.evaluate(() => {
-    const el = document.querySelector('[data-dh-sleep-mode="在充电时开启"] .opt-radio')
-    return el?.classList.contains('checked')
-  }))
-  await shot(page, '09_sleep_expanded')
+  await click(page, '[data-dh-sleep-mode="启用时间表"]', 420)
+  check('G11 选「启用时间表」后副文案同步', (await text(page, '[data-dh-schedule-sub]')) === '启用时间表')
+  check('G12 出现时间表行且显示起止与重复日',
+    (await text(page, '[data-dh-schedule-line]')) === '23:00 – 07:00 · 工作日',
+    await text(page, '[data-dh-schedule-line]'))
+  await shot(page, '08_sleep_schedule_mode')
 
+  await click(page, '[data-dh-open-schedule]', 620)
+  check('G13 进「睡眠时间表」页', (await text(page, '.glass-nav .gn-title')) === '睡眠时间表')
+  check('G14 开始 / 结束时间对齐默认值',
+    (await text(page, '[data-dh-sched-start-value]')) === '23:00' && (await text(page, '[data-dh-sched-end-value]')) === '07:00')
+  check('G15 重复日 7 个圆点胶囊', (await visibleCount(page, '[data-dh-sched-day]')) === 7)
+  const sunBefore = await page.evaluate(() => document.querySelector('[data-dh-sched-day="0"]')?.classList.contains('on'))
+  await click(page, '[data-dh-sched-day="0"]', 360)
+  const sunAfter = await page.evaluate(() => document.querySelector('[data-dh-sched-day="0"]')?.classList.contains('on'))
+  check('G16 点周日能切换选中', sunBefore === false && sunAfter === true, `${sunBefore} → ${sunAfter}`)
+  check('G17 汇总文案跟着变（不再只是工作日）', (await text(page, '[data-dh-sched-summary]')).includes('周日'),
+    await text(page, '[data-dh-sched-summary]'))
+  await click(page, '[data-dh-sched-start]', 420)
+  check('G18 点开始时间弹标准时间滚轮', (await text(page, '[data-tps-title]')) === '开始时间', await text(page, '[data-tps-title]'))
+  await shot(page, '09_sleep_time_sheet')
+  await click(page, '[data-tps-cancel]', 420)
+  check('G19 取消后回到时间表页', (await text(page, '.glass-nav .gn-title')) === '睡眠时间表')
+  check('G20 时间表页有闹钟行为开关', (await visibleCount(page, '[data-dh-sched-alarm]')) === 1)
+  await back(page)
+  check('G21 返回后时间表行同步成新的重复日',
+    (await text(page, '[data-dh-schedule-line]')).includes('周日'), await text(page, '[data-dh-schedule-line]'))
+
+  // 模式自定义页
   await click(page, '[data-dh-sleep-custom]', 620)
-  check('G8 进入「睡眠」自定义页', (await text(page, '.glass-nav .gn-title')) === '睡眠')
-  check('G9 插画卡可见', (await visibleCount(page, '[data-dh-sleep-art]')) === 1)
-  check('G10 允许所有通知默认关闭', (await ariaChecked(page, '[data-dh-allow-all]')) === false)
-  check('G11 日常安排开关跟随模式（已选在充电时开启 → 开）', (await ariaChecked(page, '[data-dh-schedule-switch]')) === true)
+  check('G22 进入「睡眠」自定义页', (await text(page, '.glass-nav .gn-title')) === '睡眠')
+  check('G23 插画卡可见', (await visibleCount(page, '[data-dh-sleep-art]')) === 1)
+  check('G24 允许所有通知默认开启', (await ariaChecked(page, '[data-dh-allow-all]')) === true)
+  check('G25 屏幕选项两个开关都在',
+    (await visibleCount(page, '[data-dh-screen-dim]')) === 1 && (await visibleCount(page, '[data-dh-screen-gray]')) === 1)
+  check('G26 通知过滤摘要显示「允许所有通知」', (await text(page, '[data-dh-allow-all-summary]')) === '允许所有通知')
   await shot(page, '10_sleep_settings')
+
+  await click(page, '[data-dh-allow-all]', 420)
+  check('G27 关掉「允许所有通知」后摘要同步', (await text(page, '[data-dh-allow-all-summary]')) !== '允许所有通知',
+    await text(page, '[data-dh-allow-all-summary]'))
+  await click(page, '[data-dh-open-apps]', 620)
+  check('G28 进「应用例外」页', (await text(page, '.glass-nav .gn-title')) === '应用例外')
+  await click(page, '[data-dh-filter-app="wechat"] [role="checkbox"]', 360)
+  check('G29 能把某个应用放进例外名单', await page.evaluate(() =>
+    document.querySelector('[data-dh-filter-app="wechat"] [role="checkbox"]')?.classList.contains('on')))
+  await back(page)
+  check('G30 返回后摘要变「已放行 1 个应用」', (await text(page, '[data-dh-allow-all-summary]')) === '已放行 1 个应用',
+    await text(page, '[data-dh-allow-all-summary]'))
+  await click(page, '[data-dh-open-contacts]', 620)
+  check('G31 进「联系人例外」页', (await text(page, '.glass-nav .gn-title')) === '联系人例外')
+  check('G32 联系人清单 3 人', (await visibleCount(page, '[data-dh-filter-contact]')) === 3)
+  await click(page, '[data-dh-filter-contact="c-mom"] [role="checkbox"]', 360)
+  await shot(page, '11_filter_contacts')
+  await back(page)
+  check('G33 返回后联系人摘要变「已选 1 人」', (await text(page, '[data-dh-contact-summary]')) === '已选 1 人',
+    await text(page, '[data-dh-contact-summary]'))
   await back(page)
   await back(page)
 
-  /* ==================== H. 专注模式 ==================== */
+  /* ==================== H. 专注模式（完整流程） ==================== */
   await click(page, '[data-dh-row="focus"]', 620)
   check('H1 标题「专注模式」', (await text(page, '.glass-nav .gn-title')) === '专注模式')
   check('H2 未选应用时「立即开启」禁用', await page.evaluate(() => document.querySelector('[data-dh-focus-start]')?.disabled === true))
@@ -336,17 +423,64 @@ async function run() {
     const el = document.querySelector('[data-dh-focus-start]')
     return getComputedStyle(el).backgroundColor === 'rgb(218, 220, 224)'
   }))
-  await click(page, '[data-dh-add-schedule]', 380)
-  check('H4 未选应用点「设置时间表」给提示', (await toastText(page)).includes('请先选择'), await toastText(page))
-  await page.waitForTimeout(1700)
+  check('H4 初始没有时间表列表', (await visibleCount(page, '[data-dh-focus-schedules]')) === 0)
+
+  await click(page, '[data-dh-add-schedule]', 620)
+  check('H5 进「设置时间表」页', (await text(page, '.glass-nav .gn-title')) === '设置时间表')
+  check('H6 名称默认「专注时间」', await page.evaluate(() => document.querySelector('[data-dh-fs-name]')?.value === '专注时间'))
+  check('H7 重复日默认工作日（5 个选中）', await page.evaluate(() =>
+    [...document.querySelectorAll('[data-dh-fs-day]')].filter(e => e.classList.contains('on')).length === 5))
+  // 全部取消 → 保存必须禁用
+  for (const d of [1, 2, 3, 4, 5]) {
+    await page.locator(`[data-dh-fs-day="${d}"]`).click()
+    await page.waitForTimeout(90)
+  }
+  check('H8 一天都没选时保存禁用', await page.evaluate(() => document.querySelector('[data-dh-fs-save]')?.disabled === true))
+  for (const d of [1, 2, 3, 4, 5]) {
+    await page.locator(`[data-dh-fs-day="${d}"]`).click()
+    await page.waitForTimeout(90)
+  }
+  check('H9 选回重复日后保存恢复可点', await page.evaluate(() => document.querySelector('[data-dh-fs-save]')?.disabled === false))
+  await page.locator('[data-dh-fs-name]').fill('上午专注')
+  await page.waitForTimeout(200)
+  await shot(page, '12_focus_schedule')
+  await click(page, '[data-dh-fs-save]', 700)
+  check('H10 保存后回到专注模式页', (await text(page, '.glass-nav .gn-title')) === '专注模式')
+  check('H11 时间表出现在列表里',
+    (await visibleCount(page, '[data-dh-focus-schedule]')) === 1 && (await text(page, '[data-dh-focus-schedule]')).includes('上午专注'),
+    await text(page, '[data-dh-focus-schedule]'))
+  check('H12 时间表副文案显示起止与重复日',
+    (await text(page, '[data-dh-focus-schedule] .dh-row-sub')) === '09:00 – 12:00 · 工作日',
+    await text(page, '[data-dh-focus-schedule] .dh-row-sub'))
+
   await click(page, '[data-dh-focus-app="wechat"] [role="checkbox"]', 380)
-  check('H5 勾选后复选框选中', await page.evaluate(() => document.querySelector('[data-dh-focus-app="wechat"] [role="checkbox"]')?.classList.contains('on')))
-  check('H6 勾选后「立即开启」解禁', await page.evaluate(() => document.querySelector('[data-dh-focus-start]')?.disabled === false))
-  check('H7 复选框是 20×20 方形（不是圆形单选）', await page.evaluate(() => {
+  check('H13 勾选后复选框选中', await page.evaluate(() => document.querySelector('[data-dh-focus-app="wechat"] [role="checkbox"]')?.classList.contains('on')))
+  check('H14 勾选后「立即开启」解禁', await page.evaluate(() => document.querySelector('[data-dh-focus-start]')?.disabled === false))
+  check('H15 复选框是 20×20 方形（不是圆形单选）', await page.evaluate(() => {
     const cs = getComputedStyle(document.querySelector('[data-dh-focus-app="wechat"] [role="checkbox"]'))
     return Math.abs(parseFloat(cs.width) - 20) < 0.6 && Math.abs(parseFloat(cs.height) - 20) < 0.6 && parseFloat(cs.borderRadius) < 6
   }))
-  await shot(page, '11_focus')
+
+  await click(page, '[data-dh-focus-start]', 700)
+  check('H16 开启后出现运行条', (await visibleCount(page, '[data-dh-focus-running]')) === 1)
+  check('H17 运行条显示时间表名与已屏蔽数',
+    (await text(page, '[data-dh-focus-running]')).includes('正在专注') && (await text(page, '[data-dh-focus-running]')).includes('已屏蔽 1 个应用'),
+    await text(page, '[data-dh-focus-running]'))
+  check('H18 主按钮变「结束专注模式」', (await text(page, '[data-dh-focus-start]')) === '结束专注模式')
+  check('H19 开启时给 toast', (await toastText(page)).includes('屏蔽 1 个应用'), await toastText(page))
+  await shot(page, '13_focus_running')
+  await page.waitForTimeout(1700)
+
+  await click(page, '[data-dh-focus-stop]', 700)
+  check('H20 结束后运行条消失', (await visibleCount(page, '[data-dh-focus-running]')) === 0)
+  check('H21 结束后给本次时长提示', (await toastText(page)).includes('本次'), await toastText(page))
+  check('H22 按钮回到「立即开启」', (await text(page, '[data-dh-focus-start]')) === '立即开启')
+  await page.waitForTimeout(1700)
+
+  await click(page, '[data-dh-focus-schedule-del]', 620)
+  check('H23 删除时间表后列表消失', (await visibleCount(page, '[data-dh-focus-schedules]')) === 0)
+  check('H24 删除有 toast', (await toastText(page)).includes('已删除'), await toastText(page))
+  await page.waitForTimeout(1700)
   await back(page)
 
   /* ==================== I. 屏幕使用时间提醒 ==================== */

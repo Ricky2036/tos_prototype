@@ -15,7 +15,7 @@ import { useDigitalHealthStore } from '../../../../stores/digitalHealthStore.js'
  * → 蓝色小标「会显示提醒的应用」→ 全部应用 + 右侧**蓝色实心方形复选**（默认全选）。
  * 关掉总开关后，下面的复选框整体变灰不可改（真机同样如此）。
  */
-const emit = defineEmits(['back', 'toast'])
+const emit = defineEmits(['back', 'toast', 'overflow'])
 const dh = useDigitalHealthStore()
 
 const apps = getRegisteredApps()
@@ -31,7 +31,7 @@ function toggleApp(app) {
 <template>
   <DhShell title="屏幕使用时间提醒" @back="emit('back')">
     <template #right>
-      <DhOverflowMenu @pick="emit('toast', $event)" />
+      <DhOverflowMenu @pick="emit('overflow', $event)" />
     </template>
 
     <section class="dh-reminder-head" data-dh-reminder-head>

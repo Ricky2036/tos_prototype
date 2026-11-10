@@ -2,36 +2,55 @@
 import { computed } from 'vue'
 import DhShell from './DhShell.vue'
 import DhSwitch from './DhSwitch.vue'
+import LIcon from '../../../ui/LIcon.vue'
 import DhOverflowMenu from './DhOverflowMenu.vue'
 import { useDigitalHealthStore } from '../../../../stores/digitalHealthStore.js'
 
 /**
  * 「睡眠」自定义页（真机 dh_95_sleep_custom2，ModeSettingsActivity 的睡眠模式分支）。
  *
- * 真机结构：插画卡（灰底斑点 + 黑色床图标）→ 说明文字 → 蓝色「立即开启」卡
- * → 灰标「何时自动开启」（"睡觉"日常安排 / 未设置 + 开关）
- * → 灰标「通知过滤条件」（允许所有通知 + 开关 / 联系人 / 应用）。
+ * 真机结构：插画卡（灰底斑点 + 黑色床）→ 说明文字 → 蓝色「立即开启」卡
+ * → 灰标「何时自动开启」（"睡觉"日常安排 + 开关 + 时间表行）
+ * → 灰标「通知过滤条件」（允许所有通知 + 开关 / 联系人 / 应用）
+ * → 灰标「屏幕选项」（调暗壁纸 / 灰度）。
  * ⚠️ 这一页的小节标题是**灰色**的，与主页/其它子页的蓝色小标不同。
  */
-const emit = defineEmits(['back', 'toast'])
+const emit = defineEmits(['back', 'toast', 'overflow', 'open-schedule', 'open-filter'])
 const dh = useDigitalHealthStore()
 
-const scheduleOn = computed(() => dh.state.sleep.mode !== '无')
+const sleep = computed(() => dh.state.sleep)
+const scheduleOn = computed(() => sleep.value.mode !== '无')
+
+const notifySummary = computed(() => {
+  if (sleep.value.notify.allowAll) return '允许所有通知'
+  const n = sleep.value.notify.appExceptions.length
+  return n ? `已放行 ${n} 个应用` : '仅允许已选的联系人与应用'
+})
+
+const contactSummary = computed(() => {
+  const n = sleep.value.notify.contactExceptions.length
+  return n ? `已选 ${n} 人` : '某些人例外'
+})
 
 function toggleSchedule(v) {
   dh.setSleepMode(v ? '启用时间表' : '无')
+  if (v) emit('toast', '已启用时间表')
 }
 function toggleSleep() {
-  const next = !dh.state.sleep.enabled
+  const next = !sleep.value.enabled
   dh.setSleepEnabled(next)
   emit('toast', next ? '睡眠模式已开启' : '睡眠模式已关闭')
+}
+function toggleAllowAll(v) {
+  dh.setSleepAllowAll(v)
+  emit('toast', v ? '睡眠期间允许所有通知' : '已改为只放行例外名单')
 }
 </script>
 
 <template>
   <DhShell title="睡眠" @back="emit('back')">
     <template #right>
-      <DhOverflowMenu @pick="emit('toast', $event)" />
+      <DhOverflowMenu @pick="emit('overflow', $event)" />
     </template>
 
     <!-- 插画卡 -->
@@ -54,7 +73,7 @@ function toggleSleep() {
 
     <section class="dh-card dh-start-card">
       <button type="button" class="dh-pill" data-dh-sleep-start @click="toggleSleep">
-        {{ dh.state.sleep.enabled ? '立即关闭' : '立即开启' }}
+        {{ sleep.enabled ? '立即关闭' : '立即开启' }}
       </button>
     </section>
 
@@ -62,13 +81,10 @@ function toggleSleep() {
     <div class="dh-cap">何时自动开启</div>
     <section class="dh-card">
       <div class="dh-row">
-        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M12 3.4c2.6 0 4.4 2 4.4 4.6 0 2.2-1.4 3.4-1.4 5.5 0 2.6-1.2 4.6-3 4.6s-3-2-3-4.6c0-2.1-1.4-3.3-1.4-5.5 0-2.6 1.8-4.6 4.4-4.6z" fill="#5F6368" />
-          <path d="M12 18.4v2.2" stroke="#5F6368" stroke-width="1.8" stroke-linecap="round" />
-        </svg>
+        <LIcon name="moon" :size="20" />
         <span class="dh-row-main">
           <span class="dh-row-title">“睡觉”日常安排</span>
-          <span class="dh-row-sub">{{ scheduleOn ? dh.state.sleep.mode : '未设置' }}</span>
+          <span class="dh-row-sub">{{ scheduleOn ? sleep.mode : '未设置' }}</span>
         </span>
         <DhSwitch
           :model-value="scheduleOn"
@@ -76,41 +92,96 @@ function toggleSleep() {
           @update:model-value="toggleSchedule"
         />
       </div>
+      <template v-if="scheduleOn">
+        <div class="dh-divider"></div>
+        <button type="button" class="dh-row" data-dh-sleep-open-schedule @click="emit('open-schedule')">
+          <LIcon name="clock" :size="20" />
+          <span class="dh-row-main">
+            <span class="dh-row-title">时间表</span>
+            <span class="dh-row-sub" data-dh-sleep-schedule-value>
+              {{ sleep.schedule.start }} – {{ sleep.schedule.end }}
+            </span>
+          </span>
+          <LIcon name="chevronRight" :size="16" />
+        </button>
+      </template>
     </section>
 
     <!-- 通知过滤条件 -->
     <div class="dh-cap">通知过滤条件</div>
     <section class="dh-card">
       <div class="dh-row">
+        <LIcon name="bellOff" :size="20" />
         <span class="dh-row-main">
           <span class="dh-row-title">允许所有通知</span>
+          <span class="dh-row-sub" data-dh-allow-all-summary>{{ notifySummary }}</span>
         </span>
-        <DhSwitch :model-value="false" disabled data-dh-allow-all />
+        <DhSwitch
+          :model-value="sleep.notify.allowAll"
+          data-dh-allow-all
+          @update:model-value="toggleAllowAll"
+        />
       </div>
       <div class="dh-divider"></div>
-      <button type="button" class="dh-row" @click="emit('toast', '联系人例外需要先设置“睡觉”日常安排')">
-        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="9.4" cy="8.2" r="3.1" stroke="#5F6368" stroke-width="1.6" />
-          <path d="M3.6 19.4v-1.6c0-2.2 1.8-4 4-4h3.6c2.2 0 4 1.8 4 4v1.6" stroke="#5F6368" stroke-width="1.6" stroke-linecap="round" />
-          <path d="M16 5.6a3 3 0 010 5.4M18.4 19.4v-1.6c0-1.6-.7-2.9-1.8-3.6" stroke="#5F6368" stroke-width="1.6" stroke-linecap="round" />
-        </svg>
+      <button
+        type="button"
+        class="dh-row"
+        :class="{ 'is-off': sleep.notify.allowAll }"
+        data-dh-open-contacts
+        @click="emit('open-filter', 'contacts')"
+      >
+        <LIcon name="users" :size="20" />
         <span class="dh-row-main">
           <span class="dh-row-title">联系人</span>
-          <span class="dh-row-sub">某些人例外</span>
+          <span class="dh-row-sub" data-dh-contact-summary>{{ contactSummary }}</span>
         </span>
+        <LIcon name="chevronRight" :size="16" />
       </button>
       <div class="dh-divider"></div>
-      <button type="button" class="dh-row" @click="emit('toast', '通知过滤条件需要先设置“睡觉”日常安排')">
-        <svg width="21" height="21" viewBox="0 0 24 24" fill="#5F6368" aria-hidden="true">
-          <circle cx="6" cy="6" r="1.7" /><circle cx="12" cy="6" r="1.7" /><circle cx="18" cy="6" r="1.7" />
-          <circle cx="6" cy="12" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="18" cy="12" r="1.7" />
-          <circle cx="6" cy="18" r="1.7" /><circle cx="12" cy="18" r="1.7" /><circle cx="18" cy="18" r="1.7" />
-        </svg>
+      <button
+        type="button"
+        class="dh-row"
+        :class="{ 'is-off': sleep.notify.allowAll }"
+        data-dh-open-apps
+        @click="emit('open-filter', 'apps')"
+      >
+        <LIcon name="layoutGrid" :size="20" />
         <span class="dh-row-main">
           <span class="dh-row-title">应用</span>
-          <span class="dh-row-sub">正在计算…</span>
+          <span class="dh-row-sub">{{ sleep.notify.allowAll ? '允许所有应用提醒' : '选择仍可提醒的应用' }}</span>
         </span>
+        <LIcon name="chevronRight" :size="16" />
       </button>
+    </section>
+
+    <!-- 屏幕选项 -->
+    <div class="dh-cap">屏幕选项</div>
+    <section class="dh-card">
+      <div class="dh-row">
+        <LIcon name="smartphone" :size="20" />
+        <span class="dh-row-main">
+          <span class="dh-row-title">调暗壁纸</span>
+          <span class="dh-row-sub">睡眠期间壁纸变暗，减少亮光干扰</span>
+        </span>
+        <DhSwitch
+          :model-value="sleep.screen.dimWallpaper"
+          data-dh-screen-dim
+          @update:model-value="dh.setSleepScreen('dimWallpaper', $event)"
+        />
+      </div>
+      <div class="dh-divider"></div>
+      <div class="dh-row">
+        <LIcon name="sun" :size="20" />
+        <span class="dh-row-main">
+          <span class="dh-row-title">灰阶显示</span>
+          <span class="dh-row-sub">把屏幕调成黑白色，降低入睡前的刺激</span>
+        </span>
+        <DhSwitch
+          :model-value="sleep.screen.grayscale"
+          data-dh-screen-gray
+          @update:model-value="dh.setSleepScreen('grayscale', $event)"
+        />
+      </div>
     </section>
   </DhShell>
 </template>
@@ -144,4 +215,6 @@ function toggleSleep() {
   color: #5F6368;
   padding: 14px 6px 8px;
 }
+
+.is-off { opacity: 0.5; }
 </style>

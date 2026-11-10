@@ -4,6 +4,7 @@ import '../../../../styles/layer-transitions.css'
 import DhShell from './DhShell.vue'
 import DhAppDetail from './DhAppDetail.vue'
 import DhOverflowMenu from './DhOverflowMenu.vue'
+import LIcon from '../../../ui/LIcon.vue'
 import RegisteredAppIcon from '../../../ui/RegisteredAppIcon.vue'
 import { getRegisteredApps } from '../../../../composables/useRegisteredApps.js'
 import { useDigitalHealthStore } from '../../../../stores/digitalHealthStore.js'
@@ -15,7 +16,7 @@ import { dhLimitLabel } from './dhData.js'
  * 真机结构：蓝色小标「您的应用」+ 全部应用行，行右侧是**沙漏图标**（左侧带一条细竖线），
  * 已设定时器的应用沙漏为实心蓝。点任一行进应用详情（屏幕使用时间 / 设置段）。
  */
-const emit = defineEmits(['back', 'open-activity'])
+const emit = defineEmits(['back', 'toast', 'overflow', 'open-activity'])
 const dh = useDigitalHealthStore()
 
 const apps = getRegisteredApps()
@@ -45,7 +46,7 @@ function showToast(msg) {
   <Transition :name="isBack ? 'slide-back' : 'slide'">
     <DhShell v-if="!detailApp" key="list" title="应用定时器" @back="emit('back')">
       <template #right>
-        <DhOverflowMenu @pick="showToast" />
+        <DhOverflowMenu @pick="emit('overflow', $event)" />
       </template>
 
       <div class="dh-label" data-dh-limits-label>您的应用</div>
@@ -63,15 +64,7 @@ function showToast(msg) {
           <span class="dh-app-name">{{ app.name }}</span>
           <span class="dh-hourglass" :class="{ on: dh.limitFor(app.id) > 0 }">
             <span class="dh-hourglass-line" aria-hidden="true"></span>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M7 3.4h10M7 20.6h10M8 3.4v3.1c0 1 .5 1.9 1.3 2.6L12 11.5l2.7-2.4c.8-.7 1.3-1.6 1.3-2.6V3.4M8 20.6v-3.1c0-1 .5-1.9 1.3-2.6L12 12.5l2.7 2.4c.8.7 1.3 1.6 1.3 2.6v3.1"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
+            <LIcon name="hourglass" :size="19" :stroke-width="1.8" />
             <span v-if="dh.limitFor(app.id) > 0" class="dh-hourglass-badge">{{ dhLimitLabel(dh.limitFor(app.id)) }}</span>
           </span>
         </button>

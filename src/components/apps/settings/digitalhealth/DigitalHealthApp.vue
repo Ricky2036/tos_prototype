@@ -4,6 +4,11 @@ import '../../../../styles/layer-transitions.css'
 import GlassNavBar from '../../../ui/GlassNavBar.vue'
 import DhSwitch from './DhSwitch.vue'
 import DhOverflowMenu from './DhOverflowMenu.vue'
+import LIcon from '../../../ui/LIcon.vue'
+import DhInfoPage from './DhInfoPage.vue'
+import DhSleepSchedule from './DhSleepSchedule.vue'
+import DhSleepFilterList from './DhSleepFilterList.vue'
+import DhFocusSchedule from './DhFocusSchedule.vue'
 import DhAppLimits from './DhAppLimits.vue'
 import DhAppActivity from './DhAppActivity.vue'
 import DhSleepMode from './DhSleepMode.vue'
@@ -41,9 +46,19 @@ const isBack = ref(false)
 const current = computed(() => stack.value[stack.value.length - 1] || null)
 
 function openSub(key) {
+  if (!key) return
   isBack.value = false
   stack.value = [...stack.value, key]
 }
+/** ⋮ 菜单五项落到真实页面（DhInfoPage 按 key 分发） */
+function openInfo(key) {
+  openSub(`info:${key}`)
+}
+function openFilter(kind) {
+  openSub(`filter:${kind}`)
+}
+const infoKey = computed(() => (current.value?.startsWith('info:') ? current.value.slice(5) : ''))
+const filterKind = computed(() => (current.value?.startsWith('filter:') ? current.value.slice(7) : ''))
 function closeSub() {
   isBack.value = true
   stack.value = stack.value.slice(0, -1)
@@ -97,6 +112,7 @@ const limitsSubtitle = computed(() => {
 })
 const sleepSubtitle = computed(() => (dh.state.sleep.enabled ? '已开启' : '已关闭'))
 const focusSubtitle = computed(() => {
+  if (dh.state.focusRunning) return '专注中'
   const n = dh.state.focusApps.length
   return n ? `已选择 ${n} 个应用` : '点按即可设置'
 })
@@ -116,20 +132,62 @@ function showToast(msg) {
 <template>
   <div class="dh-app">
     <Transition :name="isBack ? 'slide-back' : 'slide'">
-      <DhAppLimits v-if="current === 'limits'" key="limits" @back="closeSub" @toast="showToast" @open-activity="openSub('activity')" />
-      <DhAppActivity v-else-if="current === 'activity'" key="activity" @back="closeSub" @toast="showToast" />
-      <DhSleepMode v-else-if="current === 'sleep'" key="sleep" @back="closeSub" @toast="showToast" @open-settings="openSub('sleepSettings')" />
-      <DhSleepSettings v-else-if="current === 'sleepSettings'" key="sleepSettings" @back="closeSub" @toast="showToast" />
-      <DhFocusMode v-else-if="current === 'focus'" key="focus" @back="closeSub" @toast="showToast" />
-      <DhScreenReminder v-else-if="current === 'reminder'" key="reminder" @back="closeSub" @toast="showToast" />
-      <DhWalking v-else-if="current === 'walking'" key="walking" @back="closeSub" @toast="showToast" />
-      <DhParental v-else-if="current === 'parental'" key="parental" @back="closeSub" @toast="showToast" />
+      <DhAppLimits
+        v-if="current === 'limits'" key="limits"
+        @back="closeSub" @toast="showToast" @overflow="openInfo" @open-activity="openSub('activity')"
+      />
+      <DhAppActivity
+        v-else-if="current === 'activity'" key="activity"
+        @back="closeSub" @toast="showToast" @overflow="openInfo"
+      />
+      <DhSleepMode
+        v-else-if="current === 'sleep'" key="sleep"
+        @back="closeSub" @toast="showToast" @overflow="openInfo"
+        @open-settings="openSub('sleepSettings')" @open-schedule="openSub('sleepSchedule')"
+      />
+      <DhSleepSettings
+        v-else-if="current === 'sleepSettings'" key="sleepSettings"
+        @back="closeSub" @toast="showToast" @overflow="openInfo"
+        @open-schedule="openSub('sleepSchedule')" @open-filter="openFilter"
+      />
+      <DhSleepSchedule
+        v-else-if="current === 'sleepSchedule'" key="sleepSchedule"
+        @back="closeSub" @toast="showToast"
+      />
+      <DhSleepFilterList
+        v-else-if="filterKind" :key="`filter-${filterKind}`" :kind="filterKind"
+        @back="closeSub" @toast="showToast"
+      />
+      <DhFocusMode
+        v-else-if="current === 'focus'" key="focus"
+        @back="closeSub" @toast="showToast" @overflow="openInfo" @open-schedule="openSub('focusSchedule')"
+      />
+      <DhFocusSchedule
+        v-else-if="current === 'focusSchedule'" key="focusSchedule"
+        @back="closeSub" @toast="showToast" @saved="closeSub"
+      />
+      <DhScreenReminder
+        v-else-if="current === 'reminder'" key="reminder"
+        @back="closeSub" @toast="showToast" @overflow="openInfo"
+      />
+      <DhWalking
+        v-else-if="current === 'walking'" key="walking"
+        @back="closeSub" @toast="showToast"
+      />
+      <DhParental
+        v-else-if="current === 'parental'" key="parental"
+        @back="closeSub" @toast="showToast"
+      />
+      <DhInfoPage
+        v-else-if="infoKey" :key="`info-${infoKey}`" :page="infoKey"
+        @back="closeSub" @toast="showToast"
+      />
     </Transition>
 
     <template v-if="!current">
       <GlassNavBar overlay title="数字健康" @back="emit('back')">
         <template #right>
-          <DhOverflowMenu @pick="showToast" />
+          <DhOverflowMenu @pick="openInfo" />
         </template>
       </GlassNavBar>
 
@@ -241,20 +299,13 @@ function showToast(msg) {
         <!-- ⑤ 家长控制入口 -->
         <button type="button" class="dh-parental" data-dh-row="parental" @click="openSub('parental')">
           <span class="dh-parental-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <circle cx="9.2" cy="6.6" r="2.6" stroke="#FFFFFF" stroke-width="1.8" />
-              <circle cx="16.4" cy="9.4" r="2.2" stroke="#FFFFFF" stroke-width="1.8" />
-              <path d="M4.6 18.4v-2.9c0-1.6 1.3-2.9 2.9-2.9h3.4c1.6 0 2.9 1.3 2.9 2.9v2.9" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" />
-              <path d="M15.4 18.4v-2.2c0-1.2 1-2.2 2.2-2.2h0.9c1.2 0 2.2 1 2.2 2.2v2.2" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" />
-            </svg>
+            <LIcon name="users" :size="19" :stroke-width="2" />
           </span>
           <span class="dh-parental-main">
             <span class="dh-parental-title">想使用“家长控制”功能?</span>
             <span class="dh-parental-sub">您可为此设备设置数字设备基本使用规则和屏幕使用时间限制</span>
           </span>
-          <svg class="dh-parental-chev" width="7" height="12" viewBox="0 0 7 12" fill="none">
-            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#5F6368" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <LIcon class="dh-parental-chev" name="chevronRight" :size="16" />
         </button>
 
         <div class="dh-bottom-space"></div>
@@ -422,6 +473,7 @@ function showToast(msg) {
   height: 36px;
   border-radius: 50%;
   background: #5F6368;
+  color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;

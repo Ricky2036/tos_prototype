@@ -15,6 +15,17 @@ import slidersHorizontal from 'lucide-static/icons/sliders-horizontal.svg?raw'
 import minus from 'lucide-static/icons/minus.svg?raw'
 import ban from 'lucide-static/icons/ban.svg?raw'
 
+/* ================= 数字健康（睡眠 / 专注 / 信息页）图标 ================= */
+import hourglass from 'lucide-static/icons/hourglass.svg?raw'
+import circleAlert from 'lucide-static/icons/circle-alert.svg?raw'
+import footprints from 'lucide-static/icons/footprints.svg?raw'
+import triangleAlert from 'lucide-static/icons/triangle-alert.svg?raw'
+import circleCheck from 'lucide-static/icons/circle-check.svg?raw'
+import messageSquare from 'lucide-static/icons/message-square.svg?raw'
+import database from 'lucide-static/icons/database.svg?raw'
+import clock from 'lucide-static/icons/clock.svg?raw'
+import bedDouble from 'lucide-static/icons/bed-double.svg?raw'
+
 /* ================= AI Mate 设备中枢所需的 lucide 图标 ================= */
 // -- 设备类型 --
 import audioLines from 'lucide-static/icons/audio-lines.svg?raw'
@@ -580,6 +591,7 @@ export const LUCIDE = {
   crop, frame, film, shapes, move, moveHorizontal, aperture, wand2, paintbrush,
   /* AI Mori */
   bot, wandSparkles, bookOpen, calendarDays, notebookPen, sticker,
+  hourglass, footprints, triangleAlert, circleCheck, circleAlert, messageSquare, database, clock, bedDouble,
   navigation, messageCircle,
   /* 首页卡动作（AI Mori 卡：拍照） */
   camera,
