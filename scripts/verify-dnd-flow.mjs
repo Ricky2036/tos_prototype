@@ -90,15 +90,40 @@ async function run() {
   // 开始时间弹层：步进 + 确定回写
   await page.locator('.sub-shell .list-cell', { hasText: '开始时间' }).first().click()
   await page.waitForTimeout(350)
-  check('B 开始时间：弹层出现', (await textOf(page, '.dnd-sheet-title')).trim() === '开始时间')
-  check('B 开始时间：三列滚轮可见', (await visibleCount(page, '.dnd-time-col')) === 3)
+  check('B 开始时间：标准弹层出现', (await textOf(page, '[data-tps-title]')).trim() === '开始时间')
+  check('B 开始时间：三列滚轮可见', (await visibleCount(page, '[data-wheel-col]')) === 3)
+  check('B 开始时间：真机当前值格式', (await textOf(page, '[data-tps-current]')).trim() === '10:00 下午')
+  const panelBg = await page.evaluate(() => {
+    const el = document.querySelector('.sheet-panel')
+    return el ? getComputedStyle(el).backgroundColor : ''
+  })
+  check('B 时间弹层为浅色（礼拜/勿扰共用）', panelBg === 'rgb(255, 255, 255)', panelBg)
   await shot(page, '03_start_time')
-  const beforeTime = (await textOf(page, '.dnd-time-current')).trim()
-  await page.locator('[aria-label="小时加一"]').click()
+
+  // 点击相邻项步进
+  const beforeTime = (await textOf(page, '[data-tps-current]')).trim()
+  await page.locator('[data-wheel-col="hour"] [data-offset="1"]').click()
   await page.waitForTimeout(150)
-  const afterTime = (await textOf(page, '.dnd-time-current')).trim()
-  check('B 开始时间：步进可改值', beforeTime !== afterTime, `${beforeTime} → ${afterTime}`)
-  await page.locator('.dnd-confirm').click()
+  const afterTime = (await textOf(page, '[data-tps-current]')).trim()
+  check('B 开始时间：点相邻项可步进', beforeTime !== afterTime, `${beforeTime} → ${afterTime}`)
+
+  // CDP 真机触摸滑动（红线：触摸手势必须留一条真实 touch 用例）
+  const cdp = await ctx.newCDPSession(page)
+  const colBox = await page.locator('[data-wheel-col="minute"]').boundingBox()
+  const cx = colBox.x + colBox.width / 2
+  const cy = colBox.y + colBox.height / 2
+  const beforeTouch = (await textOf(page, '[data-tps-current]')).trim()
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: cy }] })
+  for (let i = 1; i <= 3; i += 1) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: cx, y: cy - i * 18 }] })
+    await page.waitForTimeout(30)
+  }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  await page.waitForTimeout(180)
+  const afterTouch = (await textOf(page, '[data-tps-current]')).trim()
+  check('B 开始时间：真机触摸滑动可步进', beforeTouch !== afterTouch, `${beforeTouch} → ${afterTouch}`)
+
+  await page.locator('[data-tps-confirm]').click()
   await page.waitForTimeout(350)
   const startVal = await page.evaluate(() => {
     const rows = [...document.querySelectorAll('.sub-shell .list-cell')]
@@ -175,6 +200,37 @@ async function run() {
   })
   check('D 应用提醒：开关数联动主页副标题', appsSubAfter !== appsSubBefore, `${appsSubBefore} → ${appsSubAfter}`)
   await shot(page, '07_dnd_home_final')
+
+  /* ---------- E. 礼拜模式：旧深色时间弹层已适配浅色标准控件 ---------- */
+  await page.goto(BASE, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(600)
+  await page.evaluate(() => window.__system?.unlock?.())
+  await page.waitForTimeout(350)
+  await page.evaluate(() => window.__system?.openApp?.('settings'))
+  await page.waitForTimeout(700)
+  await clickRow(page, HOME, '声音与振动')
+  await clickRow(page, '.settings-sound-page', '礼拜模式')
+  await page.waitForTimeout(450)
+  check('E 进入礼拜模式页', (await visibleCount(page, '.prayer-subpage')) === 1)
+
+  // 礼拜模式默认关闭，先开总开关才能进编辑页
+  const master = page.locator('.prayer-subpage .toggle-switch').first()
+  if ((await master.getAttribute('aria-checked')) !== 'true') await master.click()
+  await page.waitForTimeout(250)
+  await page.locator('.prayer-item-cell').first().click()
+  await page.waitForTimeout(450)
+  check('E 进入祈祷时段编辑页', (await visibleCount(page, '.prayer-subpage .list-cell')) >= 3)
+  await page.locator('.prayer-subpage .list-cell', { hasText: '开始时间' }).first().click()
+  await page.waitForTimeout(400)
+  const prayerPanelBg = await page.evaluate(() => {
+    const el = document.querySelector('.sheet-panel')
+    return el ? getComputedStyle(el).backgroundColor : ''
+  })
+  check('E 礼拜模式：时间弹层是浅色（不再是 #1c1c1e 深色）', prayerPanelBg === 'rgb(255, 255, 255)', prayerPanelBg)
+  check('E 礼拜模式：复用标准三列滚轮', (await visibleCount(page, '[data-wheel-col]')) === 3)
+  check('E 礼拜模式：有取消/确定两枚按钮',
+    (await visibleCount(page, '[data-tps-cancel]')) === 1 && (await visibleCount(page, '[data-tps-confirm]')) === 1)
+  await shot(page, '08_prayer_time_sheet')
 
   check('全程 0 控制台错误', consoleErrors.length === 0, consoleErrors.slice(0, 3).join(' | '))
 

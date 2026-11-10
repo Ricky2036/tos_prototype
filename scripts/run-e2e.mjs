@@ -133,7 +133,16 @@ const SUITES = [
       'src/components/apps/settings/SettingsApp.vue',
       'src/stores/dndSettingsStore.js',
       'src/locales/messages.js',
-      'tests/dndSettings.test.js'
+      'src/components/ui/TimePickerSheet.vue',
+      'src/components/ui/TimeWheel.vue',
+      'src/components/ui/TimePickerModal.vue',
+      'src/components/ui/WheelTimePicker.vue',
+      'src/components/apps/settings/SettingsPrayer.vue',
+      'src/components/apps/clock/subpages/AlarmEditModal.vue',
+      'src/utils/timePicker.js',
+      'tests/dndSettings.test.js',
+      'tests/timePickerStandard.test.js',
+      'tests/alarmEditFlow.test.js'
     ]
   },
   {

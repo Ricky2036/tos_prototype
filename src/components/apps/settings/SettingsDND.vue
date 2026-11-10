@@ -9,12 +9,14 @@ import GlassNavBar from '../../ui/GlassNavBar.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import SheetOptionPicker from '../../ui/SheetOptionPicker.vue'
 import {
-  DND_CALL_OPTIONS, DND_WEEKDAYS, formatDndTime, useDndSettingsStore
+  DND_CALL_OPTIONS, formatDndTime, useDndSettingsStore
 } from '../../../stores/dndSettingsStore.js'
+import { parseTimeValue, toTimeString } from '../../../utils/timePicker.js'
+import TimePickerSheet from '../../ui/TimePickerSheet.vue'
 import DndSchedulePage from './dnd/DndSchedulePage.vue'
 import DndAppsPage from './dnd/DndAppsPage.vue'
 import DndRepeatSheet from './dnd/DndRepeatSheet.vue'
-import DndTimeSheet from './dnd/DndTimeSheet.vue'
+
 
 /**
  * 勿扰模式（真机 Infinix X6878 / XOS 17，2026-11-10 取证 /tmp/ref/gI/dnd_*）。
@@ -71,14 +73,18 @@ const timeSheet = computed(() => {
   const isStart = timeTarget.value === 'start'
   return {
     title: isStart ? '开始时间' : '结束时间',
-    hour: isStart ? dnd.state.startHour : dnd.state.endHour,
-    minute: isStart ? dnd.state.startMinute : dnd.state.endMinute
+    modelValue: toTimeString(
+      isStart ? dnd.state.startHour : dnd.state.endHour,
+      isStart ? dnd.state.startMinute : dnd.state.endMinute
+    )
   }
 })
 
-function onTimeConfirm({ hour, minute }) {
-  if (timeTarget.value === 'start') dnd.setStartTime(hour, minute)
-  else dnd.setEndTime(hour, minute)
+/** 标准控件统一回传 24 小时制 'HH:mm' */
+function onTimeConfirm(value) {
+  const { hour24, minute } = parseTimeValue(value)
+  if (timeTarget.value === 'start') dnd.setStartTime(hour24, minute)
+  else dnd.setEndTime(hour24, minute)
   timeTarget.value = null
 }
 
@@ -186,12 +192,12 @@ function onRepeatConfirm(days) {
       @close="showRepeatSheet = false"
     />
 
-    <DndTimeSheet
+    <TimePickerSheet
       :visible="Boolean(timeTarget)"
       :title="timeSheet?.title || '开始时间'"
-      :hour="timeSheet?.hour ?? 22"
-      :minute="timeSheet?.minute ?? 0"
+      :model-value="timeSheet?.modelValue || '07:00'"
       @confirm="onTimeConfirm"
+      @cancel="timeTarget = null"
       @close="timeTarget = null"
     />
   </div>

@@ -91,7 +91,7 @@ test('勿扰主页三个带箭头的行全部接线，不再有 clickable 却无
 })
 
 test('三个子页 / 弹层组件齐全，且复用全仓统一控件', () => {
-  for (const f of ['DndSchedulePage.vue', 'DndAppsPage.vue', 'DndRepeatSheet.vue', 'DndTimeSheet.vue']) {
+  for (const f of ['DndSchedulePage.vue', 'DndAppsPage.vue', 'DndRepeatSheet.vue']) {
     assert.ok(fs.existsSync(path.resolve(`src/components/apps/settings/dnd/${f}`)), `${f} 缺失`)
   }
   const main = strip(read(DND_ROOT))
@@ -99,7 +99,7 @@ test('三个子页 / 弹层组件齐全，且复用全仓统一控件', () => {
   assert.match(main, /:name="isBack \? 'slide-back' : 'slide'"/)
   assert.match(main, /SheetOptionPicker/)
   assert.match(main, /DndRepeatSheet/)
-  assert.match(main, /DndTimeSheet/)
+  assert.match(main, /TimePickerSheet/, '时间选择必须走全仓标准控件')
   assert.match(main, /defineExpose\(\{ back \}\)/)
 
   const sched = strip(read('src/components/apps/settings/dnd/DndSchedulePage.vue'))
@@ -112,7 +112,7 @@ test('三个子页 / 弹层组件齐全，且复用全仓统一控件', () => {
   assert.match(apps, /#bottom/)
   assert.match(apps, /@click="store\.toggleApp/, '整行点击要能切开关')
 
-  for (const f of ['DndRepeatSheet.vue', 'DndTimeSheet.vue']) {
+  for (const f of ['DndRepeatSheet.vue']) {
     assert.match(strip(read(`src/components/apps/settings/dnd/${f}`)), /SheetModal/, `${f} 必须复用统一弹层`)
   }
 })
