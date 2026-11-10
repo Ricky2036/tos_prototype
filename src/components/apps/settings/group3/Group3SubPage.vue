@@ -11,6 +11,7 @@ import { useSettingsGroup3Store } from '../../../../stores/settingsGroup3Store.j
 import { getApp } from '../../../../config/apps.js'
 import { getRegisteredApps, registeredAppSize } from '../../../../composables/useRegisteredApps.js'
 import RegisteredAppIcon from '../../../ui/RegisteredAppIcon.vue'
+import SearchEmptyState from '../../../ui/SearchEmptyState.vue'
 import { useNotificationsStore } from '../../../../stores/notificationsStore.js'
 
 /**
@@ -414,6 +415,11 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
               </template>
             </ListCell>
           </div>
+          <!-- 搜索无结果：与全仓同一套空态控件（应用提醒页也用这一份） -->
+          <SearchEmptyState
+            v-if="page.search && query.trim() && !filteredRows(sec).length"
+            text="没有搜索到结果"
+          />
           <div v-if="noteFor(sec)" class="card-note">{{ noteFor(sec) }}</div>
         </template>
       </template>

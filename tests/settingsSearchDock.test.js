@@ -38,7 +38,8 @@ test('清除按钮：深灰实心圆 + 白色圆角叉（真机 srch_04_committe
 test('空态页：叠加卡片 + 放大镜插画 + 真机文案', () => {
   const src = strip(read(EMPTY))
   assert.match(src, /data-search-empty/)
-  assert.match(src, /暂无结果，试试其他关键词/, '真机文案')
+  assert.match(src, /没有搜索到结果/, '文案：没有搜索到结果')
+  assert.doesNotMatch(src, /暂无结果，试试其他关键词/, '旧文案已废弃')
   assert.match(src, /<rect[^>]*rx="15"/, '叠加卡片')
   assert.match(src, /<circle[^>]*fill="url\(#ses-lens\)"/, '放大镜镜片')
   assert.match(src, /ses-card[\s\S]*ses-lens/, '插画渐变')
@@ -46,8 +47,31 @@ test('空态页：叠加卡片 + 放大镜插画 + 真机文案', () => {
   const list = strip(read('src/components/ui/RegisteredAppList.vue'))
   assert.match(search, /SearchEmptyState/)
   assert.match(list, /SearchEmptyState/)
+  assert.match(list, /没有搜索到结果/, '应用列表空态文案同步')
   assert.doesNotMatch(search, /未找到相关设置/, '旧文案已移除')
   assert.doesNotMatch(search, /results-empty/, '旧的线性放大镜空态已移除')
+})
+
+/* 空态居中：真机 srch_04_committed 实测插画墨迹中心与页面中心差 0.5px、
+   整组中心落在屏幕 51.9%（≈ 内容区正中）。两处历史偏差各留一条守卫。 */
+test('空态居中：viewBox 必须紧贴墨迹（正方形），且按整屏居中而非浏览器视口', () => {
+  const src = strip(read(EMPTY))
+
+  // ① 插画：旧 viewBox="0 0 120 120" 四周留白不均 ⇒ 墨迹偏右 3.5px、偏下 8px
+  const vb = src.match(/viewBox="(-?[\d.]+) (-?[\d.]+) ([\d.]+) ([\d.]+)"/)
+  assert.ok(vb, 'svg 必须有 viewBox')
+  const [vx, vy, vw, vh] = vb.slice(1).map(Number)
+  assert.equal(vw, vh, 'viewBox 必须是正方形（非正方形会被 meet 缩放挤偏）')
+  // 墨迹包围盒由图形几何算出：卡片/镜片/手柄的并集（改图形必须同步重算）
+  const INK = { cx: 62.2, cy: 65.7 }
+  assert.ok(Math.abs(vx + vw / 2 - INK.cx) <= 1, `插画横向未居中：viewBox 中心 ${vx + vw / 2} vs 墨迹 ${INK.cx}`)
+  assert.ok(Math.abs(vy + vh / 2 - INK.cy) <= 1, `插画纵向未居中：viewBox 中心 ${vy + vh / 2} vs 墨迹 ${INK.cy}`)
+  assert.doesNotMatch(src, /viewBox="0 0 120 120"/, '⛔ 回到留白不均的旧 viewBox 会再次偏右/偏下')
+
+  // ② 定位：vh 是浏览器视口而不是手机屏，换窗口高度整块就漂走
+  assert.doesNotMatch(src, /min-height:\s*58vh/, '⛔ 禁用 vh 定高')
+  assert.match(src, /\.search-empty\.is-fill \{[^}]*position: absolute;[^}]*inset: 0;/s, '铺满模式：绝对定位铺满最近的定位祖先')
+  assert.match(src, /pointer-events: none/, '空态是纯展示层，不许挡住底下的行')
 })
 
 /* ==================== 防回潮：四处调用方 ==================== */
@@ -83,6 +107,12 @@ test('守卫有牙齿：把激活态返回按钮 / 深灰圆拿掉都要报红',
   assert.match(clear, /fill="#8E8E93"/)
   assert.doesNotMatch(clear.replace('fill="#8E8E93"', 'fill="#FFFFFF"'), /fill="#8E8E93"/)
   const empty = strip(read(EMPTY))
-  assert.match(empty, /暂无结果，试试其他关键词/)
-  assert.doesNotMatch(empty.replace('暂无结果，试试其他关键词', '无数据'), /暂无结果，试试其他关键词/)
+  assert.match(empty, /没有搜索到结果/)
+  assert.doesNotMatch(empty.replace('没有搜索到结果', '无数据'), /没有搜索到结果/)
+  // 居中守卫的牙齿：改回留白 viewBox / 换回 static 定位都必须立刻被守卫抓到
+  assert.doesNotMatch(empty, /viewBox="0 0 120 120"/)
+  assert.match(empty.replace(/viewBox="[^"]+"/, 'viewBox="0 0 120 120"'), /viewBox="0 0 120 120"/, '牙齿：改坏后守卫必须命中')
+  assert.doesNotMatch(empty, /\.search-empty\.is-fill \{[^}]*position: static;/s)
+  assert.match(empty.replace('position: absolute', 'position: static'),
+    /\.search-empty\.is-fill \{[^}]*position: static;[^}]*inset: 0;/s, '牙齿：铺满改 static 后必须命中')
 })

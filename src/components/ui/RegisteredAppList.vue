@@ -54,7 +54,7 @@ const visible = computed(() => {
     </ListCell>
   </div>
   <!-- 真机空态直接铺在页面背景上，不包白色卡片 -->
-  <SearchEmptyState v-else text="暂无结果，试试其他关键词" />
+  <SearchEmptyState v-else text="没有搜索到结果" />
 </template>
 
 <style scoped>

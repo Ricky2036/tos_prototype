@@ -2,18 +2,28 @@
 /**
  * 【全仓标准控件】搜索无结果空态。
  *
- * 真机（/tmp/ref/gI/srch_04_committed.png）：两张蓝灰圆角卡片叠加 +
- * 右上方白色放大镜（淡紫渐变镜片），下方灰字「暂无结果，试试其他关键词」。
- * 旧实现是 44px 线性放大镜 +「未找到相关设置」，形态和文案都不对。
+ * 真机（/tmp/ref/gI/srch_04_committed_full.png）：卡片叠加 + 放大镜插画，
+ * 下方灰字。真机实测插画墨迹中心与页面中心水平偏差 0.5px、整体居中于屏幕
+ * （屏幕中线偏移 +1.9%），所以插画外框必须让「墨迹」落在正中。
+ *
+ * ⚠️ 两个历史坑：
+ *  1. viewBox 曾用 0 0 120 120 留白，墨迹实际偏右 3.5px、偏下 8px ⇒ 看着不居中。
+ *     现改为紧贴墨迹的正方形 viewBox（见下方 svg），墨迹中心 = 外框中心。
+ *  2. 定位曾用 `min-height: 58vh`，而 vh 是浏览器视口而不是手机屏 ⇒ 换窗口高度就跑偏。
+ *     现默认 `fill`：铺满最近的定位祖先（.sub-shell / 设置搜索页）后整体居中，
+ *     并让出 92px 底部给悬浮搜索栏（真机空态整体略微偏上）。
  */
 defineProps({
-  text: { type: String, default: '暂无结果，试试其他关键词' }
+  text: { type: String, default: '没有搜索到结果' },
+  /** 铺满最近定位祖先并居中（默认）；false 时按普通流内块渲染，高度取 min-height */
+  fill: { type: Boolean, default: true }
 })
 </script>
 
 <template>
-  <div class="search-empty" data-search-empty>
-    <svg class="search-empty-art" width="112" height="112" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+  <div class="search-empty" :class="{ 'is-fill': fill }" data-search-empty>
+    <!-- viewBox 紧贴墨迹方框：x 15.4..109 / y 18.9..112.5 的正方形，墨迹即居中 -->
+    <svg class="search-empty-art" width="86" height="86" viewBox="15.4 18.9 93.6 93.6" fill="none" aria-hidden="true">
       <defs>
         <linearGradient id="ses-card" x1="32" y1="40" x2="94" y2="104" gradientUnits="userSpaceOnUse">
           <stop stop-color="#C3CCE4" />
@@ -48,11 +58,25 @@ defineProps({
   align-items: center;
   justify-content: center;
   gap: 22px;
-  min-height: 58vh;
   padding: 0 20px;
   text-align: center;
+  box-sizing: border-box;
+  min-height: 320px;
 }
+
+/* 铺满模式：交给最近的定位祖先量尺寸，真机即「整屏居中、略偏上」
+   ⚠️ 不要再减底部搜索栏的高度：真机插画组中心落在屏幕 51.9%（≈ 内容区正中），
+      是按整屏居中而不是「搜索栏以上区域」居中，减掉 92px 会高出 46px。 */
+.search-empty.is-fill {
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  /* 纯展示层，不吃点击，避免挡住底下的行/按钮 */
+  pointer-events: none;
+}
+
 .search-empty-art { display: block; }
+
 .search-empty-text {
   font-size: 15px;
   line-height: 21px;

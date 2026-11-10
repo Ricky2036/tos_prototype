@@ -248,7 +248,61 @@ async function run() {
   await page.waitForTimeout(250)
   check('D 应用提醒：无结果显示真机插画空态', (await visibleCount(page, '[data-search-empty]')) === 1)
   check('D 应用提醒：空态文案正确',
-    (await page.locator('[data-search-empty]').first().textContent().catch(() => ''))?.includes('暂无结果，试试其他关键词') === true)
+    (await page.locator('[data-search-empty]').first().textContent().catch(() => ''))?.includes('没有搜索到结果') === true)
+
+  /* 空态居中：既要「外框」落在屏幕中线，也要「墨迹」落在自己外框的正中
+     —— 真机 srch_04_committed 实测墨迹中心与页面中心差 0.5px，
+        旧 viewBox 四周留白不均让墨迹偏右 3.5px / 偏下 8px，肉眼就是「没居中」。 */
+  const boxCenter = await page.evaluate(() => {
+    const shell = document.querySelector('.sub-shell').getBoundingClientRect()
+    const empty = document.querySelector('[data-search-empty]').getBoundingClientRect()
+    const art = document.querySelector('[data-search-empty] svg').getBoundingClientRect()
+    const txt = document.querySelector('[data-search-empty] .search-empty-text').getBoundingClientRect()
+    return {
+      artDx: (art.x + art.width / 2) - (shell.x + shell.width / 2),
+      // 整组（插画 + 文案）垂直中心与屏幕中线之差
+      groupDy: ((art.y + txt.bottom) / 2) - (shell.y + shell.height / 2),
+      // 空态必须铺满整个页面（不是靠 vh 顶出来的一块）
+      coverW: empty.width / shell.width,
+      coverH: empty.height / shell.height
+    }
+  })
+  check('D 空态：插画外框水平居中（±2px）', Math.abs(boxCenter.artDx) <= 2, `dx=${boxCenter.artDx.toFixed(2)}`)
+  check('D 空态：整组垂直居中（±12px）', Math.abs(boxCenter.groupDy) <= 12, `dy=${boxCenter.groupDy.toFixed(2)}`)
+  check('D 空态：铺满整页而非 vh 定高',
+    boxCenter.coverW > 0.95 && boxCenter.coverH > 0.95, `${boxCenter.coverW.toFixed(2)}x${boxCenter.coverH.toFixed(2)}`)
+
+  // 逐像素量墨迹居中：把 svg 光栅化到 400×400 再找不透明像素包围盒
+  const ink = await page.evaluate(async () => {
+    const svg = document.querySelector('[data-search-empty] svg')
+    const clone = svg.cloneNode(true)
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+    const src = 'data:image/svg+xml;base64,' + btoa(new XMLSerializer().serializeToString(clone))
+    const img = new Image()
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = src })
+    const N = 400
+    const c = document.createElement('canvas')
+    c.width = N; c.height = N
+    const g = c.getContext('2d')
+    g.drawImage(img, 0, 0, N, N)
+    const d = g.getImageData(0, 0, N, N).data
+    let minX = N, maxX = -1, minY = N, maxY = -1
+    for (let y = 0; y < N; y++) {
+      for (let x = 0; x < N; x++) {
+        if (d[(y * N + x) * 4 + 3] > 8) {
+          if (x < minX) minX = x
+          if (x > maxX) maxX = x
+          if (y < minY) minY = y
+          if (y > maxY) maxY = y
+        }
+      }
+    }
+    return { cx: (minX + maxX) / 2, cy: (minY + maxY) / 2, w: maxX - minX, h: maxY - minY, N }
+  })
+  check('D 空态：插画墨迹水平居中（±4/400）', Math.abs(ink.cx - ink.N / 2) <= 4, `cx=${ink.cx} vs ${ink.N / 2}`)
+  check('D 空态：插画墨迹垂直居中（±4/400）', Math.abs(ink.cy - ink.N / 2) <= 4, `cy=${ink.cy} vs ${ink.N / 2}`)
+  check('D 空态：插画不是空图（墨迹有实际尺寸）', ink.w > 200 && ink.h > 150, `${ink.w}x${ink.h}`)
+
   await shot(page, '09_apps_search_empty')
   await page.locator('[data-sfd-back]').click()
   await page.waitForTimeout(350)
