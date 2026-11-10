@@ -132,8 +132,28 @@ async function run() {
 
   const home = '.settings-scroll-container'
   check('设置首页已打开', (await visibleCount(page, `${home} .settings-card`)) >= 6)
+  // 首页搜索态：点击后隐藏麦克风、出现圆形返回按钮；输入后是深灰圆白叉清除按钮
+  await page.locator('[data-sfd-idle]').click()
+  await page.waitForTimeout(400)
+  check('首页：点击后出现圆形返回按钮', (await visibleCount(page, '[data-sfd-back]')) === 1)
+  check('首页：激活后麦克风隐藏', (await visibleCount(page, '.mic-icon')) === 0)
+  await page.locator('.sfd-input').fill('zzzzq')
+  await page.waitForTimeout(300)
+  check('首页：输入后出现清除按钮', (await visibleCount(page, '[data-sfd-clear]')) === 1)
+  const homeClearShape = await page.evaluate(() => {
+    const c = document.querySelector('[data-sfd-clear] svg circle')
+    const p = document.querySelector('[data-sfd-clear] svg path')
+    return Boolean(c && p && c.getAttribute('fill') === '#8E8E93' && p.getAttribute('stroke') === '#FFFFFF')
+  })
+  check('首页：清除按钮是深灰实心圆白叉', homeClearShape)
+  check('首页：无结果显示真机插画空态', (await visibleCount(page, '[data-search-empty]')) === 1)
+  await shot(page, '30_home_search_empty')
+  await page.locator('[data-sfd-back]').click()
+  await page.waitForTimeout(400)
+  check('首页：返回后回到设置首页', (await visibleCount(page, `${home} .settings-card`)) >= 6)
+
   // 首页悬浮搜索栏作为「位置基准」：后面应用列表的搜索栏要和它逐像素对齐
-  const homeDock = await rectOf(page, '.settings-floating-search')
+  const homeDock = await rectOf(page, '[data-search-dock]')
   check('首页搜索栏可量测', Boolean(homeDock) && homeDock.height > 0)
 
   /* ==================== A. 密码与安全 ==================== */
@@ -233,7 +253,7 @@ async function run() {
   check('C 应用列表：不再出现硬编码的第三方应用名', !names.some(n => ['哔哩哔哩', '大众点评', '叮咚买菜', '抖音极速版'].includes(n)))
 
   // 位置与首页同一把尺 A/B：left/right/bottom/height 逐项对齐
-  const subDock = await rectOf(page, '.g3-floating-search')
+  const subDock = await rectOf(page, '.sub-shell [data-search-dock]')
   check('C 应用列表：搜索栏位置与首页一致',
     Boolean(subDock && homeDock) &&
     Math.abs(subDock.left - homeDock.left) < 1.5 &&
@@ -244,14 +264,18 @@ async function run() {
 
   await shot(page, '11_app_list')
 
-  // 搜索框真的能过滤注册应用
-  await page.locator('.sub-shell .search-input').fill('微')
-  await page.waitForTimeout(220)
+  // 搜索框真的能过滤注册应用（先激活搜索态）
+  await page.locator('.sub-shell [data-sfd-idle]').click()
+  await page.waitForTimeout(350)
+  check('C 应用列表：激活后出现返回按钮且麦克风隐藏',
+    (await visibleCount(page, '.sub-shell [data-sfd-back]')) === 1 && (await visibleCount(page, '.mic-icon')) === 0)
+  await page.locator('.sub-shell .sfd-input').fill('微')
+  await page.waitForTimeout(250)
   const filtered = await page.evaluate(() => [...document.querySelectorAll('.sub-shell .lc-title')].map(e => e.textContent.trim()))
   check('C 应用列表：搜索「微」过滤到微信', filtered.length >= 1 && filtered.length <= 3 && filtered.every(n => n.includes('微')),
     filtered.join(','))
-  await page.locator('.sub-shell .search-input').fill('')
-  await page.waitForTimeout(220)
+  await page.locator('.sub-shell [data-sfd-back]').click()
+  await page.waitForTimeout(350)
 
   await clickRow(page, '.sub-shell', 'AI Mate')
   await expectSubPage(page, 'C 应用信息（四级）', '应用信息')

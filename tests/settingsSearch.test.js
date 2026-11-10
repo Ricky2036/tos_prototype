@@ -36,12 +36,15 @@ test('SettingsSearch.vue matches reference design specification in Image 1 and I
   assert.ok(content.includes('background: transparent;'), 'Chip delete button must have transparent background without gray circle')
   assert.ok(content.includes('clearAllHistory'), 'Must support clear all history action')
 
-  // 4. 底部操作栏（图 1）
-  assert.ok(content.includes('search-bottom-bar'), 'Must have fixed bottom action bar')
-  assert.ok(content.includes('search-back-circle-btn'), 'Must have circular back button on the left')
-  assert.ok(content.includes('search-capsule-input-wrap'), 'Must have capsule search input on the right')
-  assert.ok(content.includes('capsule-real-input'), 'Must have real search input element')
-  assert.ok(content.includes('placeholder="搜索"'), 'Input placeholder must be 搜索')
+  // 4. 底部操作栏（全仓标准 Dock 的激活态）+ 真机空态
+  assert.ok(content.includes('SettingsSearchDock'), 'Must use the standard search Dock')
+  assert.ok(content.includes(':active="true"'), 'Dock must be in active state')
+  assert.ok(content.includes('@back="emit(\'back\')"'), 'Back button must return to home')
+  assert.ok(content.includes('SearchEmptyState'), 'Must use the shared illustrated empty state')
+  const dock = fs.readFileSync(path.resolve('src/components/ui/SettingsSearchDock.vue'), 'utf-8')
+  assert.ok(dock.includes('data-sfd-back'), 'Dock must render circular back button')
+  assert.ok(dock.includes('class="sfd-capsule"'), 'Dock must render capsule input on the right')
+  assert.ok(dock.includes('placeholder="搜索"') || dock.includes(':placeholder="placeholder"'), 'Input placeholder must be 搜索')
 })
 
 test('SettingsApp.vue properly integrates SettingsSearch view and navigation', () => {
@@ -55,7 +58,7 @@ test('SettingsApp.vue properly integrates SettingsSearch view and navigation', (
   assert.ok(content.includes("search: '搜索'"), 'Must register search in viewTitles')
 
   // 3. 首页浮动搜索栏点击跳转
-  assert.ok(content.includes("@click=\"push('search')\""), 'Must push search view on floating search bar click')
+  assert.ok(content.includes("@activate=\"push('search')\""), 'Must push search view on Dock activate')
 
   // 4. view === search 条件渲染
   assert.ok(content.includes("view === 'search'"), 'Must render SettingsSearch when view is search')

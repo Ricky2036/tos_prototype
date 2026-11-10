@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import SubPageShell from '../subpage/SubPageShell.vue'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
-import SettingsSearchBar from '../../../ui/SettingsSearchBar.vue'
+import SettingsSearchDock from '../../../ui/SettingsSearchDock.vue'
 import RegisteredAppList from '../../../ui/RegisteredAppList.vue'
 import { useDndSettingsStore } from '../../../../stores/dndSettingsStore.js'
 
@@ -14,6 +14,12 @@ import { useDndSettingsStore } from '../../../../stores/dndSettingsStore.js'
 const emit = defineEmits(['back'])
 const store = useDndSettingsStore()
 const query = ref('')
+const searchActive = ref(false)
+
+function closeSearch() {
+  query.value = ''
+  searchActive.value = false
+}
 
 function isAllowed(appId) {
   return store.state.allowedApps.includes(appId)
@@ -38,9 +44,15 @@ function isAllowed(appId) {
     <div class="dnd-search-spacer"></div>
 
     <template #bottom>
-      <div class="dnd-floating-search">
-        <SettingsSearchBar v-model="query" placeholder="搜索应用程序" @clear="query = ''" />
-      </div>
+      <SettingsSearchDock
+        v-model="query"
+        :active="searchActive"
+        placeholder="搜索应用程序"
+        fade-color="#F0F1F2"
+        @activate="searchActive = true"
+        @back="closeSearch"
+        @clear="query = ''"
+      />
     </template>
   </SubPageShell>
 </template>
@@ -48,27 +60,4 @@ function isAllowed(appId) {
 <style scoped>
 .dnd-search-spacer { height: 92px; width: 100%; flex: none; }
 
-/* 与设置首页 .settings-floating-search 参数完全一致（左右 27 / 离屏底 25 / 渐隐遮罩） */
-.dnd-floating-search {
-  position: absolute;
-  bottom: 25px;
-  left: 27px;
-  right: 27px;
-  z-index: 10;
-  pointer-events: auto;
-}
-.dnd-floating-search::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  left: -27px; right: -27px; top: -34px; bottom: -25px;
-  background: linear-gradient(
-    to bottom,
-    rgba(240, 241, 242, 0) 0%,
-    rgba(240, 241, 242, 0.88) 38%,
-    #F0F1F2 68%,
-    #F0F1F2 100%
-  );
-  pointer-events: none;
-}
 </style>

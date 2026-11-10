@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import ListCell from './ListCell.vue'
 import RegisteredAppIcon from './RegisteredAppIcon.vue'
+import SearchEmptyState from './SearchEmptyState.vue'
 import { getRegisteredApps } from '../../composables/useRegisteredApps.js'
 
 /**
@@ -29,7 +30,7 @@ const visible = computed(() => {
 </script>
 
 <template>
-  <div class="settings-card registered-app-list" data-registered-app-list>
+  <div v-if="visible.length" class="settings-card registered-app-list" data-registered-app-list>
     <ListCell
       v-for="(app, i) in visible"
       :key="app.id"
@@ -51,15 +52,10 @@ const visible = computed(() => {
         </slot>
       </template>
     </ListCell>
-    <div v-if="!visible.length" class="registered-app-empty">未找到匹配的应用</div>
   </div>
+  <!-- 真机空态直接铺在页面背景上，不包白色卡片 -->
+  <SearchEmptyState v-else text="暂无结果，试试其他关键词" />
 </template>
 
 <style scoped>
-.registered-app-empty {
-  padding: 18px 16px;
-  font-size: 13px;
-  color: #8E8E93;
-  text-align: center;
-}
 </style>

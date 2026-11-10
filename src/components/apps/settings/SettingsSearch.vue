@@ -1,6 +1,8 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 import ListCell from '../../ui/ListCell.vue'
+import SettingsSearchDock from '../../ui/SettingsSearchDock.vue'
+import SearchEmptyState from '../../ui/SearchEmptyState.vue'
 
 const props = defineProps({
   searchableItems: {
@@ -13,7 +15,6 @@ const emit = defineEmits(['back', 'navigate'])
 
 // 搜索输入内容
 const searchQuery = ref('')
-const inputRef = ref(null)
 
 // 搜索建议列表（参考图 1）
 const suggestions = [
@@ -112,9 +113,6 @@ function handleItemClick(item) {
 // 清空当前搜索框输入
 function clearSearch() {
   searchQuery.value = ''
-  nextTick(() => {
-    inputRef.value?.focus()
-  })
 }
 
 // 回车提交
@@ -124,11 +122,6 @@ function handleEnter() {
   }
 }
 
-onMounted(() => {
-  nextTick(() => {
-    inputRef.value?.focus()
-  })
-})
 </script>
 
 <template>
@@ -217,12 +210,12 @@ onMounted(() => {
 
       <!-- 当有搜索输入时：展示实时匹配结果 -->
       <template v-else>
-        <div class="search-results-section">
+        <div v-if="filteredResults.length > 0" class="search-results-section">
           <div class="search-results-header">
             搜索结果 ({{ filteredResults.length }})
           </div>
 
-          <div v-if="filteredResults.length > 0" class="results-card">
+          <div class="results-card">
             <ListCell
               v-for="(item, idx) in filteredResults"
               :key="item.id"
@@ -235,61 +228,19 @@ onMounted(() => {
             />
           </div>
 
-          <div v-else class="results-empty">
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <span class="empty-text">未找到相关设置</span>
-          </div>
         </div>
+        <SearchEmptyState v-else />
       </template>
     </div>
 
-    <!-- 底部操作栏（参考图 1：左侧圆形返回按钮 + 右侧胶囊搜索栏） -->
-    <div class="search-bottom-bar">
-      <!-- 左侧圆形返回按钮 -->
-      <button
-        type="button"
-        class="search-back-circle-btn"
-        aria-label="返回设置"
-        @click="emit('back')"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 12H5M5 12L12 5M5 12L12 19" />
-        </svg>
-      </button>
-
-      <!-- 右侧圆角胶囊搜索栏 -->
-      <div class="search-capsule-input-wrap">
-        <svg class="capsule-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-
-        <input
-          ref="inputRef"
-          type="text"
-          class="capsule-real-input"
-          v-model="searchQuery"
-          placeholder="搜索"
-          @keydown.enter="handleEnter"
-        />
-
-        <button
-          v-if="searchQuery"
-          type="button"
-          class="capsule-clear-btn"
-          aria-label="清空输入"
-          @click="clearSearch"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-      </div>
-    </div>
+    <!-- 底部操作栏：全仓标准搜索 Dock 的激活态（圆形返回 + 无麦克风胶囊） -->
+    <SettingsSearchDock
+      v-model="searchQuery"
+      :active="true"
+      fade-color="#F8F9FA"
+      @back="emit('back')"
+      @clear="clearSearch"
+    />
   </div>
 </template>
 
@@ -481,113 +432,17 @@ onMounted(() => {
   border: 0.5px solid rgba(0, 0, 0, 0.06);
 }
 
-.results-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 0;
-  gap: 12px;
-  color: #8E8E93;
-}
 
-.empty-text {
-  font-size: 14px;
-}
 
-/* 底部操作栏 */
-.search-bottom-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  /* 真机实测：左右 16、离底 25；圆钮 16..60、胶囊从 72 起 ⇒ **间距 12**（不是 16） */
-  gap: 12px;
-  padding: 12px 16px 25px 16px;
-  background: linear-gradient(180deg, rgba(248, 249, 250, 0) 0%, rgba(248, 249, 250, 0.95) 24%, #F8F9FA 100%);
-  pointer-events: auto;
-  box-sizing: border-box;
-}
 
 /* 左侧圆形返回按钮 */
-.search-back-circle-btn {
-  /* 真机 44（与胶囊同高） */
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: #FFFFFF;
-  border: 0.5px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex: none;
-  outline: none;
-  transition: transform 0.15s ease, background 0.15s ease;
-}
 
-.search-back-circle-btn:active {
-  transform: scale(0.92);
-  background: #F2F2F7;
-}
 
 /* 右侧胶囊输入框容器 */
-.search-capsule-input-wrap {
-  flex: 1;
-  /* 真机 44 高、圆角 22（原来是 48/24，比首页搜索框大一圈） */
-  height: 44px;
-  border-radius: 22px;
-  background: #FFFFFF;
-  border: 0.5px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  gap: 10px;
-  box-sizing: border-box;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
 
-.search-capsule-input-wrap:focus-within {
-  border-color: rgba(0, 0, 0, 0.12);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-}
 
-.capsule-search-icon {
-  flex: none;
-}
 
-.capsule-real-input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 16px;
-  color: #1C1C1E;
-  font-family: inherit;
-  padding: 0;
-}
 
-.capsule-real-input::placeholder {
-  color: #8E8E93;
-}
 
-.capsule-clear-btn {
-  background: transparent;
-  border: none;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border-radius: 50%;
-}
 
-.capsule-clear-btn:active {
-  opacity: 0.7;
-}
 </style>

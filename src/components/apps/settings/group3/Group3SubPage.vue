@@ -4,7 +4,7 @@ import SubPageShell from '../subpage/SubPageShell.vue'
 import ListCell from '../../../ui/ListCell.vue'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 import LIcon from '../../../ui/LIcon.vue'
-import SettingsSearchBar from '../../../ui/SettingsSearchBar.vue'
+import SettingsSearchDock from '../../../ui/SettingsSearchDock.vue'
 import AppIcon from '../../../ui/AppIcon.vue'
 import { getGroup3Page } from './pages.js'
 import { useSettingsGroup3Store } from '../../../../stores/settingsGroup3Store.js'
@@ -35,6 +35,12 @@ const title = computed(() => {
   return props.titleOverride || page.value?.title || '设置'
 })
 const query = ref('')
+const searchActive = ref(false)
+
+function closeSearch() {
+  query.value = ''
+  searchActive.value = false
+}
 const tipDismissed = ref(false)
 
 /* 配置里的图标名 → LUCIDE 的 camelCase 键（只认 lucide.js 里真实存在的键） */
@@ -421,11 +427,18 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
       </div>
     </template>
 
-    <!-- 统一控件：与设置首页同一个 SettingsSearchBar，位置/渐隐参数也完全一致 -->
+    <!-- 全仓标准搜索 Dock：点击后隐藏麦克风、出现圆形返回按钮 -->
     <template #bottom>
-      <div v-if="page?.search" class="g3-floating-search">
-        <SettingsSearchBar v-model="query" placeholder="搜索" @clear="query = ''" />
-      </div>
+      <SettingsSearchDock
+        v-if="page?.search"
+        v-model="query"
+        :active="searchActive"
+        placeholder="搜索"
+        fade-color="#F0F1F2"
+        @activate="searchActive = true"
+        @back="closeSearch"
+        @clear="query = ''"
+      />
     </template>
   </SubPageShell>
 </template>
@@ -552,31 +565,6 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
    ⚠️ 参数逐项对齐 SettingsApp.vue 的 .settings-floating-search（真机实测）：
    左右 27 / 离屏底 25 / 高 44（在 SettingsSearchBar 内）/ 底部渐隐遮罩。
    有单测守卫比对两处数值，改一边不改进另一边会立刻红。 */
-.g3-floating-search {
-  position: absolute;
-  bottom: 25px;
-  left: 27px;
-  right: 27px;
-  z-index: 10;
-  pointer-events: auto;
-}
-.g3-floating-search::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  left: -27px;
-  right: -27px;
-  top: -34px;
-  bottom: -25px;
-  background: linear-gradient(
-    to bottom,
-    rgba(240, 241, 242, 0) 0%,
-    rgba(240, 241, 242, 0.88) 38%,
-    #F0F1F2 68%,
-    #F0F1F2 100%
-  );
-  pointer-events: none;
-}
 .g3-search-spacer {
   height: 92px;
   width: 100%;

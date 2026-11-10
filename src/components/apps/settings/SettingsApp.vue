@@ -8,7 +8,7 @@ import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { SETTINGS_TITLES } from '../../../config/settingsTitles'
-import SettingsSearchBar from '../../ui/SettingsSearchBar.vue'
+import SettingsSearchDock from '../../ui/SettingsSearchDock.vue'
 import SettingsSystemIcon from '../../ui/SettingsSystemIcon.vue'
 import SettingsNotifications from './SettingsNotifications.vue'
 import SettingsSound from './SettingsSound.vue'
@@ -671,15 +671,14 @@ const filteredSearchResults = computed(() => {
           <div class="scroll-bottom-spacer"></div>
         </div>
 
-        <!-- ================= 底部悬浮搜索栏控件 ================= -->
-        <div class="settings-floating-search" @click="push('search')">
-          <SettingsSearchBar
-            v-model="searchQuery"
-            placeholder="搜索"
-            @focus="push('search')"
-            @clear="searchQuery = ''"
-          />
-        </div>
+        <!-- ================= 底部悬浮搜索栏（全仓标准控件） ================= -->
+        <SettingsSearchDock
+          v-model="searchQuery"
+          :active="false"
+          fade-color="#F0F1F2"
+          @activate="push('search')"
+          @clear="searchQuery = ''"
+        />
       </div>
 
       <!-- ================= 设置搜索界面（参考图 1 与图 2） ================= -->

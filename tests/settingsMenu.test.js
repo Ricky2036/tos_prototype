@@ -69,8 +69,8 @@ test('SettingsApp includes floating search bar and standardized card styling', (
   const content = fs.readFileSync(SETTINGS_APP_PATH, 'utf-8')
 
   // Floating search bar widget integration
-  assert.match(content, /SettingsSearchBar/, 'Should mount SettingsSearchBar component')
-  assert.match(content, /settings-floating-search/, 'Should have floating container for search bar')
+  assert.match(content, /<SettingsSearchDock\b/, 'Should mount the standard search Dock')
+  assert.match(content, /@activate="push\('search'\)"/, 'Dock click should open full search view')
   assert.match(content, /scroll-bottom-spacer/, 'Should include scroll spacer to prevent content cutoff')
   // 大标题：2026-10-12 起**拆到通用件**（`composables/useLargeTitle.js` + `ui/LargeTitleHeader.vue`），
   // 设置页只负责「接线」。所以这里断言的是**接线**；曲线数值由 tests/largeTitle.test.js 守。
@@ -104,7 +104,8 @@ test('SettingsApp includes floating search bar and standardized card styling', (
   )
   assert.doesNotMatch(body, /position:\s*sticky/, 'Settings must not style the sticky bar itself (shared component owns it)')
   assert.match(body, /@scroll\.passive="onTitleScroll"/, 'Settings home should track native scrolling')
-  assert.match(content, /settings-floating-search::before/, 'Floating search should mask content scrolling behind it')
+  const dockSrc = fs.readFileSync(path.resolve('src/components/ui/SettingsSearchDock.vue'), 'utf-8')
+  assert.match(dockSrc, /\.sfd\.is-idle::before/, 'Dock must mask content scrolling behind it')
   const largeTitleHeader = fs.readFileSync(path.resolve('src/components/ui/LargeTitleHeader.vue'), 'utf-8')
   assert.match(
     largeTitleHeader,
@@ -128,7 +129,7 @@ test('SettingsSearchBar component provides search magnifying glass and microphon
   assert.match(content, /microphoneIcon/, 'Should use the exported Figma microphone asset')
   assert.ok(fs.existsSync(MICROPHONE_ICON_PATH), 'Exported Figma microphone SVG should exist')
   assert.match(fs.readFileSync(MICROPHONE_ICON_PATH, 'utf-8'), /^<svg\b/, 'Microphone asset should be a real SVG')
-  assert.match(content, /btn-clear/, 'Should render clear button when input has value')
+  assert.match(content, /SearchClearButton/, 'Should use the shared deep-gray circle clear button')
   assert.match(content, /border-radius:\s*22px/, 'Search bar radius should be half of the 44px height')
   // 毛玻璃：半透明白 + 背景模糊（Ricky 2026-11-06 明确要求）
   assert.match(content, /background:\s*rgba\(255, 255, 255, 0\.7/, 'Search bar should be translucent white')
@@ -163,19 +164,19 @@ test('Settings home uses the exported Figma system icon set', () => {
 })
 
 test('点击搜索后的底部栏与首页搜索框同一规格（44 高 / 22 圆角 / 左右 16 / 离底 25）', () => {
-  const src = fs.readFileSync(path.resolve('src/components/apps/settings/SettingsSearch.vue'), 'utf-8')
+  const src = fs.readFileSync(path.resolve('src/components/ui/SettingsSearchDock.vue'), 'utf-8')
 
   // 返回圆钮与输入胶囊必须同高 44（原来 48，比首页搜索框大一圈）
-  const btn = src.slice(src.indexOf('.search-back-circle-btn {'), src.indexOf('.search-back-circle-btn:active'))
+  const btn = src.slice(src.indexOf('.sfd-back {'), src.indexOf('.sfd-back:active'))
   assert.match(btn, /width:\s*44px/, 'back circle should be 44px')
   assert.match(btn, /height:\s*44px/, 'back circle should be 44px tall')
 
-  const cap = src.slice(src.indexOf('.search-capsule-input-wrap {'), src.indexOf('.search-input'))
+  const cap = src.slice(src.indexOf('.sfd-capsule {'), src.indexOf('.sfd-capsule:focus-within'))
   assert.match(cap, /height:\s*44px/, 'input capsule should be 44px tall')
   assert.match(cap, /border-radius:\s*22px/, 'input capsule radius should be 22px')
 
-  // 底部栏留白：左右 16、离底 25
-  const bar = src.slice(src.indexOf('.search-bottom-bar {'), src.indexOf('.search-back-circle-btn {'))
+  // 激活态栏：左右 16、离底 25、间距 12
+  const bar = src.slice(src.indexOf('.sfd.is-active {'), src.indexOf('.sfd-back {'))
   assert.match(bar, /padding:\s*12px 16px 25px 16px/, 'bottom bar should use 16/25 paddings')
   assert.match(bar, /gap:\s*12px/, 'gap between back button and capsule should be 12px (measured)')
 })

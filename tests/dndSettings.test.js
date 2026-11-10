@@ -109,7 +109,7 @@ test('三个子页 / 弹层组件齐全，且复用全仓统一控件', () => {
   assert.match(sched, /pick-repeat/)
 
   const apps = strip(read('src/components/apps/settings/dnd/DndAppsPage.vue'))
-  assert.match(apps, /SettingsSearchBar/)
+  assert.match(apps, /SettingsSearchDock/, '搜索统一走标准 Dock')
   assert.match(apps, /#bottom/)
   assert.match(apps, /RegisteredAppList/, '应用清单必须走公共组件')
   assert.match(apps, /@row-click="store\.toggleApp/, '整行点击要能切开关')

@@ -264,40 +264,39 @@ test('应用列表直接读桌面注册表，不再硬编码应用名与假图�
   assert.match(desktop, /app\.special === 'clock'/)
 })
 
-test('应用列表搜索栏用首页同一个 SettingsSearchBar，且外壳提供 bottom 插槽', () => {
+test('应用列表搜索控件统一走全仓标准 Dock，且外壳提供 bottom 插槽', () => {
   const src = stripComments(read(RENDERER))
-  assert.match(src, /import SettingsSearchBar from '\.\.\/\.\.\/\.\.\/ui\/SettingsSearchBar\.vue'/)
-  assert.match(src, /<SettingsSearchBar\s+v-model="query"/)
+  assert.match(src, /import SettingsSearchDock from '\.\.\/\.\.\/\.\.\/ui\/SettingsSearchDock\.vue'/)
+  assert.match(src, /<SettingsSearchDock\s+v-if="page\?\.search"/)
+  assert.match(src, /:active="searchActive"/, '点击后进入激活态')
+  assert.match(src, /@activate="searchActive = true"/)
+  assert.match(src, /@back="closeSearch"/)
   assert.match(src, /<template #bottom>/)
-  assert.doesNotMatch(src, /class="g3-search"/, '自绘搜索框已废弃')
+  assert.doesNotMatch(src, /class="g3-search"|g3-floating-search/, '自绘搜索框已废弃')
   assert.doesNotMatch(src, /position:\s*sticky/, '搜索栏不能 sticky 在内容流里')
   const shell = stripComments(read('src/components/apps/settings/subpage/SubPageShell.vue'))
   assert.match(shell, /<slot name="bottom"><\/slot>/)
 })
 
-test('两处搜索栏定位参数完全一致（左右 27 / 离底 25 / 渐隐遮罩）', () => {
-  const home = stripComments(read('src/components/apps/settings/SettingsApp.vue'))
+test('Dock 两态参数单点定义且与真机一致（27/16/25、44/22、间距 12）', () => {
+  const dock = stripComments(read('src/components/ui/SettingsSearchDock.vue'))
+  assert.match(dock, /\.sfd\.is-idle \{[^}]*left: 27px;[\s\S]*?bottom: 25px;/)
+  assert.match(dock, /\.sfd\.is-active \{[^}]*gap: 12px;[\s\S]*?padding: 12px 16px 25px 16px;/)
+  assert.match(dock, /\.sfd-back \{[^}]*width: 44px;/)
+  assert.match(dock, /\.sfd-capsule \{[^}]*height: 44px;[\s\S]*?border-radius: 22px;/)
+  assert.match(dock, /\.sfd\.is-idle::before \{[\s\S]*?left: -27px;/, '底部渐隐遮罩')
   const sub = stripComments(read(RENDERER))
-  const a = dockDecls(home, 'settings-floating-search')
-  const b = dockDecls(sub, 'g3-floating-search')
-  assert.deepEqual(b, a, '应用列表与首页的悬浮搜索栏定位必须一致')
-  assert.equal(a.bottom, 25)
-  assert.equal(a.left, 27)
-  assert.equal(a.right, 27)
   assert.match(sub, /\.g3-search-spacer\s*\{[\s\S]*?height:\s*92px/, '底部留白要能滚过搜索栏')
-  for (const decl of ['left: -27px', 'right: -27px', 'top: -34px', 'bottom: -25px']) {
-    const re = new RegExp(decl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    assert.match(home, re)
-    assert.match(sub, re)
-  }
 })
 
-test('定位守卫有牙齿：把应用列表的 bottom 改掉必须立刻红', () => {
-  const home = stripComments(read('src/components/apps/settings/SettingsApp.vue'))
-  const sub = stripComments(read(RENDERER))
-  assert.deepEqual(dockDecls(sub, 'g3-floating-search'), dockDecls(home, 'settings-floating-search'))
-  const broken = sub.replace('bottom: 25px;', 'bottom: 8px;')
-  assert.notDeepEqual(dockDecls(broken, 'g3-floating-search'), dockDecls(home, 'settings-floating-search'))
+test('搜索 Dock 守卫有牙齿：改掉 idle 的 bottom / 去掉返回按钮都要报红', () => {
+  const dock = stripComments(read('src/components/ui/SettingsSearchDock.vue'))
+  const idleRe = /\.sfd\.is-idle \{[^}]*bottom: 25px;/
+  assert.match(dock, idleRe)
+  const broken = dock.replace('  bottom: 25px;\n}\n.sfd.is-idle::before', '  bottom: 8px;\n}\n.sfd.is-idle::before')
+  assert.doesNotMatch(broken, idleRe)
+  assert.match(dock, /data-sfd-back/)
+  assert.doesNotMatch(dock.replace('data-sfd-back', 'data-gone'), /data-sfd-back/)
 })
 
 /* ==================== 应用管理三级/四级页：真机形态 ==================== */

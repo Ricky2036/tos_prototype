@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import microphoneIcon from '../../assets/icons/settings/microphone.svg'
+import SearchClearButton from './SearchClearButton.vue'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -47,12 +48,7 @@ defineExpose({ focus, inputRef })
     </div>
 
     <div class="search-right">
-      <button v-if="modelValue" type="button" class="btn-clear" aria-label="清空" @click.stop="clear">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </button>
+      <SearchClearButton v-if="modelValue" @click="clear" />
       <div v-else class="mic-icon-wrap" title="语音搜索">
         <img class="mic-icon" :src="microphoneIcon" width="20" height="20" alt="" aria-hidden="true" draggable="false" />
       </div>
@@ -123,26 +119,7 @@ defineExpose({ focus, inputRef })
   flex: none;
 }
 
-.btn-clear {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #E5E5EA;
-  color: #8E8E93;
-  border: none;
-  outline: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0;
-  transition: background 0.15s ease, color 0.15s ease;
-}
 
-.btn-clear:hover {
-  background: #D1D1D6;
-  color: #3C3C43;
-}
 
 .mic-icon-wrap {
   display: flex;

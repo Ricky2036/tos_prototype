@@ -124,7 +124,14 @@ const SUITES = [
       'src/composables/useRegisteredApps.js',
       'src/components/ui/RegisteredAppList.vue',
       'src/components/ui/RegisteredAppIcon.vue',
-      'tests/registeredAppList.test.js'
+      'src/components/ui/SettingsSearchDock.vue',
+      'src/components/ui/SearchClearButton.vue',
+      'src/components/ui/SearchEmptyState.vue',
+      'src/components/apps/settings/SettingsSearch.vue',
+      'tests/registeredAppList.test.js',
+      'tests/settingsSearchDock.test.js',
+      'tests/settingsMenu.test.js',
+      'tests/settingsSearch.test.js'
     ]
   },
   {
@@ -150,7 +157,14 @@ const SUITES = [
       'src/composables/useRegisteredApps.js',
       'src/components/ui/RegisteredAppList.vue',
       'src/components/ui/RegisteredAppIcon.vue',
-      'tests/registeredAppList.test.js'
+      'src/components/ui/SettingsSearchDock.vue',
+      'src/components/ui/SearchClearButton.vue',
+      'src/components/ui/SearchEmptyState.vue',
+      'src/components/apps/settings/SettingsSearch.vue',
+      'tests/registeredAppList.test.js',
+      'tests/settingsSearchDock.test.js',
+      'tests/settingsMenu.test.js',
+      'tests/settingsSearch.test.js'
     ]
   },
   {

@@ -229,12 +229,30 @@ async function run() {
   const swAfter = await page.locator('.sub-shell .toggle-switch').first().getAttribute('aria-checked')
   check('D 应用提醒：点整行可切开关', swBefore !== swAfter, `${swBefore} → ${swAfter}`)
 
-  // 搜索过滤
-  await page.locator('.sub-shell .search-input').fill('微信')
+  // 搜索：点击 → 隐藏麦克风 / 出现返回按钮 → 输入 → 清除按钮 / 空态 → 返回
+  await page.locator('[data-sfd-idle]').click()
+  await page.waitForTimeout(350)
+  check('D 应用提醒：点击后出现圆形返回按钮', (await visibleCount(page, '[data-sfd-back]')) === 1)
+  check('D 应用提醒：激活后麦克风隐藏', (await visibleCount(page, '.mic-icon')) === 0)
+  await page.locator('.sfd-input').fill('微信')
   await page.waitForTimeout(250)
+  check('D 应用提醒：输入后出现清除按钮', (await visibleCount(page, '[data-sfd-clear]')) === 1)
+  const clearShape = await page.evaluate(() => {
+    const c = document.querySelector('[data-sfd-clear] svg circle')
+    const p = document.querySelector('[data-sfd-clear] svg path')
+    return Boolean(c && p && c.getAttribute('fill') === '#8E8E93' && p.getAttribute('stroke') === '#FFFFFF')
+  })
+  check('D 应用提醒：清除按钮是深灰实心圆白叉', clearShape)
   check('D 应用提醒：搜索过滤生效', (await visibleCount(page, '[data-registered-app-list] .list-cell')) === 1)
-  await page.locator('.sub-shell .search-input').fill('')
+  await page.locator('.sfd-input').fill('zzzzq')
   await page.waitForTimeout(250)
+  check('D 应用提醒：无结果显示真机插画空态', (await visibleCount(page, '[data-search-empty]')) === 1)
+  check('D 应用提醒：空态文案正确',
+    (await page.locator('[data-search-empty]').first().textContent().catch(() => ''))?.includes('暂无结果，试试其他关键词') === true)
+  await shot(page, '09_apps_search_empty')
+  await page.locator('[data-sfd-back]').click()
+  await page.waitForTimeout(350)
+  check('D 应用提醒：返回后恢复麦克风', (await visibleCount(page, '.mic-icon')) === 1)
 
   await page.locator('.sub-shell [data-nav-back]').first().click()
   await page.waitForTimeout(450)
