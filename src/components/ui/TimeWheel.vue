@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, watch, onBeforeUnmount } from 'vue'
+import { computed, reactive, watch, onMounted, onBeforeUnmount } from 'vue'
 import { pad2, parseTimeValue, to12Hour, to24Hour, toTimeString } from '../../utils/timePicker.js'
 
 /**
@@ -81,10 +81,16 @@ const PALETTES = {
   dark: { center: [255, 255, 255], near: [152, 152, 159], far: [72, 72, 74] }
 }
 function mix(a, b, t) { return a.map((v, i) => Math.round(v + (b[i] - v) * t)) }
+/** 「唯一高亮」权重：离中心 0.6 行内衰减到相邻灰，半行时两行都不会同时接近黑 */
+function focusAt(distance) {
+  return 1 - Math.min(1, Math.abs(distance) / 0.6)
+}
 function colorAt(distance) {
   const p = PALETTES[props.tone] || PALETTES.light
-  const d = Math.abs(distance)
-  const rgb = d <= 1 ? mix(p.center, p.near, d) : mix(p.near, p.far, Math.min(1, d - 1))
+  const a = Math.abs(distance)
+  const rgb = a <= 1
+    ? mix(p.near, p.center, focusAt(a))
+    : mix(p.far, p.near, Math.max(0, 2 - a))
   return `rgb(${rgb.join(',')})`
 }
 
@@ -93,7 +99,9 @@ function slotStyle(col, slot) {
   const phase = c.offset - Math.round(c.offset)
   const d = slot - phase
   const a = Math.abs(d)
-  const scale = Math.max(0.5, 1 - Math.min(a, 3) * 0.24)
+  const scale = a <= 1
+    ? 0.76 + 0.24 * focusAt(a)
+    : Math.max(0.5, 0.52 + 0.24 * Math.max(0, 2 - a))
   return {
     transform: `translate3d(0, ${(d * ROW_H).toFixed(2)}px, 0) scale(${scale.toFixed(3)})`,
     color: colorAt(d),
@@ -126,6 +134,13 @@ function tick(now) {
       c.animating = false
     } else {
       active = true
+    }
+  }
+  if (!active) {
+    // 静止兜底：任何异常路径下都不允许停在半行（高亮数字必须处于中间）
+    for (const col of columns.value) {
+      const c = cols[col]
+      if (!c.dragging) c.offset = Math.round(c.offset)
     }
   }
   rafId = active ? requestAnimationFrame(tick) : 0
@@ -190,7 +205,24 @@ function onWheel(col, e) {
   e.preventDefault()
   animateTo(col, Math.round(cols[col].offset) + (e.deltaY > 0 ? 1 : -1))
 }
-onBeforeUnmount(() => { if (rafId) cancelAnimationFrame(rafId) })
+function onGlobalPointerUp() {
+  for (const col of columns.value) {
+    const c = cols[col]
+    if (!c.dragging) continue
+    c.dragging = false
+    const lookAhead = Math.max(-6, Math.min(6, c.v * LOOK_AHEAD_MS))
+    animateTo(col, Math.round(c.offset + lookAhead))
+  }
+}
+onMounted(() => {
+  window.addEventListener('pointerup', onGlobalPointerUp)
+  window.addEventListener('pointercancel', onGlobalPointerUp)
+})
+onBeforeUnmount(() => {
+  if (rafId) cancelAnimationFrame(rafId)
+  window.removeEventListener('pointerup', onGlobalPointerUp)
+  window.removeEventListener('pointercancel', onGlobalPointerUp)
+})
 defineExpose({ cols, ROW_H, currentValue })
 </script>
 

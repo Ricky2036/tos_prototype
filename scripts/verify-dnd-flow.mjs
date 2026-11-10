@@ -37,6 +37,23 @@ async function visibleCount(page, selector) {
   }).length, selector)
 }
 
+async function wheelHighlight(page) {
+  return page.evaluate(() => {
+    const out = {}
+    for (const col of ['hour', 'minute', 'period']) {
+      const root = document.querySelector(`[data-wheel-col="${col}"]`)
+      if (!root) continue
+      out[col] = [...root.querySelectorAll('.tw-slot')].map(el => {
+        const m = getComputedStyle(el).transform.match(
+          /matrix\(([-\d.]+),\s*([-\d.]+),\s*([-\d.]+),\s*([-\d.]+),\s*([-\d.]+),\s*([-\d.]+)\)/
+        )
+        return { scale: m ? Number(m[1]) : 0, ty: m ? Number(m[6]) : 999, text: el.textContent.trim() }
+      }).filter(x => x.text)
+    }
+    return out
+  })
+}
+
 async function clickRow(page, scope, text) {
   await page.locator(`${scope} .lc-title`, { hasText: text }).first().click({ timeout: 5000 })
   await page.waitForTimeout(380)
@@ -128,6 +145,9 @@ async function run() {
   }
   const t1 = await transformNow()
   check('B 跟手移动：拖拽中数字 transform 实时变化', t0 !== t1, `${t0} → ${t1}`)
+  const during = await wheelHighlight(page)
+  const duringHi = Object.values(during).map(list => list.filter(x => x.scale >= 0.95).length)
+  check('B 不能同时高亮两个时间（拖拽中每列 ≤1 个高亮）', duringHi.every(n => n <= 1), JSON.stringify(duringHi))
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
   await page.waitForTimeout(90)
   const atRelease = (await textOf(page, '[data-tps-current]')).trim()
@@ -137,6 +157,12 @@ async function run() {
   const t2 = await transformNow()
   const dy = Number((t2.match(/matrix\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+,\s*([-\d.]+)\)/) || [])[1] ?? 999)
   check('B 动画收敛：最终停在整数行', Math.abs(dy) < 1, t2)
+  const settledHi = await wheelHighlight(page)
+  const centered = Object.values(settledHi).every(list => {
+    const hi = list.filter(x => x.scale >= 0.95)
+    return hi.length === 1 && Math.abs(hi[0].ty) < 1
+  })
+  check('B 松手后每列恰好 1 个高亮且处于中间', centered, JSON.stringify(settledHi))
 
   await page.locator('[data-tps-confirm]').click()
   await page.waitForTimeout(350)

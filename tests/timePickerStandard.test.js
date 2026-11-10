@@ -74,6 +74,10 @@ test('TimeWheel：三列滚轮、灰度字号分层、触摸与鼠标滚轮、li
   assert.match(src, /pointerdown[\s\S]*pointermove[\s\S]*pointerup/, 'Pointer Events 覆盖鼠标与真机触摸')
   assert.doesNotMatch(src, /aria-label="小时加一"/, '真机是滚轮，不是上下步进按钮')
   assert.doesNotMatch(src, /height: 46px/, '旧行高 46px 会让整卡偏高')
+  assert.match(src, /focusAt\(/, '唯一高亮锐化：半行时不允许两行并列接近黑')
+  assert.match(src, /\/ 0\.6/, '焦点窗口 0.6 行')
+  assert.match(src, /onGlobalPointerUp[\s\S]*window\.addEventListener\('pointerup'/, '全局 pointerup 兜底，防 dragging 残留')
+  assert.match(src, /if \(!active\)[\s\S]*Math\.round\(c\.offset\)/, '静止强制吸附到整数行')
 })
 
 test('三处调用方统一到标准控件，旧深色实现已退场', () => {
@@ -111,6 +115,8 @@ test('守卫有牙齿：删掉 TimeWheel 的触摸处理 / 换回深色必须报
   assert.match(src, /pointermove/)
   assert.doesNotMatch(src.replace(/pointermove/g, 'noopEvent'), /pointermove/)
   assert.match(src, /ROW_H = 35/)
+  assert.match(src, /focusAt\(/)
+  assert.doesNotMatch(src.replace('focusAt(a)', '0'), /mix\(p\.near, p\.center, focusAt/, '去掉锐化后守卫必须报红')
   const sheet = strip(read(SHEET))
   assert.doesNotMatch(sheet, /#1c1c1e/i)
   assert.match(sheet.replace('#FFFFFF', '#1c1c1e'), /#1c1c1e/i)
