@@ -215,3 +215,4 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Phone settings reuse secondary menu loading animation, recents follow-finger swipe with anti-misdial, keypad drag handle bar & smooth collapse | `antigravity/lane` | None (locks released) | `079818f` | `7953fda` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
+| Active | Workbuddy | 勿扰模式死操作补齐（定时开启三级页 + 时间/重复弹层、来电提醒单选弹层、应用提醒三级页），真机 Infinix X6878 取证对齐；新增 dnd store / 4 个子组件 / 单测 / e2e；`SettingsApp.vue` 仅加 dnd 返回分支 | `workbuddy/lane` | `src/components/apps/settings/SettingsDND.vue`; `src/components/apps/settings/dnd/**`; `src/stores/dndSettingsStore.js`; `src/components/apps/settings/SettingsApp.vue`（dnd ref/back 分支）; `src/locales/messages.js`（中文文案）; `tests/dndSettings.test.js`; `scripts/verify-dnd-flow.mjs` | `261e59f` | pending |

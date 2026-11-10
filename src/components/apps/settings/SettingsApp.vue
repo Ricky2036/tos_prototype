@@ -140,6 +140,7 @@ function pop() {
 
 /* 全局侧滑返回：子页 → 首页逐层消费 */
 const notifRef = ref(null)
+const dndRef = ref(null)
 const prayerRef = ref(null)
 const personalizationRef = ref(null)
 const aboutPhoneRef = ref(null)
@@ -175,6 +176,7 @@ useBackHandler(() => {
   if (view.value === 'privacy' && privacyRef.value?.back?.()) return true
   if (view.value === 'appsManage' && appsManageRef.value?.back?.()) return true
   if (view.value === 'location' && locationRef.value?.back?.()) return true
+  if (view.value === 'dnd' && dndRef.value?.back?.()) return true
   if (view.value === 'accessibility' && accessibilityRef.value?.back?.()) return true
   if (view.value === 'display' && displayRef.value?.back?.()) return true
   if (view.value === 'sound' && soundRef.value?.back?.()) return true
@@ -696,7 +698,7 @@ const filteredSearchResults = computed(() => {
 
       <!-- ================= 勿扰模式 (含礼拜模式入口) ================= -->
       <div v-else-if="view === 'dnd'" key="dnd" class="settings-page">
-        <SettingsDND @back="pop" @open-prayer="push('prayer')" />
+        <SettingsDND ref="dndRef" @back="pop" @open-prayer="push('prayer')" />
       </div>
 
       <!-- ================= 礼拜模式 ================= -->

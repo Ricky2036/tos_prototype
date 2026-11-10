@@ -124,6 +124,19 @@ const SUITES = [
     ]
   },
   {
+    id: 'dnd',
+    script: 'verify-dnd-flow.mjs',
+    covers: [
+      'src/components/apps/settings/SettingsDND.vue',
+      'src/components/apps/settings/dnd/',
+      'src/components/apps/settings/SettingsSound.vue',
+      'src/components/apps/settings/SettingsApp.vue',
+      'src/stores/dndSettingsStore.js',
+      'src/locales/messages.js',
+      'tests/dndSettings.test.js'
+    ]
+  },
+  {
     id: 'phone',
     script: 'verify-phone-flow.mjs',
     covers: [
