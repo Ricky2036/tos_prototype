@@ -15,6 +15,8 @@ const emit = defineEmits(['back'])
 const store = useDndSettingsStore()
 const query = ref('')
 const searchActive = ref(false)
+// 搜索无结果时卡片上方的说明也要一起消失（真机如此，否则页面自相矛盾）
+const hasResults = ref(true)
 
 function closeSearch() {
   query.value = ''
@@ -28,9 +30,13 @@ function isAllowed(appId) {
 
 <template>
   <SubPageShell title="应用提醒" @back="emit('back')">
-    <div class="card-note">开关开启的应用会在勿扰模式期间正常提醒。</div>
+    <div v-if="hasResults" class="card-note">开关开启的应用会在勿扰模式期间正常提醒。</div>
 
-    <RegisteredAppList :query="query" @row-click="store.toggleApp($event.id)">
+    <RegisteredAppList
+      :query="query"
+      @results="hasResults = $event > 0"
+      @row-click="store.toggleApp($event.id)"
+    >
       <template #right="{ app }">
         <ToggleSwitch
           color="blue"

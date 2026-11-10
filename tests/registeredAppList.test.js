@@ -98,6 +98,26 @@ test('设置目录下不允许再出现新的「应用清单常量」或首字�
   assert.deepEqual(offenders, [], offenders.join('\n'))
 })
 
+test('无结果时调用方的说明文字要一起消失（真机只留插画空态）', () => {
+  const list = strip(read(LIST))
+  assert.match(list, /defineEmits\(\['row-click', 'results'\]\)/, '要把过滤后剩几条报给调用方')
+  assert.match(list, /watch\(\(\) => visible\.value\.length, n => emit\('results', n\), \{ immediate: true \}\)/,
+    '挂载即上报一次，调用方不用自己算过滤')
+
+  const dnd = strip(read('src/components/apps/settings/dnd/DndAppsPage.vue'))
+  assert.match(dnd, /<div v-if="hasResults" class="card-note">/, '应用提醒的说明要跟着结果条数走')
+  assert.match(dnd, /@results="hasResults = \$event > 0"/)
+  assert.doesNotMatch(dnd, /^\s*<div class="card-note">/m, '⛔ 说明不许无条件渲染')
+
+  const g3 = strip(read('src/components/apps/settings/group3/Group3SubPage.vue'))
+  assert.match(g3, /v-if="noteFor\(sec\) && \(!query\.trim\(\) \|\| filteredRows\(sec\)\.length\)"/,
+    '应用列表的说明同规则：搜索无结果时隐藏')
+
+  // 牙齿：把 v-if 拿掉必须立刻被抓住
+  const broken = dnd.replace('v-if="hasResults" class="card-note"', 'class="card-note"')
+  assert.doesNotMatch(broken, /<div v-if="hasResults" class="card-note">/, '牙齿：说明变回无条件渲染')
+})
+
 test('守卫有牙齿：把公共列表的默认数据源换掉 / 塞回色块都要报红', () => {
   const src = strip(read(LIST))
   assert.match(src, /getRegisteredApps\(\)/)

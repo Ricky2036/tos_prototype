@@ -420,7 +420,7 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
             v-if="page.search && query.trim() && !filteredRows(sec).length"
             text="没有搜索到结果"
           />
-          <div v-if="noteFor(sec)" class="card-note">{{ noteFor(sec) }}</div>
+          <div v-if="noteFor(sec) && (!query.trim() || filteredRows(sec).length)" class="card-note">{{ noteFor(sec) }}</div>
         </template>
       </template>
 

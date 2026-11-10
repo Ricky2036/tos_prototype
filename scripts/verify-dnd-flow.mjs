@@ -215,6 +215,7 @@ async function run() {
     (await visibleCount(page, '[data-registered-app-icon]')) === (await visibleCount(page, '[data-registered-app-list] .list-cell')))
   check('D 应用提醒：不再有首字色块假图标', (await visibleCount(page, '.is-fallback, .g3-app-icon')) === 0)
   check('D 应用提醒：统一悬浮搜索框', (await visibleCount(page, '.sub-shell .settings-search-bar')) === 1)
+  check('D 应用提醒：有结果时说明文字在', (await visibleCount(page, '.sub-shell .card-note')) === 1)
   const appsSubBefore = await page.evaluate(() => {
     const row = document.querySelector('[data-dnd-row="apps"]')
     return row ? (row.querySelector('.dc-sub')?.textContent || '').trim() : ''
@@ -249,6 +250,7 @@ async function run() {
   check('D 应用提醒：无结果显示真机插画空态', (await visibleCount(page, '[data-search-empty]')) === 1)
   check('D 应用提醒：空态文案正确',
     (await page.locator('[data-search-empty]').first().textContent().catch(() => ''))?.includes('没有搜索到结果') === true)
+  check('D 应用提醒：无结果时说明文字一起消失', (await visibleCount(page, '.sub-shell .card-note')) === 0)
 
   /* 空态居中：既要「外框」落在屏幕中线，也要「墨迹」落在自己外框的正中
      —— 真机 srch_04_committed 实测墨迹中心与页面中心差 0.5px，
@@ -312,6 +314,7 @@ async function run() {
   await page.locator('[data-sfd-back]').click()
   await page.waitForTimeout(350)
   check('D 应用提醒：返回后恢复麦克风', (await visibleCount(page, '.mic-icon')) === 1)
+  check('D 应用提醒：返回后说明文字回来', (await visibleCount(page, '.sub-shell .card-note')) === 1)
 
   await page.locator('.sub-shell [data-nav-back]').first().click()
   await page.waitForTimeout(450)

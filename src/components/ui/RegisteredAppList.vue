@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import ListCell from './ListCell.vue'
 import RegisteredAppIcon from './RegisteredAppIcon.vue'
 import SearchEmptyState from './SearchEmptyState.vue'
@@ -19,7 +19,7 @@ const props = defineProps({
   chevron: { type: Boolean, default: false },
   size: { type: Number, default: 36 }
 })
-const emit = defineEmits(['row-click'])
+const emit = defineEmits(['row-click', 'results'])
 
 const visible = computed(() => {
   const q = props.query.trim().toLowerCase()
@@ -27,6 +27,13 @@ const visible = computed(() => {
     ? props.apps.filter(a => a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
     : props.apps
 })
+
+/**
+ * 把「过滤后还剩几条」告诉调用方。
+ * 真机：搜索无结果时卡片上方的说明文字（如「开关开启的应用会在勿扰模式期间正常提醒。」）
+ * 也要一起消失，只留插画空态 —— 否则会出现「说明写着有应用、下面说没搜到」的自相矛盾。
+ */
+watch(() => visible.value.length, n => emit('results', n), { immediate: true })
 </script>
 
 <template>
