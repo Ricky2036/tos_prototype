@@ -46,7 +46,7 @@ function onCancel() {
 </script>
 
 <template>
-  <SheetModal :visible="visible" padding="18px 20px 20px" @close="onCancel">
+  <SheetModal :visible="visible" padding="16px 20px 18px" @close="onCancel">
     <div class="tps-title" data-tps-title>{{ title }}</div>
     <div class="tps-current" data-tps-current>{{ currentLabel }}</div>
 
@@ -67,22 +67,22 @@ function onCancel() {
 <style scoped>
 .tps-title {
   text-align: center;
-  font-size: 16px;
+  font-size: 15px;
   color: #8E8E93;
-  padding-bottom: 6px;
+  padding-bottom: 4px;
 }
 .tps-current {
   text-align: center;
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 700;
   color: #111111;
   font-variant-numeric: tabular-nums;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
 }
-.tps-actions { display: flex; gap: 12px; margin-top: 6px; }
+.tps-actions { display: flex; gap: 12px; margin-top: 4px; }
 .tps-actions button {
   flex: 1;
-  height: 48px;
+  height: 44px;
   border: none;
   border-radius: 24px;
   font-family: inherit;

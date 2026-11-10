@@ -100,28 +100,43 @@ async function run() {
   check('B 时间弹层为浅色（礼拜/勿扰共用）', panelBg === 'rgb(255, 255, 255)', panelBg)
   await shot(page, '03_start_time')
 
-  // 点击相邻项步进
+  // 量测契约：行距 35px × 5 行 = 175px，整卡明显低于旧版
+  const wheelH = await page.locator('[data-time-wheel]').evaluate(el => parseFloat(getComputedStyle(el).height))
+  const panelH = await page.locator('.sheet-panel').evaluate(el => parseFloat(getComputedStyle(el).height))
+  check('B 滚轮高度按真机量测 = 175px', Math.abs(wheelH - 175) < 1, String(wheelH))
+  check('B 整张时间卡不再过高（≤330px）', panelH <= 330, String(panelH))
+
+  // 点击相邻项 → 弹簧动画吸附到目标
   const beforeTime = (await textOf(page, '[data-tps-current]')).trim()
   await page.locator('[data-wheel-col="hour"] [data-offset="1"]').click()
-  await page.waitForTimeout(150)
+  await page.waitForTimeout(650)
   const afterTime = (await textOf(page, '[data-tps-current]')).trim()
-  check('B 开始时间：点相邻项可步进', beforeTime !== afterTime, `${beforeTime} → ${afterTime}`)
+  check('B 开始时间：点相邻项吸附到目标值', beforeTime !== afterTime, `${beforeTime} → ${afterTime}`)
 
-  // CDP 真机触摸滑动（红线：触摸手势必须留一条真实 touch 用例）
+  // CDP 真机触摸：跟手位移 + 松手惯性继承 + 收敛
   const cdp = await ctx.newCDPSession(page)
   const colBox = await page.locator('[data-wheel-col="minute"]').boundingBox()
   const cx = colBox.x + colBox.width / 2
   const cy = colBox.y + colBox.height / 2
-  const beforeTouch = (await textOf(page, '[data-tps-current]')).trim()
+  const slotSel = '[data-wheel-col="minute"] [data-offset="0"]'
+  const transformNow = () => page.locator(slotSel).evaluate(el => getComputedStyle(el).transform)
+  const t0 = await transformNow()
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: cy }] })
-  for (let i = 1; i <= 3; i += 1) {
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: cx, y: cy - i * 18 }] })
-    await page.waitForTimeout(30)
+  for (let i = 1; i <= 4; i += 1) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: cx, y: cy - i * 25 }] })
+    await page.waitForTimeout(25)
   }
+  const t1 = await transformNow()
+  check('B 跟手移动：拖拽中数字 transform 实时变化', t0 !== t1, `${t0} → ${t1}`)
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
-  await page.waitForTimeout(180)
-  const afterTouch = (await textOf(page, '[data-tps-current]')).trim()
-  check('B 开始时间：真机触摸滑动可步进', beforeTouch !== afterTouch, `${beforeTouch} → ${afterTouch}`)
+  await page.waitForTimeout(90)
+  const atRelease = (await textOf(page, '[data-tps-current]')).trim()
+  await page.waitForTimeout(750)
+  const settled = (await textOf(page, '[data-tps-current]')).trim()
+  check('B 惯性继承：松手后数字继续滚动', atRelease !== settled, `${atRelease} → ${settled}`)
+  const t2 = await transformNow()
+  const dy = Number((t2.match(/matrix\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+,\s*([-\d.]+)\)/) || [])[1] ?? 999)
+  check('B 动画收敛：最终停在整数行', Math.abs(dy) < 1, t2)
 
   await page.locator('[data-tps-confirm]').click()
   await page.waitForTimeout(350)

@@ -100,11 +100,11 @@ test('Standard TimeWheel provides three-column drum with light/dark tones', () =
   assert.ok(content.includes('data-time-wheel'), 'Must expose the standard wheel root')
   assert.ok(content.includes("['hour', 'minute', 'period']"), '12-hour mode has three columns incl. AM/PM')
   assert.ok(content.includes('hourMode'), 'Must support 24-hour mode for alarm editing')
-  assert.ok(content.includes('is-center'), 'Must define center row styling for active number')
-  assert.ok(content.includes('is-near'), 'Must define near row styling')
-  assert.ok(content.includes('is-far'), 'Must define far row styling')
-  assert.ok(content.includes('touchstart') && content.includes('touchmove'), 'Must support real-device touch dragging')
-  assert.ok(content.includes('--tw-center'), 'Tone must be driven by CSS variables (light/dark)')
+  assert.ok(content.includes('ROW_H = 35'), 'Must use measured 35px row height')
+  assert.ok(content.includes('translate3d') && content.includes('scale'), 'Digits must follow the finger and scale')
+  assert.ok(content.includes('SPRING_K') && content.includes('LOOK_AHEAD_MS'), 'Must carry flick velocity into inertia')
+  assert.ok(content.includes('pointerdown') && content.includes('pointermove'), 'Must support real-device touch dragging')
+  assert.ok(content.includes('PALETTES'), 'Tone must support light/dark palettes')
 
   // 兼容封装仍保留旧 API，但内部一律走标准滚轮
   const legacy = fs.readFileSync(path.resolve(__dirname, '../src/components/ui/WheelTimePicker.vue'), 'utf-8')
