@@ -1,7 +1,7 @@
 import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 
-const PORT = process.argv[2] || '1111'
+const PORT = process.argv[2] || '5555'
 const OUT = '/tmp/phone/e2e'
 mkdirSync(OUT, { recursive: true })
 

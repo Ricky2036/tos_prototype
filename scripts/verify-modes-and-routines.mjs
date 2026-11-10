@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const ARTIFACT_DIR = '/Users/jingzhan.chen/.gemini/antigravity/brain/c11570e0-ff2d-4b65-8ded-3a884497164f'
-const PORT = 1111
+const PORT = process.argv[2] || '5555'
 
 async function run() {
   const browser = await chromium.launch({
