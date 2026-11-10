@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import DhShell from './DhShell.vue'
 import DhOverflowMenu from './DhOverflowMenu.vue'
 import RegisteredAppIcon from '../../../ui/RegisteredAppIcon.vue'
-import { dhUsageRows, dhWeekBars, dhDonutSegments, formatDuration, DH_TOTAL_MINUTES, DH_WEEK_LABELS } from './dhData.js'
+import { dhUsageRows, dhWeekBars, dhDonutSegments, formatDuration, DH_TOTAL_MINUTES, DH_WEEK_LABELS, DH_SEG_COLORS } from './dhData.js'
 
 /**
  * 应用活动（真机主页「查看应用活动详情」进入的看板）。
@@ -25,8 +25,12 @@ const axis = computed(() => {
   const step = Math.max(1, Math.ceil(max / 3))
   return [step * 3, step * 2, step, 0]
 })
-/** 环形图四段 → 「微信 4小时35分钟 · 63%」的明细，放在图表下作图例 */
-const legend = computed(() => segs.map(s => ({ ...s, text: formatDuration(s.minutes) })))
+/** 环形图四段 → 「微信 4小时35分钟」的明细，颜色与主页环形图同源 */
+const legend = computed(() => segs.map((s, i) => ({
+  ...s,
+  text: formatDuration(s.minutes),
+  color: DH_SEG_COLORS[i % DH_SEG_COLORS.length]
+})))
 </script>
 
 <template>
@@ -58,7 +62,7 @@ const legend = computed(() => segs.map(s => ({ ...s, text: formatDuration(s.minu
     <!-- 分段明细 -->
     <div class="dh-legend" data-dh-activity-legend>
       <span v-for="s in legend" :key="s.key" class="dh-legend-item">
-        <i class="dh-legend-dot" :class="`is-${s.key}`"></i>
+        <i class="dh-legend-dot" :style="{ background: s.color }" :data-dh-legend="s.key"></i>
         <span class="dh-legend-name">{{ s.label }}</span>
         <span class="dh-legend-val">{{ s.text }}</span>
       </span>
@@ -127,7 +131,6 @@ const legend = computed(() => segs.map(s => ({ ...s, text: formatDuration(s.minu
 }
 .dh-legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #3C4043; }
 .dh-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: #4285F4; }
-.dh-legend-dot.is-other { background: #DADCE0; }
 .dh-legend-name { flex: 1; }
 .dh-legend-val { color: #5F6368; }
 

@@ -135,6 +135,19 @@ const SUITES = [
     ]
   },
   {
+    id: 'digital-health',
+    script: 'verify-digital-health.mjs',
+    covers: [
+      'src/components/apps/settings/digitalhealth/',
+      'src/stores/digitalHealthStore.js',
+      'src/components/apps/settings/SettingsApp.vue',
+      'src/components/ui/GlassNavBar.vue',
+      'src/components/ui/RegisteredAppIcon.vue',
+      'tests/digitalHealth.test.js',
+      'tests/settingsMenu.test.js'
+    ]
+  },
+  {
     id: 'dnd',
     script: 'verify-dnd-flow.mjs',
     covers: [

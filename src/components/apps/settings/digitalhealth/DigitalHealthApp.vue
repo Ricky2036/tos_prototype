@@ -14,7 +14,7 @@ import DhWalking from './DhWalking.vue'
 import DhParental from './DhParental.vue'
 import { useDigitalHealthStore } from '../../../../stores/digitalHealthStore.js'
 import {
-  DH_TOTAL_MINUTES, DH_UNLOCKS, DH_NOTIFICATIONS,
+  DH_TOTAL_MINUTES, DH_UNLOCKS, DH_NOTIFICATIONS, DH_SEG_COLORS,
   formatDuration, dhDonutSegments, dhUsageRows
 } from './dhData.js'
 
@@ -64,14 +64,12 @@ const R = 68
 const STROKE = 26
 const CENTER = SIZE / 2
 const CIRC = 2 * Math.PI * R
-/** 环段配色：真机主蓝 / 深灰 / 中灰 / 浅灰（第四段「其他」用浅灰） */
-const SEG_COLORS = ['#4285F4', '#5F6368', '#9AA0A6', '#DADCE0']
 
 const arcs = computed(() => {
   let acc = 0
   return donut.value.map((s, i) => {
     const len = (s.deg / 360) * CIRC
-    const arc = { ...s, len, offset: -acc, color: SEG_COLORS[i % SEG_COLORS.length] }
+    const arc = { ...s, len, offset: -acc, color: DH_SEG_COLORS[i % DH_SEG_COLORS.length] }
     acc += len
     return arc
   })
@@ -118,14 +116,14 @@ function showToast(msg) {
 <template>
   <div class="dh-app">
     <Transition :name="isBack ? 'slide-back' : 'slide'">
-      <DhAppLimits v-if="current === 'limits'" key="limits" @back="closeSub" @open-activity="openSub('activity')" />
-      <DhAppActivity v-else-if="current === 'activity'" key="activity" @back="closeSub" />
-      <DhSleepMode v-else-if="current === 'sleep'" key="sleep" @back="closeSub" @open-settings="openSub('sleepSettings')" />
-      <DhSleepSettings v-else-if="current === 'sleepSettings'" key="sleepSettings" @back="closeSub" />
-      <DhFocusMode v-else-if="current === 'focus'" key="focus" @back="closeSub" />
-      <DhScreenReminder v-else-if="current === 'reminder'" key="reminder" @back="closeSub" />
-      <DhWalking v-else-if="current === 'walking'" key="walking" @back="closeSub" />
-      <DhParental v-else-if="current === 'parental'" key="parental" @back="closeSub" />
+      <DhAppLimits v-if="current === 'limits'" key="limits" @back="closeSub" @toast="showToast" @open-activity="openSub('activity')" />
+      <DhAppActivity v-else-if="current === 'activity'" key="activity" @back="closeSub" @toast="showToast" />
+      <DhSleepMode v-else-if="current === 'sleep'" key="sleep" @back="closeSub" @toast="showToast" @open-settings="openSub('sleepSettings')" />
+      <DhSleepSettings v-else-if="current === 'sleepSettings'" key="sleepSettings" @back="closeSub" @toast="showToast" />
+      <DhFocusMode v-else-if="current === 'focus'" key="focus" @back="closeSub" @toast="showToast" />
+      <DhScreenReminder v-else-if="current === 'reminder'" key="reminder" @back="closeSub" @toast="showToast" />
+      <DhWalking v-else-if="current === 'walking'" key="walking" @back="closeSub" @toast="showToast" />
+      <DhParental v-else-if="current === 'parental'" key="parental" @back="closeSub" @toast="showToast" />
     </Transition>
 
     <template v-if="!current">

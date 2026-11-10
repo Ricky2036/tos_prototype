@@ -55,8 +55,11 @@ test('SettingsApp.vue exists and includes all 8 standardized card groups matchin
   assert.match(content, /电池与省电/, 'Should contain 电池与省电')
   assert.match(content, /存储/, 'Should contain 存储')
 
-  // Group 7: Digital Well-being & Accounts (4 items)
-  assert.match(content, /数字健康与家长控制/, 'Should contain 数字健康与家长控制')
+  // Group 7: Digital Well-being & Accounts (5 items)
+  // 真机 XOS 17 新版本已把「数字健康」与「家长控制」拆成两行（2026-11-10 取证）
+  assert.match(content, /数字健康/, 'Should contain 数字健康')
+  assert.match(content, /家长控制/, 'Should contain 家长控制')
+  assert.ok(!content.includes('数字健康与家长控制'), '旧的合并行必须删掉')
   assert.match(content, /安全和紧急情况/, 'Should contain 安全和紧急情况')
   assert.match(content, /用户与账号/, 'Should contain 用户与账号')
   assert.match(content, /Google/, 'Should contain Google')

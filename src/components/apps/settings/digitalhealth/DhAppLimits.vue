@@ -77,7 +77,6 @@ function showToast(msg) {
         </button>
       </div>
 
-      <div v-if="toast" class="dh-toast">{{ toast }}</div>
     </DhShell>
 
     <DhAppDetail
@@ -89,6 +88,9 @@ function showToast(msg) {
       @open-activity="emit('open-activity')"
     />
   </Transition>
+
+  <!-- toast 必须挂在根级：列表分支被 v-if 卸载时，写在列表里的 toast 会一起消失 -->
+  <div v-if="toast" class="dh-toast" data-dh-toast>{{ toast }}</div>
 </template>
 
 <style scoped>

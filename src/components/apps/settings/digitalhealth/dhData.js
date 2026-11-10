@@ -14,6 +14,12 @@ export const DH_TOTAL_MINUTES = 437 // 7 小时 17 分钟
 export const DH_UNLOCKS = 17
 export const DH_NOTIFICATIONS = 436
 
+/**
+ * 环形图 / 图例配色（真机主蓝 → 深灰 → 中灰 → 浅灰）。
+ * ⚠️ 只在这里定义一份：主页环形图与「应用活动」图例必须同色，否则同段两处颜色对不上。
+ */
+export const DH_SEG_COLORS = ['#4285F4', '#5F6368', '#9AA0A6', '#DADCE0']
+
 /** 各应用今日使用分钟数（注册表 id → 分钟），按真机量级取值 */
 const USAGE = {
   wechat: 275,   // 4 小时 35 分钟
@@ -88,7 +94,8 @@ export function dhUsageRows(limit = 999) {
 /** 应用活动详情的柱状图（7 天，取该应用本周占比；同一天的值按该应用当日占比反推） */
 export function dhWeekBars(appId, metric = 'time') {
   const shape = WEEK_SHAPE[appId] || WEEK_SHAPE.default
-  const base = dhAppMetric(appId, metric)
+  // 'total' 不是某个应用，基准取主页总时长；其余走应用级指标
+  const base = appId === 'total' ? DH_TOTAL_MINUTES : dhAppMetric(appId, metric)
   return WEEK_LABELS.map((label, i) => ({
     label,
     ratio: shape[i],
