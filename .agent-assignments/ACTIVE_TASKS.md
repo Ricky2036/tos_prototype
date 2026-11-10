@@ -213,5 +213,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Real-device Phone app and settings interaction completion (Call detail drawer, contact detail drawer, add contact modal, merge duplicates modal, noise reduction subpage, swipe actions, DTMF keypad & AI call summary) | `antigravity/lane` | None (locks released) | `6613b8e` | `87d3945` |
 | Merged | Antigravity | Phone settings direct navigation to system settings (SIM and Sound subpages) | `antigravity/lane` | None (locks released) | `941ea16` | `082f856` |
 | Merged | Antigravity | Phone settings reuse secondary menu loading animation, recents follow-finger swipe with anti-misdial, keypad drag handle bar & smooth collapse | `antigravity/lane` | None (locks released) | `079818f` | `7953fda` |
+| Merged | Antigravity | Replicate Samsung Modes and Routines 100% in Settings under Infinix AI (Modes, Routines, Discover tabs, custom mode builder, trigger/action pickers, interactive execution store) | `antigravity/lane` | None (locks released) | `a419f93` | `934e271` |
+
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
