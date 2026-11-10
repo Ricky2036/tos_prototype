@@ -319,14 +319,6 @@ function handleSearchNavigate(item) {
   }
 }
 
-const filteredSearchResults = computed(() => {
-  const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return []
-  return allSearchableItems.filter(item =>
-    item.title.toLowerCase().includes(q) ||
-    item.group.toLowerCase().includes(q)
-  )
-})
 </script>
 
 <template>
@@ -338,38 +330,10 @@ const filteredSearchResults = computed(() => {
           <!-- 顶部大标题（通用件：sticky + 随滚动折叠 + 底色底幕挡住穿过底部的内容） -->
           <LargeTitleHeader title="设置" :progress="titleProgress" />
 
-          <!-- 搜索结果列表（当有输入时激活） -->
-          <div v-if="searchQuery.trim()" class="search-results-wrap">
-            <div class="search-results-header">
-              搜索结果 ({{ filteredSearchResults.length }})
-            </div>
-            <div v-if="filteredSearchResults.length > 0" class="settings-card">
-              <ListCell
-                v-for="(item, idx) in filteredSearchResults"
-                :key="item.id"
-                :title="item.title"
-                :subtitle="item.group"
-                :value="item.value"
-                :chevron="!item.isToggle"
-                :last="idx === filteredSearchResults.length - 1"
-                @click="item.action()"
-              >
-                <template v-if="item.isToggle" #right>
-                  <ToggleSwitch v-model="control.airplane" />
-                </template>
-              </ListCell>
-            </div>
-            <div v-else class="search-empty">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <span>未找到相关设置</span>
-            </div>
-          </div>
-
-          <!-- 默认标准 8 组卡片列表 -->
-          <template v-else>
+          <!-- 首页胶囊点击即进搜索页（真机行为）：这里不再保留内联搜索结果与空态，
+               否则会出现第二套空态（旧的 40px 线性放大镜 +「未找到相关设置」）。
+               ⚠️ 卡片直接挂在滚动容器下，不要再套 <template>：裸 <template> Vue 不认作片段包裹，
+                  会变成惰性原生元素，卡片全渲染成 0 高度（实测踩过）。 -->
             <!-- ================= 卡片 1: 个人账号卡 ================= -->
             <div class="settings-card account-card" @click="accountStore.isLoggedIn ? push('account') : push('accountLogin')">
               <div class="account-avatar">
@@ -665,7 +629,6 @@ const filteredSearchResults = computed(() => {
                 </template>
               </ListCell>
             </div>
-          </template>
 
           <!-- 列表底部安全留白（让最后一项可滚到浮动搜索栏上方） -->
           <div class="scroll-bottom-spacer"></div>
@@ -1197,27 +1160,6 @@ background: #FFFFFF;
   height: 92px;
   width: 100%;
   flex: none;
-}
-
-/* ================= 搜索结果面板 ================= */
-.search-results-wrap {
-  margin-top: 4px;
-}
-.search-results-header {
-  font-size: 13px;
-  color: #8E8E93;
-  margin: 0 20px 8px;
-  font-weight: 500;
-}
-.search-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 60px 20px;
-  color: #8E8E93;
-  font-size: 14px;
 }
 
 /* ================= 极速丝滑进退动画 ================= */

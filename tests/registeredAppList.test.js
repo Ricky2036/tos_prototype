@@ -110,12 +110,22 @@ test('无结果时调用方的说明文字要一起消失（真机只留插画�
   assert.doesNotMatch(dnd, /^\s*<div class="card-note">/m, '⛔ 说明不许无条件渲染')
 
   const g3 = strip(read('src/components/apps/settings/group3/Group3SubPage.vue'))
-  assert.match(g3, /v-if="noteFor\(sec\) && \(!query\.trim\(\) \|\| filteredRows\(sec\)\.length\)"/,
-    '应用列表的说明同规则：搜索无结果时隐藏')
+  assert.match(g3, /const searchNoResult = computed\(/, '「搜索了且一条没搜到」要有统一判据')
+  assert.match(g3, /v-if="noteFor\(sec\) && !searchNoResult"/, '应用列表的说明：搜索无结果时隐藏')
+  assert.match(g3, /v-if="page\.sort && !searchNoResult"/, '⛔ 「按A-Z排序」不许压在插画空态上')
+  assert.match(g3, /v-if="sec\.header && !searchNoResult"/, '分组小标题同规则')
+  assert.match(g3, /v-if="page\.footerBadge && !searchNoResult"/, '页脚徽标同规则')
+
+  // 空态必须只渲染一次（放在 sections 循环之外），多 section 页面否则会叠好几份
+  const loopEnd = g3.indexOf('<SearchEmptyState v-if="searchNoResult"')
+  assert.ok(loopEnd > 0, '空态要挂在页面级')
+  assert.equal(g3.match(/<SearchEmptyState/g).length, 1, '空态只允许出现一次')
 
   // 牙齿：把 v-if 拿掉必须立刻被抓住
   const broken = dnd.replace('v-if="hasResults" class="card-note"', 'class="card-note"')
   assert.doesNotMatch(broken, /<div v-if="hasResults" class="card-note">/, '牙齿：说明变回无条件渲染')
+  const brokenSort = g3.replace('v-if="page.sort && !searchNoResult"', 'v-if="page.sort"')
+  assert.doesNotMatch(brokenSort, /v-if="page\.sort && !searchNoResult"/, '牙齿：排序标签变回无条件渲染')
 })
 
 test('守卫有牙齿：把公共列表的默认数据源换掉 / 塞回色块都要报红', () => {

@@ -134,6 +134,16 @@ function filteredRows(sec) {
   return rows.filter(r => (r.title || '').toLowerCase().includes(q))
 }
 
+/**
+ * 「搜索了、而且一条都没搜到」。
+ * 决定整页只剩空态：排序标签 / 分组小标题 / 说明文字 / 页脚徽标一律不显示，
+ * 否则会出现「按A-Z排序」压着一张插画空态这种自相矛盾的画面（真机不会这样）。
+ */
+const searchNoResult = computed(() => {
+  if (!page.value?.search || !query.value.trim()) return false
+  return page.value.sections.reduce((n, sec) => n + filteredRows(sec).length, 0) === 0
+})
+
 function onRowClick(row) {
   if (row.disabled) return
   // 「通知 / 管理通知」跳到【现有】的 SettingsNotifications 应用详情子页，
@@ -203,8 +213,8 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
     @action="emit('action', page?.cta || '')"
   >
     <template v-if="page">
-      <!-- 排序标签（应用列表） -->
-      <div v-if="page.sort" class="g3-sort">{{ page.sort }}
+      <!-- 排序标签（应用列表）。搜索无结果时整页只剩空态，排序/小标题都不该留着 -->
+      <div v-if="page.sort && !searchNoResult" class="g3-sort">{{ page.sort }}
         <LIcon name="arrowDownUp" :size="13" :stroke-width="1.8" />
       </div>
 
@@ -367,7 +377,7 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
 
         <!-- 卡片 -->
         <template v-else>
-          <div v-if="sec.header" class="section-header">{{ sec.header }}</div>
+          <div v-if="sec.header && !searchNoResult" class="section-header">{{ sec.header }}</div>
           <div v-if="filteredRows(sec).length" class="settings-card">
             <ListCell
               v-for="(row, ri) in filteredRows(sec)"
@@ -415,19 +425,18 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
               </template>
             </ListCell>
           </div>
-          <!-- 搜索无结果：与全仓同一套空态控件（应用提醒页也用这一份） -->
-          <SearchEmptyState
-            v-if="page.search && query.trim() && !filteredRows(sec).length"
-            text="没有搜索到结果"
-          />
-          <div v-if="noteFor(sec) && (!query.trim() || filteredRows(sec).length)" class="card-note">{{ noteFor(sec) }}</div>
+          <div v-if="noteFor(sec) && !searchNoResult" class="card-note">{{ noteFor(sec) }}</div>
         </template>
       </template>
+
+      <!-- 搜索无结果：与全仓同一套空态控件（应用提醒页也用这一份）。
+           ⚠️ 放在 sections 循环之外：放进去会在多 section 页面上重复渲染好几份。 -->
+      <SearchEmptyState v-if="searchNoResult" text="没有搜索到结果" />
 
       <!-- 与首页一致的底部留白：44 搜索框 + 25 底距 + 余量 -->
       <div v-if="page.search" class="g3-search-spacer"></div>
 
-      <div v-if="page.footerBadge" class="g3-footer-badge">
+      <div v-if="page.footerBadge && !searchNoResult" class="g3-footer-badge">
         <LIcon name="shieldCheck" :size="13" :stroke-width="2" />
         <span>{{ page.footerBadge }}</span>
       </div>

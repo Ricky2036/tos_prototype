@@ -274,8 +274,28 @@ async function run() {
   const filtered = await page.evaluate(() => [...document.querySelectorAll('.sub-shell .lc-title')].map(e => e.textContent.trim()))
   check('C 应用列表：搜索「微」过滤到微信', filtered.length >= 1 && filtered.length <= 3 && filtered.every(n => n.includes('微')),
     filtered.join(','))
+  check('C 应用列表：有结果时排序标签还在', (await visibleCount(page, '.sub-shell .g3-sort')) === 1)
+
+  // 搜不到东西时，整页只该剩空态：排序标签 / 小标题都不许压在上面
+  await page.locator('.sub-shell .sfd-input').fill('zzzzq')
+  await page.waitForTimeout(300)
+  check('C 应用列表：无结果时只剩空态', (await visibleCount(page, '.sub-shell [data-search-empty]')) === 1)
+  check('C 应用列表：无结果时排序标签消失', (await visibleCount(page, '.sub-shell .g3-sort')) === 0)
+  check('C 应用列表：无结果时没有应用行', (await visibleCount(page, '.sub-shell .list-cell')) === 0)
+  const emptyCenter = await page.evaluate(() => {
+    const shell = document.querySelector('.sub-shell').getBoundingClientRect()
+    const art = document.querySelector('[data-search-empty] svg').getBoundingClientRect()
+    const txt = document.querySelector('[data-search-empty] .search-empty-text').getBoundingClientRect()
+    return {
+      pct: +((((art.y + txt.bottom) / 2) - shell.y) / shell.height * 100).toFixed(1),
+      dx: +((art.x + art.width / 2) - (shell.x + shell.width / 2)).toFixed(1)
+    }
+  })
+  check('C 应用列表：空态整组居中', Math.abs(emptyCenter.pct - 50) <= 4 && Math.abs(emptyCenter.dx) <= 2, JSON.stringify(emptyCenter))
+  await shot(page, '11b_app_list_empty')
   await page.locator('.sub-shell [data-sfd-back]').click()
   await page.waitForTimeout(350)
+  check('C 应用列表：返回后排序标签恢复', (await visibleCount(page, '.sub-shell .g3-sort')) === 1)
 
   await clickRow(page, '.sub-shell', 'AI Mate')
   await expectSubPage(page, 'C 应用信息（四级）', '应用信息')

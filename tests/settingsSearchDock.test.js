@@ -74,6 +74,14 @@ test('空态居中：viewBox 必须紧贴墨迹（正方形），且按整屏居
   assert.match(src, /pointer-events: none/, '空态是纯展示层，不许挡住底下的行')
 })
 
+test('设置首页只有一套搜索：点胶囊直接进搜索页，旧内联结果与旧空态已删除', () => {
+  const home = strip(read('src/components/apps/settings/SettingsApp.vue'))
+  assert.doesNotMatch(home, /未找到相关设置/, '旧的内联空态（40px 线性放大镜）已删除')
+  assert.doesNotMatch(home, /search-results-wrap|search-results-header|filteredSearchResults/, '内联搜索结果块已删除，避免出现第二套空态')
+  assert.match(home, /SettingsSearchDock[\s\S]*@activate="push\('search'\)"/, '点胶囊进全屏搜索页')
+  assert.equal((home.match(/class="search-empty"/g) || []).length, 0, '⛔ 首页不许再自绘 search-empty')
+})
+
 /* ==================== 防回潮：四处调用方 ==================== */
 test('设置首页 / 搜索页 / 两个应用列表页统一用同一个 Dock', () => {
   const home = strip(read('src/components/apps/settings/SettingsApp.vue'))
