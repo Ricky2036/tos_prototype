@@ -188,6 +188,16 @@ const SUITES = [
       'src/stores/phoneStore.js',
       'tests/phoneApp.test.js'
     ]
+  },
+  {
+    id: 'modes-and-routines',
+    script: 'verify-modes-and-routines.mjs',
+    covers: [
+      'src/components/apps/settings/SettingsModes.vue',
+      'src/components/apps/settings/modes/',
+      'src/stores/modesAndRoutinesStore.js',
+      'tests/modesAndRoutines.test.js'
+    ]
   }
 ]
 
