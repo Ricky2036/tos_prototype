@@ -1,13 +1,14 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref } from 'vue'
 import { usePhoneStore } from '../../../stores/phoneStore'
+import SettingsSearchBar from '../../ui/SettingsSearchBar.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['openAddContact'])
-const inputRef = ref(null)
+const searchBarRef = ref(null)
 
 onMounted(() => {
-  inputRef.value?.focus()
+  searchBarRef.value?.focus()
 })
 
 function handleBack() {
@@ -20,139 +21,101 @@ function handleSelect(contact) {
   phoneStore.startCall(contact)
 }
 
-function handleDirectCall() {
-  const q = phoneStore.searchQuery.trim()
-  if (q) {
-    phoneStore.isSearchActive = false
-    phoneStore.startCall(q)
-  }
-}
-
-function handleCreateContact() {
-  const q = phoneStore.searchQuery.trim()
-  const isDigit = /^[0-9+\s-]+$/.test(q)
-  emit('openAddContact', {
-    name: isDigit ? '' : q,
-    number: isDigit ? q : ''
-  })
-  phoneStore.isSearchActive = false
-}
-
 function highlightMatch(text, query) {
-  if (!query) return text
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  if (!text || !query) return text || ''
+  const trimmed = query.trim()
+  if (!trimmed) return text
+  const regex = new RegExp(`(${trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
   return text.replace(regex, '<span class="highlight-green">$1</span>')
 }
-
-const isNumericQuery = computed(() => {
-  return /^[0-9+\s-]+$/.test(phoneStore.searchQuery.trim())
-})
 </script>
 
 <template>
   <div class="phone-search-view">
-    <!-- 顶部搜索栏（带安全区状态栏防重叠边距） -->
-    <div class="search-top-bar">
-      <button class="back-btn" title="返回" @click="handleBack">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
-
-      <div class="search-input-pill">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="search-icon">
-          <circle cx="11" cy="11" r="8" stroke="#8E8E93" stroke-width="2" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" />
-        </svg>
-        <input
-          ref="inputRef"
-          v-model="phoneStore.searchQuery"
-          class="search-input"
-          placeholder="搜索姓名或号码"
-          type="text"
-        />
-        <button v-if="phoneStore.searchQuery" class="clear-btn" title="清空" @click="phoneStore.searchQuery = ''">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="#8E8E93">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="15" y1="9" x2="9" y2="15" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" />
-            <line x1="9" y1="9" x2="15" y2="15" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" />
+    <!-- 主体内容区（滚动列表或居中空态） -->
+    <div class="search-body-area">
+      <!-- 1. 空状态：无搜索关键词 或 有关键词但未匹配到结果 -->
+      <div
+        v-if="!phoneStore.searchQuery.trim() || phoneStore.searchResults.length === 0"
+        class="search-empty-container"
+      >
+        <div class="empty-artwork-wrap">
+          <!-- 背景文件卡片：右上切角微渐变卡片 -->
+          <svg width="76" height="86" viewBox="0 0 76 86" fill="none" class="doc-card-svg">
+            <path
+              d="M16 0H48L76 28V70C76 78.8366 68.8366 86 60 86H16C7.16344 86 0 78.8366 0 70V16C0 7.16344 7.16344 0 16 0Z"
+              fill="url(#searchDocGrad)"
+            />
+            <defs>
+              <linearGradient id="searchDocGrad" x1="0" y1="0" x2="76" y2="86" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#BAC7DE" />
+                <stop offset="1" stop-color="#9DAEC8" />
+              </linearGradient>
+            </defs>
           </svg>
-        </button>
-      </div>
-    </div>
 
-    <!-- 搜索主体内容 -->
-    <div class="search-content-area scrollable">
-      <!-- 空状态：无输入时 -->
-      <div v-if="!phoneStore.searchQuery.trim()" class="search-empty-state">
-        <div class="empty-glass-card">
-          <div class="glass-doc"></div>
-          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" class="glass-lens">
-            <circle cx="10" cy="10" r="7" stroke="#A5B4FC" stroke-width="2.5" />
-            <line x1="21" y1="21" x2="15" y2="15" stroke="#A5B4FC" stroke-width="3" stroke-linecap="round" />
+          <!-- 前景放大镜 -->
+          <svg width="82" height="82" viewBox="0 0 82 82" fill="none" class="lens-art-svg">
+            <!-- 镜圈 -->
+            <circle cx="38" cy="36" r="26" stroke="rgba(255, 255, 255, 0.95)" stroke-width="6" />
+            <circle cx="38" cy="36" r="26" stroke="#CBD5E1" stroke-width="2.5" stroke-opacity="0.5" />
+            <!-- 镜柄 -->
+            <rect x="55" y="51" width="9" height="22" rx="4.5" transform="rotate(-42 55 51)" fill="url(#searchHandleGrad)" />
+            <defs>
+              <linearGradient id="searchHandleGrad" x1="55" y1="51" x2="64" y2="73" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#FFFFFF" />
+                <stop offset="1" stop-color="#BAC7DE" />
+              </linearGradient>
+            </defs>
           </svg>
         </div>
-        <div class="empty-tip-text">输入姓名或数字搜索</div>
+
+        <div class="empty-state-label">
+          {{ !phoneStore.searchQuery.trim() ? '没有搜索记录' : '没有搜索到结果' }}
+        </div>
       </div>
 
-      <!-- 有输入时 -->
-      <div v-else class="search-active-container">
-        <!-- 快速呼叫/新建操作快捷项 -->
-        <div class="quick-call-card">
-          <div class="quick-op-row" @click="handleDirectCall">
-            <div class="op-icon-circle bg-green">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="#FFFFFF">
-                <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-2.2 2.2a15.047 15.047 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.01A11.36 11.36 0 018.57 3.9c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.52c0-.55-.45-1-.99-1z" />
-              </svg>
-            </div>
-            <div class="op-text-col">
-              <span class="op-main-title">拨打电话</span>
-              <span class="op-sub-val">{{ phoneStore.searchQuery }}</span>
-            </div>
-          </div>
-
-          <div class="quick-op-row no-sep" @click="handleCreateContact">
-            <div class="op-icon-circle bg-blue">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </div>
-            <div class="op-text-col">
-              <span class="op-main-title">新建联系人</span>
-              <span class="op-sub-val">{{ phoneStore.searchQuery }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 搜索匹配联系人结果列表 -->
-        <div v-if="phoneStore.searchResults.length > 0" class="search-results-list">
-          <div class="results-section-header">匹配联系人 ({{ phoneStore.searchResults.length }})</div>
+      <!-- 2. 有搜索结果列表 -->
+      <div v-else class="search-results-container scrollable">
+        <div class="results-group-header">所有联系人</div>
+        <div class="results-items-list">
           <div
             v-for="c in phoneStore.searchResults"
             :key="c.id"
-            class="result-item-row"
+            class="search-contact-item"
             @click="handleSelect(c)"
           >
-            <div class="contact-avatar" :style="{ backgroundColor: c.color || '#8B5CF6' }">
-              <span class="avatar-char">{{ c.name?.slice(0, 1) || '联' }}</span>
+            <div class="contact-avatar-circle" :style="{ backgroundColor: c.color || '#8B5CF6' }">
+              <span class="avatar-letter">{{ c.name?.slice(0, 1) || '联' }}</span>
             </div>
-            <div class="result-info-col">
-              <div class="contact-name" v-html="highlightMatch(c.name, phoneStore.searchQuery)"></div>
-              <div class="contact-phone" v-html="highlightMatch(c.number, phoneStore.searchQuery)"></div>
+            <div class="contact-details-col">
+              <div class="contact-name-line" v-html="highlightMatch(c.name, phoneStore.searchQuery)"></div>
+              <div class="contact-number-line" v-html="highlightMatch(c.number, phoneStore.searchQuery)"></div>
             </div>
-            <div class="item-call-icon">
+            <div class="call-action-btn" title="呼叫" @click.stop="handleSelect(c)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="#00C853">
                 <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-2.2 2.2a15.047 15.047 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.01A11.36 11.36 0 018.57 3.9c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.52c0-.55-.45-1-.99-1z" />
               </svg>
             </div>
           </div>
         </div>
-
-        <div v-else class="search-no-match">
-          <div class="empty-tip-text">未找到与「{{ phoneStore.searchQuery }}」匹配的现有联系人</div>
-        </div>
       </div>
+    </div>
+
+    <!-- 底部悬浮搜索栏：左侧圆形返回按钮 + 右侧 SettingsSearchBar 控件 -->
+    <div class="search-bottom-dock">
+      <button class="search-bottom-back-btn" title="返回" @click="handleBack">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+
+      <SettingsSearchBar
+        ref="searchBarRef"
+        v-model="phoneStore.searchQuery"
+        placeholder="搜索"
+        class="phone-bottom-search-bar"
+      />
     </div>
   </div>
 </template>
@@ -164,229 +127,195 @@ const isNumericQuery = computed(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: #FFFFFF;
+  background: #F0F1F2;
   z-index: 70;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-.search-top-bar {
-  display: flex;
-  align-items: center;
-  padding-top: calc(var(--safe-top, 54px) + 8px);
-  padding-bottom: 12px;
-  padding-left: 16px;
-  padding-right: 16px;
-  gap: 12px;
-  background: #FFFFFF;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
-}
-
-.back-btn {
-  background: none;
-  border: none;
-  padding: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-}
-
-.search-input-pill {
+.search-body-area {
   flex: 1;
   display: flex;
-  align-items: center;
-  background-color: #F2F3F5;
-  border-radius: 999px;
-  padding: 0 14px;
-  height: 42px;
-  gap: 8px;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  padding-top: calc(var(--safe-top, 44px) + 8px);
 }
 
-.search-input {
+/* 居中空状态 */
+.search-empty-container {
   flex: 1;
-  background: none;
-  border: none;
-  outline: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 70px;
+}
+
+.empty-artwork-wrap {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.doc-card-svg {
+  position: absolute;
+  left: 18px;
+  top: 22px;
+  filter: drop-shadow(0 4px 12px rgba(157, 174, 200, 0.35));
+}
+
+.lens-art-svg {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  filter: drop-shadow(0 6px 16px rgba(157, 174, 200, 0.45));
+}
+
+.empty-state-label {
   font-size: 15px;
-  color: #1C1C1E;
+  color: #8E8E93;
+  text-align: center;
+  letter-spacing: -0.2px;
 }
 
-.clear-btn {
-  background: none;
-  border: none;
-  padding: 2px;
-  cursor: pointer;
-  display: flex;
-}
-
-/* 主内容区 */
-.search-content-area {
+/* 搜索结果列表 */
+.search-results-container {
   flex: 1;
   overflow-y: auto;
+  padding: 8px 16px 110px 16px;
 }
 
-.search-active-container {
-  padding: 14px 16px;
+.results-group-header {
+  font-size: 13px;
+  font-weight: 500;
+  color: #8E8E93;
+  margin-bottom: 8px;
+  padding-left: 4px;
 }
 
-/* 快速呼叫卡片 */
-.quick-call-card {
-  background: #F8F9FA;
+.results-items-list {
+  background: #FFFFFF;
   border-radius: 16px;
   overflow: hidden;
-  margin-bottom: 16px;
   border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
-.quick-op-row {
+.search-contact-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 0.5px solid #E5E7EB;
+  padding: 12px 14px;
   cursor: pointer;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.04);
+  transition: background 0.15s ease;
 }
 
-.quick-op-row.no-sep {
+.search-contact-item:last-child {
   border-bottom: none;
 }
 
-.quick-op-row:active {
-  background: #EFEFEF;
+.search-contact-item:active {
+  background: #F8F9FA;
 }
 
-.op-icon-circle {
-  width: 38px;
-  height: 38px;
+.contact-avatar-circle {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-right: 12px;
   flex-shrink: 0;
 }
 
-.bg-green { background: #00C853; }
-.bg-blue { background: #3B82F6; }
-
-.op-text-col {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.op-main-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1C1C1E;
-}
-
-.op-sub-val {
-  font-size: 13px;
-  color: #8E8E93;
-}
-
-/* 空状态 */
-.search-empty-state,
-.search-no-match {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-top: 80px;
-  padding: 0 20px;
-}
-
-.empty-glass-card {
-  position: relative;
-  width: 90px;
-  height: 90px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
-.glass-doc {
-  position: absolute;
-  width: 58px;
-  height: 70px;
-  background: linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%);
-  border-radius: 12px;
-  transform: rotate(-8deg);
-  opacity: 0.8;
-}
-
-.glass-lens {
-  position: relative;
-  transform: translate(6px, -4px);
-}
-
-.empty-tip-text {
-  font-size: 14px;
-  color: #8E8E93;
-  text-align: center;
-  line-height: 1.5;
-}
-
-/* 结果列表 */
-.search-results-list {
-  padding: 6px 0;
-}
-
-.results-section-header {
-  font-size: 13px;
-  font-weight: 600;
-  color: #8E8E93;
-  margin-bottom: 10px;
-}
-
-.result-item-row {
-  display: flex;
-  align-items: center;
-  padding: 11px 4px;
-  cursor: pointer;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.04);
-}
-
-.result-item-row:active {
-  opacity: 0.7;
-}
-
-.contact-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 14px;
-  flex-shrink: 0;
-}
-
-.avatar-char {
-  font-size: 17px;
+.avatar-letter {
+  font-size: 16px;
   font-weight: 600;
   color: #FFFFFF;
 }
 
-.result-info-col {
+.contact-details-col {
   flex: 1;
+  min-width: 0;
 }
 
-.contact-name {
-  font-size: 16px;
+.contact-name-line {
+  font-size: 15px;
   font-weight: 500;
   color: #1C1C1E;
   margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.contact-phone {
+.contact-number-line {
   font-size: 13px;
   color: #8E8E93;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.item-call-icon {
-  padding: 6px;
+.call-action-btn {
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.15s ease;
+}
+
+.call-action-btn:active {
+  background: rgba(0, 200, 83, 0.1);
+}
+
+/* 底部悬浮操作底栏 */
+.search-bottom-dock {
+  position: absolute;
+  bottom: calc(var(--safe-bottom, 24px) + 12px);
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 50;
+}
+
+.search-bottom-back-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 0.5px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.search-bottom-back-btn:active {
+  transform: scale(0.92);
+  background: #F2F2F7;
+}
+
+.phone-bottom-search-bar {
+  flex: 1;
+  height: 48px;
+  border-radius: 24px;
+  background: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 :deep(.highlight-green) {
