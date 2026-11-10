@@ -150,7 +150,7 @@ function highlightMatch(text, query) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-bottom: 70px;
+  padding-bottom: 44px;
 }
 
 .empty-artwork-wrap {
@@ -188,7 +188,7 @@ function highlightMatch(text, query) {
 .search-results-container {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 16px 110px 16px;
+  padding: 8px 16px 96px 16px;
 }
 
 .results-group-header {
@@ -277,21 +277,21 @@ function highlightMatch(text, query) {
   background: rgba(0, 200, 83, 0.1);
 }
 
-/* 底部悬浮操作底栏 */
+/* 底部悬浮操作底栏：严格按真机与系统底栏基准线规范（距底 28px，上浮 14px 呼吸间距，高 44px） */
 .search-bottom-dock {
   position: absolute;
-  bottom: calc(var(--safe-bottom, 24px) + 12px);
+  bottom: calc(var(--home-indicator-inset, 14px) + 14px);
   left: 16px;
   right: 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   z-index: 50;
 }
 
 .search-bottom-back-btn {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: #FFFFFF;
   border: 0.5px solid rgba(0, 0, 0, 0.05);
@@ -312,8 +312,8 @@ function highlightMatch(text, query) {
 
 .phone-bottom-search-bar {
   flex: 1;
-  height: 48px;
-  border-radius: 24px;
+  height: 44px;
+  border-radius: 22px;
   background: #FFFFFF;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
