@@ -1,24 +1,22 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import SubPageShell from '../subpage/SubPageShell.vue'
-import ListCell from '../../../ui/ListCell.vue'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 import SettingsSearchBar from '../../../ui/SettingsSearchBar.vue'
-import { DND_APPS, dndAppFallback } from './dndApps.js'
+import RegisteredAppList from '../../../ui/RegisteredAppList.vue'
 import { useDndSettingsStore } from '../../../../stores/dndSettingsStore.js'
 
-/** 真机「应用提醒」三级页：说明 + 应用开关清单 + 底部悬浮搜索框。 */
+/**
+ * 真机「应用提醒」三级页：说明 + 应用开关清单 + 底部悬浮搜索框。
+ * ⚠️ 应用名单与图标一律走全仓标准 `RegisteredAppList`（桌面注册表），
+ *    本页不再维护任何应用清单、也不自造图标 —— 历史上这里反复出过假图标问题。
+ */
 const emit = defineEmits(['back'])
 const store = useDndSettingsStore()
 const query = ref('')
 
-const apps = computed(() => {
-  const q = query.value.trim().toLowerCase()
-  return q ? DND_APPS.filter(a => a.name.toLowerCase().includes(q)) : DND_APPS
-})
-
-function isAllowed(name) {
-  return store.state.allowedApps.includes(name)
+function isAllowed(appId) {
+  return store.state.allowedApps.includes(appId)
 }
 </script>
 
@@ -26,32 +24,17 @@ function isAllowed(name) {
   <SubPageShell title="应用提醒" @back="emit('back')">
     <div class="card-note">开关开启的应用会在勿扰模式期间正常提醒。</div>
 
-    <div class="settings-card">
-      <ListCell
-        v-for="(app, i) in apps"
-        :key="app.name"
-        :title="app.name"
-        :last="i === apps.length - 1"
-        clickable
-        @click="store.toggleApp(app.name)"
-      >
-        <template #icon>
-          <img v-if="app.icon" class="dnd-app-icon" :src="app.icon" alt="" draggable="false" />
-          <div v-else class="dnd-app-icon is-fallback" :style="{ background: dndAppFallback(app.name).bg, color: dndAppFallback(app.name).fg }">
-            {{ dndAppFallback(app.name).text }}
-          </div>
-        </template>
-        <template #right>
-          <ToggleSwitch
-            color="blue"
-            :model-value="isAllowed(app.name)"
-            @update:model-value="store.toggleApp(app.name)"
-            @click.stop
-          />
-        </template>
-      </ListCell>
-    </div>
-    <div v-if="!apps.length" class="card-note">未找到匹配的应用</div>
+    <RegisteredAppList :query="query" @row-click="store.toggleApp($event.id)">
+      <template #right="{ app }">
+        <ToggleSwitch
+          color="blue"
+          :model-value="isAllowed(app.id)"
+          @update:model-value="store.toggleApp(app.id)"
+          @click.stop
+        />
+      </template>
+    </RegisteredAppList>
+
     <div class="dnd-search-spacer"></div>
 
     <template #bottom>
@@ -63,12 +46,6 @@ function isAllowed(name) {
 </template>
 
 <style scoped>
-.dnd-app-icon {
-  width: 36px; height: 36px; border-radius: 10px; object-fit: cover;
-  display: flex; align-items: center; justify-content: center;
-  margin-right: 14px; flex: none; font-size: 16px; font-weight: 600;
-}
-.dnd-app-icon.is-fallback { border: 0.5px solid rgba(0, 0, 0, 0.05); }
 .dnd-search-spacer { height: 92px; width: 100%; flex: none; }
 
 /* 与设置首页 .settings-floating-search 参数完全一致（左右 27 / 离屏底 25 / 渐隐遮罩） */

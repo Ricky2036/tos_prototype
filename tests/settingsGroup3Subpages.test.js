@@ -18,6 +18,7 @@ import {
 import { useGroup3Nav } from '../src/components/apps/settings/group3/useGroup3Nav.js'
 import { APPS, getApp } from '../src/config/apps.js'
 import { DRAWER_APPS } from '../src/config/drawerApps.js'
+import { getRegisteredApps } from '../src/composables/useRegisteredApps.js'
 
 const read = (p) => fs.readFileSync(path.resolve(p), 'utf-8')
 /* 结构类断言一律先剥注释，避免注释里写了同名值却「假绿」 */
@@ -245,29 +246,22 @@ test('应用列表直接读桌面注册表，不再硬编码应用名与假图�
   assert.doesNotMatch(appListBlock, /appIcon:|appImage:/, '应用列表配置里不应再有硬编码图标')
 
   const src = stripComments(read(RENDERER))
-  assert.match(src, /import \{ APPS, getApp \} from '\.\.\/\.\.\/\.\.\/\.\.\/config\/apps\.js'/)
-  assert.match(src, /resolveAppImage\(app\)/, '图标必须取自注册表')
-  assert.match(src, /DRAWER_APPS\.find/, 'special 应用要从抽屉注册表补图')
-  assert.match(src, /row\.appImage[\s\S]*<img/, '列表图标必须是真实 <img>，不是首字色块')
-  assert.match(src, /\.sort\(\(a, b\) => a\.name\.localeCompare/, '按 A-Z 排序')
+  assert.match(src, /getRegisteredApps, registeredAppSize/, '应用清单必须走公共注册表')
+  assert.match(src, /getRegisteredApps\(\)/, '应用清单必须走公共注册表')
+  assert.match(src, /RegisteredAppIcon/, '列表图标必须走公共图标组件')
+  assert.doesNotMatch(src, /appIconStyle|g3-app-icon|resolveAppImage|DRAWER_APPS/, '渲染器不再自造图标或另写清单')
+  assert.match(src, /RegisteredAppIcon[\s\S]*:size="36"/, '图标尺寸统一')
 
-  // 注册表本身可用：日历/时钟在 APPS 无 image，DRAWER_APPS 里有真实 PNG
-  assert.ok(APPS.length >= 30)
-  assert.equal(APPS.find(a => a.id === 'calendar').image, undefined)
-  assert.match(DRAWER_APPS.find(a => a.id === 'calendar').icon, /calendar\.png/)
-  assert.match(DRAWER_APPS.find(a => a.id === 'clock').icon, /clock\.png/)
-  // 🔴 日历/时钟与桌面同源：直接复用桌面 AppIcon 组件（星期+日期 / 实时指针），
-  //    不再拿 drawer 里的静态 PNG 冒充（真机上两者长得不一样）。
-  assert.match(src, /import AppIcon from '\.\.\/\.\.\/\.\.\/ui\/AppIcon\.vue'/)
-  assert.match(src, /app\.special \? getApp\(app\.id\) : null/, 'special 应用要传 AppIcon 配置')
-  assert.match(src, /:app="row\.appLive"[\s\S]*:launch-on-click="false"/, '列表里不能触发打开应用')
-  assert.doesNotMatch(src, /calendar_alt\.png|\/icons\/clock\.png/, '不再用静态 PNG 冒充桌面自绘图标')
-  assert.doesNotMatch(src, /SPECIAL_APP_ICONS/)
+  // 公共清单覆盖全部桌面应用；日历/时钟交给桌面同一个 AppIcon 自绘
+  const registered = getRegisteredApps()
+  assert.ok(registered.length >= 30)
+  assert.ok(registered.find(a => a.id === 'calendar').specialApp)
+  assert.ok(registered.find(a => a.id === 'clock').specialApp)
+  assert.ok(registered.every(a => a.image || a.specialApp), '不允许出现首字色块假图标')
+  assert.ok(registered.every((a, i) => i === 0 || registered[i - 1].name.localeCompare(a.name, 'zh-Hans-CN') <= 0), '按中文名排序')
   const desktop = stripComments(read('src/components/ui/AppIcon.vue'))
   assert.match(desktop, /app\.special === 'calendar'/)
   assert.match(desktop, /app\.special === 'clock'/)
-  assert.ok(APPS.every(a => a.special || a.image || DRAWER_APPS.find(d => d.id === a.id)?.icon || getApp(a.id)?.image),
-    '每个已注册应用都必须解析得到真实图标或走桌面自绘')
 })
 
 test('应用列表搜索栏用首页同一个 SettingsSearchBar，且外壳提供 bottom 插槽', () => {

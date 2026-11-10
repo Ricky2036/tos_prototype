@@ -120,7 +120,11 @@ const SUITES = [
       'src/components/apps/settings/subpage/SubPageShell.vue',
       'src/stores/settingsGroup3Store.js',
       'src/styles/layer-transitions.css',
-      'tests/settingsGroup3Subpages.test.js'
+      'tests/settingsGroup3Subpages.test.js',
+      'src/composables/useRegisteredApps.js',
+      'src/components/ui/RegisteredAppList.vue',
+      'src/components/ui/RegisteredAppIcon.vue',
+      'tests/registeredAppList.test.js'
     ]
   },
   {
@@ -142,7 +146,11 @@ const SUITES = [
       'src/utils/timePicker.js',
       'tests/dndSettings.test.js',
       'tests/timePickerStandard.test.js',
-      'tests/alarmEditFlow.test.js'
+      'tests/alarmEditFlow.test.js',
+      'src/composables/useRegisteredApps.js',
+      'src/components/ui/RegisteredAppList.vue',
+      'src/components/ui/RegisteredAppIcon.vue',
+      'tests/registeredAppList.test.js'
     ]
   },
   {

@@ -7,7 +7,7 @@ import {
   DND_DEFAULTS, DND_CALL_OPTIONS, DND_WEEKDAYS, DND_WEEKDAYS_FULL,
   formatDndTime, useDndSettingsStore
 } from '../src/stores/dndSettingsStore.js'
-import { DND_APPS } from '../src/components/apps/settings/dnd/dndApps.js'
+import { getRegisteredApps, findRegisteredApp } from '../src/composables/useRegisteredApps.js'
 
 const read = (p) => fs.readFileSync(path.resolve(p), 'utf-8')
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '')
@@ -23,7 +23,7 @@ test('勿扰默认态对齐真机（dnd_01 / dnd_10_schedule / dnd_22_repeat）'
   assert.equal(s.state.endHour, 7)
   assert.deepEqual(s.state.repeatDays, [0, 1, 3, 4, 6], '真机选中周一、周二、周四、周五、周日')
   assert.equal(s.state.allowCalls, '收藏联系人')
-  assert.deepEqual(s.state.allowedApps, ['微信'], '真机「1 个应用被允许」')
+  assert.deepEqual(s.state.allowedApps, ['wechat'], '真机「1 个应用被允许」，按注册表 id 存')
 })
 
 test('时间格式化：真机「下午10:00 / 上午7:00」', () => {
@@ -56,10 +56,10 @@ test('所有 setter 都生效且拒绝非法值，reset 回默认', () => {
   assert.equal(s.toggleRepeatDay(2), true)
   assert.deepEqual(s.state.repeatDays, [0])
 
-  s.toggleApp('抖音')
-  assert.ok(s.state.allowedApps.includes('抖音'))
-  s.toggleApp('抖音')
-  assert.ok(!s.state.allowedApps.includes('抖音'))
+  s.toggleApp('tiktok')
+  assert.ok(s.state.allowedApps.includes('tiktok'))
+  s.toggleApp('tiktok')
+  assert.ok(!s.state.allowedApps.includes('tiktok'))
 
   s.reset()
   assert.deepEqual(s.state.repeatDays, DND_DEFAULTS.repeatDays)
@@ -71,9 +71,10 @@ test('常量与真机清单一致', () => {
   assert.equal(DND_WEEKDAYS.length, 7)
   assert.equal(DND_WEEKDAYS_FULL.length, 7)
   assert.deepEqual(DND_CALL_OPTIONS, ['无', '所有人', '联系人', '收藏联系人'])
-  assert.ok(DND_APPS.length >= 20, '应用提醒清单应覆盖真机两屏')
-  assert.ok(DND_APPS.some(a => a.name === '哔哩哔哩' && a.icon))
-  assert.ok(DND_APPS.some(a => a.name === '微信' && a.icon))
+  const registered = getRegisteredApps()
+  assert.ok(registered.length >= 30, '应用提醒必须来自桌面注册表全量')
+  assert.deepEqual(findRegisteredApp('微信')?.id, findRegisteredApp('wechat')?.id)
+  assert.ok(registered.every(a => a.image || a.specialApp), '不允许再出现首字色块假图标')
 })
 
 /* ==================== 死操作清零：静态守卫 ==================== */
@@ -110,7 +111,9 @@ test('三个子页 / 弹层组件齐全，且复用全仓统一控件', () => {
   const apps = strip(read('src/components/apps/settings/dnd/DndAppsPage.vue'))
   assert.match(apps, /SettingsSearchBar/)
   assert.match(apps, /#bottom/)
-  assert.match(apps, /@click="store\.toggleApp/, '整行点击要能切开关')
+  assert.match(apps, /RegisteredAppList/, '应用清单必须走公共组件')
+  assert.match(apps, /@row-click="store\.toggleApp/, '整行点击要能切开关')
+  assert.doesNotMatch(apps, /dndApps\.js|is-fallback|dndAppFallback/, '不得再自造应用清单或假图标')
 
   for (const f of ['DndRepeatSheet.vue']) {
     assert.match(strip(read(`src/components/apps/settings/dnd/${f}`)), /SheetModal/, `${f} 必须复用统一弹层`)

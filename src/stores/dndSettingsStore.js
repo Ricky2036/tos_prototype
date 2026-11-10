@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { reactive } from 'vue'
 import { readJson, writeRaw } from '../utils/localPrefs.js'
+import { findRegisteredApp } from '../composables/useRegisteredApps.js'
 
 /**
  * 勿扰模式偏好（对齐 Infinix X6878 / XOS 17，2026-11-10 真机逐页取证 /tmp/ref/gI/dnd_*）。
@@ -23,7 +24,7 @@ export const DND_DEFAULTS = {
   endMinute: 0,
   repeatDays: [0, 1, 3, 4, 6], // 真机：周一、周二、周四、周五、周日
   allowCalls: '收藏联系人',
-  allowedApps: ['微信']
+  allowedApps: ['wechat']
 }
 
 function pad2(n) {
@@ -40,7 +41,12 @@ export function formatDndTime(hour, minute) {
 }
 
 export const useDndSettingsStore = defineStore('dndSettings', () => {
-  const state = reactive({ ...DND_DEFAULTS, ...readJson(KEY, {}) })
+  const saved = readJson(KEY, {})
+  // 旧版本按中文名存允许应用，统一迁移到注册表 id，避免名字一改就失联
+  if (Array.isArray(saved.allowedApps)) {
+    saved.allowedApps = saved.allowedApps.map(v => findRegisteredApp(v)?.id || v)
+  }
+  const state = reactive({ ...DND_DEFAULTS, ...saved })
 
   function persist() {
     writeRaw(KEY, JSON.stringify(state))
@@ -90,10 +96,10 @@ export const useDndSettingsStore = defineStore('dndSettings', () => {
     return true
   }
 
-  function toggleApp(name) {
-    state.allowedApps = state.allowedApps.includes(name)
-      ? state.allowedApps.filter(n => n !== name)
-      : [...state.allowedApps, name]
+  function toggleApp(appId) {
+    state.allowedApps = state.allowedApps.includes(appId)
+      ? state.allowedApps.filter(id => id !== appId)
+      : [...state.allowedApps, appId]
     persist()
   }
 

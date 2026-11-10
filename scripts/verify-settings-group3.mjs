@@ -217,7 +217,7 @@ async function run() {
   check('C 应用列表：应用行覆盖全部注册应用', (await visibleCount(page, '.sub-shell .list-cell')) >= 30)
 
   // 全部图标必须是桌面注册表的真实 PNG，且真的解码渲染出来了（不数空节点）
-  const icons = await page.evaluate(() => [...document.querySelectorAll('.sub-shell .g3-app-icon.is-image')].map(img => ({
+  const icons = await page.evaluate(() => [...document.querySelectorAll('[data-registered-app-icon] img.registered-app-img')].map(img => ({
     src: img.getAttribute('src') || '',
     w: img.getBoundingClientRect().width,
     loaded: img.complete && img.naturalWidth > 0
@@ -351,8 +351,8 @@ async function run() {
   // 日历/时钟与桌面同一套自绘图标（不是 PNG）
   await clickRow(page, '.settings-apps-page', '应用列表')
   const liveIcons = await page.evaluate(() => ({
-    calendar: [...document.querySelectorAll('.sub-shell .g3-live-icon .calendar-face')].filter(e => e.getBoundingClientRect().width > 0).length,
-    clock: [...document.querySelectorAll('.sub-shell .g3-live-icon .clock-face')].filter(e => e.getBoundingClientRect().width > 0).length
+    calendar: [...document.querySelectorAll('[data-registered-app-icon] .calendar-face')].filter(e => e.getBoundingClientRect().width > 0).length,
+    clock: [...document.querySelectorAll('[data-registered-app-icon] .clock-face')].filter(e => e.getBoundingClientRect().width > 0).length
   }))
   check('C 应用列表：日历/时钟复用桌面自绘图标', liveIcons.calendar === 1 && liveIcons.clock === 1, JSON.stringify(liveIcons))
   await backFromSub(page)

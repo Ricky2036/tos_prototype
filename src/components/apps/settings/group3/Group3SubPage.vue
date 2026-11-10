@@ -6,10 +6,11 @@ import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 import LIcon from '../../../ui/LIcon.vue'
 import SettingsSearchBar from '../../../ui/SettingsSearchBar.vue'
 import AppIcon from '../../../ui/AppIcon.vue'
-import { APP_ICONS, getGroup3Page } from './pages.js'
+import { getGroup3Page } from './pages.js'
 import { useSettingsGroup3Store } from '../../../../stores/settingsGroup3Store.js'
-import { APPS, getApp } from '../../../../config/apps.js'
-import { DRAWER_APPS } from '../../../../config/drawerApps.js'
+import { getApp } from '../../../../config/apps.js'
+import { getRegisteredApps, registeredAppSize } from '../../../../composables/useRegisteredApps.js'
+import RegisteredAppIcon from '../../../ui/RegisteredAppIcon.vue'
 import { useNotificationsStore } from '../../../../stores/notificationsStore.js'
 
 /**
@@ -66,43 +67,20 @@ function iconName(row) {
   return ICON_MAP[row.icon] || ''
 }
 
-function appIconStyle(name) {
-  const meta = APP_ICONS[name] || APP_ICONS.generic
-  return { background: meta.bg, color: meta.fg }
-}
-
-function appIconText(name) {
-  return (APP_ICONS[name] || APP_ICONS.generic).text
-}
-
 function isTextBadge(icon) {
   return icon === '123' || icon === '258'
 }
 
-/* 应用列表直接读桌面注册表：名字、图标路径与桌面/Dock/抽屉是同一份数据。
-   🔴 日历/时钟在桌面上是 AppIcon.vue 里自绘的「星期+日期 / 实时指针」，
-   不是任何 PNG（DRAWER_APPS 写的 /icons/calendar.png 文件根本不存在）。
-   以前用 drawer 的静态图冒充，和桌面长得不一样 ⇒ 现在 special 应用直接复用
-   桌面同一个 AppIcon 组件，日期/指针天然与桌面同步。 */
-function resolveAppImage(app) {
-  if (app.special) return ''
-  return app.image || DRAWER_APPS.find(d => d.id === app.id)?.icon || getApp(app.id)?.image || ''
-}
-
-const APP_SIZES = ['8.68 MB', '170 MB', '469 MB', '593 MB', '785 MB', '858 MB', '1.61 GB', '2.31 GB', '2.77 GB', '3.42 GB']
-const registeredAppRows = computed(() => {
-  return [...APPS]
-    .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
-    .map((app, i) => ({
-      title: app.name,
-      appId: app.id,
-      appImage: resolveAppImage(app),
-      appLive: app.special ? getApp(app.id) : null,
-      value: APP_SIZES[(app.id.length + i) % APP_SIZES.length],
-      chevron: true,
-      action: 'appDetail'
-    }))
-})
+/* 应用列表一律走全仓公共清单 `getRegisteredApps()`（桌面注册表），
+   图标交给 `RegisteredAppIcon` —— 不再在本渲染器里另写名单或首字色块。 */
+const registeredAppRows = computed(() => getRegisteredApps().map((app, i) => ({
+  title: app.name,
+  appId: app.id,
+  app,
+  value: registeredAppSize(app, i),
+  chevron: true,
+  action: 'appDetail'
+})))
 
 /* 默认应用点某一行进去，标题就是分类名（电话 / 短信 / 浏览器…），
    真机上每类只有 2 个候选 + 一句说明，这里按 titleOverride 现查。 */
@@ -397,22 +375,8 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
               @click="onRowClick(row)"
             >
               <template v-if="row.link" #title><span class="g3-link-title">{{ row.title }}</span></template>
-              <template v-if="row.appLive" #icon>
-                <div class="g3-live-icon">
-                  <AppIcon
-                    :app="row.appLive"
-                    :size="36"
-                    :show-label="false"
-                    :show-badge="false"
-                    :launch-on-click="false"
-                  />
-                </div>
-              </template>
-              <template v-else-if="row.appImage" #icon>
-                <img class="g3-app-icon is-image" :src="row.appImage" alt="" draggable="false" />
-              </template>
-              <template v-else-if="row.appIcon" #icon>
-                <div class="g3-app-icon" :style="appIconStyle(row.appIcon)">{{ appIconText(row.appIcon) }}</div>
+              <template v-if="row.app || row.appImage || row.appIcon" #icon>
+                <RegisteredAppIcon :app="row.app" :name="row.title" :src="row.appImage" :size="36" />
               </template>
               <template v-else-if="row.icon && isTextBadge(row.icon)" #icon>
                 <div class="g3-badge-icon">{{ row.icon }}</div>
@@ -558,22 +522,6 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
 .g3-notes p { margin: 0 0 8px; font-size: 13px; line-height: 19px; color: #8E8E93; }
 
 /* ===== 行内图标 ===== */
-.g3-app-icon.is-image {
-  object-fit: cover;
-  border: 0.5px solid rgba(0, 0, 0, 0.06);
-}
-.g3-app-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 17px;
-  font-weight: 600;
-  margin-right: 14px;
-  flex: none;
-}
 .g3-glyph-icon {
   width: 36px;
   height: 36px;
@@ -647,17 +595,6 @@ const donutLabel = computed(() => page.value?.sections?.find(s => s.donut)?.donu
 }
 .g3-footer-badge span { color: #8E8E93; }
 
-/* ===== 桌面同源 special 图标（日历 / 时钟） ===== */
-.g3-live-icon { width: 36px; height: 36px; margin-right: 14px; flex: none; }
-.g3-live-icon :deep(.app-icon) {
-  background: none;
-  border: 0;
-  padding: 0;
-  width: 36px;
-  gap: 0;
-  cursor: default;
-}
-.g3-live-icon :deep(.icon-tile) { box-shadow: none; }
 
 /* ===== 应用信息头部 ===== */
 .g3-app-hero { display: flex; flex-direction: column; align-items: center; padding: 16px 0 20px; }

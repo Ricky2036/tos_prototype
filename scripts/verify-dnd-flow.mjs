@@ -210,7 +210,10 @@ async function run() {
   await page.locator('[data-dnd-row="apps"]').click()
   await page.waitForTimeout(450)
   check('D 应用提醒：进入三级页', (await textOf(page, '.sub-shell .gn-title')).trim() === '应用提醒')
-  check('D 应用提醒：真机应用清单 ≥20', (await visibleCount(page, '.sub-shell .list-cell')) >= 20)
+  check('D 应用提醒：桌面注册表全量应用 ≥30', (await visibleCount(page, '[data-registered-app-list] .list-cell')) >= 30)
+  check('D 应用提醒：每行都有公共注册应用图标',
+    (await visibleCount(page, '[data-registered-app-icon]')) === (await visibleCount(page, '[data-registered-app-list] .list-cell')))
+  check('D 应用提醒：不再有首字色块假图标', (await visibleCount(page, '.is-fallback, .g3-app-icon')) === 0)
   check('D 应用提醒：统一悬浮搜索框', (await visibleCount(page, '.sub-shell .settings-search-bar')) === 1)
   const appsSubBefore = await page.evaluate(() => {
     const row = document.querySelector('[data-dnd-row="apps"]')
@@ -221,7 +224,7 @@ async function run() {
   // 点整行切换开关
   const sw = page.locator('.sub-shell .toggle-switch').first()
   const swBefore = await sw.getAttribute('aria-checked')
-  await page.locator('.sub-shell .list-cell').first().click()
+  await page.locator('[data-registered-app-list] .list-cell').first().click()
   await page.waitForTimeout(220)
   const swAfter = await page.locator('.sub-shell .toggle-switch').first().getAttribute('aria-checked')
   check('D 应用提醒：点整行可切开关', swBefore !== swAfter, `${swBefore} → ${swAfter}`)
@@ -229,7 +232,7 @@ async function run() {
   // 搜索过滤
   await page.locator('.sub-shell .search-input').fill('微信')
   await page.waitForTimeout(250)
-  check('D 应用提醒：搜索过滤生效', (await visibleCount(page, '.sub-shell .list-cell')) === 1)
+  check('D 应用提醒：搜索过滤生效', (await visibleCount(page, '[data-registered-app-list] .list-cell')) === 1)
   await page.locator('.sub-shell .search-input').fill('')
   await page.waitForTimeout(250)
 
