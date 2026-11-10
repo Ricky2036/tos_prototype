@@ -28,6 +28,8 @@ import SettingsSim from './SettingsSim.vue'
 import SettingsWifi from './SettingsWifi.vue'
 import SettingsBluetooth from './SettingsBluetooth.vue'
 import SettingsSatellite from './SettingsSatellite.vue'
+import DigitalHealthApp from './digitalhealth/DigitalHealthApp.vue'
+import DhParental from './digitalhealth/DhParental.vue'
 import SettingsMultiDevice from './SettingsMultiDevice.vue'
 import SettingsHotspot from './SettingsHotspot.vue'
 import SettingsNfc from './SettingsNfc.vue'
@@ -162,6 +164,7 @@ const batteryRef = ref(null)
 const storageRef = ref(null)
 const displayRef = ref(null)
 const soundRef = ref(null)
+const dhRef = ref(null)
 useBackHandler(() => {
   if (view.value === 'about' && aboutPhoneRef.value?.back?.()) return true
   if (view.value === 'sim' && simRef.value?.back?.()) return true
@@ -183,6 +186,7 @@ useBackHandler(() => {
   if (view.value === 'oneTap' && oneTapRef.value?.back?.()) return true
   if (view.value === 'battery' && batteryRef.value?.back?.()) return true
   if (view.value === 'storage' && storageRef.value?.back?.()) return true
+  if (view.value === 'digitalHealth' && dhRef.value?.back?.()) return true
   if (view.value === 'personalization' && personalizationRef.value?.back()) return true
   if (view.value === 'prayer' && prayerRef.value?.back()) return true
   if (view.value === 'notifications' && notifRef.value?.back()) return true
@@ -293,7 +297,13 @@ const allSearchableItems = [
   { id: 'cleanStorage', title: '存储清理', group: '系统', action: () => push('storage') },
   { id: 'gtZone', title: 'GT Zone', group: '特色功能', action: () => push('oneTap') },
   { id: 'wallet', title: '钱包', group: '特色功能', action: () => push('wallet') },
-  { id: 'digitalHealth', title: '数字健康与家长控制', group: '数字健康', action: () => pushUnimplemented('数字健康与家长控制') },
+  { id: 'digitalHealth', title: '数字健康', group: '数字健康', action: () => push('digitalHealth') },
+  { id: 'parental', title: '家长控制', group: '数字健康', action: () => push('parental') },
+  { id: 'appTimer', title: '应用定时器', group: '数字健康', action: () => push('digitalHealth') },
+  { id: 'sleepMode', title: '睡眠模式', group: '数字健康', action: () => push('digitalHealth') },
+  { id: 'focusMode', title: '专注模式', group: '数字健康', action: () => push('digitalHealth') },
+  { id: 'walkingReminder', title: '看路提醒', group: '数字健康', action: () => push('digitalHealth') },
+  { id: 'familyLink', title: 'Google Family Link', group: '数字健康', action: () => push('parental') },
   { id: 'emergency', title: '安全和紧急情况', group: '安全', action: () => pushUnimplemented('安全和紧急情况') },
   { id: 'account', title: '用户与账号', group: '账号', action: () => push('account') },
   { id: 'cloudHome', title: '云服务（Infinix Cloud）', group: '账号', action: () => push('cloudHome') },
@@ -307,7 +317,7 @@ const allSearchableItems = [
   { id: 'navigation', title: '系统导航方式', group: '系统', action: () => push('navigation') },
   { id: 'dns', title: '专用 DNS', group: '网络与连接', action: () => pushUnimplemented('专用 DNS') },
   { id: 'dateTime', title: '日期与时间', group: '系统', action: () => pushUnimplemented('日期与时间') },
-  { id: 'screenTime', title: '屏幕使用时间', group: '数字健康', action: () => pushUnimplemented('屏幕使用时间') },
+  { id: 'screenTime', title: '屏幕使用时间', group: '数字健康', action: () => push('digitalHealth') },
   { id: 'lockScreen', title: '锁屏设置', group: '个性化', action: () => push('personalization') },
   { id: 'smallWindow', title: '小窗模式', group: '特色功能', action: () => pushUnimplemented('小窗模式') },
   { id: 'darkMode', title: '深色主题（黑夜模式）', group: '显示', action: () => push('display') }
@@ -571,13 +581,27 @@ function handleSearchNavigate(item) {
               </ListCell>
             </div>
 
-            <!-- ================= 卡片 7: 数字健康与账号 (4项) ================= -->
+            <!-- ================= 卡片 7: 数字健康 / 家长控制 / 账号 (5项) ================= -->
             <div class="settings-card">
-              <!-- 数字健康与家长控制 -->
-              <ListCell title="数字健康与家长控制" chevron @click="pushUnimplemented('数字健康与家长控制')">
+              <!-- 数字健康（真机新版本已与家长控制拆成两行） -->
+              <ListCell title="数字健康" chevron data-setting-row="digitalHealth" @click="push('digitalHealth')">
                 <template #icon>
                   <div class="squircle-icon bg-health">
                     <SettingsSystemIcon name="health" />
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 家长控制 -->
+              <ListCell title="家长控制" chevron data-setting-row="parental" @click="push('parental')">
+                <template #icon>
+                  <div class="squircle-icon bg-parental">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <circle cx="9" cy="6.6" r="2.7" fill="#FFFFFF" />
+                      <circle cx="16.6" cy="9.2" r="2.2" fill="#FFFFFF" />
+                      <path d="M3.9 18.6v-2.8c0-2 1.6-3.6 3.6-3.6h3c2 0 3.6 1.6 3.6 3.6v2.8z" fill="#FFFFFF" />
+                      <path d="M15.4 18.6v-2.1c0-1.3 1-2.3 2.3-2.3h1c1.3 0 2.3 1 2.3 2.3v2.1z" fill="#FFFFFF" />
+                    </svg>
                   </div>
                 </template>
               </ListCell>
@@ -817,6 +841,16 @@ function handleSearchNavigate(item) {
       <!-- ================= 存储 ================= -->
       <div v-else-if="view === 'storage'" key="storage" class="settings-page">
         <SettingsStorage ref="storageRef" @back="pop" />
+      </div>
+
+      <!-- ================= 数字健康（含 7 个子页） ================= -->
+      <div v-else-if="view === 'digitalHealth'" key="digitalHealth" class="settings-page">
+        <DigitalHealthApp ref="dhRef" @back="pop" @open-notifications="push('notifications')" />
+      </div>
+
+      <!-- ================= 家长控制 ================= -->
+      <div v-else-if="view === 'parental'" key="parental" class="settings-page">
+        <DhParental @back="pop" />
       </div>
 
       <!-- ================= 其他二级页 ================= -->
@@ -1099,6 +1133,8 @@ background: #FFFFFF;
 .bg-storage { background: #3B82F6; }
 
 .bg-health { background: #4ADE80; }
+/* 家长控制：真机是橙黄 squircle + 两个白色人形（与数字健康的绿底人形抱心区分） */
+.bg-parental { background: #FFB300; }
 .bg-emergency { background: #EF4444; }
 .bg-user { background: #22C55E; }
 .bg-google {
