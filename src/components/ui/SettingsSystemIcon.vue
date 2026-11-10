@@ -8,6 +8,7 @@ import device from '../../assets/icons/settings/device.svg'
 import display from '../../assets/icons/settings/display.svg'
 import health from '../../assets/icons/settings/health.svg'
 import location from '../../assets/icons/settings/location.svg'
+import modes from '../../assets/icons/settings/modes.svg'
 import multiDevice from '../../assets/icons/settings/multi-device.svg'
 import notifications from '../../assets/icons/settings/notifications.svg'
 import privacy from '../../assets/icons/settings/privacy.svg'
@@ -31,6 +32,7 @@ const icons = {
   display,
   health,
   location,
+  modes,
   'multi-device': multiDevice,
   notifications,
   privacy,
