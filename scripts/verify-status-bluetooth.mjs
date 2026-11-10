@@ -64,6 +64,8 @@ const check = (name, cond, detail) => {
 
 /* ---------- A. 双卡：按桌面优先级排序（vibrate20 < mute30 < hotspot40 < bluetooth50 < dnd60） ---------- */
 await openCC()
+// camon 预设不显示单卡 CC 状态指示器；固定使用 note 预设验证单卡/双卡排序。
+await setCtl(() => window.__control.setLayoutPreset('note'))
 await setCtl(() => window.__control.setShowDualSim(true))
 await setCtl(() => {
   const c = window.__control

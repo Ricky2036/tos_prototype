@@ -83,6 +83,8 @@ const check = (name, cond, detail) => {
 const funcIds = (ids) => ids.filter((id) => id !== 'bluetooth').sort()
 
 await openCC()
+// camon 预设不显示单卡 CC 状态指示器；本套件验证指示器与磁贴同源，固定使用 note 预设。
+await page.evaluate(() => window.__control.setLayoutPreset('note'))
 await setOff()
 let ids = await ccIndTileIds()
 check('CC打开且全关 → 状态行仅蓝牙常量', funcIds(ids).length === 0, `ids=${JSON.stringify(ids)}`)
