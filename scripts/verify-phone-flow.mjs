@@ -334,7 +334,53 @@ try {
   await page.waitForTimeout(400)
   assert('挂断电话并返回主页', !(await callScreen.isVisible()))
 
-  head('11. 控制台错误检查')
+  head('11. 电话搜索页与底部悬浮搜索框、居中空态交互 (PhoneSearch)')
+  // 点击顶部搜索按钮打开搜索页
+  const searchTrigger = page.locator('.search-trigger')
+  await searchTrigger.click()
+  await page.waitForTimeout(400)
+
+  const searchView = page.locator('.phone-search-view')
+  assert('电话搜索页已打开', await searchView.isVisible())
+
+  // 验证底部悬浮条与现有控件 SettingsSearchBar
+  const bottomDock = page.locator('.search-bottom-dock')
+  assert('搜索栏位于屏幕底部悬浮容器内', await bottomDock.isVisible())
+  const searchBar = page.locator('.search-bottom-dock .settings-search-bar')
+  assert('复用现有 SettingsSearchBar 控件', await searchBar.isVisible())
+
+  // 验证未输入时的居中空态
+  const emptyContainer = page.locator('.search-empty-container')
+  assert('空态图文居中容器可见', await emptyContainer.isVisible())
+  const emptyLabel = page.locator('.empty-state-label')
+  assert('未输入时文案显示为“没有搜索记录”', (await emptyLabel.textContent())?.trim() === '没有搜索记录')
+  await page.screenshot({ path: `${OUT}/13-search-empty.png` })
+
+  // 输入关键字匹配联系人
+  const searchInput = page.locator('.search-bottom-dock .settings-search-bar input')
+  await searchInput.fill('陈')
+  await page.waitForTimeout(300)
+
+  const resultsContainer = page.locator('.search-results-container')
+  assert('搜索结果列表已渲染', await resultsContainer.isVisible())
+  assert('搜索结果顶部展示“所有联系人”分组标题', (await page.locator('.results-group-header').textContent())?.trim() === '所有联系人')
+  assert('匹配到联系人项且高亮展示', await page.locator('.search-contact-item').count() > 0)
+  await page.screenshot({ path: `${OUT}/14-search-results.png` })
+
+  // 输入无匹配字符串
+  await searchInput.fill('99999999')
+  await page.waitForTimeout(300)
+  assert('无匹配结果时居中空态再次展示', await emptyContainer.isVisible())
+  assert('无匹配时文案切换为“没有搜索到结果”', (await emptyLabel.textContent())?.trim() === '没有搜索到结果')
+  await page.screenshot({ path: `${OUT}/15-search-nomatch.png` })
+
+  // 点击底部圆形返回按钮
+  const backBtn = page.locator('.search-bottom-back-btn')
+  await backBtn.click()
+  await page.waitForTimeout(400)
+  assert('点击底部返回按钮退出搜索页', !(await searchView.isVisible()))
+
+  head('12. 控制台错误检查')
   assert('全流程无任何严重控制台报错', errors.length === 0, errors)
 
 } finally {
