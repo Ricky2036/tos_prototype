@@ -32,6 +32,7 @@ import SettingsMultiDevice from './SettingsMultiDevice.vue'
 import SettingsHotspot from './SettingsHotspot.vue'
 import SettingsNfc from './SettingsNfc.vue'
 import SettingsInfinixAI from './SettingsInfinixAI.vue'
+import SettingsModes from './SettingsModes.vue'
 import SettingsSecurity from './SettingsSecurity.vue'
 import SettingsPrivacy from './SettingsPrivacy.vue'
 import SettingsAppsManage from './SettingsAppsManage.vue'
@@ -217,6 +218,7 @@ const viewTitles = computed(() => ({
   hotspot: '个人热点',
   nfc: 'NFC',
   infinixAi: 'Infinix AI',
+  modes: '模式和日常程序',
   security: '密码与安全',
   privacy: '权限与隐私',
   appsManage: '应用管理',
@@ -262,6 +264,12 @@ const allSearchableItems = [
   { id: 'hotspot', title: '个人热点', group: '网络与连接', action: () => push('hotspot') },
   { id: 'nfc', title: 'NFC', group: '网络与连接', action: () => push('nfc') },
   { id: 'infinixAi', title: 'Infinix AI', group: '特色功能', action: () => push('infinixAi') },
+  { id: 'modes', title: '模式和日常程序', group: '特色功能', action: () => push('modes') },
+  { id: 'modesSleep', title: '睡眠模式', group: '模式和日常程序', action: () => push('modes') },
+  { id: 'modesTheater', title: '影院模式', group: '模式和日常程序', action: () => push('modes') },
+  { id: 'modesDriving', title: '驾驶模式', group: '模式和日常程序', action: () => push('modes') },
+  { id: 'modesWork', title: '工作模式', group: '模式和日常程序', action: () => push('modes') },
+  { id: 'modesRoutines', title: '日常程序', group: '模式和日常程序', action: () => push('modes') },
   { id: 'folaxVoice', title: 'Fola语音', group: 'Infinix AI', action: () => push('infinixAi') },
   { id: 'folaxScreen', title: 'Fola识屏', group: 'Infinix AI', action: () => push('infinixAi') },
   { id: 'folaHome', title: 'Fola 之家', group: 'Infinix AI', action: () => push('infinixAi') },
@@ -480,6 +488,15 @@ const filteredSearchResults = computed(() => {
                 <template #icon>
                   <div class="squircle-icon bg-infinix-ai">
                     <SettingsSystemIcon name="ai" :size="19" />
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 模式和日常程序 (严格对齐三星真机布局：位于 Infinix AI 正下方) -->
+              <ListCell title="模式和日常程序" chevron @click="push('modes')">
+                <template #icon>
+                  <div class="squircle-icon bg-modes">
+                    <SettingsSystemIcon name="modes" :size="19" />
                   </div>
                 </template>
               </ListCell>
@@ -815,6 +832,11 @@ const filteredSearchResults = computed(() => {
         <SettingsInfinixAI ref="aiRef" @back="pop" />
       </div>
 
+      <!-- ================= 模式和日常程序 ================= -->
+      <div v-else-if="view === 'modes'" key="modes" class="settings-page">
+        <SettingsModes ref="modesRef" @back="pop" />
+      </div>
+
       <!-- ================= 密码与安全 ================= -->
       <div v-else-if="view === 'security'" key="security" class="settings-page">
         <SettingsSecurity ref="securityRef" @back="pop" />
@@ -1111,6 +1133,7 @@ background: #FFFFFF;
 .bg-multidevice { background: #10B981; }
 
 .bg-infinix-ai { background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 50%, #EC4899 100%); }
+.bg-modes { background: #5E4DE6; }
 .bg-wallpaper { background: #F43F5E; }
 .bg-display { background: #F59E0B; }
 .bg-sound { background: #EF4444; }
