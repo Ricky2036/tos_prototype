@@ -276,6 +276,11 @@ async function run() {
   const ink = await page.evaluate(async () => {
     const svg = document.querySelector('[data-search-empty] svg')
     const clone = svg.cloneNode(true)
+    // 模板里的中文注释会变成注释节点，btoa 只吃 Latin1 ⇒ 先摘掉注释
+    const dropComments = (n) => {
+      ;[...n.childNodes].forEach(c => { if (c.nodeType === 8) c.remove(); else dropComments(c) })
+    }
+    dropComments(clone)
     clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
     const src = 'data:image/svg+xml;base64,' + btoa(new XMLSerializer().serializeToString(clone))
     const img = new Image()
