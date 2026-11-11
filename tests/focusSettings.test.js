@@ -103,6 +103,30 @@ test('设置入口、深链、逐层返回与控制中心 2×1 开关全部接�
   assert.match(oldDnd, /focus\.activate\('dnd'\)/)
 })
 
+test('专注创建流程版式契约：图标间距、单列对齐与 App 页结构', () => {
+  const create = strip(read('src/components/apps/settings/focus/FocusCreateFlow.vue'))
+  const home = strip(read('src/components/apps/settings/focus/FocusHome.vue'))
+  const allowed = strip(read('src/components/apps/settings/focus/FocusAllowedFlow.vue'))
+  const modeCard = strip(read('src/components/apps/settings/focus/FocusNotificationModeCard.vue'))
+
+  // 首页列表的自定义图标插槽不会命中 ListCell 的默认间距，必须显式补 12px。
+  assert.match(home, /\.focus-row-glyph\s*\{[^}]*margin-right:\s*12px/)
+  // 联系人页使用卡片示意插图，而非一个孤立圆形图标。
+  assert.match(create, /data-focus-people-hero/)
+  assert.match(create, /\.fc-people-check/)
+  // 通知模式卡只出现一次（联系人选择页）；App 页保持标题 + 搜索 + 列表。
+  assert.equal((create.match(/<FocusNotificationModeCard/g) || []).length, 1)
+  assert.match(allowed, /<FocusNotificationModeCard/)
+  // 图标、文案、勾选是三列固定网格，避免图标浮在文字中间。
+  assert.match(modeCard, /grid-template-columns:\s*22px minmax\(0, 1fr\) 22px/)
+  assert.match(modeCard, /font:\s*400 13\.5px/)
+  // App 页右上角是圆形勾选，不再用文字胶囊。
+  assert.match(create, /\.fc-next\.fc-done\s*\{[^}]*background:\s*#0A84FF/)
+  // 介绍页说明文字使用独立子选择器，不能命中 LIcon 的根 span 并把它拉伸。
+  assert.match(create, /\.fc-intro-points > div > span:nth-child\(2\)\s*\{[^}]*font-size:\s*13px/)
+  assert.doesNotMatch(create, /\.fc-intro-points span\s*\{/)
+})
+
 test('专注模块图标契约：不手绘 SVG，所有 LIcon 名称均已注册', () => {
   const files = [
     ...fs.readdirSync('src/components/apps/settings/focus').filter(f => f.endsWith('.vue')).map(f => `src/components/apps/settings/focus/${f}`),

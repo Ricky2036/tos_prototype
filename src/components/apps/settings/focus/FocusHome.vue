@@ -25,7 +25,7 @@ const focus = useFocusSettingsStore()
           :data-focus-mode="mode.id"
           @click="emit('open-mode', mode.id)"
         >
-          <template #icon><FocusGlyph :name="mode.icon" :color="mode.color" :size="34" :icon-size="19" /></template>
+          <template #icon><FocusGlyph class="focus-row-glyph" :name="mode.icon" :color="mode.color" :size="34" :icon-size="19" /></template>
         </ListCell>
       </div>
 
@@ -52,10 +52,11 @@ const focus = useFocusSettingsStore()
 .focus-section-title { margin: 0 6px 8px; font-size: 13px; color: #8E8E93; }
 .focus-list-card { overflow: hidden; border-radius: 18px; background: #fff; }
 .focus-new-button { width: 100%; min-height: 58px; margin-top: 12px; padding: 10px 16px; border: 0; border-radius: 18px; background: #fff; display: flex; align-items: center; gap: 14px; color: #0A84FF; font: 500 16px/1.3 var(--font-stack); cursor: pointer; }
+.focus-row-glyph { margin-right: 12px; }
 .focus-new-button:active, .focus-list-card :deep(.list-cell:active) { background: #E9E9EB; }
 .focus-share-card { margin-top: 22px; padding: 16px; border-radius: 18px; background: #fff; display: flex; align-items: center; gap: 14px; }
 .focus-share-card > div { flex: 1; min-width: 0; }
 .focus-share-card strong { display: block; font-size: 15.5px; font-weight: 500; }
-.focus-share-card p, .focus-home-note { margin: 5px 0 0; color: #8E8E93; font-size: 13px; line-height: 1.45; }
-.focus-home-note { padding: 0 8px; }
+.focus-share-card p { margin: 5px 0 0; color: #8E8E93; font-size: 13px; line-height: 1.45; }
+.focus-home-note { margin: 10px 0 0; padding: 0 8px; color: #8E8E93; font-size: 13px; line-height: 1.45; }
 </style>

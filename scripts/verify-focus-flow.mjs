@@ -61,6 +61,13 @@ async function run() {
   await click(page, '[data-setting-row="focus"]', 520)
   check('A 设置首页 Infinix AI 下方入口可进入', await visible(page, '[data-focus-page="home"]'))
   check('A 默认五个模式完整显示', await countVisible(page, '[data-focus-mode]') === 5)
+  const homeRow = await page.locator('[data-focus-mode="classroom"]').evaluate(row => {
+    const glyph = row.querySelector('.focus-glyph').getBoundingClientRect()
+    const title = row.querySelector('.lc-title').getBoundingClientRect()
+    return { gap: title.left - glyph.right, glyph: glyph.width, dy: Math.abs((title.top + title.height / 2) - (glyph.top + glyph.height / 2)) }
+  })
+  check('A 列表圆形图标与标题间距 12±1px', Math.abs(homeRow.gap - 12) <= 1, JSON.stringify(homeRow))
+  check('A 列表图标与标题垂直中心对齐', homeRow.dy <= 0.6, JSON.stringify(homeRow))
   await shot(page, '01_focus_home')
 
   await click(page, '[data-focus-mode="classroom"]')
@@ -147,9 +154,79 @@ async function run() {
   await click(page, '[data-focus-icon="graduationCap"]', 100)
   await click(page, '[data-focus-next]')
   check('M 新建介绍页名称正确', (await text(page, '.fc-intro h1')) === '礼拜专注模式')
+  const intro = await page.locator('.focus-create').evaluate(root => {
+    const glyph = root.querySelector('.fc-intro .focus-glyph').getBoundingClientRect()
+    const rows = [...root.querySelectorAll('.fc-intro-points > div')].map(row => {
+      const icon = row.querySelector('.l-icon').getBoundingClientRect()
+      const copy = row.querySelector('span:nth-child(2)').getBoundingClientRect()
+      return { h: row.getBoundingClientRect().height, iconX: icon.left, copyX: copy.left }
+    })
+    const button = root.querySelector('.fc-primary').getBoundingClientRect()
+    const screen = root.getBoundingClientRect()
+    return {
+      glyph: glyph.width, rows,
+      buttonH: button.height,
+      buttonBottom: screen.bottom - button.bottom,
+      iconSpread: Math.max(...rows.map(r => r.iconX)) - Math.min(...rows.map(r => r.iconX)),
+      copySpread: Math.max(...rows.map(r => r.copyX)) - Math.min(...rows.map(r => r.copyX))
+    }
+  })
+  check('M 介绍页图标 48±1px', Math.abs(intro.glyph - 48) <= 1, `glyph=${intro.glyph}`)
+  check('M 四条说明各占单行（行高 <30px）', intro.rows.length === 4 && intro.rows.every(r => r.h < 30), JSON.stringify(intro.rows))
+  check('M 说明图标列与文字列严格对齐', intro.iconSpread <= 0.5 && intro.copySpread <= 0.5, JSON.stringify(intro))
+  check('M 底部按钮高 44±1px、离底 31±2px', Math.abs(intro.buttonH - 44) <= 1 && Math.abs(intro.buttonBottom - 31) <= 2, JSON.stringify(intro))
+  await shot(page, '07_intro_layout')
   await click(page, '.fc-primary')
+  const people = await page.locator('[data-focus-create-step="people"]').evaluate(root => {
+    const hero = root.querySelector('[data-focus-people-hero]').getBoundingClientRect()
+    const title = root.querySelector('[data-focus-people-hero] h1').getBoundingClientRect()
+    const card = root.querySelector('.focus-mode-card').getBoundingClientRect()
+    const labels = [...root.querySelectorAll('.fmc-label')].map(el => el.getBoundingClientRect())
+    const icons = [...root.querySelectorAll('.fmc-icon')].map(el => el.getBoundingClientRect())
+    const cards = [...root.querySelectorAll('.fc-contact-cloud button')].map(el => {
+      const avatar = el.querySelector('span').getBoundingClientRect()
+      const name = el.querySelector('strong').getBoundingClientRect()
+      return { cardW: el.getBoundingClientRect().width, dy: Math.abs((avatar.top + avatar.height / 2) - (name.top + name.height / 2)) }
+    })
+    return {
+      heroHasIllustration: !!root.querySelector('.fc-people-card'),
+      titleGap: card.top - title.bottom,
+      labelSpread: Math.max(...labels.map(r => r.left)) - Math.min(...labels.map(r => r.left)),
+      iconSpread: Math.max(...icons.map(r => r.left)) - Math.min(...icons.map(r => r.left)),
+      labelAfterIcon: labels[0].left - icons[0].right,
+      cards
+    }
+  })
+  check('M 联系人页使用卡片示意插图', people.heroHasIllustration)
+  check('M 标题与通知卡间距 ≥12px 且不重叠', people.titleGap >= 12, `gap=${people.titleGap}`)
+  check('M 通知选项图标/文字各成一列', people.iconSpread <= 0.5 && people.labelSpread <= 0.5, JSON.stringify(people))
+  check('M 通知文字与图标间距 12±1px', Math.abs(people.labelAfterIcon - 12) <= 1, JSON.stringify(people))
+  check('M 联系人卡片等宽且头像/姓名同轴', Math.max(...people.cards.map(c => c.cardW)) - Math.min(...people.cards.map(c => c.cardW)) <= 0.5 && people.cards.every(c => c.dy <= 1), JSON.stringify(people.cards))
   await click(page, '[data-focus-create-step="people"] [data-focus-person="蔡"]')
   await click(page, '[data-focus-next]')
+  const apps = await page.locator('[data-focus-create-step="apps"]').evaluate(root => {
+    const nav = root.closest('.focus-create').querySelector('.fc-nav').getBoundingClientRect()
+    const title = root.closest('.focus-create').querySelector('.fc-nav-title').getBoundingClientRect()
+    const finish = root.closest('.focus-create').querySelector('[data-focus-finish]').getBoundingClientRect()
+    const search = root.querySelector('.settings-search-bar').getBoundingClientRect()
+    const list = root.querySelector('[data-registered-app-list]').getBoundingClientRect()
+    const host = root.closest('.focus-create').getBoundingClientRect()
+    return {
+      hasModeCard: !!root.querySelector('.focus-mode-card'),
+      titleCenter: Math.abs((title.left + title.width / 2) - (host.left + host.width / 2)),
+      finishSize: finish.width,
+      finishRight: host.right - finish.right,
+      navBottom: nav.bottom,
+      searchTop: search.top,
+      searchBottom: search.bottom,
+      listTop: list.top
+    }
+  })
+  check('M App 页不再显示通知模式卡', apps.hasModeCard === false)
+  check('M App 页标题水平居中', apps.titleCenter <= 0.5, JSON.stringify(apps))
+  check('M App 页完成按钮为 38px 圆钮且右边距 16px', Math.abs(apps.finishSize - 38) <= 1 && Math.abs(apps.finishRight - 16) <= 1, JSON.stringify(apps))
+  check('M 导航、搜索与列表互不重叠', apps.searchTop - apps.navBottom >= 8 && apps.listTop - apps.searchBottom >= 8, JSON.stringify(apps))
+  await shot(page, '08_apps_layout')
   await click(page, '[data-focus-create-step="apps"] [data-app-id="wechat"]')
   await click(page, '[data-focus-finish]')
   check('M 创建完成进入新模式详情', (await text(page, '.fd-hero h1')) === '礼拜专注模式')
