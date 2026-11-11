@@ -1,6 +1,11 @@
 <script setup>
 import LIcon from '../../../ui/LIcon.vue'
 
+/**
+ * 通知方式二选一（静音 / 允许）。
+ * 真机口径：整块是淡紫灰底（#ECEBF4），两行同色、无描边分隔；
+ * 选中只体现在右侧蓝色勾，文字保持黑色，不整行翻白。
+ */
 defineProps({
   mode: { type: String, default: 'allow' }
 })
@@ -17,7 +22,7 @@ defineEmits(['select'])
     >
       <span class="fmc-icon"><LIcon name="bellOff" :size="19" /></span>
       <span class="fmc-label">静音下列通知</span>
-      <span class="fmc-check"><LIcon v-if="mode === 'silence'" name="check" :size="18" /></span>
+      <span class="fmc-check"><LIcon v-if="mode === 'silence'" name="check" :size="18" :stroke-width="2.6" /></span>
     </button>
     <button
       type="button"
@@ -25,9 +30,9 @@ defineEmits(['select'])
       data-focus-notification-mode="allow"
       @click="$emit('select', 'allow')"
     >
-      <span class="fmc-icon"><LIcon name="badgeCheck" :size="19" /></span>
+      <span class="fmc-icon"><span class="fmc-badge"><LIcon name="check" :size="12" :stroke-width="3.2" /></span></span>
       <span class="fmc-label">允许下列通知</span>
-      <span class="fmc-check"><LIcon v-if="mode === 'allow'" name="check" :size="18" /></span>
+      <span class="fmc-check"><LIcon v-if="mode === 'allow'" name="check" :size="18" :stroke-width="2.6" /></span>
     </button>
   </div>
 </template>
@@ -35,27 +40,26 @@ defineEmits(['select'])
 <style scoped>
 .focus-mode-card {
   overflow: hidden;
-  border-radius: 12px;
-  background: #F2F2F7;
+  border-radius: 16px;
+  background: #ECEBF4;
+  padding: 0;
 }
 .focus-mode-card button {
   width: 100%;
-  min-height: 37px;
-  padding: 0 14px;
+  min-height: 36px;
+  padding: 0 12px;
   border: 0;
-  border-bottom: 0.5px solid rgba(60, 60, 67, 0.12);
   background: transparent;
   color: #1C1C1E;
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr) 22px;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   text-align: left;
-  font: 400 13.5px/1.3 var(--font-stack);
+  font: 400 14px/1.3 var(--font-stack);
   cursor: pointer;
 }
-.focus-mode-card button:last-child { border-bottom: 0; }
-.focus-mode-card button.selected { background: #fff; color: #0A84FF; }
+.focus-mode-card button:active { background: rgba(120, 120, 140, .1); }
 .fmc-icon, .fmc-check {
   width: 22px;
   height: 22px;
@@ -63,6 +67,8 @@ defineEmits(['select'])
   align-items: center;
   justify-content: center;
 }
+.fmc-icon { color: #48484A; }
+.fmc-badge { width: 18px; height: 18px; border-radius: 50%; background: #34C759; color: #fff; display: inline-flex; align-items: center; justify-content: center; }
 .fmc-check { color: #0A84FF; }
 .fmc-label { min-width: 0; }
 </style>

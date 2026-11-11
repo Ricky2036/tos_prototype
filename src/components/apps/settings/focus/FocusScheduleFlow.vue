@@ -136,14 +136,14 @@ defineExpose({ back })
 h2 { margin: 0 4px 4px; font-size: 16px; }
 p { margin: 0 4px 12px; color: #8E8E93; font-size: 13px; line-height: 1.45; }
 .time-card { overflow: visible; }
-.time-card > button { width: 100%; min-height: 48px; padding: 0 16px; border: 0; border-bottom: .5px solid #E5E5EA; background: #fff; display: flex; align-items: center; justify-content: space-between; font-size: 16px; cursor: pointer; }
+.time-card > button { width: 100%; min-height: 44px; padding: 0 16px; border: 0; border-bottom: .5px solid #E5E5EA; background: #fff; display: flex; align-items: center; justify-content: space-between; font-size: 16px; cursor: pointer; }
 .time-card > button:first-child { border-radius: 16px 16px 0 0; }
-.time-card > button strong { min-width: 76px; padding: 7px 10px; border-radius: 10px; background: #F2F2F7; font-size: 16px; font-weight: 400; }
+.time-card > button strong { min-width: 76px; padding: 6px 10px; border-radius: 10px; background: #F2F2F7; font-size: 16px; font-weight: 400; }
 .time-card > button strong.active { color: #0A84FF; }
-.weekday-row { display: flex; justify-content: space-between; padding: 14px 12px; }
-.weekday-row button { width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; color: #3A3A3C; font-size: 15px; cursor: pointer; }
+.weekday-row { display: flex; justify-content: space-between; padding: 12px 24px; }
+.weekday-row button { width: 33px; height: 33px; border: 0; border-radius: 50%; background: transparent; color: #3A3A3C; font-size: 15px; cursor: pointer; }
 .weekday-row button.selected { background: #5E5CE6; color: #fff; }
-.enabled-row { min-height: 50px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; font-size: 15px; }
+.enabled-row { min-height: 50px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; font-size: 15px; }
 .delete-schedule { width: 100%; height: 48px; border: 0; border-radius: 16px; background: #fff; color: #FF3B30; font-size: 16px; cursor: pointer; }
 .focus-location-editor :deep(.settings-search-bar) { margin-bottom: 14px; background: #fff; }
 .location-results { overflow: hidden; }

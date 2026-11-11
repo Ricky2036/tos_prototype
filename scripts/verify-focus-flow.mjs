@@ -252,31 +252,91 @@ async function run() {
   await shot(page, '07_intro_layout')
   await click(page, '.fc-primary')
   const people = await page.locator('[data-focus-create-step="people"]').evaluate(root => {
-    const hero = root.querySelector('[data-focus-people-hero]').getBoundingClientRect()
+    const host = root.getBoundingClientRect()
     const title = root.querySelector('[data-focus-people-hero] h1').getBoundingClientRect()
-    const card = root.querySelector('.focus-mode-card').getBoundingClientRect()
+    const card = root.querySelector('.focus-mode-card')
+    const cardRect = card.getBoundingClientRect()
     const labels = [...root.querySelectorAll('.fmc-label')].map(el => el.getBoundingClientRect())
     const icons = [...root.querySelectorAll('.fmc-icon')].map(el => el.getBoundingClientRect())
-    const cards = [...root.querySelectorAll('.fc-contact-cloud button')].map(el => {
-      const avatar = el.querySelector('span').getBoundingClientRect()
-      const name = el.querySelector('strong').getBoundingClientRect()
-      return { cardW: el.getBoundingClientRect().width, dy: Math.abs((avatar.top + avatar.height / 2) - (name.top + name.height / 2)) }
-    })
+    const add = root.querySelector('[data-focus-add-person]')
+    const addRect = add.getBoundingClientRect()
+    const plus = add.querySelector('.fc-add-plus').getBoundingClientRect()
+    const addLabel = add.querySelector('strong').getBoundingClientRect()
+    const scroll = getComputedStyle(root.querySelector('.fc-selection'))
     return {
       heroHasIllustration: !!root.querySelector('.fc-people-card'),
-      titleGap: card.top - title.bottom,
+      titleGap: cardRect.top - title.bottom,
+      cardH: cardRect.height,
+      addH: addRect.height,
       labelSpread: Math.max(...labels.map(r => r.left)) - Math.min(...labels.map(r => r.left)),
       iconSpread: Math.max(...icons.map(r => r.left)) - Math.min(...icons.map(r => r.left)),
       labelAfterIcon: labels[0].left - icons[0].right,
-      cards
+      padLeft: parseFloat(scroll.paddingLeft),
+      padRight: parseFloat(scroll.paddingRight),
+      heroLeftGap: title.left - host.left,
+      cardLeftGap: cardRect.left - host.left,
+      cardRightGap: host.right - cardRect.right,
+      cardBg: getComputedStyle(card).backgroundColor,
+      selectedBg: getComputedStyle(card.querySelector('button.selected')).backgroundColor,
+      checkColor: getComputedStyle(root.querySelector('button.selected .fmc-check')).color,
+      badgeBg: getComputedStyle(root.querySelector('.fmc-badge')).backgroundColor,
+      chips: root.querySelectorAll('.fc-people-chips button').length,
+      addBg: getComputedStyle(add).backgroundColor,
+      addRadius: parseFloat(getComputedStyle(add).borderTopLeftRadius),
+      addLeftGap: addRect.left - host.left,
+      plusSize: plus.width,
+      plusToLabel: addLabel.top - (plus.top + plus.height)
     }
   })
   check('M 联系人页使用卡片示意插图', people.heroHasIllustration)
-  check('M 标题与通知卡间距 ≥12px 且不重叠', people.titleGap >= 12, `gap=${people.titleGap}`)
+  check('M 标题与通知卡间距 21±3px', Math.abs(people.titleGap - 21) <= 3, `gap=${people.titleGap}`)
+  check('M 通知卡两行各 36px（合计 72±1px）', Math.abs(people.cardH - 72) <= 1, `h=${people.cardH}`)
   check('M 通知选项图标/文字各成一列', people.iconSpread <= 0.5 && people.labelSpread <= 0.5, JSON.stringify(people))
-  check('M 通知文字与图标间距 12±1px', Math.abs(people.labelAfterIcon - 12) <= 1, JSON.stringify(people))
-  check('M 联系人卡片等宽且头像/姓名同轴', Math.max(...people.cards.map(c => c.cardW)) - Math.min(...people.cards.map(c => c.cardW)) <= 0.5 && people.cards.every(c => c.dy <= 1), JSON.stringify(people.cards))
-  await click(page, '[data-focus-create-step="people"] [data-focus-person="蔡"]')
+  check('M 通知文字与图标间距 6±1px', Math.abs(people.labelAfterIcon - 6) <= 1, JSON.stringify(people))
+  check('M 联系人页左右安全边距 16±0.5px', Math.abs(people.padLeft - 16) <= 0.5 && Math.abs(people.padRight - 16) <= 0.5, JSON.stringify(people))
+  check('M 标题/通知卡/添加块同轴左缘 16px', Math.abs(people.heroLeftGap - 16) <= 0.5 && Math.abs(people.cardLeftGap - 16) <= 0.5 && Math.abs(people.addLeftGap - 16) <= 0.5 && Math.abs(people.cardRightGap - 16) <= 0.5, JSON.stringify(people))
+  check('M 通知选择框底色为淡紫灰 #ECEBF4', people.cardBg === 'rgb(236, 235, 244)', people.cardBg)
+  check('M 选中行不翻白、只显蓝勾', people.selectedBg === 'rgba(0, 0, 0, 0)' && people.checkColor === 'rgb(10, 132, 255)', `${people.selectedBg} / ${people.checkColor}`)
+  check('M 允许通知图标为绿底白勾', people.badgeBg === 'rgb(52, 199, 89)', people.badgeBg)
+  check('M 未选联系人时只有「添加」空槽', people.chips === 0 && people.addBg === 'rgb(236, 235, 244)', JSON.stringify(people))
+  check('M 添加空槽高 90±4px', Math.abs(people.addH - 90) <= 4, `h=${people.addH}`)
+  check('M 添加空槽为 16px 圆角容器、44px 圆形加号、加号与文字间距 8±1px', Math.abs(people.addRadius - 16) <= 0.5 && Math.abs(people.plusSize - 44) <= 1 && Math.abs(people.plusToLabel - 8) <= 1, JSON.stringify(people))
+  await shot(page, '07_people_step')
+  await click(page, '[data-focus-add-person]', 460)
+  const picker = await page.locator('[data-focus-people-picker]').evaluate(root => {
+    const buttons = [...root.querySelectorAll('.fc-picker-list button')]
+    const avatar = buttons[0].querySelector('.fc-picker-avatar').getBoundingClientRect()
+    const name = buttons[0].querySelector('strong').getBoundingClientRect()
+    return {
+      rows: buttons.length,
+      rowH: buttons[0].getBoundingClientRect().height,
+      dy: Math.abs((avatar.top + avatar.height / 2) - (name.top + name.height / 2)),
+      checked: root.querySelectorAll('.fc-picker-check .l-icon').length
+    }
+  })
+  check('M 点「添加」弹出联系人选择器', picker.rows >= 4, JSON.stringify(picker))
+  check('M 选择器行高 50±1px 且头像/姓名同轴', Math.abs(picker.rowH - 50) <= 1 && picker.dy <= 1, JSON.stringify(picker))
+  check('M 未勾选时选择器无勾', picker.checked === 0)
+  await click(page, '[data-focus-pick-person="蔡"]', 200)
+  await click(page, '[data-focus-pick-person="Ricky"]', 200)
+  check('M 选择器勾选后显示蓝色勾', await countVisible(page, '[data-focus-people-picker] .fc-picker-check .l-icon') === 2)
+  await shot(page, '07b_people_picker')
+  await click(page, '[data-focus-picker-done]', 420)
+  check('M 完成后选择器收起', !(await visible(page, '[data-focus-people-picker]')))
+  check('M 已选联系人生成可移除胶囊行', await countVisible(page, '[data-focus-create-step="people"] [data-focus-person]') === 2)
+  const chips = await page.locator('[data-focus-create-step="people"] .fc-people-chips').evaluate(root => {
+    const items = [...root.querySelectorAll('button')].map(el => {
+      const avatar = el.querySelector('.fc-chip-avatar').getBoundingClientRect()
+      const name = el.querySelector('strong').getBoundingClientRect()
+      const remove = el.querySelector('.fc-chip-remove').getBoundingClientRect()
+      return { h: el.getBoundingClientRect().height, left: el.getBoundingClientRect().left, right: el.getBoundingClientRect().right, dy: Math.abs((avatar.top + avatar.height / 2) - (name.top + name.height / 2)), removeRight: remove.right, width: el.getBoundingClientRect().width }
+    })
+    const host = root.closest('[data-focus-create-step="people"]').getBoundingClientRect()
+    return { items, spread: Math.max(...items.map(i => i.left)) - Math.min(...items.map(i => i.left)), right: host.right - items[0].right, removeInset: items[0].right - items[0].removeRight }
+  })
+  check('M 胶囊行左缘对齐且等宽', chips.spread <= 0.5 && Math.abs(chips.right - 16) <= 0.5, JSON.stringify(chips))
+  check('M 胶囊行头像与姓名同轴、移除按钮贴右 14±1px', chips.items.every(i => i.dy <= 1) && Math.abs(chips.removeInset - 14) <= 1, JSON.stringify(chips))
+  await shot(page, '07c_people_filled')
   await click(page, '[data-focus-next]')
   const apps = await page.locator('[data-focus-create-step="apps"]').evaluate(root => {
     const nav = root.closest('.focus-create').querySelector('.fc-nav').getBoundingClientRect()

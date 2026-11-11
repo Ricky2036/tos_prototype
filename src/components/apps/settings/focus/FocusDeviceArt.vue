@@ -53,8 +53,8 @@ defineProps({
 /* ===== 手机（锁屏 / 主屏共用外壳） ===== */
 .fda.is-lock,
 .fda.is-home {
-  width: calc(67px * var(--s));
-  height: calc(146px * var(--s));
+  width: calc(72px * var(--s));
+  height: calc(157px * var(--s));
   border-radius: calc(9px * var(--s));
   overflow: hidden;
   background-color: var(--face-color, #F4F4F5);
@@ -63,8 +63,8 @@ defineProps({
 
 /* ===== Apple Watch：白壳 + 灰圈 + 浅色表面 ===== */
 .fda.is-watch {
-  width: calc(58px * var(--s));
-  height: calc(66px * var(--s));
+  width: calc(62px * var(--s));
+  height: calc(71px * var(--s));
   border-radius: calc(15px * var(--s));
   background: #fff;
   box-shadow: inset 0 0 0 calc(2.6px * var(--s)) #C7C7CB;

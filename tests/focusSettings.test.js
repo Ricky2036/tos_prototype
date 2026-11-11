@@ -119,7 +119,18 @@ test('专注创建流程版式契约：图标间距、单列对齐与 App 页结
   assert.match(allowed, /<FocusNotificationModeCard/)
   // 图标、文案、勾选是三列固定网格，避免图标浮在文字中间。
   assert.match(modeCard, /grid-template-columns:\s*22px minmax\(0, 1fr\) 22px/)
-  assert.match(modeCard, /font:\s*400 13\.5px/)
+  assert.match(modeCard, /font:\s*400 14px/)
+  // 真机是整块淡紫灰底，两行同色；选中只翻蓝勾，不整行翻白。
+  assert.match(modeCard, /\.focus-mode-card \{[^}]*background:\s*#ECEBF4/)
+  assert.doesNotMatch(modeCard, /\.focus-mode-card button\s*\{[^}]*background:\s*#fff/)
+  assert.match(modeCard, /\.fmc-badge \{[^}]*background:\s*#34C759/)
+  // 联系人页：未选时只给一个「添加」空槽，选完变胶囊行 + 空槽。
+  assert.match(create, /data-focus-add-person/)
+  assert.match(create, /data-focus-people-picker/)
+  assert.match(create, /<SheetModal[^>]*:visible="showPeoplePicker"/)
+  assert.match(create, /\.fc-add-person \{[^}]*border-radius:\s*16px[^}]*background:\s*#ECEBF4/)
+  assert.match(create, /\.fc-add-plus \{[^}]*width:\s*44px[^}]*height:\s*44px/)
+  assert.doesNotMatch(create, /fc-contact-cloud/)
   // App 页右上角是圆形勾选，不再用文字胶囊。
   assert.match(create, /\.fc-next\.fc-done\s*\{[^}]*background:\s*#0A84FF/)
   // 介绍页说明文字使用独立子选择器，不能命中 LIcon 的根 span 并把它拉伸。
@@ -138,13 +149,13 @@ test('专注详情与过滤页版式契约：设备示意图、行内居中与�
   assert.equal((detail.match(/<FocusDeviceArt/g) || []).length, 1)
   assert.doesNotMatch(detail, /fd-screen-preview/)
   // 三列共用等高占位块 + 底部对齐，标签才会共线。
-  assert.match(detail, /\.fd-screen-slot\s*\{[^}]*height:\s*146px[^}]*align-items:\s*flex-end/)
+  assert.match(detail, /\.fd-screen-slot\s*\{[^}]*height:\s*157px[^}]*align-items:\s*flex-end/)
   assert.match(detail, /\.fd-screens-card > button > strong\s*\{[^}]*margin-top:\s*7px/)
   // 设备示意图三种形态齐备，且按 --s 等比缩放。
   for (const kind of ['is-lock', 'is-home', 'is-watch']) assert.ok(art.includes(`.fda.${kind}`) || art.includes(`.fda.${kind},`), `缺少 ${kind} 形态`)
   assert.match(art, /--s:\s*1/)
-  assert.match(art, /calc\(67px \* var\(--s\)\)/)
-  assert.match(art, /calc\(58px \* var\(--s\)\)/)
+  assert.match(art, /calc\(72px \* var\(--s\)\)/)
+  assert.match(art, /calc\(62px \* var\(--s\)\)/)
   // 屏幕选取页复用同一套设备图，不再各画一份。
   assert.match(picker, /<FocusDeviceArt[^>]*:kind="type"/)
   assert.doesNotMatch(picker, /fsp-app-grid/)
@@ -157,6 +168,30 @@ test('专注详情与过滤页版式契约：设备示意图、行内居中与�
   assert.match(detail, /\.fd-tail \{[^}]*padding-right:\s*4px/)
   // 过滤页说明文字必须有左右安全边距与上间距。
   assert.match(filters, /\.filter-note \{[^}]*margin:\s*8px 6px 0/)
+})
+
+test('专注子页沿用设置页 16px 安全边距', () => {
+  const shell = strip(read('src/components/apps/settings/subpage/SubPageShell.vue'))
+  // 外壳只保留一套口径：内容区左右 16px。专注页不做例外覆盖。
+  assert.match(shell, /\.sub-body \{[^}]*padding:\s*calc\(var\(--nav-h\) \+ 10px\) 16px 0/)
+  assert.doesNotMatch(shell, /gutter/)
+
+  const focusFiles = fs.readdirSync('src/components/apps/settings/focus').filter(f => f.endsWith('.vue'))
+  const shellUsers = focusFiles.filter(f => strip(read(`src/components/apps/settings/focus/${f}`)).includes('<SubPageShell'))
+  assert.ok(shellUsers.length >= 5, `使用 SubPageShell 的专注页只有 ${shellUsers.length} 个`)
+  for (const file of shellUsers) {
+    assert.doesNotMatch(strip(read(`src/components/apps/settings/focus/${file}`)), /:gutter/, `${file} 不应单独覆盖内边距`)
+  }
+
+  // 详情页不走外壳，内容区同样 16px。
+  assert.match(strip(read('src/components/apps/settings/focus/FocusDetail.vue')), /\.fd-body \{[^}]*padding:[^;]*16px/)
+  // 创建流程的联系人 / App 步内边距同理。
+  assert.match(strip(read('src/components/apps/settings/focus/FocusCreateFlow.vue')), /\.fc-selection \{[^}]*padding:\s*9px 16px 40px/)
+  // 时间页：行高 44、星期圆点 33 且左右 24px 内缩（真机实测）。
+  const schedule = strip(read('src/components/apps/settings/focus/FocusScheduleFlow.vue'))
+  assert.match(schedule, /\.time-card > button \{[^}]*min-height:\s*44px[^}]*padding:\s*0 16px/)
+  assert.match(schedule, /\.weekday-row \{[^}]*padding:\s*12px 24px/)
+  assert.match(schedule, /\.weekday-row button \{[^}]*width:\s*33px[^}]*height:\s*33px/)
 })
 
 test('专注模块图标契约：不手绘 SVG，所有 LIcon 名称均已注册', () => {

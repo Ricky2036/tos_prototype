@@ -203,10 +203,11 @@ defineExpose({ back })
 .fd-people-preview > span { width: 30px; height: 30px; border-radius: 50%; background: #8E8E93; color: #fff; display: grid; place-items: center; font-size: 13px; }
 .fd-people-preview small, .fd-app-preview small { color: #8E8E93; font-size: 12px; }
 .fd-options-row { width: 100%; height: 48px; padding: 0 14px; border: 0; border-top: .5px solid #E5E5EA; background: transparent; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
-/* 三列设备示意图：等高占位 + 底部对齐，保证「选取/编辑」共线 */
-.fd-screens-card { padding: 22px 12px 13px; display: flex; align-items: flex-start; justify-content: center; gap: 20px; }
+/* 三列设备示意图：等高占位 + 底部对齐，保证「选取/编辑」共线；
+   三列在卡片里摊开（space-between），不再挤在中间留两条大白边 */
+.fd-screens-card { padding: 20px 20px 12px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .fd-screens-card > button { padding: 0; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
-.fd-screen-slot { height: 146px; display: flex; align-items: flex-end; justify-content: center; }
+.fd-screen-slot { height: 157px; display: flex; align-items: flex-end; justify-content: center; }
 .fd-screens-card > button > strong { margin-top: 7px; color: #0A84FF; font-size: 15px; font-weight: 400; line-height: 20px; }
 .fd-smart-row, .fd-schedule-row { height: 58px; padding: 0 12px; border-bottom: .5px solid #E5E5EA; display: flex; align-items: center; gap: 10px; }
 .fd-smart-row > div, .fd-schedule-row > div { flex: 1; min-width: 0; }

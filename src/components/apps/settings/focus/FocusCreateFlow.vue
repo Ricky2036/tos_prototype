@@ -5,6 +5,7 @@ import RegisteredAppList from '../../../ui/RegisteredAppList.vue'
 import SettingsSearchBar from '../../../ui/SettingsSearchBar.vue'
 import FocusGlyph from './FocusGlyph.vue'
 import FocusNotificationModeCard from './FocusNotificationModeCard.vue'
+import SheetModal from '../../../ui/SheetModal.vue'
 import { FOCUS_COLORS, FOCUS_TEMPLATES, useFocusSettingsStore } from '../../../../stores/focusSettingsStore.js'
 
 const props = defineProps({ showTemplates: { type: Boolean, default: true } })
@@ -13,6 +14,7 @@ const focus = useFocusSettingsStore()
 const step = ref(props.showTemplates ? 'templates' : 'customize')
 const previousTemplate = ref('templates')
 const query = ref('')
+const showPeoplePicker = ref(false)
 const draft = reactive({ name: '', icon: 'smile', color: '#5E5CE6', notificationMode: 'allow', allowedPeople: [], allowedApps: [] })
 const iconChoices = ['smile', 'graduationCap', 'briefcase', 'book', 'dumbbell', 'flower2', 'rocket', 'car', 'moon', 'user', 'bedDouble', 'star', 'heart', 'music', 'gamepad2', 'footprints', 'palette', 'camera', 'phone', 'messageCircle', 'calendarDays', 'clock', 'home', 'sparkles']
 const contacts = ['蔡', 'Ricky', '妈妈', '同事']
@@ -115,11 +117,16 @@ defineExpose({ back })
         </div>
         <FocusNotificationModeCard :mode="draft.notificationMode" @select="draft.notificationMode = $event" />
         <p>{{ displayName }}打开时，将{{ draft.notificationMode === 'allow' ? '允许所选联系人的通知。其他所有通知' : '静音所选联系人的通知。其他通知' }}将发送至“通知中心”。</p>
-        <div class="fc-contact-cloud">
-          <button v-for="person in contacts" :key="person" type="button" :class="{ selected: draft.allowedPeople.includes(person) }" :data-focus-person="person" @click="togglePerson(person)">
-            <span>{{ person.slice(0, 1) }}</span><strong>{{ person }}</strong><span class="fc-person-toggle"><LIcon :name="draft.allowedPeople.includes(person) ? 'check' : 'plus'" :size="17" /></span>
+        <div v-if="draft.allowedPeople.length" class="fc-people-chips">
+          <button v-for="person in draft.allowedPeople" :key="person" type="button" :data-focus-person="person" @click="togglePerson(person)">
+            <span class="fc-chip-avatar">{{ person.slice(0, 1) }}</span><strong>{{ person }}</strong>
+            <span class="fc-chip-remove"><LIcon name="x" :size="13" :stroke-width="2.4" /></span>
           </button>
         </div>
+        <button class="fc-add-person" type="button" data-focus-add-person @click="showPeoplePicker = true">
+          <span class="fc-add-plus"><LIcon name="plus" :size="24" /></span>
+          <strong>添加</strong>
+        </button>
       </div>
 
       <div v-else-if="step === 'apps'" class="fc-selection fc-apps scrollable">
@@ -129,6 +136,20 @@ defineExpose({ back })
         </RegisteredAppList>
       </div>
     </template>
+
+    <SheetModal :visible="showPeoplePicker" @close="showPeoplePicker = false">
+      <div class="fc-people-picker" data-focus-people-picker>
+        <h2>添加联系人</h2>
+        <div class="fc-picker-list">
+          <button v-for="person in contacts" :key="person" type="button" :class="{ selected: draft.allowedPeople.includes(person) }" :data-focus-pick-person="person" @click="togglePerson(person)">
+            <span class="fc-picker-avatar">{{ person.slice(0, 1) }}</span>
+            <strong>{{ person }}</strong>
+            <span class="fc-picker-check"><LIcon v-if="draft.allowedPeople.includes(person)" name="check" :size="17" :stroke-width="2.6" /></span>
+          </button>
+        </div>
+        <button class="fc-picker-done" type="button" data-focus-picker-done @click="showPeoplePicker = false">完成</button>
+      </div>
+    </SheetModal>
   </div>
 </template>
 
@@ -246,13 +267,13 @@ button { font-family: inherit; }
   font-weight: 600;
   cursor: pointer;
 }
-.fc-selection { height: calc(100% - var(--nav-h)); padding: 16px 16px 40px; }
+.fc-selection { height: calc(100% - var(--nav-h)); padding: 9px 16px 40px; }
 .fc-selection-hero { text-align: center; margin: 4px 0 18px; }
 .fc-selection-hero h1 { margin: 12px 0 0; font-size: 26px; line-height: 1.25; }
 .fc-people-hero {
   position: relative;
   height: 104px;
-  margin-bottom: 22px;
+  margin-bottom: 12px;
 }
 .fc-people-hero h1 {
   position: absolute;
@@ -307,24 +328,27 @@ button { font-family: inherit; }
   justify-content: center;
 }
 .fc-selection > p {
-  margin: 10px 2px 0;
+  margin: 9px 14px 0;
   color: #8E8E93;
   font-size: 12.5px;
-  line-height: 1.45;
+  line-height: 15px;
 }
-.fc-contact-cloud { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 14px; }
-.fc-contact-cloud button {
-  min-height: 64px;
-  padding: 8px 11px;
+/* 已添加的联系人：胶囊行 + 右侧移除，未添加时整块不出现 */
+.fc-people-chips { display: grid; gap: 8px; margin-top: 16px; }
+.fc-people-chips button {
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 14px;
   border: 0;
-  border-radius: 14px;
-  background: #F2F2F7;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: inset 0 0 0 .5px rgba(60, 60, 67, .1);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
 }
-.fc-contact-cloud button > span:first-child {
+.fc-chip-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -334,19 +358,71 @@ button { font-family: inherit; }
   place-items: center;
   font-size: 13px;
 }
-.fc-contact-cloud button strong { flex: 1; text-align: left; font-size: 14px; font-weight: 500; }
-.fc-person-toggle {
-  width: 28px;
-  height: 28px;
+.fc-people-chips button strong { flex: 1; text-align: left; font-size: 15px; font-weight: 500; }
+.fc-chip-remove {
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: #C7C7CC;
-  color: #fff;
+  background: #E5E5EA;
+  color: #6E6E73;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
-.fc-contact-cloud button.selected { background: #fff; box-shadow: inset 0 0 0 1px #0A84FF; }
-.fc-contact-cloud button.selected .fc-person-toggle { background: #0A84FF; }
+/* 「添加」空槽：真机是淡紫灰大块，左侧圆形加号 + 蓝色「添加」 */
+.fc-add-person {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px 18px 12px;
+  border: 0;
+  border-radius: 16px;
+  background: #ECEBF4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+.fc-add-plus {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #F7F7FB;
+  color: #0A84FF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.fc-add-person strong { color: #0A84FF; font-size: 13px; font-weight: 400; }
+/* 选人弹层 */
+.fc-people-picker h2 { margin: 0 0 12px; font-size: 17px; text-align: center; }
+.fc-picker-list { display: grid; gap: 2px; }
+.fc-picker-list button {
+  width: 100%;
+  min-height: 50px;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+.fc-picker-list button:active { background: #F2F2F7; }
+.fc-picker-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #C7C7CC;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+}
+.fc-picker-list button strong { flex: 1; text-align: left; font-size: 15px; font-weight: 500; }
+.fc-picker-check { width: 22px; height: 22px; color: #0A84FF; display: inline-flex; align-items: center; justify-content: center; }
+.fc-picker-done { width: 100%; height: 44px; margin-top: 14px; border: 0; border-radius: 22px; background: #0A84FF; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; }
 .fc-apps { padding-top: 18px; }
 .fc-apps :deep(.settings-search-bar) { margin-bottom: 14px; background: #fff; }
 .fc-apps :deep(.registered-app-list) { margin-top: 20px; }
