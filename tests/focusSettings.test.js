@@ -144,7 +144,7 @@ test('专注详情与过滤页版式契约：设备示意图、行内居中与�
   for (const kind of ['is-lock', 'is-home', 'is-watch']) assert.ok(art.includes(`.fda.${kind}`) || art.includes(`.fda.${kind},`), `缺少 ${kind} 形态`)
   assert.match(art, /--s:\s*1/)
   assert.match(art, /calc\(67px \* var\(--s\)\)/)
-  assert.match(art, /calc\(56px \* var\(--s\)\)/)
+  assert.match(art, /calc\(58px \* var\(--s\)\)/)
   // 屏幕选取页复用同一套设备图，不再各画一份。
   assert.match(picker, /<FocusDeviceArt[^>]*:kind="type"/)
   assert.doesNotMatch(picker, /fsp-app-grid/)

@@ -63,11 +63,11 @@ defineProps({
 
 /* ===== Apple Watch：白壳 + 灰圈 + 浅色表面 ===== */
 .fda.is-watch {
-  width: calc(56px * var(--s));
+  width: calc(58px * var(--s));
   height: calc(66px * var(--s));
   border-radius: calc(15px * var(--s));
   background: #fff;
-  box-shadow: inset 0 0 0 calc(2.4px * var(--s)) #C7C7CB;
+  box-shadow: inset 0 0 0 calc(2.6px * var(--s)) #C7C7CB;
 }
 
 .fda-crown {
