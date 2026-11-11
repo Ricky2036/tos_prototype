@@ -20,9 +20,9 @@ defineEmits(['select'])
       data-focus-notification-mode="silence"
       @click="$emit('select', 'silence')"
     >
-      <span class="fmc-icon"><LIcon name="bellOff" :size="19" /></span>
+      <span class="fmc-icon"><LIcon name="bellOff" :size="16" /></span>
       <span class="fmc-label">静音下列通知</span>
-      <span class="fmc-check"><LIcon v-if="mode === 'silence'" name="check" :size="18" :stroke-width="2.6" /></span>
+      <span class="fmc-check"><LIcon v-if="mode === 'silence'" name="check" :size="16" :stroke-width="2.6" /></span>
     </button>
     <button
       type="button"
@@ -30,9 +30,9 @@ defineEmits(['select'])
       data-focus-notification-mode="allow"
       @click="$emit('select', 'allow')"
     >
-      <span class="fmc-icon"><span class="fmc-badge"><LIcon name="check" :size="12" :stroke-width="3.2" /></span></span>
+      <span class="fmc-icon"><span class="fmc-badge"><LIcon name="check" :size="10" :stroke-width="3.2" /></span></span>
       <span class="fmc-label">允许下列通知</span>
-      <span class="fmc-check"><LIcon v-if="mode === 'allow'" name="check" :size="18" :stroke-width="2.6" /></span>
+      <span class="fmc-check"><LIcon v-if="mode === 'allow'" name="check" :size="16" :stroke-width="2.6" /></span>
     </button>
   </div>
 </template>
@@ -68,7 +68,7 @@ defineEmits(['select'])
   justify-content: center;
 }
 .fmc-icon { color: #48484A; }
-.fmc-badge { width: 18px; height: 18px; border-radius: 50%; background: #34C759; color: #fff; display: inline-flex; align-items: center; justify-content: center; }
+.fmc-badge { width: 15px; height: 15px; border-radius: 50%; background: #34C759; color: #fff; display: inline-flex; align-items: center; justify-content: center; }
 .fmc-check { color: #0A84FF; }
 .fmc-label { min-width: 0; }
 </style>

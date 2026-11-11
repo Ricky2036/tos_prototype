@@ -330,7 +330,7 @@ button { font-family: inherit; }
 .fc-selection > p {
   margin: 9px 14px 0;
   color: #8E8E93;
-  font-size: 12.5px;
+  font-size: 10.5px;
   line-height: 15px;
 }
 /* 已添加的联系人：胶囊行 + 右侧移除，未添加时整块不出现 */
