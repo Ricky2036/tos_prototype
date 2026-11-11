@@ -127,6 +127,38 @@ test('专注创建流程版式契约：图标间距、单列对齐与 App 页结
   assert.doesNotMatch(create, /\.fc-intro-points span\s*\{/)
 })
 
+test('专注详情与过滤页版式契约：设备示意图、行内居中与说明文字缩进', () => {
+  const detail = strip(read('src/components/apps/settings/focus/FocusDetail.vue'))
+  const art = strip(read('src/components/apps/settings/focus/FocusDeviceArt.vue'))
+  const picker = strip(read('src/components/apps/settings/focus/FocusScreenPicker.vue'))
+  const filters = strip(read('src/components/apps/settings/focus/FocusFiltersFlow.vue'))
+
+  // 「自定义屏幕」用设备示意图，而不是三个圆形图标占位。
+  assert.match(detail, /import FocusDeviceArt from '\.\/FocusDeviceArt\.vue'/)
+  assert.equal((detail.match(/<FocusDeviceArt/g) || []).length, 1)
+  assert.doesNotMatch(detail, /fd-screen-preview/)
+  // 三列共用等高占位块 + 底部对齐，标签才会共线。
+  assert.match(detail, /\.fd-screen-slot\s*\{[^}]*height:\s*146px[^}]*align-items:\s*flex-end/)
+  assert.match(detail, /\.fd-screens-card > button > strong\s*\{[^}]*margin-top:\s*7px/)
+  // 设备示意图三种形态齐备，且按 --s 等比缩放。
+  for (const kind of ['is-lock', 'is-home', 'is-watch']) assert.ok(art.includes(`.fda.${kind}`) || art.includes(`.fda.${kind},`), `缺少 ${kind} 形态`)
+  assert.match(art, /--s:\s*1/)
+  assert.match(art, /calc\(67px \* var\(--s\)\)/)
+  assert.match(art, /calc\(56px \* var\(--s\)\)/)
+  // 屏幕选取页复用同一套设备图，不再各画一份。
+  assert.match(picker, /<FocusDeviceArt[^>]*:kind="type"/)
+  assert.doesNotMatch(picker, /fsp-app-grid/)
+  // 智能启用行固定行高，图标/文字/开关同轴。
+  assert.match(detail, /\.fd-smart-row, \.fd-schedule-row \{[^}]*height:\s*58px[^}]*align-items:\s*center/)
+  // ⚠️ 文字块只能选到 div 内部：`.fd-smart-row span` 会命中 FocusGlyph 根 span 导致图标不居中。
+  assert.doesNotMatch(detail, /\.fd-smart-row span\s*[,{]/)
+  assert.match(detail, /\.fd-smart-row > div > span/)
+  // 开关右缘按 4px 内缩，与下方各行箭头尖端同一条竖线。
+  assert.match(detail, /\.fd-tail \{[^}]*padding-right:\s*4px/)
+  // 过滤页说明文字必须有左右安全边距与上间距。
+  assert.match(filters, /\.filter-note \{[^}]*margin:\s*8px 6px 0/)
+})
+
 test('专注模块图标契约：不手绘 SVG，所有 LIcon 名称均已注册', () => {
   const files = [
     ...fs.readdirSync('src/components/apps/settings/focus').filter(f => f.endsWith('.vue')).map(f => `src/components/apps/settings/focus/${f}`),

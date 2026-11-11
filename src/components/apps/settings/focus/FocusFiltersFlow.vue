@@ -120,7 +120,7 @@ function toggleCalendar(name) {
 .calendar-card button > span { width: 20px; height: 20px; border: 1.5px solid #8E8E93; border-radius: 50%; display: grid; place-items: center; }
 .calendar-card button > span.checked { border-color: #0A84FF; background: #0A84FF; color: #fff; }
 .filter-toggle-row { min-height: 54px; padding: 0 14px; border-radius: 16px; background: #fff; display: flex; align-items: center; justify-content: space-between; text-align: left; font-size: 16px; }
-.filter-note { color: #8E8E93; font-size: 13px; line-height: 1.45; text-align: left; }
+.filter-note { margin: 8px 6px 0; color: #8E8E93; font-size: 13px; line-height: 1.45; text-align: left; }
 .filter-add { width: auto !important; min-width: 52px; padding: 0 12px; border-radius: 19px !important; }
 .filter-add:disabled { color: #C7C7CC; }
 </style>

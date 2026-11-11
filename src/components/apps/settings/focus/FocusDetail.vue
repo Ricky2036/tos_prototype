@@ -7,6 +7,7 @@ import SheetModal from '../../../ui/SheetModal.vue'
 import ActionModal from '../../../ui/ActionModal.vue'
 import RegisteredAppIcon from '../../../ui/RegisteredAppIcon.vue'
 import FocusGlyph from './FocusGlyph.vue'
+import FocusDeviceArt from './FocusDeviceArt.vue'
 import FocusAllowedFlow from './FocusAllowedFlow.vue'
 import FocusScreenPicker from './FocusScreenPicker.vue'
 import FocusScheduleFlow from './FocusScheduleFlow.vue'
@@ -33,6 +34,7 @@ const selectedFilters = computed(() => {
   return (mode.value?.filters || []).map(id => ({ id, name: meta[id]?.[0] || id, icon: meta[id]?.[1] || 'slidersHorizontal' }))
 })
 const editIcons = ['smile', 'graduationCap', 'briefcase', 'book', 'dumbbell', 'flower2', 'rocket', 'car', 'moon', 'user', 'bedDouble', 'star']
+const screenSlots = [{ id: 'lock' }, { id: 'home' }, { id: 'watch' }]
 
 function openSub(page, extra = {}) {
   isBack.value = false
@@ -132,12 +134,9 @@ defineExpose({ back })
         <section class="fd-section">
           <h2>自定义屏幕</h2>
           <p>选取要打开的锁屏或主屏幕页面以帮助限制干扰。</p>
-          <div class="fd-screens-card">
-            <button v-for="screen in [{ id: 'lock', name: '锁屏' }, { id: 'home', name: '主屏幕' }, { id: 'watch', name: '手表' }]" :key="screen.id" type="button" :data-focus-screen="screen.id" @click="openSub('screens', { type: screen.id })">
-              <div class="fd-screen-preview" :class="[`is-${screen.id}`, { selected: mode.screens[screen.id] }]">
-                <FocusGlyph :name="screen.id === 'watch' ? 'watch' : screen.id === 'home' ? 'grid2x2' : 'clock'" :color="mode.screens[screen.id] ? mode.color : '#C7C7CC'" :size="screen.id === 'watch' ? 54 : 62" :icon-size="28" hollow />
-                <span v-if="mode.screens[screen.id]">{{ mode.screens[screen.id] === 'aurora' ? '极光' : mode.screens[screen.id] === 'default' ? '抽象几何' : mode.screens[screen.id] === 'ocean' ? '海洋' : mode.screens[screen.id] === 'dark' ? '深色' : '浅色' }}</span>
-              </div>
+          <div class="fd-screens-card" data-focus-screens>
+            <button v-for="screen in screenSlots" :key="screen.id" type="button" :data-focus-screen="screen.id" @click="openSub('screens', { type: screen.id })">
+              <span class="fd-screen-slot"><FocusDeviceArt :kind="screen.id" :wallpaper="mode.screens[screen.id]" :color="mode.color" /></span>
               <strong>{{ mode.screens[screen.id] ? '编辑' : '选取' }}</strong>
             </button>
           </div>
@@ -147,7 +146,7 @@ defineExpose({ back })
           <h2>设置定时</h2>
           <p>在设定时间、位置或使用某 App 期间，自动打开此专注模式。</p>
           <div class="fd-schedule-card">
-            <div class="fd-smart-row"><FocusGlyph name="power" :color="mode.color" :size="30" :icon-size="18" hollow /><div><strong>智能启用</strong><span>自动打开</span></div><ToggleSwitch :model-value="mode.smartActivation" color="blue" @update:model-value="focus.updateMode(modeId, { smartActivation: $event })" /></div>
+            <div class="fd-smart-row" data-focus-smart-row><FocusGlyph name="power" :color="mode.color" :size="30" :icon-size="18" hollow /><div><strong>智能启用</strong><span>自动打开</span></div><span class="fd-tail"><ToggleSwitch :model-value="mode.smartActivation" color="blue" @update:model-value="focus.updateMode(modeId, { smartActivation: $event })" /></span></div>
             <button v-for="schedule in mode.schedules" :key="schedule.id" class="fd-schedule-row" type="button" :data-focus-schedule-id="schedule.id" @click="openSub('schedule', { scheduleId: schedule.id })">
               <FocusGlyph :name="schedule.type === 'time' ? 'clock' : schedule.type === 'location' ? 'navigation' : 'layers'" :color="mode.color" :size="30" :icon-size="17" />
               <div><strong>{{ formatSchedule(schedule) }}</strong><span>{{ scheduleSubtitle(schedule) }}</span></div>
@@ -204,23 +203,29 @@ defineExpose({ back })
 .fd-people-preview > span { width: 30px; height: 30px; border-radius: 50%; background: #8E8E93; color: #fff; display: grid; place-items: center; font-size: 13px; }
 .fd-people-preview small, .fd-app-preview small { color: #8E8E93; font-size: 12px; }
 .fd-options-row { width: 100%; height: 48px; padding: 0 14px; border: 0; border-top: .5px solid #E5E5EA; background: transparent; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
-.fd-screens-card { min-height: 188px; padding: 20px 24px 12px; display: flex; align-items: flex-start; justify-content: space-around; }
-.fd-screens-card > button { width: 82px; border: 0; background: transparent; cursor: pointer; }
-.fd-screen-preview { height: 128px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; color: #8E8E93; }
-.fd-screen-preview.is-watch { height: 110px; margin-top: 9px; }
-.fd-screen-preview > span { font-size: 12px; }
-.fd-screens-card > button > strong { color: #0A84FF; font-size: 15px; font-weight: 400; }
-.fd-smart-row, .fd-schedule-row { min-height: 58px; padding: 9px 12px; border-bottom: .5px solid #E5E5EA; display: flex; align-items: center; gap: 10px; }
+/* 三列设备示意图：等高占位 + 底部对齐，保证「选取/编辑」共线 */
+.fd-screens-card { padding: 22px 12px 13px; display: flex; align-items: flex-start; justify-content: center; gap: 20px; }
+.fd-screens-card > button { padding: 0; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+.fd-screen-slot { height: 146px; display: flex; align-items: flex-end; justify-content: center; }
+.fd-screens-card > button > strong { margin-top: 7px; color: #0A84FF; font-size: 15px; font-weight: 400; line-height: 20px; }
+.fd-smart-row, .fd-schedule-row { height: 58px; padding: 0 12px; border-bottom: .5px solid #E5E5EA; display: flex; align-items: center; gap: 10px; }
 .fd-smart-row > div, .fd-schedule-row > div { flex: 1; min-width: 0; }
-.fd-smart-row strong, .fd-smart-row span, .fd-schedule-row strong, .fd-schedule-row span { display: block; }
-.fd-smart-row strong, .fd-schedule-row strong { font-size: 15px; font-weight: 500; }
-.fd-smart-row span, .fd-schedule-row span { margin-top: 3px; color: #8E8E93; font-size: 12px; }
+/* ⚠️ 只能选到文字块内部：`.fd-smart-row span` 会命中 FocusGlyph 的根 span，
+   把图标改成 display:block 后里面的图标就不再居中（踩过） */
+.fd-smart-row > div > strong, .fd-smart-row > div > span, .fd-schedule-row > div > strong, .fd-schedule-row > div > span { display: block; }
+.fd-smart-row > div > strong, .fd-schedule-row > div > strong { font-size: 15px; font-weight: 500; line-height: 20px; }
+.fd-smart-row > div > span, .fd-schedule-row > div > span { margin-top: 2px; color: #8E8E93; font-size: 12px; line-height: 16px; }
+/* 开关的右缘与下方各行的箭头尖对齐（行内边距 12 + 箭头盒内留白 4） */
+.fd-tail { display: flex; align-items: center; padding-right: 4px; }
 .fd-schedule-row { width: 100%; border-top: 0; border-left: 0; border-right: 0; background: #fff; text-align: left; cursor: pointer; }
 .fd-schedule-row small { color: #8E8E93; font-size: 14px; }
+/* 箭头盒子的右缘在行内边距 12 处，尖端光学位置约 16；开关也按 16 收边 */
+.fd-schedule-row > .l-icon { color: #C7C7CC; }
 .fd-add-row { width: 100%; height: 46px; padding: 0 52px; border: 0; background: #fff; color: #0A84FF; text-align: left; font-size: 15px; cursor: pointer; }
 .fd-filter-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
-.fd-filter-grid > button { min-height: 100px; padding: 12px; border: 0; border-radius: 18px; background: #fff; display: flex; flex-direction: column; align-items: flex-start; cursor: pointer; }
-.fd-filter-grid > button > svg:nth-child(2) { position: absolute; align-self: flex-end; margin-top: 7px; color: #C7C7CC; }
+.fd-filter-grid > button { position: relative; min-height: 100px; padding: 12px; border: 0; border-radius: 18px; background: #fff; display: flex; flex-direction: column; align-items: flex-start; cursor: pointer; }
+/* LIcon 根元素是 span，不能按 svg 选（否则箭头掉回文档流、跑到图标下面） */
+.fd-filter-grid > button > .l-icon:nth-child(2) { position: absolute; top: 12px; right: 12px; color: #C7C7CC; }
 .fd-filter-grid strong { margin-top: auto; padding-top: 10px; font-size: 14px; font-weight: 500; }
 .fd-filter-grid span { color: #8E8E93; font-size: 12px; }
 .fd-filter-grid .fd-add-filter { color: #0A84FF; }

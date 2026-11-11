@@ -76,6 +76,57 @@ async function run() {
   check('B 默认过滤条件两项', await countVisible(page, '[data-focus-active-filter]') === 2)
   await shot(page, '02_focus_detail')
 
+  const detail = await page.locator('[data-focus-detail="classroom"]').evaluate(root => {
+    const scale = root.getBoundingClientRect().width / 360
+    const card = root.querySelector('.fd-screens-card').getBoundingClientRect()
+    const rel = r => (r - card.top) / scale
+    const cols = [...root.querySelectorAll('.fd-screens-card > button')].map(btn => {
+      const art = btn.querySelector('.fda')
+      const label = btn.querySelector(':scope > strong')
+      return {
+        cls: art.className,
+        bottom: rel(art.getBoundingClientRect().bottom),
+        labelTop: rel(label.getBoundingClientRect().top),
+        label: label.textContent.trim()
+      }
+    })
+    const smart = root.querySelector('.fd-smart-row')
+    const sched = root.querySelector('.fd-schedule-row')
+    const sr = smart.getBoundingClientRect()
+    const dy = el => {
+      const r = el.getBoundingClientRect()
+      return Math.abs((r.top + r.height / 2) - (sr.top + sr.height / 2)) / scale
+    }
+    const glyph = smart.querySelector('.focus-glyph')
+    const gr = glyph.getBoundingClientRect()
+    const ir = glyph.querySelector('svg').getBoundingClientRect()
+    const tail = smart.querySelector('.toggle-switch')
+    const chevron = sched.querySelector(':scope > .l-icon')
+    const cardRight = root.querySelector('.fd-schedule-card').getBoundingClientRect().right
+    return {
+      cols,
+      smartH: sr.height / scale,
+      schedH: sched.getBoundingClientRect().height / scale,
+      dyGlyph: dy(glyph),
+      dyText: dy(smart.querySelector(':scope > div')),
+      dySwitch: dy(tail),
+      iconCentered: Math.abs((ir.left - gr.left) - (ir.top - gr.top)),
+      switchInset: (cardRight - tail.getBoundingClientRect().right) / scale,
+      chevronInset: (cardRight - chevron.getBoundingClientRect().right) / scale,
+      chevronColor: getComputedStyle(chevron).color
+    }
+  })
+  const bottomSpread = Math.max(...detail.cols.map(c => c.bottom)) - Math.min(...detail.cols.map(c => c.bottom))
+  const labelSpread = Math.max(...detail.cols.map(c => c.labelTop)) - Math.min(...detail.cols.map(c => c.labelTop))
+  check('B 三块屏幕示意图底边严格共线', bottomSpread <= 0.5, `spread=${bottomSpread}`)
+  check('B 三个屏幕标签同一基线', labelSpread <= 0.5, `spread=${labelSpread}`)
+  check('B 三块示意图分别是锁屏/主屏/手表', detail.cols.map(c => c.cls).join(' ').includes('is-lock') && detail.cols.map(c => c.cls).join(' ').includes('is-home') && detail.cols.map(c => c.cls).join(' ').includes('is-watch'), JSON.stringify(detail.cols.map(c => c.cls)))
+  check('B 智能启用行与定时行等高', Math.abs(detail.smartH - detail.schedH) <= 1, `${detail.smartH} vs ${detail.schedH}`)
+  check('B 智能启用行图标/文字/开关垂直居中', Math.max(detail.dyGlyph, detail.dyText, detail.dySwitch) <= 1, JSON.stringify(detail))
+  check('B 电源图标在圆形底内居中', detail.iconCentered <= 0.6, `offset=${detail.iconCentered}`)
+  check('B 开关右缘与本行箭头尖端对齐', Math.abs((detail.switchInset - detail.chevronInset) - 4) <= 1, `${detail.switchInset} vs ${detail.chevronInset}`)
+  check('B 行尾箭头为灰色', detail.chevronColor === 'rgb(199, 199, 204)', detail.chevronColor)
+
   await click(page, '[data-focus-open="people"]')
   check('C 联系人允许列表打开', await visible(page, '[data-focus-allowed="people"]'))
   await click(page, '[data-focus-allowed="people"] [data-focus-person="Ricky"]')
@@ -93,7 +144,8 @@ async function run() {
   check('E 锁屏选取页打开', await visible(page, '[data-focus-screen-picker="lock"]'))
   await click(page, '[data-focus-screen-option="ocean"]')
   await click(page, '[data-focus-screen-confirm]')
-  check('E 锁屏选择回写详情', (await text(page, '[data-focus-screen="lock"]')).includes('海洋'))
+  const lockCol = page.locator('[data-focus-screen="lock"]').first()
+  check('E 锁屏选择回写详情', (await lockCol.locator('strong').last().textContent()).trim() === '编辑' && (await lockCol.locator('.fda').getAttribute('class')).includes('wall-ocean'))
 
   await click(page, '[data-focus-schedule-id="time-09:00-10:00"]')
   check('F 时间定时可编辑', await visible(page, '[data-focus-schedule="time"]'))
@@ -135,9 +187,31 @@ async function run() {
   await click(page, '[data-focus-filter="darkAppearance"]')
   await click(page, '[data-focus-filter-detail="darkAppearance"] [role="switch"]')
   check('K 系统过滤开关可切换', await page.locator('[data-focus-filter-detail="darkAppearance"] [role="switch"]').getAttribute('aria-checked') === 'true')
+  const note = await page.locator('[data-focus-filter-detail="darkAppearance"]').evaluate(root => {
+    const shell = root.closest('.sub-shell').getBoundingClientRect()
+    const scale = shell.width / 360
+    const note = root.querySelector('.filter-note').getBoundingClientRect()
+    const row = root.querySelector('.filter-toggle-row').getBoundingClientRect()
+    return {
+      noteLeft: (note.left - shell.left) / scale,
+      rightGap: (shell.right - note.right) / scale,
+      indent: (note.left - row.left) / scale,
+      gap: (note.top - row.bottom) / scale
+    }
+  })
+  check('K 过滤页说明文字左右各留足安全边距', note.noteLeft >= 21 && note.rightGap >= 21, JSON.stringify(note))
+  check('K 说明文字相对卡片内缩 6±1px、与卡片留 8±2px', Math.abs(note.indent - 6) <= 1 && Math.abs(note.gap - 8) <= 2, JSON.stringify(note))
   await back(page)
   await back(page)
   check('K 系统过滤已加入详情', await visible(page, '[data-focus-active-filter="darkAppearance"]'))
+  const filterCard = await page.locator('[data-focus-active-filter="darkAppearance"]').evaluate(el => {
+    const root = el.closest('.focus-detail').getBoundingClientRect()
+    const scale = root.width / 360
+    const card = el.getBoundingClientRect()
+    const chevron = el.querySelector(':scope > .l-icon').getBoundingClientRect()
+    return { top: (chevron.top - card.top) / scale, rightInset: (card.right - chevron.right) / scale }
+  })
+  check('K 过滤条件卡箭头固定在卡片右上角', Math.abs(filterCard.top - 12) <= 1 && Math.abs(filterCard.rightInset - 12) <= 1, JSON.stringify(filterCard))
 
   await click(page, '[data-focus-edit]')
   check('L 编辑弹层打开', await visible(page, '.fd-edit-sheet'))
