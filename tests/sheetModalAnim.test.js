@@ -87,6 +87,10 @@ test('三个弹层调用点都渲染出统一 SheetModal，不再自绘遮罩与
   const cc = await rt.mount('/src/components/apps/settings/notifications/NotifControlCenter.vue')
   assert.equal(await rt.count(cc, '.sheet-panel'), 0, '初始不应有弹层')
   await rt.clickText(cc, '.list-cell', '还原控制中心', 450)
+  await rt.page.waitForFunction(({ hostId }) => {
+    const host = window.__wbHosts.get(hostId)?.host
+    return !!host && !!host.querySelector('.sheet-panel')
+  }, { hostId: cc }, { timeout: 20000 })
   assert.equal(await rt.visibleCount(cc, '.sheet-panel'), 1, '点还原后应弹出统一弹层')
   assert.equal(await rt.count(cc, '.cc-mask'), 0, '控制中心不该自绘遮罩')
   await rt.unmount(cc)
