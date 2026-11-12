@@ -1,0 +1,21 @@
+{
+  "cluster": "C0-a",
+  "owner": "integrator",
+  "since": "2026-11-12",
+  "note": "结构层：Integrator 独占。注意排除已出借的 SettingsApp.vue（见 C2）。",
+  "files": [
+    "src/components/phone/ScreenView.vue",
+    "src/components/system/AppWindow.vue",
+    "src/components/phone/StatusBar.vue",
+    "src/components/phone/HomeIndicator.vue",
+    "src/components/phone/ThreeButtonNav.vue",
+    "src/styles/tokens.css",
+    "src/styles/global.css",
+    "src/App.vue",
+    "vite.config.js",
+    "src/composables/backRegistry.js",
+    "src/config/apps.js",
+    "src/locales/app-names.js",
+    "src/stores/i18nStore.js"
+  ]
+}

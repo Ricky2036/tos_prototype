@@ -22,11 +22,13 @@ test('OneLeap application metadata is registered in getApp without mutating grid
   assert.equal(app.heroBackground, '#121826')
 })
 
-test('appComponents registry includes OneLeapApp component', () => {
+test('appComponents registry includes OneLeapApp component', async () => {
   assert.ok(fs.existsSync(REGISTRY_PATH), 'registry.js should exist')
   const content = fs.readFileSync(REGISTRY_PATH, 'utf-8')
-  assert.match(content, /import OneLeapApp from '\.\/oneleap\/OneLeapApp\.vue'/, 'Should import OneLeapApp')
-  assert.match(content, /oneleap:\s*OneLeapApp/, 'Should register oneleap in appComponents')
+  assert.match(content, /import\.meta\.glob\('\.\/\*\/entry\.js'/, 'Should discover apps via glob entry.js')
+  const { default: entry } = await import('../src/components/apps/oneleap/entry.js')
+  assert.equal(entry.id, 'oneleap')
+  assert.equal(typeof entry.component, 'function')
 })
 
 test('OneLeapApp.vue exists and implements all multi-device quick controls and recording features', () => {
@@ -98,9 +100,11 @@ test('ControlCenter pill click on oneLeap triggers system.openApp("oneleap") and
   assert.equal(system.baseLayer, 'app')
 })
 
-test('ScreenView and Settings include OneLeap bindings', () => {
+test('ScreenView and Settings include OneLeap bindings', async () => {
+  const { DARK_BG_APPS } = await import('../src/config/apps.js')
+  assert.equal(DARK_BG_APPS.includes('oneleap'), true, 'DARK_BG_APPS should include oneleap for white chrome')
   const screenContent = fs.readFileSync(SCREEN_VIEW_PATH, 'utf-8')
-  assert.match(screenContent, /'oneleap'/, 'ScreenView DARK_BG_APPS should include oneleap for white chrome')
+  assert.match(screenContent, /import\s*\{\s*DARK_BG_APPS\s*\}\s*from\s*'\.\.\/\.\.\/config\/apps'/, 'ScreenView should derive DARK_BG_APPS from apps.js')
 
   const settingsContent = fs.readFileSync(SETTINGS_APP_PATH, 'utf-8')
   assert.match(settingsContent, /system\.openApp\('oneleap'\)/, 'Settings multiDevice should trigger system.openApp("oneleap")')

@@ -9,6 +9,7 @@ import { useSystemStore } from '../../stores/systemStore'
 import { useI18nStore } from '../../stores/i18nStore'
 import { rectRelativeToScreen } from '../../utils/dom'
 import { getAnchorRect, registerAnchor, setLaunchRect, unregisterAnchor } from '../../utils/appIconAnchors'
+import { preloadApp } from '../apps/registry'
 
 /**
  * 通用应用图标：渐变底 + glyph，或自绘特殊图标（日历/照片/时钟）。
@@ -22,6 +23,7 @@ const props = defineProps({
   ignoreHidden: { type: Boolean, default: false }, // 是否忽略全局隐藏状态（用于过渡动画中的镜像）
   homeAnchor: { type: Boolean, default: false },
   launchOnClick: { type: Boolean, default: true },
+  preloadOnPress: { type: Boolean, default: undefined },
   showBadge: { type: Boolean, default: true }
 })
 const emit = defineEmits(['activate'])
@@ -100,6 +102,11 @@ const resolvedImage = computed(() => {
   return `${base}${clean}`
 })
 
+function onPointerDown() {
+  const shouldPreload = props.preloadOnPress ?? props.launchOnClick
+  if (shouldPreload && props.app?.id) preloadApp(props.app.id)
+}
+
 function open() {
   if (!anchorRef.value) return
   emit('activate', anchorRef.value)
@@ -128,6 +135,7 @@ onBeforeUnmount(() => {
     :class="{ 'is-hidden': hidden }"
     :data-app-id="app.id"
     :style="{ '--enter-delay': enterDelay + 'ms', width: size + 'px', '--scale': size / 60 }"
+    @pointerdown="onPointerDown"
     @click="open"
   >
     <span ref="anchorRef" class="app-icon-anchor" :style="{ width: size + 'px', height: size + 'px' }">

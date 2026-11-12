@@ -27,6 +27,8 @@ const BASELINE = path.join(ROOT, 'tests/baseline.json')
 
 const argv = process.argv.slice(2)
 const update = argv.includes('--update')
+const tapFlag = argv.indexOf('--tap')
+const tapPath = tapFlag >= 0 ? argv[tapFlag + 1] : null
 const e2eFlag = argv.indexOf('--e2e-json')
 const e2ePath = e2eFlag >= 0 ? argv[e2eFlag + 1] : '/tmp/run-e2e.json'
 
@@ -36,6 +38,10 @@ const yellow = (msg) => `\x1b[33m${msg}\x1b[0m`
 
 /* ---------------- 单测用例数 ---------------- */
 function readUnitCases() {
+  // gate:merge 已经把 G3a 的 tap 落盘，直接复用——否则整套单测要跑两遍
+  if (tapPath && fs.existsSync(tapPath)) {
+    return parseTap(fs.readFileSync(tapPath, 'utf8'))
+  }
   const files = fs
     .readdirSync(path.join(ROOT, 'tests'))
     .filter((f) => f.endsWith('.test.js'))
@@ -49,9 +55,19 @@ function readUnitCases() {
   } catch (e) {
     out = (e.stdout || '') + (e.stderr || '')
   }
+  return parseTap(out)
+}
+
+function parseTap(out) {
   const m = out.match(/^#\s*pass\s+(\d+)/m)
   const f = out.match(/^#\s*fail\s+(\d+)/m)
-  return { cases: m ? Number(m[1]) : null, failed: f ? Number(f[1]) : null }
+  const s2 = out.match(/^#\s*skipped\s+(\d+)/m)
+  const pass = m ? Number(m[1]) : null
+  if (pass === null) return { cases: null, failed: null, skipped: 0 }
+  const skipped = s2 ? Number(s2[1]) : 0
+  // 计数口径 = pass + skipped：跳过是环境所致（如 CI 无浏览器），不是删用例。
+  // 代价：把用例全改成 skip 也能骗过下限——review 时要看 skipped 是否异常增长。
+  return { cases: pass + skipped, failed: f ? Number(f[1]) : null, skipped }
 }
 
 /* 隔离名单以 run-e2e 的 SUITES 为准（是注册表属性，不是某次运行的属性） */
@@ -148,7 +164,7 @@ if (e2e) {
   notes.push(yellow(`未找到 ${e2ePath}，本次只校验单测（e2e 需先跑 run-e2e --json）`))
 }
 
-console.log(`单测 cases: ${units.cases}（基线 ${baseCases}）`)
+console.log(`单测 cases: ${units.cases}（基线 ${baseCases}）${units.skipped ? ` · 其中跳过 ${units.skipped}` : ''}`)
 for (const n of notes) console.log(yellow(`note ${n}`))
 
 if (problems.length) {

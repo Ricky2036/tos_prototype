@@ -1,8 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { getApp } from '../../config/apps'
-import { appComponents } from '../apps/registry'
-import PlaceholderApp from '../apps/PlaceholderApp.vue'
+import { resolveAppComponent } from '../apps/registry'
 import AppIcon from '../ui/AppIcon.vue'
 import GlassCircleButton from '../ui/GlassCircleButton.vue'
 import { useSystemStore } from '../../stores/systemStore'
@@ -1481,7 +1480,7 @@ const chromeOpacity = computed(() => {
 const dockBottom = computed(() => homeInset.value + DECK.DOCK_GAP)
 
 function compOf(id) {
-  return appComponents[id] || PlaceholderApp
+  return resolveAppComponent(id)
 }
 function appOf(id) {
   return getApp(id)
