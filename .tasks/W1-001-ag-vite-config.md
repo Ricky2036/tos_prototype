@@ -1,6 +1,9 @@
 # W1-001 · 由 Integrator 合入：`vite.config.js` 端口解耦 + `save-defaults` 默认关闭
 
-- 类型：**跨 lane 交接单**（`[handoff]`）
+- 类型：跨 lane 交接单（[handoff]）
+- 状态：Active
+- 簇：C0-a
+- Owner：AG
 - 提出 / 验证：DSH
 - **执行：AG（Integrator）**——`vite.config.js` 属 C0-a，DSH 不直接改
 - 补丁：`.tasks/patches/W1-001-vite-config.patch`（61 行，一处文件）

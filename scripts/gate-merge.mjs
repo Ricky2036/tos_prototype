@@ -39,6 +39,7 @@ const steps = [
   { id: 'G3a', name: '单测', cmd: process.execPath, args: ['--test', ...listTests()] },
   ...(fast ? [] : [{ id: 'G3b', name: '生产构建', cmd: 'npm', args: ['run', 'build'] }]),
   { id: 'Gspec', name: '画布换算无硬编码', cmd: process.execPath, args: ['scripts/check-spec-literals.mjs'] },
+  { id: 'Gtask', name: '任务板可生成', cmd: process.execPath, args: ['scripts/gen-task-board.mjs'] },
   { id: 'G7', name: '断言棘轮', cmd: process.execPath, args: ['scripts/check-assert-ratchet.mjs'] },
   ...(withE2e
     ? [{
