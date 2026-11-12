@@ -1,12 +1,19 @@
 {
   "_readme": "画布换算的来源登记表。只记录原始像素；kx/ky 由 scripts/lib/canvas-transform.mjs 现算，禁止在此写系数。",
-  "_canvas": { "w": 360, "h": 788, "ref": "src/styles/tokens.css:73-74" },
+  "_canvas": {
+    "w": 360,
+    "h": 788,
+    "ref": "src/styles/tokens.css:73-74"
+  },
   "infinix-1208": {
     "w": 1208,
     "h": 2644,
     "device": "参考机 Infinix（@3x 真机截图）",
     "g8": true,
-    "note": "画布 360×788 即由它等比缩出，宽高比差 0.01%，单系数可用"
+    "note": "画布 360×788 即由它等比缩出，宽高比差 0.01%，单系数可用；逻辑宽实测 402.7dp（非早期推断的 412）",
+    "model": "Infinix X6878",
+    "densityDpi": 480,
+    "logicalDp": "402.7×881.3（480dpi ÷ 160 = 3.0 px/dp，实测 adb shell wm density）"
   },
   "samsung-1080": {
     "w": 1080,
