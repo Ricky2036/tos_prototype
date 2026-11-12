@@ -353,7 +353,7 @@ onBeforeUnmount(() => {
           @pointerdown="emit('app-pointerdown', $event, appId)"
           @click.stop="launch(appId,$event.currentTarget.querySelector('.app-icon-anchor'))"
         >
-          <AppIcon :app="getApp(appId)" :launch-on-click="false" />
+          <AppIcon :app="getApp(appId)" :launch-on-click="false" preload-on-press />
         </div>
       </div>
     </div>

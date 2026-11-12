@@ -243,14 +243,17 @@ test('folder merge candidate arms before committing and flies both icons into st
 })
 
 test('desktop application labels use the corrected Chinese names', async () => {
-  const [apps, names] = await Promise.all([
-    read('../src/config/apps.js'), read('../src/locales/app-names.js')
+  const [{ APPS }, { APP_NAMES }] = await Promise.all([
+    import('../src/config/apps.js'),
+    import('../src/locales/app-names.js')
   ])
-  for (const source of [apps, names]) {
-    assert.match(source, /notes:\s*'记事本'|id: 'notes',[\s\S]*?name: '记事本'/)
-    assert.match(source, /voicememos:\s*'录音机'|id: 'voicememos',[\s\S]*?name: '录音机'/)
-    assert.match(source, /calculator:\s*'计算器'|id: 'calculator',[\s\S]*?name: '计算器'/)
-  }
+  const byId = Object.fromEntries(APPS.map((a) => [a.id, a.name]))
+  assert.equal(byId.notes, '记事本')
+  assert.equal(byId.voicememos, '录音机')
+  assert.equal(byId.calculator, '计算器')
+  assert.equal(APP_NAMES.zh.notes, '记事本')
+  assert.equal(APP_NAMES.zh.voicememos, '录音机')
+  assert.equal(APP_NAMES.zh.calculator, '计算器')
 })
 
 test('desktop edit mode includes safe layout transform, done capsule button, and status bar dimming', async () => {
