@@ -40,11 +40,15 @@ If the directory name does not match one of these values, stop and ask which rol
 Two modes. Do not pay delivery cost after every keystroke.
 
 - **Daily (every edit).** Target only what changed:
-  - `node scripts/run-e2e.mjs --changed` — derives the affected suites from path prefixes and runs only those.
-  - `node --test tests/*.test.js` — the whole unit suite, 48 files, ~8 s.
+  - `node scripts/run-e2e.mjs --changed` — derives the affected suites from path prefixes and runs only those. Pass `--port <your port>`.
+  - `node --test tests/*.test.js` — the whole unit suite, **82 files / 824 cases, ~8 s**.
   - Vite HMR covers everything else; there is nothing to restart.
+- **Before handoff / merge.** Run the local gate (**22 s**):
+  - `node scripts/gate-merge.mjs` — unit tests + production build + G7 assert ratchet.
+  - `node scripts/check-assert-ratchet.mjs` — 用例数只增不减；删断言换绿灯会被拦下。
 - **Delivery (only when the task says package / commit / hand off).**
-  - `node scripts/run-e2e.mjs --all --jobs 4` — all 8 suites, ~82 s (serial is ~315 s).
+  - `node scripts/run-e2e.mjs --all --port <your port>` — **14 suites, 632 s serial**.
+  - Machine time only. `--jobs 4` finishes in ~110 s but **produces false failures** (measured 2026-11-12: settings-group3 176/3 vs 179/0 solo). Do not use `--jobs` for anything you will act on.
   - Then commit, push, and package.
 
 Run the full suite **once at handoff**, not after every edit. If you only ran part of it, say so.
