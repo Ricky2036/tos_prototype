@@ -12,6 +12,23 @@ import {
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const CLI = path.join(ROOT, 'scripts/gate-geometry.mjs')
 
+/**
+ * 端到端用例需要真实浏览器。CI 里 `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`，
+ * 没有可执行文件——此时跳过，而不是让门禁红。纯计算部分照常跑。
+ */
+function browserAvailable() {
+  const explicit = [process.env.PLAYWRIGHT_CHROME,
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'].filter(Boolean)
+  if (explicit.some((p) => fs.existsSync(p))) return true
+  const cache = process.platform === 'darwin'
+    ? path.join(os.homedir(), 'Library/Caches/ms-playwright')
+    : path.join(os.homedir(), '.cache/ms-playwright')
+  try {
+    return fs.readdirSync(cache).some((d) => d.startsWith('chromium'))
+  } catch { return false }
+}
+const E2E_SKIP = browserAvailable() ? false : '本机无可用浏览器（CI 默认跳过）'
+
 /* ---------------- 纯计算 ---------------- */
 
 test('缩放系数从容器宽现算', () => {
@@ -119,7 +136,7 @@ const GOOD = {
   ],
 }
 
-test('端到端：吻合时通过，且 origin 与缩放都被正确处理', () => {
+test('端到端：吻合时通过，且 origin 与缩放都被正确处理', { skip: E2E_SKIP }, () => {
   const r = runGate(GOOD)
   assert.equal(r.ok, true, r.stderr)
   const rep = r.report
@@ -131,7 +148,7 @@ test('端到端：吻合时通过，且 origin 与缩放都被正确处理', () 
   assert.equal(row.worst, 0)
 })
 
-test('端到端：偏 10 画布 px 时判红并给出方向', () => {
+test('端到端：偏 10 画布 px 时判红并给出方向', { skip: E2E_SKIP }, () => {
   const spec = { geometry: [{ id: 'row_a', role: 'row', bounds: [24, 310, 360, 50] }] }
   const r = runGate(spec)
   assert.equal(r.ok, false)
@@ -142,7 +159,7 @@ test('端到端：偏 10 画布 px 时判红并给出方向', () => {
   assert.equal(row.dy, -10)
 })
 
-test('端到端：DOM 里找不到的节点记为 missing，不判红', () => {
+test('端到端：DOM 里找不到的节点记为 missing，不判红', { skip: E2E_SKIP }, () => {
   const spec = { geometry: [{ id: 'nope', role: 'row', bounds: [0, 0, 10, 10] }] }
   const r = runGate(spec)
   assert.equal(r.ok, true, r.stderr)
@@ -151,7 +168,7 @@ test('端到端：DOM 里找不到的节点记为 missing，不判红', () => {
   assert.equal(rep.result.fail, 0)
 })
 
-test('端到端：--min-match 不足时退出码 4', () => {
+test('端到端：--min-match 不足时退出码 4', { skip: E2E_SKIP }, () => {
   const spec = {
     geometry: [
       { id: 'row_a', role: 'row', bounds: [24, 300, 360, 50] },

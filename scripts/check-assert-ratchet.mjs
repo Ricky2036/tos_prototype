@@ -51,7 +51,13 @@ function readUnitCases() {
   }
   const m = out.match(/^#\s*pass\s+(\d+)/m)
   const f = out.match(/^#\s*fail\s+(\d+)/m)
-  return { cases: m ? Number(m[1]) : null, failed: f ? Number(f[1]) : null }
+  const s2 = out.match(/^#\s*skipped\s+(\d+)/m)
+  const pass = m ? Number(m[1]) : null
+  if (pass === null) return { cases: null, failed: null, skipped: 0 }
+  const skipped = s2 ? Number(s2[1]) : 0
+  // 计数口径 = pass + skipped：跳过是环境所致（如 CI 无浏览器），不是删用例。
+  // 代价：把用例全改成 skip 也能骗过下限——review 时要看 skipped 是否异常增长。
+  return { cases: pass + skipped, failed: f ? Number(f[1]) : null, skipped }
 }
 
 /* 隔离名单以 run-e2e 的 SUITES 为准（是注册表属性，不是某次运行的属性） */
@@ -148,7 +154,7 @@ if (e2e) {
   notes.push(yellow(`未找到 ${e2ePath}，本次只校验单测（e2e 需先跑 run-e2e --json）`))
 }
 
-console.log(`单测 cases: ${units.cases}（基线 ${baseCases}）`)
+console.log(`单测 cases: ${units.cases}（基线 ${baseCases}）${units.skipped ? ` · 其中跳过 ${units.skipped}` : ''}`)
 for (const n of notes) console.log(yellow(`note ${n}`))
 
 if (problems.length) {
