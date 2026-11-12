@@ -29,3 +29,19 @@
 
 - `AGENTS.md` 第 40 行写「48 files」，实测 82 个测试文件 —— 顺手修不在本单范围，单独提
 - Codex 下线三件事（`AGENTS.md:3/11/31`、`codex.md.retired`、worktree 归档）需与 AG 协调，本单不动
+
+## D1 上午实测结果（2026-11-12）
+
+| 发现 | 证据 | 影响 |
+|---|---|---|
+| 收尾格式有 **7 种**，不是 4 种 | `tests/e2e-summary-baseline.txt` | 统一格式的清单要重写 |
+| 可被 `[id] N PASS / M FAIL` 解析的只有 **4 套** | dnd / focus / digital-health / settings-group3 | 解析器上线前必须先统一 |
+| **`--jobs 4` 会产生假失败** | settings-group3 并发跑 176/3 FAIL；单独跑 **179/0 PASS** | **G4 不能跑并发**，见下 |
+| 脚本硬编码写进别的 Agent 目录 | `verify-account-login.mjs:7`、`verify-chrome-inversion.mjs:29` 等写 `/Users/…/.gemini/antigravity/brain/<uuid>/` | modes-and-routines 因此 EPERM 挂掉；跨 lane 不可移植 |
+
+### 待决：G4 的并发策略
+
+- 并发 4：82s，但**有假失败**（本轮 settings-group3 平白红 3 条）
+- 串行：~211s，零假失败
+
+门禁一旦报假失败，一周内就会被所有人忽略。**建议 G4 默认串行，仅在本地临时加速时用 `--jobs`。**

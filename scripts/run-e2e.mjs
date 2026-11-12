@@ -220,7 +220,7 @@ const SUITES = [
 
 /* ------------------------------ 参数 ------------------------------ */
 const argv = process.argv.slice(2)
-const opt = { all: false, jobs: 1, timeout: 420, list: false, json: false, changed: null }
+const opt = { all: false, jobs: 1, timeout: 420, list: false, json: false, changed: null, port: '5555' }
 const picked = []
 for (let i = 0; i < argv.length; i += 1) {
   const a = argv[i]
@@ -233,6 +233,8 @@ for (let i = 0; i < argv.length; i += 1) {
   else if (a.startsWith('--timeout=')) opt.timeout = Number(a.slice(10))
   else if (a === '--changed') opt.changed = argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[++i] : ''
   else if (a.startsWith('--changed=')) opt.changed = a.slice(10)
+  else if (a === '--port') opt.port = String(argv[++i])
+  else if (a.startsWith('--port=')) opt.port = a.slice(7)
   else picked.push(a)
 }
 if (!Number.isFinite(opt.jobs) || opt.jobs < 0) opt.jobs = 1
@@ -334,7 +336,7 @@ const results = []
 function runOne(s) {
   return new Promise((resolve) => {
     const t0 = Date.now()
-    const child = spawn(process.execPath, [path.join(SCRIPTS, s.script)], {
+    const child = spawn(process.execPath, [path.join(SCRIPTS, s.script), opt.port], {
       cwd: ROOT,
       env: process.env,
       stdio: ['ignore', 'pipe', 'pipe']

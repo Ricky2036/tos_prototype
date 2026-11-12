@@ -1,0 +1,47 @@
+# e2e 收尾行基线 —— G7 断言棘轮的唯一口径来源
+# 采集：2026-11-12 · dsh/lane @ 3ff2884 · node scripts/run-e2e.mjs --all --jobs 4 --port 7777
+# 用途：确定「统一收尾格式」的改造清单。不是断言数基线（那是 tests/baseline.json）。
+# 注意：本轮 settings-group3 与 modes-and-routines 为 fail，原因见 .tasks/W0-001 备注。
+
+=== photos   (pass, 41.5s)
+    走查 15 步 / 断言 131 条 / 通过 131 条 / 失败 0 条 / 控制台报错 0 条
+
+=== printer   (pass, 58.1s)
+    === AI Mate 口袋打印机 e2e: 93/93 PASS ===
+
+=== mori   (pass, 70.2s)
+    走查 12 步 / 断言 134 条 / 通过 134 条 / 失败 0 条 / 控制台报错 0 条
+
+=== recorder   (pass, 82.0s)
+    ================ 走查 25 步 / 断言 230 条 / 通过 230 条 / 失败 0 条 / 控制台报错 0 条 ================
+
+=== hw-volume   (pass, 22.6s)
+    ===== 实体音量键验收: 26 PASS / 0 FAIL =====
+
+=== cc-volume   (pass, 39.4s)
+    ===== P2 验收: 39 PASS / 0 FAIL =====
+
+=== aimate   (pass, 56.2s)
+    === AI Mate e2e（归档重放版）: 130/130 PASS ===
+
+=== volume-glass   (pass, 18.6s)
+    PASS 8 / FAIL 0    判据：侧栏音量「背景彩度保留率」∈ [0.15, 0.9]
+
+=== dnd   (pass, 29.8s)
+    [dnd] 56 PASS / 0 FAIL · 截图 /tmp/vwork/dnd
+
+=== phone   (pass, 25.4s)
+    全部用例 100% 通过！
+
+=== modes-and-routines   (fail, 8.1s)
+    VERIFICATION FAILED: Error: EPERM: operation not permitted, open '/Users/jingzhan.chen/.gemini/antigravity/brain/c11570e
+
+=== settings-group3   (fail, 70.3s)
+    失败明细:
+
+=== digital-health   (pass, 78.0s)
+    [digital-health] 151 PASS / 0 FAIL
+
+=== focus   (pass, 109.5s)
+    [focus] 100 PASS / 0 FAIL
+
