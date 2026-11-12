@@ -32,5 +32,8 @@ defineProps({
   justify-content: center;
   border-radius: 50%;
   flex: none;
+  /* 图形大于圆盘时按圆裁掉：真机的小号时钟是「实心盘 + 白色指针」，
+     没有单独的白色表圈，图标按 24（大于盘径）传入把外圈裁掉即可（见各调用点注释） */
+  overflow: hidden;
 }
 </style>

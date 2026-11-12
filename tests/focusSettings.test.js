@@ -162,7 +162,15 @@ test('专注详情与过滤页版式契约：设备示意图、行内居中与�
   assert.doesNotMatch(picker, /FocusDeviceArt/)
   assert.doesNotMatch(picker, /fsp-app-grid/)
   // 智能启用行固定行高，图标/文字/开关同轴。
-  assert.match(detail, /\.fd-smart-row, \.fd-schedule-row \{[^}]*height:\s*58px[^}]*align-items:\s*center/)
+  assert.match(detail, /\.fd-smart-row, \.fd-schedule-row \{[^}]*height:\s*57px[^}]*align-items:\s*center/)
+  // 行内图标与文字按真机墨迹收敛：图标 17、图标↔文字 11、标题 14/18、副标题 10.5/14。
+  assert.match(detail, /\.fd-smart-row, \.fd-schedule-row \{[^}]*padding:\s*0 12px 0 17px[^}]*gap:\s*11px/)
+  assert.match(detail, /\.fd-smart-row > div > strong, \.fd-schedule-row > div > strong \{[^}]*font-size:\s*14px[^}]*line-height:\s*18px/)
+  assert.match(detail, /\.fd-smart-row > div > span, \.fd-schedule-row > div > span \{[^}]*font-size:\s*10\.5px[^}]*line-height:\s*14px/)
+  assert.match(detail, /:size="17"/)
+  // 智能启用的电源符号真机是裸描边，不能再套圆形底盘。
+  assert.doesNotMatch(detail, /FocusGlyph name="power"/)
+  assert.match(detail, /\.fd-row-icon \{[^}]*width:\s*17px[^}]*height:\s*17px/)
   // ⚠️ 文字块只能选到 div 内部：`.fd-smart-row span` 会命中 FocusGlyph 根 span 导致图标不居中。
   assert.doesNotMatch(detail, /\.fd-smart-row span\s*[,{]/)
   assert.match(detail, /\.fd-smart-row > div > span/)
@@ -196,8 +204,34 @@ test('专注子页沿用设置页 16px 安全边距', () => {
   assert.match(schedule, /\.weekday-row button \{[^}]*width:\s*33px[^}]*height:\s*33px/)
 })
 
-test('屏幕选取页版式契约：无导航标题、无文字标签、页面缩略图', () => {
-  const picker = strip(read('src/components/apps/settings/focus/FocusScreenPicker.vue'))
+test('添加定时选择页版式契约：18px 图标列 + 12px 间距 + 裸实心图形', () => {
+  const schedule = strip(read('src/components/apps/settings/focus/FocusScheduleFlow.vue'))
+
+  // 三行不再走 ListCell（它的图标槽没有间距，实测图标与文字贴在一起）。
+  assert.doesNotMatch(schedule, /ListCell/)
+  assert.match(schedule, /class="fsc-row"/)
+  // 行高 57、图标列 18、图标↔文字 12、行尾内缩 17（真机 720 帧实测 ÷2）。
+  assert.match(schedule, /\.fsc-row \{[^}]*height:\s*57px[^}]*padding:\s*0 17px 0 18px[^}]*gap:\s*12px/)
+  assert.match(schedule, /\.fsc-icon \{[^}]*width:\s*18px[^}]*height:\s*18px/)
+  // 标题 14 / 副标题 10.5：真机行标题墨迹 12.5、副标题 9.5。
+  assert.match(schedule, /\.fsc-text strong \{[^}]*font-size:\s*14px[^}]*line-height:\s*18px/)
+  assert.match(schedule, /\.fsc-text small \{[^}]*font-size:\s*10\.5px[^}]*line-height:\s*14px/)
+  // 分隔线从文字左缘（48）起，到行尾内缩线（17）止。
+  assert.match(schedule, /\.fsc-row \+ \.fsc-row::before \{[^}]*left:\s*48px[^}]*right:\s*17px/)
+  // 只有「时间」是实心圆盘 + 白色镂空指针；位置与 App 是裸实心图形。
+  assert.match(schedule, /disc:\s*true/)
+  assert.match(schedule, /icon:\s*'navigation',\s*iconSize:\s*23/)
+  assert.match(schedule, /icon:\s*'layers2',\s*iconSize:\s*24/)
+  assert.match(schedule, /:size="option\.iconSize" :stroke-width="0\.8" filled/)
+  // 圆盘里的时钟把外圈裁掉，只留白色指针（真机没有白色表圈）。
+  assert.match(schedule, /name="clock" :color="mode\.color" :size="18" :icon-size="24"/)
+  assert.match(strip(read('src/components/apps/settings/focus/FocusGlyph.vue')), /\.focus-glyph \{[^}]*overflow:\s*hidden/)
+  // 标题与说明对齐到图标列（33），不是卡片边（16）。
+  assert.match(schedule, /h2 \{ margin:\s*0 17px 0; font-size:\s*14px/)
+  assert.match(schedule, /p \{ margin:\s*0 16px 8px 17px;[^}]*font-size:\s*10\.5px/)
+})
+
+test('屏幕选取页版式契约：无导航标题、无文字标签、页面缩略图', () => {  const picker = strip(read('src/components/apps/settings/focus/FocusScreenPicker.vue'))
   const art = strip(read('src/components/apps/settings/focus/FocusScreenArt.vue'))
   const preview = strip(read('src/components/apps/settings/focus/FocusScreenPreview.vue'))
 

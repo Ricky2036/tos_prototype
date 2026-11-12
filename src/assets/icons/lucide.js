@@ -135,6 +135,7 @@ import minimize from 'lucide-static/icons/minimize.svg?raw'
 import scanFace from 'lucide-static/icons/scan-face.svg?raw'
 import rotate3d from 'lucide-static/icons/rotate-3d.svg?raw'
 import layers from 'lucide-static/icons/layers.svg?raw'
+import layers2 from 'lucide-static/icons/layers-2.svg?raw'
 import box from 'lucide-static/icons/box.svg?raw'
 import blocks from 'lucide-static/icons/blocks.svg?raw'
 // -- 安全与连接 --
@@ -595,7 +596,7 @@ export const LUCIDE = {
   /* 导航与列表 */
   chevronRight, chevronLeft, chevronDown, chevronsRight, chevronsLeft, arrowLeft, arrowUp, arrowDown, x, search, filter, list, layoutTemplate, grid2x2, moreHorizontal, moreVertical, pencilLine, trash2,
   /* 内容与文件 */
-  download, upload, share, square, micVocal, scanLine, qrCode, palette, image, images, fileText, folder, folderPlus, save, copy, externalLink, send, rotateCcw, star, eye, maximize, minimize, scanFace, rotate3d, layers, box, blocks,
+  download, upload, share, square, micVocal, scanLine, qrCode, palette, image, images, fileText, folder, folderPlus, save, copy, externalLink, send, rotateCcw, star, eye, maximize, minimize, scanFace, rotate3d, layers, layers2, box, blocks,
   /* 安全与连接 */
   shield, unlock, lockOpen, key, fingerprint, link, cloud, cloudOff, globe, locate,
   /* 设备形态与账户 */
