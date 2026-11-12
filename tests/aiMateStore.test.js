@@ -436,20 +436,22 @@ test('apps.js：aimate 进桌面网格（不进 Dock），getApp 可解析', () 
   assert.ok(!/dock:\s*true/.test(block), 'aimate 不应进 Dock（已决 D1）')
 })
 
-test('registry.js：aimate → AimateApp 已注册', () => {
+test('registry.js：aimate → AimateApp 已注册', async () => {
   const src = read('src/components/apps/registry.js')
-  assert.match(src, /import AimateApp from '\.\/aimate\/AimateApp\.vue'/)
-  assert.match(src, /aimate:\s*AimateApp/)
+  assert.match(src, /import\.meta\.glob\('\.\/\*\/entry\.js'/)
+  const { default: entry } = await import('../src/components/apps/aimate/entry.js')
+  assert.equal(entry.id, 'aimate')
+  assert.equal(typeof entry.component, 'function')
 })
 
-test('ScreenView：aimate 是浅色应用，不应进 DARK_BG_APPS', () => {
+test('ScreenView：aimate 是浅色应用，不应进 DARK_BG_APPS', async () => {
+  const { DARK_BG_APPS } = await import('../src/config/apps.js')
   const src = read('src/components/phone/ScreenView.vue')
-  const line = src.split('\n').find((l) => l.includes('DARK_BG_APPS =')) || ''
+  assert.match(src, /import\s*\{\s*DARK_BG_APPS\s*\}\s*from\s*'\.\.\/\.\.\/config\/apps'/)
   // DARK_BG_APPS 只放深底应用（camera #000 / clock / voicememos / oneleap）。
-  // AI Mate 走浅色 iOS 分组列表（#F2F2F7），应与 settings / calendar 一样不在列内，
-  // 这样状态栏配色才与其它浅色应用一致 —— 因此本文件不应被改动。
-  assert.ok(!/'aimate'/.test(line), `aimate 是浅色应用，不应登记进 DARK_BG_APPS：${line.trim()}`)
-  assert.match(line, /'oneleap'/, 'sanity：深色的 oneleap 仍应在列内')
+  // AI Mate 走浅色 iOS 分组列表（#F2F2F7），应与 settings / calendar 一样不在列内。
+  assert.equal(DARK_BG_APPS.includes('aimate'), false, `aimate 是浅色应用，不应登记进 DARK_BG_APPS：${DARK_BG_APPS.join(', ')}`)
+  assert.equal(DARK_BG_APPS.includes('oneleap'), true, 'sanity：深色的 oneleap 仍应在列内')
 })
 
 test('桌面图标资产存在且为 96×96 圆角方形', () => {

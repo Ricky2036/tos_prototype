@@ -23,6 +23,7 @@ import VolumePanel from '../system/VolumePanel.vue'
 import SideVolumeOverlay from '../system/SideVolumeOverlay.vue'
 import PowerMenu from '../system/PowerMenu.vue'
 import ShareSheet from '../system/ShareSheet.vue'
+import { DARK_BG_APPS } from '../../config/apps'
 import { registerDriver } from '../../composables/driverRegistry'
 import { runBackHandler } from '../../composables/backRegistry'
 import wallpaper from '../../assets/img/wallpaper-lock.jpg'
@@ -100,10 +101,9 @@ const isWallpaperVisible = computed(() => {
 
 /** 状态栏/Home 条配色：
  * 1. 显式覆盖优先（如子页面/弹窗/全屏预览请求 useSystemChrome('light' | 'dark')）
- * 2. 应用内默认：深色背景应用为浅色 chrome（白字/白条），浅色背景应用为深色 chrome（黑字/黑条）
+ * 2. 应用内默认：深色背景应用（由 apps.js 的 darkStatusBar 派生）为浅色 chrome（白字/白条），浅色背景应用为深色 chrome（黑字/黑条）
  * 3. 锁屏/桌面默认：浅色 chrome（白字/白条）
  */
-const DARK_BG_APPS = ['camera', 'clock', 'voicememos', 'oneleap']
 const chromeLight = computed(() => {
   if (privacy.settingsPage) return false
   if (system.chromeStyleOverride === 'light') return true

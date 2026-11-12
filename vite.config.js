@@ -393,7 +393,7 @@ export default defineConfig({
     assetsInlineLimit: 24576,
     // 出问题时要能对着真实源码定位，而不是对着压缩后的单行
     sourcemap: true,
-    // 首屏只加载主包；Vue 运行时和调试控制台（体积大、只在演示时用）拆出去
+    // 首屏只加载主包；Vue 运行时、图标资产和调试控制台拆包，各深层应用由 entry.js 动态按需分包
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -411,35 +411,6 @@ export default defineConfig({
           }
           if (id.includes('/src/components/dev/')) {
             return 'dev-console'
-          }
-          if (
-            id.includes('/src/components/apps/aimate/') ||
-            id.includes('/src/components/apps/oneleap/') ||
-            id.includes('/src/stores/aiMateStore') ||
-            id.includes('/src/stores/moriFlowStore') ||
-            id.includes('/src/stores/recorderFlowStore')
-          ) {
-            return 'ecosystem-apps'
-          }
-          if (
-            id.includes('/src/components/apps/settings/SettingsCloud') ||
-            id.includes('/src/components/apps/settings/SettingsAccount') ||
-            id.includes('/src/components/apps/settings/SettingsWallet') ||
-            id.includes('/src/components/apps/settings/SettingsPrayer')
-          ) {
-            return 'settings-account-cloud'
-          }
-          if (id.includes('/src/components/apps/settings/') && !id.endsWith('/SettingsApp.vue') && !id.includes('/personalization/')) {
-            return 'settings-subpages'
-          }
-          if (
-            id.includes('/src/components/system/AppSwitcher.vue') ||
-            id.includes('/src/components/system/ControlCenter.vue') ||
-            id.includes('/src/components/system/AppLibrary.vue') ||
-            id.includes('/src/components/system/drawer/') ||
-            id.includes('/src/components/system/cc/')
-          ) {
-            return 'system-overlays'
           }
         }
       }

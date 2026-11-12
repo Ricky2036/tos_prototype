@@ -725,10 +725,12 @@ test('复用系统壁纸 + 全屏切图标：chrome 随全屏在 dark/light 间�
  * ③ 注册接线
  * ============================================================ */
 
-test('注册表：photos 已映射到 PhotosApp，且 depth 升为 core（apps.js / drawerApps.js 两处同步）', () => {
+test('注册表：photos 已映射到 PhotosApp，且 depth 升为 core（apps.js / drawerApps.js 两处同步）', async () => {
   const reg = read('src/components/apps/registry.js')
-  assert.ok(reg.includes("import PhotosApp from './photos/PhotosApp.vue'"), 'registry 缺 import')
-  assert.ok(/appComponents\s*=\s*\{[^}]*photos:\s*PhotosApp/.test(reg), 'registry 缺 photos → PhotosApp 映射')
+  assert.ok(reg.includes("import.meta.glob('./*/entry.js'"), 'registry 缺 glob 自注册')
+  const { default: entry } = await import('../src/components/apps/photos/entry.js')
+  assert.equal(entry.id, 'photos', 'photos/entry.js id 应为 photos')
+  assert.equal(typeof entry.component, 'function', 'photos/entry.js 应提供异步 loader')
 
   const home = APPS.find((a) => a.id === 'photos')
   assert.ok(home, 'apps.js 缺 photos')
@@ -745,12 +747,12 @@ test('注册表：photos 已映射到 PhotosApp，且 depth 升为 core（apps.j
   )
 })
 
-test('photos 不进 DARK_BG_APPS（首页是浅底，进应用后状态栏走深色图标）', () => {
+test('photos 不进 DARK_BG_APPS（首页是浅底，进应用后状态栏走深色图标）', async () => {
+  const { DARK_BG_APPS } = await import('../src/config/apps.js')
   const screenView = read('src/components/phone/ScreenView.vue')
-  const m = screenView.match(/DARK_BG_APPS\s*=\s*\[([^\]]*)\]/)
-  assert.ok(m, '找不到 DARK_BG_APPS')
+  assert.match(screenView, /import\s*\{\s*DARK_BG_APPS\s*\}\s*from\s*'\.\.\/\.\.\/config\/apps'/, 'ScreenView 应从 apps.js 派生 DARK_BG_APPS')
   assert.equal(
-    /photos/.test(m[1]),
+    DARK_BG_APPS.includes('photos'),
     false,
     'photos 不该登记为深底应用（全屏查看时图标由 useSystemChrome 自己切）'
   )

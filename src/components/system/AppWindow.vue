@@ -1,7 +1,7 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onErrorCaptured, onMounted, ref, watch } from 'vue'
 import { getApp } from '../../config/apps'
-import { appComponents } from '../apps/registry'
+import { appComponents, isAppPreloaded, resolveAppComponent } from '../apps/registry'
 import PlaceholderApp from '../apps/PlaceholderApp.vue'
 import AppIcon from '../ui/AppIcon.vue'
 import { useHeroTransition } from '../../composables/useHeroTransition'
@@ -20,14 +20,40 @@ const system = useSystemStore()
 const home = useHomeStore()
 const hero = useHeroTransition()
 const ready = ref(false)
+const contentReady = ref(false)
 const viewportRect = ref(null)
 const viewportRadius = ref(44)
 
 const app = computed(() => getApp(props.appId))
-const activeComp = computed(() => appComponents[props.appId] || PlaceholderApp)
+const activeComp = computed(() => resolveAppComponent(props.appId))
+const isAsyncEntry = computed(() => Boolean(appComponents[props.appId]) && !isAppPreloaded(props.appId))
 const phase = hero.phase
 const frame = hero.frame
 const isOpen = computed(() => phase.value === 'open')
+
+function onSuspenseResolve() {
+  contentReady.value = true
+}
+
+function onChildMounted() {
+  // 异步包装组件在 chunk 未加载前也会先触发一次 @vue:mounted（空注释节点）；
+  // 只有同步组件或已完成预载的组件才在此直接置位，未就绪的异步组件交由 <Suspense @resolve> 兜底。
+  if (!isAsyncEntry.value) {
+    contentReady.value = true
+  }
+}
+
+onErrorCaptured(() => {
+  contentReady.value = true
+  return false
+})
+
+watch(
+  () => props.appId,
+  () => {
+    contentReady.value = false
+  }
+)
 
 function readViewport() {
   const element = screenRef.el
@@ -103,10 +129,12 @@ const clipStyle = computed(() => {
   }
 })
 
-const contentStyle = computed(() => ({ opacity: frame.value?.contentOpacity ?? 0 }))
+const contentStyle = computed(() => ({
+  opacity: contentReady.value ? (frame.value?.contentOpacity ?? 0) : 0
+}))
 const appSurfaceStyle = computed(() => ({
   background: app.value?.gradient || '#f2f2f7',
-  opacity: frame.value?.appSurfaceOpacity ?? 0
+  opacity: contentReady.value ? (frame.value?.appSurfaceOpacity ?? 0) : 0
 }))
 const heroFillStyle = computed(() => ({
   background: app.value?.heroBackground || '#f2f2f7',
@@ -220,6 +248,7 @@ onBeforeUnmount(() => {
     class="app-window"
     :data-phase="phase"
     :data-app-id="appId"
+    :data-content-ready="contentReady ? 'true' : 'false'"
     :style="windowStyle"
   >
     <div class="aw-clip" :style="clipStyle">
@@ -227,7 +256,9 @@ onBeforeUnmount(() => {
       <div class="aw-fixed-container" :style="fixedContainerStyle">
         <div class="aw-app-surface" :style="appSurfaceStyle"></div>
         <div class="aw-content" :style="contentStyle">
-          <component :is="activeComp" :app="app" />
+          <Suspense @resolve="onSuspenseResolve">
+            <component :is="activeComp" :app="app" @vue:mounted="onChildMounted" />
+          </Suspense>
         </div>
       </div>
     </div>
@@ -239,6 +270,7 @@ onBeforeUnmount(() => {
         :size="nativeIconSize"
         :show-label="false"
         :home-anchor="false"
+        :preload-on-press="false"
         ignore-hidden
       />
     </div>

@@ -1,32 +1,13 @@
 /**
- * 由 i18nStore 分包自动拆出（2026-09-11，一次性脚本）。
- * 词条原文逐字保留，未做任何改写。
+ * 应用多语言显示名（zh/en/bn）。
+ * 桌面与系统应用名称统一从 `src/config/apps.js` 的 `APP_CATALOG` 派生，
+ * 这里仅额外补充通知中心里无桌面图标的第三方/系统条目。
  */
-/* 应用显示名（zh/en/bn） */
-export const APP_NAMES = {
+import { APP_CATALOG, subscribeCatalog } from '../config/apps.js'
+
+const EXTRA_APP_NAMES = {
   zh: {
-    phone: '电话',
-    messages: '信息',
-    safari: '浏览器',
-    camera: '相机',
-    weather: '天气',
-    notes: '记事本',
-    files: '文件',
-    voicememos: '录音机',
-    fitness: '健身',
-    calculator: '计算器',
-    theme: '主题',
-    settings: '设置',
-    calendar: '日历',
-    photos: '照片',
-    clock: '时钟',
-    keynote: '演示',
-    games: '游戏',
-    tips: '提示',
-    compass: '指南针',
-    // 通知设置列表里的第三方应用（桌面没有对应图标，沿用 TSX 原名单）
     transsioner: 'Transsioner',
-    google: 'Google',
     sms: '短信',
     bilibili: '哔哩哔哩',
     map: '地图',
@@ -38,48 +19,10 @@ export const APP_NAMES = {
     notepad: '记事本',
     search: '搜索',
     recorder: '录音',
-    whatsapp: 'WhatsApp',
-    facebook: 'Facebook',
-    tiktok: 'TikTok',
-    spotify: 'Spotify',
-    gmail: 'Gmail',
-    amazon: 'Amazon',
-    snapchat: 'Snapchat',
-    uber: 'Uber',
-    pinterest: 'Pinterest',
-    wechat: '微信',
-    instagram: 'Instagram',
-    x: 'X',
-    netflix: 'Netflix',
-    telegram: 'Telegram',
-    youtube: 'YouTube',
-    linkedin: 'LinkedIn',
-    alipay: '支付宝',
-    aimate: 'AI Mate',
     infinix: 'Infinix ID'
   },
   en: {
-    phone: 'Phone',
-    messages: 'Messages',
-    safari: 'Safari',
-    camera: 'Camera',
-    weather: 'Weather',
-    notes: 'Notes',
-    files: 'Files',
-    voicememos: 'Voice Memos',
-    fitness: 'Fitness',
-    calculator: 'Wallet',
-    theme: 'Themes',
-    settings: 'Settings',
-    calendar: 'Calendar',
-    photos: 'Photos',
-    clock: 'Clock',
-    keynote: 'Keynote',
-    games: 'Games',
-    tips: 'Tips',
-    compass: 'Compass',
     transsioner: 'Transsioner',
-    google: 'Google',
     sms: 'Messages',
     bilibili: 'Bilibili',
     map: 'Maps',
@@ -91,48 +34,10 @@ export const APP_NAMES = {
     notepad: 'Notepad',
     search: 'Search',
     recorder: 'Voice Memos',
-    whatsapp: 'WhatsApp',
-    facebook: 'Facebook',
-    tiktok: 'TikTok',
-    spotify: 'Spotify',
-    gmail: 'Gmail',
-    amazon: 'Amazon',
-    snapchat: 'Snapchat',
-    uber: 'Uber',
-    pinterest: 'Pinterest',
-    wechat: 'WeChat',
-    instagram: 'Instagram',
-    x: 'X',
-    netflix: 'Netflix',
-    telegram: 'Telegram',
-    youtube: 'YouTube',
-    linkedin: 'LinkedIn',
-    alipay: 'Alipay',
-    aimate: 'AI Mate',
     infinix: 'Infinix ID'
   },
   bn: {
-    phone: 'ফোন',
-    messages: 'বার্তা',
-    safari: 'সাফারি',
-    camera: 'ক্যামেরা',
-    weather: 'আবহাওয়া',
-    notes: 'নোট',
-    files: 'ফাইল',
-    voicememos: 'ভয়েস মেমো',
-    fitness: 'ফিটনেস',
-    calculator: 'ওয়ালেট',
-    theme: 'থিম',
-    settings: 'সেটিংস',
-    calendar: 'ক্যালেন্ডার',
-    photos: 'ছবি',
-    clock: 'ঘড়ি',
-    keynote: 'কিনোট',
-    games: 'গেমস',
-    tips: 'পরামর্শ',
-    compass: 'কম্পাস',
     transsioner: 'Transsioner',
-    google: 'Google',
     sms: 'বার্তা',
     bilibili: 'Bilibili',
     map: 'মানচিত্র',
@@ -144,24 +49,26 @@ export const APP_NAMES = {
     notepad: 'নোটবুক',
     search: 'অনুসন্ধান',
     recorder: 'ভয়েস মেমো',
-    whatsapp: 'হোয়াটসঅ্যাপ',
-    facebook: 'ফেসবুক',
-    tiktok: 'টিকটক',
-    spotify: 'স্পটিফাই',
-    gmail: 'জিমেইল',
-    amazon: 'অ্যামাজন',
-    snapchat: 'স্ন্যাপচ্যাট',
-    uber: 'উবার',
-    pinterest: 'পিন্টারেস্ট',
-    wechat: 'উইচ্যাট',
-    instagram: 'ইনস্টাগ্রাম',
-    x: 'এক্স',
-    netflix: 'নেটফ্লিক্স',
-    telegram: 'টেলিগ্রাম',
-    youtube: 'ইউটিউব',
-    linkedin: 'লিঙ্কডইন',
-    alipay: 'আলিপে',
-    aimate: 'AI Mate',
     infinix: 'Infinix ID'
   }
 }
+
+function buildLocaleNames(locale) {
+  const map = { ...EXTRA_APP_NAMES[locale] }
+  for (const app of APP_CATALOG) {
+    map[app.id] = app.names?.[locale] || app.names?.zh || app.id
+  }
+  return map
+}
+
+export const APP_NAMES = {
+  zh: buildLocaleNames('zh'),
+  en: buildLocaleNames('en'),
+  bn: buildLocaleNames('bn')
+}
+
+subscribeCatalog((entry) => {
+  for (const locale of ['zh', 'en', 'bn']) {
+    APP_NAMES[locale][entry.id] = entry.names?.[locale] || entry.names?.zh || entry.id
+  }
+})

@@ -236,7 +236,7 @@ function onSurfaceClick(event) {
             :data-folder-app="appId"
             @click="onAppClick(appId, $event)"
           >
-            <AppIcon :app="getApp(appId)" :size="large ? (is2x2 ? 35 : 36) : 12" :show-label="false" :launch-on-click="false" />
+            <AppIcon :app="getApp(appId)" :size="large ? (is2x2 ? 35 : 36) : 12" :show-label="false" :launch-on-click="false" :preload-on-press="large" />
           </span>
           <span
             v-if="hasCluster"
