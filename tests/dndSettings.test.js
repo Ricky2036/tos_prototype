@@ -126,7 +126,8 @@ test('返回栈能逐层消费子页与弹层，且 SettingsApp 已纳入 dnd', 
     assert.match(src, new RegExp(`if \\(${cond.replace(/\./g, '\\.')}\\)`), `back() 未消费 ${cond}`)
   }
   const app = strip(read('src/components/apps/settings/SettingsApp.vue'))
-  assert.match(app, /view\.value === 'dnd' && dndRef\.value\?\.back\?\.\(\)/, '侧滑返回要先问 dnd 子页')
+  assert.match(app, /\bdnd:\s*dndRef\b/, 'dnd 必须登记在主壳返回栈注册表')
+  assert.match(app, /legacyRefs\[view\.value\]\?\.value/, '侧滑返回由统一注册表逐层消费')
   assert.match(app, /<SettingsDND ref="dndRef"/)
 })
 

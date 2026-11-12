@@ -1,6 +1,7 @@
 <script setup>
 import GlassNavBar from '../../ui/GlassNavBar.vue'
-import { ref } from 'vue'
+import { ref, inject } from 'vue'
+import { useBackHandler } from '../../../composables/backRegistry'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 
@@ -41,6 +42,12 @@ function handleItemTap(name) {
 function back() {
   emit('back')
   return true
+}
+
+/* 无三级页：侧滑直接退回上一级（返回栈下沉，pipeline §6.2） */
+const settingsNav = inject('settingsNav', null)
+if (settingsNav) {
+  useBackHandler(() => { settingsNav.pop(); return true })
 }
 
 defineExpose({ back })
