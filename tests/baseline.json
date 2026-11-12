@@ -1,0 +1,62 @@
+{
+  "units": {
+    "cases": 835
+  },
+  "e2e": {
+    "focus": {
+      "pass": 100,
+      "fail": 0
+    },
+    "recorder": {
+      "pass": 230,
+      "fail": 0
+    },
+    "digital-health": {
+      "pass": 151,
+      "fail": 0
+    },
+    "settings-group3": {
+      "pass": 179,
+      "fail": 0
+    },
+    "mori": {
+      "pass": 134,
+      "fail": 0
+    },
+    "aimate": {
+      "pass": 130,
+      "fail": 0
+    },
+    "printer": {
+      "pass": 93,
+      "fail": 0
+    },
+    "cc-volume": {
+      "pass": 39,
+      "fail": 0
+    },
+    "photos": {
+      "pass": 131,
+      "fail": 0
+    },
+    "phone": {
+      "pass": 68,
+      "fail": 0
+    },
+    "dnd": {
+      "pass": 56,
+      "fail": 0
+    },
+    "hw-volume": {
+      "pass": 26,
+      "fail": 0
+    },
+    "volume-glass": {
+      "pass": 8,
+      "fail": 0
+    }
+  },
+  "e2eQuarantine": [
+    "modes-and-routines"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "_readme": "画布换算的来源登记表。只记录原始像素；kx/ky 由 scripts/lib/canvas-transform.mjs 现算，禁止在此写系数。",
+  "_canvas": { "w": 360, "h": 788, "ref": "src/styles/tokens.css:73-74" },
+  "infinix-1208": {
+    "w": 1208,
+    "h": 2644,
+    "device": "参考机 Infinix（@3x 真机截图）",
+    "g8": true,
+    "note": "画布 360×788 即由它等比缩出，宽高比差 0.01%，单系数可用"
+  },
+  "samsung-1080": {
+    "w": 1080,
+    "h": 2340,
+    "device": "SM-S9380 · 1080×2340 · 450dpi",
+    "g8": true,
+    "note": "kx/ky 差 1.02%，必须分轴；用 kx 代 ky 会让屏底差 8px"
+  },
+  "ios-1320": {
+    "w": 1320,
+    "h": 2868,
+    "device": "iOS 规格参考（@3x）",
+    "g8": false,
+    "note": "只作设计意图，不作尺寸来源；G8 不跑"
+  },
+  "custom-spec": {
+    "w": 360,
+    "h": 788,
+    "device": "自研交互 / 高动态动效",
+    "g8": false,
+    "note": "无外部来源，直接按画布坐标设计；G8 不跑"
+  }
+}
