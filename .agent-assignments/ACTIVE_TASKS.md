@@ -224,5 +224,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | DSH | W2 基建：spec-gen / gate-geometry / W2 派单（W2-001/002/003） | `dsh/lane` | None (locks released) | `953408c` | `b796f15` |
 | Merged | Workbuddy | W1-002：S2 八个测试改行为断言（8 文件转成 `rt.mount` 运行时断言，DSH 已验收） | `workbuddy/lane` | None (locks released) | `3ff2884` | `df9d3e8` |
 | Active | Workbuddy | W2-001：Settings 主壳 glob 自注册 + S2 三页迁出（C0 出借 `SettingsApp.vue` 独占 owner，至 W2 结束） | `workbuddy/lane` | `src/components/apps/settings/SettingsApp.vue`（C0 出借，至 W2 结束）；`src/components/apps/settings/**` | `afa2f95` | pending |
+| Active | Antigravity | W2-002：App 级自注册（统一纯数据应用表 + 10 个 `entry.js` + 移除 `manualChunks`）与 Hero `contentReady` + `pointerdown` 预载 | `antigravity/lane` | `src/config/apps.js`; `src/config/drawerApps.js`; `src/locales/app-names.js`; `src/components/apps/registry.js`; `src/components/apps/*/entry.js`; `src/components/phone/ScreenView.vue`; `src/components/system/AppWindow.vue`; `src/components/ui/AppIcon.vue`; `vite.config.js` | `933bbfb` | pending |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
