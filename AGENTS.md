@@ -21,7 +21,12 @@ If the directory name does not match one of these values, stop and ask which rol
 
 Before starting any task, read `.tasks/inbox/<your role>.md` (e.g. `.tasks/inbox/workbuddy.md`).
 Cross-lane handoffs are delivered there — a `.tasks/<id>.md` card plus a patch under
-`.tasks/patches/`. This is the only channel that reaches another lane without a human relaying it.
+`.tasks/patches/`.
+
+**Never `git checkout` files from another lane's branch into your worktree.** That stages
+foreign changes under your branch and forces you to either commit work you don't own or
+carry a dirty index. The inbox only works because these files live on `main`; if they do not,
+ask the Integrator to merge the infrastructure branch first.
 
 ## Mandatory rules
 
