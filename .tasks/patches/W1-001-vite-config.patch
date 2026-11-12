@@ -1,0 +1,61 @@
+diff --git a/vite.config.js b/vite.config.js
+index 54d0584..a690cb7 100644
+--- a/vite.config.js
++++ b/vite.config.js
+@@ -14,7 +14,15 @@ import zlib from 'zlib'
+ const SAVE_DEFAULTS_ROUTE = '/__api/save-defaults'
+ const SAVE_DEFAULTS_TARGET = 'src/stores/controlStore.js'
+ const MAX_SAVE_BODY_BYTES = 64 * 1024
+-const DEV_SERVER_PORT = 5555
++const DEV_SERVER_PORT = (() => {
++  const fromEnv = Number(process.env.VITE_DEV_PORT)
++  if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv
++  const i = process.argv.indexOf('--port')
++  if (i >= 0 && Number(process.argv[i + 1])) return Number(process.argv[i + 1])
++  const inline = process.argv.find((a) => a.startsWith('--port='))
++  if (inline && Number(inline.split('=')[1])) return Number(inline.split('=')[1])
++  return 5555
++})()
+ 
+ /* 与 controlStore.setIconSize(8~64) / setBgSize(16~100) 的 clamp 区间严格一致 */
+ const SAVE_SIZE_RANGES = { iconSize: [8, 64], bgSize: [16, 100] }
+@@ -230,6 +238,12 @@ function saveDefaultsPlugin() {
+   return {
+     name: 'save-defaults-plugin',
+     configureServer(server) {
++      // 默认关闭：该中间件会 writeFileSync 覆盖 src/stores/controlStore.js，
++      // 让工作区在「没人改代码」的情况下出现 diff（docs/tOS-pipeline-1.0.md §8.1）。
++      if (process.env.TOS_ENABLE_SAVE_DEFAULTS !== '1') {
++        server.config.logger.info('[save-defaults] 已禁用（默认）。需要回写时：TOS_ENABLE_SAVE_DEFAULTS=1')
++        return
++      }
+       server.middlewares.use((req, res, next) => {
+         const pathname = (req.url || '').split('?')[0]
+         if (pathname !== SAVE_DEFAULTS_ROUTE || req.method !== 'POST') return next()
+@@ -248,7 +262,7 @@ function saveDefaultsPlugin() {
+             const u = new URL(origin)
+             allowed =
+               (u.hostname === '127.0.0.1' || u.hostname === 'localhost') &&
+-              Number(u.port || 80) === DEV_SERVER_PORT
++              Number(u.port || 80) === (server.config.server.port ?? DEV_SERVER_PORT)
+           } catch (e) {
+             allowed = false
+           }
+@@ -352,7 +366,7 @@ function tosTelemetryPlugin() {
+     name: 'tos-telemetry-plugin',
+     configureServer(server) {
+       import('./scripts/telemetry.mjs').then(m => {
+-        m.trackEvent('dev_start', { port: server.config.server.port || 5555 }).catch(() => {})
++        m.trackEvent('dev_start', { port: server.config.server.port || DEV_SERVER_PORT }).catch(() => {})
+       }).catch(() => {})
+     },
+     buildStart() {
+@@ -368,7 +382,7 @@ export default defineConfig({
+   base: './',
+   server: {
+     host: '127.0.0.1',
+-    port: 5555,
++    port: DEV_SERVER_PORT,
+     // 端口被占用时不要悄悄换端口：换端口后 Playwright 脚本和 Ricky 书签里的
+     // 链接会全部失效，直接报错反而更容易定位
+     strictPort: true
