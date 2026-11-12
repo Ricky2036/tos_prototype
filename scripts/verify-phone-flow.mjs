@@ -1,7 +1,7 @@
 import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 
-const PORT = process.argv[2] || '5555'
+const PORT = process.argv[2] || process.env.PORT || '5555'
 const OUT = '/tmp/phone/e2e'
 mkdirSync(OUT, { recursive: true })
 
@@ -132,12 +132,14 @@ try {
   await menuBtn.click()
   await page.waitForTimeout(200)
   assert('三点菜单弹出层可见', await page.locator('.keypad-more-menu').isVisible())
-  assert('菜单包含延长暂停时间2秒', await page.locator('.more-menu-item', { hasText: '延长暂停时间2秒' }).isVisible())
-  assert('菜单包含延长等待时间', await page.locator('.more-menu-item', { hasText: '延长等待时间' }).isVisible())
+  assert('菜单包含添加 2 秒暂停', await page.locator('.more-menu-item', { hasText: '添加 2 秒暂停' }).isVisible())
+  assert('菜单包含添加等待', await page.locator('.more-menu-item', { hasText: '添加等待' }).isVisible())
+  assert('菜单包含快速拨号号码', await page.locator('.more-menu-item', { hasText: '快速拨号号码' }).isVisible())
+  assert('菜单包含设置', await page.locator('.more-menu-item', { hasText: '设置' }).isVisible())
   await page.screenshot({ path: `${OUT}/04-keypad-more-menu.png` })
 
-  // 点击延长暂停时间2秒追加逗号
-  await page.locator('.more-menu-item', { hasText: '延长暂停时间2秒' }).click()
+  // 点击添加 2 秒暂停追加逗号
+  await page.locator('.more-menu-item', { hasText: '添加 2 秒暂停' }).click()
   await page.waitForTimeout(200)
   const textWithPause = await page.locator('.dialed-number-text').textContent()
   assert('追加暂停控制符逗号 (136,)', textWithPause?.includes('136,'))
@@ -145,7 +147,7 @@ try {
   // 再次打开菜单追加等待时间分号
   await menuBtn.click()
   await page.waitForTimeout(200)
-  await page.locator('.more-menu-item', { hasText: '延长等待时间' }).click()
+  await page.locator('.more-menu-item', { hasText: '添加等待' }).click()
   await page.waitForTimeout(200)
   const textWithWait = await page.locator('.dialed-number-text').textContent()
   assert('追加等待控制符分号 (136,;)', textWithWait?.includes('136,;'))

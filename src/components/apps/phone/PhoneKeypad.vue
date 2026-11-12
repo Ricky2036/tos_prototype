@@ -4,6 +4,7 @@ import { usePhoneStore } from '../../../stores/phoneStore'
 import LIcon from '../../ui/LIcon.vue'
 
 const phoneStore = usePhoneStore()
+const emit = defineEmits(['open-settings', 'open-speed-dial'])
 const toastText = ref('')
 let toastTimer = null
 
@@ -25,6 +26,16 @@ function handleAppendPause() {
 function handleAppendWait() {
   phoneStore.appendKey(';')
   isMoreMenuOpen.value = false
+}
+
+function handleOpenSpeedDial() {
+  isMoreMenuOpen.value = false
+  emit('open-speed-dial')
+}
+
+function handleOpenSettings() {
+  isMoreMenuOpen.value = false
+  emit('open-settings')
 }
 
 function showToast(msg) {
@@ -142,15 +153,22 @@ const formattedNumber = computed(() => {
         </svg>
       </button>
 
-      <!-- 遮罩与更多选项弹出菜单（延长暂停时间2秒 / 延长等待时间） -->
+      <!-- 遮罩与更多选项弹出菜单（100% 对齐真机菜单选项与真实文案） -->
       <div v-if="isMoreMenuOpen" class="keypad-menu-backdrop" @click="isMoreMenuOpen = false"></div>
       <Transition name="fade-scale">
         <div v-if="isMoreMenuOpen" class="keypad-more-menu">
           <button class="more-menu-item" @click="handleAppendPause">
-            延长暂停时间2秒
+            添加 2 秒暂停
           </button>
           <button class="more-menu-item" @click="handleAppendWait">
-            延长等待时间
+            添加等待
+          </button>
+          <button class="more-menu-item" @click="handleOpenSpeedDial">
+            快速拨号号码
+          </button>
+          <button class="more-menu-item menu-item-settings" @click="handleOpenSettings">
+            <span>设置</span>
+            <span class="orange-dot"></span>
           </button>
         </div>
       </Transition>
@@ -226,7 +244,7 @@ const formattedNumber = computed(() => {
 
 /* 未输入数字时，纯白留白顶距（对齐真机无小横条设计） */
 .phone-keypad-panel.is-empty {
-  padding-top: 22px;
+  padding-top: 26px;
 }
 
 /* 顶部号码回显栏（输入时展示，对齐真机顶部 ⋮ 号码 ⌫ 布局，留白舒适匀称） */
@@ -234,9 +252,9 @@ const formattedNumber = computed(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 52px;
-  padding: 14px 10px 0;
-  margin-bottom: 14px;
+  min-height: 56px;
+  padding: 18px 12px 14px;
+  margin-bottom: 8px;
   position: relative;
 }
 
@@ -250,12 +268,13 @@ const formattedNumber = computed(() => {
 
 .keypad-more-menu {
   position: absolute;
-  top: 56px;
-  left: 4px;
+  top: 60px;
+  left: 8px;
   z-index: 50;
   background: #FFFFFF;
   border-radius: 20px;
   box-shadow: 0 10px 32px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   padding: 8px 6px;
   min-width: 196px;
   display: flex;
@@ -265,7 +284,7 @@ const formattedNumber = computed(() => {
 .more-menu-item {
   background: none;
   border: none;
-  padding: 13px 18px;
+  padding: 12px 18px;
   font-size: 15px;
   font-weight: 400;
   color: #1C1C1E;
@@ -273,11 +292,22 @@ const formattedNumber = computed(() => {
   border-radius: 14px;
   cursor: pointer;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   transition: background-color 0.15s ease;
 }
 
 .more-menu-item:active {
   background-color: rgba(0, 0, 0, 0.06);
+}
+
+.menu-item-settings .orange-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #FF6B00;
+  margin-left: 8px;
 }
 
 .fade-scale-enter-active,
