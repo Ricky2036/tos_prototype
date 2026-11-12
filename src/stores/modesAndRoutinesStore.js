@@ -1,10 +1,15 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-const K_MODES = 'tos_modes_data'
-const K_ROUTINES = 'tos_routines_data'
-const K_ACTIVE_MODE = 'tos_active_mode_id'
+const K_MODES = 'tos_modes_data_v2'
+const K_DELETED_MODES = 'tos_deleted_modes_data_v2'
+const K_ROUTINES = 'tos_routines_data_v2'
+const K_ACTIVE_MODE = 'tos_active_mode_id_v2'
 
+/**
+ * 三星真机实测 8 大预设模式初始真实数据
+ * 初始状态均为未配置（未设置），无瞎编的数据
+ */
 const DEFAULT_MODES = [
   {
     id: 'sleep',
@@ -12,29 +17,20 @@ const DEFAULT_MODES = [
     iconKey: 'sleep',
     color: '#4F46E5',
     isCustom: false,
-    subtitle: '开启免打扰模式',
-    activeSubtitle: '直到我将其关闭',
+    isConfigured: false,
+    subtitle: '未设置',
+    activeSubtitle: '直到您将其关闭',
     description: '睡个好觉。在您睡觉时让手机保持静音，让双眼更舒适。',
-    condition: {
-      type: 'schedule',
-      title: '就寝时间',
-      value: '22:30 - 次日 07:00 (每天)',
-      enabled: true
-    },
+    condition: null,
     dnd: {
-      enabled: true,
-      allowedContacts: '所有收藏联系人',
-      allowedCalls: '仅限重复来电'
+      enabled: false,
+      allowedContacts: '无人',
+      allowedCalls: '拒绝全部'
     },
-    settingsChanges: [
-      { key: 'eyeCare', label: '护眼模式', enabled: true, value: '自适应' },
-      { key: 'darkMode', label: '黑暗模式', enabled: true, value: '开' },
-      { key: 'grayScale', label: '灰阶显示', enabled: true, value: '开' },
-      { key: 'soundMode', label: '声音模式与音量', enabled: true, value: '静音' }
-    ],
+    settingsChanges: [],
     appearance: {
-      lockscreen: '深色睡眠壁纸',
-      homescreen: '深色睡眠壁纸'
+      lockscreen: '锁定屏幕',
+      homescreen: '主屏幕'
     }
   },
   {
@@ -43,25 +39,17 @@ const DEFAULT_MODES = [
     iconKey: 'theater',
     color: '#D97706',
     isCustom: false,
+    isConfigured: false,
     subtitle: '未设置',
-    activeSubtitle: '影院体验保护中',
+    activeSubtitle: '直到您将其关闭',
     description: '观影时不被打扰。降低屏幕亮度并静音通知。',
-    condition: {
-      type: 'location',
-      title: '特定地点',
-      value: '万达影城 / 电影院',
-      enabled: false
-    },
+    condition: null,
     dnd: {
-      enabled: true,
+      enabled: false,
       allowedContacts: '无人',
       allowedCalls: '拒绝全部'
     },
-    settingsChanges: [
-      { key: 'brightness', label: '屏幕亮度', enabled: true, value: '15%' },
-      { key: 'soundMode', label: '声音模式', enabled: true, value: '静音' },
-      { key: 'eyeCare', label: '极暗模式', enabled: true, value: '开' }
-    ],
+    settingsChanges: [],
     appearance: null
   },
   {
@@ -70,25 +58,17 @@ const DEFAULT_MODES = [
     iconKey: 'driving',
     color: '#059669',
     isCustom: false,
-    subtitle: '开启免打扰模式',
-    activeSubtitle: '导航与驾驶辅助中',
-    description: '专注驾驶，安全出行。连接车载蓝牙时自动播报路线与通知。',
-    condition: {
-      type: 'bluetooth',
-      title: '车载蓝牙',
-      value: '连接到 车载无线连接 时',
-      enabled: true
-    },
+    isConfigured: false,
+    subtitle: '未设置',
+    activeSubtitle: '直到您将其关闭',
+    description: '专注驾驶，安全出行。连接车载蓝牙时自动开启免打扰。',
+    condition: null,
     dnd: {
-      enabled: true,
-      allowedContacts: '所有联系人',
-      allowedCalls: '车载免提接听'
+      enabled: false,
+      allowedContacts: '无人',
+      allowedCalls: '拒绝全部'
     },
-    settingsChanges: [
-      { key: 'readNotif', label: '语音朗读通知', enabled: true, value: '开' },
-      { key: 'autoNav', label: '自动导航', enabled: true, value: '开启高德地图' },
-      { key: 'soundVolume', label: '媒体音量', enabled: true, value: '80%' }
-    ],
+    settingsChanges: [],
     appearance: null
   },
   {
@@ -97,24 +77,17 @@ const DEFAULT_MODES = [
     iconKey: 'exercise',
     color: '#EA580C',
     isCustom: false,
+    isConfigured: false,
     subtitle: '未设置',
-    activeSubtitle: '健身运动记录中',
-    description: '保持专注，挥洒汗水。自动保持屏幕常亮并开启运动音乐。',
-    condition: {
-      type: 'context',
-      title: '运动状态',
-      value: '检测到跑步、骑行或健身时',
-      enabled: false
-    },
+    activeSubtitle: '直到您将其关闭',
+    description: '保持专注，挥洒汗水。自动开启免打扰。',
+    condition: null,
     dnd: {
-      enabled: true,
-      allowedContacts: '收藏联系人',
-      allowedCalls: '仅限紧急来电'
+      enabled: false,
+      allowedContacts: '无人',
+      allowedCalls: '拒绝全部'
     },
-    settingsChanges: [
-      { key: 'keepScreenOn', label: '屏幕常亮', enabled: true, value: '开' },
-      { key: 'musicPlay', label: '播放歌单', enabled: true, value: '活力跑步电台' }
-    ],
+    settingsChanges: [],
     appearance: null
   },
   {
@@ -123,24 +96,17 @@ const DEFAULT_MODES = [
     iconKey: 'relax',
     color: '#10B981',
     isCustom: false,
-    subtitle: '开启护眼与舒适音律',
-    activeSubtitle: '放松身心中',
-    description: '在闲暇时光舒缓身心。屏蔽工作类通知，营造宁静氛围。',
-    condition: {
-      type: 'schedule',
-      title: '特定时间',
-      value: '20:30 - 22:30 (每日)',
-      enabled: true
-    },
+    isConfigured: false,
+    subtitle: '未设置',
+    activeSubtitle: '直到您将其关闭',
+    description: '在闲暇时光舒缓身心。屏蔽工作类通知，营造舒适氛围。',
+    condition: null,
     dnd: {
       enabled: false,
-      allowedContacts: '所有人',
-      allowedCalls: '允许'
+      allowedContacts: '无人',
+      allowedCalls: '拒绝全部'
     },
-    settingsChanges: [
-      { key: 'eyeCare', label: '护眼模式', enabled: true, value: '自适应' },
-      { key: 'blockWorkApps', label: '屏蔽工作应用', enabled: true, value: '已启用 (飞书、钉钉)' }
-    ],
+    settingsChanges: [],
     appearance: null
   },
   {
@@ -149,24 +115,17 @@ const DEFAULT_MODES = [
     iconKey: 'work',
     color: '#2563EB',
     isCustom: false,
-    subtitle: '开启免打扰模式',
-    activeSubtitle: '高效办公中',
+    isConfigured: false,
+    subtitle: '未设置',
+    activeSubtitle: '直到您将其关闭',
     description: '专注于重要任务。到达工作地点时开启免打扰并保持静音。',
-    condition: {
-      type: 'location',
-      title: '工作地点',
-      value: '工作日 09:00 - 18:00',
-      enabled: true
-    },
+    condition: null,
     dnd: {
-      enabled: true,
-      allowedContacts: '工作联系人与收藏联系人',
-      allowedCalls: '允许重复来电'
+      enabled: false,
+      allowedContacts: '无人',
+      allowedCalls: '拒绝全部'
     },
-    settingsChanges: [
-      { key: 'soundMode', label: '声音模式', enabled: true, value: '仅振动' },
-      { key: 'workDesktop', label: '办公桌面布局', enabled: true, value: '开启' }
-    ],
+    settingsChanges: [],
     appearance: null
   },
   {
@@ -175,25 +134,17 @@ const DEFAULT_MODES = [
     iconKey: 'gaming',
     color: '#7C3AED',
     isCustom: false,
-    subtitle: '极限性能与通知屏蔽',
-    activeSubtitle: '极速游戏电竞中',
-    description: '全身心投入游戏。屏蔽浮动通知、来电弹窗，并锁定高刷新率。',
-    condition: {
-      type: 'app',
-      title: '运行游戏',
-      value: '启动指定游戏应用程序时',
-      enabled: true
-    },
+    isConfigured: false,
+    subtitle: '未设置',
+    activeSubtitle: '直到您将其关闭',
+    description: '全身心投入游戏。屏蔽浮动通知、来电弹窗并禁用干扰功能。',
+    condition: null,
     dnd: {
-      enabled: true,
+      enabled: false,
       allowedContacts: '无人',
-      allowedCalls: '后台静默接听'
+      allowedCalls: '拒绝全部'
     },
-    settingsChanges: [
-      { key: 'refreshRate', label: '屏幕刷新率', enabled: true, value: '120Hz 锁定' },
-      { key: 'perfMode', label: '性能调优', enabled: true, value: '极速性能模式' },
-      { key: 'blockMistouch', label: '边缘防误触', enabled: true, value: '高敏感度' }
-    ],
+    settingsChanges: [],
     appearance: null
   },
   {
@@ -202,27 +153,213 @@ const DEFAULT_MODES = [
     iconKey: 'prayer',
     color: '#047857',
     isCustom: false,
-    subtitle: '开启免打扰模式',
-    activeSubtitle: '肃穆礼拜时刻',
-    description: '在神圣时刻保持专注与静肃。自动匹配当地礼拜时刻并静音。',
-    condition: {
-      type: 'event',
-      title: '礼拜时刻',
-      value: '晨礼、晌礼、晡礼、昏礼、宵礼',
-      enabled: true
-    },
+    isConfigured: false,
+    subtitle: '未设置',
+    activeSubtitle: '直到您将其关闭',
+    description: '在神圣时刻保持专注与静肃。按当地时间自动静音与朝向指引。',
+    condition: null,
     dnd: {
-      enabled: true,
+      enabled: false,
       allowedContacts: '无人',
       allowedCalls: '拒绝全部'
     },
-    settingsChanges: [
-      { key: 'soundMode', label: '声音模式', enabled: true, value: '静音' },
-      { key: 'compassPrompt', label: '朝向指引', enabled: true, value: '屏幕弹窗提醒' }
-    ],
+    settingsChanges: [],
     appearance: null
   }
 ]
+
+/**
+ * 真实预设模式初始配置向导选项（与真机 100% 对齐）
+ */
+export const PRESET_WIZARD_CONFIGS = {
+  theater: {
+    title: '影院',
+    defaultOptionId: 'basic',
+    options: [
+      {
+        id: 'basic',
+        title: '基本',
+        items: ['2 小时后关闭', '黑暗模式: 开'],
+        apply: {
+          duration: '2 小时',
+          settingsChanges: [{ key: 'darkMode', label: '黑暗模式', enabled: true, value: '开' }],
+          dnd: { enabled: false }
+        }
+      },
+      {
+        id: 'minimize_distraction',
+        title: '尽量减少干扰',
+        items: ['免打扰: 开', '3 小时后关闭', '黑暗模式: 开', '息屏提醒: 已关闭'],
+        apply: {
+          duration: '3 小时',
+          settingsChanges: [
+            { key: 'darkMode', label: '黑暗模式', enabled: true, value: '开' },
+            { key: 'aod', label: '息屏提醒', enabled: true, value: '已关闭' }
+          ],
+          dnd: { enabled: true, allowedContacts: '无人', allowedCalls: '拒绝全部' }
+        }
+      },
+      {
+        id: 'custom',
+        title: '自定义',
+        items: [],
+        apply: {}
+      }
+    ]
+  },
+  driving: {
+    title: '驾驶',
+    defaultOptionId: 'minimize_distraction',
+    options: [
+      {
+        id: 'minimize_distraction',
+        title: '尽量减少干扰',
+        items: ['免打扰: 开'],
+        apply: {
+          dnd: { enabled: true, allowedContacts: '所有联系人', allowedCalls: '允许' }
+        }
+      },
+      {
+        id: 'custom',
+        title: '自定义',
+        items: [],
+        apply: {}
+      }
+    ]
+  },
+  exercise: {
+    title: '运动',
+    defaultOptionId: 'minimize_distraction',
+    options: [
+      {
+        id: 'minimize_distraction',
+        title: '尽量减少干扰',
+        items: ['免打扰: 开'],
+        apply: {
+          dnd: { enabled: true, allowedContacts: '无人', allowedCalls: '仅限紧急来电' }
+        }
+      },
+      {
+        id: 'custom',
+        title: '自定义',
+        items: [],
+        apply: {}
+      }
+    ]
+  },
+  relax: {
+    title: '放松',
+    defaultOptionId: 'basic',
+    options: [
+      {
+        id: 'basic',
+        title: '基本',
+        items: ['护眼模式: 自适应'],
+        apply: {
+          settingsChanges: [{ key: 'eyeCare', label: '护眼模式', enabled: true, value: '自适应' }]
+        }
+      },
+      {
+        id: 'custom',
+        title: '自定义',
+        items: [],
+        apply: {}
+      }
+    ]
+  },
+  work: {
+    title: '工作',
+    defaultOptionId: 'basic',
+    options: [
+      {
+        id: 'basic',
+        title: '基本',
+        items: ['声音模式和音量: 振动', '省电模式: 开,最大'],
+        apply: {
+          settingsChanges: [
+            { key: 'soundMode', label: '声音模式和音量', enabled: true, value: '振动' },
+            { key: 'powerSaving', label: '省电模式', enabled: true, value: '开,最大' }
+          ]
+        }
+      },
+      {
+        id: 'custom',
+        title: '自定义',
+        items: [],
+        apply: {}
+      }
+    ]
+  },
+  gaming: {
+    title: '游戏',
+    defaultOptionId: 'basic',
+    options: [
+      {
+        id: 'basic',
+        title: '基本',
+        items: [
+          '游戏期间禁用自动调节亮度: 开',
+          '游戏期间禁用侧屏幕面板: 开',
+          '游戏期间禁用 Bixby: 开'
+        ],
+        apply: {
+          settingsChanges: [
+            { key: 'disableAutoBrightness', label: '游戏期间禁用自动调节亮度', enabled: true, value: '开' },
+            { key: 'disableEdgePanel', label: '游戏期间禁用侧屏幕面板', enabled: true, value: '开' },
+            { key: 'disableBixby', label: '游戏期间禁用 Bixby', enabled: true, value: '开' }
+          ]
+        }
+      },
+      {
+        id: 'minimize_distraction',
+        title: '尽量减少干扰',
+        items: [
+          '免打扰: 开',
+          '自动开启: 正在玩游戏',
+          '游戏期间禁用自动调节亮度: 开',
+          '游戏期间禁用侧屏幕面板: 开',
+          '游戏期间禁用 Bixby: 开'
+        ],
+        apply: {
+          condition: { type: 'app', title: '自动开启', value: '正在玩游戏', enabled: true },
+          dnd: { enabled: true, allowedContacts: '无人', allowedCalls: '拒绝全部' },
+          settingsChanges: [
+            { key: 'disableAutoBrightness', label: '游戏期间禁用自动调节亮度', enabled: true, value: '开' },
+            { key: 'disableEdgePanel', label: '游戏期间禁用侧屏幕面板', enabled: true, value: '开' },
+            { key: 'disableBixby', label: '游戏期间禁用 Bixby', enabled: true, value: '开' }
+          ]
+        }
+      },
+      {
+        id: 'custom',
+        title: '自定义',
+        items: [],
+        apply: {}
+      }
+    ]
+  },
+  prayer: {
+    title: '礼拜模式',
+    defaultOptionId: 'minimize_distraction',
+    options: [
+      {
+        id: 'minimize_distraction',
+        title: '尽量减少干扰',
+        items: ['免打扰: 开', '声音模式和音量: 静音'],
+        apply: {
+          dnd: { enabled: true, allowedContacts: '无人', allowedCalls: '拒绝全部' },
+          settingsChanges: [{ key: 'soundMode', label: '声音模式和音量', enabled: true, value: '静音' }]
+        }
+      },
+      {
+        id: 'custom',
+        title: '自定义',
+        items: [],
+        apply: {}
+      }
+    ]
+  }
+}
 
 const DEFAULT_ROUTINES = [
   {
@@ -359,7 +496,7 @@ export const DISCOVER_CATEGORIES = [
         description: '闹钟关闭后播报今日天气、重点行程与待办。',
         conditions: [{ type: 'clock', title: '关闭闹钟', value: '早晨闹钟停止时' }],
         actions: [
-          { type: 'ai', title: 'Fola 简报', value: '语音播报天气与日程' },
+          { type: 'ai', title: '语音简报', value: '语音播报天气与日程' },
           { type: 'display', title: '壁纸亮度', value: '恢复日间亮度' }
         ]
       },
@@ -423,7 +560,7 @@ export const DISCOVER_CATEGORIES = [
     items: [
       {
         id: 'disc_oneleap',
-        name: 'OneLeap 互联',
+        name: '跨屏协同',
         iconKey: 'laptop',
         color: '#2563EB',
         description: '靠近电脑时自动开启多屏协同与文件拖拽。',
@@ -437,10 +574,10 @@ export const DISCOVER_CATEGORIES = [
         name: 'WLAN 二维码',
         iconKey: 'wifi',
         color: '#059669',
-        description: '好友到访时一键在桌面展示 Wi-Fi 分享码。',
+        description: '好友到访时一键在桌面展示无线局域网分享码。',
         conditions: [{ type: 'manual', title: '手动启动', value: '快捷指令' }],
         actions: [
-          { type: 'connect', title: '生成分享卡', value: '当前连接的 Wi-Fi' }
+          { type: 'connect', title: '生成分享卡', value: '当前连接的无线网络' }
         ]
       },
       {
@@ -463,28 +600,6 @@ export const DISCOVER_CATEGORIES = [
         conditions: [{ type: 'notif', title: '应用通知', value: '核心工作群' }],
         actions: [
           { type: 'notif', title: '高优先级唤醒', value: '点亮屏幕并置顶' }
-        ]
-      },
-      {
-        id: 'disc_open_music_app',
-        name: '打开应用程序',
-        iconKey: 'tv',
-        color: '#D97706',
-        description: '插入耳机时快速启动常用音频或播客应用。',
-        conditions: [{ type: 'device', title: '耳机连接', value: '插入有线耳机' }],
-        actions: [
-          { type: 'app', title: '启动应用', value: '网易云音乐' }
-        ]
-      },
-      {
-        id: 'disc_clear_clipboard',
-        name: '清除剪贴板',
-        iconKey: 'shield',
-        color: '#64748B',
-        description: '锁屏 5 分钟后自动清除剪贴板，严防隐私泄露。',
-        conditions: [{ type: 'lock', title: '锁屏时长', value: '锁屏超过 5 分钟' }],
-        actions: [
-          { type: 'privacy', title: '清空剪贴板', value: '彻底抹除文本' }
         ]
       }
     ]
@@ -509,8 +624,8 @@ export const DISCOVER_CATEGORIES = [
         name: '在您外出时静音',
         iconKey: 'coffee',
         color: '#9333EA',
-        description: '离开家庭 Wi-Fi 网络时自动将媒体静音。',
-        conditions: [{ type: 'wifi', title: '断开家庭 Wi-Fi', value: '离开家里' }],
+        description: '离开家庭网络时自动将媒体静音。',
+        conditions: [{ type: 'wifi', title: '断开家庭网络', value: '离开家里' }],
         actions: [
           { type: 'sound', title: '媒体音量', value: '0%' }
         ]
@@ -545,13 +660,21 @@ function safeRemoveItem(key) {
 }
 
 export const useModesAndRoutinesStore = defineStore('modesAndRoutines', () => {
-  // 从 localStorage 恢复或使用预设
   const savedModes = (() => {
     try {
       const raw = safeGetItem(K_MODES)
       return raw ? JSON.parse(raw) : DEFAULT_MODES
     } catch {
       return DEFAULT_MODES
+    }
+  })()
+
+  const savedDeletedModes = (() => {
+    try {
+      const raw = safeGetItem(K_DELETED_MODES)
+      return raw ? JSON.parse(raw) : []
+    } catch {
+      return []
     }
   })()
 
@@ -573,9 +696,11 @@ export const useModesAndRoutinesStore = defineStore('modesAndRoutines', () => {
   })()
 
   const modes = ref(savedModes)
+  const deletedPresetModes = ref(savedDeletedModes)
   const routines = ref(savedRoutines)
   const activeModeId = ref(savedActiveMode)
-  const activeTab = ref('modes') // 'modes' | 'routines' | 'discover'
+  const activeTab = ref('modes')
+
   const historyLogs = ref([
     { id: 1, time: '22:30', text: '已根据作息时间表自动开启“睡眠”模式' },
     { id: 2, time: '07:00', text: '早晨闹钟关闭，“睡眠”模式已停止' },
@@ -585,6 +710,7 @@ export const useModesAndRoutinesStore = defineStore('modesAndRoutines', () => {
 
   function saveModes() {
     safeSetItem(K_MODES, JSON.stringify(modes.value))
+    safeSetItem(K_DELETED_MODES, JSON.stringify(deletedPresetModes.value))
   }
 
   function saveRoutines() {
@@ -622,6 +748,30 @@ export const useModesAndRoutinesStore = defineStore('modesAndRoutines', () => {
     return modes.value.find((m) => m.id === modeId) || null
   }
 
+  /** 配置预设模式并进入详情 */
+  function configureModeWithPreset(modeId, optionId) {
+    const target = modes.value.find((m) => m.id === modeId)
+    if (!target) return null
+
+    target.isConfigured = true
+    target.subtitle = ''
+
+    const wizardCfg = PRESET_WIZARD_CONFIGS[modeId]
+    if (wizardCfg) {
+      const opt = wizardCfg.options.find((o) => o.id === optionId) || wizardCfg.options[0]
+      if (opt && opt.apply) {
+        if (opt.apply.condition) target.condition = opt.apply.condition
+        if (opt.apply.dnd) target.dnd = Object.assign(target.dnd || {}, opt.apply.dnd)
+        if (opt.apply.settingsChanges) target.settingsChanges = opt.apply.settingsChanges
+        if (opt.apply.duration) target.duration = opt.apply.duration
+      }
+    }
+
+    saveModes()
+    logEvent(`配置了“${target.name}”模式`)
+    return target
+  }
+
   /** 添加自定义模式 */
   function addCustomMode({ name, color, iconKey, description = '' }) {
     const newId = `custom_${Date.now()}`
@@ -631,24 +781,17 @@ export const useModesAndRoutinesStore = defineStore('modesAndRoutines', () => {
       iconKey: iconKey || 'book',
       color: color || '#2563EB',
       isCustom: true,
-      subtitle: '未设置',
-      activeSubtitle: '模式运行中',
+      isConfigured: true,
+      subtitle: '',
+      activeSubtitle: '直到您将其关闭',
       description: description || '满足您特定生活习惯的自定义模式。',
-      condition: {
-        type: 'manual',
-        title: '手动开启',
-        value: '随时点击开启',
-        enabled: true
-      },
+      condition: null,
       dnd: {
-        enabled: true,
+        enabled: false,
         allowedContacts: '所有收藏联系人',
         allowedCalls: '允许'
       },
-      settingsChanges: [
-        { key: 'eyeCare', label: '护眼模式', enabled: false, value: '关' },
-        { key: 'soundMode', label: '声音模式', enabled: true, value: '仅振动' }
-      ],
+      settingsChanges: [],
       appearance: null
     }
 
@@ -658,21 +801,52 @@ export const useModesAndRoutinesStore = defineStore('modesAndRoutines', () => {
     return newMode
   }
 
-  /** 删除自定义模式 */
-  function deleteCustomMode(modeId) {
-    const idx = modes.value.findIndex((m) => m.id === modeId && m.isCustom)
+  /** 删除模式（支持自定义模式与预设模式） */
+  function deleteMode(modeId) {
+    const idx = modes.value.findIndex((m) => m.id === modeId)
     if (idx !== -1) {
-      const name = modes.value[idx].name
+      const target = modes.value[idx]
       if (activeModeId.value === modeId) {
         activeModeId.value = null
         saveActiveMode()
       }
       modes.value.splice(idx, 1)
+
+      // 若为预设模式，存入已删除预设模式列表，以便添加模式中重新恢复
+      if (!target.isCustom) {
+        target.isConfigured = false
+        target.subtitle = '未设置'
+        target.condition = null
+        target.settingsChanges = []
+        if (target.dnd) target.dnd.enabled = false
+        if (!deletedPresetModes.value.some((d) => d.id === target.id)) {
+          deletedPresetModes.value.push(target)
+        }
+      }
+
       saveModes()
-      logEvent(`删除了自定义模式“${name}”`)
+      logEvent(`删除了“${target.name}”模式`)
       return true
     }
     return false
+  }
+
+  /** 兼容原接口 deleteCustomMode */
+  function deleteCustomMode(modeId) {
+    return deleteMode(modeId)
+  }
+
+  /** 从已删除预设模式中恢复模式 */
+  function restorePresetMode(modeId) {
+    const idx = deletedPresetModes.value.findIndex((m) => m.id === modeId)
+    if (idx !== -1) {
+      const restored = deletedPresetModes.value.splice(idx, 1)[0]
+      modes.value.push(restored)
+      saveModes()
+      logEvent(`恢复了“${restored.name}”模式`)
+      return restored
+    }
+    return null
   }
 
   /** 更新模式 */
@@ -696,7 +870,7 @@ export const useModesAndRoutinesStore = defineStore('modesAndRoutines', () => {
     }
   }
 
-  /** 添加日常程序（从发现模板保存或自建） */
+  /** 添加日常程序 */
   function addRoutine(routineData) {
     const newRoutine = {
       id: routineData.id || `routine_${Date.now()}`,
@@ -712,7 +886,6 @@ export const useModesAndRoutinesStore = defineStore('modesAndRoutines', () => {
       ]
     }
 
-    // 检查是否已有同名程序，有则覆盖更新，无则首部插入
     const existingIdx = routines.value.findIndex((r) => r.id === newRoutine.id || r.name === newRoutine.name)
     if (existingIdx !== -1) {
       routines.value[existingIdx] = newRoutine
@@ -770,6 +943,7 @@ export const useModesAndRoutinesStore = defineStore('modesAndRoutines', () => {
 
   return {
     modes,
+    deletedPresetModes,
     routines,
     activeModeId,
     activeMode,
@@ -778,8 +952,11 @@ export const useModesAndRoutinesStore = defineStore('modesAndRoutines', () => {
     discoverCategories: DISCOVER_CATEGORIES,
     toggleMode,
     getMode,
+    configureModeWithPreset,
     addCustomMode,
+    deleteMode,
     deleteCustomMode,
+    restorePresetMode,
     updateMode,
     toggleRoutine,
     addRoutine,

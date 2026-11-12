@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useModesAndRoutinesStore } from '../../../../stores/modesAndRoutinesStore.js'
 import { getIconPath } from './modeIcons.js'
+import GlassNavBar from '../../../ui/GlassNavBar.vue'
 import RoutineConditionPicker from './RoutineConditionPicker.vue'
 import RoutineActionPicker from './RoutineActionPicker.vue'
 
@@ -87,19 +88,13 @@ function handleShare() {
 
 <template>
   <div class="routine-detail-page">
-    <!-- 顶部导航条 -->
-    <div class="detail-nav-bar">
-      <button class="nav-btn" @click="emit('back')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m15 18-6-6 6-6"/>
-        </svg>
-      </button>
-
-      <div class="nav-title">
-        {{ isEditing ? '编辑日常程序' : routineName }}
-      </div>
-
-      <div class="nav-actions">
+    <!-- 统一玻璃悬浮导航条 -->
+    <GlassNavBar
+      overlay
+      :title="isEditing ? '编辑日常程序' : routineName"
+      @back="emit('back')"
+    >
+      <template #right>
         <button
           v-if="!isEditing"
           class="nav-text-btn"
@@ -107,9 +102,8 @@ function handleShare() {
         >
           编辑
         </button>
-        <div v-else class="nav-placeholder"></div>
-      </div>
-    </div>
+      </template>
+    </GlassNavBar>
 
     <!-- 滚动主体区 -->
     <div class="detail-scroll-body">
@@ -158,29 +152,24 @@ function handleShare() {
               <div class="logic-item-title">{{ cond.title }}</div>
               <div class="logic-item-value">{{ cond.value }}</div>
             </div>
-            <button
-              v-if="isEditing"
-              class="remove-item-btn"
-              @click="removeCondition(idx)"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                <line x1="5" y1="12" x2="19" y2="12" />
+            <button v-if="isEditing" class="remove-item-btn" @click="removeCondition(idx)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <path d="M18 6 6 18M6 6l12 12"/>
               </svg>
             </button>
           </div>
 
-          <!-- 添加条件按钮（编辑模式） -->
           <div
-            v-if="isEditing"
+            v-if="isEditing || conditions.length === 0"
             class="add-trigger-row"
             @click="showConditionPicker = true"
           >
             <div class="add-trigger-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-                <path d="M12 5v14M5 12h14" />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                <path d="M12 5v14M5 12h14"/>
               </svg>
             </div>
-            <span class="add-trigger-text">添加条件</span>
+            <span class="add-trigger-text">添加此日常程序的触发条件</span>
           </div>
         </div>
       </div>
@@ -199,36 +188,31 @@ function handleShare() {
               <div class="logic-item-title">{{ act.title }}</div>
               <div class="logic-item-value">{{ act.value }}</div>
             </div>
-            <button
-              v-if="isEditing"
-              class="remove-item-btn"
-              @click="removeAction(idx)"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                <line x1="5" y1="12" x2="19" y2="12" />
+            <button v-if="isEditing" class="remove-item-btn" @click="removeAction(idx)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <path d="M18 6 6 18M6 6l12 12"/>
               </svg>
             </button>
           </div>
 
-          <!-- 添加动作按钮（编辑模式） -->
           <div
-            v-if="isEditing"
+            v-if="isEditing || actions.length === 0"
             class="add-trigger-row"
             @click="showActionPicker = true"
           >
             <div class="add-trigger-icon add-action-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-                <path d="M12 5v14M5 12h14" />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                <path d="M12 5v14M5 12h14"/>
               </svg>
             </div>
-            <span class="add-trigger-text">添加动作</span>
+            <span class="add-trigger-text">添加此日常程序的操作</span>
           </div>
         </div>
       </div>
 
-      <!-- 分组 3: 当日常程序结束时 -->
-      <div class="logic-group">
-        <div class="group-header-label">当日常程序结束时</div>
+      <!-- 分组 3: 日常程序结束时 (WHEN ENDED) -->
+      <div v-if="whenEnded && whenEnded.length > 0" class="logic-group">
+        <div class="group-header-label">日常程序结束时</div>
         <div class="logic-card">
           <div
             v-for="(end, idx) in whenEnded"
@@ -245,19 +229,11 @@ function handleShare() {
       </div>
     </div>
 
-    <!-- 底部操作坞 -->
+    <!-- 底部固定停靠操作条 -->
     <div class="routine-footer-dock">
-      <!-- 查看模式下：编辑 / 分享 / 保存 -->
       <template v-if="!isEditing">
-        <button class="dock-action-item" @click="isEditing = true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-          </svg>
-          <span>编辑</span>
-        </button>
-
         <button class="dock-action-item" @click="handleShare">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="18" cy="5" r="3"/>
             <circle cx="6" cy="12" r="3"/>
             <circle cx="18" cy="19" r="3"/>
@@ -267,17 +243,16 @@ function handleShare() {
           <span>分享</span>
         </button>
 
-        <button class="dock-action-item dock-save-btn" @click="handleSave">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-            <polyline points="17 21 17 13 7 13 7 21"/>
-            <polyline points="7 3 7 8 15 8"/>
+        <button class="dock-action-item dock-save-btn" @click="emit('show-toast', '已添加日常程序到桌面快捷方式')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2"/>
+            <path d="M3 9h18"/>
+            <path d="M9 21V9"/>
           </svg>
-          <span>保存</span>
+          <span>添加到主屏幕</span>
         </button>
       </template>
 
-      <!-- 编辑模式下：取消 / 保存 -->
       <template v-else>
         <button class="footer-btn btn-cancel" @click="isEditing = false">
           取消
@@ -288,14 +263,14 @@ function handleShare() {
       </template>
     </div>
 
-    <!-- 条件拾取器模态页 -->
+    <!-- 条件选择器弹层 -->
     <RoutineConditionPicker
       v-if="showConditionPicker"
       @close="showConditionPicker = false"
       @select="onConditionSelected"
     />
 
-    <!-- 动作拾取器模态页 -->
+    <!-- 动作选择器弹层 -->
     <RoutineActionPicker
       v-if="showActionPicker"
       @close="showActionPicker = false"
@@ -310,9 +285,11 @@ function handleShare() {
   inset: 0;
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-primary, #000000);
+  background: #F4F5F7;
+  color: #18181B;
   z-index: 50;
   overflow: hidden;
+  user-select: none;
 }
 
 .detail-nav-bar {
@@ -324,7 +301,8 @@ function handleShare() {
   padding-left: 8px;
   padding-right: 8px;
   flex: none;
-  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: #F4F5F7;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   box-sizing: border-box;
 }
 
@@ -336,7 +314,7 @@ function handleShare() {
   justify-content: center;
   border: none;
   background: transparent;
-  color: var(--color-text-primary, #FFFFFF);
+  color: #18181B;
   border-radius: 50%;
   cursor: pointer;
 }
@@ -344,7 +322,7 @@ function handleShare() {
 .nav-text-btn {
   border: none;
   background: transparent;
-  color: #3B82F6;
+  color: #1B64DA;
   font-size: 15px;
   font-weight: 600;
   padding: 8px 12px;
@@ -354,7 +332,7 @@ function handleShare() {
 .nav-title {
   font-size: 17px;
   font-weight: 600;
-  color: var(--color-text-primary, #FFFFFF);
+  color: #18181B;
 }
 
 .nav-actions {
@@ -371,7 +349,7 @@ function handleShare() {
 .detail-scroll-body {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 16px 100px;
+  padding: calc(var(--safe-top, 44px) + 54px) 16px 100px;
 }
 
 /* 头部 */
@@ -391,32 +369,33 @@ function handleShare() {
   align-items: center;
   justify-content: center;
   margin-bottom: 14px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
 }
 
 .hero-name {
   font-size: 20px;
   font-weight: 700;
-  color: var(--color-text-primary, #FFFFFF);
+  color: #18181B;
   margin-bottom: 4px;
 }
 
 .hero-desc {
   font-size: 13px;
-  color: var(--color-text-secondary, #8E8E93);
+  color: #71717A;
   max-width: 260px;
 }
 
 .edit-name-input {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 12px;
-  color: #FFFFFF;
+  color: #18181B;
   font-size: 17px;
   font-weight: 600;
   padding: 8px 16px;
   text-align: center;
   outline: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 /* 逻辑卡片 */
@@ -427,27 +406,28 @@ function handleShare() {
 .group-header-label {
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-text-primary, #FFFFFF);
+  color: #18181B;
   margin-bottom: 8px;
   padding: 0 4px;
 }
 
 .logic-card {
-  background: var(--color-card-bg, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  border-radius: 16px;
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 18px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .logic-item-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 16px 18px;
 }
 
 .logic-item-row.border-bottom {
-  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .logic-item-info {
@@ -457,14 +437,14 @@ function handleShare() {
 
 .logic-item-title {
   font-size: 15px;
-  font-weight: 500;
-  color: var(--color-text-primary, #FFFFFF);
+  font-weight: 600;
+  color: #18181B;
   margin-bottom: 2px;
 }
 
 .logic-item-value {
   font-size: 13px;
-  color: var(--color-text-secondary, #8E8E93);
+  color: #71717A;
 }
 
 .remove-item-btn {
@@ -472,8 +452,8 @@ function handleShare() {
   height: 28px;
   border-radius: 50%;
   border: none;
-  background: #EF4444;
-  color: #FFFFFF;
+  background: rgba(239, 68, 68, 0.12);
+  color: #EF4444;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -486,21 +466,21 @@ function handleShare() {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 16px 18px;
   cursor: pointer;
   transition: background 0.15s ease;
 }
 
 .add-trigger-row:active {
-  background: rgba(255, 255, 255, 0.06);
+  background: #FAFAFA;
 }
 
 .add-trigger-icon {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(59, 130, 246, 0.15);
-  color: #3B82F6;
+  background: rgba(27, 100, 218, 0.1);
+  color: #1B64DA;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -508,14 +488,14 @@ function handleShare() {
 }
 
 .add-action-icon {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10B981;
+  background: rgba(5, 150, 105, 0.1);
+  color: #059669;
 }
 
 .add-trigger-text {
   font-size: 15px;
   font-weight: 500;
-  color: #3B82F6;
+  color: #1B64DA;
 }
 
 /* 底部操作坞 */
@@ -530,9 +510,8 @@ function handleShare() {
   align-items: center;
   justify-content: space-around;
   gap: 12px;
-  background: rgba(18, 18, 20, 0.94);
-  backdrop-filter: blur(20px);
-  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: #FFFFFF;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
   box-sizing: border-box;
   z-index: 20;
 }
@@ -545,7 +524,7 @@ function handleShare() {
   gap: 4px;
   border: none;
   background: transparent;
-  color: var(--color-text-secondary, #A1A1AA);
+  color: #71717A;
   font-size: 11px;
   font-weight: 500;
   padding: 6px 16px;
@@ -555,32 +534,32 @@ function handleShare() {
 }
 
 .dock-action-item:active {
-  color: #FFFFFF;
+  color: #18181B;
 }
 
 .dock-save-btn {
-  color: #3B82F6;
+  color: #1B64DA;
   font-weight: 600;
 }
 
 .footer-btn {
   flex: 1;
   height: 44px;
-  border-radius: 12px;
+  border-radius: 9999px;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .btn-cancel {
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--color-text-secondary, #A1A1AA);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #F4F5F7;
+  color: #71717A;
 }
 
 .btn-save {
   border: none;
-  background: #2563EB;
+  background: #1B64DA;
   color: #FFFFFF;
 }
 </style>
