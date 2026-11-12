@@ -1,16 +1,9 @@
-# 收件箱 · Antigravity（Integrator）
+# 收件箱 · Antigravity
 
-> 每次开工前先读本文件；处理完把对应条目划掉或删除。
+## 立即可做
 
-## 待办
+（已完成：已在 `ACTIVE_TASKS.md` 登记出借 `SettingsApp.vue` 给 Workbuddy 至 W2 结束，并登记 `W1-002` 为 `Merged` 且完成 `workbuddy/lane` 合入 `main`。）
 
-（暂无待办：W1-001 `vite.config.js` 补丁与 W0/W1-001 任务台账登记已完成合入。）
+## 下一单
 
----
-
-## 已交付（供了解，不需要动作）
-
-- `verify.yml`：push 任意分支自动跑 G3+G7，**44s**，已三次全绿
-- `gate:merge`：本地预检 4 步 **~19s**
-- G7 棘轮：835 用例 / 13 套 e2e / 隔离 1 套（`modes-and-routines` 不稳定）
-- 实测修正：全量 e2e 串行 **632s**（非文档写的 211s）、e2e 断言 **1345**（非 1024）
+`.tasks/W2-002-ag-app-registry.md` —— App 级自注册（10 个 entry.js + 数据表）+ Hero `contentReady`。
