@@ -40,7 +40,7 @@
 | `system/` | 21,710 行 / 38 文件 | 同上 |
 | 单文件 | ≥2000 行 **6** · 1500–1999 **5** · 1000–1499 **9** · 500–999 **40** | |
 | 单测 | 82 文件 / 5,614 `assert` / **57** 个读源码做正则断言 / 用例 **819** | |
-| e2e | **14** 套 / 1,024 `check()` / ~211s | |
+| e2e | **14** 套 / **1,345** `check()` / **串行 632.6s** · 并发 4 约 110s（有假失败） |
 | 零散验证脚本 | **65**（58 横杠 + 7 下划线），仅 14 个注册 | |
 | `SettingsApp.vue` | 1,327 行 · 58 顶层 import · 75 搜索词条 · `.back?.()` 22 + `.back()` 3 · `view==='wifi'` 重复 2 次 | |
 | 主壳分段 | template **348–1025（678 行）** · 搜索数组 **263–338（76 行/74 条）** · 34 子页各占 1 行 · 首页列表内联 ~600 行 | |
@@ -134,14 +134,14 @@ results.push({ id: s.id, ms, code, ok: code === 0, summary, fails, checks })
 
 ```bash
 node --test --test-reporter=tap tests/*.test.js | grep -E "^# (pass|fail)"
-# # pass 819
+# # pass 824
 # # fail 0
 ```
 
-基线落 `tests/baseline.json`，字段名用 **`cases`**（不是 `asserts`——`# pass 819` 是用例数，不是 5,614 条断言）：
+基线落 `tests/baseline.json`，字段名用 **`cases`**（不是 `asserts`——`# pass 824` 是用例数，不是 5,614 条断言）：
 
 ```json
-{ "suite": { "cases": 819, "checks": { "pass": 1024, "fail": 0 } } }
+{ "units": { "cases": 824 }, "e2e": { "focus": { "pass": 100, "fail": 0 } }, "e2eQuarantine": [] }
 ```
 
 逐套件比对 `current >= baseline`，不允许 A 套件 +10 抵 B 套件 −15；下调唯一途径是同批提交基线变更。
@@ -441,12 +441,12 @@ git rev-parse HEAD
 
 ### 10.1 `verify.yml` 的触发分层
 
-三个 lane 都是自动提交 + 自动推送。若 `push: ['**']` 全量跑（chromium 40–60s + e2e 211s），每次推送 5 分钟起步，第一次超时就会被摘掉——**那才是真正的纸面门禁**。
+三个 lane 都是自动提交 + 自动推送。若 `push: ['**']` 全量跑（chromium 40–60s + e2e **632.6s 串行**），每次推送 10 分钟起步，第一次超时就会被摘掉——**那才是真正的纸面门禁**。
 
 | 触发 | 跑什么 | 预算 |
 |---|---|---|
 | `push: ['**']` | G3（`npm test` + `build`）+ G7 棘轮 | < 90s |
-| `workflow_dispatch` / nightly | `run-e2e --all`（G4）+ G8 | ~4 min |
+| `workflow_dispatch` / nightly | `run-e2e --all`（G4）+ G8 | **~11 min**（串行实测 632.6s；并发不安全） |
 | `push: [main]` | 现有 `deploy.yml` 再跑一次 G3 兜底 | 现状 |
 
 门禁的价值在"跑得起来并被相信"，不在"每次推送都跑全套"。
@@ -605,7 +605,7 @@ grep -n "ready.value = true\|hero.beginOpen" src/components/system/AppWindow.vue
 grep -n "results.push" scripts/run-e2e.mjs                   # 352：字段只有 ok / fails
 grep -n "JSON.stringify" scripts/run-e2e.mjs                 # 381：已剔掉 out
 grep -n "checks" scripts/run-e2e.mjs                         # 无 → 必须先加
-node --test --test-reporter=tap tests/*.test.js | grep -E "^# (pass|fail)"   # 819 / 0
+node --test --test-reporter=tap tests/*.test.js | grep -E "^# (pass|fail)"   # 824 / 0
 
 # 14 套收尾格式实测（W0 D1 的依据）
 node scripts/run-e2e.mjs --all --jobs 4 2>&1 | tail -40
