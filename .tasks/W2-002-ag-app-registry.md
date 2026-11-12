@@ -1,7 +1,7 @@
 # W2-002 · Antigravity：App 级自注册 + Hero 就绪信号
 
 - 类型：常规任务
-- 状态：Active
+- 状态：Merged
 - 簇：C0-a
 - Owner：AG
 - 依据：`docs/tOS-pipeline-1.0.md` §6.1 / §6.4
