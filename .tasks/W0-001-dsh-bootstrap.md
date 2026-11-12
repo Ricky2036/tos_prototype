@@ -45,3 +45,33 @@
 - 串行：~211s，零假失败
 
 门禁一旦报假失败，一周内就会被所有人忽略。**建议 G4 默认串行，仅在本地临时加速时用 `--jobs`。**
+
+## D1 下午 + D2 上午实测结果
+
+| 项 | 实测 | 与文档假设的差 |
+|---|---|---|
+| 全量**串行** e2e | **632.6s** | 文档 §10.1 假设 211s —— **差 3 倍**，`<150s` 目标不现实 |
+| 并发 4 | ~110s | 有假失败，不可用于门禁 |
+| e2e 通过数合计 | **1345** | 文档写 1,024（旧值） |
+| 单测用例 | **824**（含新增 5 条） | 文档写 819 |
+| `gate:merge`（G3a+G3b+G7） | **22.0s** | 可用 |
+
+## 已落地
+
+- `scripts/lib/parse-suite-checks.mjs` — 7 种形态多模式解析，解析不到返回 null
+- `run-e2e.mjs`：`checks` 纳入 `ok`；新增 `--port`；支持 `quarantined`
+- `scripts/check-assert-ratchet.mjs` — G7；隔离名单受棘轮约束（新隔离即红）
+- `scripts/gate-merge.mjs` — 本地合入预检
+- `tests/baseline.json` — 824 用例 / 13 套 e2e / 隔离 1 套
+- 自测通过：删 1 条用例 → `824 → 823` 判红；恢复 → 绿
+
+## 新发现：`modes-and-routines` 不稳定
+
+同一套件：单独跑通过（26.5s）→ 全量串行跑到它时 `locator.click` 超时（39.9s）。
+疑似与前序套件共享 `localStorage` / 路由状态有关，**未定位**。已隔离，不参与 G4 判定。
+后续二选一：修到确定性，或长期 quarantine（但需在 baseline 里显式登记）。
+
+## 剩余 e2e 债务
+
+- 30 个 `scripts/verify-*.mjs` 仍硬编码写 `/Users/…/.gemini/antigravity/brain/<uuid>/`
+  （仅 `modes-and-routines` 已改为 `ARTIFACT_DIR`）。这些不是套件，按簇懒改。
