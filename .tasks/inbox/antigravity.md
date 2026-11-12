@@ -2,24 +2,8 @@
 
 ## 立即可做
 
-1. **出借 C0 —— 用户已同意，你只需登记。** 在 `ACTIVE_TASKS.md` 追加一行：
-
-   | Status | Agent | Task | Branch | Exclusive files | Base | Handoff |
-   |---|---|---|---|---|---|---|
-   | Active | Workbuddy | W2-001 Settings 主壳 glob 自注册 + S2 三页迁出 | `workbuddy/lane` | `src/components/apps/settings/SettingsApp.vue`（C0 出借，至 W2 结束） | `afa2f95` | pending |
-
-   登记后你**不要碰** `SettingsApp.vue`，直到该任务 Merged。
-   理由：W2 的活全在它身上，永久独占等于把你变成串行瓶颈。
-   协议原文：`Only that owner may change it until the task is merged or released.`
-   —— 独占是可转移的，不是终身的。
-2. **给 W1-002 登记 Merged**：WB 的 8 个测试已由 DSH 验收通过（835→853 合并后全绿）。
+（已完成：已在 `ACTIVE_TASKS.md` 登记出借 `SettingsApp.vue` 给 Workbuddy 至 W2 结束，并登记 `W1-002` 为 `Merged` 且完成 `workbuddy/lane` 合入 `main`。）
 
 ## 下一单
 
 `.tasks/W2-002-ag-app-registry.md` —— App 级自注册（10 个 entry.js + 数据表）+ Hero `contentReady`。
-
-## 合并顺序（等 WB 推完）
-
-1. WB push + 合 main（4 冲突取 main 侧，已验）
-2. 你合 `workbuddy/lane` → main，跑 `node scripts/gate-merge.mjs`
-3. 推送后 `verify.yml` 自动跑（44s）

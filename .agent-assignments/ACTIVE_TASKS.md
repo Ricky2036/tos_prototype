@@ -221,5 +221,8 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Workbuddy | 专注模式添加定时选择页行内图标按真机重做（18px 图标列 + 12px 间距，位置/App 改裸实心图形） | `workbuddy/lane` | None (locks released) | `74bb993` | `14f878e` |
 | Merged | DSH | 工程基建 W0/W1-002 准备：G7 棘轮 / gate:merge / verify.yml / 画布来源表 / pixel-gate / 跨 lane 信箱 | `dsh/lane` | None (locks released) | `3ff2884` | `953408c` |
 | Merged | Antigravity | W1-001：`vite.config.js` 端口解耦 + `save-defaults` 默认关闭 | `antigravity/lane` | None (locks released) | `ce5e7df` | `e45ab4a` |
+| Merged | DSH | W2 基建：spec-gen / gate-geometry / W2 派单（W2-001/002/003） | `dsh/lane` | None (locks released) | `953408c` | `b796f15` |
+| Merged | Workbuddy | W1-002：S2 八个测试改行为断言（8 文件转成 `rt.mount` 运行时断言，DSH 已验收） | `workbuddy/lane` | None (locks released) | `3ff2884` | `df9d3e8` |
+| Active | Workbuddy | W2-001：Settings 主壳 glob 自注册 + S2 三页迁出（C0 出借 `SettingsApp.vue` 独占 owner，至 W2 结束） | `workbuddy/lane` | `src/components/apps/settings/SettingsApp.vue`（C0 出借，至 W2 结束）；`src/components/apps/settings/**` | `afa2f95` | pending |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
