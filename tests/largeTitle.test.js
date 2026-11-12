@@ -18,11 +18,19 @@
  *    teeth 实测：把 `isolation: isolate;` 改成 `/* isolation: isolate; *\/` 时，
  *    直接对原文 `includes()` 仍然为真 ⇒ **假绿**。剥注释同时避免自己写的说明注释造成假红。
  */
-import test from 'node:test'
+import test, { before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { ref } from 'vue'
+import { createRuntime } from './helpers/vueRuntime.mjs'
+
+const SETTINGS_APP = '/src/components/apps/settings/SettingsApp.vue'
+const PHOTOS_APP = '/src/components/apps/photos/PhotosApp.vue'
+const LARGE_TITLE_HEADER = '/src/components/ui/LargeTitleHeader.vue'
+let rt
+before(async () => { rt = await createRuntime() })
+after(async () => { if (rt) await rt.close() })
 import {
   LARGE_TITLE,
   TITLE_LINE_HEIGHT,
@@ -151,34 +159,57 @@ test('useLargeTitle：progress = clamp(scrollTop / distance)，onScroll 取 curr
 /* ============================================================
  * ④ 两页接线一致性 + 组件源码结构
  * ============================================================ */
-test('两页接线逐字一致 —— 「相册跟设置一致」的机械保证', () => {
-  const DECL = 'const { progress: titleProgress, onScroll: onTitleScroll } = useLargeTitle()'
-  for (const [name, src] of [['相册', PHOTOS], ['设置', SETTINGS]]) {
-    assert.ok(src.includes(DECL), `${name}页必须写成 ${DECL}`)
-    assert.ok(src.includes('<LargeTitleHeader'), `${name}页必须挂载通用件组件`)
-    assert.ok(src.includes(':progress="titleProgress"'), `${name}页必须把 titleProgress 交给通用件`)
-    assert.ok(src.includes('@scroll.passive="onTitleScroll"'), `${name}页滚动容器必须挂 @scroll.passive`)
+test('两页大标题行为一致，且标题文本随路由变化（不再逐字比源码）', async () => {
+  const photos = await rt.mount(PHOTOS_APP)
+  const settings = await rt.mount(SETTINGS_APP)
 
-    // 🔴 `<script setup>` 只自动解包顶层 ref：写 `lt.progress` 会传下 ComputedRef、
-    //    静默退化成恒 0 且**不报错**（2026-10-12 已踩过一次）⇒ 整对象只许出现一次调用
-    assert.equal(
-      (src.match(/useLargeTitle\(\)/g) || []).length,
-      1,
-      `${name}页只许有一处 useLargeTitle() 调用（写成 \`const lt = useLargeTitle()\` 会静默退化成恒 0）`
-    )
-
-    // ⛔ 不许自绘：曲线 / 底幕 / sticky / 旧的双节点交叉淡入
-    assert.ok(!/--title-size\s*:/.test(src), `${name}页不许自定义 --title-size（曲线唯一来源是 useLargeTitle.js）`)
-    assert.ok(!/position:\s*sticky/.test(src), `${name}页不许自己 sticky（通用件本体负责）`)
-    assert.ok(!/settings-compact-header/.test(src), '不许回到「双标题节点交叉淡入」的老做法')
-
-    // 两页必须引用**同一个**组件与 composable
-    assert.ok(src.includes('../../ui/LargeTitleHeader.vue'), `${name}页必须引用同一个 ui/LargeTitleHeader.vue`)
-    assert.ok(
-      /\.\.\/\.\.\/\.\.\/composables\/useLargeTitle(\.js)?'/.test(src),
-      `${name}页必须引用同一个 composables/useLargeTitle`
-    )
+  for (const [name, id, want] of [['相册', photos, '照片'], ['设置', settings, '设置']]) {
+    assert.equal(await rt.count(id, '[data-large-title]'), 1, `${name}页必须挂通用大标题组件`)
+    assert.equal(await rt.count(id, '[data-large-title-text]'), 1, `${name}页必须暴露标题文本节点`)
+    assert.equal(await rt.text(id, '[data-large-title-text]'), want, `${name}页标题文本`)
+    assert.equal(await rt.style(id, '.lt-title', 'fontSize'), '36px', `${name}页起手字号 36px`)
+    assert.equal(await rt.count(id, '.large-title'), 1, `${name}页只许一个标题节点`)
+    assert.equal(await rt.count(id, '.settings-compact-header'), 0, `${name}页不许双节点交叉淡入`)
+    assert.equal(await rt.style(id, '.large-title', 'position'), 'sticky', `${name}页标题条必须 sticky`)
   }
+
+  // 两页落在同一条曲线上：端点几何逐值相同（写 `lt.progress` 传 ComputedRef 会静默退化恒 0）
+  const geoPhotos = await rt.styleMap(photos, '.large-title', ['height', 'paddingTop', 'isolation', 'boxSizing'])
+  const geoSettings = await rt.styleMap(settings, '.large-title', ['height', 'paddingTop', 'isolation', 'boxSizing'])
+  assert.deepEqual(geoPhotos, geoSettings, '相册与设置的大标题几何必须同源')
+  assert.equal(geoPhotos.height, '159px', '起手条总高 159px')
+  assert.equal(geoPhotos.paddingTop, '90px', '起手顶内缩 90px')
+  assert.equal(geoPhotos.isolation, 'isolate', '底幕不许钻到内容下面')
+  assert.equal(await rt.style(photos, '.pv-scroll', 'overflowY'), 'auto', '相册滚动容器必须真的能滚')
+
+  // 真实滚动：两页都应从 36px 折到 22px，条高 159 → 118
+  for (const [name, id, sel] of [
+    ['相册', photos, '.pv-scroll'],
+    ['设置', settings, '.settings-scroll-container'],
+  ]) {
+    await rt.evaluate(({ id, sel }) => {
+      const el = window.__wbHosts.get(id).host.querySelector(sel)
+      Object.defineProperty(el, 'scrollTop', { value: 72, configurable: true })
+      el.dispatchEvent(new Event('scroll', { bubbles: true }))
+    }, { id, sel })
+    await rt.settle(id, 80)
+    assert.equal(await rt.style(id, '.lt-title', 'fontSize'), '22px', `${name}页折叠到底字号 22px`)
+    assert.equal(await rt.style(id, '.large-title', 'height'), '118px', `${name}页折叠条高 118px`)
+  }
+
+  // 大标题文本随路由变化：进子页后首页大标题卸载，由子页导航标题接管
+  const home = await rt.mount(SETTINGS_APP)
+  assert.equal(await rt.text(home, '[data-large-title-text]'), '设置', '首页大标题')
+  await rt.clickText(home, '.list-cell', '显示与亮度', 420)
+  assert.equal(await rt.count(home, '[data-large-title-text]'), 0, '进子页后首页大标题必须卸载')
+  assert.equal(await rt.text(home, '.gn-title'), '显示与亮度', '子页导航标题应接管')
+  await rt.click(home, '.gn-btn.gn-back', 420)
+  assert.equal(await rt.text(home, '[data-large-title-text]'), '设置', '返回后首页大标题应恢复')
+  assert.equal(rt.pageErrors.length, 0, `运行时不应有异常：${rt.pageErrors.join('; ')}`)
+
+  await rt.unmount(photos)
+  await rt.unmount(settings)
+  await rt.unmount(home)
 })
 
 test('LargeTitleHeader 源码结构：sticky 本体 + ::before 底幕 + 槽几何 + 裸 ref 兼容', () => {
@@ -289,41 +320,36 @@ test('composable 源码卫生：无 import.meta.env、相对导入带扩展名',
 /* ============================================================
  * ⑤ 静态几何算术复核（跨文件常量对齐）
  * ============================================================ */
-test('CSS 解析卫生：style 块内无游离反引号、花括号配平', () => {
+test('CSS 解析卫生：三页样式规则在浏览器里真的生效（规则被吞掉会立刻红）', async () => {
   // 🔴 2026-10-12 真缺陷：补丁脚本在 CSS 里留了一个游离反引号（`` `.pv-scroll { ``），
-  //    CSS 解析器把**整条规则**丢弃 ⇒ `.pv-scroll` 的 `overflow-y: auto` 与渐隐遮罩全没生效，
+  //    CSS 解析器把**整条规则**丢弃 ⇒ `.pv-scroll` 的 `overflow-y: auto` 全没生效，
   //    表面上「代码都写了」，实际滚动容器滚不动、大标题永远折不动。
-  //    这类缺陷不会报错、不会崩，肉眼也看不出「少了一条规则」—— 所以必须用解析卫生守住。
+  //    与其数源码里的花括号，不如直接问浏览器：这条规则到底有没有生效。
   const targets = [
-    ['LargeTitleHeader.vue', HEADER_RAW],
-    ['PhotosApp.vue', read('src/components/apps/photos/PhotosApp.vue')],
-    ['SettingsApp.vue', read('src/components/apps/settings/SettingsApp.vue')]
+    ['LargeTitleHeader.vue', LARGE_TITLE_HEADER, { title: '设置', progress: 0 }],
+    ['PhotosApp.vue', PHOTOS_APP, {}],
+    ['SettingsApp.vue', SETTINGS_APP, {}],
   ]
-  for (const [name, src] of targets) {
-    const style = src.slice(src.indexOf('<style'))
-    assert.ok(style.length > 0, `${name} 取不到 <style> 块，扫描规则失效`)
-    // ⚠️ 判据作用在**剥注释后**的 CSS 上：注释里的反引号（引用类名/控件名）无害，
-    //    真正会吞掉规则的是注释**外**的游离反引号。
-    const stripped = code(style)
-    const ticks = (stripped.match(/`/g) || []).length
-    assert.equal(
-      ticks,
-      0,
-      `${name}: <style> 块里出现 ${ticks} 个反引号 —— 会让紧跟其后的整条规则被**静默丢弃**`
-    )
-    const open = (stripped.match(/\{/g) || []).length
-    const close = (stripped.match(/\}/g) || []).length
-    assert.equal(open, close, `${name}: CSS 花括号不配平（{ ${open} 个 / } ${close} 个）`)
-    // 规则头（到 `{` 为止的片段）不许含反引号/分号/花括号
-    for (const m of stripped.matchAll(/([^{};]*)\{/g)) {
-      const head = m[1].split('\n').pop().trim()
-      if (!head || head.startsWith('@')) continue
-      assert.ok(
-        !/[`{}]/.test(head),
-        `${name}: 可疑的规则头（可能是解析垃圾，会让整条规则失效）：${JSON.stringify(head.slice(0, 60))}`
-      )
-    }
+  for (const [name, p, props] of targets) {
+    const id = await rt.mount(p, props)
+    assert.ok(await rt.count(id, '[data-large-title]') >= 1, `${name}: 大标题组件没渲染出来`)
+    const size = await rt.style(id, '.lt-title', 'fontSize')
+    assert.ok(size && parseFloat(size) >= 22, `${name}: .lt-title 的 font-size 规则被吞掉了（${size}）`)
+    assert.equal(await rt.style(id, '.large-title', 'position'), 'sticky', `${name}: .large-title 的 sticky 规则被吞掉了`)
+    assert.equal(await rt.style(id, '.large-title', 'height'), '159px', `${name}: 条高规则被吞掉了`)
+    await rt.unmount(id)
   }
+
+  const photos = await rt.mount(PHOTOS_APP)
+  assert.equal(await rt.style(photos, '.pv-scroll', 'overflowY'), 'auto', '相册滚动容器必须能滚')
+  assert.equal(await rt.style(photos, '.large-title', 'isolation'), 'isolate', '底幕层级规则必须生效')
+  await rt.unmount(photos)
+
+  const ruleCount = await rt.evaluate(() =>
+    [...document.styleSheets].reduce((n, s) => {
+      try { return n + s.cssRules.length } catch { return n }
+    }, 0))
+  assert.ok(ruleCount > 50, `样式表规则数偏少（${ruleCount}），可能有整块 CSS 被解析垃圾吞掉`)
 })
 
 test('静态几何 = 同一条曲线（端点算术 + 右上让位矩形复核）', () => {
