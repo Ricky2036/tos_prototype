@@ -1,7 +1,6 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import SubPageShell from '../subpage/SubPageShell.vue'
-import ListCell from '../../../ui/ListCell.vue'
 import LIcon from '../../../ui/LIcon.vue'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 import TimePickerSheet from '../../../ui/TimePickerSheet.vue'
@@ -10,6 +9,17 @@ import RegisteredAppList from '../../../ui/RegisteredAppList.vue'
 import RegisteredAppIcon from '../../../ui/RegisteredAppIcon.vue'
 import FocusGlyph from './FocusGlyph.vue'
 import { FOCUS_WEEKDAYS, useFocusSettingsStore } from '../../../../stores/focusSettingsStore.js'
+
+/**
+ * 「添加定时」三选一。真机实测（440pt 机 ×0.5 折到 360 画布）：
+ * 只有「时间」是实心圆盘 + 白色镂空指针，位置与 App 都是裸实心图形（没有任何底盘），
+ * 三者墨迹都在 18px 量级、左缘共线，图标列 18 + 间距 12 后文字落在 48。
+ */
+const SCHEDULE_TYPES = [
+  { type: 'time', title: '时间', subtitle: '例如：“12:30–02:30”', disc: true },
+  { type: 'location', title: '位置', subtitle: '例如：“到工作地点时”', icon: 'navigation', iconSize: 23 },
+  { type: 'app', title: 'App', subtitle: '例如：“我打开‘图书’时”', icon: 'layers2', iconSize: 24 }
+]
 
 const props = defineProps({ modeId: { type: String, required: true }, scheduleId: { type: String, default: '' }, type: { type: String, default: '' } })
 const emit = defineEmits(['back', 'saved', 'choose-type'])
@@ -71,16 +81,21 @@ defineExpose({ back })
 </script>
 
 <template>
-  <SubPageShell v-if="mode" :title="title" @back="emit('back')">
+  <SubPageShell v-if="mode" :title="title" :back-icon="kind === 'choices' ? 'close' : 'chevron'" @back="emit('back')">
     <template v-if="kind !== 'choices'" #navRight><button type="button" aria-label="完成" :disabled="!canSave" data-focus-schedule-save @click="save"><LIcon name="check" :size="20" /></button></template>
 
     <div v-if="kind === 'choices'" class="focus-schedule-choices" data-focus-schedule="choices">
       <h2>设置定时</h2>
       <p>在设定时间、位置或使用某 App 期间，自动打开此专注模式。</p>
-      <div class="settings-card">
-        <ListCell title="时间" subtitle="例如：“12:30–02:30”" chevron data-focus-schedule-type="time" @click="emit('choose-type', 'time')"><template #icon><FocusGlyph name="clock" :color="mode.color" :size="32" :icon-size="18" /></template></ListCell>
-        <ListCell title="位置" subtitle="例如：“到工作地点时”" chevron data-focus-schedule-type="location" @click="emit('choose-type', 'location')"><template #icon><FocusGlyph name="navigation" :color="mode.color" :size="32" :icon-size="18" /></template></ListCell>
-        <ListCell title="App" subtitle="例如：“我打开‘图书’时”" chevron last data-focus-schedule-type="app" @click="emit('choose-type', 'app')"><template #icon><FocusGlyph name="layers" :color="mode.color" :size="32" :icon-size="18" /></template></ListCell>
+      <div class="settings-card fsc-card">
+        <button v-for="option in SCHEDULE_TYPES" :key="option.type" type="button" class="fsc-row" :data-focus-schedule-type="option.type" @click="emit('choose-type', option.type)">
+          <span class="fsc-icon" :class="{ 'is-disc': option.disc }" :style="option.disc ? { background: mode.color } : { color: mode.color }">
+            <FocusGlyph v-if="option.disc" name="clock" :color="mode.color" :size="18" :icon-size="24" />
+            <LIcon v-else :name="option.icon" :size="option.iconSize" :stroke-width="0.8" filled />
+          </span>
+          <span class="fsc-text"><strong>{{ option.title }}</strong><small>{{ option.subtitle }}</small></span>
+          <LIcon class="fsc-chev" name="chevronRight" :size="19" :stroke-width="1.9" />
+        </button>
       </div>
     </div>
 
@@ -133,8 +148,19 @@ defineExpose({ back })
 </template>
 
 <style scoped>
-h2 { margin: 0 4px 4px; font-size: 16px; }
-p { margin: 0 4px 12px; color: #8E8E93; font-size: 13px; line-height: 1.45; }
+h2 { margin: 0 17px 0; font-size: 14px; line-height: 18px; }
+p { margin: 0 16px 8px 17px; color: #8E8E93; font-size: 10.5px; line-height: 15px; }
+/* 选择行（真机尺寸：行高 57、图标列 18、图标↔文字 12、文字左缘 48、行尾内缩 17） */
+.fsc-card { overflow: hidden; }
+.fsc-row { position: relative; width: 100%; height: 57px; padding: 0 17px 0 18px; border: 0; background: #fff; display: flex; align-items: center; gap: 12px; text-align: left; cursor: pointer; }
+.fsc-row + .fsc-row::before { content: ''; position: absolute; top: 0; left: 48px; right: 17px; height: .5px; background: #E8E8E8; }
+.fsc-icon { width: 18px; height: 18px; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+.fsc-icon.is-disc { color: #fff; }
+.fsc-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fsc-text strong { font-size: 14px; line-height: 18px; font-weight: 400; color: #1C1C1E; }
+.fsc-text small { font-size: 10.5px; line-height: 14px; color: #8E8E93; }
+/* 箭头图形自带 3/24 的内白，右移 5 让尖端落在真机的 324.5（离卡片右缘 18.5） */
+.fsc-chev { margin-right: -5px; color: #B9B9BF; }
 .time-card { overflow: visible; }
 .time-card > button { width: 100%; min-height: 44px; padding: 0 16px; border: 0; border-bottom: .5px solid #E5E5EA; background: #fff; display: flex; align-items: center; justify-content: space-between; font-size: 16px; cursor: pointer; }
 .time-card > button:first-child { border-radius: 16px 16px 0 0; }

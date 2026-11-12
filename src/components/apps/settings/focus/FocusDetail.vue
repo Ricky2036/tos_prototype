@@ -146,9 +146,9 @@ defineExpose({ back })
           <h2>设置定时</h2>
           <p>在设定时间、位置或使用某 App 期间，自动打开此专注模式。</p>
           <div class="fd-schedule-card">
-            <div class="fd-smart-row" data-focus-smart-row><FocusGlyph name="power" :color="mode.color" :size="30" :icon-size="18" hollow /><div><strong>智能启用</strong><span>自动打开</span></div><span class="fd-tail"><ToggleSwitch :model-value="mode.smartActivation" color="blue" @update:model-value="focus.updateMode(modeId, { smartActivation: $event })" /></span></div>
+            <div class="fd-smart-row" data-focus-smart-row><span class="fd-row-icon" :style="{ color: mode.color }"><LIcon name="power" :size="23" :stroke-width="2" /></span><div><strong>智能启用</strong><span>自动打开</span></div><span class="fd-tail"><ToggleSwitch :model-value="mode.smartActivation" color="blue" @update:model-value="focus.updateMode(modeId, { smartActivation: $event })" /></span></div>
             <button v-for="schedule in mode.schedules" :key="schedule.id" class="fd-schedule-row" type="button" :data-focus-schedule-id="schedule.id" @click="openSub('schedule', { scheduleId: schedule.id })">
-              <FocusGlyph :name="schedule.type === 'time' ? 'clock' : schedule.type === 'location' ? 'navigation' : 'layers'" :color="mode.color" :size="30" :icon-size="17" />
+              <FocusGlyph :name="schedule.type === 'time' ? 'clock' : schedule.type === 'location' ? 'navigation' : 'layers'" :color="mode.color" :size="17" :icon-size="schedule.type === 'time' ? 23 : 12" />
               <div><strong>{{ formatSchedule(schedule) }}</strong><span>{{ scheduleSubtitle(schedule) }}</span></div>
               <small>{{ schedule.enabled ? '打开' : '关闭' }}</small><LIcon name="chevronRight" :size="17" />
             </button>
@@ -191,8 +191,8 @@ defineExpose({ back })
 .fd-hero > button { border: 0; background: transparent; color: #0A84FF; font-size: 15px; cursor: pointer; }
 .fd-active-pill { position: absolute; right: 4px; top: 12px; padding: 5px 10px; border-radius: 12px; background: #E5E5EA; color: #8E8E93; font-size: 12px; }
 .fd-section { margin-bottom: 20px; }
-.fd-section > h2 { margin: 0 6px 3px; font-size: 15px; font-weight: 600; }
-.fd-section > p { margin: 0 6px 10px; color: #8E8E93; font-size: 13px; line-height: 1.4; }
+.fd-section > h2 { margin: 0 17px 3px; font-size: 14px; line-height: 18px; font-weight: 600; }
+.fd-section > p { margin: 0 16px 10px 17px; color: #8E8E93; font-size: 10.5px; line-height: 15px; }
 .fd-allowed-card, .fd-screens-card, .fd-schedule-card { overflow: hidden; border-radius: 20px; background: #fff; }
 .fd-allowed-grid { display: grid; grid-template-columns: 1fr 1fr; }
 .fd-allowed-grid > button { min-height: 88px; padding: 12px; border: 0; border-right: .5px solid #E5E5EA; background: transparent; text-align: left; cursor: pointer; }
@@ -209,20 +209,22 @@ defineExpose({ back })
 .fd-screens-card > button { padding: 0; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
 .fd-screen-slot { height: 157px; display: flex; align-items: flex-end; justify-content: center; }
 .fd-screens-card > button > strong { margin-top: 7px; color: #0A84FF; font-size: 15px; font-weight: 400; line-height: 20px; }
-.fd-smart-row, .fd-schedule-row { height: 58px; padding: 0 12px; border-bottom: .5px solid #E5E5EA; display: flex; align-items: center; gap: 10px; }
+.fd-smart-row, .fd-schedule-row { height: 57px; padding: 0 12px 0 17px; border-bottom: .5px solid #E5E5EA; display: flex; align-items: center; gap: 11px; }
 .fd-smart-row > div, .fd-schedule-row > div { flex: 1; min-width: 0; }
 /* ⚠️ 只能选到文字块内部：`.fd-smart-row span` 会命中 FocusGlyph 的根 span，
    把图标改成 display:block 后里面的图标就不再居中（踩过） */
 .fd-smart-row > div > strong, .fd-smart-row > div > span, .fd-schedule-row > div > strong, .fd-schedule-row > div > span { display: block; }
-.fd-smart-row > div > strong, .fd-schedule-row > div > strong { font-size: 15px; font-weight: 500; line-height: 20px; }
-.fd-smart-row > div > span, .fd-schedule-row > div > span { margin-top: 2px; color: #8E8E93; font-size: 12px; line-height: 16px; }
+.fd-smart-row > div > strong, .fd-schedule-row > div > strong { font-size: 14px; font-weight: 400; line-height: 18px; }
+.fd-smart-row > div > span, .fd-schedule-row > div > span { margin-top: 0; color: #8E8E93; font-size: 10.5px; line-height: 14px; }
 /* 开关的右缘与下方各行的箭头尖对齐（行内边距 12 + 箭头盒内留白 4） */
 .fd-tail { display: flex; align-items: center; padding-right: 4px; }
+/* 智能启用的电源符号真机是裸描边（没有圆形底盘）：图标盒按墨迹 17 收边，图形本体按 23 传入 */
+.fd-row-icon { width: 17px; height: 17px; flex: none; display: inline-flex; align-items: center; justify-content: center; }
 .fd-schedule-row { width: 100%; border-top: 0; border-left: 0; border-right: 0; background: #fff; text-align: left; cursor: pointer; }
-.fd-schedule-row small { color: #8E8E93; font-size: 14px; }
+.fd-schedule-row small { color: #8E8E93; font-size: 13px; }
 /* 箭头盒子的右缘在行内边距 12 处，尖端光学位置约 16；开关也按 16 收边 */
 .fd-schedule-row > .l-icon { color: #C7C7CC; }
-.fd-add-row { width: 100%; height: 46px; padding: 0 52px; border: 0; background: #fff; color: #0A84FF; text-align: left; font-size: 15px; cursor: pointer; }
+.fd-add-row { width: 100%; height: 46px; padding: 0 16px 0 45px; border: 0; background: #fff; color: #0A84FF; text-align: left; font-size: 14px; cursor: pointer; }
 .fd-filter-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
 .fd-filter-grid > button { position: relative; min-height: 100px; padding: 12px; border: 0; border-radius: 18px; background: #fff; display: flex; flex-direction: column; align-items: flex-start; cursor: pointer; }
 /* LIcon 根元素是 span，不能按 svg 选（否则箭头掉回文档流、跑到图标下面） */

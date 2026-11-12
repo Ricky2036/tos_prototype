@@ -97,7 +97,7 @@ async function run() {
       const r = el.getBoundingClientRect()
       return Math.abs((r.top + r.height / 2) - (sr.top + sr.height / 2)) / scale
     }
-    const glyph = smart.querySelector('.focus-glyph')
+    const glyph = smart.querySelector('.fd-row-icon')
     const gr = glyph.getBoundingClientRect()
     const ir = glyph.querySelector('svg').getBoundingClientRect()
     const tail = smart.querySelector('.toggle-switch')
@@ -123,7 +123,7 @@ async function run() {
   check('B 三块示意图分别是锁屏/主屏/手表', detail.cols.map(c => c.cls).join(' ').includes('is-lock') && detail.cols.map(c => c.cls).join(' ').includes('is-home') && detail.cols.map(c => c.cls).join(' ').includes('is-watch'), JSON.stringify(detail.cols.map(c => c.cls)))
   check('B 智能启用行与定时行等高', Math.abs(detail.smartH - detail.schedH) <= 1, `${detail.smartH} vs ${detail.schedH}`)
   check('B 智能启用行图标/文字/开关垂直居中', Math.max(detail.dyGlyph, detail.dyText, detail.dySwitch) <= 1, JSON.stringify(detail))
-  check('B 电源图标在圆形底内居中', detail.iconCentered <= 0.6, `offset=${detail.iconCentered}`)
+  check('B 电源符号在 17px 图标列内居中', detail.iconCentered <= 0.6, `offset=${detail.iconCentered}`)
   check('B 开关右缘与本行箭头尖端对齐', Math.abs((detail.switchInset - detail.chevronInset) - 4) <= 1, `${detail.switchInset} vs ${detail.chevronInset}`)
   check('B 行尾箭头为灰色', detail.chevronColor === 'rgb(199, 199, 204)', detail.chevronColor)
 
@@ -216,6 +216,39 @@ async function run() {
 
   await click(page, '[data-focus-add-schedule]')
   check('G 添加定时提供时间位置 App 三类', await countVisible(page, '[data-focus-schedule-type]') === 3)
+
+  // 选择页行内版式：真机实测 行高 57 / 图标列 18 / 图标↔文字 12 / 文字左缘 48。
+  const choiceRows = await page.locator('[data-focus-schedule="choices"]').evaluate(root => {
+    const shell = root.closest('.sub-shell')
+    const sb = shell.getBoundingClientRect()
+    const k = sb.width / 360
+    const rel = r => ({ l: (r.left - sb.left) / k, t: (r.top - sb.top) / k, w: r.width / k, h: r.height / k, r: (r.right - sb.left) / k, b: (r.bottom - sb.top) / k })
+    const rows = [...root.querySelectorAll('.fsc-row')]
+    const icons = rows.map(row => rel(row.querySelector('.fsc-icon').getBoundingClientRect()))
+    const titles = rows.map(row => rel(row.querySelector('.fsc-text strong').getBoundingClientRect()))
+    const first = rel(rows[0].getBoundingClientRect())
+    return {
+      count: rows.length,
+      rowH: first.h,
+      rowGap: rel(rows[1].getBoundingClientRect()).t - first.b,
+      iconW: icons[0].w,
+      iconRight: icons[0].r,
+      iconLefts: icons.map(i => Math.round(i.l)),
+      textLeft: titles[0].l,
+      gap: titles[0].l - icons[0].r,
+      titleFs: parseFloat(getComputedStyle(root.querySelector('.fsc-text strong')).fontSize),
+      subFs: parseFloat(getComputedStyle(root.querySelector('.fsc-text small')).fontSize),
+      discBg: getComputedStyle(root.querySelector('.fsc-icon.is-disc')).backgroundColor,
+      plainGlow: getComputedStyle(root.querySelectorAll('.fsc-icon')[1]).backgroundColor
+    }
+  })
+  check('G 选择页三行等高 57±1', Math.abs(choiceRows.rowH - 57) <= 1, JSON.stringify(choiceRows))
+  check('G 选择页图标列 18±1', Math.abs(choiceRows.iconW - 18) <= 1, JSON.stringify(choiceRows))
+  check('G 选择页图标↔文字 12±1', Math.abs(choiceRows.gap - 12) <= 1, JSON.stringify(choiceRows))
+  check('G 选择页三行图标左缘共线', new Set(choiceRows.iconLefts).size === 1, JSON.stringify(choiceRows.iconLefts))
+  check('G 选择页标题 14px / 副标题 10.5px', choiceRows.titleFs === 14 && choiceRows.subFs === 10.5, JSON.stringify(choiceRows))
+  check('G 只有时间用实心圆盘，位置与 App 无底盘', choiceRows.discBg !== 'rgba(0, 0, 0, 0)' && choiceRows.plainGlow === 'rgba(0, 0, 0, 0)', JSON.stringify(choiceRows))
+  await shot(page, '07_schedule_choices')
   await click(page, '[data-focus-schedule-type="time"]')
   await click(page, '[data-focus-weekday="0"]')
   await click(page, '[data-focus-schedule-save]')
