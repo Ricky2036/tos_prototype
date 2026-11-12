@@ -27,6 +27,8 @@ const BASELINE = path.join(ROOT, 'tests/baseline.json')
 
 const argv = process.argv.slice(2)
 const update = argv.includes('--update')
+const tapFlag = argv.indexOf('--tap')
+const tapPath = tapFlag >= 0 ? argv[tapFlag + 1] : null
 const e2eFlag = argv.indexOf('--e2e-json')
 const e2ePath = e2eFlag >= 0 ? argv[e2eFlag + 1] : '/tmp/run-e2e.json'
 
@@ -36,6 +38,10 @@ const yellow = (msg) => `\x1b[33m${msg}\x1b[0m`
 
 /* ---------------- 单测用例数 ---------------- */
 function readUnitCases() {
+  // gate:merge 已经把 G3a 的 tap 落盘，直接复用——否则整套单测要跑两遍
+  if (tapPath && fs.existsSync(tapPath)) {
+    return parseTap(fs.readFileSync(tapPath, 'utf8'))
+  }
   const files = fs
     .readdirSync(path.join(ROOT, 'tests'))
     .filter((f) => f.endsWith('.test.js'))
@@ -49,6 +55,10 @@ function readUnitCases() {
   } catch (e) {
     out = (e.stdout || '') + (e.stderr || '')
   }
+  return parseTap(out)
+}
+
+function parseTap(out) {
   const m = out.match(/^#\s*pass\s+(\d+)/m)
   const f = out.match(/^#\s*fail\s+(\d+)/m)
   const s2 = out.match(/^#\s*skipped\s+(\d+)/m)
