@@ -218,5 +218,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Workbuddy | 标准时间选择器、搜索双态 Dock、应用注册表统一、数字健康与家长控制完整流程，以及专注模式全流程与控制中心 FocusSwitcher 集成 | `workbuddy/lane` | None (locks released) | `fac14dc` | `13efe4b` |
 | Merged | Antigravity | Implement 4-option keypad more menu (pause/wait/speed-dial/settings) and direct subpage routing | `antigravity/lane` | None (locks released) | `3cc02ae` | `163f2e4` |
 | Merged | Antigravity | Complete full-screen Samsung Modes & Routines replica with light theme, wizard, DND/app-limit subpages, and 11-category actions | `antigravity/lane` | None (locks released) | `163f2e4` | `43c1b18` |
+| Merged | Workbuddy | 专注模式添加定时选择页行内图标按真机重做（18px 图标列 + 12px 间距，位置/App 改裸实心图形） | `workbuddy/lane` | None (locks released) | `74bb993` | `14f878e` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
