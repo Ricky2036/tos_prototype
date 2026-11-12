@@ -1,7 +1,9 @@
 # Multi-Agent Workspace Protocol
 
-This repository is developed concurrently by Workbuddy, Codex, and Antigravity.
+This repository is developed concurrently by Workbuddy, Codex, Antigravity, and DSH.
 Read this file before changing any code.
+
+Execution protocol for all lanes: `docs/tOS-pipeline-1.0.md`.
 
 ## Identify your role
 
@@ -10,6 +12,7 @@ Use the current worktree directory name:
 - `tos-workbuddy` -> read `.agent-assignments/workbuddy.md`
 - `tos-codex` -> read `.agent-assignments/codex.md`
 - `tos-antigravity` -> read `.agent-assignments/antigravity.md`
+- `tos-dsh` -> read `.agent-assignments/dsh.md`
 - `2026-08-02-23-04-06` -> integration worktree; Antigravity is the designated integration owner and feature work is not implemented here
 
 If the directory name does not match one of these values, stop and ask which role owns the workspace.
@@ -29,6 +32,7 @@ If the directory name does not match one of these values, stop and ask which rol
    - `tos-antigravity`: `1111`
    - `tos-workbuddy`: `5555`
    - `tos-codex`: `8888`
+   - `tos-dsh`: `7777`
 10. If a task conflicts with these defaults, the written task assignment wins only for the files it names.
 
 ## Verification cadence
