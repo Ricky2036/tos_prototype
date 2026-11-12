@@ -41,6 +41,7 @@
  *    用并发跑完若见零星失败，**先单独复跑该套再判定**。
  */
 import { spawn } from 'node:child_process'
+import { parseChecks } from './lib/parse-suite-checks.mjs'
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -351,7 +352,14 @@ function runOne(s) {
       const summary =
         out.split('\n').reverse().find((l) => /PASS|FAIL|失败|通过|断言/.test(l) && l.trim()) || ''
       const fails = (out.match(/❌|FAIL(?!\s*0)/g) || []).length
-      results.push({ id: s.id, ms, code, ok: code === 0, summary: summary.trim().slice(0, 120), fails, out })
+      // G7 口径：解析不到收尾计数即判红，不许跳过
+      const checks = parseChecks(out)
+      const ok = code === 0 && checks !== null
+      results.push({
+        id: s.id, ms, code, ok,
+        summary: summary.trim().slice(0, 120),
+        fails, checks, out,
+      })
       resolve()
     })
   })
