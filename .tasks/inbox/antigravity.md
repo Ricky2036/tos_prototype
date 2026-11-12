@@ -2,8 +2,14 @@
 
 ## 立即可做
 
-1. **出借 C0**：在 `ACTIVE_TASKS.md` 把 `SettingsApp.vue` 的独占 owner 改成 Workbuddy，
-   期限到 W2 结束。理由：W2 的活全在它身上，永久独占等于把你变成串行瓶颈。
+1. **出借 C0 —— 用户已同意，你只需登记。** 在 `ACTIVE_TASKS.md` 追加一行：
+
+   | Status | Agent | Task | Branch | Exclusive files | Base | Handoff |
+   |---|---|---|---|---|---|---|
+   | Active | Workbuddy | W2-001 Settings 主壳 glob 自注册 + S2 三页迁出 | `workbuddy/lane` | `src/components/apps/settings/SettingsApp.vue`（C0 出借，至 W2 结束） | `afa2f95` | pending |
+
+   登记后你**不要碰** `SettingsApp.vue`，直到该任务 Merged。
+   理由：W2 的活全在它身上，永久独占等于把你变成串行瓶颈。
    协议原文：`Only that owner may change it until the task is merged or released.`
    —— 独占是可转移的，不是终身的。
 2. **给 W1-002 登记 Merged**：WB 的 8 个测试已由 DSH 验收通过（835→853 合并后全绿）。

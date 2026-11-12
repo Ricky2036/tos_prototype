@@ -29,8 +29,9 @@ node scripts/gate-merge.mjs        # 应 5 步全过，853 用例
 
 ## 2. 关键约束：C0 锁
 
-`SettingsApp.vue` 属 C0-a，默认只有 Integrator 能改。**开工前确认 AG 已在
-`ACTIVE_TASKS.md` 登记出借**（把独占 owner 改成 Workbuddy，期限到 W2 结束）。
+`SettingsApp.vue` 属 C0-a，默认只有 Integrator 能改。**用户已于 2026-11-12 同意出借**，
+只差 AG 在 `ACTIVE_TASKS.md` 登记一行。开工前扫一眼那行在不在；不在就先做右侧"能先做"的部分，
+同时在 `.tasks/inbox/antigravity.md` 里催一下——**不要自己去改 ACTIVE_TASKS.md**。
 
 **没拿到锁也不要停**，先做不碰主壳的部分：
 
