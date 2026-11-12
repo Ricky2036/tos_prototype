@@ -1,7 +1,7 @@
 name: Verify
 
 # 分层触发（见 docs/tOS-pipeline-1.0.md §10.1）：
-#   push 任意分支 → G3 单测构建 + G7 断言棘轮（< 90s）
+#   push 任意分支 → G3 单测构建 + G7 断言棘轮（含浏览器，约 2–3 min）
 #   全量 e2e 不在这里跑：632s 串行，塞进每次 push 会被超时摘掉，那才是真正的纸面门禁。
 on:
   push:
@@ -33,17 +33,27 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        env:
-          # 与 deploy.yml 一致：本 job 不跑浏览器，省 40–60s
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
         run: npm ci
+
+      # 必须真装浏览器：S2 的 8 个运行时测试用 Vue+Vite 挂载组件，
+      # 没有 chromium 时 before() 会抛错 —— 更糟的是 vueRuntime 起完 Vite
+      # 再抛，server 不会 close，esbuild 子进程吊住，node --test 永不退出
+      # （2026-11-12 实测：4 个 run 同时卡 in_progress 1h40m）。
+      - name: Install chromium
+        timeout-minutes: 8
+        run: npx playwright install --with-deps chromium
 
       - name: G3 · unit tests
         timeout-minutes: 10
-        run: npm test
+        # tap 落盘给 G7 复用：否则整套单测在 CI 里要跑两遍（含浏览器启动）
+        shell: bash
+        # pipefail：否则退出码是 tee 的，测试红了这一步也会绿
+        run: |
+          set -o pipefail
+          node --test --test-reporter=tap tests/*.test.js | tee /tmp/tap.txt
 
       - name: G3 · production build
         run: npm run build
 
       - name: G7 · assert ratchet
-        run: node scripts/check-assert-ratchet.mjs
+        run: node scripts/check-assert-ratchet.mjs --tap /tmp/tap.txt
