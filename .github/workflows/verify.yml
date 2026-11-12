@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # 钉死，避免镜像迁移把门禁变成随机变量
     steps:
       - uses: actions/checkout@v5
 
