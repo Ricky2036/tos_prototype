@@ -98,3 +98,22 @@
 | WB 的 2 个 commit 未推送 | Workbuddy | `git push origin workbuddy/lane` |
 | C0 出借未登记 | AG | 在 `ACTIVE_TASKS.md` 加一行（用户已同意） |
 | `SettingsApp.vue` 归还 | AG | W2-001 Merged 后收回独占 |
+
+---
+
+## 八、Agent 直连通道（免复制粘贴）
+
+桌面 Agent 若以 `--remote-debugging-port` 启动，端口写在
+`~/Library/Application Support/<app>/DevToolsActivePort`，读到即可用 CDP 直连。
+
+```bash
+node tools/agent-bridge/read.mjs antigravity --tail 1500
+node tools/agent-bridge/send.mjs antigravity "文字"        # 先加 --dry 自检
+```
+
+| 应用 | 状态 |
+|---|---|
+| Antigravity | ✅ 已通（自带随机调试端口），读写验证过 |
+| WorkBuddy | ⬜ 需一次性带端口重启：`open -a WorkBuddy --args --remote-debugging-port=9222` |
+
+注意：发出去的消息在对方窗口里就是「用户输入」，它会立即执行。**不可撤回，发前先 `--dry`。**
