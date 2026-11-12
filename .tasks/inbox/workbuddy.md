@@ -1,40 +1,49 @@
 # 收件箱 · Workbuddy
 
-**先读 `.tasks/ROADMAP.md`** —— 那是全部剩余工作的清单，你名下是 W2-001、W3-005、W4-002/003/004。
+## 现在的状态
 
-## 今天/明天第一件事（两步，别跳）
+你的 W2-001 **前半段已合入 main**（`pages/accessibility.js` `display.js` `sound.js`，72 行）。
+主壳部分还没做——这才是 W2-001 的核心验收。
+
+main 现在是 `26145aa`：已含我的 CI 修复（真装 chromium）、G6 认领边界、AG 的 W2-002。
+
+## 下一步（三件事，按顺序）
 
 ```bash
-git push origin workbuddy/lane          # 你现在 ahead 2，工作只在本机
-git merge origin/main                   # 4 个冲突全部取 main 侧
-for f in pixel-refs/sources.json scripts/check-assert-ratchet.mjs \
-         scripts/gate-merge.mjs tests/baseline.json; do
-  git checkout --theirs -- "$f"
-done
-git add -A && git commit
-node scripts/gate-merge.mjs             # 6 步应全过
+git merge origin/main      # 先同步：main 已含 CI 修复与 C0 出借登记
+node scripts/gate-merge.mjs  # 6 步应全过（约 30s）
 ```
 
-DSH 已试合并验证：解完是 864 用例、门禁 6 步绿。
+### ① 主壳改 glob 自注册
 
-## 第二件：W2-001
+把 `SettingsApp.vue` 里 34 个静态 import + `v-if` 切页改成
+`import.meta.glob('./pages/*.js', { eager: true })` 汇总路由表。
+C0 出借已登记在 `ACTIVE_TASKS.md`，**这个文件现在归你**。
 
-`.tasks/W2-001-wb-settings-shell.md` —— Settings 主壳改 glob 自注册 + S2 三页。
+同时下沉四协议：返回栈（22 处 `.back?.()`）、跨页 `provide({push,pop})`、搜索池自声明、清 `view==='wifi'` 死分支。
 
-**C0 出借：用户已同意**，等 AG 在 `ACTIVE_TASKS.md` 登记一行。
-没登记别等：先建 `settings/pages/*.js` 新文件、改各页 `useBackHandler()`，这些不碰主壳。
+### ② 迁 S2 三页
 
-## 你上一单的验收结论（W1-002 通过）
+`SettingsDisplay` / `SettingsSound` / `SettingsAccessibility` 的入口从主壳挪到 `pages/*.js`。
+其余 31 页双轨共存，先别动。
 
-8 个文件确实改成 `rt.mount()` 运行时断言，`readFileSync(主壳)` = 0。
-`SETTINGS_APP` 现在只作挂载路径 —— 正确用法，保持。
+### ③ 验收（必须跑，别看感觉）
 
-## 现在能用的门禁
+```bash
+# 定义性指标：加第 35 页，主壳必须一行不动
+cat > src/components/apps/settings/pages/demo.js <<'JS'
+export default { id: 'demo', titleKey: 'demo', cluster: 'C2', order: 999,
+  component: () => import('../SettingsDisplay.vue') }
+JS
+git diff --stat src/components/apps/settings/SettingsApp.vue   # 必须为空
+rm src/components/apps/settings/pages/demo.js
 
-| 命令 | 用途 | 耗时 |
-|---|---|---|
-| `node scripts/gate-merge.mjs` | 6 步：单测/构建/画布/任务板/认领/棘轮 | 43s（受机器负载影响） |
-| `node scripts/claim-check.mjs` | 看我改的文件是否都在认领范围内 | 0.1s |
-| `node scripts/run-e2e.mjs --changed --port 5555` | 只跑受影响套件 | 视命中 |
+node scripts/gate-merge.mjs     # 6 步
+node --test tests/displaySoundSubpages.test.js tests/settingsMenu.test.js tests/largeTitle.test.js
+```
 
-**`claim-check` 现在是 advisory（不阻断），但请看一眼** —— 有"未认领"就说明你动了别人的文件。
+## 提醒
+
+- **不许删断言**（G7 棘轮，基线 864）
+- 只碰 `settings/**`；`ui/**` 只增不改
+- 做完在交接里贴：主壳行数、`git diff --stat` 的输出、gate 结果
