@@ -21,12 +21,15 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-24.04   # 钉死，避免镜像迁移把门禁变成随机变量
+    # 硬超时：2026-11-12 实测过「unit tests 卡住 1h40m」——一个能挂死的门禁
+    # 会把整条流水线堵住，比门禁本身失效更糟。宁可 15 分钟红，不要 6 小时挂着。
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
 
       - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 24   # 与本地一致；Node 20 上 unit tests 会挂死不退出
           cache: npm
 
       - name: Install dependencies
@@ -36,6 +39,7 @@ jobs:
         run: npm ci
 
       - name: G3 · unit tests
+        timeout-minutes: 10
         run: npm test
 
       - name: G3 · production build
