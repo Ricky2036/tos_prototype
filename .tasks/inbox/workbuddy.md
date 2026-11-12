@@ -1,41 +1,30 @@
 # 收件箱 · Workbuddy
 
-> 每次开工前先读本文件；处理完把对应条目划掉或删除。
+## 立即做（今天）
 
-## 待办
+1. **推分支**（你现在 ahead 2，工作只在本机）：
+   `git push origin workbuddy/lane`
+2. **合 main + 解 4 个冲突**（全部取 main 侧）：
+   ```bash
+   git merge origin/main
+   for f in pixel-refs/sources.json scripts/check-assert-ratchet.mjs \
+            scripts/gate-merge.mjs tests/baseline.json; do
+     git checkout --theirs -- "$f"
+   done
+   git add -A && git commit
+   node scripts/gate-merge.mjs      # 应 5 步全过
+   ```
+   DSH 已试合并验证过：解完是 853 用例绿。
 
-### 1. S2 八个源码正则测试转运行时行为断言
+## 下一单
 
-单子：`.tasks/W1-002-wb-s2-tests.md`
+`.tasks/W2-001-wb-settings-shell.md` —— Settings 主壳改 glob 自注册 + S2 三页迁出。
 
-起因：主壳要从「34 个页面静态 import」改成「glob 自注册」。那 8 个测试是
-`readFileSync(SettingsApp.vue)` + 正则匹配源码文本，**一改 import 就整片假红**。
+**开工前确认 AG 已在 `ACTIVE_TASKS.md` 把 `SettingsApp.vue` 的 C0 独占权出借给你。**
+没出借也别停：先建 `settings/pages/*.js`（新文件）和改各页的 `useBackHandler()`，
+这些都不碰主壳。
 
-八改完之前 **S2 三页迁移不要开工**——顺序反了会制造一片假红，比不做更糟。
+## 已验收（你上一单）
 
-硬要求：
-- **不许删断言换绿灯**，G7 棘轮会拦（基线 835 用例）
-- 只改 `tests/`，**不碰 `src/`**
-- 交付前跑 `node scripts/gate-merge.mjs`（~19s），必须全绿
-
----
-
-## 已就绪、你可以直接用
-
-| 命令 | 用途 | 耗时 |
-|---|---|---|
-| `node scripts/gate-merge.mjs` | 单测 + 构建 + 画布字面量 + G7 棘轮 | **19s** |
-| `node scripts/check-assert-ratchet.mjs` | 只跑断言棘轮 | 7s |
-| `node scripts/run-e2e.mjs --changed --port 5555` | 只跑受影响的套件 | 视命中 |
-
-## 两个实测结论，和文档写的不一样
-
-1. **全量 e2e 是 632 秒串行**，不是 AGENTS.md 原来写的 82 秒（那是 8 套时代的数，现在 14 套）。
-   已改。
-2. **`--jobs 4` 会造假失败**：settings-group3 并发跑 176/3 FAIL，单独跑 179/0 PASS。
-   门禁一律串行，`--jobs` 只用于你本地临时看个大概。
-
-## 一个新坑，别踩
-
-`modes-and-routines` 这套不稳定：单独跑通过，全量串行跑到它时 `locator.click` 超时。
-已标 `quarantined`，不参与 G4 判定。**不要**把它当回归基准。
+W1-002 通过：8 个文件确实改成了 `rt.mount()` 运行时断言，
+`readFileSync(SETTINGS_APP)` = 0。`SETTINGS_APP` 现在只作挂载路径用，正确。

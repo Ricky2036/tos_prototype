@@ -88,3 +88,37 @@
 | `save-defaults` 关闭 | 见 `W0-002-ag-save-defaults.md`，属 C0-a，交 AG 合入 |
 
 `gate:merge` 现为 4 步（单测 / 构建 / 画布字面量 / G7 棘轮），18.9s。
+
+## D3 · spec-gen（W2 前置）已交付
+
+`scripts/spec-gen.mjs`：从 `uiautomator dump` 生成 spec 的 geometry 段。
+
+- X 用 `kx`、Y 用 `ky`，**测试钉住**：300px 的行高算出 101.026（用 kx 会得 100，差 1%）
+- `crop` 保留源图像素框，供人工裁图核对
+- 无 `content-desc` 的图标自动进 `unknowns`，不猜形态
+- **护栏**：整棵树只有满屏容器时**报错退出**（exit 3），不产出空 spec
+
+### 两个真机实测结论（Infinix X6878 · 1208×2644 · 480dpi）
+
+1. **`density=480` 已经实测确认** → 逻辑宽 **402.7dp**，不是早期推断的 412dp。
+   比值法（`1208 ÷ 360`）依然可用，但"412"这个数可以彻底作废了。
+2. **Infinix 桌面是 Jetpack Compose**，`uiautomator dump` 只返回 **13 个满屏容器、0 个可点节点**。
+   这会把 G0 覆盖度算成 `0/0 = 100%` 的**假绿**——正是文档里预警的那条风险，现在有了实例。
+   护栏就是为了这个：宁可报错，也不产出空 spec。
+3. 该机 `uiautomator dump` 不稳定：多次 30s 超时，`pkill -f uiautomator` 后仍时好时坏。
+   **G0 采集必须先确认识别到 ≥20 个节点，否则视为采集失败**，不能当成"页面没内容"。
+
+## D3 · gate-geometry（G8 的 DOM 侧）已交付
+
+`scripts/gate-geometry.mjs` + `scripts/lib/geometry-compare.mjs`：
+
+- 归一化系数**从容器 rect 现算**（`shellBox.width / 360`），不读 `scale`/`devicePixelRatio`
+- **必须减掉容器自身 origin** —— 否则容器只要不在页面 (0,0)，所有节点会整体偏移同一个量（实测容器在 (100,50) 时差 100/50）
+- 量化到 0.1 画布 px；容差分档：线与图标 ±0.5、行与容器 ±1.5、文本只记录
+- 挂 `data-testid`（仓库既有习惯，不自己发明），未命中的节点报 `missing` 而不判红
+- 退出码：0 通过 / 1 超差 / 2 环境错 / 4 匹配率不足（`--min-match`）
+
+### 一个环境坑
+
+Playwright 依赖要 `chromium_headless_shell-1243`，本机缓存只有 `1228`，直接 `chromium.launch()` 会崩。
+已按仓库既有做法改为：`PLAYWRIGHT_CHROME` → 系统 Chrome → Playwright 自带，逐级回退。
