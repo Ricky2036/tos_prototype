@@ -1,30 +1,40 @@
 # 收件箱 · Workbuddy
 
-## 立即做（今天）
+**先读 `.tasks/ROADMAP.md`** —— 那是全部剩余工作的清单，你名下是 W2-001、W3-005、W4-002/003/004。
 
-1. **推分支**（你现在 ahead 2，工作只在本机）：
-   `git push origin workbuddy/lane`
-2. **合 main + 解 4 个冲突**（全部取 main 侧）：
-   ```bash
-   git merge origin/main
-   for f in pixel-refs/sources.json scripts/check-assert-ratchet.mjs \
-            scripts/gate-merge.mjs tests/baseline.json; do
-     git checkout --theirs -- "$f"
-   done
-   git add -A && git commit
-   node scripts/gate-merge.mjs      # 应 5 步全过
-   ```
-   DSH 已试合并验证过：解完是 853 用例绿。
+## 今天/明天第一件事（两步，别跳）
 
-## 下一单
+```bash
+git push origin workbuddy/lane          # 你现在 ahead 2，工作只在本机
+git merge origin/main                   # 4 个冲突全部取 main 侧
+for f in pixel-refs/sources.json scripts/check-assert-ratchet.mjs \
+         scripts/gate-merge.mjs tests/baseline.json; do
+  git checkout --theirs -- "$f"
+done
+git add -A && git commit
+node scripts/gate-merge.mjs             # 6 步应全过
+```
 
-`.tasks/W2-001-wb-settings-shell.md` —— Settings 主壳改 glob 自注册 + S2 三页迁出。
+DSH 已试合并验证：解完是 864 用例、门禁 6 步绿。
 
-**开工前确认 AG 已在 `ACTIVE_TASKS.md` 把 `SettingsApp.vue` 的 C0 独占权出借给你。**
-没出借也别停：先建 `settings/pages/*.js`（新文件）和改各页的 `useBackHandler()`，
-这些都不碰主壳。
+## 第二件：W2-001
 
-## 已验收（你上一单）
+`.tasks/W2-001-wb-settings-shell.md` —— Settings 主壳改 glob 自注册 + S2 三页。
 
-W1-002 通过：8 个文件确实改成了 `rt.mount()` 运行时断言，
-`readFileSync(SETTINGS_APP)` = 0。`SETTINGS_APP` 现在只作挂载路径用，正确。
+**C0 出借：用户已同意**，等 AG 在 `ACTIVE_TASKS.md` 登记一行。
+没登记别等：先建 `settings/pages/*.js` 新文件、改各页 `useBackHandler()`，这些不碰主壳。
+
+## 你上一单的验收结论（W1-002 通过）
+
+8 个文件确实改成 `rt.mount()` 运行时断言，`readFileSync(主壳)` = 0。
+`SETTINGS_APP` 现在只作挂载路径 —— 正确用法，保持。
+
+## 现在能用的门禁
+
+| 命令 | 用途 | 耗时 |
+|---|---|---|
+| `node scripts/gate-merge.mjs` | 6 步：单测/构建/画布/任务板/认领/棘轮 | 43s（受机器负载影响） |
+| `node scripts/claim-check.mjs` | 看我改的文件是否都在认领范围内 | 0.1s |
+| `node scripts/run-e2e.mjs --changed --port 5555` | 只跑受影响套件 | 视命中 |
+
+**`claim-check` 现在是 advisory（不阻断），但请看一眼** —— 有"未认领"就说明你动了别人的文件。

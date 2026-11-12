@@ -1,0 +1,16 @@
+{
+  "cluster": "C0-infra",
+  "owner": "dsh",
+  "since": "2026-11-12",
+  "note": "工程基建：门禁、工具、契约。DSH 独占，其他 lane 只读。",
+  "files": [
+    "scripts/**",
+    "tools/**",
+    "pixel-refs/**",
+    "spec/**",
+    "tests/pipeline*.test.js",
+    "tests/e2e-summary-baseline.txt",
+    ".github/workflows/verify.yml",
+    "tests/baseline.json"
+  ]
+}
