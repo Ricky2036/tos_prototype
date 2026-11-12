@@ -113,9 +113,13 @@ function resolveApp(appId) {
   if (!appId) return notificationApps.value?.[0] || { id: 'recorder', appId: 'recorder', iconType: 'recorder', time: Date.now() }
   const found = notificationApps.value?.find(a => a.appId === appId || a.id === appId)
   if (found) return found
+  // 从「应用管理 → 应用信息 → 通知」深链进来时，appId 可能不在通知列表里。
+  // 标题要用桌面注册表里的中文名，否则会把 'aimate' 这类 id 原样显示出来。
   return {
     id: appId,
     appId,
+    name: getApp(appId)?.name || i18n.appName(appId),
+    appImage: getApp(appId)?.image || '',
     iconType: appId,
     time: Date.now()
   }
@@ -661,19 +665,48 @@ const emit = defineEmits(['back-to-settings'])
         </div>
 
         <div class="cell-group db-more-group">
-          <ListCell title="更多服务" subtitle="灵动岛将始终支持下列系统服务。" chevron clickable last />
+          <ListCell title="更多服务" subtitle="灵动岛将始终支持下列系统服务。" chevron clickable last @click="go('moreServices')" />
         </div>
 
         <div class="bottom-spacer"></div>
       </div>
 
+      <!-- ============ 更多服务：Dynamic Bar 支持的系统服务清单 ============ -->
+      <div v-else-if="subView === 'moreServices'" key="moreServices" class="ns-page scrollable">
+        <GlassNavBar overlay title="更多服务" @back="back()" />
+        <div class="cell-group mt-first">
+          <ListCell
+            v-for="(svc, idx) in ISLAND_SERVICES"
+            :key="svc.key"
+            :title="svc.label"
+            :last="idx === ISLAND_SERVICES.length - 1"
+          >
+            <template #right>
+              <ToggleSwitch
+                color="blue"
+                :model-value="notificationsStore.islandSettings[svc.key]"
+                @update:modelValue="(val) => notificationsStore.setIslandEnabled(svc.key, val)"
+              />
+            </template>
+          </ListCell>
+        </div>
+        <div class="bottom-spacer"></div>
+      </div>
+
       <!-- ============ 应用详情子页 ============ -->
       <div v-else key="detail" class="ns-page scrollable">
-        <GlassNavBar overlay :title="i18n.notifTitle(currentDetailApp.appId)" @back="back()" />
+        <GlassNavBar overlay :title="currentDetailApp.name || i18n.notifTitle(currentDetailApp.appId)" @back="back()" />
 
         <div class="ns-app-hero">
-          <NotificationIcon :type="currentDetailApp.iconType" :size="64" />
-          <h1 class="ns-hero-title">{{ i18n.notifTitle(currentDetailApp.appId) }}</h1>
+          <img
+            v-if="currentDetailApp.appImage"
+            class="ns-app-hero-img"
+            :src="currentDetailApp.appImage"
+            alt=""
+            draggable="false"
+          />
+          <NotificationIcon v-else :type="currentDetailApp.iconType" :size="64" />
+          <h1 class="ns-hero-title">{{ currentDetailApp.name || i18n.notifTitle(currentDetailApp.appId) }}</h1>
         </div>
 
         <!-- 卡片 1：总开关（允许通知） -->
@@ -1004,6 +1037,7 @@ const emit = defineEmits(['back-to-settings'])
 
 /* 应用详情 */
 .ns-app-hero { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 24px 0 26px; }
+.ns-app-hero-img { width: 64px; height: 64px; border-radius: 16px; object-fit: cover; display: block; }
 .ns-hero-title { font: 600 20px/1 var(--font-stack); color: #1c1c1e; letter-spacing: 0.3px; }
 
 /* Dynamic Bar 专属行与图标 */

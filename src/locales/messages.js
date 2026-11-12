@@ -331,11 +331,11 @@ export const MESSAGES = {
     prayerDndDesc: '开启后系统将在设定的时间自动开启、关闭勿扰模式。',
     allowDisturb: '允许打扰',
     allowCalls: '来电提醒',
-    allowCallsSub: '所有人',
+    allowCallsSub: '收藏联系人',
     allowApps: '应用提醒',
     allowAppsSub: '无',
-    allowRepeatedCalls: '允许显示重复来电者',
-    allowRepeatedCallsDesc: '相同号码在三分钟内再次来电将不会被静音。',
+    allowRepeatedCalls: '允许显示重复来电',
+    allowRepeatedCallsDesc: '如果同一个人在 15 分钟内第二次来电。',
 
     // 礼拜模式
     prayerSlots: '礼拜时段',

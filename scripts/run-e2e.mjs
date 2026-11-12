@@ -120,7 +120,81 @@ const SUITES = [
       'src/components/apps/settings/subpage/SubPageShell.vue',
       'src/stores/settingsGroup3Store.js',
       'src/styles/layer-transitions.css',
-      'tests/settingsGroup3Subpages.test.js'
+      'tests/settingsGroup3Subpages.test.js',
+      'src/composables/useRegisteredApps.js',
+      'src/components/ui/RegisteredAppList.vue',
+      'src/components/ui/RegisteredAppIcon.vue',
+      'src/components/ui/SettingsSearchDock.vue',
+      'src/components/ui/SearchClearButton.vue',
+      'src/components/ui/SearchEmptyState.vue',
+      'src/components/apps/settings/SettingsSearch.vue',
+      'tests/registeredAppList.test.js',
+      'tests/settingsSearchDock.test.js',
+      'tests/settingsMenu.test.js',
+      'tests/settingsSearch.test.js'
+    ]
+  },
+  {
+    id: 'digital-health',
+    script: 'verify-digital-health.mjs',
+    covers: [
+      'src/components/apps/settings/digitalhealth/',
+      'src/stores/digitalHealthStore.js',
+      'src/components/apps/settings/SettingsApp.vue',
+      'src/components/ui/GlassNavBar.vue',
+      'src/components/ui/RegisteredAppIcon.vue',
+      'tests/digitalHealth.test.js',
+      'tests/settingsMenu.test.js'
+    ]
+  },
+  {
+    id: 'dnd',
+    script: 'verify-dnd-flow.mjs',
+    covers: [
+      'src/components/apps/settings/SettingsDND.vue',
+      'src/components/apps/settings/dnd/',
+      'src/components/apps/settings/SettingsSound.vue',
+      'src/components/apps/settings/SettingsApp.vue',
+      'src/stores/dndSettingsStore.js',
+      'src/locales/messages.js',
+      'src/components/ui/TimePickerSheet.vue',
+      'src/components/ui/TimeWheel.vue',
+      'src/components/ui/TimePickerModal.vue',
+      'src/components/ui/WheelTimePicker.vue',
+      'src/components/apps/settings/SettingsPrayer.vue',
+      'src/components/apps/clock/subpages/AlarmEditModal.vue',
+      'src/utils/timePicker.js',
+      'tests/dndSettings.test.js',
+      'tests/timePickerStandard.test.js',
+      'tests/alarmEditFlow.test.js',
+      'src/composables/useRegisteredApps.js',
+      'src/components/ui/RegisteredAppList.vue',
+      'src/components/ui/RegisteredAppIcon.vue',
+      'src/components/ui/SettingsSearchDock.vue',
+      'src/components/ui/SearchClearButton.vue',
+      'src/components/ui/SearchEmptyState.vue',
+      'src/components/apps/settings/SettingsSearch.vue',
+      'tests/registeredAppList.test.js',
+      'tests/settingsSearchDock.test.js',
+      'tests/settingsMenu.test.js',
+      'tests/settingsSearch.test.js'
+    ]
+  },
+  {
+    id: 'focus',
+    script: 'verify-focus-flow.mjs',
+    covers: [
+      'src/components/apps/settings/focus/',
+      'src/components/apps/settings/SettingsApp.vue',
+      'src/components/apps/settings/SettingsDND.vue',
+      'src/components/apps/settings/SettingsSound.vue',
+      'src/stores/focusSettingsStore.js',
+      'src/components/system/cc/FocusSwitcher.vue',
+      'src/components/system/cc/GridButton.vue',
+      'src/components/system/ControlCenter.vue',
+      'src/utils/privacyControlLayout.js',
+      'tests/focusSettings.test.js',
+      'tests/privacyControlLayout.test.js'
     ]
   },
   {

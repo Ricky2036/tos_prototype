@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { formatDaysRepeat } from '../../../../stores/clockStore'
-import WheelTimePicker from '../../../ui/WheelTimePicker.vue'
+import TimeWheel from '../../../ui/TimeWheel.vue'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 
 const props = defineProps({
@@ -180,9 +180,9 @@ function handleClose() {
 
       <!-- 可滚动区域 -->
       <div class="modal-scroll-body">
-        <!-- 双列滚轮时间选择器 -->
+        <!-- 全仓标准滚轮（inline 形态）：深色弹层内用 24 小时制 -->
         <div class="time-drum-section">
-          <WheelTimePicker v-model="formTime" />
+          <TimeWheel v-model="formTime" hour-mode="24" :show-period="false" tone="dark" />
         </div>
 
         <!-- 卡片 1：基础设置参数 -->

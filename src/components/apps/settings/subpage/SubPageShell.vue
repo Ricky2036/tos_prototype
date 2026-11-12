@@ -8,14 +8,16 @@ import GlassNavBar from '../../../ui/GlassNavBar.vue'
  */
 defineProps({
   title: { type: String, required: true },
-  floatingAction: { type: String, default: '' }
+  floatingAction: { type: String, default: '' },
+  /** 左侧按钮图形，透传给 GlassNavBar（chevron / close） */
+  backIcon: { type: String, default: 'chevron' }
 })
 const emit = defineEmits(['back', 'action'])
 </script>
 
 <template>
   <div class="sub-shell">
-    <GlassNavBar overlay :title="title" @back="emit('back')">
+    <GlassNavBar overlay :title="title" :back-icon="backIcon" @back="emit('back')">
       <template v-if="$slots.navRight" #right><slot name="navRight"></slot></template>
     </GlassNavBar>
 
@@ -23,6 +25,9 @@ const emit = defineEmits(['back', 'action'])
       <slot></slot>
       <div class="sub-bottom-space" :class="{ 'has-action': floatingAction }"></div>
     </div>
+
+    <!-- 底部悬浮层插槽：应用列表的搜索栏等「贴屏底、不随内容滚动」的控件走这里 -->
+    <slot name="bottom"></slot>
 
     <div v-if="floatingAction" class="sub-floating-action">
       <button type="button" class="sub-action-btn" @click="emit('action')">{{ floatingAction }}</button>

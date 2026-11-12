@@ -10,6 +10,9 @@ import { packLayout, isOverlapping, computeDisplayLayout, recordPositions, apply
 import PrivacyCapsule from '../privacy/PrivacyCapsule.vue'
 import { PRIVACY_CONTROL_ITEMS } from '../../utils/privacyControlLayout'
 import GridButton from './cc/GridButton.vue'
+import FocusSwitcher from './cc/FocusSwitcher.vue'
+import { useFocusSettingsStore } from '../../stores/focusSettingsStore.js'
+import { useNotificationsStore } from '../../stores/notificationsStore.js'
 import LIcon from '../ui/LIcon.vue'
 import StatusIcons from '../ui/StatusIcons.vue'
 import MaterialBlur from '../ui/MaterialBlur.vue'
@@ -27,6 +30,9 @@ import albumCover from '../../assets/icons/album_cover.png'
 const system = useSystemStore()
 const control = useControlStore()
 const i18n = useI18nStore()
+const focus = useFocusSettingsStore()
+const notifications = useNotificationsStore()
+const focusSwitcherOpen = ref(false)
 
 /* 音量面板相关文案（长按音量条的 aria 等）住在 locales/volume.js，
    与 CC 自身的磁贴名（locales/cc-labels.js）分文件，避免两个 feature 互相踩。 */
@@ -190,7 +196,7 @@ function onCcPointerDown(e) {
   if (control.fineTuningMode || editing.value) return
 
   // 点击/触摸在任何可交互元素（网格、开关、胶囊、媒体、滑块等）上时，严禁触发上滑关闭手势检测
-  if (e.target.closest('.cc-grid, .cc-cell, .gb-wrap, .cc-pill, .cc-media, .cc-sliders, .cc-header, button, input, a, .ft-hud')) {
+  if (e.target.closest('.cc-grid, .cc-cell, .gb-wrap, .cc-pill, .cc-media, .cc-sliders, .cc-header, .focus-switcher, button, input, a, .ft-hud')) {
     return
   }
 
@@ -312,7 +318,7 @@ const TOGGLES = [
   { id: 'location', icon: 'mapPin', fillOnActive: true, activeBg: '#fff', activeColor: '#258FFF' },
   { id: 'screenshot', icon: 'scissors', activeBg: '#fff', activeColor: '#258FFF' },
   { id: 'darkMode', icon: 'darkTheme', activeBg: '#fff', activeColor: '#258FFF', defaultSize: '1x1' },
-  { id: 'dnd', icon: 'moon', fillOnActive: true, activeBg: '#fff', activeColor: '#258FFF' },
+  { id: 'dnd', icon: 'moon', fillOnActive: true, activeBg: '#fff', activeColor: '#5E5CE6', defaultSize: '2x1', hasBadge: false },
   { id: 'sound', icon: 'bell', fillOnActive: false, activeBg: '#fff', activeColor: '#258FFF', defaultSize: '1x1' },
   { id: 'rotationLock', icon: 'rotationLock', activeBg: '#fff', activeColor: '#FF3B30' },
   { id: 'screenRecord', icon: 'video', fillOnActive: true, activeBg: '#fff', activeColor: '#FF4942' },
@@ -401,7 +407,7 @@ const HIOS17_ITEMS = [
   { id: 'flashlight', type: 'toggle', size: '1x1' },
   { id: 'location', type: 'toggle', size: '1x1' },
   { id: 'rotationLock', type: 'toggle', size: '1x1' },
-  { id: 'dnd', type: 'toggle', size: '1x1' },
+  { id: 'dnd', type: 'toggle', size: '2x1' },
   { id: 'batterySaver', type: 'toggle', size: '1x1' },
   { id: 'screenRecord', type: 'toggle', size: '1x1' },
   { id: 'screenshot', type: 'toggle', size: '1x1' },
@@ -689,6 +695,14 @@ function onResizeEnd() {
 
 /* ================= 开关激活 ================= */
 
+function openFocusSettings({ modeId = null, view = null } = {}) {
+  focus.openSettings(modeId, view)
+  notifications.targetView = 'focus'
+  focusSwitcherOpen.value = false
+  system.closeOverlay('controlCenter')
+  system.openApp('settings')
+}
+
 function onActivate(id) {
   /* 原「关机」磁贴分支已移除（Ricky 2026-09-20）。电源菜单改由「长按实体电源键」
      进入，路径与本分支原本的写法完全一致（openPowerMenu + 让 CC 走
@@ -698,6 +712,10 @@ function onActivate(id) {
      CC 背板就不能在菜单上层透出底下的桌面 ——
        · powerTransition（本文件上方）：菜单开着时把 CC 内容钉在 opacity 1；
        · status watch：CC 被重新拉开时 closePowerMenu()，免得 CC 内容被钉死。 */
+  if (id === 'dnd') {
+    focusSwitcherOpen.value = true
+    return
+  }
   if (id === 'camera') {
     system.closeOverlay('controlCenter')
     system.openApp('camera')
@@ -1465,6 +1483,7 @@ const glassRing = computed(() =>
       </div>
     </div>
     </div>
+    <FocusSwitcher :visible="focusSwitcherOpen" @close="focusSwitcherOpen = false" @open-settings="openFocusSettings" />
   </div>
 </template>
 

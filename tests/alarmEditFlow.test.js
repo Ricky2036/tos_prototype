@@ -70,8 +70,10 @@ test('AlarmEditModal component exists and matches reference screenshot structure
   assert.ok(content.includes('modalTitle'), 'Must compute modalTitle (编辑闹钟 / 新建闹钟)')
   assert.ok(content.includes('modal-close-circle'), 'Must provide circular close button')
 
-  // WheelTimePicker integration
-  assert.ok(content.includes('WheelTimePicker'), 'Must integrate WheelTimePicker')
+  // 全仓标准滚轮（inline 形态）：深色弹层 + 24 小时制
+  assert.ok(content.includes('TimeWheel'), 'Must integrate the standard TimeWheel')
+  assert.ok(content.includes('hour-mode="24"'), 'Alarm editing uses 24-hour drum')
+  assert.ok(content.includes('tone="dark"'), 'Alarm editing keeps dark tone inside the dark modal')
 
   // Card 1 rows
   assert.ok(content.includes('重复'), 'Must include 重复 row')
@@ -90,25 +92,33 @@ test('AlarmEditModal component exists and matches reference screenshot structure
   assert.ok(content.includes('删除闹钟'), 'Must include delete alarm option in edit mode')
 })
 
-test('WheelTimePicker component provides double column drum wheel interaction', () => {
-  const pickerPath = path.resolve(__dirname, '../src/components/ui/WheelTimePicker.vue')
-  assert.ok(fs.existsSync(pickerPath), 'WheelTimePicker.vue must exist')
-  const content = fs.readFileSync(pickerPath, 'utf-8')
+test('Standard TimeWheel provides three-column drum with light/dark tones', () => {
+  const wheelPath = path.resolve(__dirname, '../src/components/ui/TimeWheel.vue')
+  assert.ok(fs.existsSync(wheelPath), 'TimeWheel.vue must exist')
+  const content = fs.readFileSync(wheelPath, 'utf-8')
 
-  assert.ok(content.includes('wheel-time-picker'), 'Must define wheel-time-picker class')
-  assert.ok(content.includes('row-center'), 'Must define row-center styling for active number')
-  assert.ok(content.includes('row-near'), 'Must define row-near styling')
-  assert.ok(content.includes('row-far'), 'Must define row-far styling')
-  assert.ok(content.includes('stepHour'), 'Must support stepping hour')
-  assert.ok(content.includes('stepMinute'), 'Must support stepping minute')
+  assert.ok(content.includes('data-time-wheel'), 'Must expose the standard wheel root')
+  assert.ok(content.includes("['hour', 'minute', 'period']"), '12-hour mode has three columns incl. AM/PM')
+  assert.ok(content.includes('hourMode'), 'Must support 24-hour mode for alarm editing')
+  assert.ok(content.includes('ROW_H = 35'), 'Must use measured 35px row height')
+  assert.ok(content.includes('translate3d') && content.includes('scale'), 'Digits must follow the finger and scale')
+  assert.ok(content.includes('SPRING_K') && content.includes('LOOK_AHEAD_MS'), 'Must carry flick velocity into inertia')
+  assert.ok(content.includes('pointerdown') && content.includes('pointermove'), 'Must support real-device touch dragging')
+  assert.ok(content.includes('PALETTES'), 'Tone must support light/dark palettes')
+
+  // 兼容封装仍保留旧 API，但内部一律走标准滚轮
+  const legacy = fs.readFileSync(path.resolve(__dirname, '../src/components/ui/WheelTimePicker.vue'), 'utf-8')
+  assert.ok(legacy.includes('TimeWheel'), 'Legacy WheelTimePicker must delegate to TimeWheel')
+  assert.ok(legacy.includes('hour-mode="24"'), 'Legacy wrapper keeps 24-hour behaviour')
 })
 
-test('SettingsPrayer component unifies time setting using TimePickerModal', () => {
+test('SettingsPrayer uses the shared light TimePickerSheet (no dark modal)', () => {
   const prayerPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsPrayer.vue')
   const content = fs.readFileSync(prayerPath, 'utf-8')
 
-  assert.ok(content.includes('TimePickerModal'), 'SettingsPrayer must import and use TimePickerModal')
-  assert.ok(content.includes('handleTimePickerConfirm'), 'Must handle TimePickerModal confirm')
+  assert.ok(content.includes('TimePickerSheet'), 'SettingsPrayer must use the standard sheet')
+  assert.ok(content.includes('handleTimePickerConfirm'), 'Must handle time picker confirm')
+  assert.ok(!content.includes('TimePickerModal'), 'Dark legacy TimePickerModal must no longer be used here')
 })
 
 test('ClockApp and clockStore hide FloatingTabBar when editing alarm to prevent button obstruction', () => {

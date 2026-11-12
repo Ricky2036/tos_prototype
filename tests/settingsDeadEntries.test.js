@@ -9,10 +9,10 @@ const read = (p) => fs.readFileSync(path.resolve(p), 'utf-8')
 /**
  * 「带箭头但点不动」是本项目反复出现的体验缺陷（行看起来可点、真机可进入）。
  * 基线：补齐 桌面角标样式 / 我的字体 / 振动模式 / 自定义铃声(×2) / 自定义应用刷新率 /
- *       定时开启 / 悬浮通知样式 / 提醒强度 / 通知分组 后只剩 1 个（实时活动的「更多服务」），
- * 修一个减一，但**不许再增加**。
+ *       定时开启 / 悬浮通知样式 / 提醒强度 / 通知分组，最后补上实时活动「更多服务」子页
+ *       ⇒ 2026-11-09 起归零，基线锁 0，任何新增死入口都必须立刻红。
  */
-const BASELINE = 1
+const BASELINE = 0
 
 const runAudit = () =>
   execFileSync(process.execPath, ['scripts/audit-settings-dead-entries.mjs'], {
@@ -29,6 +29,9 @@ test('死入口审计：带箭头不可点的行不超过基线，且已修的�
     `带箭头但点不动的行增加到 ${count} 个（基线 ${BASELINE}），请补 @click 或子页：\n${out}`
   )
   assert.ok(!out.includes('桌面角标样式'), '「桌面角标样式」必须可点（已接入选择弹层）')
+  const notif = read('src/components/apps/settings/SettingsNotifications.vue')
+  assert.match(notif, /title="更多服务"[^>]*@click="go\('moreServices'\)"/, '「更多服务」必须能点进子页')
+  assert.match(notif, /subView === 'moreServices'/, '「更多服务」子页必须存在')
 })
 
 test('桌面角标样式用 SheetOptionPicker，选项集与 store 白名单同源', () => {

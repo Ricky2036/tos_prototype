@@ -8,7 +8,7 @@ import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { SETTINGS_TITLES } from '../../../config/settingsTitles'
-import SettingsSearchBar from '../../ui/SettingsSearchBar.vue'
+import SettingsSearchDock from '../../ui/SettingsSearchDock.vue'
 import SettingsSystemIcon from '../../ui/SettingsSystemIcon.vue'
 import SettingsNotifications from './SettingsNotifications.vue'
 import SettingsSound from './SettingsSound.vue'
@@ -28,11 +28,15 @@ import SettingsSim from './SettingsSim.vue'
 import SettingsWifi from './SettingsWifi.vue'
 import SettingsBluetooth from './SettingsBluetooth.vue'
 import SettingsSatellite from './SettingsSatellite.vue'
+import DigitalHealthApp from './digitalhealth/DigitalHealthApp.vue'
+import DhParental from './digitalhealth/DhParental.vue'
 import SettingsMultiDevice from './SettingsMultiDevice.vue'
 import SettingsHotspot from './SettingsHotspot.vue'
 import SettingsNfc from './SettingsNfc.vue'
 import SettingsInfinixAI from './SettingsInfinixAI.vue'
 import SettingsModes from './SettingsModes.vue'
+import SettingsFocus from './focus/SettingsFocus.vue'
+import LIcon from '../../ui/LIcon.vue'
 import SettingsSecurity from './SettingsSecurity.vue'
 import SettingsPrivacy from './SettingsPrivacy.vue'
 import SettingsAppsManage from './SettingsAppsManage.vue'
@@ -141,6 +145,8 @@ function pop() {
 
 /* 全局侧滑返回：子页 → 首页逐层消费 */
 const notifRef = ref(null)
+const dndRef = ref(null)
+const focusRef = ref(null)
 const prayerRef = ref(null)
 const personalizationRef = ref(null)
 const aboutPhoneRef = ref(null)
@@ -162,6 +168,7 @@ const batteryRef = ref(null)
 const storageRef = ref(null)
 const displayRef = ref(null)
 const soundRef = ref(null)
+const dhRef = ref(null)
 useBackHandler(() => {
   if (view.value === 'about' && aboutPhoneRef.value?.back?.()) return true
   if (view.value === 'sim' && simRef.value?.back?.()) return true
@@ -176,12 +183,15 @@ useBackHandler(() => {
   if (view.value === 'privacy' && privacyRef.value?.back?.()) return true
   if (view.value === 'appsManage' && appsManageRef.value?.back?.()) return true
   if (view.value === 'location' && locationRef.value?.back?.()) return true
+  if (view.value === 'dnd' && dndRef.value?.back?.()) return true
+  if (view.value === 'focus' && focusRef.value?.back?.()) return true
   if (view.value === 'accessibility' && accessibilityRef.value?.back?.()) return true
   if (view.value === 'display' && displayRef.value?.back?.()) return true
   if (view.value === 'sound' && soundRef.value?.back?.()) return true
   if (view.value === 'oneTap' && oneTapRef.value?.back?.()) return true
   if (view.value === 'battery' && batteryRef.value?.back?.()) return true
   if (view.value === 'storage' && storageRef.value?.back?.()) return true
+  if (view.value === 'digitalHealth' && dhRef.value?.back?.()) return true
   if (view.value === 'personalization' && personalizationRef.value?.back()) return true
   if (view.value === 'prayer' && prayerRef.value?.back()) return true
   if (view.value === 'notifications' && notifRef.value?.back()) return true
@@ -208,6 +218,7 @@ const viewTitles = computed(() => ({
   notifications: SETTINGS_TITLES.notifications,
   sound: i18n.t('soundAndVibration') || '声音与振动',
   dnd: SETTINGS_TITLES.dnd,
+  focus: '专注模式',
   prayer: SETTINGS_TITLES.prayer,
   personalization: '主题与个性化',
   about: '我的手机',
@@ -264,6 +275,7 @@ const allSearchableItems = [
   { id: 'hotspot', title: '个人热点', group: '网络与连接', action: () => push('hotspot') },
   { id: 'nfc', title: 'NFC', group: '网络与连接', action: () => push('nfc') },
   { id: 'infinixAi', title: 'Infinix AI', group: '特色功能', action: () => push('infinixAi') },
+  { id: 'systemFocus', title: '专注模式', group: '特色功能', action: () => push('focus') },
   { id: 'modes', title: '模式和日常程序', group: '特色功能', action: () => push('modes') },
   { id: 'modesSleep', title: '睡眠模式', group: '模式和日常程序', action: () => push('modes') },
   { id: 'modesTheater', title: '影院模式', group: '模式和日常程序', action: () => push('modes') },
@@ -299,7 +311,13 @@ const allSearchableItems = [
   { id: 'cleanStorage', title: '存储清理', group: '系统', action: () => push('storage') },
   { id: 'gtZone', title: 'GT Zone', group: '特色功能', action: () => push('oneTap') },
   { id: 'wallet', title: '钱包', group: '特色功能', action: () => push('wallet') },
-  { id: 'digitalHealth', title: '数字健康与家长控制', group: '数字健康', action: () => pushUnimplemented('数字健康与家长控制') },
+  { id: 'digitalHealth', title: '数字健康', group: '数字健康', action: () => push('digitalHealth') },
+  { id: 'parental', title: '家长控制', group: '数字健康', action: () => push('parental') },
+  { id: 'appTimer', title: '应用定时器', group: '数字健康', action: () => push('digitalHealth') },
+  { id: 'sleepMode', title: '睡眠模式', group: '数字健康', action: () => push('digitalHealth') },
+  { id: 'focusMode', title: '专注模式', group: '数字健康', action: () => push('digitalHealth') },
+  { id: 'walkingReminder', title: '看路提醒', group: '数字健康', action: () => push('digitalHealth') },
+  { id: 'familyLink', title: 'Google Family Link', group: '数字健康', action: () => push('parental') },
   { id: 'emergency', title: '安全和紧急情况', group: '安全', action: () => pushUnimplemented('安全和紧急情况') },
   { id: 'account', title: '用户与账号', group: '账号', action: () => push('account') },
   { id: 'cloudHome', title: '云服务（Infinix Cloud）', group: '账号', action: () => push('cloudHome') },
@@ -313,7 +331,7 @@ const allSearchableItems = [
   { id: 'navigation', title: '系统导航方式', group: '系统', action: () => push('navigation') },
   { id: 'dns', title: '专用 DNS', group: '网络与连接', action: () => pushUnimplemented('专用 DNS') },
   { id: 'dateTime', title: '日期与时间', group: '系统', action: () => pushUnimplemented('日期与时间') },
-  { id: 'screenTime', title: '屏幕使用时间', group: '数字健康', action: () => pushUnimplemented('屏幕使用时间') },
+  { id: 'screenTime', title: '屏幕使用时间', group: '数字健康', action: () => push('digitalHealth') },
   { id: 'lockScreen', title: '锁屏设置', group: '个性化', action: () => push('personalization') },
   { id: 'smallWindow', title: '小窗模式', group: '特色功能', action: () => pushUnimplemented('小窗模式') },
   { id: 'darkMode', title: '深色主题（黑夜模式）', group: '显示', action: () => push('display') }
@@ -325,14 +343,6 @@ function handleSearchNavigate(item) {
   }
 }
 
-const filteredSearchResults = computed(() => {
-  const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return []
-  return allSearchableItems.filter(item =>
-    item.title.toLowerCase().includes(q) ||
-    item.group.toLowerCase().includes(q)
-  )
-})
 </script>
 
 <template>
@@ -344,38 +354,10 @@ const filteredSearchResults = computed(() => {
           <!-- 顶部大标题（通用件：sticky + 随滚动折叠 + 底色底幕挡住穿过底部的内容） -->
           <LargeTitleHeader title="设置" :progress="titleProgress" />
 
-          <!-- 搜索结果列表（当有输入时激活） -->
-          <div v-if="searchQuery.trim()" class="search-results-wrap">
-            <div class="search-results-header">
-              搜索结果 ({{ filteredSearchResults.length }})
-            </div>
-            <div v-if="filteredSearchResults.length > 0" class="settings-card">
-              <ListCell
-                v-for="(item, idx) in filteredSearchResults"
-                :key="item.id"
-                :title="item.title"
-                :subtitle="item.group"
-                :value="item.value"
-                :chevron="!item.isToggle"
-                :last="idx === filteredSearchResults.length - 1"
-                @click="item.action()"
-              >
-                <template v-if="item.isToggle" #right>
-                  <ToggleSwitch v-model="control.airplane" />
-                </template>
-              </ListCell>
-            </div>
-            <div v-else class="search-empty">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <span>未找到相关设置</span>
-            </div>
-          </div>
-
-          <!-- 默认标准 8 组卡片列表 -->
-          <template v-else>
+          <!-- 首页胶囊点击即进搜索页（真机行为）：这里不再保留内联搜索结果与空态，
+               否则会出现第二套空态（旧的 40px 线性放大镜 +「未找到相关设置」）。
+               ⚠️ 卡片直接挂在滚动容器下，不要再套 <template>：裸 <template> Vue 不认作片段包裹，
+                  会变成惰性原生元素，卡片全渲染成 0 高度（实测踩过）。 -->
             <!-- ================= 卡片 1: 个人账号卡 ================= -->
             <div class="settings-card account-card" @click="accountStore.isLoggedIn ? push('account') : push('accountLogin')">
               <div class="account-avatar">
@@ -489,6 +471,13 @@ const filteredSearchResults = computed(() => {
                   <div class="squircle-icon bg-infinix-ai">
                     <SettingsSystemIcon name="ai" :size="19" />
                   </div>
+                </template>
+              </ListCell>
+
+              <!-- 专注模式：iOS 完整流程，入口位于 Infinix AI 正下方 -->
+              <ListCell title="专注模式" chevron data-setting-row="focus" @click="push('focus')">
+                <template #icon>
+                  <div class="squircle-icon" style="background:#5E5CE6"><LIcon name="moon" :size="19" /></div>
                 </template>
               </ListCell>
 
@@ -622,13 +611,27 @@ const filteredSearchResults = computed(() => {
               </ListCell>
             </div>
 
-            <!-- ================= 卡片 7: 数字健康与账号 (4项) ================= -->
+            <!-- ================= 卡片 7: 数字健康 / 家长控制 / 账号 (5项) ================= -->
             <div class="settings-card">
-              <!-- 数字健康与家长控制 -->
-              <ListCell title="数字健康与家长控制" chevron @click="pushUnimplemented('数字健康与家长控制')">
+              <!-- 数字健康（真机新版本已与家长控制拆成两行） -->
+              <ListCell title="数字健康" chevron data-setting-row="digitalHealth" @click="push('digitalHealth')">
                 <template #icon>
                   <div class="squircle-icon bg-health">
                     <SettingsSystemIcon name="health" />
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 家长控制 -->
+              <ListCell title="家长控制" chevron data-setting-row="parental" @click="push('parental')">
+                <template #icon>
+                  <div class="squircle-icon bg-parental">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <circle cx="9" cy="6.6" r="2.7" fill="#FFFFFF" />
+                      <circle cx="16.6" cy="9.2" r="2.2" fill="#FFFFFF" />
+                      <path d="M3.9 18.6v-2.8c0-2 1.6-3.6 3.6-3.6h3c2 0 3.6 1.6 3.6 3.6v2.8z" fill="#FFFFFF" />
+                      <path d="M15.4 18.6v-2.1c0-1.3 1-2.3 2.3-2.3h1c1.3 0 2.3 1 2.3 2.3v2.1z" fill="#FFFFFF" />
+                    </svg>
                   </div>
                 </template>
               </ListCell>
@@ -680,21 +683,19 @@ const filteredSearchResults = computed(() => {
                 </template>
               </ListCell>
             </div>
-          </template>
 
           <!-- 列表底部安全留白（让最后一项可滚到浮动搜索栏上方） -->
           <div class="scroll-bottom-spacer"></div>
         </div>
 
-        <!-- ================= 底部悬浮搜索栏控件 ================= -->
-        <div class="settings-floating-search" @click="push('search')">
-          <SettingsSearchBar
-            v-model="searchQuery"
-            placeholder="搜索"
-            @focus="push('search')"
-            @clear="searchQuery = ''"
-          />
-        </div>
+        <!-- ================= 底部悬浮搜索栏（全仓标准控件） ================= -->
+        <SettingsSearchDock
+          v-model="searchQuery"
+          :active="false"
+          fade-color="#F0F1F2"
+          @activate="push('search')"
+          @clear="searchQuery = ''"
+        />
       </div>
 
       <!-- ================= 设置搜索界面（参考图 1 与图 2） ================= -->
@@ -711,9 +712,14 @@ const filteredSearchResults = computed(() => {
         <SettingsSound ref="soundRef" @back="pop" @open-dnd="push('dnd')" @open-prayer="push('prayer')" />
       </div>
 
+      <!-- ================= 专注模式（完整创建、编辑与自动化流程） ================= -->
+      <div v-else-if="view === 'focus'" key="focus" class="settings-page">
+        <SettingsFocus ref="focusRef" @back="pop" />
+      </div>
+
       <!-- ================= 勿扰模式 (含礼拜模式入口) ================= -->
       <div v-else-if="view === 'dnd'" key="dnd" class="settings-page">
-        <SettingsDND @back="pop" @open-prayer="push('prayer')" />
+        <SettingsDND ref="dndRef" @back="pop" @open-prayer="push('prayer')" />
       </div>
 
       <!-- ================= 礼拜模式 ================= -->
@@ -875,6 +881,16 @@ const filteredSearchResults = computed(() => {
       <!-- ================= 存储 ================= -->
       <div v-else-if="view === 'storage'" key="storage" class="settings-page">
         <SettingsStorage ref="storageRef" @back="pop" />
+      </div>
+
+      <!-- ================= 数字健康（含 7 个子页） ================= -->
+      <div v-else-if="view === 'digitalHealth'" key="digitalHealth" class="settings-page">
+        <DigitalHealthApp ref="dhRef" @back="pop" @open-notifications="push('notifications')" />
+      </div>
+
+      <!-- ================= 家长控制 ================= -->
+      <div v-else-if="view === 'parental'" key="parental" class="settings-page">
+        <DhParental @back="pop" />
       </div>
 
       <!-- ================= 其他二级页 ================= -->
@@ -1158,6 +1174,8 @@ background: #FFFFFF;
 .bg-storage { background: #3B82F6; }
 
 .bg-health { background: #4ADE80; }
+/* 家长控制：真机是橙黄 squircle + 两个白色人形（与数字健康的绿底人形抱心区分） */
+.bg-parental { background: #FFB300; }
 .bg-emergency { background: #EF4444; }
 .bg-user { background: #22C55E; }
 .bg-google {
@@ -1219,27 +1237,6 @@ background: #FFFFFF;
   height: 92px;
   width: 100%;
   flex: none;
-}
-
-/* ================= 搜索结果面板 ================= */
-.search-results-wrap {
-  margin-top: 4px;
-}
-.search-results-header {
-  font-size: 13px;
-  color: #8E8E93;
-  margin: 0 20px 8px;
-  font-weight: 500;
-}
-.search-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 60px 20px;
-  color: #8E8E93;
-  font-size: 14px;
 }
 
 /* ================= 极速丝滑进退动画 ================= */

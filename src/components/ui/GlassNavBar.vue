@@ -16,6 +16,8 @@
 defineProps({
   title: { type: String, default: '' },
   showBack: { type: Boolean, default: true },
+  /** 左侧按钮图形：chevron 返回箭头（设置页默认）/ close 关闭叉（sheet 型页面） */
+  backIcon: { type: String, default: 'chevron' },
   /** 右上角是否留出按钮位（无内容时不占位） */
   right: { type: Boolean, default: false },
   /**
@@ -47,10 +49,16 @@ const emit = defineEmits(['back'])
       data-nav-back
       @click="emit('back')"
     >
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
+      <svg v-if="backIcon === 'chevron'" width="21" height="21" viewBox="0 0 24 24" fill="none">
         <path
           d="M20 12H4.6M4.6 12L11.2 5.4M4.6 12L11.2 18.6"
           stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        />
+      </svg>
+      <svg v-else width="19" height="19" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M6.4 6.4L17.6 17.6M17.6 6.4L6.4 17.6"
+          stroke="#1C1C1E" stroke-width="2" stroke-linecap="round"
         />
       </svg>
     </button>

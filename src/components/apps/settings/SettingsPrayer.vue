@@ -8,7 +8,7 @@ import AppNavBar from '../../ui/AppNavBar.vue'
 import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { SETTINGS_TITLES } from '../../../config/settingsTitles'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
-import TimePickerModal from '../../ui/TimePickerModal.vue'
+import TimePickerSheet from '../../ui/TimePickerSheet.vue'
 import ListCell from '../../ui/ListCell.vue'
 import ActionModal from '../../ui/ActionModal.vue'
 import { GLYPHS } from '../../../assets/icons/glyphs'
@@ -336,7 +336,7 @@ function back() {
 
 defineExpose({ back })
 
-/* 时间滚轮弹窗控制（使用标准化 TimePickerModal 控件） */
+/* 时间滚轮弹窗控制（全仓标准控件 TimePickerSheet，浅色） */
 function openTimePicker(type) {
   timePickerType.value = type
   currentTimePickerVal.value = type === 'start' ? editForm.value.startTime : editForm.value.endTime
@@ -821,14 +821,15 @@ function saveEdit() {
       </div>
     </Transition>
 
-    <!-- ================= 时间选择滚轮弹窗（统一标准化控件） ================= -->
-    <TimePickerModal
-      v-if="showTimePicker"
+    <!-- ================= 时间选择滚轮弹窗（全仓标准控件，浅色） ================= -->
+    <TimePickerSheet
+      :visible="showTimePicker"
       :title="timePickerType === 'start' ? i18n.t('startTime') : i18n.t('endTime')"
       :model-value="currentTimePickerVal"
       :confirm-text="i18n.t('confirm')"
       @confirm="handleTimePickerConfirm"
       @cancel="closeTimePicker"
+      @close="closeTimePicker"
     />
 
     <!-- ================= 启用穆斯林闹钟确认弹窗 ================= -->

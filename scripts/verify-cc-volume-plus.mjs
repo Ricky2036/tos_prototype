@@ -2,8 +2,8 @@
  *
  * v4 相对 v3（2026-09-20，Ricky「关机按钮要去掉 + 音量菜单点不开」）：
  *   · A 段反了过来 —— 关机磁贴已从 TOGGLES / DEFAULT_TOGGLE_IDS / HIOS17_ITEMS 三处
- *     一起撤掉，所以断言从「所有预设都渲染它」改成「所有预设都没有它」，并回归
- *     「hios17 / ee1Camon / note17 / gt17 回到 9 行、不再进入溢出态」。
+ *     一起撤掉，所以断言从「所有预设都渲染它」改成「所有预设都没有它」。
+ *     专注模式磁贴改为 2×1 后，hios17 / ee1Camon / note17 / gt17 的更新基线为 10 行。
  *   · B 段换了入口 —— 电源菜单不再由 CC 磁贴触发，改由**长按实体电源键**进入
  *     （PhoneFrame.vue 的 startPowerHold），所以用页内派发 PointerEvent 真按住 500ms，
  *     并顺带守住「锁屏 / 灭屏不许弹」与「尾随 click 不许切锁屏」。
@@ -119,16 +119,14 @@ check('关机磁贴已从所有预设移除（TOGGLES / DEFAULT_TOGGLE_IDS / HIO
       presetIds.every((p) => gridRows[p] && gridRows[p].hasPowerTile === false),
       Object.entries(gridRows).filter(([, v]) => v.hasPowerTile).map(([k]) => k).join(',') || 'all clean')
 
-/* 撤磁贴的直接收益回归：加磁贴前这 4 个预设是 9 行、一屏放得下（overflow=no），
-   加磁贴后变 10 行 + 溢出态，撤掉后必须回到 9 行 / no。
-   ⚠️ 只断言这 4 个回到基线，不断言「全局行数 = 常量」——网格几何是多人共用的面，
-   把 9/10 写成全局期望值，会在别人的合理改动落地后变成假 FAIL。 */
-const BACK_TO_9 = ['hios17', 'ee1Camon', 'note17', 'gt17']
-const notBack = BACK_TO_9.filter((p) => !(gridRows[p] && gridRows[p].maxEnd === 9 && gridRows[p].hasOverflow === false))
-check('撤磁贴后 hios17 / ee1Camon / note17 / gt17 回到 9 行且不再进入溢出态',
-      notBack.length === 0,
-      notBack.length
-        ? notBack.map((p) => `${p}: ${gridRows[p]?.maxEnd}行 overflow=${gridRows[p]?.hasOverflow} delta=${gridRows[p]?.delta}`).join('  ')
+/* 专注模式磁贴从 1×1 改为 2×1 后，这 4 个预设的更新基线是 10 行 + 溢出态。
+   ⚠️ 只断言需求直接影响到的 4 个预设，不把 10 行写成全局常量。 */
+const FOCUS_2X1_LAYOUTS = ['hios17', 'ee1Camon', 'note17', 'gt17']
+const wrongLayouts = FOCUS_2X1_LAYOUTS.filter((p) => !(gridRows[p] && gridRows[p].maxEnd === 10 && gridRows[p].hasOverflow === true))
+check('专注模式 2×1 后 hios17 / ee1Camon / note17 / gt17 采用 10 行布局',
+      wrongLayouts.length === 0,
+      wrongLayouts.length
+        ? wrongLayouts.map((p) => `${p}: ${gridRows[p]?.maxEnd}行 overflow=${gridRows[p]?.hasOverflow} delta=${gridRows[p]?.delta}`).join('  ')
         : 'ok')
 console.log(`  全部预设行数 = ${presetIds.map((p) => `${p}:${gridRows[p].maxEnd}${gridRows[p].hasOverflow ? '*' : ''}`).join('  ')}   （* = 溢出态）`)
 
