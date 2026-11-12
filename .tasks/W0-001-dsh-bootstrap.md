@@ -107,3 +107,18 @@
    护栏就是为了这个：宁可报错，也不产出空 spec。
 3. 该机 `uiautomator dump` 不稳定：多次 30s 超时，`pkill -f uiautomator` 后仍时好时坏。
    **G0 采集必须先确认识别到 ≥20 个节点，否则视为采集失败**，不能当成"页面没内容"。
+
+## D3 · gate-geometry（G8 的 DOM 侧）已交付
+
+`scripts/gate-geometry.mjs` + `scripts/lib/geometry-compare.mjs`：
+
+- 归一化系数**从容器 rect 现算**（`shellBox.width / 360`），不读 `scale`/`devicePixelRatio`
+- **必须减掉容器自身 origin** —— 否则容器只要不在页面 (0,0)，所有节点会整体偏移同一个量（实测容器在 (100,50) 时差 100/50）
+- 量化到 0.1 画布 px；容差分档：线与图标 ±0.5、行与容器 ±1.5、文本只记录
+- 挂 `data-testid`（仓库既有习惯，不自己发明），未命中的节点报 `missing` 而不判红
+- 退出码：0 通过 / 1 超差 / 2 环境错 / 4 匹配率不足（`--min-match`）
+
+### 一个环境坑
+
+Playwright 依赖要 `chromium_headless_shell-1243`，本机缓存只有 `1228`，直接 `chromium.launch()` 会崩。
+已按仓库既有做法改为：`PLAYWRIGHT_CHROME` → 系统 Chrome → Playwright 自带，逐级回退。
