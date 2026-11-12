@@ -1,7 +1,7 @@
 # W1-002 · S2 八个源码正则测试转运行时行为断言
 
 - 类型：常规任务
-- 状态：Active
+- 状态：Review
 - 簇：C2
 - Owner：Workbuddy
 - 依据：`docs/tOS-pipeline-1.0.md` §6.5
