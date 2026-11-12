@@ -57,13 +57,13 @@ function handleCardClick(item) {
 
 <style scoped>
 .discover-tab-content {
-  padding: 0 16px 120px;
+  padding: 0 16px calc(var(--home-indicator-inset, 14px) + 96px);
 }
 
 .discover-intro-text {
   font-size: 14px;
   line-height: 1.5;
-  color: var(--color-text-secondary, #8E8E93);
+  color: #71717A;
   margin-bottom: 20px;
   padding: 0 4px;
 }
@@ -75,7 +75,7 @@ function handleCardClick(item) {
 .discover-section-title {
   font-size: 15px;
   font-weight: 600;
-  color: var(--color-text-primary, #FFFFFF);
+  color: #18181B;
   margin-bottom: 12px;
   padding: 0 4px;
 }
@@ -87,23 +87,24 @@ function handleCardClick(item) {
   gap: 12px;
 }
 
-/* 发现卡片：四边微细边框，微弱圆角与底色 */
+/* 发现卡片：四边微细边框，纯白底色 */
 .discover-card {
   display: flex;
   flex-direction: column;
-  background: var(--color-card-bg, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 18px;
   padding: 16px 14px;
   min-height: 140px;
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease;
   user-select: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .discover-card:active {
   transform: scale(0.98);
-  background: var(--color-card-active, rgba(255, 255, 255, 0.08));
+  background: #FAFAFA;
 }
 
 .card-icon-badge {
@@ -120,7 +121,7 @@ function handleCardClick(item) {
 .card-title {
   font-size: 15px;
   font-weight: 600;
-  color: var(--color-text-primary, #FFFFFF);
+  color: #18181B;
   margin-bottom: 6px;
   line-height: 1.35;
 }
@@ -128,7 +129,7 @@ function handleCardClick(item) {
 .card-desc {
   font-size: 12px;
   line-height: 1.4;
-  color: var(--color-text-secondary, #8E8E93);
+  color: #71717A;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;

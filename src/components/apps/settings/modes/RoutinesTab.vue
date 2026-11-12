@@ -40,7 +40,7 @@ function handleToggle(routine, e) {
     <!-- 空状态：当暂无日常程序时 -->
     <div v-if="store.routines.length === 0" class="empty-routines-container">
       <div class="empty-icon-wrap">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="9" />
           <path d="M12 7v5l3 2" />
         </svg>
@@ -105,7 +105,7 @@ function handleToggle(routine, e) {
     <!-- 底部生态智能提示卡 -->
     <div class="smartthings-tip-card">
       <div class="tip-header">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B64DA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10" />
           <path d="M12 16v-4M12 8h.01" />
         </svg>
@@ -123,22 +123,23 @@ function handleToggle(routine, e) {
 
 <style scoped>
 .routines-tab-content {
-  padding: 0 16px 120px;
+  padding: 0 16px calc(var(--home-indicator-inset, 14px) + 96px);
 }
 
-/* 提示卡片：四边微细边框，轻柔底色 */
+/* 提示卡片：四边微细边框，纯白底色 */
 .cue-card {
-  background: var(--color-card-bg, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  border-radius: 16px;
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 18px;
   padding: 16px 18px;
   margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .cue-body {
   font-size: 14px;
   line-height: 1.45;
-  color: var(--color-text-primary, #FFFFFF);
+  color: #18181B;
   margin-bottom: 12px;
 }
 
@@ -152,7 +153,7 @@ function handleToggle(routine, e) {
   border: none;
   background: transparent;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   padding: 6px 12px;
   border-radius: 8px;
   cursor: pointer;
@@ -164,12 +165,11 @@ function handleToggle(routine, e) {
 }
 
 .cue-btn-ghost {
-  color: var(--color-text-secondary, #8E8E93);
+  color: #71717A;
 }
 
 .cue-btn-primary {
-  color: #3B82F6;
-  font-weight: 600;
+  color: #1B64DA;
 }
 
 /* 空状态 */
@@ -186,23 +186,25 @@ function handleToggle(routine, e) {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.05);
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .empty-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--color-text-primary, #FFFFFF);
+  color: #18181B;
   margin-bottom: 6px;
 }
 
 .empty-desc {
   font-size: 14px;
-  color: var(--color-text-secondary, #8E8E93);
+  color: #71717A;
   margin-bottom: 24px;
 }
 
@@ -210,14 +212,15 @@ function handleToggle(routine, e) {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #2563EB;
+  background: #1B64DA;
   color: #FFFFFF;
   border: none;
-  border-radius: 20px;
-  padding: 10px 22px;
+  border-radius: 9999px;
+  padding: 10px 24px;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 4px 14px rgba(27, 100, 218, 0.25);
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
@@ -231,28 +234,29 @@ function handleToggle(routine, e) {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .routine-card {
   display: flex;
   align-items: center;
-  background: var(--color-card-bg, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  border-radius: 18px;
-  padding: 14px 16px;
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 20px;
+  padding: 14px 18px;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.15s ease, background 0.15s ease;
   user-select: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .routine-card:active {
   transform: scale(0.985);
-  background: var(--color-card-active, rgba(255, 255, 255, 0.08));
+  background: #FAFAFA;
 }
 
 .routine-card.is-disabled {
-  opacity: 0.6;
+  opacity: 0.65;
 }
 
 .routine-icon-badge {
@@ -274,7 +278,7 @@ function handleToggle(routine, e) {
 .routine-name {
   font-size: 16px;
   font-weight: 600;
-  color: var(--color-text-primary, #FFFFFF);
+  color: #18181B;
   margin-bottom: 4px;
 }
 
@@ -288,18 +292,16 @@ function handleToggle(routine, e) {
   font-size: 12px;
   padding: 2px 8px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--color-text-secondary, #8E8E93);
 }
 
 .tag-if {
-  color: #60A5FA;
-  background: rgba(59, 130, 246, 0.12);
+  color: #1B64DA;
+  background: rgba(27, 100, 218, 0.08);
 }
 
 .tag-then {
-  color: #34D399;
-  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  background: rgba(5, 150, 105, 0.08);
 }
 
 .routine-toggle-wrap {
@@ -309,10 +311,11 @@ function handleToggle(routine, e) {
 
 /* 底部智能提示卡 */
 .smartthings-tip-card {
-  background: var(--color-card-bg, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.07));
-  border-radius: 16px;
-  padding: 16px;
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .tip-header {
@@ -321,21 +324,21 @@ function handleToggle(routine, e) {
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #3B82F6;
+  color: #1B64DA;
   margin-bottom: 6px;
 }
 
 .tip-content {
   font-size: 13px;
   line-height: 1.45;
-  color: var(--color-text-secondary, #8E8E93);
+  color: #71717A;
   margin-bottom: 8px;
 }
 
 .tip-link {
   font-size: 13px;
-  font-weight: 500;
-  color: #3B82F6;
+  font-weight: 600;
+  color: #1B64DA;
   cursor: pointer;
   display: inline-block;
 }

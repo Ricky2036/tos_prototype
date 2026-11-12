@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import GlassNavBar from '../../../ui/GlassNavBar.vue'
 
 const emit = defineEmits(['close', 'select'])
 
@@ -41,9 +42,9 @@ const CONDITION_CATEGORIES = [
   {
     category: '连接与设备',
     items: [
-      { type: 'wifi', title: 'Wi-Fi 网络', value: '连接到指定 WLAN' },
+      { type: 'wifi', title: '无线网络', value: '连接到指定无线局域网' },
       { type: 'bluetooth', title: '蓝牙设备', value: '连接到蓝牙耳机或音箱' },
-      { type: 'nfc', title: 'NFC 触碰', value: '轻触指定 NFC 标签' }
+      { type: 'nfc', title: 'NFC 触碰', value: '轻触指定近场通信标签' }
     ]
   },
   {
@@ -83,21 +84,14 @@ function handleSelect(item) {
 
 <template>
   <div class="picker-modal">
-    <!-- 顶部导航栏 -->
-    <div class="picker-nav">
-      <button class="nav-btn" @click="emit('close')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m15 18-6-6 6-6"/>
-        </svg>
-      </button>
-      <div class="nav-title">如果 (添加条件)</div>
-      <div class="nav-placeholder"></div>
-    </div>
+    <!-- 统一玻璃悬浮导航栏 -->
+    <GlassNavBar overlay title="如果 (添加条件)" @back="emit('close')" />
 
-    <!-- 搜索栏 -->
-    <div class="search-bar-wrap">
+    <div class="picker-content-wrap">
+      <!-- 搜索栏 -->
+      <div class="search-bar-wrap">
       <div class="search-bar-inner">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#71717A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"/>
           <line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
@@ -105,7 +99,7 @@ function handleSelect(item) {
           v-model="searchQuery"
           type="text"
           class="picker-search-input"
-          placeholder="搜索条件触发源"
+          placeholder="搜索条件"
         />
         <button v-if="searchQuery" class="clear-search-btn" @click="searchQuery = ''">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -115,7 +109,7 @@ function handleSelect(item) {
       </div>
     </div>
 
-    <!-- 分类条件列表 -->
+    <!-- 条件类别列表 -->
     <div class="picker-body-scrollable">
       <div
         v-for="cat in filteredCategories"
@@ -137,12 +131,13 @@ function handleSelect(item) {
             </div>
             <div class="picker-row-action">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 5v14M5 12h14"/>
+                <path d="m9 18 6-6-6-6"/>
               </svg>
             </div>
           </div>
         </div>
       </div>
+    </div>
     </div>
   </div>
 </template>
@@ -151,11 +146,21 @@ function handleSelect(item) {
 .picker-modal {
   position: absolute;
   inset: 0;
+  background: #F4F5F7;
+  color: #18181B;
+  z-index: 90;
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-primary, #000000);
-  z-index: 70;
   overflow: hidden;
+  user-select: none;
+}
+
+.picker-content-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: calc(var(--safe-top, 44px) + 54px);
 }
 
 .picker-nav {
@@ -167,7 +172,8 @@ function handleSelect(item) {
   padding-left: 8px;
   padding-right: 8px;
   flex: none;
-  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: #F4F5F7;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   box-sizing: border-box;
 }
 
@@ -179,7 +185,7 @@ function handleSelect(item) {
   justify-content: center;
   border: none;
   background: transparent;
-  color: var(--color-text-primary, #FFFFFF);
+  color: #18181B;
   border-radius: 50%;
   cursor: pointer;
 }
@@ -187,7 +193,7 @@ function handleSelect(item) {
 .nav-title {
   font-size: 17px;
   font-weight: 600;
-  color: var(--color-text-primary, #FFFFFF);
+  color: #18181B;
 }
 
 .nav-placeholder {
@@ -195,26 +201,27 @@ function handleSelect(item) {
 }
 
 .search-bar-wrap {
-  padding: 10px 16px;
-  flex: none;
+  padding: 12px 16px 8px;
+  background: #F4F5F7;
 }
 
 .search-bar-inner {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
-  border-radius: 12px;
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
   padding: 0 12px;
   height: 40px;
   gap: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
 }
 
 .picker-search-input {
   flex: 1;
   border: none;
   background: transparent;
-  color: var(--color-text-primary, #FFFFFF);
+  color: #18181B;
   font-size: 14px;
   outline: none;
 }
@@ -225,8 +232,8 @@ function handleSelect(item) {
 
 .clear-search-btn {
   border: none;
-  background: rgba(255, 255, 255, 0.15);
-  color: #FFFFFF;
+  background: rgba(0, 0, 0, 0.08);
+  color: #71717A;
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -249,33 +256,34 @@ function handleSelect(item) {
 .category-title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-secondary, #8E8E93);
+  color: #71717A;
   margin-bottom: 8px;
   padding: 0 4px;
 }
 
 .category-card {
-  background: var(--color-card-bg, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  border-radius: 16px;
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 18px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .picker-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 13px 16px;
+  padding: 14px 16px;
   cursor: pointer;
   transition: background 0.15s ease;
 }
 
 .picker-row:active {
-  background: rgba(255, 255, 255, 0.08);
+  background: #FAFAFA;
 }
 
 .picker-row.border-bottom {
-  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .picker-row-info {
@@ -285,18 +293,18 @@ function handleSelect(item) {
 
 .picker-row-title {
   font-size: 15px;
-  font-weight: 500;
-  color: var(--color-text-primary, #FFFFFF);
+  font-weight: 600;
+  color: #18181B;
   margin-bottom: 2px;
 }
 
 .picker-row-desc {
   font-size: 12px;
-  color: var(--color-text-secondary, #8E8E93);
+  color: #71717A;
 }
 
 .picker-row-action {
-  color: #3B82F6;
+  color: #A1A1AA;
   flex: none;
   margin-left: 10px;
 }

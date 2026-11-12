@@ -5,6 +5,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { setActivePinia, createPinia } from 'pinia'
 import { useModesAndRoutinesStore } from '../src/stores/modesAndRoutinesStore.js'
+import { ACTION_CATEGORIES } from '../src/components/apps/settings/modes/actionsCatalogData.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -101,11 +102,21 @@ test('设计铁律合规：严禁左侧加粗竖线边框 (border-left)', () => 
     'src/components/apps/settings/modes/RoutinesTab.vue',
     'src/components/apps/settings/modes/DiscoverTab.vue',
     'src/components/apps/settings/modes/ModeDetailView.vue',
+    'src/components/apps/settings/modes/ModePresetWizard.vue',
     'src/components/apps/settings/modes/RoutineDetailView.vue',
     'src/components/apps/settings/modes/AddCustomModeModal.vue',
     'src/components/apps/settings/modes/RoutineConditionPicker.vue',
     'src/components/apps/settings/modes/RoutineActionPicker.vue',
-    'src/components/apps/settings/modes/HistoryModal.vue'
+    'src/components/apps/settings/modes/HistoryModal.vue',
+    'src/components/apps/settings/modes/ModeStayFocusedPage.vue',
+    'src/components/apps/settings/modes/ModeDndSubpage.vue',
+    'src/components/apps/settings/modes/ModeAppLimitsSubpage.vue',
+    'src/components/apps/settings/modes/ModeAutoTurnOnPage.vue',
+    'src/components/apps/settings/modes/ModeConditionCategoriesPage.vue',
+    'src/components/apps/settings/modes/ModeOtherActionsPage.vue',
+    'src/components/apps/settings/modes/ModeActionCategoriesPage.vue',
+    'src/components/apps/settings/modes/ModeActionListPage.vue',
+    'src/components/apps/settings/modes/SheetOptionPicker.vue'
   ]
 
   componentFiles.forEach((fileRel) => {
@@ -115,6 +126,62 @@ test('设计铁律合规：严禁左侧加粗竖线边框 (border-left)', () => 
     assert.doesNotMatch(content, /border-left\s*:\s*[2-9]px/i, `${fileRel} 严禁包含加粗竖线边框`)
     assert.doesNotMatch(content, /border-left\s*:\s*solid/i, `${fileRel} 严禁包含竖线边框`)
   })
+})
+
+test('标题栏规范：统一采用 GlassNavBar 悬浮控件', () => {
+  const glassNavFiles = [
+    'src/components/apps/settings/SettingsModes.vue',
+    'src/components/apps/settings/modes/ModeDetailView.vue',
+    'src/components/apps/settings/modes/ModePresetWizard.vue',
+    'src/components/apps/settings/modes/AddCustomModeModal.vue',
+    'src/components/apps/settings/modes/HistoryModal.vue',
+    'src/components/apps/settings/modes/RoutineDetailView.vue',
+    'src/components/apps/settings/modes/RoutineConditionPicker.vue',
+    'src/components/apps/settings/modes/RoutineActionPicker.vue',
+    'src/components/apps/settings/modes/ModeStayFocusedPage.vue',
+    'src/components/apps/settings/modes/ModeDndSubpage.vue',
+    'src/components/apps/settings/modes/ModeAppLimitsSubpage.vue',
+    'src/components/apps/settings/modes/ModeAutoTurnOnPage.vue',
+    'src/components/apps/settings/modes/ModeConditionCategoriesPage.vue',
+    'src/components/apps/settings/modes/ModeOtherActionsPage.vue',
+    'src/components/apps/settings/modes/ModeActionCategoriesPage.vue',
+    'src/components/apps/settings/modes/ModeActionListPage.vue'
+  ]
+
+  glassNavFiles.forEach((fileRel) => {
+    const fullPath = path.resolve(ROOT, fileRel)
+    const content = fs.readFileSync(fullPath, 'utf8')
+    assert.match(content, /GlassNavBar/, `${fileRel} 必须采用 GlassNavBar`)
+  })
+})
+
+test('SettingsModes.vue: 互斥视图状态机杜绝主界面与子界面重叠穿透', () => {
+  const modesPath = path.resolve(ROOT, 'src/components/apps/settings/SettingsModes.vue')
+  const content = fs.readFileSync(modesPath, 'utf8')
+  assert.match(content, /hasActiveSubpage/, '必须包含 hasActiveSubpage 计算属性')
+  assert.match(content, /v-if="!hasActiveSubpage"/, '主界面必须受 hasActiveSubpage 控制，激活子页时严禁渲染主页')
+})
+
+test('全量动作库：11 大系统分类与几十项子菜单参数选项齐全', () => {
+  assert.equal(ACTION_CATEGORIES.length, 11, '必须包含 11 个系统分类')
+  const catNames = ACTION_CATEGORIES.map((c) => c.name)
+  const expectedCats = [
+    '显示', '声音和振动', '连接', '通知', '壁纸',
+    '锁定屏幕和息屏提醒', '电池', '位置', '账号与备份', '智能管理器', '功能与日常'
+  ]
+  expectedCats.forEach((name) => {
+    assert.ok(catNames.includes(name), `必须包含分类：${name}`)
+  })
+
+  // 验证各分类下的具体动作与选项
+  const displayCat = ACTION_CATEGORIES.find((c) => c.name === '显示')
+  assert.ok(displayCat.items.length >= 7, '显示分类动作应不少于 7 个')
+  const autoScreenOff = displayCat.items.find((item) => item.title === '自动息屏')
+  assert.ok(autoScreenOff, '必须包含 自动息屏 动作')
+  assert.ok(autoScreenOff.options.includes('10 分钟'), '自动息屏选项应包含 10 分钟')
+
+  const soundCat = ACTION_CATEGORIES.find((c) => c.name === '声音和振动')
+  assert.ok(soundCat.items.some((i) => i.title === '声音模式和音量'))
 })
 
 test('SettingsApp.vue: 模式和日常程序入口严格布局在 Infinix AI 下方', () => {

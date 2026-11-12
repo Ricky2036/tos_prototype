@@ -2,6 +2,12 @@
 import { computed, ref } from 'vue'
 import { useModesAndRoutinesStore } from '../../../../stores/modesAndRoutinesStore.js'
 import { getIconPath } from './modeIcons.js'
+import GlassNavBar from '../../../ui/GlassNavBar.vue'
+import ModeAutoTurnOnPage from './ModeAutoTurnOnPage.vue'
+import ModeStayFocusedPage from './ModeStayFocusedPage.vue'
+import ModeOtherActionsPage from './ModeOtherActionsPage.vue'
+import ModeDurationModal from './ModeDurationModal.vue'
+import ModeDeleteConfirmModal from './ModeDeleteConfirmModal.vue'
 
 const props = defineProps({
   modeId: {
@@ -22,7 +28,22 @@ const isActive = computed(() => {
   return store.activeModeId === props.modeId
 })
 
+const isScrolled = ref(false)
+function onScroll(e) {
+  isScrolled.value = e.target.scrollTop > 40
+}
+
 const showMoreMenu = ref(false)
+const showAutoTurnOnPage = ref(false)
+const showStayFocusedPage = ref(false)
+const showOtherActionsPage = ref(false)
+const showDurationModal = ref(false)
+const showDeleteConfirm = ref(false)
+const showSleepCue = ref(props.modeId === 'sleep')
+
+const hasActiveSubpage = computed(() =>
+  showAutoTurnOnPage.value || showStayFocusedPage.value || showOtherActionsPage.value
+)
 
 function handleToggleActive() {
   store.toggleMode(props.modeId)
@@ -33,184 +54,293 @@ function handleToggleActive() {
   }
 }
 
-function handleDndToggle() {
-  if (currentMode.value.dnd) {
-    currentMode.value.dnd.enabled = !currentMode.value.dnd.enabled
-    emit('show-toast', currentMode.value.dnd.enabled ? '已启用免打扰' : '已关闭免打扰')
-  }
+function handleSaveCondition(cond) {
+  showAutoTurnOnPage.value = false
+  store.updateMode(props.modeId, { condition: cond })
+  emit('show-toast', cond ? '已设置自动开启条件' : '已清除自动开启条件')
 }
 
-function handleSettingToggle(setting) {
-  setting.enabled = !setting.enabled
-  emit('show-toast', `${setting.label}已${setting.enabled ? '开启' : '关闭'}`)
+function handleSaveStayFocused(data) {
+  showStayFocusedPage.value = false
+  store.updateMode(props.modeId, { dnd: data.dnd, appLimits: data.appLimits })
+  emit('show-toast', data.dnd?.enabled ? '已启用免打扰' : '已更新保持专注')
 }
 
-function handleDeleteCustom() {
-  showMoreMenu.value = false
+function handleSaveOtherActions(actions) {
+  showOtherActionsPage.value = false
+  store.updateMode(props.modeId, { settingsChanges: actions })
+  emit('show-toast', '已更新其他动作')
+}
+
+function handleSelectDuration(dur) {
+  showDurationModal.value = false
+  store.updateMode(props.modeId, { duration: dur })
+  emit('show-toast', `持续时间已设为：${dur}`)
+}
+
+function handleConfirmDelete() {
+  showDeleteConfirm.value = false
+  store.deleteMode(props.modeId)
   emit('delete-mode', props.modeId)
 }
 </script>
 
 <template>
-  <div class="mode-detail-page">
-    <!-- 顶部导航栏 -->
-    <div class="detail-nav-bar">
-      <button class="nav-btn" @click="emit('back')">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m15 18-6-6 6-6"/>
-        </svg>
-      </button>
+  <div class="mode-detail-page" @click="showMoreMenu = false">
+    <!-- 主详情视图（当没有全屏二级子页时渲染） -->
+    <template v-if="!hasActiveSubpage">
+      <GlassNavBar
+        overlay
+        :title="isScrolled ? currentMode.name : ''"
+        @back="emit('back')"
+      >
+        <template #right>
+          <button
+            class="mode-more-btn nav-round-btn"
+            title="更多选项"
+            @click.stop="showMoreMenu = !showMoreMenu"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="1"/>
+              <circle cx="12" cy="5" r="1"/>
+              <circle cx="12" cy="19" r="1"/>
+            </svg>
+          </button>
+        </template>
+      </GlassNavBar>
 
-      <div class="nav-title">{{ currentMode.name }}</div>
-
-      <div class="nav-actions">
-        <button
-          v-if="currentMode.isCustom"
-          class="nav-btn"
-          @click="showMoreMenu = !showMoreMenu"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="1"/>
-            <circle cx="12" cy="5" r="1"/>
-            <circle cx="12" cy="19" r="1"/>
-          </svg>
-        </button>
-        <div v-else class="nav-placeholder"></div>
-      </div>
-
-      <!-- 弹出菜单 -->
+      <!-- 更多选项弹出菜单 -->
       <div v-if="showMoreMenu" class="more-menu-popover" @click.stop>
-        <div class="more-menu-item text-danger" @click="handleDeleteCustom">
-          删除模式
+        <div class="more-menu-item" @click="showDurationModal = true; showMoreMenu = false">
+          持续时间
         </div>
-      </div>
-    </div>
-
-    <!-- 滚动主体内容 -->
-    <div class="detail-body-scrollable" @click="showMoreMenu = false">
-      <!-- 头部大图与状态动作 -->
-      <div class="hero-section">
-        <div
-          class="hero-icon-badge"
-          :style="{ backgroundColor: currentMode.color }"
-        >
-          <svg
-            width="36"
-            height="36"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#FFFFFF"
-            stroke-width="2.2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path :d="getIconPath(currentMode.iconKey)" />
-          </svg>
-        </div>
-
-        <h1 class="hero-title">{{ currentMode.name }}</h1>
-        <p class="hero-desc">{{ currentMode.description }}</p>
-
-        <!-- 主控开启/关闭胶囊按钮 -->
-        <button
-          class="hero-action-btn"
-          :class="{ 'is-active': isActive }"
-          @click="handleToggleActive"
-        >
-          {{ isActive ? '关闭' : '启用' }}
-        </button>
-      </div>
-
-      <!-- 分组 1: 自动开启 -->
-      <div class="detail-group">
-        <div class="group-header">自动开启</div>
-        <div class="group-card">
-          <div class="cell-row" @click="emit('show-toast', '可调整触发条件与定时安排')">
-            <div class="cell-main">
-              <div class="cell-title">{{ currentMode.condition?.title || '开启时机' }}</div>
-              <div class="cell-sub">{{ currentMode.condition?.value || '未设置' }}</div>
-            </div>
-            <div class="cell-chevron">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m9 18 6-6-6-6"/>
-              </svg>
-            </div>
-          </div>
+        <div class="more-menu-item text-danger" @click="showDeleteConfirm = true; showMoreMenu = false">
+          删除
         </div>
       </div>
 
-      <!-- 分组 2: 保持专注 (免打扰) -->
-      <div class="detail-group">
-        <div class="group-header">保持专注</div>
-        <div class="group-card">
-          <div class="cell-row">
-            <div class="cell-main">
-              <div class="cell-title">免打扰</div>
-              <div class="cell-sub">
-                {{ currentMode.dnd?.enabled ? `允许来自 ${currentMode.dnd?.allowedContacts || '所有人'} 的提醒` : '未开启' }}
-              </div>
-            </div>
-            <button
-              class="mini-toggle-pill"
-              :class="{ 'is-on': currentMode.dnd?.enabled }"
-              @click="handleDndToggle"
-            >
-              {{ currentMode.dnd?.enabled ? '开' : '关' }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 分组 3: 更改设置 -->
-      <div class="detail-group">
-        <div class="group-header">更改设置</div>
-        <div class="group-card">
+      <!-- 滚动主体内容 -->
+      <div class="detail-body-scrollable" @scroll="onScroll">
+        <!-- 头部大图标与状态动作 -->
+        <div class="hero-section">
           <div
-            v-for="(setting, index) in currentMode.settingsChanges"
-            :key="setting.key"
-            class="cell-row"
-            :class="{ 'border-bottom': index !== currentMode.settingsChanges.length - 1 }"
+            class="hero-icon-badge"
+            :style="{ backgroundColor: currentMode.color || '#1B64DA' }"
           >
-            <div class="cell-main">
-              <div class="cell-title">{{ setting.label }}</div>
-              <div class="cell-sub">{{ setting.value }}</div>
-            </div>
-            <button
-              class="mini-toggle-pill"
-              :class="{ 'is-on': setting.enabled }"
-              @click="handleSettingToggle(setting)"
+            <svg
+              width="36"
+              height="36"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#FFFFFF"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
             >
-              {{ setting.enabled ? '开' : '关' }}
+              <path :d="getIconPath(currentMode.iconKey)" />
+            </svg>
+          </div>
+
+          <h1 class="hero-title">{{ currentMode.name }}</h1>
+          <p v-if="isActive" class="hero-active-subtitle">
+            直到您将其关闭
+          </p>
+          <p v-else-if="currentMode.description" class="hero-desc">
+            {{ currentMode.description }}
+          </p>
+
+          <!-- 主控开启/关闭胶囊按钮 -->
+          <button
+            class="hero-action-btn"
+            :class="{ 'is-active': isActive }"
+            @click="handleToggleActive"
+          >
+            {{ isActive ? '关闭' : '启用' }}
+          </button>
+        </div>
+
+        <!-- 睡眠模式专属简易提示卡片 -->
+        <div v-if="showSleepCue" class="cue-card">
+          <div class="cue-body">
+            使用简单的设置，了解睡眠模式的更多操作。
+          </div>
+          <div class="cue-actions">
+            <button class="cue-btn cue-btn-ghost" @click="showSleepCue = false">
+              现在不要
             </button>
+            <button class="cue-btn cue-btn-primary" @click="showAutoTurnOnPage = true; showSleepCue = false">
+              设置
+            </button>
+          </div>
+        </div>
+
+        <!-- 分组 0: 手动开启 -->
+        <div class="detail-group">
+          <div class="group-header">手动开启</div>
+          <div class="group-card">
+            <div class="cell-row" @click="showDurationModal = true">
+              <div class="cell-main">
+                <div class="cell-title">持续时间</div>
+                <div class="cell-sub">{{ currentMode.duration || '直至您将其关闭' }}</div>
+              </div>
+              <div class="cell-chevron">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m9 18 6-6-6-6"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分组 1: 自动开启 -->
+        <div class="detail-group">
+          <div class="group-card">
+            <div class="cell-row" @click="showAutoTurnOnPage = true">
+              <div class="cell-main">
+                <div class="cell-title">自动开启</div>
+                <template v-if="currentMode.condition">
+                  <div class="cell-sub">
+                    {{ currentMode.condition.title }}: {{ currentMode.condition.value }}
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="cell-sub empty-hint">
+                    + 何时启动此模式
+                  </div>
+                </template>
+              </div>
+              <div class="cell-chevron">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m9 18 6-6-6-6"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分组 2: 选择此模式的功能 (保持专注) -->
+        <div class="detail-group">
+          <div class="group-header">选择此模式的功能</div>
+          <div class="group-card">
+            <div class="cell-row" @click="showStayFocusedPage = true">
+              <div class="cell-main">
+                <div class="cell-title">保持专注</div>
+                <div v-if="currentMode.dnd?.enabled" class="cell-sub highlight-sub">
+                  — 免打扰: 开 (允许: {{ currentMode.dnd.allowedContacts || '无人' }})
+                </div>
+                <div v-else-if="currentMode.appLimits?.enabled" class="cell-sub highlight-sub">
+                  — 限制应用程序使用: 已启用
+                </div>
+                <div v-else class="cell-sub empty-hint">
+                  + 避免干扰的方法
+                </div>
+              </div>
+              <div class="cell-chevron">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m9 18 6-6-6-6"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分组 3: 更改外观 -->
+        <div class="detail-group">
+          <div class="group-header">更改外观</div>
+          <div class="wallpaper-preview-grid">
+            <div class="wallpaper-preview-card" @click="emit('show-toast', '已关联锁定屏幕外观')">
+              <div class="wallpaper-mock lockscreen-mock">
+                <div class="mock-clock">12:00</div>
+                <div class="mock-dock-bar"></div>
+              </div>
+              <div class="wallpaper-card-label">锁定屏幕</div>
+            </div>
+            <div class="wallpaper-preview-card" @click="emit('show-toast', '已关联主屏幕外观')">
+              <div class="wallpaper-mock homescreen-mock">
+                <div class="mock-grid">
+                  <span class="mock-dot"></span>
+                  <span class="mock-dot"></span>
+                  <span class="mock-dot"></span>
+                  <span class="mock-dot"></span>
+                </div>
+              </div>
+              <div class="wallpaper-card-label">主屏幕</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分组 4: 其他动作 -->
+        <div class="detail-group">
+          <div class="group-card">
+            <div class="cell-row" @click="showOtherActionsPage = true">
+              <div class="cell-main">
+                <div class="cell-title">其他动作</div>
+                <div v-if="currentMode.settingsChanges && currentMode.settingsChanges.length > 0" class="actions-summary-col">
+                  <div
+                    v-for="act in currentMode.settingsChanges"
+                    :key="act.key"
+                    class="action-summary-row"
+                  >
+                    <span class="action-summary-label">{{ act.label }}</span>
+                    <span class="action-summary-val">{{ act.value }}</span>
+                  </div>
+                </div>
+                <div v-else class="cell-sub empty-hint">
+                  + 此模式的更多操作
+                </div>
+              </div>
+              <div class="cell-chevron">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m9 18 6-6-6-6"/>
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- 分组 4: 外观 (壁纸联动) -->
-      <div class="detail-group">
-        <div class="group-header">外观</div>
-        <div class="wallpaper-preview-grid">
-          <div class="wallpaper-preview-card" @click="emit('show-toast', '已绑定当前锁屏壁纸')">
-            <div class="wallpaper-mock lockscreen-mock">
-              <div class="mock-clock">12:00</div>
-              <div class="mock-dock-bar"></div>
-            </div>
-            <div class="wallpaper-card-label">锁定屏幕</div>
-          </div>
-          <div class="wallpaper-preview-card" @click="emit('show-toast', '已绑定当前主屏幕壁纸')">
-            <div class="wallpaper-mock homescreen-mock">
-              <div class="mock-grid">
-                <span class="mock-dot"></span>
-                <span class="mock-dot"></span>
-                <span class="mock-dot"></span>
-                <span class="mock-dot"></span>
-              </div>
-            </div>
-            <div class="wallpaper-card-label">主屏幕</div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <!-- 持续时间弹窗 -->
+      <ModeDurationModal
+        v-if="showDurationModal"
+        :current-duration="currentMode.duration"
+        @close="showDurationModal = false"
+        @select="handleSelectDuration"
+      />
+
+      <!-- 删除确认弹窗 -->
+      <ModeDeleteConfirmModal
+        v-if="showDeleteConfirm"
+        :mode-name="currentMode.name"
+        @close="showDeleteConfirm = false"
+        @confirm="handleConfirmDelete"
+      />
+    </template>
+
+    <!-- 全屏二级子页：自动开启 -->
+    <ModeAutoTurnOnPage
+      v-if="showAutoTurnOnPage"
+      :mode="currentMode"
+      @back="showAutoTurnOnPage = false"
+      @save="handleSaveCondition"
+      @show-toast="emit('show-toast', $event)"
+    />
+
+    <!-- 全屏二级子页：保持专注 -->
+    <ModeStayFocusedPage
+      v-if="showStayFocusedPage"
+      :initial-dnd="currentMode.dnd"
+      :initial-app-limits="currentMode.appLimits"
+      @back="showStayFocusedPage = false"
+      @save="handleSaveStayFocused"
+    />
+
+    <!-- 全屏二级子页：其他动作 -->
+    <ModeOtherActionsPage
+      v-if="showOtherActionsPage"
+      :initial-actions="currentMode.settingsChanges"
+      @back="showOtherActionsPage = false"
+      @save="handleSaveOtherActions"
+    />
   </div>
 </template>
 
@@ -220,104 +350,74 @@ function handleDeleteCustom() {
   inset: 0;
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-primary, #000000);
+  background: #F4F5F7;
+  color: #18181B;
   z-index: 50;
   overflow: hidden;
+  user-select: none;
 }
 
-/* 顶部导航条 */
-.detail-nav-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: var(--safe-top, 44px);
-  height: calc(var(--safe-top, 44px) + 52px);
-  padding-left: 8px;
-  padding-right: 8px;
-  flex: none;
-  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  position: relative;
-  box-sizing: border-box;
-}
-
-.nav-btn {
-  width: 40px;
-  height: 40px;
+.nav-round-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #18181B;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  background: transparent;
-  color: var(--color-text-primary, #FFFFFF);
-  border-radius: 50%;
   cursor: pointer;
 }
 
-.nav-btn:active {
-  background: rgba(255, 255, 255, 0.08);
+.nav-round-btn:active {
+  background: rgba(0, 0, 0, 0.05);
 }
 
-.nav-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--color-text-primary, #FFFFFF);
-}
-
-.nav-actions {
-  width: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nav-placeholder {
-  width: 40px;
-}
-
-/* 更多菜单 */
 .more-menu-popover {
   position: absolute;
-  top: 48px;
-  right: 12px;
-  background: #1C1C1E;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
+  top: calc(var(--safe-top, 44px) + 48px);
+  right: 14px;
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
   padding: 6px;
-  min-width: 120px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  z-index: 100;
+  min-width: 140px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.1);
+  z-index: 80;
 }
 
 .more-menu-item {
   padding: 10px 14px;
-  font-size: 14px;
-  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #18181B;
+  border-radius: 10px;
   cursor: pointer;
   transition: background 0.15s ease;
 }
 
 .more-menu-item:active {
-  background: rgba(255, 255, 255, 0.08);
+  background: #F4F5F7;
 }
 
-.text-danger {
+.more-menu-item.text-danger {
   color: #EF4444;
 }
 
-/* 滚动区 */
 .detail-body-scrollable {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 16px 80px;
+  padding: calc(var(--safe-top, 44px) + 54px) 16px calc(var(--home-indicator-inset, 14px) + 40px);
 }
 
-/* Hero 头部 */
+/* 顶部英雄区 */
 .hero-section {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin-bottom: 28px;
+  padding: 16px 20px 24px;
 }
 
 .hero-icon-badge {
@@ -328,36 +428,42 @@ function handleDeleteCustom() {
   align-items: center;
   justify-content: center;
   margin-bottom: 14px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .hero-title {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
-  color: var(--color-text-primary, #FFFFFF);
-  margin-bottom: 6px;
+  color: #18181B;
+  margin: 0 0 6px;
 }
 
 .hero-desc {
   font-size: 14px;
+  color: #71717A;
+  margin: 0 0 18px;
+  max-width: 320px;
   line-height: 1.45;
-  color: var(--color-text-secondary, #8E8E93);
-  max-width: 280px;
-  margin-bottom: 18px;
 }
 
-/* 主操作按钮 */
+.hero-active-subtitle {
+  font-size: 14px;
+  color: #1B64DA;
+  font-weight: 600;
+  margin: 0 0 18px;
+}
+
 .hero-action-btn {
-  min-width: 120px;
-  padding: 9px 28px;
+  padding: 10px 32px;
   border-radius: 9999px;
   font-size: 15px;
   font-weight: 600;
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.15));
-  background: rgba(255, 255, 255, 0.12);
-  color: #FFFFFF;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: none;
+  background: #1B64DA;
+  color: #FFFFFF;
+  box-shadow: 0 4px 16px rgba(27, 100, 218, 0.25);
+  transition: transform 0.15s ease, background 0.15s ease;
 }
 
 .hero-action-btn:active {
@@ -365,29 +471,69 @@ function handleDeleteCustom() {
 }
 
 .hero-action-btn.is-active {
-  background: #2563EB;
-  border-color: #2563EB;
-  color: #FFFFFF;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+  background: #E4E4E7;
+  color: #18181B;
+  box-shadow: none;
 }
 
-/* 分组样式：纯四边边框 */
-.detail-group {
+/* 睡眠专属卡片 */
+.cue-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 16px 18px;
   margin-bottom: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.cue-body {
+  font-size: 14px;
+  color: #18181B;
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+
+.cue-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cue-btn {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.cue-btn-ghost {
+  color: #71717A;
+}
+
+.cue-btn-primary {
+  color: #1B64DA;
+}
+
+/* 详情分组卡片 */
+.detail-group {
+  margin-bottom: 18px;
 }
 
 .group-header {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-primary, #FFFFFF);
-  margin-bottom: 8px;
-  padding: 0 4px;
+  color: #71717A;
+  margin: 0 4px 8px 4px;
 }
 
 .group-card {
-  background: var(--color-card-bg, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  border-radius: 16px;
+  background: #FFFFFF;
+  border-radius: 24px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
   overflow: hidden;
 }
 
@@ -395,17 +541,14 @@ function handleDeleteCustom() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 16px 18px;
   cursor: pointer;
-  transition: background 0.15s ease;
+  background: #FFFFFF;
+  transition: background-color 0.15s ease;
 }
 
 .cell-row:active {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.cell-row.border-bottom {
-  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+  background-color: #F8F9FA;
 }
 
 .cell-main {
@@ -414,43 +557,33 @@ function handleDeleteCustom() {
 }
 
 .cell-title {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--color-text-primary, #FFFFFF);
+  font-size: 16px;
+  font-weight: 600;
+  color: #18181B;
   margin-bottom: 2px;
 }
 
 .cell-sub {
-  font-size: 13px;
-  color: var(--color-text-secondary, #8E8E93);
+  font-size: 14px;
+  color: #71717A;
+}
+
+.cell-sub.highlight-sub {
+  color: #1B64DA;
+  font-weight: 500;
+}
+
+.cell-sub.empty-hint {
+  color: #71717A;
 }
 
 .cell-chevron {
-  color: var(--color-text-tertiary, #636366);
   display: flex;
   align-items: center;
+  color: #A1A1AA;
 }
 
-/* 紧凑开关药丸 */
-.mini-toggle-pill {
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--color-text-secondary, #8E8E93);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 9999px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.mini-toggle-pill.is-on {
-  background: #2563EB;
-  border-color: #2563EB;
-  color: #FFFFFF;
-}
-
-/* 壁纸联动网格 */
+/* 外观预览卡片 */
 .wallpaper-preview-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -458,59 +591,89 @@ function handleDeleteCustom() {
 }
 
 .wallpaper-preview-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 14px 12px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: var(--color-card-bg, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  border-radius: 16px;
-  padding: 14px 10px 10px;
   cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  transition: transform 0.15s ease;
+}
+
+.wallpaper-preview-card:active {
+  transform: scale(0.97);
 }
 
 .wallpaper-mock {
-  width: 80px;
-  height: 140px;
+  width: 90px;
+  height: 150px;
   border-radius: 12px;
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, #CBD5E1 0%, #94A3B8 100%);
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: space-between;
-  padding: 12px 6px;
-  margin-bottom: 8px;
+  align-items: center;
+  padding: 10px 6px;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 .mock-clock {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.85);
+  color: #FFFFFF;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .mock-dock-bar {
-  width: 40px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.4);
+  width: 50px;
+  height: 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .mock-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
-  margin-top: 10px;
+  gap: 8px;
+  margin-top: 30px;
 }
 
 .mock-dot {
   width: 14px;
   height: 14px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .wallpaper-card-label {
   font-size: 13px;
-  color: var(--color-text-secondary, #8E8E93);
+  font-weight: 600;
+  color: #18181B;
+}
+
+.actions-summary-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.action-summary-row {
+  display: flex;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.action-summary-label {
+  font-weight: 600;
+  color: #18181B;
+}
+
+.action-summary-val {
+  color: #1B64DA;
 }
 </style>

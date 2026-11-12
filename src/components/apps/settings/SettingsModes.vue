@@ -1,10 +1,12 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useModesAndRoutinesStore } from '../../../stores/modesAndRoutinesStore.js'
+import GlassNavBar from '../../ui/GlassNavBar.vue'
 import ModesTab from './modes/ModesTab.vue'
 import RoutinesTab from './modes/RoutinesTab.vue'
 import DiscoverTab from './modes/DiscoverTab.vue'
 import ModeDetailView from './modes/ModeDetailView.vue'
+import ModePresetWizard from './modes/ModePresetWizard.vue'
 import RoutineDetailView from './modes/RoutineDetailView.vue'
 import AddCustomModeModal from './modes/AddCustomModeModal.vue'
 import HistoryModal from './modes/HistoryModal.vue'
@@ -16,6 +18,7 @@ const store = useModesAndRoutinesStore()
 // 视图层级状态
 const activeTab = ref('modes') // 'modes' | 'routines' | 'discover'
 const selectedModeId = ref(null)
+const selectedPresetWizardMode = ref(null)
 const selectedRoutine = ref(null)
 const routineInitialEdit = ref(false)
 const showAddModeModal = ref(false)
@@ -25,6 +28,17 @@ const isSearching = ref(false)
 const searchQuery = ref('')
 const toastMessage = ref('')
 let toastTimer = null
+
+// 判断是否存在任何处于激活状态的全屏子视图
+const hasActiveSubpage = computed(() =>
+  Boolean(
+    selectedPresetWizardMode.value ||
+    selectedModeId.value ||
+    selectedRoutine.value ||
+    showAddModeModal.value ||
+    showHistoryModal.value
+  )
+)
 
 // 滚动折叠标题状态
 const isScrolled = ref(false)
@@ -46,6 +60,21 @@ function handleTabChange(tab) {
   activeTab.value = tab
   isSearching.value = false
   searchQuery.value = ''
+}
+
+// 打开预设向导
+function openPresetWizard(mode) {
+  selectedPresetWizardMode.value = mode
+}
+
+// 预设向导点击开始后进入详情
+function handlePresetWizardStart(optId) {
+  if (selectedPresetWizardMode.value) {
+    const modeId = selectedPresetWizardMode.value.id
+    store.configureModeWithPreset(modeId, optId)
+    selectedPresetWizardMode.value = null
+    selectedModeId.value = modeId
+  }
 }
 
 // 打开模式详情
@@ -98,9 +127,8 @@ function selectTemplate(template) {
   routineInitialEdit.value = false
 }
 
-// 删除自定义模式
+// 删除模式
 function handleDeleteMode(modeId) {
-  store.deleteCustomMode(modeId)
   selectedModeId.value = null
   showToast('模式已删除')
 }
@@ -151,61 +179,58 @@ function handleSearchResultClick(item) {
 
 <template>
   <div class="modes-routines-container">
-    <!-- 主界面（当没有子级全屏展开时） -->
-    <div class="main-page-wrapper" @click="showMoreMenu = false">
-      <!-- 顶部吸顶导航栏 -->
-      <div class="sticky-nav-bar" :class="{ 'is-scrolled': isScrolled || activeTab !== 'modes' }">
-        <button class="nav-icon-btn" @click="emit('back')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m15 18-6-6 6-6"/>
-          </svg>
-        </button>
+    <!-- 主界面（当没有子级全屏展开时渲染，杜绝背景穿透） -->
+    <div v-if="!hasActiveSubpage" class="main-page-wrapper" @click="showMoreMenu = false">
+      <!-- 统一玻璃悬浮导航条 -->
+      <GlassNavBar
+        overlay
+        :title="isScrolled || activeTab !== 'modes' ? '模式和日常程序' : ''"
+        @back="emit('back')"
+      >
+        <template #right>
+          <div class="nav-right-actions">
+            <!-- 日常程序 Tab 专属快捷创建按钮 -->
+            <button
+              v-if="activeTab === 'routines'"
+              class="nav-icon-btn"
+              title="添加日常程序"
+              @click="createNewRoutine"
+            >
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+            </button>
 
-        <div class="nav-center-title" :class="{ 'title-visible': isScrolled || activeTab !== 'modes' }">
-          模式和日常程序
+            <!-- 搜索按钮 -->
+            <button class="nav-icon-btn" title="搜索" @click="isSearching = true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </button>
+
+            <!-- 更多选项按钮 -->
+            <button class="nav-icon-btn" title="更多选项" @click.stop="showMoreMenu = !showMoreMenu">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="1"/>
+                <circle cx="12" cy="5" r="1"/>
+                <circle cx="12" cy="19" r="1"/>
+              </svg>
+            </button>
+          </div>
+        </template>
+      </GlassNavBar>
+
+      <!-- 溢出菜单浮层 -->
+      <div v-if="showMoreMenu" class="more-menu-dropdown" @click.stop>
+        <div class="menu-item" @click="showToast('已进入编辑排序模式'); showMoreMenu = false">
+          编辑
         </div>
-
-        <div class="nav-right-actions">
-          <!-- 日常程序 Tab 专属快捷创建按钮 -->
-          <button
-            v-if="activeTab === 'routines'"
-            class="nav-icon-btn"
-            @click="createNewRoutine"
-          >
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-          </button>
-
-          <!-- 搜索按钮 -->
-          <button class="nav-icon-btn" @click="isSearching = true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          </button>
-
-          <!-- 更多选项按钮 -->
-          <button class="nav-icon-btn" @click.stop="showMoreMenu = !showMoreMenu">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="1"/>
-              <circle cx="12" cy="5" r="1"/>
-              <circle cx="12" cy="19" r="1"/>
-            </svg>
-          </button>
+        <div class="menu-item" @click="showHistoryModal = true; showMoreMenu = false">
+          历史记录
         </div>
-
-        <!-- 溢出菜单浮层 -->
-        <div v-if="showMoreMenu" class="more-menu-dropdown" @click.stop>
-          <div class="menu-item" @click="showToast('已进入编辑排序模式'); showMoreMenu = false">
-            选择
-          </div>
-          <div class="menu-item" @click="showHistoryModal = true; showMoreMenu = false">
-            历史记录
-          </div>
-          <div class="menu-item" @click="showToast('模式与日常程序设置已就绪'); showMoreMenu = false">
-            设置
-          </div>
+        <div class="menu-item" @click="showToast('模式与日常程序设置已就绪'); showMoreMenu = false">
+          设置
         </div>
       </div>
 
@@ -213,7 +238,7 @@ function handleSearchResultClick(item) {
       <div v-if="isSearching" class="search-overlay">
         <div class="search-overlay-header">
           <div class="search-input-box">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#71717A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"/>
               <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
@@ -245,7 +270,7 @@ function handleSearchResultClick(item) {
             class="search-result-item"
             @click="handleSearchResultClick(res)"
           >
-            <div class="result-badge" :style="{ backgroundColor: res.color || '#3B82F6' }"></div>
+            <div class="result-badge" :style="{ backgroundColor: res.color || '#1B64DA' }"></div>
             <div class="result-info">
               <div class="result-title">{{ res.title }}</div>
               <div class="result-sub">{{ res.sub }}</div>
@@ -254,7 +279,7 @@ function handleSearchResultClick(item) {
         </div>
       </div>
 
-      <!-- 滚动容器 -->
+      <!-- 滚动容器：底部留白充足，避免列表内容透出或被底栏截断 -->
       <div class="main-scrollable-content" @scroll="onScroll">
         <!-- 仅在“模式”Tab 下展示大标题折叠区 -->
         <div v-if="activeTab === 'modes'" class="extended-title-container">
@@ -265,6 +290,7 @@ function handleSearchResultClick(item) {
         <ModesTab
           v-if="activeTab === 'modes'"
           @open-mode="openModeDetail"
+          @open-preset-wizard="openPresetWizard"
           @add-mode="showAddModeModal = true"
           @show-toast="showToast"
         />
@@ -282,7 +308,7 @@ function handleSearchResultClick(item) {
         />
       </div>
 
-      <!-- 悬浮三 Tab 导航栏：底边距严格遵循系统 Dock 规范（28px） -->
+      <!-- 悬浮胶囊 Tab 导航栏：浅色半透明磨砂，高 z-index，防透遮罩 -->
       <nav class="floating-dock-bar">
         <div
           class="sliding-pill-indicator"
@@ -322,14 +348,25 @@ function handleSearchResultClick(item) {
           :class="{ active: activeTab === 'discover' }"
           @click="handleTabChange('discover')"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
-          </svg>
+          <div class="dock-tab-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+            </svg>
+            <span class="tab-badge-dot"></span>
+          </div>
           <span class="dock-tab-text">发现</span>
         </button>
       </nav>
     </div>
+
+    <!-- 预设配置向导全屏子页 -->
+    <ModePresetWizard
+      v-if="selectedPresetWizardMode"
+      :mode="selectedPresetWizardMode"
+      @back="selectedPresetWizardMode = null"
+      @start="handlePresetWizardStart"
+    />
 
     <!-- 模式详情子页 -->
     <ModeDetailView
@@ -351,7 +388,7 @@ function handleSearchResultClick(item) {
       @open-share="showToast('已生成日常程序分享卡片')"
     />
 
-    <!-- 添加自定义模式全屏抽屉 -->
+    <!-- 添加模式全屏抽屉 -->
     <AddCustomModeModal
       v-if="showAddModeModal"
       @close="showAddModeModal = false"
@@ -380,8 +417,8 @@ function handleSearchResultClick(item) {
   inset: 0;
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-primary, #000000);
-  color: var(--color-text-primary, #FFFFFF);
+  background: #F4F5F7;
+  color: #18181B;
   overflow: hidden;
   user-select: none;
 }
@@ -394,35 +431,12 @@ function handleSearchResultClick(item) {
   overflow: hidden;
 }
 
-/* 顶部吸顶导航栏 */
-.sticky-nav-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: var(--safe-top, 44px);
-  height: calc(var(--safe-top, 44px) + 52px);
-  padding-left: 8px;
-  padding-right: 8px;
-  flex: none;
-  background: transparent;
-  transition: background 0.2s ease, border-color 0.2s ease;
-  z-index: 20;
-  position: relative;
-  box-sizing: border-box;
-}
-
-.sticky-nav-bar.is-scrolled {
-  background: rgba(18, 18, 20, 0.85);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-}
-
 .nav-icon-btn {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border: none;
   background: transparent;
-  color: var(--color-text-primary, #FFFFFF);
+  color: #18181B;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -432,20 +446,7 @@ function handleSearchResultClick(item) {
 }
 
 .nav-icon-btn:active {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.nav-center-title {
-  font-size: 17px;
-  font-weight: 600;
-  opacity: 0;
-  transform: translateY(4px);
-  transition: all 0.2s ease;
-}
-
-.nav-center-title.title-visible {
-  opacity: 1;
-  transform: translateY(0);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .nav-right-actions {
@@ -457,35 +458,36 @@ function handleSearchResultClick(item) {
 /* 溢出菜单 */
 .more-menu-dropdown {
   position: absolute;
-  top: 50px;
+  top: calc(var(--safe-top, 44px) + 50px);
   right: 12px;
-  background: #1C1C1E;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
   padding: 6px;
-  min-width: 130px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  min-width: 140px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.1);
   z-index: 100;
 }
 
 .menu-item {
-  padding: 10px 14px;
-  font-size: 14px;
-  color: #FFFFFF;
-  border-radius: 8px;
+  padding: 11px 16px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #18181B;
+  border-radius: 10px;
   cursor: pointer;
   transition: background 0.15s ease;
 }
 
 .menu-item:active {
-  background: rgba(255, 255, 255, 0.08);
+  background: #F4F5F7;
 }
 
 /* 搜索浮层 */
 .search-overlay {
   position: absolute;
   inset: 0;
-  background: var(--color-bg-primary, #000000);
+  background: #F4F5F7;
   z-index: 80;
   display: flex;
   flex-direction: column;
@@ -499,7 +501,8 @@ function handleSearchResultClick(item) {
   padding-left: 16px;
   padding-right: 16px;
   gap: 12px;
-  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: #F4F5F7;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   box-sizing: border-box;
 }
 
@@ -507,18 +510,20 @@ function handleSearchResultClick(item) {
   flex: 1;
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
   padding: 0 12px;
-  height: 38px;
+  height: 40px;
   gap: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
 }
 
 .search-inner-input {
   flex: 1;
   border: none;
   background: transparent;
-  color: #FFFFFF;
+  color: #18181B;
   font-size: 14px;
   outline: none;
 }
@@ -529,10 +534,10 @@ function handleSearchResultClick(item) {
 
 .search-clear-btn {
   border: none;
-  background: rgba(255, 255, 255, 0.15);
-  color: #FFFFFF;
-  width: 18px;
-  height: 18px;
+  background: rgba(0, 0, 0, 0.08);
+  color: #71717A;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -543,9 +548,9 @@ function handleSearchResultClick(item) {
 .search-cancel-btn {
   border: none;
   background: transparent;
-  color: #3B82F6;
+  color: #1B64DA;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -558,7 +563,7 @@ function handleSearchResultClick(item) {
 .search-empty {
   padding: 40px 0;
   text-align: center;
-  color: #8E8E93;
+  color: #71717A;
   font-size: 14px;
 }
 
@@ -566,12 +571,13 @@ function handleSearchResultClick(item) {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
-  border-radius: 12px;
+  padding: 14px 16px;
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
   margin-bottom: 8px;
   cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
 }
 
 .result-badge {
@@ -588,14 +594,14 @@ function handleSearchResultClick(item) {
 
 .result-title {
   font-size: 15px;
-  font-weight: 500;
-  color: #FFFFFF;
+  font-weight: 600;
+  color: #18181B;
   margin-bottom: 2px;
 }
 
 .result-sub {
-  font-size: 12px;
-  color: #8E8E93;
+  font-size: 13px;
+  color: #71717A;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -605,7 +611,7 @@ function handleSearchResultClick(item) {
 .main-scrollable-content {
   flex: 1;
   overflow-y: auto;
-  padding-top: 8px;
+  padding-top: calc(var(--safe-top, 44px) + 54px);
 }
 
 /* 大标题折叠区 */
@@ -614,28 +620,28 @@ function handleSearchResultClick(item) {
 }
 
 .extended-title {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
-  color: var(--color-text-primary, #FFFFFF);
+  color: #18181B;
   letter-spacing: -0.3px;
   margin: 0;
 }
 
-/* 底部悬浮三 Tab 停靠栏 */
+/* 底部悬浮三 Tab 停靠栏：浅色半透明高质感胶囊，防透遮罩 */
 .floating-dock-bar {
   position: absolute;
-  bottom: calc(var(--home-indicator-inset, 14px) + 14px);
-  left: 20px;
-  right: 20px;
+  bottom: calc(var(--home-indicator-inset, 14px) + 16px);
+  left: 24px;
+  right: 24px;
   height: 56px;
-  background: rgba(28, 28, 30, 0.88);
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(24px);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 9999px;
   display: flex;
   align-items: center;
   padding: 4px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   z-index: 30;
 }
 
@@ -645,7 +651,7 @@ function handleSearchResultClick(item) {
   bottom: 4px;
   left: 4px;
   width: calc((100% - 8px) / 3);
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.06);
   border-radius: 9999px;
   transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
@@ -656,7 +662,7 @@ function handleSearchResultClick(item) {
   height: 100%;
   border: none;
   background: transparent;
-  color: var(--color-text-secondary, #A1A1AA);
+  color: #71717A;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -669,7 +675,25 @@ function handleSearchResultClick(item) {
 }
 
 .dock-tab-btn.active {
-  color: #FFFFFF;
+  color: #18181B;
+  font-weight: 600;
+}
+
+.dock-tab-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-badge-dot {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #EF4444;
 }
 
 .dock-tab-text {
@@ -683,14 +707,14 @@ function handleSearchResultClick(item) {
   bottom: calc(var(--home-indicator-inset, 14px) + 82px);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(30, 30, 32, 0.95);
+  background: rgba(24, 24, 27, 0.92);
   color: #FFFFFF;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   padding: 8px 18px;
   font-size: 13px;
   font-weight: 500;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
   z-index: 120;
   pointer-events: none;
   white-space: nowrap;
