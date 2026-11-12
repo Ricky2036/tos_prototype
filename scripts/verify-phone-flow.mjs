@@ -391,6 +391,8 @@ try {
 
 console.log(`\n======================================`)
 console.log(`通过: ${pass} / 失败: ${fails.length}`)
+// G7 规范收尾行（parse-suite-checks 依赖此格式）
+console.log(`[phone] ${pass} PASS / ${fails.length} FAIL`)
 if (fails.length > 0) {
   console.log(`失败用例:`)
   for (const f of fails) console.log(`  - ${f}`)

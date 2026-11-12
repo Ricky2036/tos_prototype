@@ -5,10 +5,11 @@ import { fileURLToPath } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const ARTIFACT_DIR = '/Users/jingzhan.chen/.gemini/antigravity/brain/c11570e0-ff2d-4b65-8ded-3a884497164f'
+const ARTIFACT_DIR = process.env.ARTIFACT_DIR || '/tmp/vwork/modes-and-routines'
 const PORT = process.argv[2] || process.env.PORT || '5555'
 
 async function run() {
+  fs.mkdirSync(ARTIFACT_DIR, { recursive: true })
   const browser = await chromium.launch({
     executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     headless: true
@@ -308,6 +309,7 @@ async function run() {
 
   console.log('==================================================')
   console.log('ALL 26 STEPS OF VERIFICATION COMPLETED WITH 100% SUCCESS!')
+  console.log(`[modes-and-routines] 26 PASS / 0 FAIL`)
   console.log('==================================================')
   await browser.close()
 }

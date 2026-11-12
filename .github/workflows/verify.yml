@@ -1,0 +1,45 @@
+name: Verify
+
+# 分层触发（见 docs/tOS-pipeline-1.0.md §10.1）：
+#   push 任意分支 → G3 单测构建 + G7 断言棘轮（< 90s）
+#   全量 e2e 不在这里跑：632s 串行，塞进每次 push 会被超时摘掉，那才是真正的纸面门禁。
+on:
+  push:
+    branches: ['**']
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch:
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04   # 钉死，避免镜像迁移把门禁变成随机变量
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        env:
+          # 与 deploy.yml 一致：本 job 不跑浏览器，省 40–60s
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: npm ci
+
+      - name: G3 · unit tests
+        run: npm test
+
+      - name: G3 · production build
+        run: npm run build
+
+      - name: G7 · assert ratchet
+        run: node scripts/check-assert-ratchet.mjs

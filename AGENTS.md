@@ -1,7 +1,9 @@
 # Multi-Agent Workspace Protocol
 
-This repository is developed concurrently by Workbuddy, Codex, and Antigravity.
+This repository is developed concurrently by Workbuddy, Codex, Antigravity, and DSH.
 Read this file before changing any code.
+
+Execution protocol for all lanes: `docs/tOS-pipeline-1.0.md`.
 
 ## Identify your role
 
@@ -10,9 +12,21 @@ Use the current worktree directory name:
 - `tos-workbuddy` -> read `.agent-assignments/workbuddy.md`
 - `tos-codex` -> read `.agent-assignments/codex.md`
 - `tos-antigravity` -> read `.agent-assignments/antigravity.md`
+- `tos-dsh` -> read `.agent-assignments/dsh.md`
 - `2026-08-02-23-04-06` -> integration worktree; Antigravity is the designated integration owner and feature work is not implemented here
 
 If the directory name does not match one of these values, stop and ask which role owns the workspace.
+
+## Check your inbox first
+
+Before starting any task, read `.tasks/inbox/<your role>.md` (e.g. `.tasks/inbox/workbuddy.md`).
+Cross-lane handoffs are delivered there — a `.tasks/<id>.md` card plus a patch under
+`.tasks/patches/`.
+
+**Never `git checkout` files from another lane's branch into your worktree.** That stages
+foreign changes under your branch and forces you to either commit work you don't own or
+carry a dirty index. The inbox only works because these files live on `main`; if they do not,
+ask the Integrator to merge the infrastructure branch first.
 
 ## Mandatory rules
 
@@ -29,6 +43,7 @@ If the directory name does not match one of these values, stop and ask which rol
    - `tos-antigravity`: `1111`
    - `tos-workbuddy`: `5555`
    - `tos-codex`: `8888`
+   - `tos-dsh`: `7777`
 10. If a task conflicts with these defaults, the written task assignment wins only for the files it names.
 
 ## Verification cadence
@@ -36,11 +51,15 @@ If the directory name does not match one of these values, stop and ask which rol
 Two modes. Do not pay delivery cost after every keystroke.
 
 - **Daily (every edit).** Target only what changed:
-  - `node scripts/run-e2e.mjs --changed` — derives the affected suites from path prefixes and runs only those.
-  - `node --test tests/*.test.js` — the whole unit suite, 48 files, ~8 s.
+  - `node scripts/run-e2e.mjs --changed` — derives the affected suites from path prefixes and runs only those. Pass `--port <your port>`.
+  - `node --test tests/*.test.js` — the whole unit suite, **82 files / 824 cases, ~8 s**.
   - Vite HMR covers everything else; there is nothing to restart.
+- **Before handoff / merge.** Run the local gate (**22 s**):
+  - `node scripts/gate-merge.mjs` — unit tests + production build + G7 assert ratchet.
+  - `node scripts/check-assert-ratchet.mjs` — 用例数只增不减；删断言换绿灯会被拦下。
 - **Delivery (only when the task says package / commit / hand off).**
-  - `node scripts/run-e2e.mjs --all --jobs 4` — all 8 suites, ~82 s (serial is ~315 s).
+  - `node scripts/run-e2e.mjs --all --port <your port>` — **14 suites, 632 s serial**.
+  - Machine time only. `--jobs 4` finishes in ~110 s but **produces false failures** (measured 2026-11-12: settings-group3 176/3 vs 179/0 solo). Do not use `--jobs` for anything you will act on.
   - Then commit, push, and package.
 
 Run the full suite **once at handoff**, not after every edit. If you only ran part of it, say so.

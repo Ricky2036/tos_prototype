@@ -1,7 +1,9 @@
 # W1-002 · S2 八个源码正则测试转运行时行为断言
 
 - 类型：常规任务
-- Owner：**Workbuddy**
+- 状态：Active
+- 簇：C2
+- Owner：Workbuddy
 - 依据：`docs/tOS-pipeline-1.0.md` §6.5
 - 前置：无（可立即开工，不依赖 AG 的补丁）
 
