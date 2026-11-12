@@ -142,10 +142,68 @@ async function run() {
 
   await click(page, '[data-focus-screen="lock"]')
   check('E 锁屏选取页打开', await visible(page, '[data-focus-screen-picker="lock"]'))
+  const lockPage = await page.locator('[data-focus-screen-picker="lock"]').evaluate(root => {
+    const shell = root.closest('.sub-shell')
+    const navTitle = shell.querySelector('.gn-title')
+    const confirm = shell.querySelector('[data-focus-screen-confirm]')
+    const hero = root.querySelector('.fsa').getBoundingClientRect()
+    const title = root.querySelector('.fsp-title').getBoundingClientRect()
+    const rule = root.querySelector('.fsp-rule').getBoundingClientRect()
+    const section = root.querySelector('.fsp-section').getBoundingClientRect()
+    const frames = [...root.querySelectorAll('.fsp-frame')].map(el => el.getBoundingClientRect())
+    const radios = [...root.querySelectorAll('.fsp-radio')].map(el => el.getBoundingClientRect())
+    const host = root.getBoundingClientRect()
+    const k = shell.getBoundingClientRect().width / 360
+    return {
+      navTitle: (navTitle?.textContent || '').trim(),
+      confirmBg: getComputedStyle(confirm).backgroundColor,
+      confirmRound: getComputedStyle(confirm).borderTopLeftRadius,
+      hasCreate: !!root.querySelector('.fsp-create'),
+      createText: (root.querySelector('.fsp-create strong')?.textContent || '').trim(),
+      sectionText: (root.querySelector('.fsp-section')?.textContent || '').trim(),
+      titleCenter: Math.abs((title.left + title.width / 2) - (host.left + host.width / 2)),
+      heroH: hero.height / k,
+      gapHeroTitle: (title.top - hero.bottom) / k,
+      ruleGap: (rule.top - title.bottom) / k,
+      frameW: frames[0].width / k, frameH: frames[0].height / k,
+      frameGap: frames[1] ? (frames[1].left - frames[0].right) / k : 0,
+      frameSpread: (Math.max(...frames.map(f => f.width)) - Math.min(...frames.map(f => f.width))) / k,
+      radioW: radios[0].width / k,
+      radioGap: (radios[0].top - frames[0].bottom) / k,
+      radioCenterDy: Math.abs((radios[0].left + radios[0].width / 2) - (frames[0].left + frames[0].width / 2)),
+      labelCount: root.querySelectorAll('.fsp-pages > button > strong').length
+    }
+  })
+  check('E 锁屏页导航栏没有标题', lockPage.navTitle === '', lockPage.navTitle)
+  check('E 完成键是实心蓝圆钮', lockPage.confirmBg === 'rgb(0, 122, 255)' && lockPage.confirmRound === '50%', JSON.stringify(lockPage))
+  check('E 锁屏页有「创建新的锁屏」段', lockPage.hasCreate && lockPage.createText === '创建新的锁屏', JSON.stringify(lockPage))
+  check('E 锁屏页分组标题为「从锁屏中选取」', lockPage.sectionText === '从锁屏中选取', lockPage.sectionText)
+  check('E 大标题水平居中', lockPage.titleCenter <= 0.5, `dx=${lockPage.titleCenter}`)
+  check('E 插图高 80±2px、与标题间距 14±4px', Math.abs(lockPage.heroH - 80) <= 2 && Math.abs(lockPage.gapHeroTitle - 14) <= 4, JSON.stringify(lockPage))
+  check('E 缩略图 84×195±1px、等宽、间距 23±1px', Math.abs(lockPage.frameW - 84) <= 1 && Math.abs(lockPage.frameH - 195) <= 1 && lockPage.frameSpread <= 0.5 && Math.abs(lockPage.frameGap - 23) <= 1, JSON.stringify(lockPage))
+  check('E 单选点 26px、贴在缩略图下方 12±2px、水平居中', Math.abs(lockPage.radioW - 26) <= 1 && Math.abs(lockPage.radioGap - 12) <= 2 && lockPage.radioCenterDy <= 0.5, JSON.stringify(lockPage))
+  check('E 缩略图下方不显示名称文字', lockPage.labelCount === 0, `labels=${lockPage.labelCount}`)
   await click(page, '[data-focus-screen-option="ocean"]')
+  check('E 选中后单选点填充', await page.locator('[data-focus-screen-option="ocean"] .fsp-radio').evaluate(el => getComputedStyle(el).backgroundColor === 'rgb(0, 122, 255)'))
   await click(page, '[data-focus-screen-confirm]')
   const lockCol = page.locator('[data-focus-screen="lock"]').first()
-  check('E 锁屏选择回写详情', (await lockCol.locator('strong').last().textContent()).trim() === '编辑' && (await lockCol.locator('.fda').getAttribute('class')).includes('wall-ocean'))
+  check('E 锁屏选择回写详情', (await lockCol.locator('strong').last().textContent()).trim() === '选取' && (await lockCol.locator('.fda').getAttribute('class')).includes('wall-ocean'))
+
+  // 主屏幕页：没有「创建新的…」段，分组标题也不一样。
+  await click(page, '[data-focus-screen="home"]')
+  const homePage = await page.locator('[data-focus-screen-picker="home"]').evaluate(root => ({
+    hasCreate: !!root.querySelector('.fsp-create'),
+    sectionText: (root.querySelector('.fsp-section')?.textContent || '').trim(),
+    title: (root.querySelector('.fsp-title')?.textContent || '').trim(),
+    thumbs: root.querySelectorAll('.fsp-frame').length,
+    iconsPerThumb: root.querySelectorAll('.fsp-pages > button:first-child .th-icons i').length
+  }))
+  check('H 主屏幕页没有「创建新的…」段', homePage.hasCreate === false, JSON.stringify(homePage))
+  check('H 主屏幕页分组标题为「从你的页面中选取」', homePage.sectionText === '从你的页面中选取', homePage.sectionText)
+  check('H 主屏幕页标题与真机一致', homePage.title === '选取主屏幕页面', homePage.title)
+  check('H 每个缩略图都有真实图标阵列', homePage.thumbs === 3 && homePage.iconsPerThumb === 20, JSON.stringify(homePage))
+  await shot(page, '05b_home_picker')
+  await back(page)
 
   await click(page, '[data-focus-schedule-id="time-09:00-10:00"]')
   check('F 时间定时可编辑', await visible(page, '[data-focus-schedule="time"]'))

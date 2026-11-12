@@ -8,14 +8,16 @@ import GlassNavBar from '../../../ui/GlassNavBar.vue'
  */
 defineProps({
   title: { type: String, required: true },
-  floatingAction: { type: String, default: '' }
+  floatingAction: { type: String, default: '' },
+  /** 左侧按钮图形，透传给 GlassNavBar（chevron / close） */
+  backIcon: { type: String, default: 'chevron' }
 })
 const emit = defineEmits(['back', 'action'])
 </script>
 
 <template>
   <div class="sub-shell">
-    <GlassNavBar overlay :title="title" @back="emit('back')">
+    <GlassNavBar overlay :title="title" :back-icon="backIcon" @back="emit('back')">
       <template v-if="$slots.navRight" #right><slot name="navRight"></slot></template>
     </GlassNavBar>
 

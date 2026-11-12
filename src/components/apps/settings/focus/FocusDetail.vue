@@ -137,7 +137,7 @@ defineExpose({ back })
           <div class="fd-screens-card" data-focus-screens>
             <button v-for="screen in screenSlots" :key="screen.id" type="button" :data-focus-screen="screen.id" @click="openSub('screens', { type: screen.id })">
               <span class="fd-screen-slot"><FocusDeviceArt :kind="screen.id" :wallpaper="mode.screens[screen.id]" :color="mode.color" /></span>
-              <strong>{{ mode.screens[screen.id] ? '编辑' : '选取' }}</strong>
+              <strong>选取</strong>
             </button>
           </div>
         </section>

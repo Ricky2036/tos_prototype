@@ -156,8 +156,10 @@ test('专注详情与过滤页版式契约：设备示意图、行内居中与�
   assert.match(art, /--s:\s*1/)
   assert.match(art, /calc\(72px \* var\(--s\)\)/)
   assert.match(art, /calc\(62px \* var\(--s\)\)/)
-  // 屏幕选取页复用同一套设备图，不再各画一份。
-  assert.match(picker, /<FocusDeviceArt[^>]*:kind="type"/)
+  // 屏幕选取页用专门的页面缩略图与插图，不再复用设备示意图。
+  assert.match(picker, /import FocusScreenArt from '\.\/FocusScreenArt\.vue'/)
+  assert.match(picker, /import FocusScreenPreview from '\.\/FocusScreenPreview\.vue'/)
+  assert.doesNotMatch(picker, /FocusDeviceArt/)
   assert.doesNotMatch(picker, /fsp-app-grid/)
   // 智能启用行固定行高，图标/文字/开关同轴。
   assert.match(detail, /\.fd-smart-row, \.fd-schedule-row \{[^}]*height:\s*58px[^}]*align-items:\s*center/)
@@ -192,6 +194,37 @@ test('专注子页沿用设置页 16px 安全边距', () => {
   assert.match(schedule, /\.time-card > button \{[^}]*min-height:\s*44px[^}]*padding:\s*0 16px/)
   assert.match(schedule, /\.weekday-row \{[^}]*padding:\s*12px 24px/)
   assert.match(schedule, /\.weekday-row button \{[^}]*width:\s*33px[^}]*height:\s*33px/)
+})
+
+test('屏幕选取页版式契约：无导航标题、无文字标签、页面缩略图', () => {
+  const picker = strip(read('src/components/apps/settings/focus/FocusScreenPicker.vue'))
+  const art = strip(read('src/components/apps/settings/focus/FocusScreenArt.vue'))
+  const preview = strip(read('src/components/apps/settings/focus/FocusScreenPreview.vue'))
+
+  // 真机导航栏只有左侧关闭 + 右侧蓝勾，标题在内容区里居中显示。
+  assert.match(picker, /title="" back-icon="close"/)
+  assert.match(picker, /\.fsp-confirm\s*\{[^}]*background:\s*#007AFF/)
+  assert.match(picker, /class="fsp-title"/)
+  // 「创建新的锁屏」只有锁屏页有；主屏幕页没有。
+  assert.match(picker, /v-if="type === 'lock'" class="fsp-create"/)
+  // 分组标题：锁屏「从锁屏中选取」，主屏幕「从你的页面中选取」。
+  assert.match(picker, /'从锁屏中选取'/)
+  assert.match(picker, /'从你的页面中选取'/)
+  // 缩略图下方只有单选圆点，不渲染名称标签。
+  assert.doesNotMatch(picker, /\{\{\s*option\.name\s*\}\}/)
+  assert.match(picker, /\.fsp-pages\s*\{[^}]*gap:\s*23px/)
+  assert.match(picker, /\.fsp-frame\s*\{[^}]*width:\s*84px[^}]*height:\s*195px/)
+  // 表盘缩略图接近方形，不能沿用手机的竖长条。
+  assert.match(picker, /\.fsp-frame\.is-watch\s*\{[^}]*height:\s*104px/)
+  assert.match(picker, /\.fsp-radio\s*\{[^}]*width:\s*26px[^}]*height:\s*26px[^}]*margin-top:\s*12px/)
+
+  // 顶部插图：灰色底板 + 高亮竖卡 + 白色圆形徽标。
+  for (const cls of ['.fsa-board', '.fsa-card', '.fsa-badge', '.fsa-cap']) assert.ok(art.includes(cls), `插图缺少 ${cls}`)
+  // 缩略图内容：主屏幕是图标阵列 + 程序坞，锁屏是时间 + 快捷圆点。
+  assert.match(preview, /class="th-icons"/)
+  assert.match(preview, /class="th-dock"/)
+  assert.match(preview, /class="th-lockinfo"/)
+  assert.match(preview, /class="th-quick"/)
 })
 
 test('专注模块图标契约：不手绘 SVG，所有 LIcon 名称均已注册', () => {
