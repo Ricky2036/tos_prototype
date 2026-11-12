@@ -17,6 +17,12 @@ Use the current worktree directory name:
 
 If the directory name does not match one of these values, stop and ask which role owns the workspace.
 
+## Check your inbox first
+
+Before starting any task, read `.tasks/inbox/<your role>.md` (e.g. `.tasks/inbox/workbuddy.md`).
+Cross-lane handoffs are delivered there — a `.tasks/<id>.md` card plus a patch under
+`.tasks/patches/`. This is the only channel that reaches another lane without a human relaying it.
+
 ## Mandatory rules
 
 1. Work only in your assigned worktree and branch. Never change branches in place.
