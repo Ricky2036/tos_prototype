@@ -20,6 +20,13 @@ import PhoneAbout from './PhoneAbout.vue'
 import SettingsSim from '../../settings/SettingsSim.vue'
 import SettingsSound from '../../settings/SettingsSound.vue'
 
+const props = defineProps({
+  initialTarget: {
+    type: String,
+    default: 'main'
+  }
+})
+
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['back', 'openSystemSettings'])
 
@@ -27,6 +34,14 @@ const emit = defineEmits(['back', 'openSystemSettings'])
 const { activeSubView: subpage, isBack, openSubView, closeSubView } = useSubPageNav('main')
 const subpageRef = ref(null)
 const showVoiceBroadcastModal = ref(false)
+const initialAdvancedView = ref('main')
+
+if (props.initialTarget === 'speedDial') {
+  initialAdvancedView.value = 'speedDial'
+  openSubView('advanced')
+} else if (props.initialTarget && props.initialTarget !== 'main') {
+  openSubView(props.initialTarget)
+}
 
 const voiceBroadcastText = computed(() => {
   const v = phoneStore.settings.voiceBroadcast
@@ -192,7 +207,7 @@ defineExpose({
       <PhoneUnknownId ref="subpageRef" v-else-if="subpage === 'unknownId'" key="unknownId" class="subpage-view-pane" @back="closeSubView" />
       <PhoneCallDisplayModal ref="subpageRef" v-else-if="subpage === 'callDisplay'" key="callDisplay" class="subpage-view-pane" @back="closeSubView" />
       <PhoneVideoShow ref="subpageRef" v-else-if="subpage === 'videoShow'" key="videoShow" class="subpage-view-pane" @back="closeSubView" />
-      <PhoneAdvancedSettings ref="subpageRef" v-else-if="subpage === 'advanced'" key="advanced" class="subpage-view-pane" @back="closeSubView" />
+      <PhoneAdvancedSettings ref="subpageRef" v-else-if="subpage === 'advanced'" key="advanced" class="subpage-view-pane" :initial-view="initialAdvancedView" @back="closeSubView" />
       <PhoneCarrierFeatures ref="subpageRef" v-else-if="subpage === 'carrier'" key="carrier" class="subpage-view-pane" @back="closeSubView" />
       <PhoneAbout ref="subpageRef" v-else-if="subpage === 'about'" key="about" class="subpage-view-pane" @back="closeSubView" />
       <SettingsSim ref="subpageRef" v-else-if="subpage === 'sim'" key="sim" class="subpage-view-pane" @back="closeSubView" />

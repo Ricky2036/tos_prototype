@@ -12,11 +12,18 @@ import flipMuteHeroImg from '../../../../assets/img/phone_settings/flip_mute_her
 import raiseToAnswerHeroImg from '../../../../assets/img/phone_settings/raise_to_answer_hero.png'
 import gestureAnswerHeroImg from '../../../../assets/img/phone_settings/gesture_answer_hero.png'
 
+const props = defineProps({
+  initialView: {
+    type: String,
+    default: 'main'
+  }
+})
+
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['back'])
 
 // 统一层级导航状态机：'main' | 'speedDial' | 'accessibility' | 'flipMute' | 'raiseToAnswer' | 'gestureAnswer'
-const { activeSubView: currentView, isBack, openSubView, closeSubView } = useSubPageNav('main')
+const { activeSubView: currentView, isBack, openSubView, closeSubView } = useSubPageNav(props.initialView || 'main')
 
 // 模态弹窗
 const showTtyModal = ref(false)

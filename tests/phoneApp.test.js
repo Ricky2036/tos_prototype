@@ -242,9 +242,11 @@ test('PhoneKeypad aligns with real device without top drag pill, supports more o
   // 真机规范铁律：拨号盘顶部绝对没有小横条拖拽手柄
   assert.doesNotMatch(keypadContent, /keypad-drag-bar/)
   assert.doesNotMatch(keypadContent, /drag-pill/)
-  // 包含三点更多选项菜单（延长暂停时间2秒 / 延长等待时间）
-  assert.match(keypadContent, /延长暂停时间2秒/)
-  assert.match(keypadContent, /延长等待时间/)
+  // 包含三点更多选项菜单（添加 2 秒暂停 / 添加等待 / 快速拨号号码 / 设置）
+  assert.match(keypadContent, /添加 2 秒暂停|延长暂停时间2秒/)
+  assert.match(keypadContent, /添加等待|延长等待时间/)
+  assert.match(keypadContent, /快速拨号号码/)
+  assert.match(keypadContent, /设置/)
 
   const appPath = path.resolve('src/components/apps/phone/PhoneApp.vue')
   const appContent = fs.readFileSync(appPath, 'utf-8')

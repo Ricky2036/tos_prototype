@@ -25,7 +25,18 @@ const systemStore = useSystemStore()
 const notificationsStore = useNotificationsStore()
 
 const isSettingsOpen = ref(false)
+const settingsTarget = ref('main')
 const settingsRef = ref(null)
+
+function handleOpenSettings() {
+  settingsTarget.value = 'main'
+  isSettingsOpen.value = true
+}
+
+function handleOpenSpeedDial() {
+  settingsTarget.value = 'speedDial'
+  isSettingsOpen.value = true
+}
 const scrollContainerRef = ref(null)
 const scrubberRef = ref(null)
 
@@ -344,7 +355,7 @@ function handleAppWheel(e) {
               <button
                 class="header-action-btn settings-trigger"
                 title="设置"
-                @click="isSettingsOpen = true"
+                @click="handleOpenSettings"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                   <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="#1C1C1E" stroke-width="1.8" />
@@ -423,7 +434,10 @@ function handleAppWheel(e) {
     <!-- 拨号键盘浮层面板（抽屉式弹出/收起，呼叫按钮精确落在悬浮底栏上方） -->
     <Transition name="keypad-slide">
       <div v-if="phoneStore.isKeypadOpen && phoneStore.currentTab === 'recents'" class="keypad-drawer-wrap">
-        <PhoneKeypad />
+        <PhoneKeypad
+          @open-settings="handleOpenSettings"
+          @open-speed-dial="handleOpenSpeedDial"
+        />
       </div>
     </Transition>
 
@@ -508,6 +522,7 @@ function handleAppWheel(e) {
       <PhoneSettings
         v-if="isSettingsOpen"
         ref="settingsRef"
+        :initial-target="settingsTarget"
         @back="isSettingsOpen = false"
         @open-system-settings="handleOpenSystemSettings"
         @openSystemSettings="handleOpenSystemSettings"
