@@ -23,6 +23,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+// G3a 的 tap 输出落这里，G7 棘轮复用同一份，避免整套单测跑两遍
+const TAP_FILE = path.join(ROOT, 'node_modules/.cache/gate-tap.txt')
 const argv = process.argv.slice(2)
 const fast = argv.includes('--fast')
 const withE2e = argv.includes('--with-e2e')
@@ -36,11 +38,14 @@ const green = (s) => `\x1b[32m${s}\x1b[0m`
 const dim = (s) => `\x1b[2m${s}\x1b[0m`
 
 const steps = [
-  { id: 'G3a', name: '单测', cmd: process.execPath, args: ['--test', ...listTests()] },
+  { id: 'G3a', name: '单测', cmd: process.execPath,
+    args: ['--test', '--test-reporter=tap', ...listTests()], captureTap: true },
   ...(fast ? [] : [{ id: 'G3b', name: '生产构建', cmd: 'npm', args: ['run', 'build'] }]),
   { id: 'Gspec', name: '画布换算无硬编码', cmd: process.execPath, args: ['scripts/check-spec-literals.mjs'] },
   { id: 'Gtask', name: '任务板可生成', cmd: process.execPath, args: ['scripts/gen-task-board.mjs'] },
-  { id: 'G7', name: '断言棘轮', cmd: process.execPath, args: ['scripts/check-assert-ratchet.mjs'] },
+  { id: 'Gclaim', name: '认领边界（advisory）', cmd: process.execPath, args: ['scripts/claim-check.mjs'] },
+  { id: 'G7', name: '断言棘轮', cmd: process.execPath,
+    args: ['scripts/check-assert-ratchet.mjs', '--tap', TAP_FILE] },
   ...(withE2e
     ? [{
         id: 'G4',
@@ -63,7 +68,11 @@ const failed = []
 for (const s of steps) {
   process.stdout.write(dim(`▶ ${s.id} ${s.name} ... `))
   const t = Date.now()
-  const r = spawnSync(s.cmd, s.args, { cwd: ROOT, stdio: 'pipe', encoding: 'utf8' })
+  const r = spawnSync(s.cmd, s.args, { cwd: ROOT, stdio: 'pipe', encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+  if (s.captureTap && r.stdout) {
+    fs.mkdirSync(path.dirname(TAP_FILE), { recursive: true })
+    fs.writeFileSync(TAP_FILE, r.stdout)
+  }
   const sec = ((Date.now() - t) / 1000).toFixed(1)
   const ok = r.status === 0
   if (!ok) {
