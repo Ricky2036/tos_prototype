@@ -75,3 +75,14 @@
 
 - 30 个 `scripts/verify-*.mjs` 仍硬编码写 `/Users/…/.gemini/antigravity/brain/<uuid>/`
   （仅 `modes-and-routines` 已改为 `ARTIFACT_DIR`）。这些不是套件，按簇懒改。
+
+## 收尾（W0 完成项）
+
+| 项 | 结果 |
+|---|---|
+| `pixel-refs/sources.json` | 只存像素，kx/ky 由 `canvas-transform.mjs` 现算；三星各向异性已被测试钉住（用 kx 算高少 8.0px） |
+| `spec/_TEMPLATE.yaml` | 三段式模板：geometry 脚本生成 / appearance 人工 / unknowns 不许空着进实施 |
+| `scripts/check-spec-literals.mjs` | 从 sources.json **派生**禁用字面量，只禁 ky（kx 单独出现不算错，且 1/3 会与 SVG 滤镜撞车）；全仓 97 文件零违规 |
+| `save-defaults` 关闭 | 见 `W0-002-ag-save-defaults.md`，属 C0-a，交 AG 合入 |
+
+`gate:merge` 现为 4 步（单测 / 构建 / 画布字面量 / G7 棘轮），18.9s。

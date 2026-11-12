@@ -1,0 +1,57 @@
+# spec 模板 —— 复制成 spec/<module>/<screen>.yaml 后填
+#
+# 三段式（docs/tOS-pipeline-1.0.md §5）：
+#   geometry  —— 脚本生成，G8 校验，人不要手写
+#   appearance —— 人工补：crop 图 + 一句形态描述
+#   unknowns  —— 看不清就写这里，**非空不得进入可实施**
+#
+# 四条铁律：
+#   1. source 必须与采集设备一致，两维都校验
+#   2. 禁止一个 spec 混用两个来源（拆子 spec，节点标同一 element-id）
+#   3. crop 与 uiautomator 的 bounds 同框（都从整屏左上角起算）
+#   4. 脚本里禁止出现 0.298 / 360/1208 之类的字面量，一律走 canvas-transform.mjs
+
+screen: settings/display
+module: C2
+owner: dsh
+
+# —— 基准溯源 ——
+source: infinix-1208          # 取值见 pixel-refs/sources.json
+canvas: { w: 360, h: 788 }    # 固定，别改
+ref_image: pixel-refs/infinix/settings-display.png   # 入库的压缩证据图 + sha256 在 manifest 里
+
+# —— 几何段：由 scripts/spec-gen.mjs 生成，勿手改 ——
+geometry:
+  - id: row-brightness
+    role: row
+    component: ListCell          # REUSE / null(则必须给 gap)
+    gap: null
+    bounds: [24, 312, 364, 56]   # 画布 px，已按 kx/ky 换算
+    text: 亮度
+    clickable: true
+  - id: hero-battery-graph
+    role: chart
+    component: null
+    gap: gaps/battery-graph.md   # 没有对应控件就必须报 GAP，不许硬套
+    bounds: [24, 120, 364, 180]
+    clickable: false
+
+# —— 外观段：机器生成不了，必须人工 ——
+appearance:
+  - element: row-brightness.icon
+    crop: crops/brightness-icon.png   # < 8KB，随 spec 入库
+    form: 实心圆盘 + 裸描边太阳，底色 #F2A33C
+  - element: hero-battery-graph
+    crop: crops/battery-graph.png
+    form: 三段弧线，无底盘，描边 2px
+
+# —— 未知段：看不清就写这里 ——
+unknowns:
+  - element: row-brightness.icon
+    reason: content-desc 为空，无法确认是否为动态图标
+
+# —— 状态与迁移 ——
+states: [default, scroll-bottom]
+transitions:
+  - from: row-brightness
+    to: settings/display-brightness

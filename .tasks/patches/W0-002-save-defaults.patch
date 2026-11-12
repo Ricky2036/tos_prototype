@@ -1,0 +1,20 @@
+diff --git a/vite.config.js b/vite.config.js
+index 54d0584..0f4f9c9 100644
+--- a/vite.config.js
++++ b/vite.config.js
+@@ -230,6 +230,15 @@ function saveDefaultsPlugin() {
+   return {
+     name: 'save-defaults-plugin',
+     configureServer(server) {
++      // 默认关闭：该中间件会 writeFileSync 覆盖 src/stores/controlStore.js，
++      // 让工作区在「没人改代码」的情况下出现 diff，多 lane 并行时尤其危险
++      // （docs/tOS-pipeline-1.0.md §8.1）。需要时显式 TOS_ENABLE_SAVE_DEFAULTS=1。
++      if (process.env.TOS_ENABLE_SAVE_DEFAULTS !== '1') {
++        server.config.logger.info(
++          '[save-defaults] 已禁用（默认）。需要回写 controlStore.js 时：TOS_ENABLE_SAVE_DEFAULTS=1 npm run dev',
++        )
++        return
++      }
+       server.middlewares.use((req, res, next) => {
+         const pathname = (req.url || '').split('?')[0]
+         if (pathname !== SAVE_DEFAULTS_ROUTE || req.method !== 'POST') return next()
