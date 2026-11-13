@@ -99,23 +99,26 @@ test('One-Tap Button：深色机身 / 模式轮播 / 分页与设定键都可用
 test('电池与省电页：电量 / 三种模式 / 设置项 / 用量图表都真实渲染', async () => {
   const h = await rt.mount(BATTERY)
   const text = await expectTexts(h, [
-    '电池与省电', '91%', '正在充电', '剩余 27 小时 51 分钟',
-    '省电模式', '30 小时 44 分钟', '均衡模式', '27 小时 51 分钟', '超级省电',
-    '省电管理', '充电设置', '电池健康', '最大容量 100%',
-    '距上次充满电已使用', '9 小时 13 分钟', '过去 24 小时', '过去 7 天',
-    '亮屏活动时长', '息屏活动时长',
+    '电池与省电', '86%', '正在充电',
+    '省电模式', '均衡模式', '超级省电', '预计可用',
+    '省电管理', '充电设置', '电池健康',
+    '电池使用情况', '距上次充满电已使用', '60 小时 42 分钟',
+    '过去 24 小时', '过去 7 天', '电池电量',
+    '亮屏活动时长', '息屏活动时长', '39 分钟', '14 小时 20 分钟',
     'TikTok', 'YouTube', '微信',
-    '电池模式', '预计可用', '电池使用情况', '耗电占比排行',
-    '前台', '相机', '浏览器',
+    '电池模式', '耗电占比排行', '查看更多', '其他应用耗电',
+    '系统应用', '应用耗电占比=应用耗电量/全部应用耗电量',
   ], '电池页')
 
   assert.equal(await rt.visibleCount(h, '.glass-nav.is-overlay'), 1, '必须挂共享导航条')
-  assert.equal(await rt.visibleCount(h, '.battery-modes-row .mode-select-card'), 2, '省电 / 均衡两张模式卡')
+  assert.equal(await rt.visibleCount(h, '.battery-modes-row .mode-tile'), 2, '省电 / 均衡两张模式卡')
   assert.ok((await rt.visibleCount(h, '.settings-card')) >= 2, '设置分组卡应渲染')
   assert.ok(text.indexOf('省电模式') < text.indexOf('均衡模式'), '模式顺序应与真机一致')
   assert.ok(text.indexOf('电池设置') < text.indexOf('电池使用情况'), '设置项应排在用量图表之前')
+  assert.ok(!text.includes('最大容量 100%'), '健康行不应再硬编码「最大容量 100%」（真机无右值）')
   assert.equal(await rt.visibleCount(h, '.battery-hero-section'), 1, '电量头图应可见')
-  assert.equal(await rt.text(h, '.percentage-num'), '91', '电量百分比应真实渲染')
+  assert.equal(await rt.visibleCount(h, '.ranking-card .list-cell'), 5, '默认排行 5 行（查看更多前）')
+  assert.equal(await rt.text(h, '.percentage-num'), '86', '电量百分比应真实渲染')
   await rt.unmount(h)
 })
 
