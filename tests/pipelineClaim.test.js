@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  SHARED_ALLOW, globToRegExp, matchGlob, classify, normalizeClaims,
+  SHARED_ALLOW, globToRegExp, matchGlob, classify, normalizeClaims, resolveActor,
 } from '../scripts/lib/claim-rules.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -31,15 +31,15 @@ const CLAIMS = [
   { cluster: 'C0-a', owner: 'integrator', files: ['src/App.vue'] },
 ]
 
-test('classify：命中单一簇 → claimed', () => {
-  const r = classify(['src/comp/settings/a.vue'], CLAIMS)
+test('classify：命中单一簇 → claimed（owner 本人）', () => {
+  const r = classify(['src/comp/settings/a.vue'], CLAIMS, { actor: 'workbuddy' })
   assert.equal(r.ok, true)
   assert.equal(r.rows[0].cluster, 'C2')
   assert.equal(r.rows[0].owner, 'workbuddy')
 })
 
 test('classify：未认领的文件被点名', () => {
-  const r = classify(['src/nowhere.js'], CLAIMS)
+  const r = classify(['src/nowhere.js'], CLAIMS, { actor: 'workbuddy' })
   assert.equal(r.ok, false)
   assert.deepEqual(r.unclaimed, ['src/nowhere.js'])
 })
@@ -49,7 +49,7 @@ test('classify：同时命中两个簇 → 冲突，不允许"都算你的"', ()
     { cluster: 'A', owner: 'x', files: ['src/**'] },
     { cluster: 'B', owner: 'y', files: ['src/App.vue'] },
   ]
-  const r = classify(['src/App.vue'], two)
+  const r = classify(['src/App.vue'], two, { actor: 'x' })
   assert.equal(r.ok, false)
   assert.deepEqual(r.conflicts, ['src/App.vue'])
   assert.match(r.rows[0].cluster, /A \+ B/)
@@ -104,4 +104,87 @@ test('仓库里的 .claims 全部合法且互不重叠', () => {
     assert.equal(hits.length, 1, `${file} 命中 ${hits.length} 个簇`)
     assert.equal(hits[0].cluster, want)
   }
+})
+
+/* ---------------- LEAD-DSH-001：执行者身份 ---------------- */
+
+const ACTOR_CLAIMS = [
+  { cluster: 'C2', owner: 'workbuddy', files: ['src/comp/settings/**'], lendTo: [] },
+  { cluster: 'C9', owner: 'dsh', files: ['src/comp/phone/**'], lendTo: ['workbuddy'] },
+]
+
+test('owner 本人改自己簇 → 通过', () => {
+  const r = classify(['src/comp/settings/a.vue'], ACTOR_CLAIMS, { actor: 'workbuddy' })
+  assert.equal(r.ok, true)
+  assert.equal(r.rows[0].status, 'claimed')
+})
+
+test('非 owner 改别人簇 → 越权，不通过', () => {
+  const r = classify(['src/comp/settings/a.vue'], ACTOR_CLAIMS, { actor: 'dsh' })
+  assert.equal(r.ok, false)
+  assert.deepEqual(r.unauthorized, ['src/comp/settings/a.vue'])
+  assert.equal(r.rows[0].status, 'unauthorized')
+})
+
+test('lendTo 出借后 → 通过（无需逐次申请）', () => {
+  const r = classify(['src/comp/phone/b.vue'], ACTOR_CLAIMS, { actor: 'workbuddy' })
+  assert.equal(r.ok, true)
+  assert.equal(r.rows[0].lent, true)
+})
+
+test('[handoff] 白名单放行越权', () => {
+  const r = classify(['src/comp/settings/a.vue'], ACTOR_CLAIMS, {
+    actor: 'dsh', allow: ['src/comp/settings/**'],
+  })
+  assert.equal(r.ok, true)
+  assert.equal(r.allowed[0].why, 'handoff')
+})
+
+test('integrator 可跨簇改（合入与仲裁），但可显式关掉', () => {
+  const on = classify(['src/comp/settings/a.vue'], ACTOR_CLAIMS, { actor: 'integrator' })
+  assert.equal(on.ok, true)
+  assert.equal(on.rows[0].by, 'integrator')
+
+  const off = classify(['src/comp/settings/a.vue'], ACTOR_CLAIMS, {
+    actor: 'integrator', integratorBypass: false,
+  })
+  assert.equal(off.ok, false)
+})
+
+test('缺少执行者身份 → 不通过（strict 下不许假绿）', () => {
+  const r = classify(['src/comp/settings/a.vue'], ACTOR_CLAIMS, { actor: null })
+  assert.equal(r.ok, false)
+  assert.deepEqual(r.noActor, ['src/comp/settings/a.vue'])
+})
+
+test('协作产物不需要身份', () => {
+  const r = classify(['.tasks/queue/Q-001.md'], ACTOR_CLAIMS, { actor: null })
+  assert.equal(r.ok, true)
+  assert.equal(r.allowed[0].why, 'shared')
+})
+
+test('重叠与未认领仍然红（身份不能掩盖结构问题）', () => {
+  const two = [
+    { cluster: 'A', owner: 'workbuddy', files: ['src/**'] },
+    { cluster: 'B', owner: 'workbuddy', files: ['src/x.vue'] },
+  ]
+  assert.equal(classify(['src/x.vue'], two, { actor: 'workbuddy' }).ok, false)
+  assert.equal(classify(['src/nowhere.vue'], ACTOR_CLAIMS, { actor: 'workbuddy' }).ok, false)
+})
+
+test('resolveActor：flag > env > branch > 缺失', () => {
+  assert.deepEqual(resolveActor({ explicit: 'dsh', branch: 'workbuddy/lane' }),
+    { actor: 'dsh', source: 'flag' })
+  assert.deepEqual(resolveActor({ env: 'workbuddy', branch: 'dsh/lane' }),
+    { actor: 'workbuddy', source: 'env' })
+  assert.deepEqual(resolveActor({ branch: 'workbuddy/lane' }),
+    { actor: 'workbuddy', source: 'branch' })
+  assert.equal(resolveActor({ branch: 'feature/x' }).actor, null)
+  assert.equal(resolveActor({}).source, 'missing')
+})
+
+test('resolveActor：未知执行者必须报错，不许兜底', () => {
+  const r = resolveActor({ explicit: 'somebody' })
+  assert.equal(r.actor, null)
+  assert.equal(r.source, 'invalid')
 })
