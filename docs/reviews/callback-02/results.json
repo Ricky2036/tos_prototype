@@ -5,7 +5,15 @@
     "unlock.mjs": "e0a479cd2d322e6f134a9fbc16d48f4eee8fe4f17043285f498024f700b27cea",
     "status.mjs": "9aa360b7110fc64cf6a16fe43b168d17e0f6cc8c8f4ef2f1a2a24232e7e637d1"
   },
-  "reviewedAt": "2026-11-13T10:22:30.513Z",
+  "reviewedBefore": {
+    "finish.mjs": "8ee8d585508a47d5e3b6a26a4ca7673d33e6823875eabe8f5129e105aa1e378d",
+    "ack.mjs": "9fdede9e95bc1226d197c9dc3fff90f8291b06565d54f29705c6ebc980a5c85f",
+    "unlock.mjs": "e0a479cd2d322e6f134a9fbc16d48f4eee8fe4f17043285f498024f700b27cea",
+    "status.mjs": "9aa360b7110fc64cf6a16fe43b168d17e0f6cc8c8f4ef2f1a2a24232e7e637d1"
+  },
+  "versionStableDuringRun": true,
+  "changedDuringRun": [],
+  "reviewedAt": "2026-11-13T10:26:40.755Z",
   "bin": "/Users/jingzhan.chen/Workbuddy/2026-08-02-23-04-06/.local-evidence/callback-02/bin",
   "node": "v26.4.0",
   "cases": [
@@ -83,6 +91,24 @@
       "what": "ack 成功后 .lock 必须不存在",
       "code": 0,
       "lockGone": true
+    },
+    {
+      "id": "T8",
+      "what": "内容冲突不得覆盖已送达回执；冲突后仍可 ack",
+      "first": 0,
+      "conflict": 2,
+      "receiptBefore": "accepted",
+      "receiptAfter": null,
+      "receiptPreserved": false,
+      "conflictFile": false,
+      "ackCode": 3
+    },
+    {
+      "id": "T8b",
+      "what": "冲突后同内容重投的行为",
+      "code": 2,
+      "extraModelCalls": 0,
+      "receiptRestored": false
     }
   ]
 }

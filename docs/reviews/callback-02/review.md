@@ -1,4 +1,4 @@
-# CALLBACK-02 独立审查报告 · v5
+# CALLBACK-02 独立审查报告 · v7
 
 - 审查者：DSH（不参与实现，不改对方文件，不连真机，不跑全量浏览器）
 - 被审目录：`/Users/jingzhan.chen/Workbuddy/2026-08-02-23-04-06/.local-evidence/callback-02/bin/`
@@ -15,8 +15,9 @@
 | `unlock.mjs` | `e0a479cd2d322e6f134a9fbc16d48f4eee8fe4f17043285f498024f700b27cea` |
 | `status.mjs` | `9aa360b7110fc64cf6a16fe43b168d17e0f6cc8c8f4ef2f1a2a24232e7e637d1` |
 
-> 审查期间实现变动 4 次（`2a59f2fe` → `4f1ce0b6` → `8ee8d585` …）。本报告只对上表版本负责；
-> 结论随版本失效，`results.json` 每次运行会重算哈希。
+> 审查期间实现变动 4 次（`2a59f2fe` → `4f1ce0b6` → `8ee8d585` …）。本报告只对上表版本负责。
+> `run-tests.mjs` 现在会在**运行前后各算一次哈希**并写入 `results.json` 的
+> `reviewedBefore / reviewedAfter / versionStableDuringRun`，若运行中被改动会显式告警。
 
 ## 逐项结果（实测）
 
@@ -63,7 +64,17 @@
 
 **危害**：一次错误重发会让**已经成功送达**的事件永久失去回执、无法被消费确认；
 审计链被覆盖，且提示文案"拒绝覆盖"与实际行为相反，误导操作者。
-（后续再发同样内容会重新调模型并覆盖回冲突记录，等于用一次模型调用"恢复"，原回执不可追回。）
+
+**更严重**：冲突后该 `event_id` **永久不可用**——实测 T8b 用冲突内容重投仍 `code=2`，
+`receiptRestored=false`，`extraModelCalls=0`（连重试机会都没有）。只能换新 `event_id`。
+
+**已纳入入库工件**（`run-tests.mjs` T8/T8b，`results.json` 可查）：
+
+```
+T8 : { first:0, conflict:2, receiptBefore:"accepted", receiptAfter:null,
+       receiptPreserved:false, conflictFile:false, ackCode:3 }
+T8b: { code:2, extraModelCalls:0, receiptRestored:false }
+```
 
 **最小修复**：冲突记录另存 `receipts/<id>.conflict.json`（或 `conflicts/<id>-<ts>.json`），
 **绝不写已存在有效回执的路径**；`ack` 只读主回执文件。
@@ -83,11 +94,6 @@ ledger: T2 → { status:'idle', delivery:'rejected', task_status:'complete' }
 **最小修复**：rejected/失败一律不写 `tasks[task]`；若要留痕，写到独立 `deliveries.json`
 （或给条目加 `recorded:false` 标记并在 `status` 中显式渲染为"收件无效"），不得让
 `task_status` 与 `delivery` 组合出"rejected + complete"这种自相矛盾展示。
-
-## P2 · 并发 ack 的第二个调用返回 2（可重试）
-
-`T6: codes=[0,2], consumed=1`。串行化本身正确（不丢更新），但契约未写明"发送方应重试"。
-建议在契约或 README 写明：`ack` 遇到锁占用是**可重试**，不是失败。
 
 ## P2 · `state.repo_root` 在 boot 时固化
 

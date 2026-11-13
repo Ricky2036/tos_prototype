@@ -39,6 +39,7 @@ function versions () {
   return out
 }
 
+const VERSIONS_BEFORE = versions()
 const ART = path.join(HERE, '.artifacts')
 fs.mkdirSync(ART, { recursive: true })
 fs.writeFileSync(path.join(ART, 'a.txt'), 'evidence-A\n')
@@ -167,6 +168,39 @@ const rec = (id, what, obs) => { cases.push({ id, what, ...obs }); console.log(`
   rec('T7b', 'ack 成功后 .lock 必须不存在', { code: r2.code, lockGone: !fs.existsSync(path.join(h, '.lock')) })
 }
 
-const result = { reviewed: versions(), reviewedAt: new Date().toISOString(), bin: BIN, node: process.version, cases }
+// T8 内容冲突链路：不得覆盖已送达回执，且冲突后仍可 ack
+{
+  const h = home('T8')
+  const a = run('finish.mjs', [...args('T8', 'abc1234', path.join(ART, 'a.txt')), '--event-id', 'EV-T8-0001'], { h, eventId: 'EV-T8-0001' })
+  const rf = path.join(h, 'receipts/EV-T8-0001.json')
+  const before = fs.existsSync(rf) ? JSON.parse(fs.readFileSync(rf, 'utf8')) : null
+  const b = run('finish.mjs', [...args('T8', 'abc1234', path.join(ART, 'b.txt')), '--event-id', 'EV-T8-0001'], { h, eventId: 'EV-T8-0001' })
+  const after = fs.existsSync(rf) ? JSON.parse(fs.readFileSync(rf, 'utf8')) : null
+  const ack = run('ack.mjs', ['--event', 'EV-T8-0001', '--summary', '冲突后尝试消费'], { h })
+  rec('T8', '内容冲突不得覆盖已送达回执；冲突后仍可 ack', {
+    first: a.code, conflict: b.code,
+    receiptBefore: (before && before.receipt && before.receipt.delivery) || null,
+    receiptAfter: (after && after.receipt && after.receipt.delivery) || null,
+    receiptPreserved: Boolean(before && before.receipt && after && after.receipt),
+    conflictFile: fs.existsSync(path.join(h, 'receipts/EV-T8-0001.conflict.json')),
+    ackCode: ack.code,
+  })
+
+  // 同内容重投：观察是否重新调用模型
+  const c = run('finish.mjs', [...args('T8', 'abc1234', path.join(ART, 'b.txt')), '--event-id', 'EV-T8-0001'], { h, eventId: 'EV-T8-0001' })
+  rec('T8b', '冲突后同内容重投的行为', { code: c.code, extraModelCalls: c.calls - b.calls,
+    receiptRestored: fs.existsSync(rf) && Boolean(JSON.parse(fs.readFileSync(rf, 'utf8')).receipt) })
+}
+
+const VERSIONS_AFTER = versions()
+const changed = Object.keys(VERSIONS_BEFORE).filter((k) => VERSIONS_BEFORE[k] !== VERSIONS_AFTER[k])
+const result = {
+  reviewed: VERSIONS_AFTER,
+  reviewedBefore: VERSIONS_BEFORE,
+  versionStableDuringRun: changed.length === 0,
+  changedDuringRun: changed,
+  reviewedAt: new Date().toISOString(), bin: BIN, node: process.version, cases,
+}
+if (changed.length) console.log(`\n⚠ 运行期间被审文件发生变化：${changed.join(', ')}`)
 fs.writeFileSync(path.join(HERE, 'results.json'), JSON.stringify(result, null, 2) + '\n')
 console.log(`\n已写 ${path.join(HERE, 'results.json')}`)
