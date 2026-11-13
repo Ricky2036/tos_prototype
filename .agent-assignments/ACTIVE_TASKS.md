@@ -227,12 +227,13 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | DSH | W2-003 + CI 修复：G6 认领边界（`.claims/` / `claim-check`）/ `verify.yml` 真装 chromium + 硬超时 + Node 24 | `dsh/lane` | None (locks released) | `b796f15` | `b5c5993` |
 | Merged | Antigravity | W2-002：App 级自注册（统一纯数据应用表 + 10 个 `entry.js` + 移除 `manualChunks`）与 Hero `contentReady` + `pointerdown` 预载 | `antigravity/lane` | None (locks released) | `933bbfb` | `df1020a` |
 | Active | Antigravity | LEAD-AG-001：发布流水线修复（统一 Node 24 + Chromium + 硬超时） | `antigravity/lane` | `.github/workflows/deploy.yml` | `9661b6f` | pending |
-| Active | Antigravity | LEAD-AG-002：协作协议与决策落地（Codex 主导规划、锁更新、队列/信箱同步） | `antigravity/lane` | `docs/decisions.md`; `docs/roles-v2.md`; `AGENTS.md`; `.agent-assignments/codex.md`; `.claims/**`; `.tasks/**` | `9661b6f` | pending |
+| Merged | Antigravity | LEAD-AG-002：协作协议与决策落地（Codex 主导规划、锁更新、队列/信箱同步） | `antigravity/lane` | None (locks released) | `9661b6f` | `a070ba7` |
 | Merged | DSH | LEAD-DSH-001/002：G6 执行者身份校验与 e2e 证据链绑定（带身份时间戳负载），C0 认领表重构 | `dsh/lane` | None (locks released) | `9661b6f` | `9267628` |
 | Merged | Workbuddy | LEAD-WB-001/002：任务板队列事实源重构与 65 个 verify 脚本盘点收编（8 归档，21 改 ARTIFACT_DIR） | `workbuddy/lane` | None (locks released) | `9661b6f` | `b40f87a` |
 | Ready | DSH | SET-DSH-01：真机保活与 G8 标定及三模块采集（独占真机 ADB） | `dsh/lane` | `spec/**`; `scripts/gate-geometry.mjs`; `tests/pipelineGeometry.test.js` | `9661b6f` | pending |
 | Ready | Workbuddy | SET-WB-01：设置系统与日期时间链路深度复刻（顺带修复 transitionContract 时序） | `workbuddy/lane` | `src/components/apps/settings/pages/dateTime.js`; `src/components/apps/settings/dateTime/**`; `src/components/apps/settings/system/**`; `src/stores/dateTimeStore.js`; `tests/dateTimeSettings.test.js`; `tests/transitionContract.test.js` | `9661b6f` | pending |
-| Ready | Antigravity | SET-AG-01：安全紧急情况与用户账号链路复刻（Google 暂缓，主壳最小接线） | `antigravity/lane` | `src/components/apps/settings/pages/safetyEmergency.js`; `src/components/apps/settings/pages/accounts.js`; `src/components/apps/settings/safety/**`; `src/components/apps/settings/accounts/**`; `src/stores/safetyStore.js`; `src/stores/accountsStore.js` | `9661b6f` | pending |
+| Ready | Antigravity | SET-AG-01a：安全和紧急情况链路深度复刻（主壳单点最小接线，严禁触发真SOS） | `antigravity/lane` | `src/components/apps/settings/pages/safetyEmergency.js`; `src/components/apps/settings/safety/**`; `src/stores/safetyStore.js`; `tests/safetyEmergency.test.js` | `c6a5d06` | pending |
+| Ready | Antigravity | SET-AG-01b：用户与账号链路深度复刻（Google暂缓，严禁改写系统真实账户） | `antigravity/lane` | `src/components/apps/settings/pages/accounts.js`; `src/components/apps/settings/accounts/**`; `src/stores/accountsStore.js`; `tests/accountsSettings.test.js` | `c6a5d06` | pending |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
