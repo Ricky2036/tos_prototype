@@ -226,5 +226,9 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Workbuddy | W2-001：Settings 主壳 glob 自注册 + S2 三页迁出（合并自 fix/q-001-flaky，含 CI flaky 修复） | `workbuddy/lane` | None (locks released) | `afa2f95` | `2e0c11d` |
 | Merged | DSH | W2-003 + CI 修复：G6 认领边界（`.claims/` / `claim-check`）/ `verify.yml` 真装 chromium + 硬超时 + Node 24 | `dsh/lane` | None (locks released) | `b796f15` | `b5c5993` |
 | Merged | Antigravity | W2-002：App 级自注册（统一纯数据应用表 + 10 个 `entry.js` + 移除 `manualChunks`）与 Hero `contentReady` + `pointerdown` 预载 | `antigravity/lane` | None (locks released) | `933bbfb` | `df1020a` |
+| Active | Antigravity | LEAD-AG-001：发布流水线修复（统一 Node 24 + Chromium + 硬超时） | `antigravity/lane` | `.github/workflows/deploy.yml` | `9661b6f` | pending |
+| Active | Antigravity | LEAD-AG-002：协作协议与决策落地（Codex 主导规划、锁更新、队列/信箱同步） | `antigravity/lane` | `docs/decisions.md`; `docs/roles-v2.md`; `AGENTS.md`; `.agent-assignments/codex.md`; `.claims/**`; `.tasks/**` | `9661b6f` | pending |
+| Active | DSH | 临时授权：门禁与断言认领边界修复（身份校验、E2E结果溯源与顺序） | `dsh/lane` | `scripts/gate-merge.mjs`; `scripts/check-assert-ratchet.mjs`; `scripts/claim-check.mjs`; `scripts/lib/claim-rules.mjs`; `tests/pipeline*` | `9661b6f` | pending |
+| Active | Workbuddy | 临时授权：任务看板与脚本分类收编（防脚本目录大锁阻塞） | `workbuddy/lane` | `scripts/gen-task-board.mjs`; `tests/pipelineQueue.test.js`; `scripts/legacy/**`; 未注册 verify 脚本分类 | `9661b6f` | pending |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
