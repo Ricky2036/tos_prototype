@@ -1,7 +1,7 @@
 # LEAD-AG-002 · 架构决策与角色规范落地
 
 - size: M
-- status: in_progress
+- status: done
 - priority: P1
 - claim: C0-infra
 - owner: Antigravity

@@ -162,6 +162,10 @@ test('运行时：glob 汇总 10 个深层应用、pointerdown 触发预载、Ap
     homeAnchor: false
   })
   await rt.dispatch(appIconHandle, '.app-icon', 'pointerdown', {}, 250)
+  await rt.page.waitForFunction(async () => {
+    const reg = await import('/src/components/apps/registry.js')
+    return reg.isAppPreloaded('calendar')
+  }, null, { timeout: 5000 })
   const afterDown = await rt.evaluate(async () => {
     const reg = await import('/src/components/apps/registry.js')
     const calComp = (await import('/src/components/apps/calendar/CalendarApp.vue')).default
