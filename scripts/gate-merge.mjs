@@ -44,6 +44,7 @@ const steps = [
   { id: 'Gspec', name: '画布换算无硬编码', cmd: process.execPath, args: ['scripts/check-spec-literals.mjs'] },
   { id: 'Gtask', name: '任务板可生成', cmd: process.execPath, args: ['scripts/gen-task-board.mjs'] },
   { id: 'Gclaim', name: '认领边界（advisory）', cmd: process.execPath, args: ['scripts/claim-check.mjs'] },
+  { id: 'G5', name: '裸样式棘轮（advisory）', cmd: process.execPath, args: ['scripts/check-style-ratchet.mjs'] },
   { id: 'G7', name: '断言棘轮', cmd: process.execPath,
     args: ['scripts/check-assert-ratchet.mjs', '--tap', TAP_FILE] },
   ...(withE2e
