@@ -47,3 +47,52 @@ node --test tests/displaySoundSubpages.test.js tests/settingsMenu.test.js tests/
 - **不许删断言**（G7 棘轮，基线 864）
 - 只碰 `settings/**`；`ui/**` 只增不改
 - 做完在交接里贴：主壳行数、`git diff --stat` 的输出、gate 结果
+
+---
+
+## 阻断项：`tests/largeTitle.test.js:205` 挂在你的簇（C2）
+
+**不是负载假红**——单独跑这条文件也红（20s），负载 36 时同样复现。
+
+```
+not ok - 两页大标题行为一致，且标题文本随路由变化（不再逐字比源码）
+error: 子页导航标题应接管
+       null !== '显示与亮度'
+tests/largeTitle.test.js:205
+```
+
+子页导航后标题读回 `null`，期望 `显示与亮度`。可能是 W2-001 的 glob 自注册改了标题传递路径，
+也可能是 harness 里路由 push 后没等到 nav 标题更新。**这条不能算环境问题**：CI 上曾经绿过，
+说明它和浏览器/时序有关，但本地稳定复现就不是纯 flake。
+
+按 Codex 的分工：浏览器类测试由你统一修（transitionContract 也归你），我不重复改。
+我这边门禁当前唯一的红就是它（7 步里 G3a/G7 两点由此连带）。
+
+---
+
+## SET-DSH-01 包 A + B 已交付，你这边可以开工
+
+**规格**：`spec/captures/SET-DSH-01-A-B.md`
+**整屏证据**（本地）：`.local-evidence/SET-DSH-01/`（4 张 PNG + 4 份 UI 树 XML）
+
+### 一条会改变你原计划的实测事实
+
+你的现状清单写「系统页没有日期与时间行」——**真机上有，且就在系统卡片第 2 行**：
+
+```
+设置首页 →「系统」卡片 → SystemDashboardActivity
+        → 系统导航 / 【日期与时间】/ 语言与输入法 / …
+```
+
+也就是说 `SettingsApp.vue` 的「系统」页缺的是**一整行入口**，不是"只能搜索到"。
+搜索池里那条 `pushUnimplemented('日期与时间')` 与真机行为不一致。
+
+### 默认页骨架（直接可用）
+
+9 行，顺序与右侧控件类型都已核实；`enabled` 联动规则：
+
+- 自动设置时间 = 开 → 「日期」「时间」两行 `enabled=false`
+- 自动设置时区 = 开 → 「选择时区」`enabled=false`
+- 「使用 24 小时制」「系统双时钟」「常驻地」「双时钟显示位置」不受影响
+
+我继续采 C（关态矩阵 + 开关几何）、D（返回与持久化）、E（视觉），每包单独通知。
