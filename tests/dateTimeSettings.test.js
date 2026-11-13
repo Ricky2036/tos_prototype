@@ -234,3 +234,51 @@ test('浏览器：返回键派发 back，状态在卸载重挂后保持', async 
   assert.deepEqual(await disabledKeys(again), ['timezone'], '重挂后状态应保持')
   await rt.unmount(again)
 })
+
+
+/* ==================== 第二条链路：包 C/D/E ==================== */
+test('浏览器：包 E1 取色在本页落地（不改 ui/** 共享控件）', async () => {
+  const id = await rt.mount(PAGE)
+  assert.equal(await rt.style(id, '.settings-datetime-page', 'backgroundColor'), 'rgb(240, 242, 243)')
+  assert.equal(await rt.style(id, '[data-dt-row="date"] .lc-title', 'color'), 'rgb(153, 153, 153)',
+    '禁用行文字应是实色 #999999')
+  assert.equal(await rt.style(id, '[data-dt-row="date"]', 'opacity'), '1',
+    '禁用态不应靠 opacity 调低（包 E1）')
+  assert.equal(await rt.style(id, '[data-dt-row="autoTime"] .lc-subtitle', 'color'), 'rgb(89, 89, 89)')
+  assert.equal(await rt.style(id, '[data-dt-row="autoTime"] .lc-main', 'borderBottomColor'), 'rgb(224, 224, 224)')
+  await rt.unmount(id)
+})
+
+test('浏览器：关自动时区 → 城市列表 6 行 → 一次返回回主页', async () => {
+  const id = await rt.mount(PAGE)
+  await rt.click(id, '[data-dt-row="autoTimezone"] .toggle-switch', 80)
+  assert.deepEqual(await disabledKeys(id), ['date', 'time'], '时区行应解禁')
+
+  await rt.click(id, '[data-dt-row="timezone"]', 450)
+  await rt.page.waitForFunction(({ hostId }) => {
+    const host = window.__wbHosts.get(hostId)?.host
+    return !!host && host.querySelectorAll('[data-tz-row]').length === 6
+  }, { hostId: id }, { timeout: 20000 })
+  assert.equal(await rt.text(id, '.gn-title'), '选择时区')
+  const cities = await rt.evaluate(({ hostId }) => {
+    const host = window.__wbHosts.get(hostId).host
+    return [...host.querySelectorAll('[data-tz-row]')].map((e) => e.getAttribute('data-tz-row'))
+  }, { hostId: id })
+  assert.deepEqual(cities, ['吉隆坡', '马尼拉', '北京', '香港', '新加坡', '斯里巴加湾'])
+  assert.equal(await rt.count(id, '.settings-datetime-page [data-dt-row]'), 0, '子页应替换主页内容')
+
+  await rt.click(id, '.gn-btn.gn-back', 450)
+  await rt.page.waitForFunction(({ hostId }) => {
+    const host = window.__wbHosts.get(hostId)?.host
+    return !!host && host.querySelectorAll('[data-dt-row]').length === 9
+  }, { hostId: id }, { timeout: 20000 })
+  assert.deepEqual(await rowKeys(id), ROW_KEYS, '一次返回应回到日期与时间主页')
+  assert.deepEqual(await disabledKeys(id), ['date', 'time'], '返回后关态应保持')
+  await rt.unmount(id)
+})
+
+test('页面自声明与 route 契约在第二条链路后仍不变', () => {
+  assert.equal(page.id, 'dateTime')
+  assert.equal(typeof page.component, 'function')
+  assert.deepEqual(page.searchItems.map((i) => i.id), ['dateTime'])
+})
