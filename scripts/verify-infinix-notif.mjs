@@ -1,3 +1,9 @@
+// 产物目录：可用 ARTIFACT_DIR 覆盖；默认落到系统临时目录，跨机器/跨 lane 可移植
+import fsSync from 'node:fs'
+import osSync from 'node:os'
+import pathSync from 'node:path'
+const ARTIFACT_DIR = process.env.ARTIFACT_DIR || pathSync.join(osSync.tmpdir(), 'vwork')
+fsSync.mkdirSync(ARTIFACT_DIR, { recursive: true })
 import { chromium } from 'playwright'
 
 const CHROME =
@@ -22,7 +28,7 @@ async function run() {
   // 检查锁屏上的通知
   console.log('2. Checking LockScreen notification...')
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_lockscreen_infinix.png'
+    path: `${ARTIFACT_DIR}/verify_lockscreen_infinix.png`
   })
   console.log('Saved verify_lockscreen_infinix.png')
 
@@ -46,7 +52,7 @@ async function run() {
 
   // 截取通知中心
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_nc_infinix.png'
+    path: `${ARTIFACT_DIR}/verify_nc_infinix.png`
   })
   console.log('Saved verify_nc_infinix.png')
 
@@ -64,7 +70,7 @@ async function run() {
 
   // 截取点击通知后打开的页面
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_nc_to_account_page.png'
+    path: `${ARTIFACT_DIR}/verify_nc_to_account_page.png`
   })
   console.log('Saved verify_nc_to_account_page.png')
 
@@ -75,7 +81,7 @@ async function run() {
     await backBtn.click()
     await page.waitForTimeout(600)
     await page.screenshot({
-      path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_account_back_to_settings.png'
+      path: `${ARTIFACT_DIR}/verify_account_back_to_settings.png`
     })
     console.log('Saved verify_account_back_to_settings.png')
   }

@@ -1,3 +1,9 @@
+// 产物目录：可用 ARTIFACT_DIR 覆盖；默认落到系统临时目录，跨机器/跨 lane 可移植
+import fsSync from 'node:fs'
+import osSync from 'node:os'
+import pathSync from 'node:path'
+const ARTIFACT_DIR = process.env.ARTIFACT_DIR || pathSync.join(osSync.tmpdir(), 'vwork')
+fsSync.mkdirSync(ARTIFACT_DIR, { recursive: true })
 import { chromium } from 'playwright'
 
 const CHROME =
@@ -34,7 +40,7 @@ async function run() {
   })
   console.log('Front card computed style:', alphaInfo)
 
-  await page.screenshot({ path: '/Users/jingzhan.chen/.gemini/antigravity/brain/2fe9223f-ceff-4348-80f0-bc918deb553a/verify_alpha_stacked.png' })
+  await page.screenshot({ path: `${ARTIFACT_DIR}/verify_alpha_stacked.png` })
   console.log('1. Captured default stacked state')
 
   await browser.close()

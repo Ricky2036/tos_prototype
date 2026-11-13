@@ -1,10 +1,16 @@
+// 产物目录：可用 ARTIFACT_DIR 覆盖；默认落到系统临时目录，跨机器/跨 lane 可移植
+import fsSync from 'node:fs'
+import osSync from 'node:os'
+import pathSync from 'node:path'
+const ARTIFACT_DIR = process.env.ARTIFACT_DIR || pathSync.join(osSync.tmpdir(), 'vwork')
+fsSync.mkdirSync(ARTIFACT_DIR, { recursive: true })
 import { chromium } from 'playwright'
 
 const CHROME =
   process.env.PLAYWRIGHT_CHROME ||
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 
-const ARTIFACTS_DIR = '/Users/jingzhan.chen/.gemini/antigravity/brain/06385522-e5db-4865-9631-53c325d2b43f'
+const ARTIFACTS_DIR = ARTIFACT_DIR
 
 async function run() {
   const browser = await chromium.launch({
