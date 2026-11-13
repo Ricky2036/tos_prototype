@@ -200,3 +200,44 @@ adb -s 159467059A001123 shell settings put system screen_off_timeout 600000
 
 无（AG 通道正常，WB 已启动）。若后续要求「WB 已开始实现」的强回执，
 那只能由 WB 自己产出提交来证明——我无法直接连它的窗口。
+
+
+---
+
+## SET-01 轮次（Codex 调度修正 · 2026-11-13 12:49）
+
+- **租约已接**：AG 先完成已有 gate → WB → DSH。WB 等租期间只做清单、只读核对、单个纯逻辑测试；
+  不跑 gate/e2e/浏览器、不连真机。已直连 AG 协商并在 `.tasks/inbox/dsh.md` 留同口径。
+- **transitionContract 归属**：WB 的条件等待修复已在 `8a7a8d9` / `7e72bf8`（等异步组件与位移收敛，
+  保留全部断言、不改业务语义）。核对发现 **main 上仍是 0 个 `waitForFunction`**，即 WB 五个提交
+  （`ef41171` / `7cddede` / `8a7a8d9` / `7e72bf8` / `b40f87a`）**都还没进 main**；
+  已告知 AG 集成时直接用这两个 commit，别重复修该文件。
+- **实际缺口核对（未凭记忆补页面）**：「日期与时间」只有搜索池一条 `pushUnimplemented`（`SettingsApp.vue:352`）
+  与搜索建议词（`SettingsSearch.vue:23`）；「系统/通用」兜底页没有该行；`dateTime/**`、`system/**`、
+  `general/**`、`dateTimeStore.js`、`pages/dateTime.js` 全不存在；`spec/captures/` 在 main 上尚无文件。
+  ⇒ 现在点进去是占位页，其余全部标 unknown。
+- **已产出**：`docs/reviews/SET-WB-01-capture-request.md` —— 第一条链路（入口→主页→总开关→依赖联动→
+  返回状态保持→视觉对照）的逐包 A–F 采集清单，已写给 DSH，每包即交付。
+- **本轮 blocker（非权限）**：等 DSH 采集包落盘 + 等 AG 让出 gate 租约，二者未到前不实现页面、不跑重型验证。
+- **等待期工作**：只读核对、清单、单个纯逻辑单测（`node --test tests/pipelineTaskBoard.test.js`，不启浏览器）、
+  `node --check` 语法核对；不新增业务断言、不降基线。
+
+
+---
+
+## SET-WB-01 第一条链路交付（14:16 起，Codex 解除等待）
+
+- 同步 main 到 `c1a22d1`（含包 A+B 与 AG 让租），读 `spec/captures/SET-DSH-01-A-B.md`。
+- 落代码（不建 general，按卡用 dateTime）：`dateTimeStore.js`、
+  `dateTime/SettingsDateTime.vue`、`pages/dateTime.js`、`tests/dateTimeSettings.test.js`。
+  9 行 / 4 组、开态依赖矩阵、总开关双向联动、返回键 + 侧滑下沉、状态走 localPrefs 持久化。
+- 视觉对照（只读 DSH 本地 `04-datetime-default.png`，未连设备）修正两处包 B 表格与截图不一致：
+  「系统双时钟」默认开、「常驻地 / 双时钟显示位置」有箭头。报告 `docs/reviews/SET-WB-01-visual-parity.md`。
+- 给 AG 的 route 契约：`docs/reviews/SET-WB-01-route-contract.md`（搜索池一行 + 系统页一行，主壳零 import）。
+- 给 DSH 的 C/D/E 精确追问：`docs/reviews/SET-WB-01-capture-followup.md`。
+- 验收：13/13 单测（9 纯逻辑 + 4 真实浏览器）；gate 7 步全过；
+  glob 路由探针 `push('dateTime')` 落地页可见、9 行顺序与禁用态正确、返回回首页、零 pageErrors。
+- 阻塞项 `tests/largeTitle.test.js:205` 核对：本 lane 与 main 均已有 2 个 `waitForFunction`，已修复，无需重复改。
+- 未解决：DSH 无 CDP 调试端口（61841 非 CDP），无法用 agent-bridge 直接唤醒；
+  已通过 AG 直连请求转达唤醒 + 写 `.tasks/inbox/dsh.md`，并核对 DSH 本地证据 14:23 有新采集文件
+  （说明采集已在进行）。WB 不连真机。
