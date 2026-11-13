@@ -68,6 +68,14 @@ test('设置首页 8 组卡片与条目真实渲染，显示 / 声音 / 无障�
     ['辅助功能', '.settings-accessibility-page'],
   ]) {
     await rt.clickText(h, '.list-cell', label, 400)
+    // 8 个测试文件并发时 Vite 首次编译子页可能要几十秒，固定 sleep 会假红
+    await rt.page.waitForFunction(({ hostId, sel }) => {
+      const host = window.__wbHosts.get(hostId)?.host
+      const el = host?.querySelector(sel)
+      if (!el) return false
+      const r = el.getBoundingClientRect()
+      return r.width > 0 && r.height > 0
+    }, { hostId: h, sel }, { timeout: 20000 })
     assert.equal(await rt.visibleCount(h, sel), 1, `点「${label}」应进入对应二级页`)
     assert.equal(await rt.count(h, '.account-card'), 0, '首页应随路由卸载')
     await rt.click(h, '.gn-btn.gn-back', 400)
@@ -102,6 +110,10 @@ test('大标题随滚动折叠、搜索 Dock 可激活、卡片样式来自统�
   // 点 Dock 的闲置胶囊 → 应真的切进搜索视图
   assert.equal(await rt.count(h, '.sfd-idle'), 1, '首页 Dock 处于闲置态')
   await rt.click(h, '.sfd-idle', 400)
+  await rt.page.waitForFunction(({ hostId }) => {
+    const host = window.__wbHosts.get(hostId)?.host
+    return !!host && host.querySelectorAll('.settings-card').length === 0
+  }, { hostId: h }, { timeout: 20000 })
   assert.equal(await rt.count(h, '.settings-card'), 0, '进入搜索页后首页卡片应卸载')
   assert.ok(await rt.exists(h, 'input'), '搜索页应渲染出输入框')
   await rt.unmount(h)

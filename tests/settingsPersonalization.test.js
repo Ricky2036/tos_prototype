@@ -14,7 +14,8 @@ const screenView = readFileSync(resolve(root, 'src/components/phone/ScreenView.v
 test('Settings routes wallpaper and personalization into a real nested page', () => {
   assert.match(settings, /push\('personalization'\)/)
   assert.match(settings, /<SettingsPersonalization/)
-  assert.match(settings, /personalizationRef\.value\?\.back\(\)/)
+  assert.match(settings, /personalization:\s*personalizationRef/, '个性化必须登记在返回栈注册表')
+  assert.match(settings, /legacyRefs\[view\.value\]\?\.value/, '侧滑返回由统一注册表逐层消费')
 })
 
 test('personalization page provides overview, theme market and wallpaper picker', () => {

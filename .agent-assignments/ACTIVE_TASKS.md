@@ -223,7 +223,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | W1-001：`vite.config.js` 端口解耦 + `save-defaults` 默认关闭 | `antigravity/lane` | None (locks released) | `ce5e7df` | `e45ab4a` |
 | Merged | DSH | W2 基建：spec-gen / gate-geometry / W2 派单（W2-001/002/003） | `dsh/lane` | None (locks released) | `953408c` | `b796f15` |
 | Merged | Workbuddy | W1-002：S2 八个测试改行为断言（8 文件转成 `rt.mount` 运行时断言，DSH 已验收） | `workbuddy/lane` | None (locks released) | `3ff2884` | `df9d3e8` |
-| Active | Workbuddy | W2-001：Settings 主壳 glob 自注册 + S2 三页迁出（C0 出借 `SettingsApp.vue` 独占 owner，至 W2 结束） | `workbuddy/lane` | `src/components/apps/settings/SettingsApp.vue`（C0 出借，至 W2 结束）；`src/components/apps/settings/**` | `afa2f95` | pending |
+| Merged | Workbuddy | W2-001：Settings 主壳 glob 自注册 + S2 三页迁出（合并自 fix/q-001-flaky，含 CI flaky 修复） | `workbuddy/lane` | None (locks released) | `afa2f95` | `2e0c11d` |
 | Merged | DSH | W2-003 + CI 修复：G6 认领边界（`.claims/` / `claim-check`）/ `verify.yml` 真装 chromium + 硬超时 + Node 24 | `dsh/lane` | None (locks released) | `b796f15` | `b5c5993` |
 | Merged | Antigravity | W2-002：App 级自注册（统一纯数据应用表 + 10 个 `entry.js` + 移除 `manualChunks`）与 Hero `contentReady` + `pointerdown` 预载 | `antigravity/lane` | None (locks released) | `933bbfb` | `df1020a` |
 

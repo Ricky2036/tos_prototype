@@ -82,7 +82,8 @@ test('SettingsApp.vue routes Infinix AI into dedicated page and search', () => {
 
   // Title in stack & back handling
   assert.match(content, /infinixAi: 'Infinix AI'/)
-  assert.match(content, /aiRef\.value\?\.back/)
+  assert.match(content, /\binfinixAi:\s*aiRef\b/, 'Infinix AI 必须登记在返回栈注册表')
+  assert.match(content, /legacyRefs\[view\.value\]\?\.value/, '侧滑返回由统一注册表逐层消费')
 
   // Card 4 click triggers push
   assert.match(content, /push\('infinixAi'\)/)
