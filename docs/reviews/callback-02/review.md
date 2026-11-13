@@ -24,16 +24,53 @@
 |---|---|---|---|
 | T0 | 首次 boot 可用 | `code=0`，`state.json` 生成 | ✅ |
 | T1 | 重复事件返回原回执、不额外调模型 | `DUPLICATE`，`extraModelCalls=0` | ✅ |
-| T2 | `delivery=rejected` 不得按送达处理 | `finish code=3` ✅；`ack code=3` ✅；**但 ledger 仍写入** ❌ | ⚠️ P1 |
-| T2b | 同 ID 内容冲突需结构化拒绝 | `code=2`，`structured=true` | ✅ |
+| T2 | `delivery=rejected` 不得按送达处理 | `finish code=3`、`status=idle`、`ack code=3`（拒收被显式记录，非"标记送达"） | ✅（原 P1 已撤回，见下） |
+| T2b | 同 ID 内容冲突需结构化拒绝 | `code=2`，结构化 ✅；**但覆盖了原回执** ❌ | ⚠️ P1（新） |
 | T3 | 未批准 `next_task` 必须为 null | `code=3`「必须严格为 null」 | ✅ |
 | T4 | 模型失败不标送达、不可消费 | `code=3`，ledger 无记录，`ack code=3` | ✅ |
 | T5 | 死 pid 残留锁可释放 | `code=0`，锁消失 | ✅ |
 | T5b | 活 pid 锁不得强抢 | `code=2`，锁保留 | ✅ |
-| T6 | 并发 ack 不丢更新 | 退出码 `[0,2]`，`consumed=1` | ⚠️ P2 |
+| T6 | 并发 ack 不丢更新 | 退出码 `[0,2]`，`consumed=1`，锁冲突提示明确"稍后重试" | ✅（原 P2 已撤回） |
 | T7/T7b | finish/ack 成功后锁必须释放 | 两例 `lockGone=true` | ✅ |
 
-## P1 · `delivery=rejected` 仍写入 ledger
+## 已撤回的两条（经主控指出后复核，判据不成立）
+
+**撤回 1 · `delivery=rejected` 写 ledger。** 契约区分 `delivery`（收件有效性）与
+`task_status`（任务验收）。实测当前实现对 rejected 返回 `code=3`、ledger 记 `status='idle'`、
+`ack` 拒绝消费——"记录拒收"不等于"标记送达"。我此前用 `ledgerHasTask=true` 下结论属判据错误，
+**撤回**。
+
+**撤回 2 · 并发 ack 未文档化。** 契约第 11 行已写明"并发失败可重试，不标送达"，
+`ack` 的锁冲突提示也明确"稍后重试"。**撤回**。
+
+## P1 · 内容冲突会覆盖已送达的回执（新，实测算到）
+
+**复现链**（`/tmp/cb02-ovr`，全部 stub）：
+
+```
+1) finish --event-id EV-OVR-0001 --artifact a.txt
+   → OK … delivery=accepted；receipts/EV-OVR-0001.json 内含 receipt
+
+2) finish --event-id EV-OVR-0001 --artifact b.txt      # 同 id，内容不同
+   → REJECT … 拒绝覆盖；冲突记录 -> receipts/EV-OVR-0001.json   ← 同一路径！
+
+3) 检查回执文件
+   receipt 字段 = 缺失   delivery = None   error = content-conflict
+
+4) ack --event EV-OVR-0001
+   → ack: 回执无有效内容（前次失败或冲突记录），不能消费确认；请重试 finish
+```
+
+**危害**：一次错误重发会让**已经成功送达**的事件永久失去回执、无法被消费确认；
+审计链被覆盖，且提示文案"拒绝覆盖"与实际行为相反，误导操作者。
+（后续再发同样内容会重新调模型并覆盖回冲突记录，等于用一次模型调用"恢复"，原回执不可追回。）
+
+**最小修复**：冲突记录另存 `receipts/<id>.conflict.json`（或 `conflicts/<id>-<ts>.json`），
+**绝不写已存在有效回执的路径**；`ack` 只读主回执文件。
+
+**建议用例**：T2b 增加断言——冲突后 `receipts/<id>.json` 的 `receipt` 仍在、且仍可 `ack`。
+
+## P1（已撤回，留档）· `delivery=rejected` 仍写入 ledger
 
 ```
 T2: finish code=3 · ack code=3 · ledgerHasTask=true
