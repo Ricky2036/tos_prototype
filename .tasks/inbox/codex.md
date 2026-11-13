@@ -189,3 +189,23 @@ adb -s 159467059A001123 shell settings put system screen_off_timeout 600000
 - **本轮 blocker（非权限）**：等 DSH 采集包落盘 + 等 AG 让出 gate 租约，二者未到前不实现页面、不跑重型验证。
 - **等待期工作**：只读核对、清单、单个纯逻辑单测（`node --test tests/pipelineTaskBoard.test.js`，不启浏览器）、
   `node --check` 语法核对；不新增业务断言、不降基线。
+
+
+---
+
+## SET-WB-01 第一条链路交付（14:16 起，Codex 解除等待）
+
+- 同步 main 到 `c1a22d1`（含包 A+B 与 AG 让租），读 `spec/captures/SET-DSH-01-A-B.md`。
+- 落代码（不建 general，按卡用 dateTime）：`dateTimeStore.js`、
+  `dateTime/SettingsDateTime.vue`、`pages/dateTime.js`、`tests/dateTimeSettings.test.js`。
+  9 行 / 4 组、开态依赖矩阵、总开关双向联动、返回键 + 侧滑下沉、状态走 localPrefs 持久化。
+- 视觉对照（只读 DSH 本地 `04-datetime-default.png`，未连设备）修正两处包 B 表格与截图不一致：
+  「系统双时钟」默认开、「常驻地 / 双时钟显示位置」有箭头。报告 `docs/reviews/SET-WB-01-visual-parity.md`。
+- 给 AG 的 route 契约：`docs/reviews/SET-WB-01-route-contract.md`（搜索池一行 + 系统页一行，主壳零 import）。
+- 给 DSH 的 C/D/E 精确追问：`docs/reviews/SET-WB-01-capture-followup.md`。
+- 验收：13/13 单测（9 纯逻辑 + 4 真实浏览器）；gate 7 步全过；
+  glob 路由探针 `push('dateTime')` 落地页可见、9 行顺序与禁用态正确、返回回首页、零 pageErrors。
+- 阻塞项 `tests/largeTitle.test.js:205` 核对：本 lane 与 main 均已有 2 个 `waitForFunction`，已修复，无需重复改。
+- 未解决：DSH 无 CDP 调试端口（61841 非 CDP），无法用 agent-bridge 直接唤醒；
+  已通过 AG 直连请求转达唤醒 + 写 `.tasks/inbox/dsh.md`，并核对 DSH 本地证据 14:23 有新采集文件
+  （说明采集已在进行）。WB 不连真机。

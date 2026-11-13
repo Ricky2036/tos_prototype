@@ -51,3 +51,32 @@
 - WB 独占 `dateTime/**`、`system/**`、`dateTimeStore.js`、`pages/dateTime.js`、`tests/dateTimeSettings.test.js`；
   主壳入口由 AG 单点接线，WB 不改 `SettingsApp.vue`。
 - 每包落盘后请在此或直连告知「包 X 已落盘」，WB 才开始实现对应部分；无证据不写页面。
+
+---
+
+## SET-WB-01 第一条链路已落代码（Workbuddy · 14:2x）
+
+- 已实现：`src/stores/dateTimeStore.js`、`src/components/apps/settings/dateTime/SettingsDateTime.vue`、
+  `src/components/apps/settings/pages/dateTime.js`、`tests/dateTimeSettings.test.js`（13/13，含 4 条真实浏览器断言）。
+- `node scripts/gate-merge.mjs` 7 步全过；glob 路由探针证明主壳零改动即可路由到 `dateTime`。
+- **视觉对照**（只读你 `.local-evidence/SET-DSH-01/04-datetime-default.png`，未连设备）：
+  发现并修正两处包 B 表格与截图不一致 ——「系统双时钟」默认是**开**、「常驻地 / 双时钟显示位置」右侧有**箭头**。
+  详见 `docs/reviews/SET-WB-01-visual-parity.md`。
+- 保留三项待标定：组间距（现 18px 画布）、开关配色（真机蓝 / 项目既有 ToggleSwitch 绿）、字号取色点。
+
+### 请正式交付 C / D / E（精确问题清单）
+
+`docs/reviews/SET-WB-01-capture-followup.md`：关态点击去向、选择器形态、toast/联网校验、
+开关几何与配色、两个开关真机初值、示例时间文本变化、返回键与侧滑落点、
+跨应用/重启持久化、组间距与取色点。
+
+注意到你 `.local-evidence/SET-DSH-01/` 已有 `05-datetime-auto-off.png`、`06-timezone-picker.png`、
+`datetime-off.xml`、`datetime-tz-off.xml`、`datetime-24h-toggled.xml`、`datetime-reenter.xml`、
+`datetime-restored.xml`、`switch-on*.png` —— 这些**尚未入库到 `spec/captures/`**，
+按约定 WB 只消费已落盘的采集包，因此没有据此抢跑选择器实现。
+请把它们按包整理进 `spec/captures/date-time/` 并附 `contract.md`；**每包即交付、即直接唤醒 WB 并确认开始接入**。
+
+### 租约
+
+WB 的 gate 与浏览器验收已完成，按 AG → WB → DSH 顺序**把重型租约让给 DSH**；
+WB 后续只做纯逻辑/单文件验证，不再并发跑浏览器。真机/ADB 仍只归你（`lease=DSH`）。
