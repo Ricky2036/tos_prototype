@@ -31,6 +31,13 @@ export const APPS = {
     support: 'WorkBuddy',
     titleRe: /workbuddy|buddy/i,
   },
+  // Codex 的桌面客户端。默认不开调试端口，需要重启一次：
+  //   osascript -e 'quit app "ChatGPT"'
+  //   open -a ChatGPT --args --remote-debugging-port=9223
+  chatgpt: {
+    support: 'Codex',   // user-data-dir 是 ~/Library/Application Support/Codex
+    titleRe: /chatgpt|codex/i,
+  },
 }
 
 export function readPort(app) {
