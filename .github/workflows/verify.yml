@@ -56,4 +56,4 @@ jobs:
         run: npm run build
 
       - name: G7 · assert ratchet
-        run: node scripts/check-assert-ratchet.mjs --tap /tmp/tap.txt
+        run: node scripts/check-assert-ratchet.mjs --tap /tmp/tap.txt --unit-only

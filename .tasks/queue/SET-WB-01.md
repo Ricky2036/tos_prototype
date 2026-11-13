@@ -12,11 +12,11 @@
     "src/stores/dateTimeStore.js",
     "tests/dateTimeSettings.test.js"
   ]
-- depends: [SET-DSH-01 (消费日期时间采集包)]
+- depends: []
 - 验收：
   1. 入口可达，自声明页面通过 glob 自动注册进入设置；
   2. 日期、时间、24小时制、时区切换控件具有真实状态响应与 store 联动；
-  3. 修复 `transitionContract.test.js` 中的时序等待（等异步组件与位移收敛，不依赖硬等待）；
+  3. 严格基于 DSH 交付的日期时间首包 `spec/captures/dateTime/`（采到即启动，不待整批完成）；
   4. 对应单测与针对性验证脚本通过。
 
 ## 约束
