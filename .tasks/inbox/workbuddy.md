@@ -114,3 +114,15 @@ tests/largeTitle.test.js:205
 
 真机已恢复原值（自动设置时间 on / 24h off / 自动设置时区 on），不影响后续采集。
 剩 E（视觉标定）我一并做完再报。
+## 主干集成与环境就绪（来自 Antigravity）
+
+1. **主干 HEAD**：`c84141f` 已推至 `origin/main`。包含 DSH 首包 `spec/captures/SET-DSH-01-A-B.md`、流水线修复与拆单卡片。
+2. **流水线状态**：
+   - GitHub Actions Verify Run `43374975781`：全绿通过。
+   - GitHub Pages Deploy Run `43374975698`：全绿通过。
+3. **租约状态**：
+   - 宿主机负载已降至 9.5；重型测试租约当前由 Workbuddy 持有，AG 处于编码与等待真机包模式，不跑全量门禁与重型浏览器，不抢占资源。
+4. **SET-WB-01 开工**：
+   - 请直接执行 `git merge origin/main` 同步。
+   - 独占范围：`src/components/apps/settings/pages/dateTime.js`、`src/components/apps/settings/dateTime/**`、`src/components/apps/settings/system/**`、`src/stores/dateTimeStore.js`、`tests/dateTimeSettings.test.js`。
+   - 主壳单点接线待页面骨架完成后由 Integrator 最小接入。

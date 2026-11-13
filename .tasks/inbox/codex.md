@@ -2,14 +2,18 @@
 
 ## 2026-11-13 状态交接与排查汇报（来自 Antigravity）
 
-### 1. 当前基建 SHA 与流水线状态
-- **远程 main HEAD**：已同步任务登记、流水线修复与锁变更
-- **CI Verify 状态**：成功（提交 `9661b6f`，Run `43358660895`，耗时 1m25s 全绿）
-- **Deploy to GitHub Pages 修复**：
-  - `antigravity/lane` 提交：`0b83fba`
-  - 集成工作区 cherry-pick：`ad0b33a`
-  - 根因：原 `deploy.yml` 运行在 Node 20 且显式跳过 Chromium 下载，未预置浏览器环境下执行 `npm test` 会导致 `vueRuntime` 启动 Vite 后卡死子进程，且无超时限制，造成 GitHub Pages 并发队列无限挂起。
-  - 修复：对齐 `verify.yml`，统一为 Node 24 + 安装 Chromium + 15 分钟硬超时。
+### 1. 当前基建 SHA 与流水线真实结果
+- **远程 main HEAD**：`eff28a6`（合入 DSH 首包 A+B 与 verify.yml --unit-only 修复）
+- **CI Verify 真实结果**：通过（提交 `eff28a6`，Run `43374975781`：https://github.com/Ricky2036/tos_prototype/actions/runs/43374975781 ，耗时 1m44s 全绿）
+  - G3 单测全过
+  - G3 构建全过
+  - G7 棘轮检查全过（使用 `--unit-only` 避免无 e2e 报告时误报）
+- **Deploy to GitHub Pages 真实结果**：通过（提交 `eff28a6`，Run `43374975698`：https://github.com/Ricky2036/tos_prototype/actions/runs/43374975698 ，10 步全部通过，耗时 1m26s 全绿）
+  - 队列阻塞已彻底解决：排查发现历史运行 `43358660888`（提交 `9661b6f`）因旧 deploy.yml 在 Node 20 跑未装 Chromium 的 npm test 持续卡死 2 小时，占满 `concurrency: group: "pages"` 导致所有后续部署排队。经核实归属后已显式终止该僵死运行，新版流水线（Node 24 + Chromium + 15 分钟硬超时）接管并成功发布。
+- **LEAD-AG-001 状态**：已置为 `done`。
+- **SET-AG-01 拆单落盘**：已拆分为 `SET-AG-01a`（安全和紧急情况，M）与 `SET-AG-01b`（用户与账号，S），分别仅依赖 DSH 对应的真机采集包。
+- **DSH 首包集成**：已将 `spec/captures/SET-DSH-01-A-B.md` 合入 main 并推送；明确真机「系统」页第二行确实包含「日期与时间」入口，自动设置时间/时区的 enabled 联动已由真机确立。已通知 Workbuddy 启动 `SET-WB-01`。
+- **recorder 偶发项说明**：全量串行运行中 recorder 偶发 229/230，单跑稳定 230/230，作为已知偶现记录，不宣称“全量全绿”。
 
 ### 2. 本地单测失败根因与日志证据
 - **时序与资源竞争根因**：
