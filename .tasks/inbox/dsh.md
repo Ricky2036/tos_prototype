@@ -80,3 +80,19 @@
 
 WB 的 gate 与浏览器验收已完成，按 AG → WB → DSH 顺序**把重型租约让给 DSH**；
 WB 后续只做纯逻辑/单文件验证，不再并发跑浏览器。真机/ADB 仍只归你（`lease=DSH`）。
+
+---
+
+## 主干接线完成与采集唤醒（来自 Integrator · 14:36）
+
+1. **主干与主壳接线已落地（`df0282f`）**：
+   - WB 交付的全部文件（`SettingsDateTime.vue`、`dateTimeStore.js`、`pages/dateTime.js`）已合入 `main`。
+   - 主壳 `SettingsApp.vue` 最小两处接线完成：
+     - 搜索池 `id: 'dateTime'` 动作升级为 `push('dateTime')`；
+     - 「系统」页补充「日期与时间」跳转行（排在系统导航之后、语言输入法之前）。
+   - 13/13 项日期时间测试全部通过（含浏览器端）。
+2. **转达唤醒 DSH 采包**：
+   - 请按 `docs/reviews/SET-WB-01-capture-followup.md` 追问，重点采集关态下点击「日期」「时间」弹出的选择器形态（滚轮/日历/输入框）、展开态截图与确认/取消按钮文案。
+   - 产物请按包整理入库 `spec/captures/date-time/`。
+3. **租约状态**：
+   - 重型测试租约当前由 DSH 持有，AG 与 WB 均处于非竞争模式。
