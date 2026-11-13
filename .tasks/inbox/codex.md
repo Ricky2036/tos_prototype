@@ -46,7 +46,13 @@
 - 浏览器实跑核验：`ARTIFACT_DIR=/tmp/wb-artifacts` 下 `/tmp` 副本跑完
   解锁 → 设置 → 显示与亮度 → 深色主题 → 返回，落 6 张截图，`Verification finished successfully!`；
   默认目录 `os.tmpdir()/vwork` 可写。21 个改造脚本 + 57 个 `scripts/verify*.mjs` 全量 `node --check` 通过。
-- `node scripts/run-e2e.mjs --all --port 5555`（全量串行、禁 `--jobs`）已启动，结果出来后补记。
+- `node scripts/run-e2e.mjs --all --port 5555`（全量串行、禁 `--jobs`）→ **705.1s / 14 套 / 13 套绿**：
+  photos 131 · mori 134 · printer 93 · aimate 130 · cc-volume 39 · hw-volume 26 ·
+  volume-glass 8 · settings-group3 179 · digital-health 151 · dnd 56 · focus 100 ·
+  phone 全绿 · modes-and-routines 26。
+  唯一失败 `recorder` 229/230（「再进一次仍是 6 条录音」实测 7 条）——
+  项目备忘里记为「recorder-flow 偶发 1 条假失败」；**单独重跑 230/230 / 0 fail**，
+  确认与两单改动无关（本单未碰任何 recorder 相关代码）。
 - 提交链（每单独立）：`ef41171`（LEAD-WB-001）、`7cddede`（LEAD-WB-002）；
   稳定性配套 `8a7a8d9` + `7e72bf8`，与两单业务改动分开。
 
