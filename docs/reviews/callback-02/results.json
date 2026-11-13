@@ -1,0 +1,48 @@
+{
+  "reviewed_version": {
+    "finish.mjs": "4f1ce0b66935bff345916334448f03413b32e88fc6a33ce723aa190f1551f106",
+    "note": "审查期间实现持续变动：17:53 版无 P0；2a59f2fe(18:04:09) 有 P0；4f1ce0b6(18:04:22) 已修"
+  },
+  "cases": [
+    {
+      "k": "T0 首次boot",
+      "v": "code=0 state=true receipt=true err=-"
+    },
+    {
+      "k": "T1 首次",
+      "v": "code=0 calls=1"
+    },
+    {
+      "k": "T1 重复",
+      "v": "code=0 calls=1 :: finish: DUPLICATE EV-T1-0001 -> 原回执 /tmp/cb02-review/T1/receipts/EV-T1-0001.json"
+    },
+    {
+      "k": "T2 首次(rejected)",
+      "v": "code=0 calls=1"
+    },
+    {
+      "k": "T2 重发(改内容)",
+      "v": "code=2 calls=1 :: finish: REJECT EV-T2-0001 已存在且内容不同（task/producer/commits/artifact 等变更），拒绝覆盖"
+    },
+    {
+      "k": "T2 事件里最终 artifact",
+      "v": "[\"art/a.txt\"]"
+    },
+    {
+      "k": "T3 next_task=字符串",
+      "v": "code=3 有回执=true 接受=false :: finish: FAIL EV-T3-0001 -> /tmp/cb02-review/T3/receipts/EV-T3-0001.json"
+    },
+    {
+      "k": "T4 失败回执",
+      "v": "finish code=3 ledger有该任务=false ack code=3 :: ack: 回执无有效内容（前次失败），不能消费确认；请重试 finish"
+    },
+    {
+      "k": "T5 残留 .lock",
+      "v": "code=2 锁仍存在=true :: finish: 锁被占用（.lock 存在），本次未送达，可重试"
+    },
+    {
+      "k": "T6 并发 ack",
+      "v": "退出码 A=0 B=0 · consumed=2/2 · ledger.status=consumed last_event=EV-T6-B001"
+    }
+  ]
+}
