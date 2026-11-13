@@ -13,6 +13,31 @@
  * 一个文件命中多个簇 = 冲突，必须显式解决，不允许"都算你的"。
  */
 
+/** 已知执行者。integrator 可跨簇（它负责合入与冲突仲裁） */
+export const ACTORS = ['workbuddy', 'dsh', 'integrator', 'codex']
+
+/** 分支 → 执行者。CLI 未显式给 --actor 时按当前分支推断 */
+export const BRANCH_ACTOR = {
+  'workbuddy/lane': 'workbuddy',
+  'dsh/lane': 'dsh',
+  'antigravity/lane': 'integrator',
+  main: 'integrator',
+}
+
+/**
+ * 解析「谁在改」。缺身份时必须返回 null，不能兜底成某个默认值——
+ * 兜底等于让任何人在任何簇上都能过。
+ */
+export function resolveActor({ explicit, branch, env }) {
+  const a = (explicit || env || '').trim()
+  if (a) {
+    if (!ACTORS.includes(a)) return { actor: null, source: 'invalid', detail: `未知执行者 ${a}` }
+    return { actor: a, source: explicit ? 'flag' : 'env' }
+  }
+  if (branch && BRANCH_ACTOR[branch]) return { actor: BRANCH_ACTOR[branch], source: 'branch' }
+  return { actor: null, source: 'missing' }
+}
+
 /** 协作产物：任何 lane 都可以改，不算越界 */
 export const SHARED_ALLOW = [
   '.tasks/**',
@@ -61,9 +86,13 @@ export function matchGlob(file, glob) {
 export function classify(files, claims, opts = {}) {
   const shared = SHARED_ALLOW
   const allow = opts.allow || []
+  const actor = opts.actor || null
+  const integratorBypass = opts.integratorBypass !== false
   const rows = []
   const unclaimed = []
   const conflicts = []
+  const unauthorized = []
+  const noActor = []
   const allowed = []
 
   for (const file of files) {
@@ -88,16 +117,32 @@ export function classify(files, claims, opts = {}) {
         status: 'conflict',
       })
     } else {
-      rows.push({ file, cluster: hits[0].cluster, owner: hits[0].owner, status: 'claimed' })
+      const c = hits[0]
+      const lent = Array.isArray(c.lendTo) && c.lendTo.includes(actor)
+      if (!actor) {
+        noActor.push(file)
+        rows.push({ file, cluster: c.cluster, owner: c.owner, status: 'no-actor' })
+      } else if (actor === c.owner || lent) {
+        rows.push({ file, cluster: c.cluster, owner: c.owner, status: 'claimed', lent })
+      } else if (integratorBypass && actor === 'integrator') {
+        rows.push({ file, cluster: c.cluster, owner: c.owner, status: 'claimed', by: 'integrator' })
+      } else {
+        unauthorized.push(file)
+        rows.push({ file, cluster: c.cluster, owner: c.owner, status: 'unauthorized', actor })
+      }
     }
   }
 
   return {
-    ok: unclaimed.length === 0 && conflicts.length === 0,
+    ok: unclaimed.length === 0 && conflicts.length === 0
+      && unauthorized.length === 0 && noActor.length === 0,
     rows,
     unclaimed,
     conflicts,
+    unauthorized,
+    noActor,
     allowed,
+    actor,
   }
 }
 
@@ -112,7 +157,13 @@ export function normalizeClaims(entries) {
     if (!Array.isArray(c.files) || c.files.length === 0) throw new Error(`${name}: files 必须是非空数组`)
     if (seen.has(c.cluster)) throw new Error(`簇 ${c.cluster} 在 ${seen.get(c.cluster)} 与 ${name} 重复登记`)
     seen.set(c.cluster, name)
-    out.push({ cluster: c.cluster, owner: c.owner, since: c.since || '', files: c.files })
+    out.push({
+      cluster: c.cluster,
+      owner: c.owner,
+      since: c.since || '',
+      files: c.files,
+      lendTo: Array.isArray(c.lendTo) ? c.lendTo : [],
+    })
   }
   return out
 }

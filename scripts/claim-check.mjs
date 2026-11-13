@@ -19,7 +19,7 @@ import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { classify, normalizeClaims } from './lib/claim-rules.mjs'
+import { classify, normalizeClaims, resolveActor, ACTORS } from './lib/claim-rules.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const argv = process.argv.slice(2)
@@ -29,6 +29,8 @@ const getArg = (n, d = null) => {
 }
 const strict = argv.includes('--strict')
 const base = getArg('base', 'origin/main')
+const explicitActor = getArg('actor', null)
+const noIntegratorBypass = argv.includes('--no-integrator-bypass')
 const allow = []
 for (let i = 0; i < argv.length; i += 1) {
   if (argv[i] === '--allow') allow.push(argv[i + 1])
@@ -71,18 +73,47 @@ if (!usedBase || (files.length === 0 && usedBase === base)) {
   }
 }
 
-const result = classify(files, claims, { allow })
+/* ---- 解析执行者身份 ---- */
+let branch = ''
+try {
+  branch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+    cwd: ROOT, encoding: 'utf8', stdio: 'pipe',
+  }).trim()
+} catch { /* detached HEAD 等 */ }
+
+const who = resolveActor({ explicit: explicitActor, branch, env: process.env.CLAIM_ACTOR })
+if (who.source === 'invalid') {
+  console.error(`\x1b[31m执行者无效：${who.detail}\x1b[0m；可选 ${ACTORS.join(' / ')}`)
+  process.exit(2)
+}
+
+const result = classify(files, claims, {
+  allow,
+  actor: who.actor,
+  integratorBypass: !noIntegratorBypass,
+})
 
 /* ---- 输出 ---- */
 console.log(`基线 ${usedBase} · 改动 ${files.length} 个文件 · 认领表 ${claims.length} 个簇`)
+console.log(`执行者 ${who.actor ? `${who.actor}（来源 ${who.source}${branch ? `，分支 ${branch}` : ''}）` : '\x1b[33m未知\x1b[0m'}`)
 if (claims.length) {
   console.log(`  已登记：${claims.map((c) => `${c.cluster}(${c.owner})`).join(' · ')}`)
 }
 console.log('')
 
+const MARK = {
+  claimed: '  ok ',
+  conflict: ' 冲突',
+  unclaimed: ' 未认领',
+  unauthorized: ' 越权',
+  'no-actor': ' 无身份',
+}
 for (const r of result.rows) {
-  const mark = r.status === 'claimed' ? '  ok ' : r.status === 'conflict' ? ' 冲突' : ' 未认领'
-  console.log(`${mark}  ${r.file}${r.cluster ? `  → ${r.cluster} / ${r.owner}` : ''}`)
+  const mark = MARK[r.status] || r.status
+  const extra = r.status === 'claimed' && r.lent ? '（出借）'
+    : r.status === 'claimed' && r.by ? `（${r.by}）`
+      : r.status === 'unauthorized' ? `（执行者 ${r.actor} 不是 owner ${r.owner}）` : ''
+  console.log(`${mark}  ${r.file}${r.cluster ? `  → ${r.cluster} / ${r.owner}` : ''}${extra}`)
 }
 
 const sharedCount = result.allowed.length
@@ -101,6 +132,16 @@ if (result.ok) {
     console.log(`G6 WARN · ${result.conflicts.length} 个文件同时命中多个簇：`)
     for (const f of result.conflicts) console.log(`  · ${f}`)
     console.log('  处理：簇之间必须划清边界，不允许"都算你的"')
+  }
+  if (result.unauthorized.length) {
+    console.log(`G6 WARN · ${result.unauthorized.length} 个文件越权（执行者不是 owner）：`)
+    for (const f of result.unauthorized) console.log(`  · ${f}`)
+    console.log('  处理：让 owner 改，或由 owner 在 .claims 里加 lendTo，或开 [handoff] 白名单')
+  }
+  if (result.noActor.length) {
+    console.log(`G6 WARN · ${result.noActor.length} 个文件无法判定（缺执行者身份）：`)
+    for (const f of result.noActor) console.log(`  · ${f}`)
+    console.log('  处理：--actor <workbuddy|dsh|integrator|codex> 或设 CLAIM_ACTOR；decisive 模式不允许缺身份')
   }
   if (strict) process.exit(1)
   console.log('\n（advisory 模式：不阻断。W3 起加 --strict 转阻塞）')

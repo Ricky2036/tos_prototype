@@ -2,15 +2,25 @@
   "cluster": "C0-infra",
   "owner": "dsh",
   "since": "2026-11-12",
-  "note": "工程基建：门禁、工具、契约。DSH 独占，其他 lane 只读。",
+  "note": "工程基建：门禁脚本与工具。DSH 独占。scripts/** 不再整目录上锁——具体文件逐个列出，其余归 C0-wb-lend 或各簇。",
   "files": [
-    "scripts/**",
+    "scripts/lib/**",
+    "scripts/gate-merge.mjs",
+    "scripts/check-assert-ratchet.mjs",
+    "scripts/claim-check.mjs",
+    "scripts/check-spec-literals.mjs",
+    "scripts/check-style-ratchet.mjs",
+    "scripts/spec-gen.mjs",
+    "scripts/gate-geometry.mjs",
+    "scripts/capture-e2e-summaries.mjs",
+    "scripts/run-e2e.mjs",
     "tools/**",
     "pixel-refs/**",
     "spec/**",
     "tests/pipeline*.test.js",
     "tests/e2e-summary-baseline.txt",
-    ".github/workflows/verify.yml",
-    "tests/baseline.json"
+    "tests/baseline.json",
+    "tests/style-baseline.json",
+    ".github/workflows/verify.yml"
   ]
 }
