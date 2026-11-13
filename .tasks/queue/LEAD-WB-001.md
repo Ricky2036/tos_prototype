@@ -1,7 +1,7 @@
 # LEAD-WB-001 · 任务板与拉取式队列对齐
 
 - size: M
-- status: doing
+- status: done
 - claim: C0-infra
 - owner: workbuddy
 - depends: []
@@ -27,6 +27,15 @@
   队列卡 owner/status/claim 完整；ROADMAP/TEMPLATE 不在表里；6 张旧卡保留在历史段；`validateTasks` 零问题
 - 未碰：`gate-merge.mjs` / `claim-check.mjs` / G7 / `run-e2e.mjs`（仍归 DSH）
 - 未碰：ACTIVE_TASKS.md / ROADMAP.md / TEMPLATE.md / roles-v2.md（AG 负责 main 的卡片状态与协议编辑）
+
+## 最终验收（Workbuddy）
+
+- `node --test tests/pipelineTaskBoard.test.js` → **17 / 17**
+- `node scripts/gate-merge.mjs` → **7 步全过**（G3a / G3b / Gspec / Gtask / Gclaim / G5 / G7）
+- 全量单测 **894 / 894 / 0 fail**（基线 872，未降基线、未删断言）
+- 浏览器核验：生成器真实数据输出 Q-001=done、Q-002 依赖 `W2-001 ✓`、ROADMAP/TEMPLATE 不在表内；
+  `--write` 无标记拒绝覆盖、有标记只替换区块且手工历史逐字保留、坏输入拒绝落盘
+- commit `ef41171`；稳定性配套 `8a7a8d9` / `7e72bf8`（本机 load 47+ 导致浏览器固定 sleep 假红，改条件等待，不删断言）
 
 ## 不许做什么
 

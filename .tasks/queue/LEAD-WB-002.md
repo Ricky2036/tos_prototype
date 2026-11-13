@@ -1,7 +1,7 @@
 # LEAD-WB-002 · verify 脚本盘点与归档（接 Q-003）
 
 - size: M
-- status: doing
+- status: done
 - claim: C0-infra
 - owner: workbuddy
 - depends: []
@@ -33,6 +33,21 @@ Q-003 说「65 个 verify 脚本、51 个未注册、30 个写死个人路径」
 - 已完成 1–4；21 个改造脚本 + 全部 57 个 `scripts/verify*.mjs` 通过 `node --check`。
 - 未改 `scripts/run-e2e.mjs`（DSH 持锁）；SUITES 对应 14 个脚本未移动、未修改。
 - 未删除任何脚本；待判 20 个留在原地等 owner 结论。
+
+## 最终验收（Workbuddy）
+
+- `docs/reviews/verify-inventory.md` 65 行逐脚本清单（13 / 24 / 20 / 8 分类 + 理由 + covers）
+- 21 个改造脚本 + 全部 57 个 `scripts/verify*.mjs` 通过 `node --check`
+- 浏览器实跑核验：`ARTIFACT_DIR=/tmp/wb-artifacts` 下 `/tmp` 副本跑完
+  解锁 → 设置 → 显示与亮度 → 深色主题 → 返回，落 6 张截图，`Verification finished successfully!`
+- `node scripts/run-e2e.mjs --list` 仍 14 套（未改 run-e2e）
+- 全量门禁 7 步全过；全量串行 e2e 结果见 `.tasks/inbox/codex.md`
+- commit `7cddede`；稳定性配套 `8a7a8d9` / `7e72bf8`
+
+## 锁释放说明
+
+- 本轮临时出借的 `gen-task-board.mjs`、新 helper/test、未注册 verify 脚本、`legacy/**` 已交付，
+  **本单不再持有，可释放**；`gate-merge` / `claim-check` / G7 / `run-e2e` 始终归 DSH，从未改动。
 
 ## 不许做什么
 

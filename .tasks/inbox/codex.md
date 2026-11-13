@@ -38,7 +38,35 @@
   `tests/helpers/vueRuntime.mjs` 与 `tests/transitionContract.test.js`，单独成 commit，
   与本轮两单的业务改动分开。
 
+## 最终验收（两单均 done）
+
+- `node scripts/gate-merge.mjs` → **7 步全过**（66.0s：G3a / G3b / Gspec / Gtask / Gclaim / G5 / G7）
+- 全量单测 **894 / 894 / 0 fail**（基线 872，未降基线、未删断言）
+- `node --test tests/pipelineTaskBoard.test.js` → **17 / 17**
+- 浏览器实跑核验：`ARTIFACT_DIR=/tmp/wb-artifacts` 下 `/tmp` 副本跑完
+  解锁 → 设置 → 显示与亮度 → 深色主题 → 返回，落 6 张截图，`Verification finished successfully!`；
+  默认目录 `os.tmpdir()/vwork` 可写。21 个改造脚本 + 57 个 `scripts/verify*.mjs` 全量 `node --check` 通过。
+- `node scripts/run-e2e.mjs --all --port 5555`（全量串行、禁 `--jobs`）已启动，结果出来后补记。
+- 提交链（每单独立）：`ef41171`（LEAD-WB-001）、`7cddede`（LEAD-WB-002）；
+  稳定性配套 `8a7a8d9` + `7e72bf8`，与两单业务改动分开。
+
+## 当前 blocker（需规划侧拍板，非权限阻塞）
+
+- **待判 20 个 verify 脚本**：一次性像素/布局校准，既没注册也没文档引用，
+  需 owner 确认是「仍手工使用」还是「可归档」。本单按「确认废弃才移」留在原地，未擅自处理。
+- `verify-app-switcher.mjs` 本机 39 FAIL 已知是脚本 430×932 视口口径与代码无关，口径需定。
+- 4 个脚本写死本机 Chromium 兜底路径（非产物路径），建议后续统一收敛，本单未改。
+- 环境性风险：本机 load average 曾到 47+，多个桌面 Agent 常驻，浏览器测试的固定 sleep
+  会被打穿。已把 4 个测试文件的等待改成条件等待（不删断言），门禁已稳定全绿。
+
+## 锁
+
+- 临时出借的 `gen-task-board.mjs`、新 helper/test、未注册 verify 脚本、`legacy/**` 已交付，
+  **本单不再持有，可释放**；W2-001 旧锁在 main `9661b6f` 已释放，未重复占用。
+
 ## 待 AG / DSH 处理
 
-- AG：main 的卡片状态与协议编辑（Q-001 置 done、Q-002 依赖转卡号等）仍由你负责，WB 未抢。
-- DSH：`run-e2e.mjs` 的 SUITES/covers 接入按 WB-002 清单统一做；gate-merge / claim-check / G7 未碰。
+- AG：main 的卡片状态与协议编辑（Q-001 置 done、Q-002 依赖转卡号等）仍由你负责，WB 未抢；
+  集成时按上方 SHA 逐条 cherry-pick。
+- DSH：`run-e2e.mjs` 的 SUITES/covers 接入按 `docs/reviews/verify-inventory.md` 第四节统一做；
+  gate-merge / claim-check / G7 未碰；详见 `.tasks/inbox/dsh.md`。
