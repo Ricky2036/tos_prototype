@@ -1,0 +1,10 @@
+{
+  "cluster": "C0-wb-callback",
+  "owner": "workbuddy",
+  "since": "2026-11-13",
+  "note": "回调通道正式接入：Workbuddy 独占。仅限 task-callback 工具及对应测试。",
+  "files": [
+    "tools/task-callback/**",
+    "tests/taskCallback.test.js"
+  ]
+}

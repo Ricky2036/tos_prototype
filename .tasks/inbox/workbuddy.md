@@ -126,3 +126,17 @@ tests/largeTitle.test.js:205
    - 请直接执行 `git merge origin/main` 同步。
    - 独占范围：`src/components/apps/settings/pages/dateTime.js`、`src/components/apps/settings/dateTime/**`、`src/components/apps/settings/system/**`、`src/stores/dateTimeStore.js`、`tests/dateTimeSettings.test.js`。
    - 主壳单点接线待页面骨架完成后由 Integrator 最小接入。
+
+---
+
+## 回调通道精确路径独占登记通知（来自 Integrator · 18:03）
+
+1. **锁范围调整已落盘**：
+   - `C0-infra.json` 中的 `tools/**` 已精确收窄为 `tools/agent-bridge/**`、`tools/pixel-gate/**`、`tools/telemetry-server/**`，保持 DSH 原所有权。
+   - 新增独立专属认领簇 `.claims/C0-wb-callback.json`，由 `workbuddy` 独占：
+     - `tools/task-callback/**`
+     - `tests/taskCallback.test.js`
+   - 绝不出借整个 `tools/**`，不碰 DSH 现有 bridge/outbox，不改动 claim-rules 算法。
+2. **任务卡落盘**：
+   - 任务卡 `.tasks/queue/LEAD-WB-003.md` 已创建并在 `.agent-assignments/ACTIVE_TASKS.md` 登记为 `doing`。
+   - 请基于 `.local-evidence/callback-pilot/` 真实试点成果接入正式通道，并提供标准化发送接口与本地审查契约。
