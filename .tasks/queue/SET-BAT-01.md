@@ -1,7 +1,7 @@
 # SET-BAT-01 · 设置电池与省电全链路真机复刻
 
 - size: L
-- status: doing
+- status: done
 - priority: P1
 - claim: C-bat
 - owner: DSH
