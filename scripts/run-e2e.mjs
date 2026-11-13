@@ -42,6 +42,7 @@
  */
 import { spawn } from 'node:child_process'
 import { parseChecks } from './lib/parse-suite-checks.mjs'
+import { writeEvidence } from './lib/e2e-evidence.mjs'
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -238,6 +239,8 @@ for (let i = 0; i < argv.length; i += 1) {
   else if (a === '--changed') opt.changed = argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[++i] : ''
   else if (a.startsWith('--changed=')) opt.changed = a.slice(10)
   else if (a === '--port') opt.port = String(argv[++i])
+  else if (a === '--out') opt.out = argv[++i]
+  else if (a.startsWith('--out=')) opt.out = a.slice(6)
   else if (a.startsWith('--port=')) opt.port = a.slice(7)
   else picked.push(a)
 }
@@ -390,9 +393,38 @@ const bad = results.filter((r) => !r.ok)
 console.log('\n耗时表（降序）')
 for (const r of results) console.log(`  ${r.ok ? '✅' : '❌'} ${r.id.padEnd(14)} ${(r.ms / 1000).toFixed(1).padStart(6)}s  ${r.summary}`)
 console.log(`\n合计 ${(total / 1000).toFixed(1)}s · ${results.length} 套 · 失败 ${bad.length} 套`)
-if (opt.json) {
-  fs.writeFileSync('/tmp/run-e2e.json', JSON.stringify({ total, jobs: opt.jobs, results: results.map(({ out, ...r }) => r) }, null, 2))
-  console.log('JSON → /tmp/run-e2e.json')
+/* 证据必须自带「本轮身份」：sha / worktree / 起止时间。
+ * 没有这三样，下游无法判断它是本轮结果还是别人留下来的旧文件。 */
+const sha = (() => {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8', stdio: 'pipe' }).trim()
+  } catch { return '' }
+})()
+const worktree = process.env.GATE_WORKTREE || path.basename(ROOT)
+
+const evidence = {
+  sha,
+  worktree,
+  // 机器负载：证据要能被判定「环境是否可信」。load 远高于核数时，
+  // 浏览器类失败多半是环境假红，不是代码回归。
+  load1m: Number(os.loadavg()[0].toFixed(2)),
+  cpus: os.cpus().length,
+  port: opt.port,
+  jobs: opt.jobs,
+  suiteCount: todo.length,
+  startedAt: new Date(tAll).toISOString(),
+  finishedAt: new Date().toISOString(),
+  totalMs: total,
+  results: results.map(({ out, ...r }) => r),
+}
+
+if (opt.out) {
+  writeEvidence(path.resolve(opt.out), evidence)
+  console.log(`证据 → ${path.resolve(opt.out)}`)
+} else if (opt.json) {
+  // 兼容旧用法，但不再作为默认证据路径：下游必须显式指定 --out
+  fs.writeFileSync('/tmp/run-e2e.json', JSON.stringify(evidence, null, 2))
+  console.log('JSON → /tmp/run-e2e.json（旧路径，仅兼容）')
 }
 if (bad.length) {
   console.log('\n失败套件明细（末尾 20 行）：')
