@@ -15,6 +15,6 @@
 ## 交付
 
 - `docs/reviews/callback-02/{review.md,run-tests.mjs,codex-stub.mjs,results.json}`
-- 结论（v5，绑定 finish `8ee8d585`）：7 项实测通过；新增 P1「内容冲突覆盖已送达回执」；P2「repo_root 固化」
-- 已撤回经主控指出判据不成立的两条（rejected 写 ledger、并发 ack 未文档化）
+- 结论（v7，绑定 finish `8ee8d585`）：7 项实测通过；新增 P1「内容冲突覆盖已送达回执」；P2「repo_root 固化」
+- 已撤回经主控指出判据不成立的两条（rejected 写 ledger、并发 ack 未文档化），正文对应段落已删/改标
 - 留档：审查期间修复的三个缺陷（boot 崩溃 / 锁永不释放 / unlock 失效）+ 代码变动快于审查周期的流程问题
