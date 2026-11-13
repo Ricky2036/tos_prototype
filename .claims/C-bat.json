@@ -8,8 +8,6 @@
     "src/components/apps/settings/pages/battery.js",
     "src/components/apps/settings/battery/**",
     "src/stores/batteryStore.js",
-    "tests/batterySettings.test.js",
-    "spec/captures/SET-BAT-01-battery.md",
-    "spec/captures/battery/**"
+    "tests/batterySettings.test.js"
   ]
 }
