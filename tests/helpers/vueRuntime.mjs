@@ -378,7 +378,19 @@ export async function createRuntime() {
           obs.observe(h, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true })
           const el = h.querySelector(sel)
           if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }))
-          await new Promise((r) => setTimeout(r, ms))
+          // 高负载 runner 上固定 sleep 会漏掉过渡类名。改成「类名集合稳定 200ms 再收工」：
+          // 只进场（3 个类名）和进出都有（6 个类名）都能完整捕获，且不白等满预算。
+          const deadline = Date.now() + Math.max(ms, 12000)
+          let lastCount = -1
+          let stableTicks = 0
+          while (Date.now() < deadline) {
+            const count = new Set(seen.filter((c) => /-(enter|leave)-(from|to|active)$/.test(c))).size
+            if (count === lastCount && count >= 3) stableTicks += 1
+            else stableTicks = 0
+            if (stableTicks >= 5) break
+            lastCount = count
+            await new Promise((r) => setTimeout(r, 40))
+          }
           obs.disconnect()
           return [...new Set(seen)]
         },
