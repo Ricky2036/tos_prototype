@@ -1,10 +1,10 @@
 # SET-WB-01 · 设置系统与日期时间链路深度复刻
 
 - size: M
-- status: ready
+- status: blocked
 - priority: P1
 - claim: C2 (系统/日期时间扩展)
-- owner: Workbuddy
+- owner: — (已由用户最新审核分工取代为 SET-SYS-01，由 Antigravity 负责)
 - exclusive_files: [
     "src/components/apps/settings/pages/dateTime.js",
     "src/components/apps/settings/dateTime/**",

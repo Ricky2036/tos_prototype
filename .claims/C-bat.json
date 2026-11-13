@@ -1,0 +1,15 @@
+{
+  "cluster": "C-bat",
+  "owner": "dsh",
+  "since": "2026-11-13",
+  "note": "SET-BAT-01 电池与省电全链路真机复刻",
+  "files": [
+    "src/components/apps/settings/SettingsBattery.vue",
+    "src/components/apps/settings/pages/battery.js",
+    "src/components/apps/settings/battery/**",
+    "src/stores/batteryStore.js",
+    "tests/batterySettings.test.js",
+    "spec/captures/SET-BAT-01-battery.md",
+    "spec/captures/battery/**"
+  ]
+}

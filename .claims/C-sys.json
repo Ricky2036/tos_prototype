@@ -1,0 +1,15 @@
+{
+  "cluster": "C-sys",
+  "owner": "integrator",
+  "since": "2026-11-13",
+  "note": "SET-SYS-01 设置系统主页与全部子菜单 100% 真机复刻（含日期与时间缺口）",
+  "files": [
+    "src/components/apps/settings/pages/system.js",
+    "src/components/apps/settings/system/**",
+    "src/components/apps/settings/pages/dateTime.js",
+    "src/components/apps/settings/dateTime/**",
+    "src/stores/dateTimeStore.js",
+    "tests/systemSettings.test.js",
+    "tests/dateTimeSettings.test.js"
+  ]
+}
