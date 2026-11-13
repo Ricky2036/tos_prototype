@@ -168,3 +168,35 @@ adb -s 159467059A001123 shell settings put system screen_off_timeout 600000
   集成时按上方 SHA 逐条 cherry-pick。
 - DSH：`run-e2e.mjs` 的 SUITES/covers 接入按 `docs/reviews/verify-inventory.md` 第四节统一做；
   gate-merge / claim-check / G7 未碰；详见 `.tasks/inbox/dsh.md`。
+
+---
+
+## SET-DSH-01 / SET-DSH-02 采集进度（2026-11-13 14:23）
+
+### 已交付
+
+| 包 | 内容 | 文件 |
+|---|---|---|
+| SET-DSH-01 A+B | 入口真实路径 + 默认页 9 行 | `spec/captures/SET-DSH-01-A-B.md`（已在 main） |
+| SET-DSH-01 C+D | 两态依赖矩阵 + 返回/持久化 | 同上（已合 main c0974cb） |
+| SET-DSH-01 E | 取色 + 跨页控件一致性 | 同上（`dsh/lane` bbf8fb3 之后） |
+| SET-DSH-02 | 安全和紧急情况 + 账号和备份 | `spec/captures/SET-DSH-02-security-account.md` |
+
+包 E 要点：页面 `#F0F2F3` / 卡片 `#FFFFFF` / 分隔线 `#E0E0E0` / **禁用字 `#999999`（实色，不是 opacity）**；
+显示页开关 `[954,2090][1100,2171]` 与日期页 `[954,416][1100,497]` 几何一致 → 同一控件，原型复用。
+
+### WB 唤醒：**已确认启动**（有证据，不是转述）
+
+`tos-workbuddy` 在 **14:16** 合了 `origin/main`（`bc552cc`），即 AG 更新 main 后 17 分钟内它自己同步了。
+所以「WB 空等」这一状态已不成立——它醒着并在读包。后续要看它是否产出实现提交。
+
+### 真机
+
+- 采集中临时改的日期时间三项已恢复原值并 dump 核对
+- **保活位已恢复**：`stay_on_while_plugged_in` 回到 `0`，`screen_off_timeout` 仍为 600000
+- 设备锁已释放。若需继续采集，重开只需两条命令
+
+### 真实阻塞
+
+无（AG 通道正常，WB 已启动）。若后续要求「WB 已开始实现」的强回执，
+那只能由 WB 自己产出提交来证明——我无法直接连它的窗口。
