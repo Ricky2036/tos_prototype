@@ -349,7 +349,7 @@ const allSearchableItems = [
   { id: 'language', title: '系统语言与输入法', group: '系统', action: () => push('language') },
   { id: 'navigation', title: '系统导航方式', group: '系统', action: () => push('navigation') },
   { id: 'dns', title: '专用 DNS', group: '网络与连接', action: () => pushUnimplemented('专用 DNS') },
-  { id: 'dateTime', title: '日期与时间', group: '系统', action: () => pushUnimplemented('日期与时间') },
+  { id: 'dateTime', title: '日期与时间', group: '系统', action: () => push('dateTime') },
   { id: 'screenTime', title: '屏幕使用时间', group: '数字健康', action: () => push('digitalHealth') },
   { id: 'lockScreen', title: '锁屏设置', group: '个性化', action: () => push('personalization') },
   { id: 'smallWindow', title: '小窗模式', group: '特色功能', action: () => pushUnimplemented('小窗模式') },
@@ -976,19 +976,25 @@ function handleSearchNavigate(item) {
           <div class="group-header">系统控制与偏好</div>
           <div class="settings-card">
             <ListCell
-              title="系统语言与输入法"
-              :value="i18n.locale === 'zh' ? '简体中文 (中国)' : i18n.locale === 'en' ? 'English (US)' : 'বাংলা (বাংলাদেশ)'"
-              chevron
-              clickable
-              @click="push('language')"
-            />
-            <ListCell
               title="系统导航方式"
               :value="system.navigationMode === 'gesture' ? '全面屏手势' : '经典三键导航'"
               chevron
-              last
               clickable
               @click="push('navigation')"
+            />
+            <ListCell
+              title="日期与时间"
+              chevron
+              clickable
+              @click="push('dateTime')"
+            />
+            <ListCell
+              title="系统语言与输入法"
+              :value="i18n.locale === 'zh' ? '简体中文 (中国)' : i18n.locale === 'en' ? 'English (US)' : 'বাংলা (বাংলাদেশ)'"
+              chevron
+              last
+              clickable
+              @click="push('language')"
             />
           </div>
           <div class="group-header">硬件与规格</div>
