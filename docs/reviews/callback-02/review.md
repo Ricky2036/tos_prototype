@@ -24,7 +24,8 @@
 |---|---|---|
 | ~~P0~~ | 首次 boot 崩溃 | **已在 4f1ce0b6 修复**（`controllerPrompt(eventFileArg)`）；建议补回归测试 |
 | P1 | `delivery=rejected` 仍按"已送达"落 ledger 并返回 0 | 仍存在 |
-| P1 | 陈旧锁无 TTL / 无持锁者信息，崩溃后永久阻塞 | 仍存在 |
+| P1 | **`unlock.mjs` 在 Node 26 下无法释放锁**（唯一官方恢复入口失效） | 仍存在（实测） |
+| P2 | 异常退出（SIGKILL）遗留 `.lock`，正常退出会释放 | 现象（设计上由 unlock 兜底） |
 | P2 | 同 ID 改内容：拒绝正确，但无结构化回执 | 仍存在 |
 | P2 | `state.repo_root` 在 boot 时固化，跨 worktree 误导 | 仍存在 |
 | ✅ | 幂等、失败回执不标送达、`next_task` 严格 null、ack 串行化、artifact 必填 | 符合契约 |
@@ -49,7 +50,43 @@ ledger: REJ → { status:'review', delivery:'rejected', task_status:'complete' }
 
 ---
 
-## P1-b · 陈旧锁永久阻塞
+## P1-b · `unlock.mjs` 在 Node 26 上无法解锁（官方恢复入口失效）
+
+**实测**（真实残留锁，非构造）：AG 的 `finish --task SET-AG-01a` 进程被杀后遗留 `.lock`
+（`lockinfo.json` 指向 pid 84714，该 pid 已不存在）。此时执行唯一官方恢复入口：
+
+```
+$ node bin/unlock.mjs
+unlock: 释放失败: The property 'options.recursive' is no longer supported. Received true
+```
+
+**根因**：`fs.rmdirSync(LOCK_DIR, { recursive: true })` —— Node 26（本机 v26.4.0）已移除
+`rmdir` 的 `recursive` 选项。
+
+**影响**：锁的"可恢复"承诺落空。任何异常退出都会让整个 callback-02 入口（finish/ack 全员共用
+一把锁）停摆，只能靠人手 `rm -rf`，而手工删除恰恰是 `unlock.mjs` 想避免的操作。
+
+**最小修复**（一行）：
+
+```js
+fs.rmSync(LOCK_DIR, { recursive: true, force: true })
+```
+
+并补一条测试：预置 `.lock` + 死 pid → `unlock.mjs` 退出 0 且目录消失；活 pid → 退出 2 且目录保留。
+
+## P2-c · 异常退出遗留锁（现象说明）
+
+正常返回路径会 `releaseLock()`；被 SIGKILL / 崩溃则不会。当前设计**故意不靠 TTL 强抢**
+（`unlock.mjs` 注释："绝不靠 TTL 自动强抢"），这一点是**合理取舍**，本条不判缺陷；
+但在 P1-b 修复前，该取舍没有可用的兜底执行器。
+
+## 附：旧观察的订正
+
+早前记录的"锁内无持锁者信息、无恢复手段"**已不成立**：当前 `.lock/lockinfo.json` 含
+`{pid, at, host}`，且新增了 `unlock.mjs`（活进程非 `--force` 一律拒绝，设计正确）。
+本条降级并改判为上述 P1-b（实现 bug）。
+
+## 旧的 P1-b（历史记录，已由上一节取代）
 
 **证据**（T5）：预置 `.lock` 目录后
 
