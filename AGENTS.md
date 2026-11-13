@@ -1,9 +1,10 @@
 # Multi-Agent Workspace Protocol
 
-This repository is developed concurrently by Workbuddy, Codex, Antigravity, and DSH.
-Read this file before changing any code.
+This repository is built by **Workbuddy, Antigravity, and DSH**. **Codex plans on demand**
+(task decomposition, architecture, hard root-cause work) and does not write implementation code.
 
-Execution protocol for all lanes: `docs/tOS-pipeline-1.0.md`.
+**Roles and cost routing: `docs/roles-v2.md`.** Read it before taking work.
+Execution protocol: `docs/tOS-pipeline-1.0.md`.
 
 ## Identify your role
 
@@ -16,6 +17,14 @@ Use the current worktree directory name:
 - `2026-08-02-23-04-06` -> integration worktree; Antigravity is the designated integration owner and feature work is not implemented here
 
 If the directory name does not match one of these values, stop and ask which role owns the workspace.
+
+## Take work from the queue, not from a person
+
+`.tasks/queue/` holds ready work. **Whoever is free takes the next `ready` card**, fills
+`owner`, registers the cluster in `.claims/`, and releases it when done. There is no
+"this is my area" — a cluster is a resource, not a territory.
+
+A card is finished only when its 验收 command passes and `node scripts/gate-merge.mjs` is green.
 
 ## Check your inbox first
 
