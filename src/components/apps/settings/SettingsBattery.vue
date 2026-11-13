@@ -1,59 +1,136 @@
 <script setup>
+import { ref, computed, inject } from 'vue'
 import GlassNavBar from '../../ui/GlassNavBar.vue'
-import { ref } from 'vue'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
+import SheetModal from '../../ui/SheetModal.vue'
+import { useBackHandler } from '../../../composables/backRegistry'
+import { useControlStore } from '../../../stores/controlStore'
+import { useBatteryStore, formatDuration, MODE_INFO } from '../../../stores/batteryStore'
 import { getApp } from '../../../config/apps'
+import BatteryLevelChart from './battery/BatteryLevelChart.vue'
+import BatteryActivityChart from './battery/BatteryActivityChart.vue'
+import BatteryPowerSaving from './battery/BatteryPowerSaving.vue'
+import BatteryCharging from './battery/BatteryCharging.vue'
+import BatteryHealth from './battery/BatteryHealth.vue'
+import BatteryAppUsage from './battery/BatteryAppUsage.vue'
+import BatteryReverseWireless from './battery/BatteryReverseWireless.vue'
+import BatteryBypassCharging from './battery/BatteryBypassCharging.vue'
+import BatterySaverIntro from './battery/BatterySaverIntro.vue'
+import {
+  RANKING_24H, RANKING_24H_MORE, RANKING_7D, OTHER_APPS_24H, OTHER_APPS_7D,
+  LAST_FULL_CHARGE, ACTIVITY
+} from './battery/batteryData'
 
+/**
+ * 设置 → 电池与省电（首页）
+ * 真机：Infinix X6878 / XOS 17，com.transsion.batterylab（2026-11-13 采集）
+ * 证据：`.local-evidence/SET-BAT-01/`；菜单树：同目录 MENU-TREE.md
+ *
+ * 三级页（省电管理 / 充电设置 / 电池健康 / 应用耗电详情 / 充电三入口）都在 battery/ 下，
+ * 主壳 SettingsApp.vue 不需要改接线。
+ */
 const emit = defineEmits(['back', 'navigate'])
+const control = useControlStore()
+const store = useBatteryStore()
 
-// 耗电排行应用：完全对齐桌面已有的真实应用
-const batteryRankings = [
-  { id: 'tiktok', subtitle: '前台 45 分钟 · 后台 22 分钟', value: '38%' },
-  { id: 'youtube', subtitle: '前台 36 分钟', value: '26%' },
-  { id: 'wechat', subtitle: '前台 28 分钟 · 后台 1 小时 15 分钟', value: '18%' },
-  { id: 'camera', subtitle: '前台 16 分钟', value: '11%' },
-  { id: 'safari', subtitle: '前台 12 分钟', value: '7%' }
-]
+const percent = computed(() => Math.round((control.battery ?? 0.86) * 100))
+const modeMinutes = computed(() => Math.round(percent.value * (store.mode === 'saver' ? 21.33 : 18.36)))
+const superMinutes = computed(() => Math.round(percent.value * 22.4))
+const modeTimeText = computed(() => formatDuration(modeMinutes.value))
+const superTimeText = computed(() => formatDuration(superMinutes.value))
 
-function resolveIcon(path) {
-  if (!path) return ''
-  if (path.startsWith('http') || path.startsWith('data:')) return path
-  const clean = path.replace(/^\/+/, '')
+/* ==================== 三级页（栈：省电管理 → 省电模式介绍 这类二层返回） ==================== */
+const pageStack = ref([])
+const subPage = computed(() => pageStack.value[pageStack.value.length - 1] || null)
+const activeApp = ref(null)
+const showModeInfo = ref(false)
+const showActivityInfo = ref(false)
+const showSuperConfirm = ref(false)
+const rankingExpanded = ref(false)
+const toastText = ref('')
+let toastTimer = null
+
+function showToast(msg) {
+  toastText.value = msg
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toastText.value = '' }, 1800)
+}
+
+function openSub(key) {
+  pageStack.value.push(key)
+}
+
+function closeSub() {
+  pageStack.value.pop()
+  if (!pageStack.value.includes('app')) activeApp.value = null
+}
+
+function openApp(app, name) {
+  activeApp.value = { appId: app, name }
+  pageStack.value.push('app')
+}
+
+function selectMode(mode) {
+  if (store.mode === mode) return
+  store.setMode(mode)
+}
+
+function onSuperToggle(next) {
+  if (next) {
+    showSuperConfirm.value = true
+    return
+  }
+  store.setSuperSaver(false)
+  showToast('已关闭超级省电')
+}
+
+function confirmSuperSaver() {
+  store.setSuperSaver(true)
+  showSuperConfirm.value = false
+  showToast('已开启超级省电')
+}
+
+const ranking = computed(() => {
+  const base = store.timeRange === '7d' ? RANKING_7D : RANKING_24H
+  return store.timeRange === '7d' || !rankingExpanded.value ? base : [...base, ...RANKING_24H_MORE]
+})
+
+const otherApps = computed(() => (store.timeRange === '7d' ? OTHER_APPS_7D : OTHER_APPS_24H))
+const activity = computed(() => ACTIVITY[store.timeRange])
+const rankingTitle = computed(() => `耗电占比排行（过去 ${store.timeRange === '7d' ? '7 天' : '24 小时'}）`)
+const otherTitle = computed(() => `其他应用耗电（过去 ${store.timeRange === '7d' ? '7 天' : '24 小时'}）`)
+
+function appName(appId, fallback) {
+  return getApp(appId)?.name || fallback || appId
+}
+
+function appIcon(appId) {
+  const image = getApp(appId)?.image
+  if (!image) return ''
+  if (image.startsWith('http') || image.startsWith('data:')) return image
+  const clean = image.replace(/^\/+/, '')
   const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'
   return `${base}${clean}`
 }
 
-// 电池模式选择：'balanced' (均衡) 或 'saver' (省电)
-const selectedMode = ref('balanced')
-const superSaver = ref(false)
-
-// 时间维度：'24h' | '7d'
-const timeRange = ref('24h')
-
-// 提示反馈
-const toastText = ref('')
-let toastTimer = null
-function showToast(msg) {
-  toastText.value = msg
-  if (toastTimer) clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => {
-    toastText.value = ''
-  }, 2200)
-}
-
-function selectMode(mode) {
-  selectedMode.value = mode
-  showToast(mode === 'balanced' ? '已切换至均衡模式' : '已开启省电模式')
-}
-
-function handleItemTap(name) {
-  showToast(`已进入${name}`)
-}
-
 function back() {
+  if (showSuperConfirm.value) { showSuperConfirm.value = false; return true }
+  if (showModeInfo.value) { showModeInfo.value = false; return true }
+  if (showActivityInfo.value) { showActivityInfo.value = false; return true }
+  if (pageStack.value.length) { closeSub(); return true }
   emit('back')
   return true
+}
+
+/* 侧滑返回：三级页逐层退出（pipeline §6.2 下沉） */
+const settingsNav = inject('settingsNav', null)
+if (settingsNav) {
+  useBackHandler(() => {
+    if (pageStack.value.length) { closeSub(); return true }
+    settingsNav.pop()
+    return true
+  })
 }
 
 defineExpose({ back })
@@ -61,246 +138,227 @@ defineExpose({ back })
 
 <template>
   <div class="settings-battery-page">
-    <!-- 顶部导航栏：左对齐真机规范 -->
-    <GlassNavBar overlay title="电池与省电" @back="emit('back')" />
+    <!-- ==================== 三级页 ==================== -->
+    <BatteryPowerSaving v-if="subPage === 'powerSaving'" key="powerSaving" @back="closeSub" @open-intro="openSub('saverIntro')" />
+    <BatterySaverIntro v-else-if="subPage === 'saverIntro'" key="saverIntro" @back="closeSub" />
+    <BatteryCharging v-else-if="subPage === 'charging'" key="charging" @back="closeSub" @open-reverse="openSub('reverse')" @open-bypass="openSub('bypass')" />
+    <BatteryReverseWireless v-else-if="subPage === 'reverse'" key="reverse" @back="closeSub" />
+    <BatteryBypassCharging v-else-if="subPage === 'bypass'" key="bypass" @back="closeSub" />
+    <BatteryHealth v-else-if="subPage === 'health'" key="health" @back="closeSub" />
+    <BatteryAppUsage v-else-if="subPage === 'app' && activeApp" key="app" :app-id="activeApp.appId" :app-name="activeApp.name" @back="closeSub" />
 
-    <!-- 滚动区域 -->
-    <div style="padding-top: var(--nav-h)" class="battery-scroll-body scrollable">
-      <!-- 顶部电量指示区 -->
-      <div class="battery-hero-section">
-        <div class="battery-percentage-wrap">
-          <span class="percentage-num">91</span>
-          <span class="percentage-unit">%</span>
-        </div>
-        <div class="hero-remaining-text">剩余 27 小时 51 分钟</div>
+    <!-- ==================== 首页 ==================== -->
+    <template v-if="!subPage">
+      <GlassNavBar overlay title="电池与省电" @back="emit('back')" />
 
-        <!-- 充电进度能量条胶囊 -->
-        <div class="charging-capsule-bar">
-          <div class="charging-fill-track" style="width: 91%;">
-            <svg class="charging-bolt" width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M13 2L4 14H12L11 22L20 10H12L13 2Z" fill="#FFFFFF"/>
-            </svg>
-            <span class="charging-text">正在充电</span>
+      <div class="battery-scroll-body scrollable" style="padding-top: var(--nav-h)">
+        <!-- 顶部电量：真机大号百分比 + 剩余时间 + 绿色充电胶囊 -->
+        <div class="battery-hero-section">
+          <div class="battery-percentage-wrap">
+            <span class="percentage-num">{{ percent }}</span>
+            <span class="percentage-unit">%</span>
+          </div>
+          <div class="hero-remaining-text">剩余 {{ modeTimeText }}</div>
+
+          <div class="charging-capsule-bar">
+            <div class="charging-fill-track" :style="{ width: `${percent}%` }">
+              <svg class="charging-bolt" width="13" height="13" viewBox="0 0 24 24" fill="none">
+                <path d="M13 2L4 14H12L11 22L20 10H12L13 2Z" fill="#FFFFFF" />
+              </svg>
+              <span class="charging-text">正在充电</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 分组标题：电池模式 -->
-      <div class="section-sub-title">
-        <span>电池模式</span>
-        <button class="info-icon-btn" aria-label="说明" @click="showToast('电池模式说明')">ⓘ</button>
-      </div>
-
-      <!-- 模式双选卡片 -->
-      <div class="battery-modes-row">
-        <!-- 省电模式 -->
-        <button
-          class="mode-select-card"
-          :class="{ selected: selectedMode === 'saver' }"
-          @click="selectMode('saver')"
-        >
-          <div class="mode-icon-wrap">
-            <svg width="28" height="16" viewBox="0 0 28 16" fill="none">
-              <rect x="1" y="1" width="23" height="14" rx="3.5" stroke="#1C1C1E" stroke-width="1.8"/>
-              <path d="M26 6V10" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round"/>
-              <!-- 绿叶 -->
-              <path d="M7 11C7 7 11 5 15 5C15 9 11 11 7 11Z" fill="#10B981"/>
+        <!-- 电池模式 -->
+        <div class="section-sub-title">
+          <span>电池模式</span>
+          <button class="info-icon-btn" aria-label="电池模式说明" @click="showModeInfo = true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="#8E8E93" stroke-width="1.5" />
+              <path d="M12 10.6V17" stroke="#8E8E93" stroke-width="1.6" stroke-linecap="round" />
+              <circle cx="12" cy="7.6" r="1" fill="#8E8E93" />
             </svg>
+          </button>
+        </div>
+
+        <div class="settings-card mode-card">
+          <div class="battery-modes-row">
+            <button
+              class="mode-tile"
+              :class="{ selected: store.mode === 'saver' }"
+              data-mode="saver"
+              @click="selectMode('saver')"
+            >
+              <span class="mode-icon-wrap">
+                <svg width="30" height="18" viewBox="0 0 30 18" fill="none">
+                  <rect x="1" y="1" width="24" height="16" rx="4" stroke="#1C1C1E" stroke-width="1.6" />
+                  <path d="M27 6.5V11.5" stroke="#1C1C1E" stroke-width="1.8" stroke-linecap="round" />
+                  <path d="M8 12.6C8 8.4 12 5.6 17 5.6C17 9.8 13 12.6 8 12.6Z" fill="#10B981" />
+                </svg>
+              </span>
+              <span class="mode-name">省电模式</span>
+              <span class="mode-time">{{ formatDuration(Math.round(percent * 21.33)) }}</span>
+            </button>
+
+            <button
+              class="mode-tile"
+              :class="{ selected: store.mode === 'balanced' }"
+              data-mode="balanced"
+              @click="selectMode('balanced')"
+            >
+              <span class="mode-icon-wrap">
+                <svg width="30" height="18" viewBox="0 0 30 18" fill="none">
+                  <rect x="1" y="1" width="24" height="16" rx="4" stroke="#1C1C1E" stroke-width="1.6" />
+                  <path d="M27 6.5V11.5" stroke="#1C1C1E" stroke-width="1.8" stroke-linecap="round" />
+                  <rect x="6" y="5" width="4" height="8" rx="1.5" fill="#1C1C1E" />
+                  <rect x="13" y="5" width="4" height="8" rx="1.5" fill="#1C1C1E" />
+                </svg>
+              </span>
+              <span class="mode-name">均衡模式</span>
+              <span class="mode-time">{{ formatDuration(Math.round(percent * 18.36)) }}</span>
+            </button>
           </div>
-          <div class="mode-name">省电模式</div>
-          <div class="mode-time">30 小时 44 分钟</div>
-        </button>
 
-        <!-- 均衡模式 -->
-        <button
-          class="mode-select-card"
-          :class="{ selected: selectedMode === 'balanced' }"
-          @click="selectMode('balanced')"
-        >
-          <div class="mode-icon-wrap">
-            <svg width="28" height="16" viewBox="0 0 28 16" fill="none">
-              <rect x="1" y="1" width="23" height="14" rx="3.5" :stroke="selectedMode === 'balanced' ? '#007AFF' : '#1C1C1E'" stroke-width="1.8"/>
-              <path d="M26 6V10" :stroke="selectedMode === 'balanced' ? '#007AFF' : '#1C1C1E'" stroke-width="2" stroke-linecap="round"/>
-              <rect x="5" y="4.5" width="4" height="7" rx="1.5" :fill="selectedMode === 'balanced' ? '#007AFF' : '#1C1C1E'"/>
-              <rect x="11" y="4.5" width="4" height="7" rx="1.5" :fill="selectedMode === 'balanced' ? '#007AFF' : '#1C1C1E'"/>
-            </svg>
+          <div class="super-saver-row">
+            <div class="ss-text">
+              <div class="ss-title">超级省电</div>
+              <div class="ss-sub">预计可用 {{ superTimeText }}。</div>
+            </div>
+            <ToggleSwitch :model-value="store.superSaver" color="blue" @update:model-value="onSuperToggle" />
           </div>
-          <div class="mode-name" :class="{ active: selectedMode === 'balanced' }">均衡模式</div>
-          <div class="mode-time">27 小时 51 分钟</div>
-        </button>
-      </div>
+        </div>
 
-      <!-- 超级省电开关：真机纯净卡片 -->
-      <div class="settings-card super-saver-card">
-        <ListCell
-          title="超级省电"
-          subtitle="预计可用 33 小时 58 分钟。"
-          last
-        >
-          <template #right>
-            <ToggleSwitch v-model="superSaver" />
-          </template>
-        </ListCell>
-      </div>
+        <!-- 电池设置 -->
+        <div class="section-sub-title">电池设置</div>
+        <div class="settings-card">
+          <ListCell title="省电管理" chevron @click="openSub('powerSaving')" />
+          <ListCell title="充电设置" chevron @click="openSub('charging')" />
+          <ListCell title="电池健康" chevron last @click="openSub('health')" />
+        </div>
 
-      <!-- 分组标题：电池设置 -->
-      <div class="section-sub-title">电池设置</div>
-      <div class="settings-card clean-list-card">
-        <ListCell title="省电管理" chevron @click="handleItemTap('省电管理')" />
-        <ListCell title="充电设置" chevron @click="handleItemTap('充电设置')" />
-        <ListCell title="电池健康" value="最大容量 100%" chevron last @click="handleItemTap('电池健康')" />
-      </div>
-
-      <!-- 电池使用情况图表卡片 -->
-      <div class="section-sub-title">电池使用情况</div>
-      <div class="chart-container-card">
-        <div class="usage-header-row" aria-label="距上次充满电已使用 9 小时 13 分钟">
+        <!-- 电池使用情况 -->
+        <div class="section-sub-title">电池使用情况</div>
+        <div class="settings-card usage-card">
           <div class="usage-subtitle">距上次充满电已使用</div>
-          <div class="usage-title">9 小时 13 分钟</div>
+          <div class="usage-title">{{ LAST_FULL_CHARGE }}</div>
+
+          <div class="segmented-control-bar">
+            <button class="segment-btn" :class="{ active: store.timeRange === '24h' }" @click="store.setTimeRange('24h')">过去 24 小时</button>
+            <button class="segment-btn" :class="{ active: store.timeRange === '7d' }" @click="store.setTimeRange('7d')">过去 7 天</button>
+          </div>
+
+          <BatteryLevelChart :range="store.timeRange" />
+
+          <div class="activity-head">
+            <span>活动时长</span>
+            <button class="info-icon-btn" aria-label="活动时长说明" @click="showActivityInfo = true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" stroke="#8E8E93" stroke-width="1.5" />
+                <path d="M12 10.6V17" stroke="#8E8E93" stroke-width="1.6" stroke-linecap="round" />
+                <circle cx="12" cy="7.6" r="1" fill="#8E8E93" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="activity-legend-row" :class="{ 'is-week': store.timeRange === '7d' }">
+            <div class="legend-item">
+              <span class="legend-head"><span class="dot-legend dot-screen-on"></span>{{ activity.onLabel }}</span>
+              <span class="legend-val">{{ activity.screenOn }}</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-head"><span class="dot-legend dot-screen-off"></span>{{ activity.offLabel }}</span>
+              <span class="legend-val">{{ activity.screenOff }}</span>
+            </div>
+          </div>
+
+          <BatteryActivityChart :range="store.timeRange" />
         </div>
 
-        <!-- 过去 24 小时 / 过去 7 天分段切换 -->
-        <div class="segmented-control-bar">
-          <button
-            class="segment-btn"
-            :class="{ active: timeRange === '24h' }"
-            @click="timeRange = '24h'"
+        <!-- 耗电占比排行 -->
+        <div class="section-sub-title">{{ rankingTitle }}</div>
+        <div class="settings-card ranking-card">
+          <ListCell
+            v-for="(item, idx) in ranking"
+            :key="`${item.appId}-${idx}`"
+            :title="appName(item.appId)"
+            :value="item.percent"
+            chevron
+            :last="idx === ranking.length - 1 && store.timeRange === '7d'"
+            @click="openApp(item.appId)"
           >
-            过去 24 小时
+            <template #icon>
+              <img class="app-rank-icon" :src="appIcon(item.appId)" :alt="appName(item.appId)" />
+            </template>
+            <template #subtitle>
+              <span class="rank-sub">{{ item.fg }}<br />{{ item.bg }}</span>
+            </template>
+          </ListCell>
+
+          <button v-if="store.timeRange !== '7d'" class="more-btn" type="button" @click="rankingExpanded = !rankingExpanded">
+            <span>{{ rankingExpanded ? '收起' : '查看更多' }}</span>
+            <svg class="more-chevron" :class="{ up: rankingExpanded }" width="12" height="8" viewBox="0 0 12 8" fill="none">
+              <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
           </button>
-          <button
-            class="segment-btn"
-            :class="{ active: timeRange === '7d' }"
-            @click="timeRange = '7d'"
+        </div>
+
+        <!-- 其他应用耗电 -->
+        <div class="section-sub-title">{{ otherTitle }}</div>
+        <div class="settings-card">
+          <ListCell
+            v-for="(item, idx) in otherApps"
+            :key="item.appId"
+            :title="item.name"
+            :value="item.percent"
+            chevron
+            :last="idx === otherApps.length - 1"
+            @click="openApp(item.appId, item.name)"
           >
-            过去 7 天
-          </button>
+            <template #icon>
+              <span class="system-app-icon">系统</span>
+            </template>
+            <template #subtitle>
+              <span class="rank-sub">{{ item.fg }}<br />{{ item.bg }}</span>
+            </template>
+          </ListCell>
         </div>
 
-        <!-- 电池电量柱形走势图 -->
-        <div class="chart-section-title">电池电量</div>
-        <div class="battery-level-chart">
-          <div class="chart-bars-wrap">
-            <div class="chart-y-axis">
-              <span>100%</span>
-              <span>50%</span>
-              <span>0%</span>
-            </div>
-            <div class="chart-bars-content">
-              <!-- 放电蓝条 -->
-              <span class="bar-col blue" style="height: 98%;"></span>
-              <span class="bar-col blue" style="height: 96%;"></span>
-              <span class="bar-col blue" style="height: 94%;"></span>
-              <span class="bar-col blue" style="height: 90%;"></span>
-              <span class="bar-col blue" style="height: 86%;"></span>
-              <span class="bar-col blue" style="height: 84%;"></span>
-              <span class="bar-col blue" style="height: 80%;"></span>
-              <!-- 充电绿条 -->
-              <span class="bar-col green" style="height: 98%;"></span>
-              <span class="bar-col green" style="height: 98%;"></span>
-              <span class="bar-col green" style="height: 100%;"></span>
-              <span class="bar-col green" style="height: 100%;"></span>
-              <span class="bar-col green" style="height: 100%;"></span>
-              <span class="bar-col green" style="height: 100%;"></span>
-              <span class="bar-col green" style="height: 100%;"></span>
-              <span class="bar-col green" style="height: 100%;"></span>
-              <!-- 放电 -->
-              <span class="bar-col blue" style="height: 92%;"></span>
-              <span class="bar-col blue" style="height: 86%;"></span>
-              <span class="bar-col blue" style="height: 78%;"></span>
-              <span class="bar-col blue" style="height: 76%;"></span>
-              <span class="bar-col blue" style="height: 75%;"></span>
-              <span class="bar-col blue" style="height: 74%;"></span>
-              <!-- 恢复充电 -->
-              <span class="bar-col green" style="height: 80%;"></span>
-              <span class="bar-col green" style="height: 86%;"></span>
-              <span class="bar-col green" style="height: 91%;"></span>
-            </div>
-          </div>
-          <!-- X 轴刻度 -->
-          <div class="chart-x-axis">
-            <span>17</span>
-            <span>21</span>
-            <span>01</span>
-            <span>05</span>
-            <span>09</span>
-            <span>13</span>
-          </div>
-        </div>
-
-        <!-- 活动时长 -->
-        <div class="chart-section-title" style="margin-top: 24px;">
-          <span>活动时长</span>
-          <span class="info-mark">ⓘ</span>
-        </div>
-        <div class="activity-legend-row">
-          <div class="legend-item">
-            <span class="dot-legend dot-screen-on"></span>
-            <span class="legend-text">亮屏活动时长</span>
-            <span class="legend-val">2 小时 3 分钟</span>
-          </div>
-          <div class="legend-item">
-            <span class="dot-legend dot-screen-off"></span>
-            <span class="legend-text">息屏活动时长</span>
-            <span class="legend-val">7 小时</span>
-          </div>
-        </div>
-
-        <!-- 屏幕活动柱图 -->
-        <div class="activity-chart">
-          <div class="chart-bars-wrap">
-            <div class="chart-y-axis">
-              <span>60 分钟</span>
-              <span>30 分钟</span>
-              <span>0 分钟</span>
-            </div>
-            <div class="chart-bars-content activity-bars">
-              <span class="act-col col-1"></span>
-              <span class="act-col col-2"></span>
-              <span class="act-col col-3"></span>
-              <span class="act-col col-4"></span>
-              <span class="act-col col-5"></span>
-              <span class="act-col col-6"></span>
-            </div>
-          </div>
-          <div class="chart-x-axis">
-            <span>17</span>
-            <span>21</span>
-            <span>01</span>
-            <span>05</span>
-            <span>09</span>
-            <span>13</span>
-          </div>
-        </div>
+        <div class="battery-footnote">应用耗电占比=应用耗电量/全部应用耗电量</div>
+        <div class="bottom-spacer"></div>
       </div>
+    </template>
 
-      <!-- 耗电占比排行：直接取桌面已有的应用与其真实图标 -->
-      <div class="section-sub-title">耗电占比排行（过去 24 小时）</div>
-      <div class="settings-card app-ranking-card">
-        <ListCell
-          v-for="(item, idx) in batteryRankings"
-          :key="item.id"
-          :title="getApp(item.id)?.name || item.id"
-          :subtitle="item.subtitle"
-          :value="item.value"
-          chevron
-          :last="idx === batteryRankings.length - 1"
-          @click="handleItemTap(`${getApp(item.id)?.name || item.id}耗电详情`)"
-        >
-          <template #icon>
-            <img
-              class="app-rank-icon"
-              :src="resolveIcon(getApp(item.id)?.image)"
-              :alt="getApp(item.id)?.name || item.id"
-            />
-          </template>
-        </ListCell>
+    <!-- 电池模式说明（⭐ 真机：底部说明卡 + 确定） -->
+    <SheetModal :visible="showModeInfo" padding="22px 20px 18px" @close="showModeInfo = false">
+      <div class="mode-info-title">电池模式</div>
+      <div v-for="m in MODE_INFO" :key="m.id" class="mode-info-item">
+        <div class="mode-info-name">{{ m.title }}</div>
+        <div class="mode-info-time">预计可用 {{ m.id === 'balanced' ? formatDuration(Math.round(percent * 18.36)) : m.id === 'saver' ? formatDuration(Math.round(percent * 21.33)) : superTimeText }}。</div>
+        <div class="mode-info-desc">{{ m.desc }}</div>
       </div>
+      <button type="button" class="mode-info-confirm" @click="showModeInfo = false">确定</button>
+    </SheetModal>
 
-      <div class="bottom-spacer"></div>
-    </div>
+    <!-- 活动时长说明（真机 ⓘ 的说明内容未采到，这里只解释两个口径） -->
+    <SheetModal :visible="showActivityInfo" padding="22px 20px 18px" @close="showActivityInfo = false">
+      <div class="mode-info-title">活动时长</div>
+      <div class="activity-info-row"><span class="dot-legend dot-screen-on"></span>亮屏活动时长：屏幕点亮并处于前台使用的时间。</div>
+      <div class="activity-info-row"><span class="dot-legend dot-screen-off"></span>息屏活动时长：屏幕熄灭但应用仍在后台运行的时间。</div>
+      <div class="activity-info-note">过去 7 天按日均值显示。</div>
+      <button type="button" class="mode-info-confirm" @click="showActivityInfo = false">知道了</button>
+    </SheetModal>
 
-    <!-- 浮动提示 Toast -->
+    <!-- 超级省电确认：真机未采到（未知），按系统说明卡的后果做一次确认 -->
+    <SheetModal :visible="showSuperConfirm" padding="24px 20px 18px" @close="showSuperConfirm = false">
+      <div class="confirm-title">开启超级省电</div>
+      <div class="confirm-desc">系统性能受限，最多可同时使用 6 个应用。开启后预计可用 {{ superTimeText }}。</div>
+      <div class="confirm-actions">
+        <button type="button" class="confirm-btn ghost" @click="showSuperConfirm = false">取消</button>
+        <button type="button" class="confirm-btn primary" @click="confirmSuperSaver">开启</button>
+      </div>
+    </SheetModal>
+
     <transition name="toast-fade">
       <div v-if="toastText" class="settings-toast">{{ toastText }}</div>
     </transition>
@@ -313,50 +371,12 @@ defineExpose({ back })
   inset: 0;
   display: flex;
   flex-direction: column;
-  background: var(--bg-subtle, #F2F2F7);
+  background: #F0F1F2;
   color: #1C1C1E;
   overflow: hidden;
   user-select: none;
 }
 
-/* 导航栏：左对齐大标题 */
-.battery-nav-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: calc(var(--safe-top, 0px) + 52px);
-  padding: var(--safe-top, 0px) 16px 0 16px;
-  background: #F2F2F7;
-  flex-shrink: 0;
-  z-index: 10;
-}
-
-.nav-round-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.05);
-  border: none;
-  outline: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.nav-round-btn:active {
-  background: rgba(0, 0, 0, 0.1);
-}
-
-.nav-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1C1C1E;
-  letter-spacing: -0.3px;
-}
-
-/* 滚动区域 */
 .battery-scroll-body {
   flex: 1;
   padding: 8px 16px 32px 16px;
@@ -364,46 +384,22 @@ defineExpose({ back })
   -webkit-overflow-scrolling: touch;
 }
 
-/* 顶部电量指示区 */
-.battery-hero-section {
-  padding: 12px 4px 16px 4px;
-}
+/* ---------- Hero ---------- */
+.battery-hero-section { padding: 10px 4px 14px 4px; }
 
-.battery-percentage-wrap {
-  display: flex;
-  align-items: baseline;
-  line-height: 1;
-}
+.battery-percentage-wrap { display: flex; align-items: baseline; line-height: 1; }
 
-.percentage-num {
-  font-size: 52px;
-  font-weight: 700;
-  color: #1C1C1E;
-  letter-spacing: -1.5px;
-}
+.percentage-num { font-size: 52px; font-weight: 700; letter-spacing: -1.5px; }
 
-.percentage-unit {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1C1C1E;
-  margin-left: 2px;
-}
+.percentage-unit { font-size: 24px; font-weight: 600; margin-left: 2px; }
 
-.hero-remaining-text {
-  font-size: 14px;
-  color: #8E8E93;
-  margin-top: 6px;
-  margin-bottom: 16px;
-}
+.hero-remaining-text { font-size: 15px; color: #8E8E93; margin-top: 8px; margin-bottom: 16px; }
 
-/* 充电进度胶囊条 */
 .charging-capsule-bar {
   height: 38px;
   border-radius: 999px;
-  background: #DCFCE7;
-  position: relative;
+  background: #D6F5DF;
   overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .charging-fill-track {
@@ -418,272 +414,208 @@ defineExpose({ back })
   transition: width 0.3s ease;
 }
 
-.charging-bolt {
-  display: block;
-}
+.charging-bolt { display: block; }
+.charging-text { font-size: 13px; font-weight: 600; }
 
-.charging-text {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.1px;
-}
-
-/* 分组标题 */
+/* ---------- 分组 ---------- */
 .section-sub-title {
   font-size: 13px;
   color: #8E8E93;
   font-weight: 500;
-  margin: 16px 4px 8px 4px;
+  margin: 16px 4px 8px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
-.info-icon-btn {
-  background: none;
-  border: none;
-  font-size: 13px;
-  color: #8E8E93;
-  cursor: pointer;
-  padding: 0 4px;
-}
+.info-icon-btn { background: none; border: none; padding: 0; display: inline-flex; cursor: pointer; }
 
-/* 模式双选卡片 */
-.battery-modes-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 12px;
-}
+.settings-card { background: #FFFFFF; border-radius: 16px; overflow: hidden; margin-bottom: 12px; }
 
-.mode-select-card {
-  background: #F8F8FA;
-  border-radius: 16px;
-  padding: 16px 14px;
+/* ---------- 电池模式 ---------- */
+.mode-card { padding: 12px 12px 0; }
+
+.battery-modes-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.mode-tile {
+  background: #F2F2F7;
   border: 2px solid transparent;
+  border-radius: 14px;
+  padding: 16px 12px 14px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  text-align: left;
+  gap: 6px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  font-family: inherit;
 }
 
-.mode-select-card.selected {
-  background: #FFFFFF;
-  border-color: #007AFF;
-  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.08);
+.mode-tile.selected { background: #FFFFFF; border-color: #0A84FF; }
+
+.mode-icon-wrap { display: block; }
+
+.mode-name { font-size: 15px; font-weight: 400; color: #1C1C1E; }
+
+.mode-time { font-size: 12px; color: #8E8E93; }
+
+.super-saver-row {
+  margin-top: 12px;
+  border-top: 0.5px solid rgba(60, 60, 67, 0.16);
+  padding: 14px 4px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.mode-icon-wrap {
-  margin-bottom: 12px;
-}
+.ss-title { font-size: 17px; font-weight: 400; }
 
-.mode-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1C1C1E;
-  margin-bottom: 4px;
-}
+.ss-sub { font-size: 13px; color: #8E8E93; margin-top: 4px; }
 
-.mode-name.active {
-  color: #007AFF;
-}
+/* ---------- 使用情况 ---------- */
+.usage-card { padding: 16px 16px 18px; }
 
-.mode-time {
-  font-size: 12px;
-  color: #8E8E93;
-}
+.usage-subtitle { font-size: 13px; color: #8E8E93; }
 
-/* 设置卡片容器 */
-.settings-card {
-background: #FFFFFF;
-  border-radius: 16px;
-  overflow: hidden;
-  margin-bottom: 12px;
-}
+.usage-title { font-size: 22px; font-weight: 700; margin: 2px 0 14px; }
 
-/* 图表容器大卡片 */
-.chart-container-card {
-  background: #FFFFFF;
-  border-radius: 16px;
-  padding: 18px 16px;
-  margin-bottom: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.03);
-}
-
-.usage-header-row {
-  margin-bottom: 14px;
-}
-
-.usage-subtitle {
-  font-size: 12px;
-  color: #8E8E93;
-  margin-bottom: 2px;
-}
-
-.usage-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: #1C1C1E;
-}
-
-/* 分段切换按钮组 */
 .segmented-control-bar {
   display: flex;
   background: #F2F2F7;
-  border-radius: 10px;
+  border-radius: 999px;
   padding: 2px;
   margin-bottom: 20px;
 }
 
 .segment-btn {
   flex: 1;
-  padding: 7px 0;
-  font-size: 13px;
-  font-weight: 500;
+  padding: 9px 0;
+  font-size: 14px;
+  font-weight: 400;
   border: none;
   background: transparent;
-  color: #8E8E93;
-  border-radius: 8px;
+  color: #1C1C1E;
+  border-radius: 999px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  font-family: inherit;
 }
 
-.segment-btn.active {
-  background: #FFFFFF;
-  color: #1C1C1E;
-  font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
+.segment-btn.active { background: #FFFFFF; font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
 
-.chart-section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1C1C1E;
-  margin-bottom: 12px;
+.activity-head {
   display: flex;
   align-items: center;
-  gap: 4px;
-}
-
-.info-mark {
-  font-size: 12px;
-  color: #8E8E93;
-}
-
-/* 柱形电量图 */
-.battery-level-chart {
-  display: flex;
-  flex-direction: column;
-}
-
-.chart-bars-wrap {
-  display: flex;
-  height: 100px;
-  position: relative;
-  border-bottom: 1px dashed #E5E5EA;
-}
-
-.chart-y-axis {
-  width: 44px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  font-size: 10px;
-  color: #AEAEB2;
-  padding-bottom: 2px;
-}
-
-.chart-bars-content {
-  flex: 1;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding: 0 4px;
-}
-
-.bar-col {
-  width: 4px;
-  border-radius: 2px 2px 0 0;
-}
-
-.bar-col.blue { background: #3B82F6; }
-.bar-col.green { background: #10B981; }
-
-.chart-x-axis {
-  display: flex;
-  justify-content: space-between;
-  padding-left: 44px;
-  padding-right: 4px;
-  margin-top: 6px;
-  font-size: 10px;
-  color: #AEAEB2;
-}
-
-/* 活动时长图例 */
-.activity-legend-row {
-  display: flex;
-  gap: 24px;
-  margin-bottom: 14px;
-}
-
-.legend-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.dot-legend {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.dot-screen-on { background: #3B82F6; }
-.dot-screen-off { background: #93C5FD; }
-
-.legend-text {
-  font-size: 11px;
-  color: #8E8E93;
-}
-
-.legend-val {
-  font-size: 14px;
+  gap: 5px;
+  font-size: 15px;
   font-weight: 600;
+  margin: 20px 0 12px;
+}
+
+.activity-legend-row { display: flex; gap: 28px; margin-bottom: 14px; }
+
+.legend-item { display: flex; flex-direction: column; gap: 4px; }
+
+.legend-head { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8E8E93; }
+
+.dot-legend { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+.dot-screen-on { background: #2F7CF6; }
+.dot-screen-off { background: #A9CCF8; }
+
+.activity-legend-row.is-week .dot-screen-on { background: #2F8CFF; }
+.activity-legend-row.is-week .dot-screen-off { background: #1F3F8F; }
+
+.legend-val { font-size: 20px; font-weight: 600; }
+
+/* ---------- 排行 ---------- */
+.rank-sub { display: block; font-size: 12px; line-height: 17px; color: #8E8E93; }
+
+.app-rank-icon { width: 42px; height: 42px; border-radius: 10px; object-fit: contain; display: block; }
+
+.system-app-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #E9E9EB;
+  color: #636366;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.more-btn {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 14px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 14px;
   color: #1C1C1E;
+  font-family: inherit;
+  cursor: pointer;
 }
 
-.activity-bars .act-col {
-  width: 14px;
-  border-radius: 3px 3px 0 0;
-  background: #3B82F6;
+.more-chevron { transition: transform 0.2s ease; }
+.more-chevron.up { transform: rotate(180deg); }
+
+.battery-footnote { font-size: 12px; color: #8E8E93; padding: 4px 4px 0; }
+
+.bottom-spacer { height: 24px; }
+
+/* ---------- 电池模式说明 ---------- */
+.mode-info-title { font-size: 17px; font-weight: 600; text-align: center; margin-bottom: 18px; }
+
+.mode-info-item { margin-bottom: 16px; }
+
+.mode-info-name { font-size: 16px; font-weight: 600; }
+
+.mode-info-time { font-size: 13px; color: #8E8E93; margin-top: 3px; }
+
+.mode-info-desc { font-size: 13px; color: #8E8E93; margin-top: 2px; line-height: 18px; }
+
+.activity-info-row { font-size: 13px; color: #8E8E93; line-height: 20px; display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.activity-info-note { font-size: 12px; color: #8E8E93; margin: 4px 0 14px; }
+
+.mode-info-confirm {
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 24px;
+  background: #0A84FF;
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  margin-top: 4px;
 }
 
-.act-col.col-1 { height: 28%; }
-.act-col.col-2 { height: 65%; }
-.act-col.col-3 { height: 90%; }
-.act-col.col-4 { height: 42%; }
-.act-col.col-5 { height: 80%; }
-.act-col.col-6 { height: 15%; }
+/* ---------- 确认弹层 ---------- */
+.confirm-title { font-size: 17px; font-weight: 600; text-align: center; margin-bottom: 10px; }
 
-/* 应用图标复用：官方应用图标类 */
-.app-rank-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 9px;
-  object-fit: contain;
-  display: block;
-  flex: none;
-  margin-right: 14px;
+.confirm-desc { font-size: 13px; color: #8E8E93; line-height: 19px; text-align: center; margin-bottom: 18px; }
+
+.confirm-actions { display: flex; gap: 12px; }
+
+.confirm-btn {
+  flex: 1;
+  height: 46px;
+  border: none;
+  border-radius: 23px;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
 }
 
-.bottom-spacer {
-  height: 24px;
-}
+.confirm-btn.ghost { background: #F2F2F7; color: #1C1C1E; }
+.confirm-btn.primary { background: #0A84FF; color: #FFFFFF; }
 
-/* Toast */
+/* ---------- Toast ---------- */
 .settings-toast {
   position: absolute;
   bottom: 40px;
@@ -694,22 +626,11 @@ background: #FFFFFF;
   padding: 8px 18px;
   border-radius: 20px;
   font-size: 13px;
-  font-weight: 500;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   pointer-events: none;
   z-index: 100;
   white-space: nowrap;
 }
 
-.toast-fade-enter-active,
-.toast-fade-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.toast-fade-enter-from,
-.toast-fade-leave-to {
-  opacity: 0;
-  transform: translate(-50%, 8px);
-}
+.toast-fade-enter-active, .toast-fade-leave-active { transition: opacity 0.2s ease; }
+.toast-fade-enter-from, .toast-fade-leave-to { opacity: 0; }
 </style>
