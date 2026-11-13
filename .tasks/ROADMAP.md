@@ -98,3 +98,37 @@
 | WB 的 2 个 commit 未推送 | Workbuddy | `git push origin workbuddy/lane` |
 | C0 出借未登记 | AG | 在 `ACTIVE_TASKS.md` 加一行（用户已同意） |
 | `SettingsApp.vue` 归还 | AG | W2-001 Merged 后收回独占 |
+
+---
+
+## 八、Agent 直连通道（免复制粘贴）
+
+桌面 Agent 若以 `--remote-debugging-port` 启动，端口写在
+`~/Library/Application Support/<app>/DevToolsActivePort`，读到即可用 CDP 直连。
+
+```bash
+node tools/agent-bridge/read.mjs antigravity --tail 1500
+node tools/agent-bridge/send.mjs antigravity "文字"        # 先加 --dry 自检
+```
+
+| 应用 | 状态 |
+|---|---|
+| Antigravity | ✅ 已通（自带随机调试端口），读写验证过 |
+| WorkBuddy | ⬜ 需一次性带端口重启：`open -a WorkBuddy --args --remote-debugging-port=9222` |
+
+注意：发出去的消息在对方窗口里就是「用户输入」，它会立即执行。**不可撤回，发前先 `--dry`。**
+
+### G5 已交付（2026-11-12 深夜）
+
+`scripts/check-style-ratchet.mjs` + `scripts/lib/style-rules.mjs`
+
+- 只数 `border-radius` / `box-shadow` / `backdrop-filter` 里**没用 token** 的硬编码
+- `ui/**` 与 tokens/global 是允许写死的地方（设计系统本身）
+- 基线 **2080 处 / 211 个文件** —— 这就是"慢慢腐蚀"的规模
+- 接进 `gate:merge` 第 6 步（advisory，7 步共 15.8s）
+
+**踩过的坑**：`box-shadow: 0 1px 2px rgba(...)` 第一个 `0` 是偏移量不是"无效果"，
+用 `^0` 前缀匹配会把所有阴影吞掉（基线一度误报成 1675）。已改成整值比较，有单测守着。
+
+**W3 转阻塞前先做**：跑一周 `--strict` 看有没有假阳性（`:style` 内联绑定没被扫到，
+如果有人在模板里写死样式，这里是盲区——需要人工抽查）。
