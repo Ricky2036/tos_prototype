@@ -228,7 +228,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | W2-002：App 级自注册（统一纯数据应用表 + 10 个 `entry.js` + 移除 `manualChunks`）与 Hero `contentReady` + `pointerdown` 预载 | `antigravity/lane` | None (locks released) | `933bbfb` | `df1020a` |
 | Active | Antigravity | LEAD-AG-001：发布流水线修复（统一 Node 24 + Chromium + 硬超时） | `antigravity/lane` | `.github/workflows/deploy.yml` | `9661b6f` | pending |
 | Active | Antigravity | LEAD-AG-002：协作协议与决策落地（Codex 主导规划、锁更新、队列/信箱同步） | `antigravity/lane` | `docs/decisions.md`; `docs/roles-v2.md`; `AGENTS.md`; `.agent-assignments/codex.md`; `.claims/**`; `.tasks/**` | `9661b6f` | pending |
-| Active | DSH | 临时授权：门禁与断言认领边界修复（身份校验、E2E结果溯源与顺序） | `dsh/lane` | `scripts/gate-merge.mjs`; `scripts/check-assert-ratchet.mjs`; `scripts/claim-check.mjs`; `scripts/lib/claim-rules.mjs`; `tests/pipeline*` | `9661b6f` | pending |
+| Merged | DSH | LEAD-DSH-001/002：G6 执行者身份校验与 e2e 证据链绑定（带身份时间戳负载），C0 认领表重构 | `dsh/lane` | None (locks released) | `9661b6f` | `9267628` |
 | Active | Workbuddy | 临时授权：任务看板与脚本分类收编（防脚本目录大锁阻塞） | `workbuddy/lane` | `scripts/gen-task-board.mjs`; `tests/pipelineQueue.test.js`; `scripts/legacy/**`; 未注册 verify 脚本分类 | `9661b6f` | pending |
 | Ready | DSH | SET-DSH-01：真机保活与 G8 标定及三模块采集（独占真机 ADB） | `dsh/lane` | `spec/**`; `scripts/gate-geometry.mjs`; `tests/pipelineGeometry.test.js` | `9661b6f` | pending |
 | Ready | Workbuddy | SET-WB-01：设置系统与日期时间链路深度复刻（顺带修复 transitionContract 时序） | `workbuddy/lane` | `src/components/apps/settings/pages/dateTime.js`; `src/components/apps/settings/dateTime/**`; `src/components/apps/settings/system/**`; `src/stores/dateTimeStore.js`; `tests/dateTimeSettings.test.js`; `tests/transitionContract.test.js` | `9661b6f` | pending |
