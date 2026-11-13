@@ -24,7 +24,8 @@
 |---|---|---|
 | ~~P0~~ | 首次 boot 崩溃 | **已在 4f1ce0b6 修复**（`controllerPrompt(eventFileArg)`）；建议补回归测试 |
 | P1 | `delivery=rejected` 仍按"已送达"落 ledger 并返回 0 | 仍存在 |
-| P1 | **`unlock.mjs` 在 Node 26 下无法释放锁**（唯一官方恢复入口失效） | 仍存在（实测） |
+| **P0** | **锁永不释放**：`releaseLock` 用 `rmdirSync(...,{recursive:true})`，Node 26 抛错且被空 catch 吞掉 → 每次成功运行都留下锁，下一次必被挡 | **实测确证** |
+| P1 | `unlock.mjs` 用同一废弃 API，唯一官方恢复入口也失效 | 实测确证 |
 | P2 | 异常退出（SIGKILL）遗留 `.lock`，正常退出会释放 | 现象（设计上由 unlock 兜底） |
 | P2 | 同 ID 改内容：拒绝正确，但无结构化回执 | 仍存在 |
 | P2 | `state.repo_root` 在 boot 时固化，跨 worktree 误导 | 仍存在 |
@@ -49,6 +50,45 @@ ledger: REJ → { status:'review', delivery:'rejected', task_status:'complete' }
 `finish` 对 rejected 返回非 0（3），提示可重试。
 
 ---
+
+## P0 · 锁永不释放（每次运行都把自己锁在外面）
+
+**受控实测**（独立 `CB02_HOME`，stub 注入，未依赖他人进程）：
+
+```
+$ finish --task REL … --event-id EV-REL-0001
+finish: OK EV-REL-0001 delivery=accepted task_status=complete
+$ ls .lock
+lockinfo.json                       ← 成功返回后锁仍在
+
+$ finish --task REL2 … --event-id EV-REL-0002
+finish: 锁被占用（.lock 由 pid 87702 … 持有），本次未送达   ← 被自己上一次的残留挡住
+```
+
+**根因**（三处同源）：
+
+```js
+// finish.mjs:114 / ack.mjs:28
+function releaseLock () { try { fs.rmdirSync(LOCK_DIR, { recursive: true }) } catch { /* 残留不阻塞 */ } }
+```
+
+Node 26 已移除 `rmdir` 的 `recursive` 选项 → 抛 `ERR_INVALID_ARG_VALUE`/`TypeError`
+→ 被**空 catch 静默吞掉**。代码注释"残留不阻塞"与事实相反：它阻塞下一个人。
+
+**证据链**：审查期间连续观察到两把"持有者 pid 已死"的残留锁（84714、87159、87702），
+与"释放永远失败"一致，而不是偶发崩溃。
+
+**最小修复**（三处 + 一条测试）：
+
+```js
+fs.rmSync(LOCK_DIR, { recursive: true, force: true })
+```
+
+必须补的测试：`finish` 成功后 `.lock` **不存在**；`ack` 成功后 `.lock` **不存在**；
+且空 catch 至少要记录日志，不得静默。
+
+> 备注：`lockinfo.json`（pid/at/host）与 `unlock.mjs` 的设计是对的（拒绝抢活锁），
+> 缺陷仅在 API 用错 + 吞异常。修好后本条与 P1 一起消失。
 
 ## P1-b · `unlock.mjs` 在 Node 26 上无法解锁（官方恢复入口失效）
 
