@@ -1,0 +1,15 @@
+{
+  "cluster": "C0-wb-lend",
+  "owner": "dsh",
+  "lendTo": [
+    "workbuddy"
+  ],
+  "since": "2026-11-13",
+  "note": "Codex 派单指定的出借路径：任务板生成器、队列格式兼容与校验、未注册 verify 脚本分类与 scripts/legacy/**。WB 可直接改，无需逐次申请。",
+  "files": [
+    "scripts/gen-task-board.mjs",
+    "scripts/legacy/**",
+    "scripts/verify-*.mjs",
+    "scripts/validate-queue.mjs"
+  ]
+}

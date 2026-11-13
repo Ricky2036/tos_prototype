@@ -226,5 +226,67 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Workbuddy | W2-001：Settings 主壳 glob 自注册 + S2 三页迁出（合并自 fix/q-001-flaky，含 CI flaky 修复） | `workbuddy/lane` | None (locks released) | `afa2f95` | `2e0c11d` |
 | Merged | DSH | W2-003 + CI 修复：G6 认领边界（`.claims/` / `claim-check`）/ `verify.yml` 真装 chromium + 硬超时 + Node 24 | `dsh/lane` | None (locks released) | `b796f15` | `b5c5993` |
 | Merged | Antigravity | W2-002：App 级自注册（统一纯数据应用表 + 10 个 `entry.js` + 移除 `manualChunks`）与 Hero `contentReady` + `pointerdown` 预载 | `antigravity/lane` | None (locks released) | `933bbfb` | `df1020a` |
+| Active | Antigravity | LEAD-AG-001：发布流水线修复（统一 Node 24 + Chromium + 硬超时） | `antigravity/lane` | `.github/workflows/deploy.yml` | `9661b6f` | pending |
+| Merged | Antigravity | LEAD-AG-002：协作协议与决策落地（Codex 主导规划、锁更新、队列/信箱同步） | `antigravity/lane` | None (locks released) | `9661b6f` | `a070ba7` |
+| Merged | DSH | LEAD-DSH-001/002：G6 执行者身份校验与 e2e 证据链绑定（带身份时间戳负载），C0 认领表重构 | `dsh/lane` | None (locks released) | `9661b6f` | `9267628` |
+| Merged | Workbuddy | LEAD-WB-001/002：任务板队列事实源重构与 65 个 verify 脚本盘点收编（8 归档，21 改 ARTIFACT_DIR） | `workbuddy/lane` | None (locks released) | `9661b6f` | `b40f87a` |
+| Ready | DSH | SET-DSH-01：真机保活与 G8 标定及三模块采集（独占真机 ADB） | `dsh/lane` | `spec/**`; `scripts/gate-geometry.mjs`; `tests/pipelineGeometry.test.js` | `9661b6f` | pending |
+| Ready | Workbuddy | SET-WB-01：设置系统与日期时间链路深度复刻（顺带修复 transitionContract 时序） | `workbuddy/lane` | `src/components/apps/settings/pages/dateTime.js`; `src/components/apps/settings/dateTime/**`; `src/components/apps/settings/system/**`; `src/stores/dateTimeStore.js`; `tests/dateTimeSettings.test.js`; `tests/transitionContract.test.js` | `9661b6f` | pending |
+| Ready | Antigravity | SET-AG-01a：安全和紧急情况链路深度复刻（主壳单点最小接线，严禁触发真SOS） | `antigravity/lane` | `src/components/apps/settings/pages/safetyEmergency.js`; `src/components/apps/settings/safety/**`; `src/stores/safetyStore.js`; `tests/safetyEmergency.test.js` | `c6a5d06` | pending |
+| Ready | Antigravity | SET-AG-01b：用户与账号链路深度复刻（Google暂缓，严禁改写系统真实账户） | `antigravity/lane` | `src/components/apps/settings/pages/accounts.js`; `src/components/apps/settings/accounts/**`; `src/stores/accountsStore.js`; `tests/accountsSettings.test.js` | `c6a5d06` | pending |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
+
+<!-- GENERATED:TASKS:BEGIN -->
+<!-- 本区块由 scripts/gen-task-board.mjs 生成，不要手改 -->
+
+## 队列（事实源 `.tasks/queue/`）
+
+| ID | Status | 任务 | Owner | Claim | Depends | 单子 |
+| --- | --- | --- | --- | --- | --- | --- |
+| Q-004 | ready | Q-004 · S2 三页几何输入与真机来源留档 | — | C2 | — | `.tasks/queue/Q-004.md` |
+| Q-009 | ready | Q-009 · verify 脚本逐项分类清单 | — | C0-infra | — | `.tasks/queue/Q-009.md` |
+| Q-012 | ready | Q-012 · G5 一周严格模式观察 | — | C0-infra | — | `.tasks/queue/Q-012.md` |
+| Q-014 | ready | Q-014 · G6 簇登记补齐与一周认领观测 | — | C0-infra | — | `.tasks/queue/Q-014.md` |
+| Q-016 | ready | Q-016 · G0 离线覆盖计算与无效采集判定 | — | C0-infra | — | `.tasks/queue/Q-016.md` |
+| Q-018 | ready | Q-018 · C5 不稳定套件最小复现与归因 | — | C5 | — | `.tasks/queue/Q-018.md` |
+| Q-021 | ready | Q-021 · gate-merge 分步耗时基线 | — | C0-infra | — | `.tasks/queue/Q-021.md` |
+| Q-022 | ready | Q-022 · 源码正则测试按簇清点及后续拆单 | — | C0-infra | — | `.tasks/queue/Q-022.md` |
+| Q-026 | ready | Q-026 · CloudBackup 拆分边界与验收清单 | — | C3 | — | `.tasks/queue/Q-026.md` |
+| Q-027 | ready | Q-027 · DevConsole 拆分边界与行为基线 | — | C0-infra | — | `.tasks/queue/Q-027.md` |
+| Q-002 | blocked | Q-002 · G8 几何门禁在 S2 三页标定 | DSH (真机采集) / Workbuddy (实现对齐) | C0-infra | — | `.tasks/queue/Q-002.md` |
+| Q-003 | blocked | Q-003 · 65 个 verify 脚本分类收编与任务板校验 | Workbuddy | C0-infra (WB 临时授权白名单) | — | `.tasks/queue/Q-003.md` |
+| Q-005 | blocked | Q-005 · S2 display 单页几何标定 | — | C2 | Q-004 ✗、W2-001 ✓ | `.tasks/queue/Q-005.md` |
+| Q-006 | blocked | Q-006 · S2 sound 单页几何标定 | — | C2 | Q-004 ✗、W2-001 ✓ | `.tasks/queue/Q-006.md` |
+| Q-007 | blocked | Q-007 · S2 accessibility 单页几何标定 | — | C2 | Q-004 ✗、W2-001 ✓ | `.tasks/queue/Q-007.md` |
+| Q-008 | blocked | Q-008 · G8 三页 advisory 观察与阻塞接线 | — | C0-infra | Q-005 ✗、Q-006 ✗、Q-007 ✗ | `.tasks/queue/Q-008.md` |
+| Q-010 | blocked | Q-010 · 验证脚本输出目录公共约定与小样迁移 | — | C0-infra | Q-009 ✗ | `.tasks/queue/Q-010.md` |
+| Q-011 | blocked | Q-011 · 验证脚本注册与归档的有界执行清单 | — | C0-infra | Q-009 ✗、Q-010 ✗ | `.tasks/queue/Q-011.md` |
+| Q-013 | blocked | Q-013 · G5 严格阻塞接线及负例 | — | C0-infra | Q-012 ✗ | `.tasks/queue/Q-013.md` |
+| Q-015 | blocked | Q-015 · G6 从 advisory 转阻塞 | — | C0-infra | Q-013 ✗、Q-008 ✗、Q-014 ✗ | `.tasks/queue/Q-015.md` |
+| Q-017 | blocked | Q-017 · G0 设备采集与单模块 advisory 试点 | — | C0-infra | Q-016 ✗、Q-015 ✗ | `.tasks/queue/Q-017.md` |
+| Q-019 | blocked | Q-019 · C5 等待条件修复与单套稳定验证 | — | C5 | Q-018 ✗ | `.tasks/queue/Q-019.md` |
+| Q-020 | blocked | Q-020 · C5 隔离解除的交付验证 | — | C0-infra | Q-019 ✗ | `.tasks/queue/Q-020.md` |
+| Q-023 | blocked | Q-023 · Settings 剩余页面与导航边界清单 | — | C0-a | W2-001 ✓、Q-022 ✗ | `.tasks/queue/Q-023.md` |
+| Q-024 | blocked | Q-024 · Settings 首页分组数据提取 | — | C0-a | Q-023 ✗ | `.tasks/queue/Q-024.md` |
+| Q-025 | blocked | Q-025 · Settings 搜索声明迁移试点 | — | C2 | Q-023 ✗ | `.tasks/queue/Q-025.md` |
+| LEAD-AG-001 | done | LEAD-AG-001 · GitHub Pages 发布流水线修复 | Antigravity | C0-infra | — | `.tasks/queue/LEAD-AG-001.md` |
+| LEAD-AG-002 | done | LEAD-AG-002 · 架构决策与角色规范落地 | Antigravity | C0-infra | — | `.tasks/queue/LEAD-AG-002.md` |
+| LEAD-WB-001 | done | LEAD-WB-001 · 任务板与拉取式队列对齐 | workbuddy | C0-infra | — | `.tasks/queue/LEAD-WB-001.md` |
+| LEAD-WB-002 | done | LEAD-WB-002 · verify 脚本盘点与归档（接 Q-003） | workbuddy | C0-infra | — | `.tasks/queue/LEAD-WB-002.md` |
+| Q-001 | done | Q-001 · 修 workbuddy/lane 的 CI 红 | DSH (修) / AG (合入 main 9661b6f) | C2 | — | `.tasks/queue/Q-001.md` |
+
+## 历史任务（`.tasks/` 顶层旧卡，只读保留）
+
+| ID | Status | 任务 | Owner | Claim | Depends | 单子 |
+| --- | --- | --- | --- | --- | --- | --- |
+| W0-001 | doing | W0-001 · 地基 | DSH | C0（基建） | — | `.tasks/W0-001-dsh-bootstrap.md` |
+| W1-001 | done | W1-001 · 由 Integrator 合入：`vite.config.js` 端口解耦 + `save-defaults` 默认关闭 | AG | C0-a | — | `.tasks/W1-001-ag-vite-config.md` |
+| W1-002 | done（完成记录，卡片待更新） | W1-002 · S2 八个源码正则测试转运行时行为断言 | Workbuddy | C2 | — | `.tasks/W1-002-wb-s2-tests.md` |
+| W2-001 | done（完成记录，卡片待更新） | W2-001 · Workbuddy：Settings 主壳自注册 + S2 三页迁出 | Workbuddy | C0-a（SettingsApp.vue 部分，需 Integrator 出借独占权）+ C2 | — | `.tasks/W2-001-wb-settings-shell.md` |
+| W2-002 | done | W2-002 · Antigravity：App 级自注册 + Hero 就绪信号 | AG | C0-a | — | `.tasks/W2-002-ag-app-registry.md` |
+| W2-003 | done（完成记录，卡片待更新） | W2-003 · DSH：G6 认领边界（并行前的地基） | DSH | C0（基建） | — | `.tasks/W2-003-dsh-g6-claim.md` |
+
+共 31 张队列卡 · 6 张历史卡
+
+<!-- GENERATED:TASKS:END -->

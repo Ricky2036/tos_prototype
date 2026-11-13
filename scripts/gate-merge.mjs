@@ -19,12 +19,16 @@
 
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
+import os from 'node:os'
+import { execFileSync } from 'node:child_process'
+import { evidencePath } from './lib/e2e-evidence.mjs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 // G3a 的 tap 输出落这里，G7 棘轮复用同一份，避免整套单测跑两遍
 const TAP_FILE = path.join(ROOT, 'node_modules/.cache/gate-tap.txt')
+
 const argv = process.argv.slice(2)
 const fast = argv.includes('--fast')
 const withE2e = argv.includes('--with-e2e')
@@ -32,6 +36,20 @@ const port = (() => {
   const i = argv.indexOf('--port')
   return i >= 0 ? argv[i + 1] : '5555'
 })()
+
+/* 本轮身份：子进程共用，保证 run-e2e 与棘轮对同一 sha / worktree 达成一致 */
+const SHA = (() => {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8', stdio: 'pipe' }).trim()
+  } catch { return '' }
+})()
+const WORKTREE = path.basename(ROOT)
+process.env.GATE_WORKTREE = WORKTREE
+
+/* 证据路径每轮独立：sha + worktree + 时间戳，绝不与上一轮或别的 lane 撞名 */
+const EVIDENCE = withE2e
+  ? evidencePath({ sha: SHA, worktree: WORKTREE, dir: path.join(os.tmpdir(), 'agent-e2e') })
+  : null
 
 const red = (s) => `\x1b[31m${s}\x1b[0m`
 const green = (s) => `\x1b[32m${s}\x1b[0m`
@@ -45,16 +63,23 @@ const steps = [
   { id: 'Gtask', name: '任务板可生成', cmd: process.execPath, args: ['scripts/gen-task-board.mjs'] },
   { id: 'Gclaim', name: '认领边界（advisory）', cmd: process.execPath, args: ['scripts/claim-check.mjs'] },
   { id: 'G5', name: '裸样式棘轮（advisory）', cmd: process.execPath, args: ['scripts/check-style-ratchet.mjs'] },
-  { id: 'G7', name: '断言棘轮', cmd: process.execPath,
-    args: ['scripts/check-assert-ratchet.mjs', '--tap', TAP_FILE] },
+  // G4 必须在 G7 之前：棘轮要校验的正是这一轮 e2e 的结果
   ...(withE2e
     ? [{
         id: 'G4',
         name: `e2e (port ${port})`,
         cmd: process.execPath,
-        args: ['scripts/run-e2e.mjs', '--all', '--port', port, '--json'],
+        args: ['scripts/run-e2e.mjs', '--all', '--port', port, '--out', EVIDENCE],
       }]
     : []),
+  {
+    id: 'G7',
+    name: withE2e ? '断言棘轮（含本轮 e2e 证据）' : '断言棘轮（仅单测）',
+    cmd: process.execPath,
+    args: withE2e
+      ? ['scripts/check-assert-ratchet.mjs', '--tap', TAP_FILE, '--e2e-report', EVIDENCE, '--expect-all']
+      : ['scripts/check-assert-ratchet.mjs', '--tap', TAP_FILE, '--unit-only'],
+  },
 ]
 
 function listTests() {
@@ -62,6 +87,12 @@ function listTests() {
     .readdirSync(path.join(ROOT, 'tests'))
     .filter((f) => f.endsWith('.test.js'))
     .map((f) => path.join('tests', f))
+}
+
+const LOAD = os.loadavg()[0]
+const CPUS = os.cpus().length
+if (LOAD > CPUS * 2) {
+  console.log(`\x1b[33m注意：load ${LOAD.toFixed(1)} / ${CPUS} 核 —— 浏览器类测试在此负载下可能假红，先单独复跑再判定\x1b[0m`)
 }
 
 const t0 = Date.now()
