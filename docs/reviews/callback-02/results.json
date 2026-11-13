@@ -1,48 +1,88 @@
 {
-  "reviewed_version": {
-    "finish.mjs": "4f1ce0b66935bff345916334448f03413b32e88fc6a33ce723aa190f1551f106",
-    "note": "审查期间实现持续变动：17:53 版无 P0；2a59f2fe(18:04:09) 有 P0；4f1ce0b6(18:04:22) 已修"
+  "reviewed": {
+    "finish.mjs": "8ee8d585508a47d5e3b6a26a4ca7673d33e6823875eabe8f5129e105aa1e378d",
+    "ack.mjs": "9fdede9e95bc1226d197c9dc3fff90f8291b06565d54f29705c6ebc980a5c85f",
+    "unlock.mjs": "e0a479cd2d322e6f134a9fbc16d48f4eee8fe4f17043285f498024f700b27cea",
+    "status.mjs": "9aa360b7110fc64cf6a16fe43b168d17e0f6cc8c8f4ef2f1a2a24232e7e637d1"
   },
+  "reviewedAt": "2026-11-13T10:22:30.513Z",
+  "bin": "/Users/jingzhan.chen/Workbuddy/2026-08-02-23-04-06/.local-evidence/callback-02/bin",
+  "node": "v26.4.0",
   "cases": [
     {
-      "k": "T0 首次boot",
-      "v": "code=0 state=true receipt=true err=-"
+      "id": "T0",
+      "what": "首次 boot（无 state）",
+      "code": 0,
+      "stateWritten": true
     },
     {
-      "k": "T1 首次",
-      "v": "code=0 calls=1"
+      "id": "T1",
+      "what": "重复事件返回原回执、不重复调用模型",
+      "first": 0,
+      "dup": 0,
+      "callsAfterFirst": 1,
+      "callsAfterDup": 1,
+      "extraModelCalls": 0,
+      "dupOut": "finish: DUPLICATE EV-T1-0001 -> 原回执 /tmp/cb02-review/T1/receipts/EV-T1-0001.json"
     },
     {
-      "k": "T1 重复",
-      "v": "code=0 calls=1 :: finish: DUPLICATE EV-T1-0001 -> 原回执 /tmp/cb02-review/T1/receipts/EV-T1-0001.json"
+      "id": "T2",
+      "what": "delivery=rejected 不得按送达处理",
+      "finishCode": 3,
+      "ledgerHasTask": true,
+      "ackCode": 3
     },
     {
-      "k": "T2 首次(rejected)",
-      "v": "code=0 calls=1"
+      "id": "T2b",
+      "what": "同 ID 内容冲突：拒绝且留下结构化记录",
+      "code": 2,
+      "structured": true
     },
     {
-      "k": "T2 重发(改内容)",
-      "v": "code=2 calls=1 :: finish: REJECT EV-T2-0001 已存在且内容不同（task/producer/commits/artifact 等变更），拒绝覆盖"
+      "id": "T3",
+      "what": "未批准 next_task 必须被拒",
+      "code": 3,
+      "error": "本轮 next_task 必须严格为 null（无获批后继任务），收到: \"SET-NEW-99\""
     },
     {
-      "k": "T2 事件里最终 artifact",
-      "v": "[\"art/a.txt\"]"
+      "id": "T4",
+      "what": "模型失败不标送达、不可消费",
+      "finishCode": 3,
+      "ledgerHasTask": false,
+      "ackCode": 3
     },
     {
-      "k": "T3 next_task=字符串",
-      "v": "code=3 有回执=true 接受=false :: finish: FAIL EV-T3-0001 -> /tmp/cb02-review/T3/receipts/EV-T3-0001.json"
+      "id": "T5",
+      "what": "死 pid 的残留锁可被 unlock 释放",
+      "code": 0,
+      "lockGone": true
     },
     {
-      "k": "T4 失败回执",
-      "v": "finish code=3 ledger有该任务=false ack code=3 :: ack: 回执无有效内容（前次失败），不能消费确认；请重试 finish"
+      "id": "T5b",
+      "what": "活 pid 的锁不得被强抢",
+      "code": 2,
+      "lockKept": true
     },
     {
-      "k": "T5 残留 .lock",
-      "v": "code=2 锁仍存在=true :: finish: 锁被占用（.lock 存在），本次未送达，可重试"
+      "id": "T6",
+      "what": "并发 ack 串行化（不丢更新）",
+      "codes": [
+        0,
+        2
+      ],
+      "consumed": 1
     },
     {
-      "k": "T6 并发 ack",
-      "v": "退出码 A=0 B=0 · consumed=2/2 · ledger.status=consumed last_event=EV-T6-B001"
+      "id": "T7",
+      "what": "finish 成功后 .lock 必须不存在",
+      "code": 0,
+      "lockGone": true
+    },
+    {
+      "id": "T7b",
+      "what": "ack 成功后 .lock 必须不存在",
+      "code": 0,
+      "lockGone": true
     }
   ]
 }
