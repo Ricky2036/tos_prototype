@@ -96,7 +96,8 @@ test('仓库里的 .claims 全部合法且互不重叠', () => {
   // 关键文件只能有一个归属：随机挑几个已知文件验证
   const samples = [
     ['src/App.vue', 'C0-a'],
-    ['src/components/apps/settings/SettingsApp.vue', 'C2'],
+    ['src/components/apps/settings/SettingsApp.vue', 'C0-a'],
+    ['src/components/apps/settings/SettingsDisplay.vue', 'C2'],
     ['scripts/gate-merge.mjs', 'C0-infra'],
   ]
   for (const [file, want] of samples) {
