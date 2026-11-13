@@ -48,3 +48,24 @@ glob 路由探针输出：注册页 `["display","sound","accessibility","dateTim
 `dateTime` 路由 `true`、`push('dateTime')` 后落地页可见、标题正确、9 行顺序正确、
 默认禁用 `["date","time","timezone"]`、返回后首页 8 卡片、`pageErrors` 为空。
 ⇒ **主壳无需改一行即可路由到新页面**（§6.3 定义性指标），AG 只需接两处入口。
+
+---
+
+## 追加：包 C / D / E 入库后的第二条链路（14:33 起）
+
+DSH 把 C/D/E 追加进了 `spec/captures/SET-DSH-01-A-B.md`，本页据此继续落代码，
+未整单停工、未猜未知项。
+
+| 包 | 证据 | 落地 |
+| --- | --- | --- |
+| C1 两态矩阵 | 关态日期/时间 `enabled=true` | 与首版 `disabled = autoTime` 完全一致，浏览器断言逐组解禁/重新锁回 |
+| C2 时区支路 | 关态进 SubSettings 城市列表，44 节点，样例 6 城市 + GMT 偏移两列，**未选中任何城市** | 新增 `dateTime/DateTimeTimezonePicker.vue`：6 个采集包样例城市、只读浏览、一次返回；**不实现选中写回** |
+| C3 / E2 开关 | 43.5×24.1 画布 px；两页开关几何一致、是同一控件 | 继续复用 `ui/ToggleSwitch`，未在本页另写一份、未改共享控件 |
+| D 返回链 | 子页一次返回回日期与时间；主页返回回系统页；改值后重进状态保持 | 组件内 `subPage` + `useBackHandler` 先关子页再 pop；store 走 `localPrefs` 持久化，浏览器断言验证 |
+| E1 取色 | 底色 `#F0F2F3`、分隔线 `#E0E0E0`、禁用行**实色** `#999999`、副标题 `#595959` | 本页 scoped `:deep()` 覆盖（原 `ListCell` 是 `opacity:0.45`），浏览器逐项量 computed 值 |
+
+三项仍 unknown、明确不猜：日期/时间选择器形态、常驻地/双时钟位置点击去向、
+切应用回来是否保持（D1 未测）。这些行只上报 `open-picker` 意图，不臆造 UI。
+
+第二条链路验收：`node --test tests/dateTimeSettings.test.js` **16/16**（9 纯逻辑 +
+7 真实浏览器，含取色与城市列表往返）；`node scripts/gate-merge.mjs` 7 步全过。
