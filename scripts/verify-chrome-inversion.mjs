@@ -1,3 +1,9 @@
+// 产物目录：可用 ARTIFACT_DIR 覆盖；默认落到系统临时目录，跨机器/跨 lane 可移植
+import fsSync from 'node:fs'
+import osSync from 'node:os'
+import pathSync from 'node:path'
+const ARTIFACT_DIR = process.env.ARTIFACT_DIR || pathSync.join(osSync.tmpdir(), 'vwork')
+fsSync.mkdirSync(ARTIFACT_DIR, { recursive: true })
 import { chromium } from 'playwright'
 
 const CHROME =
@@ -26,7 +32,7 @@ async function run() {
     }
   })
   await page.waitForTimeout(500)
-  await page.screenshot({ path: '/Users/jingzhan.chen/.gemini/antigravity/brain/2fe9223f-ceff-4348-80f0-bc918deb553a/verify_chrome_home.png' })
+  await page.screenshot({ path: `${ARTIFACT_DIR}/verify_chrome_home.png` })
   console.log('1. Captured desktop home screenshot')
 
   // 2. Open Settings App: main settings page (white page -> dark chrome: black time/icons and dark pill)
@@ -36,7 +42,7 @@ async function run() {
     }
   })
   await page.waitForTimeout(600)
-  await page.screenshot({ path: '/Users/jingzhan.chen/.gemini/antigravity/brain/2fe9223f-ceff-4348-80f0-bc918deb553a/verify_chrome_settings_main.png' })
+  await page.screenshot({ path: `${ARTIFACT_DIR}/verify_chrome_settings_main.png` })
   console.log('2. Captured settings main screenshot')
 
   // 3. Click "壁纸与个性化" to open Personalization (black page -> light chrome: white time/icons and white pill)
@@ -46,7 +52,7 @@ async function run() {
     await cell.click()
     await page.waitForTimeout(600)
   }
-  await page.screenshot({ path: '/Users/jingzhan.chen/.gemini/antigravity/brain/2fe9223f-ceff-4348-80f0-bc918deb553a/verify_chrome_personalization_dark.png' })
+  await page.screenshot({ path: `${ARTIFACT_DIR}/verify_chrome_personalization_dark.png` })
   console.log('3. Captured personalization dark screenshot')
 
   // 4. Click a wallpaper to enter full screen preview
@@ -54,7 +60,7 @@ async function run() {
   if (await wallpaperCard.count() > 0) {
     await wallpaperCard.click()
     await page.waitForTimeout(600)
-    await page.screenshot({ path: '/Users/jingzhan.chen/.gemini/antigravity/brain/2fe9223f-ceff-4348-80f0-bc918deb553a/verify_chrome_preview_fullscreen.png' })
+    await page.screenshot({ path: `${ARTIFACT_DIR}/verify_chrome_preview_fullscreen.png` })
     console.log('4. Captured preview fullscreen screenshot')
   }
 
@@ -65,7 +71,7 @@ async function run() {
     }
   })
   await page.waitForTimeout(400)
-  await page.screenshot({ path: '/Users/jingzhan.chen/.gemini/antigravity/brain/2fe9223f-ceff-4348-80f0-bc918deb553a/verify_chrome_three_button_dark_bg.png' })
+  await page.screenshot({ path: `${ARTIFACT_DIR}/verify_chrome_three_button_dark_bg.png` })
   console.log('5. Captured three-button nav on dark background')
 
   await page.evaluate(() => {
@@ -74,7 +80,7 @@ async function run() {
     }
   })
   await page.waitForTimeout(600)
-  await page.screenshot({ path: '/Users/jingzhan.chen/.gemini/antigravity/brain/2fe9223f-ceff-4348-80f0-bc918deb553a/verify_chrome_three_button_light_bg.png' })
+  await page.screenshot({ path: `${ARTIFACT_DIR}/verify_chrome_three_button_light_bg.png` })
   console.log('6. Captured three-button nav on light background (Messages app)')
 
   // Reset back to gesture mode

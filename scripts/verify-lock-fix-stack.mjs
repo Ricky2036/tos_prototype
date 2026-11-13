@@ -1,3 +1,9 @@
+// 产物目录：可用 ARTIFACT_DIR 覆盖；默认落到系统临时目录，跨机器/跨 lane 可移植
+import fsSync from 'node:fs'
+import osSync from 'node:os'
+import pathSync from 'node:path'
+const ARTIFACT_DIR = process.env.ARTIFACT_DIR || pathSync.join(osSync.tmpdir(), 'vwork')
+fsSync.mkdirSync(ARTIFACT_DIR, { recursive: true })
 import { chromium } from 'playwright'
 
 const CHROME =
@@ -35,7 +41,7 @@ async function run() {
 
   // Screenshot initial stacked state
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/2fe9223f-ceff-4348-80f0-bc918deb553a/verify_fixed_stack_initial.png'
+    path: `${ARTIFACT_DIR}/verify_fixed_stack_initial.png`
   })
   console.log('Saved verify_fixed_stack_initial.png')
 
@@ -65,7 +71,7 @@ async function run() {
 
   // Screenshot bottom state
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/2fe9223f-ceff-4348-80f0-bc918deb553a/verify_fixed_bottom_gap.png'
+    path: `${ARTIFACT_DIR}/verify_fixed_bottom_gap.png`
   })
   console.log('Saved verify_fixed_bottom_gap.png')
 

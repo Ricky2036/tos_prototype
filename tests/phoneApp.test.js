@@ -314,7 +314,13 @@ test('最近任务行支持跟手滑动：pointer 序列真的把行推开，松
     el.dispatchEvent(new PointerEvent('pointermove', { ...base, clientX: 200 }))
     el.dispatchEvent(new PointerEvent('pointerup', { ...base, clientX: 200 }))
   }, { id: h })
-  await rt.settle(h, 150)
+  // 高负载 runner 上固定 sleep 会读到动画前的 transform：等位移真的出现
+  await rt.page.waitForFunction(({ hostId }) => {
+    const el = window.__wbHosts.get(hostId)?.host?.querySelector('.recent-row-content')
+    if (!el) return false
+    const m = getComputedStyle(el).transform.match(/matrix\([^)]*,\s*(-?[\d.]+),\s*0\)/)
+    return !!m && Number(m[1]) < -20
+  }, { hostId: h }, { timeout: 20000 })
 
   const after = await rt.style(h, '.recent-row-content', 'transform')
   assert.notEqual(after, before, '滑动后行内容应真的位移')

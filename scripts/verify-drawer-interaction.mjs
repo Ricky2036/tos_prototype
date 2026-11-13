@@ -1,8 +1,13 @@
+// 产物目录：可用 ARTIFACT_DIR 覆盖；默认落到系统临时目录，跨机器/跨 lane 可移植
+import fsSync from 'node:fs'
+import osSync from 'node:os'
+import pathSync from 'node:path'
+const ARTIFACT_DIR = process.env.ARTIFACT_DIR || pathSync.join(osSync.tmpdir(), 'vwork')
+fsSync.mkdirSync(ARTIFACT_DIR, { recursive: true })
 import { chromium } from 'playwright'
 import { mkdir, copyFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-const ARTIFACT_DIR = '/Users/jingzhan.chen/.gemini/antigravity/brain/2fe9223f-ceff-4348-80f0-bc918deb553a'
 const OUT_DIR = '/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-antigravity/.motion/verify-drawer'
 
 async function run() {
