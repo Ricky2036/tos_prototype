@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "events": [
+    {
+      "id": "EV-REPORT-DSH-TEST-001-63a13ba-done",
+      "key": "REPORT-DSH-TEST-001|63a13ba|done",
+      "type": "done",
+      "task": "REPORT-DSH-TEST-001",
+      "sha": "63a13ba",
+      "payload": {
+        "note": "能力缺口已报 AG；本事件待真实送达"
+      },
+      "createdAt": "2026-11-13T06:58:49.064Z",
+      "attempts": 0,
+      "attemptedAt": [],
+      "state": "pending",
+      "receipt": null,
+      "deliveredAt": null
+    }
+  ]
+}
