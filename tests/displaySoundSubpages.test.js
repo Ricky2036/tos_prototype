@@ -216,6 +216,10 @@ test('显示与亮度页：9 个三级页入口都能点进去，且补上了「
   // 自动息屏是弹层不是整页（真机如此）
   const sleep = await rt.mount(DISPLAY)
   await rt.clickText(sleep, '.list-cell', '自动息屏时间', 400)
+  await rt.page.waitForFunction(({ hostId }) => {
+    const host = window.__wbHosts.get(hostId)?.host
+    return !!host && !!host.querySelector('.sheet-panel')
+  }, { hostId: sleep }, { timeout: 20000 })
   assert.equal(await rt.visibleCount(sleep, '.sheet-panel'), 1, '自动息屏应弹出弹层')
   assert.equal(await rt.count(sleep, '.sub-shell'), 0, '自动息屏不该推进三级页')
   assert.equal(await rt.count(sleep, '.sheet-option'), 6, '六档息屏时间应真实渲染')

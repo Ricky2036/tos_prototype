@@ -89,7 +89,8 @@ test('列表短名称与定时副标题格式化正确', () => {
 test('设置入口、深链、逐层返回与控制中心 2×1 开关全部接线', () => {
   const app = strip(read('src/components/apps/settings/SettingsApp.vue'))
   assert.match(app, /title="Infinix AI"[\s\S]*?data-setting-row="focus"[\s\S]*?title="模式和日常程序"/)
-  assert.match(app, /view\.value === 'focus' && focusRef\.value\?\.back/)
+  assert.match(app, /\bfocus:\s*focusRef\b/, 'focus 必须登记在返回栈注册表')
+  assert.match(app, /legacyRefs\[view\.value\]\?\.value/, '侧滑返回由统一注册表逐层消费')
   assert.match(app, /<SettingsFocus ref="focusRef" @back="pop"/)
   const cc = strip(read('src/components/system/ControlCenter.vue'))
   assert.match(cc, /id: 'dnd'[^}]+defaultSize: '2x1'/)

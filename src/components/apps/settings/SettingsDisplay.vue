@@ -2,6 +2,8 @@
 import GlassNavBar from '../../ui/GlassNavBar.vue'
 import '../../../styles/layer-transitions.css'
 import { ref, computed } from 'vue'
+import { inject } from 'vue'
+import { useBackHandler } from '../../../composables/backRegistry'
 import { useControlStore } from '../../../stores/controlStore'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
@@ -131,6 +133,17 @@ function back() {
   }
   emit('back')
   return true
+}
+
+/* 返回栈下沉（pipeline §6.2）：页面自己注册侧滑返回，主壳不再逐页轮询。
+   无 settingsNav 时（例如被 PhoneSettings 当作子页复用）不注册，保持旧契约。 */
+const settingsNav = inject('settingsNav', null)
+if (settingsNav) {
+  useBackHandler(() => {
+    if (subPage.value) { closeSubPage(); return true }
+    settingsNav.pop()
+    return true
+  })
 }
 
 defineExpose({ back })

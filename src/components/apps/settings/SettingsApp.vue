@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, defineAsyncComponent, provide } from 'vue'
 import { useControlStore } from '../../../stores/controlStore'
 import { useClock } from '../../../composables/useClock'
 import { useBackHandler } from '../../../composables/backRegistry'
@@ -11,8 +11,6 @@ import { SETTINGS_TITLES } from '../../../config/settingsTitles'
 import SettingsSearchDock from '../../ui/SettingsSearchDock.vue'
 import SettingsSystemIcon from '../../ui/SettingsSystemIcon.vue'
 import SettingsNotifications from './SettingsNotifications.vue'
-import SettingsSound from './SettingsSound.vue'
-import SettingsDisplay from './SettingsDisplay.vue'
 import SettingsDND from './SettingsDND.vue'
 import SettingsPrayer from './SettingsPrayer.vue'
 import SettingsPersonalization from './personalization/SettingsPersonalization.vue'
@@ -41,7 +39,6 @@ import SettingsSecurity from './SettingsSecurity.vue'
 import SettingsPrivacy from './SettingsPrivacy.vue'
 import SettingsAppsManage from './SettingsAppsManage.vue'
 import SettingsLocation from './SettingsLocation.vue'
-import SettingsAccessibility from './SettingsAccessibility.vue'
 import SettingsOneTap from './SettingsOneTap.vue'
 import SettingsBattery from './SettingsBattery.vue'
 import SettingsStorage from './SettingsStorage.vue'
@@ -143,6 +140,27 @@ function pop() {
   }
 }
 
+/* ===== pages/*.js 自注册（pipeline §6.2 / §6.3）=====
+   路由表、标题表、搜索池都由 pages/ 下的元数据汇总而来。
+   新增第 35 个页面只需加一个 .js，主壳一行都不用改。 */
+const pageModules = import.meta.glob('./pages/*.js', { eager: true })
+const settingsPages = Object.values(pageModules)
+  .map((m) => m.default)
+  .filter(Boolean)
+  .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+const pageComponents = Object.fromEntries(settingsPages.map((p) => [
+  p.id,
+  typeof p.component === 'function' ? defineAsyncComponent(p.component) : p.component,
+]))
+const currentPageComponent = computed(() => pageComponents[view.value] || null)
+const pageSearchItems = settingsPages.flatMap((p) =>
+  (p.searchItems || []).map((item) => ({ ...item, action: () => push(p.id) }))
+)
+
+/* 跨页导航下沉：子页 inject('settingsNav') 自行 push/pop，
+   主壳不再为每个页面写定制 @open-* 冒泡链 */
+provide('settingsNav', { push, pop, pushUnimplemented })
+
 /* 全局侧滑返回：子页 → 首页逐层消费 */
 const notifRef = ref(null)
 const dndRef = ref(null)
@@ -169,32 +187,25 @@ const storageRef = ref(null)
 const displayRef = ref(null)
 const soundRef = ref(null)
 const dhRef = ref(null)
+/* 旧版 31 页仍走 expose({back}) 的轮询；已迁出的 pages/*.js 页面
+   在自身 useBackHandler() 里注册，不再由主壳逐页判断。 */
+const legacyRefs = {
+  about: aboutPhoneRef, sim: simRef, wifi: wifiRef, bluetooth: bluetoothRef,
+  satellite: satelliteRef, multiDevice: multiDeviceRef, hotspot: hotspotRef,
+  nfc: nfcRef, infinixAi: aiRef, security: securityRef, privacy: privacyRef,
+  appsManage: appsManageRef, location: locationRef, dnd: dndRef, focus: focusRef,
+  oneTap: oneTapRef, battery: batteryRef, storage: storageRef,
+  digitalHealth: dhRef, personalization: personalizationRef, prayer: prayerRef,
+  notifications: notifRef,
+}
 useBackHandler(() => {
-  if (view.value === 'about' && aboutPhoneRef.value?.back?.()) return true
-  if (view.value === 'sim' && simRef.value?.back?.()) return true
-  if (view.value === 'wifi' && wifiRef.value?.back?.()) return true
-  if (view.value === 'bluetooth' && bluetoothRef.value?.back?.()) return true
-  if (view.value === 'satellite' && satelliteRef.value?.back?.()) return true
-  if (view.value === 'multiDevice' && multiDeviceRef.value?.back?.()) return true
-  if (view.value === 'hotspot' && hotspotRef.value?.back?.()) return true
-  if (view.value === 'nfc' && nfcRef.value?.back?.()) return true
-  if (view.value === 'infinixAi' && aiRef.value?.back?.()) return true
-  if (view.value === 'security' && securityRef.value?.back?.()) return true
-  if (view.value === 'privacy' && privacyRef.value?.back?.()) return true
-  if (view.value === 'appsManage' && appsManageRef.value?.back?.()) return true
-  if (view.value === 'location' && locationRef.value?.back?.()) return true
-  if (view.value === 'dnd' && dndRef.value?.back?.()) return true
-  if (view.value === 'focus' && focusRef.value?.back?.()) return true
-  if (view.value === 'accessibility' && accessibilityRef.value?.back?.()) return true
-  if (view.value === 'display' && displayRef.value?.back?.()) return true
-  if (view.value === 'sound' && soundRef.value?.back?.()) return true
-  if (view.value === 'oneTap' && oneTapRef.value?.back?.()) return true
-  if (view.value === 'battery' && batteryRef.value?.back?.()) return true
-  if (view.value === 'storage' && storageRef.value?.back?.()) return true
-  if (view.value === 'digitalHealth' && dhRef.value?.back?.()) return true
-  if (view.value === 'personalization' && personalizationRef.value?.back()) return true
-  if (view.value === 'prayer' && prayerRef.value?.back()) return true
-  if (view.value === 'notifications' && notifRef.value?.back()) return true
+  // glob 页面若没自注册 handler，至少退回首页（不逐页写 if）
+  if (currentPageComponent.value) {
+    if (stack.value.length > 1) { pop(); return true }
+    return false
+  }
+  const legacy = legacyRefs[view.value]?.value
+  if (legacy?.back?.()) return true
   if (stack.value.length > 1) { pop(); return true }
   return false
 })
@@ -209,14 +220,20 @@ function handleDisplayNavigate(target) {
   }
 }
 
+/* pages/*.js 页面的事件统一转发：主壳模板不再逐页挂定制事件 */
+const pageEventHandlers = {
+  back: pop,
+  navigate: handleDisplayNavigate,
+  'open-dnd': () => push('dnd'),
+  'open-prayer': () => push('prayer'),
+}
+
 const viewTitles = computed(() => ({
   wifi: i18n.t('wifi') || 'WLAN',
-  display: i18n.t('displayAndBrightness') || '显示与亮度',
   general: '系统',
   language: '语言与输入法',
   navigation: '系统导航方式',
   notifications: SETTINGS_TITLES.notifications,
-  sound: i18n.t('soundAndVibration') || '声音与振动',
   dnd: SETTINGS_TITLES.dnd,
   focus: '专注模式',
   prayer: SETTINGS_TITLES.prayer,
@@ -234,7 +251,6 @@ const viewTitles = computed(() => ({
   privacy: '权限与隐私',
   appsManage: '应用管理',
   location: '位置信息',
-  accessibility: '辅助功能',
   oneTap: 'One-Tap Button',
   battery: '电池与省电',
   storage: '存储',
@@ -245,6 +261,12 @@ const viewTitles = computed(() => ({
   cloudBackup: '云备份',
   wallet: '卡包',
   search: '搜索',
+  // 页面标题由 pages/*.js 自声明；i18n 没登记的 key 回退到页面自带中文
+  ...Object.fromEntries(settingsPages.map((p) => {
+    let translated = ''
+    try { translated = i18n.t(p.titleKey) } catch { /* 未登记 */ }
+    return [p.id, translated && translated !== p.titleKey ? translated : p.title]
+  })),
   placeholder: placeholderTitle.value || '设置'
 }))
 
@@ -288,8 +310,6 @@ const allSearchableItems = [
   { id: 'circleSearch', title: '圈定即搜', group: 'Infinix AI', action: () => push('infinixAi') },
   { id: 'aiCall', title: 'AI通话助手', group: 'Infinix AI', action: () => push('infinixAi') },
   { id: 'wallpaper', title: SETTINGS_TITLES.personalization, group: '个性化', action: () => push('personalization') },
-  { id: 'display', title: '显示与亮度', group: '显示', action: () => push('display') },
-  { id: 'sound', title: '声音与振动', group: '声音', action: () => push('sound') },
   { id: 'notifications', title: '通知与状态栏', group: '通知', action: () => push('notifications') },
   { id: 'security', title: '密码与安全', group: '安全与隐私', action: () => push('security') },
   { id: 'lockScreenPwd', title: '锁屏密码', group: '安全与隐私', action: () => push('security') },
@@ -302,7 +322,6 @@ const allSearchableItems = [
   { id: 'appClone', title: '应用双开', group: '应用', action: () => push('appsManage') },
   { id: 'defaultApps', title: '默认应用', group: '应用', action: () => push('appsManage') },
   { id: 'location', title: '位置信息', group: '安全与隐私', action: () => push('location') },
-  { id: 'accessibility', title: '辅助功能', group: '系统', action: () => push('accessibility') },
   { id: 'oneTap', title: 'One-Tap Button', group: '系统', action: () => push('oneTap') },
   { id: 'actionButton', title: '实体动作键', group: '系统', action: () => push('oneTap') },
   { id: 'battery', title: '电池与省电', group: '电量', action: () => push('battery') },
@@ -334,7 +353,7 @@ const allSearchableItems = [
   { id: 'screenTime', title: '屏幕使用时间', group: '数字健康', action: () => push('digitalHealth') },
   { id: 'lockScreen', title: '锁屏设置', group: '个性化', action: () => push('personalization') },
   { id: 'smallWindow', title: '小窗模式', group: '特色功能', action: () => pushUnimplemented('小窗模式') },
-  { id: 'darkMode', title: '深色主题（黑夜模式）', group: '显示', action: () => push('display') }
+  ...pageSearchItems
 ]
 
 function handleSearchNavigate(item) {
@@ -707,11 +726,6 @@ function handleSearchNavigate(item) {
         />
       </div>
 
-      <!-- ================= 声音与振动 ================= -->
-      <div v-else-if="view === 'sound'" key="sound" class="settings-page">
-        <SettingsSound ref="soundRef" @back="pop" @open-dnd="push('dnd')" @open-prayer="push('prayer')" />
-      </div>
-
       <!-- ================= 专注模式（完整创建、编辑与自动化流程） ================= -->
       <div v-else-if="view === 'focus'" key="focus" class="settings-page">
         <SettingsFocus ref="focusRef" @back="pop" />
@@ -735,11 +749,6 @@ function handleSearchNavigate(item) {
       <!-- ================= 主题与个性化 ================= -->
       <div v-else-if="view === 'personalization'" key="personalization" class="settings-page">
         <SettingsPersonalization ref="personalizationRef" @back="pop" />
-      </div>
-
-      <!-- ================= 显示与亮度 ================= -->
-      <div v-else-if="view === 'display'" key="display" class="settings-page">
-        <SettingsDisplay ref="displayRef" @back="pop" @navigate="handleDisplayNavigate" />
       </div>
 
       <!-- ================= 账号中心 (Infinix ID) ================= -->
@@ -863,11 +872,6 @@ function handleSearchNavigate(item) {
         <SettingsLocation ref="locationRef" @back="pop" />
       </div>
 
-      <!-- ================= 辅助功能 ================= -->
-      <div v-else-if="view === 'accessibility'" key="accessibility" class="settings-page">
-        <SettingsAccessibility ref="accessibilityRef" @back="pop" />
-      </div>
-
       <!-- ================= One-Tap Button ================= -->
       <div v-else-if="view === 'oneTap'" key="oneTap" class="settings-page">
         <SettingsOneTap ref="oneTapRef" @back="pop" />
@@ -893,6 +897,11 @@ function handleSearchNavigate(item) {
         <DhParental @back="pop" />
       </div>
 
+      <!-- ============ pages/*.js 自注册页面（新增页面主壳零改动） ============ -->
+      <div v-else-if="currentPageComponent" :key="view" class="settings-page">
+        <component :is="currentPageComponent" v-on="pageEventHandlers" />
+      </div>
+
       <!-- ================= 其他二级页 ================= -->
       <div v-else :key="view" class="settings-page">
         <GlassNavBar overlay :title="viewTitles[view]" @back="pop" />
@@ -909,36 +918,6 @@ function handleSearchNavigate(item) {
           <div class="placeholder-title">{{ placeholderTitle }}</div>
           <div class="placeholder-note">该功能在当前原型版本中已收录，正在接入系统底层服务。</div>
         </div>
-
-        <!-- 无线局域网 -->
-        <div v-else-if="view === 'wifi'" class="scrollable detail-body">
-          <div class="settings-card">
-            <ListCell glyph="wifi" icon-bg="#0088FF" title="WLAN" last>
-              <template #right><ToggleSwitch v-model="control.wifi" /></template>
-            </ListCell>
-          </div>
-          <template v-if="control.wifi">
-            <div class="group-header">当前网络</div>
-            <div class="settings-card">
-              <ListCell title="Ricky_5G" last>
-                <template #right>
-                  <svg width="18" height="18" viewBox="0 0 24 24"><path :d="GLYPHS.check" fill="#007AFF" /></svg>
-                  <svg width="18" height="18" viewBox="0 0 24 24"><path :d="GLYPHS.info" fill="#C7C7CC" /></svg>
-                </template>
-              </ListCell>
-            </div>
-            <div class="group-header">其他网络</div>
-            <div class="settings-card">
-              <ListCell v-for="(n, i) in networks.slice(1)" :key="n" :title="n" :last="i === networks.length - 2">
-                <template #right>
-                  <svg width="18" height="18" viewBox="0 0 24 24"><path :d="GLYPHS.lock" fill="#C7C7CC" /></svg>
-                </template>
-              </ListCell>
-            </div>
-          </template>
-          <div v-else class="empty-note">已关闭 WLAN</div>
-        </div>
-
 
         <!-- 系统语言与输入法子页 -->
         <div v-else-if="view === 'language'" class="scrollable detail-body">

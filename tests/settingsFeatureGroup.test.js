@@ -154,6 +154,13 @@ test('设置首页 card 6 四个条目可点，点击后真的进入对应子页
     assert.equal(await rt.count(h, pageSel), 0, `${label}：首页阶段不应提前挂出子页`)
 
     await rt.clickText(h, '.list-cell', label, 400)
+    await rt.page.waitForFunction(({ hostId, sel }) => {
+      const host = window.__wbHosts.get(hostId)?.host
+      const el = host?.querySelector(sel)
+      if (!el) return false
+      const r = el.getBoundingClientRect()
+      return r.width > 0 && r.height > 0
+    }, { hostId: h, sel: pageSel }, { timeout: 20000 })
     assert.equal(await rt.visibleCount(h, pageSel), 1, `点「${label}」后应渲染出对应子页`)
     assert.ok((await rt.allText(h)).includes(title), `子页应显示标题「${title}」`)
     assert.equal(await rt.visibleCount(h, '.glass-nav.is-overlay'), 1, '子页应有共享导航条')

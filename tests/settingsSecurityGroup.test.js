@@ -150,10 +150,11 @@ test('SettingsApp.vue connects Card 5 to dedicated pages, back handler, and sear
   assert.match(content, /privacy: '权限与隐私'/)
   assert.match(content, /appsManage: '应用管理'/)
   assert.match(content, /location: '位置信息'/)
-  assert.match(content, /view\.value === 'security' && securityRef\.value\?\.back\?\.\(\)/)
-  assert.match(content, /view\.value === 'privacy' && privacyRef\.value\?\.back\?\.\(\)/)
-  assert.match(content, /view\.value === 'appsManage' && appsManageRef\.value\?\.back\?\.\(\)/)
-  assert.match(content, /view\.value === 'location' && locationRef\.value\?\.back\?\.\(\)/)
+  assert.match(content, /security:\s*securityRef/, '密码与安全必须登记在返回栈注册表')
+  assert.match(content, /privacy:\s*privacyRef/, '权限与隐私必须登记在返回栈注册表')
+  assert.match(content, /appsManage:\s*appsManageRef/, '应用管理必须登记在返回栈注册表')
+  assert.match(content, /location:\s*locationRef/, '位置信息必须登记在返回栈注册表')
+  assert.match(content, /legacyRefs\[view\.value\]\?\.value/, '侧滑返回由统一注册表逐层消费')
 
   // Search items
   assert.match(content, /id: 'security', title: '密码与安全', group: '安全与隐私', action: \(\) => push\('security'\)/)

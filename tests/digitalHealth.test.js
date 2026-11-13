@@ -196,7 +196,9 @@ test('设置首页把「数字健康」与「家长控制」拆成两行真入�
   assert.ok(/title="家长控制"[^>]*@click="push\('parental'\)"/.test(src), '「家长控制」不是真跳转')
   assert.ok(src.includes('view === \'digitalHealth\''), '缺少 digitalHealth 视图分支')
   assert.ok(src.includes('view === \'parental\''), '缺少 parental 视图分支')
-  assert.ok(src.includes('dhRef.value?.back?.()'), '侧滑返回没接到数字健康的子页栈')
+  // 返回栈已数据化为 legacyRefs 注册表（主壳不再逐页写 if）
+  assert.ok(src.includes('digitalHealth: dhRef'), '数字健康必须登记在返回栈注册表')
+  assert.ok(src.includes('legacyRefs[view.value]'), '侧滑返回由统一注册表逐层消费')
 })
 
 test('搜索项：数字健康相关条目全部落到真实页面，不再 pushUnimplemented', () => {
