@@ -1,9 +1,21 @@
 <script setup>
 import GlassNavBar from '../../ui/GlassNavBar.vue'
-import { ref, inject } from 'vue'
+import '../../../styles/layer-transitions.css'
+import { ref, inject, computed } from 'vue'
 import { useBackHandler } from '../../../composables/backRegistry'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
+import AccA11yServices from './accessibility/AccA11yServices.vue'
+import AccScreenRecord from './accessibility/AccScreenRecord.vue'
+import AccScreenshot from './accessibility/AccScreenshot.vue'
+import AccSmartGrip from './accessibility/AccSmartGrip.vue'
+import AccSplitScreen from './accessibility/AccSplitScreen.vue'
+import AccSidebar from './accessibility/AccSidebar.vue'
+import AccOutdoor from './accessibility/AccOutdoor.vue'
+import AccMotion from './accessibility/AccMotion.vue'
+import AccGame from './accessibility/AccGame.vue'
+import AccPending from './accessibility/AccPending.vue'
+import { useAccessibilitySettingsStore } from '../../../stores/accessibilitySettingsStore.js'
 
 import heroIcon from '../../../assets/icons/accessibility/hero.webp'
 import accessibilityIcon from '../../../assets/icons/accessibility/accessibility.webp'
@@ -19,35 +31,69 @@ import motionIcon from '../../../assets/icons/accessibility/motion.webp'
 import gameIcon from '../../../assets/icons/accessibility/game.webp'
 import mistouchIcon from '../../../assets/icons/accessibility/mistouch.webp'
 
+/**
+ * 辅助功能（SET-ACC-01）
+ *
+ * 真机依据：`spec/captures/SET-ACC-01-accessibility.md`
+ * （Infinix X6878 / Android 17，2026-11-13 采集；落地 Activity `Settings$IntelligentAssistActivity`）
+ *
+ * 入口 → 落地页的对应关系有两条**两入口一落地**，按真机原样接：
+ *   动作与手势 / 智感握姿 → 同一个「智感握姿」页（SmartGripSettingActivity）
+ *   小窗 / 应用分屏 → 同一个「应用分屏」页（SplitSettingsMainActivity）
+ *
+ * 防误触模式是主页唯一的行内开关（真机默认开、蓝色）。
+ * 未采到的深层入口统一走 AccPending 明示缺口，不用 toast 冒充已实现。
+ */
 const emit = defineEmits(['back', 'navigate'])
+const acc = useAccessibilitySettingsStore()
 
-// 交互状态
-const antiMistouch = ref(true)
+const subPage = ref(null)
+const isBack = ref(false)
 
-// 浮层反馈提示
-const toastText = ref('')
-let toastTimer = null
-function showToast(msg) {
-  toastText.value = msg
-  if (toastTimer) clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => {
-    toastText.value = ''
-  }, 2200)
+const SUB_TITLES = {
+  a11y: '无障碍',
+  record: '录屏',
+  screenshot: '截屏',
+  grip: '智感握姿',
+  split: '应用分屏',
+  sidebar: '智能侧边栏',
+  outdoor: '户外增强',
+  motion: '晕动舒缓显示',
+  game: '游戏模式',
+  'link-appClone': '应用双开',
+  'link-antiPeep': '防偷窥'
 }
 
-function handleItemTap(name) {
-  showToast(`已进入${name}设置`)
+function openSub(key) {
+  isBack.value = false
+  subPage.value = key
 }
+function closeSub() {
+  isBack.value = true
+  subPage.value = null
+}
+
+const pendingTitle = computed(() =>
+  subPage.value && subPage.value.startsWith('link-') ? SUB_TITLES[subPage.value] : ''
+)
 
 function back() {
+  if (subPage.value) { closeSub(); return true }
   emit('back')
   return true
 }
 
-/* 无三级页：侧滑直接退回上一级（返回栈下沉，pipeline §6.2） */
 const settingsNav = inject('settingsNav', null)
-if (settingsNav) {
-  useBackHandler(() => { settingsNav.pop(); return true })
+useBackHandler(() => back())
+
+/* 「你可能想找」：数字健康已有独立模块，走主壳路由；应用双开/防偷窥未采 → 缺口页 */
+function openRelative(target) {
+  if (target === 'digitalHealth') {
+    if (settingsNav) { settingsNav.push('digitalHealth'); return }
+    emit('navigate', 'digitalHealth')
+    return
+  }
+  openSub(target === 'appClone' ? 'link-appClone' : 'link-antiPeep')
 }
 
 defineExpose({ back })
@@ -55,176 +101,161 @@ defineExpose({ back })
 
 <template>
   <div class="settings-accessibility-page">
-    <!-- 顶部导航栏：左对齐大标题 -->
-    <GlassNavBar overlay title="辅助功能" @back="emit('back')" />
+    <!-- 子页：统一进退转场 -->
+    <Transition :name="isBack ? 'slide-back' : 'slide'">
+      <AccA11yServices v-if="subPage === 'a11y'" key="a11y" @back="closeSub" />
+      <AccScreenRecord v-else-if="subPage === 'record'" key="record" @back="closeSub" />
+      <AccScreenshot v-else-if="subPage === 'screenshot'" key="screenshot" @back="closeSub" />
+      <AccSmartGrip v-else-if="subPage === 'grip'" key="grip" @back="closeSub" />
+      <AccSplitScreen v-else-if="subPage === 'split'" key="split" @back="closeSub" />
+      <AccSidebar v-else-if="subPage === 'sidebar'" key="sidebar" @back="closeSub" />
+      <AccOutdoor v-else-if="subPage === 'outdoor'" key="outdoor" @back="closeSub" />
+      <AccMotion v-else-if="subPage === 'motion'" key="motion" @back="closeSub" />
+      <AccGame v-else-if="subPage === 'game'" key="game" @back="closeSub" />
+      <AccPending
+        v-else-if="pendingTitle"
+        :key="subPage"
+        :title="pendingTitle"
+        reason="该入口指向本模块之外的页面，本轮未采集、未复刻。"
+        @back="closeSub"
+      />
+    </Transition>
 
-    <!-- 滚动内容区 -->
-    <div style="padding-top: var(--nav-h)" class="accessibility-scroll-body scrollable">
-      <!-- 顶部特性大卡片：真机悬浮特色晶核徽标 -->
-      <!-- 顶部特性大卡片：真机官方高保真晶核徽标 -->
-      <div class="accessibility-hero-card">
-        <div class="hero-icon-wrap">
-          <img :src="heroIcon" class="hero-icon-img" alt="辅助功能" draggable="false" />
+    <template v-if="!subPage">
+      <GlassNavBar overlay title="辅助功能" @back="emit('back')" />
+
+      <div style="padding-top: var(--nav-h)" class="accessibility-scroll-body scrollable">
+        <!-- 顶部特性大卡片 -->
+        <div class="accessibility-hero-card">
+          <div class="hero-icon-wrap">
+            <img :src="heroIcon" class="hero-icon-img" alt="辅助功能" draggable="false" />
+          </div>
+          <div class="hero-title">辅助功能</div>
+          <div class="hero-desc">
+            通过视力、肢体活动能力、听力、语音和认知方面的辅助功能，使手机更贴合你的需求。
+          </div>
         </div>
-        <div class="hero-title">辅助功能</div>
-        <div class="hero-desc">
-          通过视力、肢体活动能力、听力、语音和认知方面的辅助功能，使手机更贴合你的需求。
+
+        <!-- 无障碍 -->
+        <div class="settings-card">
+          <ListCell title="无障碍" data-testid="acc-row-a11y" chevron last @click="openSub('a11y')">
+            <template #icon>
+              <img :src="accessibilityIcon" class="cell-entry-icon" alt="" draggable="false" />
+            </template>
+          </ListCell>
         </div>
-      </div>
 
-      <!-- 无障碍单项卡片 -->
-      <div class="settings-card">
-        <ListCell title="无障碍" chevron last @click="handleItemTap('无障碍')">
-          <template #icon>
-            <img :src="accessibilityIcon" class="cell-entry-icon" alt="无障碍" draggable="false" />
-          </template>
-        </ListCell>
-      </div>
-
-      <!-- 交互控制卡片组 -->
-      <div class="settings-card">
-        <!-- 录屏 -->
-        <ListCell title="录屏" chevron @click="handleItemTap('录屏')">
-          <template #icon>
-            <img :src="recordIcon" class="cell-entry-icon" alt="录屏" draggable="false" />
-          </template>
-        </ListCell>
-
-        <!-- 截屏 -->
-        <ListCell title="截屏" chevron @click="handleItemTap('截屏')">
-          <template #icon>
-            <img :src="screenshotIcon" class="cell-entry-icon" alt="截屏" draggable="false" />
-          </template>
-        </ListCell>
-
-        <!-- 动作与手势 -->
-        <ListCell title="动作与手势" chevron @click="handleItemTap('动作与手势')">
-          <template #icon>
-            <img :src="gestureIcon" class="cell-entry-icon" alt="动作与手势" draggable="false" />
-          </template>
-        </ListCell>
-
-        <!-- 智感握姿 -->
-        <ListCell title="智感握姿" chevron last @click="handleItemTap('智感握姿')">
-          <template #icon>
-            <img :src="gripIcon" class="cell-entry-icon" alt="智感握姿" draggable="false" />
-          </template>
-        </ListCell>
-      </div>
-
-      <!-- 快捷多任务卡片组 -->
-      <div class="settings-card">
-        <!-- 小窗 -->
-        <ListCell
-          title="小窗"
-          subtitle="便捷高效的全局应用浮窗。"
-          chevron
-          @click="handleItemTap('小窗')"
-        >
-          <template #icon>
-            <img :src="floatWindowIcon" class="cell-entry-icon" alt="小窗" draggable="false" />
-          </template>
-        </ListCell>
-
-        <!-- 应用分屏 -->
-        <ListCell
-          title="应用分屏"
-          subtitle="屏幕内同时显示两个应用界面。"
-          chevron
-          @click="handleItemTap('应用分屏')"
-        >
-          <template #icon>
-            <img :src="splitIcon" class="cell-entry-icon" alt="应用分屏" draggable="false" />
-          </template>
-        </ListCell>
-
-        <!-- 智能侧边栏 -->
-        <ListCell
-          title="智能侧边栏"
-          subtitle="访问多任务窗口与智能场景助手。"
-          chevron
-          last
-          @click="handleItemTap('智能侧边栏')"
-        >
-          <template #icon>
-            <img :src="sidebarIcon" class="cell-entry-icon" alt="智能侧边栏" draggable="false" />
-          </template>
-        </ListCell>
-      </div>
-
-      <!-- 场景与性能增强卡片组 -->
-      <div class="settings-card">
-        <!-- 户外增强 -->
-        <ListCell
-          title="户外增强"
-          subtitle="户外使用时增强屏幕亮度、网络质量等。"
-          chevron
-          @click="handleItemTap('户外增强')"
-        >
-          <template #icon>
-            <img :src="outdoorIcon" class="cell-entry-icon" alt="户外增强" draggable="false" />
-          </template>
-        </ListCell>
-
-        <!-- 晕动舒缓显示 -->
-        <ListCell
-          title="晕动舒缓显示"
-          subtitle="有助于缓解乘坐交通工具引起的晕动症，但可能会增加耗电与发热。"
-          chevron
-          @click="handleItemTap('晕动舒缓显示')"
-        >
-          <template #icon>
-            <img :src="motionIcon" class="cell-entry-icon" alt="晕动舒缓显示" draggable="false" />
-          </template>
-        </ListCell>
-
-        <!-- 游戏模式 -->
-        <ListCell
-          title="游戏模式"
-          subtitle="提升游戏体验。"
-          chevron
-          last
-          @click="handleItemTap('游戏模式')"
-        >
-          <template #icon>
-            <img :src="gameIcon" class="cell-entry-icon" alt="游戏模式" draggable="false" />
-          </template>
-        </ListCell>
-      </div>
-
-      <!-- 防误触独立卡片 -->
-      <div class="settings-card">
-        <ListCell
-          title="防误触模式"
-          subtitle="手机在口袋中时防止误触。"
-          last
-        >
-          <template #icon>
-            <img :src="mistouchIcon" class="cell-entry-icon" alt="防误触模式" draggable="false" />
-          </template>
-          <template #right>
-            <ToggleSwitch v-model="antiMistouch" />
-          </template>
-        </ListCell>
-      </div>
-
-      <!-- 你可能想找 -->
-      <div class="relative-links-box">
-        <div class="relative-title">你可能想找</div>
-        <div class="relative-links">
-          <button class="relative-link-btn" @click="handleItemTap('应用双开')">应用双开</button>
-          <button class="relative-link-btn" @click="handleItemTap('防偷窥')">防偷窥</button>
-          <button class="relative-link-btn" @click="handleItemTap('数字健康')">数字健康</button>
+        <!-- 交互控制 -->
+        <div class="settings-card">
+          <ListCell title="录屏" data-testid="acc-row-record" chevron @click="openSub('record')">
+            <template #icon>
+              <img :src="recordIcon" class="cell-entry-icon" alt="" draggable="false" />
+            </template>
+          </ListCell>
+          <ListCell title="截屏" data-testid="acc-row-screenshot" chevron @click="openSub('screenshot')">
+            <template #icon>
+              <img :src="screenshotIcon" class="cell-entry-icon" alt="" draggable="false" />
+            </template>
+          </ListCell>
+          <ListCell title="动作与手势" data-testid="acc-row-gesture" chevron @click="openSub('grip')">
+            <template #icon>
+              <img :src="gestureIcon" class="cell-entry-icon" alt="" draggable="false" />
+            </template>
+          </ListCell>
+          <ListCell title="智感握姿" data-testid="acc-row-grip" chevron last @click="openSub('grip')">
+            <template #icon>
+              <img :src="gripIcon" class="cell-entry-icon" alt="" draggable="false" />
+            </template>
+          </ListCell>
         </div>
+
+        <!-- 快捷多任务 -->
+        <div class="settings-card">
+          <ListCell title="小窗" data-testid="acc-row-float" subtitle="便捷高效的全局应用浮窗。" chevron @click="openSub('split')">
+            <template #icon>
+              <img :src="floatWindowIcon" class="cell-entry-icon" alt="" draggable="false" />
+            </template>
+          </ListCell>
+          <ListCell title="应用分屏" data-testid="acc-row-split" subtitle="屏幕内同时显示两个应用界面。" chevron @click="openSub('split')">
+            <template #icon>
+              <img :src="splitIcon" class="cell-entry-icon" alt="" draggable="false" />
+            </template>
+          </ListCell>
+          <ListCell
+            data-testid="acc-row-sidebar"
+            title="智能侧边栏"
+            subtitle="访问多任务窗口与智能场景助手。"
+            chevron
+            last
+            @click="openSub('sidebar')"
+          >
+            <template #icon>
+              <img :src="sidebarIcon" class="cell-entry-icon" alt="" draggable="false" />
+            </template>
+          </ListCell>
+        </div>
+
+        <!-- 场景与性能增强 -->
+        <div class="settings-card">
+          <ListCell
+            data-testid="acc-row-outdoor"
+            title="户外增强"
+            subtitle="户外使用时增强屏幕亮度、网络质量等。"
+            chevron
+            @click="openSub('outdoor')"
+          >
+            <template #icon>
+              <img :src="outdoorIcon" class="cell-entry-icon" alt="" draggable="false" />
+            </template>
+          </ListCell>
+          <ListCell
+            data-testid="acc-row-motion"
+            title="晕动舒缓显示"
+            subtitle="有助于缓解乘坐交通工具引起的晕动症，但可能会增加耗电与发热。"
+            chevron
+            @click="openSub('motion')"
+          >
+            <template #icon>
+              <img :src="motionIcon" class="cell-entry-icon" alt="" draggable="false" />
+            </template>
+          </ListCell>
+          <ListCell title="游戏模式" data-testid="acc-row-game" subtitle="提升游戏体验。" chevron last @click="openSub('game')">
+            <template #icon>
+              <img :src="gameIcon" class="cell-entry-icon" alt="" draggable="false" />
+            </template>
+          </ListCell>
+        </div>
+
+        <!-- 防误触：主页唯一行内开关 -->
+        <div class="settings-card">
+          <ListCell title="防误触模式" data-testid="acc-row-mistouch" subtitle="手机在口袋中时防止误触。" last>
+            <template #icon>
+              <img :src="mistouchIcon" class="cell-entry-icon" alt="" draggable="false" />
+            </template>
+            <template #right>
+              <ToggleSwitch
+                :model-value="acc.antiMistouch"
+                color="blue"
+                data-testid="anti-mistouch"
+                @update:model-value="v => acc.setFlag('antiMistouch', v)"
+              />
+            </template>
+          </ListCell>
+        </div>
+
+        <!-- 你可能想找 -->
+        <div class="relative-links-box">
+          <div class="relative-title">你可能想找</div>
+          <div class="relative-links">
+            <button class="relative-link-btn" @click="openRelative('appClone')">应用双开</button>
+            <button class="relative-link-btn" @click="openRelative('antiPeep')">防偷窥</button>
+            <button class="relative-link-btn" @click="openRelative('digitalHealth')">数字健康</button>
+          </div>
+        </div>
+
+        <div class="bottom-spacer"></div>
       </div>
-
-      <div class="bottom-spacer"></div>
-    </div>
-
-    <!-- 浮动提示 Toast -->
-    <transition name="toast-fade">
-      <div v-if="toastText" class="settings-toast">{{ toastText }}</div>
-    </transition>
+    </template>
   </div>
 </template>
 
@@ -238,43 +269,6 @@ defineExpose({ back })
   color: #1C1C1E;
   overflow: hidden;
   user-select: none;
-}
-
-/* 导航栏：左对齐大标题 */
-.accessibility-nav-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: calc(var(--safe-top, 0px) + 52px);
-  padding: var(--safe-top, 0px) 16px 0 16px;
-  background: #F2F2F7;
-  flex-shrink: 0;
-  z-index: 10;
-}
-
-.nav-round-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.05);
-  border: none;
-  outline: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.nav-round-btn:active {
-  background: rgba(0, 0, 0, 0.1);
-}
-
-.nav-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1C1C1E;
-  letter-spacing: -0.3px;
 }
 
 /* 滚动区域 */
@@ -332,7 +326,7 @@ defineExpose({ back })
 
 /* 设置卡片容器 */
 .settings-card {
-background: #FFFFFF;
+  background: #FFFFFF;
   border-radius: 16px;
   overflow: hidden;
   margin-bottom: 12px;
@@ -388,35 +382,5 @@ background: #FFFFFF;
 
 .bottom-spacer {
   height: 24px;
-}
-
-/* Toast */
-.settings-toast {
-  position: absolute;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(28, 28, 30, 0.88);
-  color: #FFFFFF;
-  padding: 8px 18px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  pointer-events: none;
-  z-index: 100;
-  white-space: nowrap;
-}
-
-.toast-fade-enter-active,
-.toast-fade-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.toast-fade-enter-from,
-.toast-fade-leave-to {
-  opacity: 0;
-  transform: translate(-50%, 8px);
 }
 </style>

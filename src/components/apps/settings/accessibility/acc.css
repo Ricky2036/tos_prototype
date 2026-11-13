@@ -1,0 +1,147 @@
+/**
+ * 辅助功能子页共用样式（SET-ACC-01）
+ * 真机实测底色 #F0F1F2、卡片白底、圆角 16、行高 56 / 带副标题行高 72。
+ * 走全局 class 而不是每个组件复制一份 scoped 样式：子页有 10 个，复制会漂移。
+ */
+
+.acc-page {
+  padding: 8px 16px 28px;
+  box-sizing: border-box;
+}
+
+.acc-card {
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+/* 组标题（真机只有「支持的功能 / 自动开关 / 场景助手 / 截屏方式 / 声音」这类才出现） */
+.acc-group-title {
+  font-size: 13px;
+  line-height: 18px;
+  color: #8e8e93;
+  padding: 14px 4px 8px;
+}
+
+/* 带总开关的功能卡：标题 + 说明 + 右侧开关 */
+.acc-master {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 16px 18px;
+}
+
+.acc-master-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.acc-master-title {
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 500;
+  color: #111;
+  margin-bottom: 4px;
+}
+
+.acc-master-desc {
+  font-size: 13px;
+  line-height: 19px;
+  color: #8e8e93;
+}
+
+/* 插图区：真机是示意画（手机线框 + 灰块），素材取自真机截图裁切 */
+.acc-illus {
+  padding: 10px 0 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.acc-illus-img {
+  height: 188px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+
+.acc-illus-title {
+  margin-top: 12px;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 500;
+  color: #111;
+  text-align: center;
+}
+
+.acc-illus-desc {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 19px;
+  color: #8e8e93;
+  text-align: center;
+  padding: 0 32px;
+}
+
+.acc-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+  height: 8px;
+  align-items: center;
+}
+
+.acc-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.16);
+  transition: background 0.18s ease;
+}
+
+.acc-dot.is-active {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+/* 脚注（智感握姿页：支持应用清单 / 引导路径） */
+.acc-footnote {
+  padding: 4px 16px 14px;
+  font-size: 12px;
+  line-height: 18px;
+  color: #8e8e93;
+}
+
+.acc-footnote-line + .acc-footnote-line {
+  margin-top: 6px;
+}
+
+/* 置灰整行：真机「户外增强」总开关关闭时，支持的功能三项都变淡且不可点 */
+.acc-dim {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* 取证缺口页 */
+.acc-pending {
+  padding: 24px 20px;
+  color: #3c3c43;
+}
+
+.acc-pending h3 {
+  margin: 0 0 10px;
+  font-size: 17px;
+  font-weight: 500;
+  color: #111;
+}
+
+.acc-pending p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 20px;
+  color: #6b6b70;
+}
