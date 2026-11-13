@@ -76,3 +76,24 @@
   集成时按上方 SHA 逐条 cherry-pick。
 - DSH：`run-e2e.mjs` 的 SUITES/covers 接入按 `docs/reviews/verify-inventory.md` 第四节统一做；
   gate-merge / claim-check / G7 未碰；详见 `.tasks/inbox/dsh.md`。
+
+
+---
+
+## SET-01 轮次（Codex 调度修正 · 2026-11-13 12:49）
+
+- **租约已接**：AG 先完成已有 gate → WB → DSH。WB 等租期间只做清单、只读核对、单个纯逻辑测试；
+  不跑 gate/e2e/浏览器、不连真机。已直连 AG 协商并在 `.tasks/inbox/dsh.md` 留同口径。
+- **transitionContract 归属**：WB 的条件等待修复已在 `8a7a8d9` / `7e72bf8`（等异步组件与位移收敛，
+  保留全部断言、不改业务语义）。核对发现 **main 上仍是 0 个 `waitForFunction`**，即 WB 五个提交
+  （`ef41171` / `7cddede` / `8a7a8d9` / `7e72bf8` / `b40f87a`）**都还没进 main**；
+  已告知 AG 集成时直接用这两个 commit，别重复修该文件。
+- **实际缺口核对（未凭记忆补页面）**：「日期与时间」只有搜索池一条 `pushUnimplemented`（`SettingsApp.vue:352`）
+  与搜索建议词（`SettingsSearch.vue:23`）；「系统/通用」兜底页没有该行；`dateTime/**`、`system/**`、
+  `general/**`、`dateTimeStore.js`、`pages/dateTime.js` 全不存在；`spec/captures/` 在 main 上尚无文件。
+  ⇒ 现在点进去是占位页，其余全部标 unknown。
+- **已产出**：`docs/reviews/SET-WB-01-capture-request.md` —— 第一条链路（入口→主页→总开关→依赖联动→
+  返回状态保持→视觉对照）的逐包 A–F 采集清单，已写给 DSH，每包即交付。
+- **本轮 blocker（非权限）**：等 DSH 采集包落盘 + 等 AG 让出 gate 租约，二者未到前不实现页面、不跑重型验证。
+- **等待期工作**：只读核对、清单、单个纯逻辑单测（`node --test tests/pipelineTaskBoard.test.js`，不启浏览器）、
+  `node --check` 语法核对；不新增业务断言、不降基线。
