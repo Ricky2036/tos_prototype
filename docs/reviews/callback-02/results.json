@@ -5,6 +5,12 @@
     "unlock.mjs": "e0a479cd2d322e6f134a9fbc16d48f4eee8fe4f17043285f498024f700b27cea",
     "status.mjs": "9aa360b7110fc64cf6a16fe43b168d17e0f6cc8c8f4ef2f1a2a24232e7e637d1"
   },
+  "reviewedAfter": {
+    "finish.mjs": "8ee8d585508a47d5e3b6a26a4ca7673d33e6823875eabe8f5129e105aa1e378d",
+    "ack.mjs": "9fdede9e95bc1226d197c9dc3fff90f8291b06565d54f29705c6ebc980a5c85f",
+    "unlock.mjs": "e0a479cd2d322e6f134a9fbc16d48f4eee8fe4f17043285f498024f700b27cea",
+    "status.mjs": "9aa360b7110fc64cf6a16fe43b168d17e0f6cc8c8f4ef2f1a2a24232e7e637d1"
+  },
   "reviewedBefore": {
     "finish.mjs": "8ee8d585508a47d5e3b6a26a4ca7673d33e6823875eabe8f5129e105aa1e378d",
     "ack.mjs": "9fdede9e95bc1226d197c9dc3fff90f8291b06565d54f29705c6ebc980a5c85f",
@@ -13,7 +19,7 @@
   },
   "versionStableDuringRun": true,
   "changedDuringRun": [],
-  "reviewedAt": "2026-11-13T10:26:40.755Z",
+  "reviewedAt": "2026-11-13T10:28:25.327Z",
   "bin": "/Users/jingzhan.chen/Workbuddy/2026-08-02-23-04-06/.local-evidence/callback-02/bin",
   "node": "v26.4.0",
   "cases": [
@@ -76,9 +82,9 @@
       "what": "并发 ack 串行化（不丢更新）",
       "codes": [
         0,
-        2
+        0
       ],
-      "consumed": 1
+      "consumed": 2
     },
     {
       "id": "T7",
@@ -105,10 +111,18 @@
     },
     {
       "id": "T8b",
-      "what": "冲突后同内容重投的行为",
+      "what": "冲突后再次提交冲突内容",
       "code": 2,
       "extraModelCalls": 0,
       "receiptRestored": false
+    },
+    {
+      "id": "T8c",
+      "what": "冲突后重投原始内容：可恢复但需再调一次模型",
+      "code": 0,
+      "extraModelCalls": 1,
+      "receiptRestored": true,
+      "ackCode": 0
     }
   ]
 }
