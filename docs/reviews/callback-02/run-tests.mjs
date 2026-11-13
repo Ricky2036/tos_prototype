@@ -186,16 +186,27 @@ const rec = (id, what, obs) => { cases.push({ id, what, ...obs }); console.log(`
     ackCode: ack.code,
   })
 
-  // 同内容重投：观察是否重新调用模型
+  // T8b 再次提交**冲突内容**（b.txt）
   const c = run('finish.mjs', [...args('T8', 'abc1234', path.join(ART, 'b.txt')), '--event-id', 'EV-T8-0001'], { h, eventId: 'EV-T8-0001' })
-  rec('T8b', '冲突后同内容重投的行为', { code: c.code, extraModelCalls: c.calls - b.calls,
+  rec('T8b', '冲突后再次提交冲突内容', { code: c.code, extraModelCalls: c.calls - b.calls,
     receiptRestored: fs.existsSync(rf) && Boolean(JSON.parse(fs.readFileSync(rf, 'utf8')).receipt) })
+
+  // T8c 重投**原始内容**（a.txt）——关键对照：能否靠重投恢复
+  const d = run('finish.mjs', [...args('T8', 'abc1234', path.join(ART, 'a.txt')), '--event-id', 'EV-T8-0001'], { h, eventId: 'EV-T8-0001' })
+  const after2 = fs.existsSync(rf) ? JSON.parse(fs.readFileSync(rf, 'utf8')) : null
+  const ack2 = run('ack.mjs', ['--event', 'EV-T8-0001', '--summary', '恢复后消费'], { h })
+  rec('T8c', '冲突后重投原始内容：可恢复但需再调一次模型', {
+    code: d.code, extraModelCalls: d.calls - c.calls,
+    receiptRestored: Boolean(after2 && after2.receipt),
+    ackCode: ack2.code,
+  })
 }
 
 const VERSIONS_AFTER = versions()
 const changed = Object.keys(VERSIONS_BEFORE).filter((k) => VERSIONS_BEFORE[k] !== VERSIONS_AFTER[k])
 const result = {
-  reviewed: VERSIONS_AFTER,
+  reviewed: VERSIONS_AFTER,        // 运行结束时的哈希
+  reviewedAfter: VERSIONS_AFTER,
   reviewedBefore: VERSIONS_BEFORE,
   versionStableDuringRun: changed.length === 0,
   changedDuringRun: changed,

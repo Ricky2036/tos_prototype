@@ -1,4 +1,4 @@
-# CALLBACK-02 独立审查报告 · v7
+# CALLBACK-02 独立审查报告 · v8
 
 - 审查者：DSH（不参与实现，不改对方文件，不连真机，不跑全量浏览器）
 - 被审目录：`/Users/jingzhan.chen/Workbuddy/2026-08-02-23-04-06/.local-evidence/callback-02/bin/`
@@ -16,8 +16,8 @@
 | `status.mjs` | `9aa360b7110fc64cf6a16fe43b168d17e0f6cc8c8f4ef2f1a2a24232e7e637d1` |
 
 > 审查期间实现变动 4 次（`2a59f2fe` → `4f1ce0b6` → `8ee8d585` …）。本报告只对上表版本负责。
-> `run-tests.mjs` 现在会在**运行前后各算一次哈希**并写入 `results.json` 的
-> `reviewedBefore / reviewedAfter / versionStableDuringRun`，若运行中被改动会显式告警。
+> `run-tests.mjs` 在运行前后各算一次哈希：`reviewedBefore`（开始）、`reviewedAfter`（结束，
+> 与 `reviewed` 同值）、`versionStableDuringRun`；若运行中被改动会显式告警。
 
 ## 逐项结果（实测）
 
@@ -65,15 +65,26 @@
 **危害**：一次错误重发会让**已经成功送达**的事件永久失去回执、无法被消费确认；
 审计链被覆盖，且提示文案"拒绝覆盖"与实际行为相反，误导操作者。
 
-**更严重**：冲突后该 `event_id` **永久不可用**——实测 T8b 用冲突内容重投仍 `code=2`，
-`receiptRestored=false`，`extraModelCalls=0`（连重试机会都没有）。只能换新 `event_id`。
+**订正（v8）**：早前我写"该 event_id 永久不可用"属**过度结论**——那是拿冲突内容重投得出的，
+不构成对原始内容的证据。补做关键对照 T8c（重投**原始内容** a.txt）后事实是：
 
-**已纳入入库工件**（`run-tests.mjs` T8/T8b，`results.json` 可查）：
+| 步骤 | 结果 | 代价 |
+|---|---|---|
+| 提交 a.txt | `OK accepted` | 1 次模型调用 |
+| 提交 b.txt（冲突） | `REJECT code=2`，**回执被覆盖** | 0 |
+| 再提交 b.txt | `code=2`，仍拒 | 0 |
+| **重投 a.txt** | `OK accepted`，回执恢复，可 ack | **再烧 1 次模型调用** |
+
+所以准确表述是：**回执会丢，但可通过重投原始内容恢复；代价是一次多余的模型审查**。
+若无人重投，那次已成功的交付就一直停在"回执无效、不可消费"。
+
+**入库工件**（`run-tests.mjs` T8/T8b/T8c，`results.json` 可查）：
 
 ```
 T8 : { first:0, conflict:2, receiptBefore:"accepted", receiptAfter:null,
        receiptPreserved:false, conflictFile:false, ackCode:3 }
-T8b: { code:2, extraModelCalls:0, receiptRestored:false }
+T8b: { code:2, extraModelCalls:0, receiptRestored:false }          # 冲突内容，不可恢复
+T8c: { code:0, extraModelCalls:1, receiptRestored:true, ackCode:0 } # 原始内容，可恢复但多花一次调用
 ```
 
 **最小修复**：冲突记录另存 `receipts/<id>.conflict.json`（或 `conflicts/<id>-<ts>.json`），
