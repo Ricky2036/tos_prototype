@@ -1,3 +1,9 @@
+// 产物目录：可用 ARTIFACT_DIR 覆盖；默认落到系统临时目录，跨机器/跨 lane 可移植
+import fsSync from 'node:fs'
+import osSync from 'node:os'
+import pathSync from 'node:path'
+const ARTIFACT_DIR = process.env.ARTIFACT_DIR || pathSync.join(osSync.tmpdir(), 'vwork')
+fsSync.mkdirSync(ARTIFACT_DIR, { recursive: true })
 import { chromium } from 'playwright'
 
 const CHROME =
@@ -75,7 +81,7 @@ async function run() {
   const disabledText = await page.locator('.ai-auto-answer-status').innerText()
   console.log('aiAutoAnswer status text (expected 未启用):', disabledText)
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_prayer_ai_disabled.png'
+    path: `${ARTIFACT_DIR}/verify_prayer_ai_disabled.png`
   })
 
   // 点击进入 AI 自动接听二级页面
@@ -91,7 +97,7 @@ async function run() {
 
   // 截图 2: 二级页面开启态
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_prayer_ai_subpage_enabled.png'
+    path: `${ARTIFACT_DIR}/verify_prayer_ai_subpage_enabled.png`
   })
 
   // 点击返回按钮回到礼拜模式主页面
@@ -110,7 +116,7 @@ async function run() {
   // 截图 3: 礼拜模式主页同步显示「已启用」
   console.log('Capturing enabled state...')
   await page.screenshot({
-    path: '/Users/jingzhan.chen/.gemini/antigravity/brain/24ce81d7-a719-475e-9a89-f92b461ed9d7/verify_prayer_ai_enabled.png'
+    path: `${ARTIFACT_DIR}/verify_prayer_ai_enabled.png`
   })
 
   await browser.close()

@@ -1,3 +1,9 @@
+// 产物目录：可用 ARTIFACT_DIR 覆盖；默认落到系统临时目录，跨机器/跨 lane 可移植
+import fsSync from 'node:fs'
+import osSync from 'node:os'
+import pathSync from 'node:path'
+const ARTIFACT_DIR = process.env.ARTIFACT_DIR || pathSync.join(osSync.tmpdir(), 'vwork')
+fsSync.mkdirSync(ARTIFACT_DIR, { recursive: true })
 import { chromium } from 'playwright'
 
 const CHROME =
@@ -45,7 +51,7 @@ async function run() {
 
   // 4. 截取「显示与亮度」页面顶部
   const phoneFrame = page.locator('.phone-screen, .screen-view, .app-window').first()
-  const artifactDir = '/Users/jingzhan.chen/.gemini/antigravity/brain/06385522-e5db-4865-9631-53c325d2b43f'
+  const artifactDir = ARTIFACT_DIR
   
   await phoneFrame.screenshot({
     path: `${artifactDir}/web_display_top.png`

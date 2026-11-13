@@ -201,9 +201,18 @@ test('两页大标题行为一致，且标题文本随路由变化（不再逐�
   const home = await rt.mount(SETTINGS_APP)
   assert.equal(await rt.text(home, '[data-large-title-text]'), '设置', '首页大标题')
   await rt.clickText(home, '.list-cell', '显示与亮度', 420)
+  // glob 页面是异步组件：等子页导航标题真的出现，不赌固定转场时长
+  await rt.page.waitForFunction(({ id }) => {
+    const host = window.__wbHosts.get(id)?.host
+    return !!host && [...host.querySelectorAll('.gn-title')].some((e) => e.textContent.includes('显示与亮度'))
+  }, { id: home }, { timeout: 20000 })
   assert.equal(await rt.count(home, '[data-large-title-text]'), 0, '进子页后首页大标题必须卸载')
   assert.equal(await rt.text(home, '.gn-title'), '显示与亮度', '子页导航标题应接管')
   await rt.click(home, '.gn-btn.gn-back', 420)
+  await rt.page.waitForFunction(({ id }) => {
+    const host = window.__wbHosts.get(id)?.host
+    return !!host && host.querySelector('[data-large-title-text]')?.textContent.includes('设置')
+  }, { id: home }, { timeout: 20000 })
   assert.equal(await rt.text(home, '[data-large-title-text]'), '设置', '返回后首页大标题应恢复')
   assert.equal(rt.pageErrors.length, 0, `运行时不应有异常：${rt.pageErrors.join('; ')}`)
 

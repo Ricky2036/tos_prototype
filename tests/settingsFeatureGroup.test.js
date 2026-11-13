@@ -167,6 +167,10 @@ test('设置首页 card 6 四个条目可点，点击后真的进入对应子页
     assert.equal(await rt.count(h, '.account-card'), 0, '首页应随路由切换卸载')
 
     await rt.click(h, '.gn-btn.gn-back', 400)
+    await rt.page.waitForFunction(({ hostId }) => {
+      const host = window.__wbHosts.get(hostId)?.host
+      return !!host && host.querySelectorAll('.settings-card').length === 8
+    }, { hostId: h }, { timeout: 20000 })
     assert.equal(await rt.visibleCount(h, '.settings-card'), 8, `${label}：返回后应回到首页`)
     assert.equal(await rt.count(h, '.account-card'), 1, `${label}：返回后首页账号卡应回来`)
     assert.equal(await rt.count(h, pageSel), 0, `${label}：返回后子页应卸载`)

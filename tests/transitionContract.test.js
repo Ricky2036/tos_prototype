@@ -60,7 +60,12 @@ test('四个层级的设置页进栈都用同一个 slide 名称，回退才用 
       obs.observe(host, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true })
       const row = [...host.querySelectorAll('.list-cell')].find((e) => e.textContent.includes(label))
       if (row) row.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }))
-      await new Promise((r) => setTimeout(r, 500))
+      // 等到完整的进出类名序列出现（最长 15s），不赌固定动画时长
+      const deadline = Date.now() + 15000
+      while (Date.now() < deadline) {
+        if (seen.includes('slide-enter-to') && seen.includes('slide-leave-active')) break
+        await new Promise((r) => setTimeout(r, 40))
+      }
       obs.disconnect()
       return [...new Set(seen)]
     }, { id: h2, label })
@@ -70,10 +75,23 @@ test('四个层级的设置页进栈都用同一个 slide 名称，回退才用 
     assert.ok(classes.includes('slide-enter-to'), `进「${label}」缺少 slide-enter-to`)
     assert.ok(!classes.some((c) => c.startsWith('slide-back-')), `进「${label}」不该用回退方向`)
     assert.ok(classes.includes('slide-leave-active'), `进「${label}」首页应有退场动效`)
+    // glob 页面是异步组件，等子页真的可见再断言
+    await rt.page.waitForFunction(({ hostId, sel }) => {
+      const host = window.__wbHosts.get(hostId)?.host
+      const el = host?.querySelector(sel)
+      if (!el) return false
+      const r = el.getBoundingClientRect()
+      return r.width > 0 && r.height > 0
+    }, { hostId: h2, sel }, { timeout: 20000 })
     assert.equal(await rt.visibleCount(h2, sel), 1, `点「${label}」后应真的渲染出子页`)
 
     // 动画结束后过渡类名必须清干净，不能挂在 DOM 上影响后续布局
-    await rt.settle(h2, 450)
+    await rt.page.waitForFunction(({ hostId }) => {
+      const host = window.__wbHosts.get(hostId)?.host
+      if (!host) return false
+      return [...host.querySelectorAll('*')].every((e) =>
+        ![...e.classList].some((c) => /^slide(-back)?-(enter|leave)-(from|to|active)$/.test(c)))
+    }, { hostId: h2 }, { timeout: 20000 })
     const leftover = await rt.evaluate(({ id }) => {
       const host = window.__wbHosts.get(id).host
       return [...host.querySelectorAll('*')].filter((e) =>
@@ -82,8 +100,12 @@ test('四个层级的设置页进栈都用同一个 slide 名称，回退才用 
     assert.equal(leftover, 0, `${label}：过渡类名应在动画结束后消失`)
 
     // 回退方向
-    const back = await rt.clickAndRecordClasses(h2, '.gn-btn.gn-back', 500)
+    const back = await rt.clickAndRecordClasses(h2, '.gn-btn.gn-back', 15000)
     assert.ok(back.includes('slide-back-enter-active'), `从「${label}」返回应使用 slide-back`)
+    await rt.page.waitForFunction(({ hostId }) => {
+      const host = window.__wbHosts.get(hostId)?.host
+      return !!host && host.querySelectorAll('.settings-card').length === 8
+    }, { hostId: h2 }, { timeout: 20000 })
     assert.equal(await rt.visibleCount(h2, '.settings-card'), 8, `从「${label}」返回应回到首页`)
     await rt.unmount(h2)
   }
