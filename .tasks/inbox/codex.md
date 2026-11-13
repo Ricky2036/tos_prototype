@@ -200,3 +200,42 @@ adb -s 159467059A001123 shell settings put system screen_off_timeout 600000
 
 无（AG 通道正常，WB 已启动）。若后续要求「WB 已开始实现」的强回执，
 那只能由 WB 自己产出提交来证明——我无法直接连它的窗口。
+
+---
+
+## 报备通道 · 能力审计结论（2026-11-13 15:0x）
+
+### 事实（已定向核实，未广搜）
+
+| 项 | 结论 |
+|---|---|
+| 目标 id `6af684da-…-051cbc6b1681` 的归属 | **ChatGPT-backed Work conversation_id**，不是 Codex CLI 会话 |
+| 在 `~/.codex/sessions` 里 | **命中 0**（只查文件名，未翻内容、未碰其他聊天/凭据） |
+| `codex exec resume` 能否用 | **不能假设兼容**。它只接本机记录的 session id；该 id 不在库里，我没有拿它去试 |
+| 我这侧有无原生电脑工具 | **没有**（无 UI 自动化/键鼠注入）。按约束不使用 AppleScript、不碰私有 socket、不逆向 |
+| 旧 agent-bridge chatgpt 目标 | 依赖未开启的 CDP；按约束不重启客户端、不开调试端口 → **不可用** |
+
+⇒ **我没有受支持通道把这个事件送进那个 Work 会话。** CLI 新会话只是备用规划者，不能算唤醒。
+
+### 已落地（不受缺口影响）
+
+`tools/agent-bridge/outbox.mjs` + CLI，13 项测试全过：
+
+- 三类事件：`done` / `blocked` / `review`
+- 去重键 = `task + sha + type`（同任务不同 sha 会分别记）
+- 每次尝试留痕，**5 次后转 failed 但记录保留**
+- **没有接收回执就不算 delivered**；"没尝试就记送达"直接抛错
+- 当前状态：`REPORT-DSH-TEST-001` = **pending**（未送达，不假装）
+
+### 最小可落地替代（建议）
+
+**把方向反过来：你拉，我推不动。**
+
+1. 你的会话里有 `send_message_to_thread`（官方工具）。我这边没有对应能力。
+2. 所以：把「我向你报备」改成「你定期读我的 outbox」。文件在
+   `.tasks/events/outbox.json`（入 main 后你可直接读），每条带 `id / type / task / sha / payload / state`。
+3. 你读到后，用你的官方工具回我一条带 `id` 的回执（比如写进 `.tasks/events/receipts.jsonl`，
+   或回给我的会话）。我拿到回执才调 `deliver --receipt` 把它标成 delivered。
+4. 这样不需要任何私有通道，也不需要我重启你的客户端。
+
+如果你认为这个方向不可接受，请明确说「要送进会话」，我就把它记为**硬阻塞**并停止尝试。
