@@ -254,7 +254,6 @@ Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 | Q-022 | ready | Q-022 · 源码正则测试按簇清点及后续拆单 | — | C0-infra | — | `.tasks/queue/Q-022.md` |
 | Q-026 | ready | Q-026 · CloudBackup 拆分边界与验收清单 | — | C3 | — | `.tasks/queue/Q-026.md` |
 | Q-027 | ready | Q-027 · DevConsole 拆分边界与行为基线 | — | C0-infra | — | `.tasks/queue/Q-027.md` |
-| LEAD-AG-001 | doing | LEAD-AG-001 · GitHub Pages 发布流水线修复 | Antigravity | C0-infra | — | `.tasks/queue/LEAD-AG-001.md` |
 | Q-002 | blocked | Q-002 · G8 几何门禁在 S2 三页标定 | DSH (真机采集) / Workbuddy (实现对齐) | C0-infra | — | `.tasks/queue/Q-002.md` |
 | Q-003 | blocked | Q-003 · 65 个 verify 脚本分类收编与任务板校验 | Workbuddy | C0-infra (WB 临时授权白名单) | — | `.tasks/queue/Q-003.md` |
 | Q-005 | blocked | Q-005 · S2 display 单页几何标定 | — | C2 | Q-004 ✗、W2-001 ✓ | `.tasks/queue/Q-005.md` |
@@ -271,6 +270,7 @@ Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 | Q-023 | blocked | Q-023 · Settings 剩余页面与导航边界清单 | — | C0-a | W2-001 ✓、Q-022 ✗ | `.tasks/queue/Q-023.md` |
 | Q-024 | blocked | Q-024 · Settings 首页分组数据提取 | — | C0-a | Q-023 ✗ | `.tasks/queue/Q-024.md` |
 | Q-025 | blocked | Q-025 · Settings 搜索声明迁移试点 | — | C2 | Q-023 ✗ | `.tasks/queue/Q-025.md` |
+| LEAD-AG-001 | done | LEAD-AG-001 · GitHub Pages 发布流水线修复 | Antigravity | C0-infra | — | `.tasks/queue/LEAD-AG-001.md` |
 | LEAD-AG-002 | done | LEAD-AG-002 · 架构决策与角色规范落地 | Antigravity | C0-infra | — | `.tasks/queue/LEAD-AG-002.md` |
 | LEAD-WB-001 | done | LEAD-WB-001 · 任务板与拉取式队列对齐 | workbuddy | C0-infra | — | `.tasks/queue/LEAD-WB-001.md` |
 | LEAD-WB-002 | done | LEAD-WB-002 · verify 脚本盘点与归档（接 Q-003） | workbuddy | C0-infra | — | `.tasks/queue/LEAD-WB-002.md` |
