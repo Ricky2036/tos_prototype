@@ -337,7 +337,7 @@ const allSearchableItems = [
   { id: 'focusMode', title: '专注模式', group: '数字健康', action: () => push('digitalHealth') },
   { id: 'walkingReminder', title: '看路提醒', group: '数字健康', action: () => push('digitalHealth') },
   { id: 'familyLink', title: 'Google Family Link', group: '数字健康', action: () => push('parental') },
-  { id: 'emergency', title: '安全和紧急情况', group: '安全', action: () => pushUnimplemented('安全和紧急情况') },
+  { id: 'emergency', title: '安全和紧急情况', group: '安全', action: () => push('safetyEmergency') },
   { id: 'account', title: '用户与账号', group: '账号', action: () => push('account') },
   { id: 'cloudHome', title: '云服务（Infinix Cloud）', group: '账号', action: () => push('cloudHome') },
   { id: 'cloudBackup', title: '云备份', group: '账号', action: () => push('cloudBackup') },
@@ -656,7 +656,7 @@ function handleSearchNavigate(item) {
               </ListCell>
 
               <!-- 安全和紧急情况 -->
-              <ListCell title="安全和紧急情况" chevron @click="pushUnimplemented('安全和紧急情况')">
+              <ListCell title="安全和紧急情况" chevron @click="push('safetyEmergency')">
                 <template #icon>
                   <div class="squircle-icon bg-emergency">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round">

@@ -254,6 +254,7 @@ Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 | Q-022 | ready | Q-022 · 源码正则测试按簇清点及后续拆单 | — | C0-infra | — | `.tasks/queue/Q-022.md` |
 | Q-026 | ready | Q-026 · CloudBackup 拆分边界与验收清单 | — | C3 | — | `.tasks/queue/Q-026.md` |
 | Q-027 | ready | Q-027 · DevConsole 拆分边界与行为基线 | — | C0-infra | — | `.tasks/queue/Q-027.md` |
+| LEAD-DSH-003 | doing | LEAD-DSH-003 · 最小真实回调通道建设 | DSH | C0-infra | — | `.tasks/queue/LEAD-DSH-003.md` |
 | Q-002 | blocked | Q-002 · G8 几何门禁在 S2 三页标定 | DSH (真机采集) / Workbuddy (实现对齐) | C0-infra | — | `.tasks/queue/Q-002.md` |
 | Q-003 | blocked | Q-003 · 65 个 verify 脚本分类收编与任务板校验 | Workbuddy | C0-infra (WB 临时授权白名单) | — | `.tasks/queue/Q-003.md` |
 | Q-005 | blocked | Q-005 · S2 display 单页几何标定 | — | C2 | Q-004 ✗、W2-001 ✓ | `.tasks/queue/Q-005.md` |
@@ -287,6 +288,6 @@ Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 | W2-002 | done | W2-002 · Antigravity：App 级自注册 + Hero 就绪信号 | AG | C0-a | — | `.tasks/W2-002-ag-app-registry.md` |
 | W2-003 | done（完成记录，卡片待更新） | W2-003 · DSH：G6 认领边界（并行前的地基） | DSH | C0（基建） | — | `.tasks/W2-003-dsh-g6-claim.md` |
 
-共 31 张队列卡 · 6 张历史卡
+共 32 张队列卡 · 6 张历史卡
 
 <!-- GENERATED:TASKS:END -->
