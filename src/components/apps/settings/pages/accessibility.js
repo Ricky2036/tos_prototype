@@ -21,5 +21,17 @@ export default {
   component: () => import('../SettingsAccessibility.vue'),
   searchItems: [
     { id: 'accessibility', title: '辅助功能', group: '系统' },
+    // 子页入口也进搜索池：真机这些项都在「辅助功能」页内，搜索命中后落到模块主页再点一层
+    { id: 'accessibilityA11y', title: '无障碍', group: '系统' },
+    { id: 'accessibilityRecord', title: '录屏', group: '系统' },
+    { id: 'accessibilityScreenshot', title: '截屏', group: '系统' },
+    { id: 'accessibilitySmartGrip', title: '智感握姿（动作与手势）', group: '系统' },
+    { id: 'accessibilitySplit', title: '应用分屏', group: '系统' },
+    { id: 'accessibilityFloatWindow', title: '小窗', group: '系统' },
+    { id: 'accessibilitySidebar', title: '智能侧边栏', group: '系统' },
+    { id: 'accessibilityOutdoor', title: '户外增强', group: '系统' },
+    { id: 'accessibilityMotion', title: '晕动舒缓显示', group: '系统' },
+    { id: 'accessibilityGame', title: '游戏模式', group: '系统' },
+    { id: 'accessibilityAntiMistouch', title: '防误触模式', group: '系统' },
   ],
 }
