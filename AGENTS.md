@@ -1,7 +1,7 @@
 # Multi-Agent Workspace Protocol
 
-This repository is built by **Workbuddy, Antigravity, and DSH**. **Codex plans on demand**
-(task decomposition, architecture, hard root-cause work) and does not write implementation code.
+This repository is built by **Workbuddy, Antigravity, and DSH**. **Codex plans on demand and reviews**
+(task decomposition, prioritization, architecture, hard root-cause work) and implementation is prioritized to the other three. Antigravity holds exclusive integration and merge authority on `main`.
 
 **Roles and cost routing: `docs/roles-v2.md`.** Read it before taking work.
 Execution protocol: `docs/tOS-pipeline-1.0.md`.

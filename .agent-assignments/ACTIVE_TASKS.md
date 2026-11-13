@@ -230,5 +230,8 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Active | Antigravity | LEAD-AG-002：协作协议与决策落地（Codex 主导规划、锁更新、队列/信箱同步） | `antigravity/lane` | `docs/decisions.md`; `docs/roles-v2.md`; `AGENTS.md`; `.agent-assignments/codex.md`; `.claims/**`; `.tasks/**` | `9661b6f` | pending |
 | Active | DSH | 临时授权：门禁与断言认领边界修复（身份校验、E2E结果溯源与顺序） | `dsh/lane` | `scripts/gate-merge.mjs`; `scripts/check-assert-ratchet.mjs`; `scripts/claim-check.mjs`; `scripts/lib/claim-rules.mjs`; `tests/pipeline*` | `9661b6f` | pending |
 | Active | Workbuddy | 临时授权：任务看板与脚本分类收编（防脚本目录大锁阻塞） | `workbuddy/lane` | `scripts/gen-task-board.mjs`; `tests/pipelineQueue.test.js`; `scripts/legacy/**`; 未注册 verify 脚本分类 | `9661b6f` | pending |
+| Ready | DSH | SET-DSH-01：真机保活与 G8 标定及三模块采集（独占真机 ADB） | `dsh/lane` | `spec/**`; `scripts/gate-geometry.mjs`; `tests/pipelineGeometry.test.js` | `9661b6f` | pending |
+| Ready | Workbuddy | SET-WB-01：设置系统与日期时间链路深度复刻（顺带修复 transitionContract 时序） | `workbuddy/lane` | `src/components/apps/settings/pages/dateTime.js`; `src/components/apps/settings/dateTime/**`; `src/components/apps/settings/system/**`; `src/stores/dateTimeStore.js`; `tests/dateTimeSettings.test.js`; `tests/transitionContract.test.js` | `9661b6f` | pending |
+| Ready | Antigravity | SET-AG-01：安全紧急情况与用户账号链路复刻（Google 暂缓，主壳最小接线） | `antigravity/lane` | `src/components/apps/settings/pages/safetyEmergency.js`; `src/components/apps/settings/pages/accounts.js`; `src/components/apps/settings/safety/**`; `src/components/apps/settings/accounts/**`; `src/stores/safetyStore.js`; `src/stores/accountsStore.js` | `9661b6f` | pending |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.

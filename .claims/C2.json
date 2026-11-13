@@ -2,9 +2,8 @@
   "cluster": "C2",
   "owner": "workbuddy",
   "since": "2026-11-12",
-  "note": "显示/声音/无障碍。含 SettingsApp.vue —— 该文件原属 C0-a，用户已同意出借至 W2 结束；到期归还 integrator。",
+  "note": "显示/声音/无障碍。SettingsApp.vue 已于 W2-001 合入 main (commit 9661b6f) 后正式归还 Integrator。",
   "files": [
-    "src/components/apps/settings/SettingsApp.vue",
     "src/components/apps/settings/pages/**",
     "src/components/apps/settings/SettingsDisplay.vue",
     "src/components/apps/settings/SettingsSound.vue",
