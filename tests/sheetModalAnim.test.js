@@ -56,17 +56,33 @@ test('SheetModal 入场：类名出现 → 动画结束清干净 → 最终态�
   assert.ok(await rt.hasCssRule('0.34s cubic-bezier(0.22, 1, 0.36, 1)'), '入场时长/缓动统一')
   assert.ok(await rt.hasCssRule('prefers-reduced-motion'), '要尊重「减弱动态效果」')
 
-  // 并发跑门禁时固定 sleep 会撞上动画末帧，改成等过渡类真的被移除
+  // 先等过渡类被移除
   await rt.page.waitForFunction(({ id }) => {
     const host = window.__wbHosts.get(id)?.host
     const mask = host?.querySelector('.sheet-mask')
     return !!mask && ![...mask.classList].some((c) => c.startsWith('sheet-rise-'))
   }, { id: h }, { timeout: 5000 })
+
+  // 再等「位移真的收敛到 0」——类名被移除不代表 transform 已经归位，
+  // CI 的慢 runner 上会读到动画末帧（实测残留 1.33582px）。
+  // 等值，不等类，这是唯一确定性的判据。
+  await rt.page.waitForFunction(({ id }) => {
+    const host = window.__wbHosts.get(id)?.host
+    const panel = host?.querySelector('.sheet-panel')
+    if (!panel) return false
+    const t = getComputedStyle(panel).transform
+    if (!t || t === 'none') return true
+    const m = t.match(/matrix\(([^)]*)\)/)
+    if (!m) return true
+    const ty = Number(m[1].split(',')[5])
+    return Number.isFinite(ty) && Math.abs(ty) < 0.5
+  }, { id: h }, { timeout: 5000 })
+
   const settled = await rt.classes(h, '.sheet-mask')
   assert.ok(!settled.some((c) => c.startsWith('sheet-rise-')), '动画结束后过渡类名必须清干净')
   const transform = await rt.style(h, '.sheet-panel', 'transform')
-  const ty = transform === 'none' ? 0 : Number((transform.match(/matrix\([^)]*,\s*(-?[\d.]+)\)/) || [])[1] ?? 0)
-  assert.ok(Math.abs(ty) < 1, `最终态不应残留位移（实测 ${ty}px）`)
+  const ty = transform === 'none' ? 0 : Number((transform.match(/matrix\(([^)]*)\)/) || [])[1]?.split(',')[5] ?? 0)
+  assert.ok(Math.abs(ty) < 0.5, `最终态不应残留位移（实测 ${ty}px）`)
   assert.equal(await rt.visibleCount(h, '.sheet-panel'), 1, '最终态面板仍应可见')
   assert.equal(await rt.style(h, '.sheet-mask', 'position'), 'absolute', '动画结束后定位方式不变')
   await rt.unmount(h)
