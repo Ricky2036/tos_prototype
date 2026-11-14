@@ -1,7 +1,7 @@
 # SET-SYS-01 · 设置系统主页与全部子菜单 100% 真机复刻
 
 - size: L
-- status: doing
+- status: done
 - priority: P1
 - claim: C-sys
 - owner: Antigravity

@@ -1,7 +1,7 @@
 # COORD-WATCH-01 · 协作监测框架（事件记录 + 低成本巡检）
 
 - size: M
-- status: doing
+- status: done
 - priority: P0（高于下一批业务）
 - claim: C-watch
 - owner: DSH

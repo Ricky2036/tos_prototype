@@ -230,10 +230,10 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | LEAD-AG-002：协作协议与决策落地（Codex 主导规划、锁更新、队列/信箱同步） | `antigravity/lane` | None (locks released) | `9661b6f` | `a070ba7` |
 | Merged | DSH | LEAD-DSH-001/002：G6 执行者身份校验与 e2e 证据链绑定（带身份时间戳负载），C0 认领表重构 | `dsh/lane` | None (locks released) | `9661b6f` | `9267628` |
 | Merged | Workbuddy | LEAD-WB-001/002：任务板队列事实源重构与 65 个 verify 脚本盘点收编（8 归档，21 改 ARTIFACT_DIR） | `workbuddy/lane` | None (locks released) | `9661b6f` | `b40f87a` |
-| Active | Antigravity | SET-SYS-01：设置系统主页与全部子菜单 100% 真机复刻（含日期与时间深层缺口） | `antigravity/lane` | `src/components/apps/settings/pages/system.js`; `src/components/apps/settings/system/**`; `src/components/apps/settings/pages/dateTime.js`; `src/components/apps/settings/dateTime/**`; `src/stores/dateTimeStore.js`; `tests/systemSettings.test.js`; `tests/dateTimeSettings.test.js` | `461af32` | pending |
+| Merged | Antigravity | SET-SYS-01：设置系统主页与全部子菜单 100% 真机复刻（含日期与时间深层缺口） | `antigravity/lane` | None (merged & locks released) | `461af32` | `0c945b6` |
 | Review | Workbuddy | SET-ACC-01：设置辅助功能真机复刻（基础与9子页已合入f2ca677，保留侧边栏深层/游戏管理/录屏选择器形态等缺口） | `workbuddy/lane` | `src/components/apps/settings/SettingsAccessibility.vue`; `src/components/apps/settings/pages/accessibility.js`; `src/components/apps/settings/accessibility/**`; `src/stores/accessibilitySettingsStore.js`; `tests/accessibilityModule.test.js`; `spec/captures/SET-ACC-01-accessibility.md`; `src/assets/icons/accessibility/illus/**` | `461af32` | `f2ca677` |
 | Merged | DSH | SET-BAT-01：设置电池与省电全链路真机复刻 | `dsh/lane` | None (merged & locks released) | `63725b5` | `6517145` |
-| Active | DSH | COORD-WATCH-01：协作监测框架（只读scan+共享事件队列+去重冲突隔离+watch） | `dsh/lane` | `tools/team-watch/**`; `docs/reports/COORD-WATCH-01.md`; `.tasks/queue/COORD-WATCH-01.md` | `9d0a18d` | pending |
+| Merged | DSH | COORD-WATCH-01：协作监测框架（只读scan+共享事件队列+去重冲突隔离+watch） | `dsh/lane` | None (merged & locks released) | `9d0a18d` | `bd94ae5` |
 | Blocked | Antigravity | SET-AG-01a：安全和紧急情况链路深度复刻（旧任务保留未完成记录，本轮不派发） | `antigravity/lane` | `src/components/apps/settings/pages/safetyEmergency.js`; `src/components/apps/settings/safety/**`; `src/stores/safetyStore.js`; `tests/safetyEmergency.test.js` | `c6a5d06` | pending |
 | Blocked | Antigravity | SET-AG-01b：用户与账号链路深度复刻（旧任务保留未完成记录，本轮不派发） | `antigravity/lane` | `src/components/apps/settings/pages/accounts.js`; `src/components/apps/settings/accounts/**`; `src/stores/accountsStore.js`; `tests/accountsSettings.test.js` | `c6a5d06` | pending |
 
