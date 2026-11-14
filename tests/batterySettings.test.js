@@ -142,6 +142,21 @@ test('活动时长 ⓘ 有真实说明层（不是死图标）', async () => {
   await rt.unmount(id)
 })
 
+test('排行图标与文案必须有 14px 间距（ListCell 的 icon 槽兜底不生效）', async () => {
+  const id = await open()
+  assert.equal(await rt.style(id, '.app-rank-icon', 'marginRight'), '14px')
+  assert.equal(await rt.style(id, '.system-app-icon', 'marginRight'), '14px')
+  const gap = await rt.page.evaluate((hostId) => {
+    const host = window.__wbHosts.get(hostId).host
+    const cell = host.querySelector('.ranking-card .list-cell')
+    const img = cell.querySelector('.app-rank-icon')
+    const title = cell.querySelector('.lc-title')
+    return +(title.getBoundingClientRect().left - img.getBoundingClientRect().right).toFixed(2)
+  }, id)
+  assert.equal(gap, 14)
+  await rt.unmount(id)
+})
+
 /* ==================== 省电管理 ==================== */
 test('省电管理：开关联动滑杆可用态，返回首页再进仍在', async () => {
   const id = await open()

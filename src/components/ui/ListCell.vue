@@ -85,11 +85,10 @@ const emit = defineEmits(['click'])
   margin-right: 14px;
 }
 
-/* 保护所有自定义 slot="icon" 图标项：统一间距与防止 flex 挤压 */
-:deep(.list-cell > *:not(.lc-main)) {
-  flex: none;
-  margin-right: 14px;
-}
+/* 说明：icon 槽的 14px 兜底放在下方**非 scoped** 的 `:where()` 规则里。
+   原先写在这里的 `:deep(.list-cell > *:not(.lc-main))` 会被编译成
+   `[data-v-xxx] .list-cell > ...`，要求 .list-cell 是 scope 根的后代；
+   而 .list-cell 自己就是根节点，规则永远匹配不到（自定义图标反复出现 0 间距的根因）。 */
 
 .lc-icon-text {
   color: #fff;
@@ -146,5 +145,16 @@ const emit = defineEmits(['click'])
   color: var(--chevron-color, #C5C5C7);
   margin-left: 2px;
   display: block;
+}
+</style>
+
+<style>
+/* icon 槽兜底间距：特异性 0,1,0 —— 高于 reset 的 `*`（0），
+   低于页面 scoped 样式（class + [data-v] = 0,2,0），所以页面自己的 12/14/16px 优先；
+   没有写间距的自定义图标自动拿到 14px，避免每个页面各记一遍。
+   选择器直接以 .list-cell 为根（不再用 :deep），根节点自身可匹配。 */
+.list-cell > :where(:not(.lc-main):not(.lc-icon)) {
+  flex: none;
+  margin-right: 14px;
 }
 </style>
