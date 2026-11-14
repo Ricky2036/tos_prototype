@@ -84,9 +84,15 @@ export const ACCESSIBILITY_DEFAULTS = {
   game: { enabled: true, assistantPanel: true }
 }
 
-/** 录屏清晰度/帧率候选（真机为行内 chevron，选项目前只采到当前值，其余按同族补） */
-export const RECORDING_RESOLUTIONS = ['超清 (1080P)', '高清 (720P)', '标清 (480P)']
-export const RECORDING_FRAME_RATES = ['低帧率 (24 FPS)', '标准 (30 FPS)', '高帧率 (60 FPS)']
+/**
+ * 录屏清晰度/帧率候选
+ *
+ * 真机只采到**当前值**（超清 1080P / 低帧率 24FPS），点开后的选择器形态与完整档位未取证
+ * （2026-11-14 设备离线，采集阻塞）。候选表先只放实测值，setter 会拒掉任何未取证档位，
+ * 避免把猜出来的 720P/480P/30FPS/60FPS 当成真机能力。
+ */
+export const RECORDING_RESOLUTIONS = ['超清 (1080P)']
+export const RECORDING_FRAME_RATES = ['低帧率 (24 FPS)']
 
 export const useAccessibilitySettingsStore = defineStore('accessibilitySettings', () => {
   const antiMistouch = ref(readBool(K.ANTI_MISTOUCH, ACCESSIBILITY_DEFAULTS.antiMistouch))

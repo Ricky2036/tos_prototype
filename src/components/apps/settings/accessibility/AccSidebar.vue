@@ -19,7 +19,7 @@ import './acc.css'
 const emit = defineEmits(['back'])
 const acc = useAccessibilitySettingsStore()
 
-const pages = [{ src: illus, title: '侧滑呼出侧边栏', desc: '侧滑呼出侧边栏，快捷开启小窗应用。' }]
+const pages = [{ src: illus, desc: '侧滑呼出侧边栏，快捷开启小窗应用。' }]
 
 const pending = ref('')
 function openPending(title) {

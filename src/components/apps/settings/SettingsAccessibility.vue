@@ -137,7 +137,7 @@ defineExpose({ back })
         </div>
 
         <!-- 无障碍 -->
-        <div class="settings-card">
+        <div class="settings-card is-single">
           <ListCell title="无障碍" data-testid="acc-row-a11y" chevron last @click="openSub('a11y')">
             <template #icon>
               <img :src="accessibilityIcon" class="cell-entry-icon" alt="" draggable="false" />
@@ -227,7 +227,7 @@ defineExpose({ back })
         </div>
 
         <!-- 防误触：主页唯一行内开关 -->
-        <div class="settings-card">
+        <div class="settings-card is-single">
           <ListCell title="防误触模式" data-testid="acc-row-mistouch" subtitle="手机在口袋中时防止误触。" last>
             <template #icon>
               <img :src="mistouchIcon" class="cell-entry-icon" alt="" draggable="false" />
@@ -279,12 +279,15 @@ defineExpose({ back })
   -webkit-overflow-scrolling: touch;
 }
 
-/* 顶部大卡片 */
+/* 顶部大卡片
+   真机（52_sidebar2 同批 22_acc_main 截图，卡片中线 x=1000 处量）：
+   卡高 600 物理 px = 178.8 设计 px；图标 47.7×47.7；图标距卡顶 28；
+   标题距卡顶 86.4；说明两行、行距 15.8；卡底余量 28。 */
 .accessibility-hero-card {
   background: #FFFFFF;
   border-radius: 20px;
-  padding: 24px 20px 20px 20px;
-  margin-bottom: 12px;
+  padding: 28px 20px 28px 20px;
+  margin-bottom: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -293,17 +296,17 @@ defineExpose({ back })
 }
 
 .hero-icon-wrap {
-  width: 68px;
-  height: 68px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
 }
 
 .hero-icon-img {
-  width: 68px;
-  height: 68px;
+  width: 48px;
+  height: 48px;
   object-fit: contain;
   display: block;
   user-select: none;
@@ -311,17 +314,19 @@ defineExpose({ back })
 }
 
 .hero-title {
-  font-size: 19px;
+  font-size: 18px;
+  line-height: 22px;
   font-weight: 700;
   color: #1C1C1E;
-  margin-bottom: 8px;
+  margin-bottom: 11px;
 }
 
 .hero-desc {
-  font-size: 13px;
-  line-height: 1.55;
+  /* 真机首行 22 字（通过视力…认知方面），13px 会只剩 22 字边界不稳，按真机 12.5px 标定 */
+  font-size: 12.5px;
+  line-height: 16px;
   color: #8E8E93;
-  max-width: 290px;
+  max-width: 280px;
 }
 
 /* 设置卡片容器 */
@@ -329,7 +334,23 @@ defineExpose({ back })
   background: #FFFFFF;
   border-radius: 16px;
   overflow: hidden;
-  margin-bottom: 12px;
+  /* 真机卡片间底色带 16 设计 px */
+  margin-bottom: 16px;
+}
+
+/* 真机「单行卡」比分组内的行高：无障碍 56.3、防误触（带副标题）72.1。
+   只在主页这两张卡上生效，不动共享 ListCell。 */
+.settings-card.is-single :deep(.list-cell) {
+  min-height: 56px;
+}
+
+.settings-card.is-single :deep(.list-cell:has(.lc-subtitle)) {
+  min-height: 72px;
+}
+
+/* 分组内的无副标题行：真机 50.4（交互控制 4 行合计 201.6；侧边栏页同一指标 50） */
+.settings-card:not(.is-single) :deep(.list-cell:not(:has(.lc-subtitle))) {
+  min-height: 50px;
 }
 
 .cell-entry-icon {
@@ -343,33 +364,37 @@ defineExpose({ back })
   pointer-events: none;
 }
 
-/* 你可能想找 */
+/* 你可能想找
+   真机：灰底块 596.0–743.5（高 147.5），距上一张卡底 32.5；标题 12.5px 灰，
+   三条蓝链 14px、行距 32.1、左内边距 16。 */
 .relative-links-box {
   background: #EAEAEF;
   border-radius: 16px;
-  padding: 16px;
-  margin-top: 8px;
+  padding: 17px 16px;
+  /* 卡片 margin-bottom(16) 与这里的外边距会合并取最大值，所以直接写 32 才是真机的 32.5 */
+  margin-top: 32px;
   margin-bottom: 16px;
 }
 
 .relative-title {
-  font-size: 13px;
+  font-size: 12.5px;
   color: #8E8E93;
   font-weight: 500;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
 .relative-links {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 13px;
 }
 
 .relative-link-btn {
   background: none;
   border: none;
   padding: 0;
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 19px;
   font-weight: 500;
   color: #007AFF;
   text-align: left;

@@ -18,7 +18,7 @@ import './acc.css'
 const emit = defineEmits(['back'])
 const acc = useAccessibilitySettingsStore()
 
-const pages = [{ src: illus, title: '游戏中可侧滑呼出游戏助手。' }]
+const pages = [{ src: illus, desc: '游戏中可侧滑呼出游戏助手。' }]
 const pending = ref('')
 </script>
 

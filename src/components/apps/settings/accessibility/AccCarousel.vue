@@ -4,11 +4,13 @@ import './acc.css'
 
 /**
  * 辅助功能子页的横向分页插图（真机形态：手机示意画 + 标题 + 说明 + 底部圆点）。
- * 证据：截屏页 4 点、小窗页 2 点、侧边栏 3 点、游戏模式 2 点、晕动舒缓 3 点。
+ * 圆点数按真机截图量（圆点行宽 ÷ 11.5 间距反推）：
+ * 截屏 4、小窗/分屏 2、侧边栏 3、游戏模式 2、晕动舒缓 4。
+ * 侧边栏与游戏模式真机只有**一行灰字说明**、没有加粗标题，这类页给 title 留空即可。
  * 未采到的页只换文案、沿用同一张示意画（在采集包里标 unknown，不臆造画面）。
  */
 const props = defineProps({
-  pages: { type: Array, required: true }, // [{ src, title, desc }]
+  pages: { type: Array, required: true }, // [{ src, title?, desc? }]
   dots: { type: Number, default: 0 } // 真机圆点数；未给则等于 pages.length
 })
 
@@ -66,8 +68,8 @@ function prev() {
       draggable="false"
       :style="{ transform: `translateX(${dx * 0.18}px)`, transition: dragging ? 'none' : 'transform .18s ease' }"
     />
-    <div class="acc-illus-title">{{ page.title }}</div>
-    <div v-if="page.desc" class="acc-illus-desc">{{ page.desc }}</div>
+    <div v-if="page.title" class="acc-illus-title">{{ page.title }}</div>
+    <div v-if="page.desc" class="acc-illus-desc" :class="{ 'is-solo': !page.title }">{{ page.desc }}</div>
 
     <div v-if="total > 1" class="acc-dots">
       <span

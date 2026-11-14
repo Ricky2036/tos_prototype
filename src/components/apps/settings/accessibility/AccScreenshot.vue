@@ -9,18 +9,17 @@ import './acc.css'
 
 /**
  * 截屏（真机 com.transsion.screencapture ScreenshotSettingsActivity）
- * 顶部横向插图真机 4 点；页 1/2 的文案已采（截取全屏 / 区域截屏），
- * 页 3/4 画面未采 → 沿用同一示意画、文案取自下方同名行（采集包标 unknown）。
+ * 顶部横向插图真机 4 点；页 1/2 的文案与画面已采（截取全屏 / 区域截屏），
+ * 页 3/4 未采 → 只保留圆点数（=4），不再编造成「分享后删除原图/编辑后删除原图」两页。
  * 分组「截屏方式」四项默认全开。
  */
 const emit = defineEmits(['back'])
 const acc = useAccessibilitySettingsStore()
 
+// 只有页 1/2 的画面与文案取证；页 3/4 未采，圆点数按真机保留 4 个，不编造画面
 const pages = [
   { src: illus, title: '截取全屏', desc: '三指下滑快速截取全屏。' },
-  { src: illus, title: '区域截屏', desc: '三指长按触发区域截屏。' },
-  { src: illus, title: '分享后删除原图', desc: '分享完成后自动删除原图。' },
-  { src: illus, title: '编辑后删除原图', desc: '编辑完成后自动删除原图。' }
+  { src: illus, title: '区域截屏', desc: '三指长按触发区域截屏。' }
 ]
 </script>
 
