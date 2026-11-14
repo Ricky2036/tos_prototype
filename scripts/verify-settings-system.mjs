@@ -60,6 +60,7 @@ async function run() {
   await page.waitForTimeout(700)
 
   // 验证设置首页打开
+  await page.locator('.settings-app').waitFor({ timeout: 5000 })
   const settingsAppVisible = (await visibleCount(page, '.settings-app')) === 1
   check('设置应用已打开', settingsAppVisible)
 
