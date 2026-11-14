@@ -134,7 +134,7 @@ function selectMode(mode) {
 
 <style scoped>
 .nav-mode-container {
-  padding: 12px 16px 32px;
+  padding: 12px 0 32px;
 }
 
 .mode-select-card {

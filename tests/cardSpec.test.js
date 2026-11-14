@@ -40,15 +40,19 @@ test('所有渲染出 .settings-card 的页面都是同一套规范：白底 / 1
     if (n === 0) continue
     const cards = await rt.evaluate(({ hostId }) => {
       const host = window.__wbHosts.get(hostId).host
-      return [...host.querySelectorAll('.settings-card')].map((e) => {
+      const hr = host.getBoundingClientRect()
+      return [...host.querySelectorAll('.settings-card, .acc-card')].map((e) => {
         const cs = getComputedStyle(e)
+        const r = e.getBoundingClientRect()
         return {
           bg: cs.backgroundColor,
           radius: cs.borderTopLeftRadius,
           borderWidth: cs.borderTopWidth,
           borderColor: cs.borderTopColor,
           shadow: cs.boxShadow,
-          visible: e.getBoundingClientRect().width > 0,
+          leftOffset: Math.round(r.left - hr.left),
+          rightOffset: Math.round(hr.right - r.right),
+          visible: r.width > 0,
         }
       })
     }, { hostId: id })
@@ -58,6 +62,9 @@ test('所有渲染出 .settings-card 的页面都是同一套规范：白底 / 1
       checked += 1
       if (c.bg !== 'rgb(255, 255, 255)') problems.push(`${p}: 卡片底色不是纯白（${c.bg}）`)
       if (c.radius !== '16px') problems.push(`${p}: 圆角不是 16px（${c.radius}）`)
+      if (Math.abs(c.leftOffset - 16) > 2 || Math.abs(c.rightOffset - 16) > 2) {
+        problems.push(`${p}: 卡片左右离屏边距不是标准 16px（左 ${c.leftOffset}px，右 ${c.rightOffset}px）`)
+      }
       // 「半透明描边显灰」的运行时判据：读描边色的 alpha。
       // SettingsWifi 的 .wifi-feature-card 用了 rgba(0,0,0,0.04) —— 极淡、不显灰，放行；
       // 一旦有人把它调到 0.08 以上（肉眼发灰）或加粗描边，这里立刻红。

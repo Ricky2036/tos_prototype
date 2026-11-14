@@ -97,7 +97,7 @@ function confirmReset() {
 
 <style scoped>
 .reset-container {
-  padding: 12px 16px 32px;
+  padding: 12px 0 32px;
 }
 
 .tip-banner {

@@ -82,7 +82,7 @@ function runBackup() {
 
 <style scoped>
 .usb-container {
-  padding: 12px 16px 32px;
+  padding: 12px 0 32px;
 }
 
 .device-status-card {

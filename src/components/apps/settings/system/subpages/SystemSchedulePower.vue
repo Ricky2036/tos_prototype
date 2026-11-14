@@ -142,7 +142,7 @@ function saveTime() {
 
 <style scoped>
 .schedule-container {
-  padding: 12px 16px 32px;
+  padding: 12px 0 32px;
 }
 
 .section-title {

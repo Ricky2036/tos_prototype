@@ -67,6 +67,6 @@ if (nav) {
   background: #FFFFFF;
   border-radius: 16px;
   overflow: hidden;
-  margin: 0 16px 32px;
+  margin: 0 0 32px;
 }
 </style>
