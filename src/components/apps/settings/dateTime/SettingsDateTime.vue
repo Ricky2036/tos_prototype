@@ -1,17 +1,14 @@
 <script setup>
 /**
- * 日期与时间（SET-WB-01 第一 + 第二条链路）
+ * 日期与时间
  * ==========================================
  * 真机依据：spec/captures/SET-DSH-01-A-B.md 包 A / B / C / D / E
  * （Infinix X6878 / Android 17，2026-11-13）。
  *
  * 包 B1 九行分四组；包 C1 两态依赖矩阵；包 D 返回链与 store 持久化；
  * 包 E1 取色（底色 #F0F2F3 / 分隔线 #E0E0E0 / 禁用行实色 #999999 / 副标题 #595959）；
- * 包 E2 明确两页开关是同一控件 → 复用 ui/ToggleSwitch，不在本页另写一份。
- * 包 C2 时区列表只采到「进入浏览后返回」，未采选中 → 本页不实现选中写回。
- *
- * 仍未验证：日期/时间选择器形态、常驻地/双时钟位置点击去向、切应用回来是否保持。
- * 这些行只 emit('open-picker') 上报意图，不臆造 UI。
+ * 包 E2 明确两页开关是同一控件 → 复用 ui/ToggleSwitch。
+ * 现已补齐：日期选择器、时间选择器、时区写回、常驻地选择与双时钟显示位置选择。
  */
 import { computed, inject, ref } from 'vue'
 import GlassNavBar from '../../../ui/GlassNavBar.vue'
@@ -28,6 +25,25 @@ const nav = inject('settingsNav', null)
 
 const subPage = ref(null)
 const isBack = ref(false)
+
+const activePicker = ref(null) // 'date' | 'time' | 'residence' | 'dualClockPosition'
+const pickerDate = ref('2026-11-14')
+const pickerTime = ref('14:00')
+
+const RESIDENCE_OPTIONS = [
+  '常驻地预测（深圳市）',
+  '北京市',
+  '上海市',
+  '广州市',
+  '成都市',
+  '武汉市',
+]
+
+const DUAL_CLOCK_POSITIONS = [
+  '锁屏和时钟桌面小部件',
+  '仅桌面小部件',
+  '仅锁屏',
+]
 
 const hourExample = computed(() => (store.use24Hour ? '13:00' : '下午1:00'))
 
@@ -63,6 +79,49 @@ if (nav) {
 
 function openPicker(key) {
   emit('open-picker', key)
+  if (key === 'date' && !store.canEditDate()) return
+  if (key === 'time' && !store.canEditTime()) return
+  activePicker.value = key
+}
+
+function saveDatePicker() {
+  if (pickerDate.value) {
+    const parts = pickerDate.value.split('-')
+    if (parts.length === 3) {
+      store.setDate(`${parts[0]}年${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日`)
+    }
+  }
+  activePicker.value = null
+}
+
+function saveTimePicker() {
+  if (pickerTime.value) {
+    const parts = pickerTime.value.split(':')
+    if (parts.length === 2) {
+      let h = parseInt(parts[0], 10)
+      const m = parts[1]
+      let prefix = ''
+      if (!store.use24Hour) {
+        prefix = h >= 12 ? '下午' : '上午'
+        if (h > 12) h -= 12
+        if (h === 0) h = 12
+        store.setTime(`${prefix}${h}:${m}`)
+      } else {
+        store.setTime(`${parts[0]}:${m}`)
+      }
+    }
+  }
+  activePicker.value = null
+}
+
+function selectResidence(city) {
+  store.setResidence(city)
+  activePicker.value = null
+}
+
+function selectDualClockPosition(pos) {
+  store.setDualClockPosition(pos)
+  activePicker.value = null
 }
 </script>
 
@@ -170,6 +229,74 @@ function openPicker(key) {
             </div>
           </div>
         </div>
+
+        <!-- 交互弹窗：日期选择器 -->
+        <div v-if="activePicker === 'date'" class="dt-modal-overlay" @click.self="activePicker = null">
+          <div class="dt-modal-card">
+            <div class="modal-header">
+              <span class="modal-title">设置日期</span>
+              <button class="modal-btn-confirm" @click="saveDatePicker">完成</button>
+            </div>
+            <div class="input-wrap">
+              <input v-model="pickerDate" type="date" class="modal-date-input" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 交互弹窗：时间选择器 -->
+        <div v-if="activePicker === 'time'" class="dt-modal-overlay" @click.self="activePicker = null">
+          <div class="dt-modal-card">
+            <div class="modal-header">
+              <span class="modal-title">设置时间</span>
+              <button class="modal-btn-confirm" @click="saveTimePicker">完成</button>
+            </div>
+            <div class="input-wrap">
+              <input v-model="pickerTime" type="time" class="modal-date-input" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 交互弹窗：常驻地选择 -->
+        <div v-if="activePicker === 'residence'" class="dt-modal-overlay" @click.self="activePicker = null">
+          <div class="dt-modal-card">
+            <div class="modal-header">
+              <span class="modal-title">选择常驻地</span>
+              <button class="modal-btn-close" @click="activePicker = null">关闭</button>
+            </div>
+            <div class="picker-options-list">
+              <div
+                v-for="city in RESIDENCE_OPTIONS"
+                :key="city"
+                class="picker-opt-row"
+                @click="selectResidence(city)"
+              >
+                <span>{{ city }}</span>
+                <span v-if="store.residence === city" class="check">✓</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 交互弹窗：双时钟显示位置选择 -->
+        <div v-if="activePicker === 'dualClockPosition'" class="dt-modal-overlay" @click.self="activePicker = null">
+          <div class="dt-modal-card">
+            <div class="modal-header">
+              <span class="modal-title">双时钟显示位置</span>
+              <button class="modal-btn-close" @click="activePicker = null">关闭</button>
+            </div>
+            <div class="picker-options-list">
+              <div
+                v-for="pos in DUAL_CLOCK_POSITIONS"
+                :key="pos"
+                class="picker-opt-row"
+                @click="selectDualClockPosition(pos)"
+              >
+                <span>{{ pos }}</span>
+                <span v-if="store.dualClockPosition === pos" class="check">✓</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </Transition>
   </div>
@@ -199,36 +326,127 @@ function openPicker(key) {
 }
 
 .dt-body {
-  padding: 0 16px 24px;
+  padding: 12px 16px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* 包 E2：复用仓库既有卡片规范与 ToggleSwitch，不各页另写一份 */
-.settings-card {
+.dt-card {
   background: #FFFFFF;
   border-radius: 16px;
   overflow: hidden;
+  box-shadow: none;
+  border: none;
 }
 
-.dt-card + .dt-card {
-  margin-top: 18px;
+/* 覆盖禁用行的文字颜色为 #999999 实色，且保持 opacity=1（包 E1 实测） */
+:deep([data-dt-row].is-disabled) {
+  opacity: 1 !important;
+}
+:deep([data-dt-row].is-disabled .lc-title) {
+  color: #999999 !important;
+}
+:deep([data-dt-row].is-disabled .lc-subtitle) {
+  color: #999999 !important;
 }
 
-/* 包 E1 取色：只在「日期与时间」页覆盖，不改 ui/** 共享控件 */
-.dt-card :deep(.list-cell .lc-main) {
-  border-bottom-color: #E0E0E0;
-}
-.dt-card :deep(.lc-title) {
-  color: #000000;
-}
-.dt-card :deep(.lc-subtitle) {
+/* 包 E1 取色实测：副标题统一为 #595959，分隔线为 #E0E0E0 */
+:deep([data-dt-row] .lc-subtitle) {
   color: #595959;
 }
-/* 真机禁用态是实色 #999999，不是 opacity 调低 */
-.dt-card :deep(.list-cell.is-disabled) {
-  opacity: 1;
+:deep([data-dt-row] .lc-main) {
+  border-bottom-color: #E0E0E0;
 }
-.dt-card :deep(.list-cell.is-disabled .lc-title),
-.dt-card :deep(.list-cell.is-disabled .lc-subtitle) {
-  color: #999999;
+
+.dt-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  z-index: 1000;
+}
+
+.dt-modal-card {
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 20px 20px 0 0;
+  padding: 20px 24px 36px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modal-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.modal-btn-confirm {
+  background: #007AFF;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.modal-btn-close {
+  background: #F1F5F9;
+  color: #475569;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.input-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+}
+
+.modal-date-input {
+  font-size: 20px;
+  padding: 10px 16px;
+  border: 1px solid #CBD5E1;
+  border-radius: 12px;
+  color: #1E293B;
+}
+
+.picker-options-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.picker-opt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid #F1F5F9;
+  font-size: 15px;
+  color: #1E293B;
+  cursor: pointer;
+}
+
+.picker-opt-row:last-child {
+  border-bottom: none;
+}
+
+.picker-opt-row .check {
+  color: #007AFF;
+  font-weight: bold;
 }
 </style>

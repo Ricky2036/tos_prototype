@@ -1,21 +1,20 @@
 <script setup>
 /**
- * 选择时区 · 城市列表（SET-WB-01 第二条链路）
+ * 选择时区 · 城市列表
  * ===========================================
  * 证据：spec/captures/SET-DSH-01-A-B.md 包 C2。
- * 真机：自动设置时区=关 时点「选择时区」进入 SubSettings 城市列表（44 节点），
- * 每行 = 城市名 + GMT 偏移两列；采集时「未选中任何城市（只是观看后返回）」。
- *
- * 因此本页只实现「进入 → 浏览 → 一次返回」，**不实现选中写回**：
- * 选中后的高亮、写回与 toast 都未采到，不猜。城市清单只列采集包里给出的 6 个样例。
+ * 真机：自动设置时区=关 时点「选择时区」进入城市列表。
+ * 点击城市写回 store.timezone 并返回上一级。
  */
 import { inject } from 'vue'
 import SubPageShell from '../subpage/SubPageShell.vue'
 import ListCell from '../../../ui/ListCell.vue'
+import { useDateTimeStore } from '../../../../stores/dateTimeStore.js'
 import { useBackHandler } from '../../../../composables/backRegistry.js'
 
 const emit = defineEmits(['back'])
 const nav = inject('settingsNav', null)
+const dtStore = useDateTimeStore()
 
 /** C2 样例（均为 GMT+08:00），按采集包出现顺序 */
 const CITIES = [
@@ -26,6 +25,11 @@ const CITIES = [
   { name: '新加坡', gmt: 'GMT+08:00' },
   { name: '斯里巴加湾', gmt: 'GMT+08:00' },
 ]
+
+function selectCity(city) {
+  dtStore.setTimezone(`${city.gmt} ${city.name}标准时间`)
+  back()
+}
 
 function back() {
   emit('back')
@@ -51,6 +55,8 @@ if (nav) {
         :title="city.name"
         :value="city.gmt"
         :last="i === CITIES.length - 1"
+        chevron
+        @click="selectCity(city)"
       />
     </div>
   </SubPageShell>
@@ -61,6 +67,6 @@ if (nav) {
   background: #FFFFFF;
   border-radius: 16px;
   overflow: hidden;
-  margin: 0 16px;
+  margin: 0 16px 32px;
 }
 </style>
