@@ -102,7 +102,7 @@ node --test tools/team-watch/test/teamWatch.test.js
 
 - 首轮状态：`BASELINE（首轮只记录，不推断完成）`
 - watch 启动后第一次 tick 检测到 antigravity dirty 变化 → 追加 `scan-change`（真实变化，非测试数据）
-- 事件队列累计 1 条 `scan-change`；`status` 显示未读 1、冲突 0
+- 事件队列里只有 watch 产生的 `scan-change`（来自真实 lane 变化，无测试事件）；`status` 显示未读、冲突 0
 - watch 日志：`watch start pid=69842 interval=60000ms stall=1800000ms`，之后 lastTick 每 60s 更新
 
 共享目录内容：`snapshot.json`、`summary.json`（约 4KB）、`summary.md`（约 1.6KB）、`events.jsonl`、
