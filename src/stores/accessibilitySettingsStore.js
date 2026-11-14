@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { readBool, readString, writeRaw } from '../utils/localPrefs.js'
+import { readBool, readJson, readNumber, readString, writeRaw } from '../utils/localPrefs.js'
 
 /**
  * 「辅助功能」模块状态（SET-ACC-01）
@@ -43,7 +43,21 @@ const K = {
   OUTDOOR_EXTEND_SCREEN_OFF: 'tos_acc_outdoor_extend_screen_off',
   MOTION_ENABLED: 'tos_acc_motion_enabled',
   GAME_ENABLED: 'tos_acc_game_enabled',
-  GAME_PANEL: 'tos_acc_game_panel'
+  GAME_PANEL: 'tos_acc_game_panel',
+  /* —— 2026-11-14 第二轮补采新增 —— */
+  RELAY_ENABLED: 'tos_acc_relay_enabled',
+  BUOY_STYLE: 'tos_acc_buoy_style',
+  BUOY_SIZE: 'tos_acc_buoy_size',
+  BUOY_OPACITY: 'tos_acc_buoy_opacity',
+  BUOY_POSITION: 'tos_acc_buoy_position',
+  CLONE_APPS: 'tos_acc_clone_apps',
+  ANTI_PEEP: 'tos_acc_anti_peep',
+  MOTION_TAB: 'tos_acc_motion_tab',
+  GAME_APPS: 'tos_acc_game_apps',
+  SIDEBAR_APPS: 'tos_acc_sidebar_apps',
+  XARENA_SOUND: 'tos_acc_xarena_sound',
+  XARENA_STATUS_CHECK: 'tos_acc_xarena_status_check',
+  XARENA_MEMORY: 'tos_acc_xarena_memory'
 }
 
 export const ACCESSIBILITY_KEYS = K
@@ -81,18 +95,35 @@ export const ACCESSIBILITY_DEFAULTS = {
     extendScreenOff: true
   },
   motion: false,
-  game: { enabled: true, assistantPanel: true }
+  game: { enabled: true, assistantPanel: true },
+  /** 中转站：真机默认关（侧边栏那行值显示「关闭」） */
+  relayEnabled: false,
+  /** 浮标设置：真机默认「常驻」、大小滑块约 2%、透明度约 50%、位置「右」（逐像素量自截图） */
+  buoy: { style: 'persistent', size: 0.02, opacity: 0.5, position: '右' },
+  /** 应用双开：真机推荐列表四个应用全部为关 */
+  cloneApps: [],
+  /** 防偷窥：真机默认关 */
+  antiPeep: false,
+  /** 晕动舒缓显示顶部标签：乘车 / 游戏，真机默认停在「乘车」 */
+  motionTab: 'ride',
+  /** 游戏管理：真机默认一个都没勾 */
+  gameApps: [],
+  /** 可用的应用（落地页标题是「软件管理」）：真机默认只有前三个是开的 */
+  sidebarApps: ['Google TV', 'Visha播放器', 'YouTube'],
+  /** XArena：音效开 / 游戏状态检测开 / 内存管控关 */
+  xarena: { sound: true, statusCheck: true, memory: false }
 }
 
 /**
  * 录屏清晰度/帧率候选
  *
- * 真机只采到**当前值**（超清 1080P / 低帧率 24FPS），点开后的选择器形态与完整档位未取证
- * （2026-11-14 设备离线，采集阻塞）。候选表先只放实测值，setter 会拒掉任何未取证档位，
- * 避免把猜出来的 720P/480P/30FPS/60FPS 当成真机能力。
+ * 2026-11-14 真机补采（RecorderSettingsActivity 底部单选弹层）实测：
+ *   清晰度 = 超高清 (2K) / 超清 (1080P) / 高清 (720P)
+ *   帧率   = 高帧率 (60 FPS) / 低帧率 (24 FPS)
+ * 真机没有 480P，也没有 30FPS —— 上一轮按同族猜的档位是错的，这里以实测为准。
  */
-export const RECORDING_RESOLUTIONS = ['超清 (1080P)']
-export const RECORDING_FRAME_RATES = ['低帧率 (24 FPS)']
+export const RECORDING_RESOLUTIONS = ['超高清 (2K)', '超清 (1080P)', '高清 (720P)']
+export const RECORDING_FRAME_RATES = ['高帧率 (60 FPS)', '低帧率 (24 FPS)']
 
 export const useAccessibilitySettingsStore = defineStore('accessibilitySettings', () => {
   const antiMistouch = ref(readBool(K.ANTI_MISTOUCH, ACCESSIBILITY_DEFAULTS.antiMistouch))
@@ -115,7 +146,6 @@ export const useAccessibilitySettingsStore = defineStore('accessibilitySettings'
   const sidebarEnabled = ref(readBool(K.SIDEBAR_ENABLED, true))
   const sidebarRecent = ref(readBool(K.SIDEBAR_RECENT, false))
   const sidebarVibrate = ref(readBool(K.SIDEBAR_VIBRATE, false))
-  const sidebarRelay = ref(readString(K.SIDEBAR_RELAY, '关闭'))
   const sceneSuggest = ref(readBool(K.SCENE_SUGGEST, true))
   const videoAssistant = ref(readBool(K.VIDEO_ASSISTANT, true))
   const socialAssistant = ref(readBool(K.SOCIAL_ASSISTANT, true))
@@ -131,6 +161,24 @@ export const useAccessibilitySettingsStore = defineStore('accessibilitySettings'
   const motionEnabled = ref(readBool(K.MOTION_ENABLED, false))
   const gameEnabled = ref(readBool(K.GAME_ENABLED, true))
   const gamePanel = ref(readBool(K.GAME_PANEL, true))
+
+  /* —— 2026-11-14 第二轮补采新增 —— */
+  const relayEnabled = ref(readBool(K.RELAY_ENABLED, false))
+  const buoyStyle = ref(readString(K.BUOY_STYLE, ACCESSIBILITY_DEFAULTS.buoy.style))
+  const buoySize = ref(readNumber(K.BUOY_SIZE, ACCESSIBILITY_DEFAULTS.buoy.size))
+  const buoyOpacity = ref(readNumber(K.BUOY_OPACITY, ACCESSIBILITY_DEFAULTS.buoy.opacity))
+  const buoyPosition = ref(readString(K.BUOY_POSITION, ACCESSIBILITY_DEFAULTS.buoy.position))
+  const cloneApps = ref(readJson(K.CLONE_APPS, ACCESSIBILITY_DEFAULTS.cloneApps))
+  const antiPeep = ref(readBool(K.ANTI_PEEP, ACCESSIBILITY_DEFAULTS.antiPeep))
+  const motionTab = ref(readString(K.MOTION_TAB, ACCESSIBILITY_DEFAULTS.motionTab))
+  const gameApps = ref(readJson(K.GAME_APPS, ACCESSIBILITY_DEFAULTS.gameApps))
+  const sidebarApps = ref(readJson(K.SIDEBAR_APPS, ACCESSIBILITY_DEFAULTS.sidebarApps))
+  const xarenaSound = ref(readBool(K.XARENA_SOUND, ACCESSIBILITY_DEFAULTS.xarena.sound))
+  const xarenaStatusCheck = ref(readBool(K.XARENA_STATUS_CHECK, ACCESSIBILITY_DEFAULTS.xarena.statusCheck))
+  const xarenaMemory = ref(readBool(K.XARENA_MEMORY, ACCESSIBILITY_DEFAULTS.xarena.memory))
+
+  /** 侧边栏那行的值文本：真机显示「关闭 / 开启」，与中转站页开关是同一个设置 */
+  const sidebarRelay = computed(() => (relayEnabled.value ? '开启' : '关闭'))
 
   /** 通用布尔写入：视图层只传 key，避免每行写一个 setter 造成漂移 */
   const BOOL_REFS = {
@@ -157,7 +205,12 @@ export const useAccessibilitySettingsStore = defineStore('accessibilitySettings'
     outdoorExtendScreenOff,
     motionEnabled,
     gameEnabled,
-    gamePanel
+    gamePanel,
+    relayEnabled,
+    antiPeep,
+    xarenaSound,
+    xarenaStatusCheck,
+    xarenaMemory
   }
 
   const STORAGE_KEYS = {
@@ -184,7 +237,12 @@ export const useAccessibilitySettingsStore = defineStore('accessibilitySettings'
     outdoorExtendScreenOff: K.OUTDOOR_EXTEND_SCREEN_OFF,
     motionEnabled: K.MOTION_ENABLED,
     gameEnabled: K.GAME_ENABLED,
-    gamePanel: K.GAME_PANEL
+    gamePanel: K.GAME_PANEL,
+    relayEnabled: K.RELAY_ENABLED,
+    antiPeep: K.ANTI_PEEP,
+    xarenaSound: K.XARENA_SOUND,
+    xarenaStatusCheck: K.XARENA_STATUS_CHECK,
+    xarenaMemory: K.XARENA_MEMORY
   }
 
   function setFlag(key, value) {
@@ -209,10 +267,60 @@ export const useAccessibilitySettingsStore = defineStore('accessibilitySettings'
     return true
   }
 
+  /** 兼容旧入口：传「开启 / 关闭」，实际写的是中转站开关 */
   function setSidebarRelay(value) {
     if (!['关闭', '开启'].includes(value)) return false
-    sidebarRelay.value = value
-    writeRaw(K.SIDEBAR_RELAY, value)
+    return setFlag('relayEnabled', value === '开启')
+  }
+
+  function setBuoy(patch = {}) {
+    if (typeof patch.style === 'string' && ['persistent', 'hidden'].includes(patch.style)) {
+      buoyStyle.value = patch.style
+      writeRaw(K.BUOY_STYLE, patch.style)
+    }
+    if (Number.isFinite(patch.size)) {
+      buoySize.value = Math.min(1, Math.max(0, patch.size))
+      writeRaw(K.BUOY_SIZE, String(buoySize.value))
+    }
+    if (Number.isFinite(patch.opacity)) {
+      buoyOpacity.value = Math.min(1, Math.max(0, patch.opacity))
+      writeRaw(K.BUOY_OPACITY, String(buoyOpacity.value))
+    }
+    if (typeof patch.position === 'string' && ['左', '右'].includes(patch.position)) {
+      buoyPosition.value = patch.position
+      writeRaw(K.BUOY_POSITION, patch.position)
+    }
+    return true
+  }
+
+  /** 浮标「恢复默认设置」：真机是回默认值，不是清空开关 */
+  function resetBuoy() {
+    return setBuoy({ ...ACCESSIBILITY_DEFAULTS.buoy })
+  }
+
+  function toggleCloneApp(name) {
+    if (!name) return false
+    const next = cloneApps.value.includes(name)
+      ? cloneApps.value.filter(n => n !== name)
+      : [...cloneApps.value, name]
+    cloneApps.value = next
+    writeRaw(K.CLONE_APPS, JSON.stringify(next))
+    return true
+  }
+
+  function setMotionTab(tab) {
+    if (!['ride', 'game'].includes(tab)) return false
+    motionTab.value = tab
+    writeRaw(K.MOTION_TAB, tab)
+    return true
+  }
+
+  /** 应用勾选列表（游戏管理 / 软件管理共用）：整表写回，视图只负责算新数组 */
+  function setAppList(which, list) {
+    const target = which === 'game' ? gameApps : which === 'sidebar' ? sidebarApps : null
+    if (!target || !Array.isArray(list)) return false
+    target.value = [...list]
+    writeRaw(which === 'game' ? K.GAME_APPS : K.SIDEBAR_APPS, JSON.stringify(target.value))
     return true
   }
 
@@ -309,6 +417,19 @@ export const useAccessibilitySettingsStore = defineStore('accessibilitySettings'
     motionEnabled,
     gameEnabled,
     gamePanel,
+    relayEnabled,
+    buoyStyle,
+    buoySize,
+    buoyOpacity,
+    buoyPosition,
+    cloneApps,
+    antiPeep,
+    motionTab,
+    gameApps,
+    sidebarApps,
+    xarenaSound,
+    xarenaStatusCheck,
+    xarenaMemory,
     screenRecord,
     screenshot,
     sidebar,
@@ -319,6 +440,11 @@ export const useAccessibilitySettingsStore = defineStore('accessibilitySettings'
     setRecResolution,
     setRecFrameRate,
     setSidebarRelay,
+    setBuoy,
+    resetBuoy,
+    toggleCloneApp,
+    setMotionTab,
+    setAppList,
     setOutdoorSchedule,
     setOutdoorTime
   }

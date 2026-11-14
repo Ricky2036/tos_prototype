@@ -1,7 +1,7 @@
 <script setup>
 import GlassNavBar from '../../ui/GlassNavBar.vue'
 import '../../../styles/layer-transitions.css'
-import { ref, inject, computed } from 'vue'
+import { ref, inject } from 'vue'
 import { useBackHandler } from '../../../composables/backRegistry'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
@@ -14,7 +14,8 @@ import AccSidebar from './accessibility/AccSidebar.vue'
 import AccOutdoor from './accessibility/AccOutdoor.vue'
 import AccMotion from './accessibility/AccMotion.vue'
 import AccGame from './accessibility/AccGame.vue'
-import AccPending from './accessibility/AccPending.vue'
+import AccAppClone from './accessibility/AccAppClone.vue'
+import AccAntiPeep from './accessibility/AccAntiPeep.vue'
 import { useAccessibilitySettingsStore } from '../../../stores/accessibilitySettingsStore.js'
 
 import heroIcon from '../../../assets/icons/accessibility/hero.webp'
@@ -38,11 +39,12 @@ import mistouchIcon from '../../../assets/icons/accessibility/mistouch.webp'
  * （Infinix X6878 / Android 17，2026-11-13 采集；落地 Activity `Settings$IntelligentAssistActivity`）
  *
  * 入口 → 落地页的对应关系有两条**两入口一落地**，按真机原样接：
- *   动作与手势 / 智感握姿 → 同一个「智感握姿」页（SmartGripSettingActivity）
+ *   手势体感 / 智感握姿 → 同一个「智感握姿」页（SmartGripSettingActivity）
  *   小窗 / 应用分屏 → 同一个「应用分屏」页（SplitSettingsMainActivity）
  *
  * 防误触模式是主页唯一的行内开关（真机默认开、蓝色）。
- * 未采到的深层入口统一走 AccPending 明示缺口，不用 toast 冒充已实现。
+ * 「你可能想找」里应用双开 / 防偷窥两层 2026-11-14 已采到，直接进本地真页；
+ * 数字健康早在独立模块里，继续走主壳路由。
  */
 const emit = defineEmits(['back', 'navigate'])
 const acc = useAccessibilitySettingsStore()
@@ -60,8 +62,8 @@ const SUB_TITLES = {
   outdoor: '户外增强',
   motion: '晕动舒缓显示',
   game: '游戏模式',
-  'link-appClone': '应用双开',
-  'link-antiPeep': '防偷窥'
+  appClone: '应用双开',
+  antiPeep: '防偷窥'
 }
 
 function openSub(key) {
@@ -73,10 +75,6 @@ function closeSub() {
   subPage.value = null
 }
 
-const pendingTitle = computed(() =>
-  subPage.value && subPage.value.startsWith('link-') ? SUB_TITLES[subPage.value] : ''
-)
-
 function back() {
   if (subPage.value) { closeSub(); return true }
   emit('back')
@@ -86,14 +84,14 @@ function back() {
 const settingsNav = inject('settingsNav', null)
 useBackHandler(() => back())
 
-/* 「你可能想找」：数字健康已有独立模块，走主壳路由；应用双开/防偷窥未采 → 缺口页 */
+/* 「你可能想找」：数字健康走主壳路由，应用双开 / 防偷窥进本模块的真页 */
 function openRelative(target) {
   if (target === 'digitalHealth') {
     if (settingsNav) { settingsNav.push('digitalHealth'); return }
     emit('navigate', 'digitalHealth')
     return
   }
-  openSub(target === 'appClone' ? 'link-appClone' : 'link-antiPeep')
+  openSub(target)
 }
 
 defineExpose({ back })
@@ -112,13 +110,8 @@ defineExpose({ back })
       <AccOutdoor v-else-if="subPage === 'outdoor'" key="outdoor" @back="closeSub" />
       <AccMotion v-else-if="subPage === 'motion'" key="motion" @back="closeSub" />
       <AccGame v-else-if="subPage === 'game'" key="game" @back="closeSub" />
-      <AccPending
-        v-else-if="pendingTitle"
-        :key="subPage"
-        :title="pendingTitle"
-        reason="该入口指向本模块之外的页面，本轮未采集、未复刻。"
-        @back="closeSub"
-      />
+      <AccAppClone v-else-if="subPage === 'appClone'" key="appClone" @back="closeSub" />
+      <AccAntiPeep v-else-if="subPage === 'antiPeep'" key="antiPeep" @back="closeSub" />
     </Transition>
 
     <template v-if="!subPage">
@@ -157,7 +150,7 @@ defineExpose({ back })
               <img :src="screenshotIcon" class="cell-entry-icon" alt="" draggable="false" />
             </template>
           </ListCell>
-          <ListCell title="动作与手势" data-testid="acc-row-gesture" chevron @click="openSub('grip')">
+          <ListCell title="手势体感" data-testid="acc-row-gesture" chevron @click="openSub('grip')">
             <template #icon>
               <img :src="gestureIcon" class="cell-entry-icon" alt="" draggable="false" />
             </template>

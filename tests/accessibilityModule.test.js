@@ -111,18 +111,19 @@ test('开始/结束时间只接受 HH:mm，且分别写入各自字段', () => {
   assert.equal(s.outdoorEnd, '22:15')
 })
 
-test('清晰度/帧率只接受已取证档位（猜出来的 720P/480P、30/60FPS 必须被拒）', () => {
+test('清晰度/帧率档位等于 2026-11-14 弹层实测值，未取证档位一律被拒', () => {
   const s = fresh()
-  // 真机只采到当前值；未取证档位一律拒绝，避免把猜的能力写进状态
-  assert.deepEqual(RECORDING_RESOLUTIONS, ['超清 (1080P)'])
-  assert.deepEqual(RECORDING_FRAME_RATES, ['低帧率 (24 FPS)'])
-  assert.equal(s.setRecResolution('高清 (720P)'), false)
-  assert.equal(s.setRecResolution('标清 (480P)'), false)
-  assert.equal(s.recResolution, '超清 (1080P)')
-  assert.equal(s.setRecFrameRate('标准 (30 FPS)'), false)
-  assert.equal(s.setRecFrameRate('高帧率 (60 FPS)'), false)
+  // 真机弹层实测：清晰度 2K/1080P/720P（没有 480P）；帧率 60/24（没有 30）
+  assert.deepEqual(RECORDING_RESOLUTIONS, ['超高清 (2K)', '超清 (1080P)', '高清 (720P)'])
+  assert.deepEqual(RECORDING_FRAME_RATES, ['高帧率 (60 FPS)', '低帧率 (24 FPS)'])
+  assert.equal(s.setRecResolution('标清 (480P)'), false, '真机没有 480P')
+  assert.equal(s.recResolution, '超清 (1080P)', '被拒后不应改值')
+  assert.equal(s.setRecFrameRate('标准 (30 FPS)'), false, '真机没有 30FPS')
   assert.equal(s.recFrameRate, '低帧率 (24 FPS)')
-  assert.equal(s.setRecResolution('超清 (1080P)'), true, '已取证档位可重复写入')
+  assert.equal(s.setRecResolution('超高清 (2K)'), true)
+  assert.equal(s.setRecFrameRate('高帧率 (60 FPS)'), true)
+  assert.equal(s.recResolution, '超高清 (2K)')
+  assert.equal(s.recFrameRate, '高帧率 (60 FPS)')
 })
 
 /* ==================== 页面自声明 ==================== */
@@ -185,11 +186,11 @@ test('浏览器：点行进子页、返回回主页（录屏）', async () => {
   await rt.unmount(id)
 })
 
-test('浏览器：两入口一落地（动作与手势=智感握姿 · 小窗=应用分屏）', async () => {
+test('浏览器：两入口一落地（手势体感=智感握姿 · 小窗=应用分屏）', async () => {
   const id = await rt.mount(ROOT)
   await rt.click(id, '[data-testid="acc-row-gesture"]', 80)
   await wait(420)
-  assert.equal(await rt.count(id, '[data-testid="grip-card"]'), 1, '动作与手势落到智感握姿页')
+  assert.equal(await rt.count(id, '[data-testid="grip-card"]'), 1, '手势体感落到智感握姿页')
   await rt.click(id, '.sub-shell .gn-back', 80)
   await wait(420)
   await rt.click(id, '[data-testid="acc-row-grip"]', 80)
@@ -236,27 +237,176 @@ test('浏览器：定时开启选中后展开开始/结束时间，选回已关�
   await rt.unmount(id)
 })
 
-test('浏览器：录屏清晰度/帧率不再弹猜测选择器，落到缺口页', async () => {
+test('浏览器：录屏清晰度/帧率弹真机单选弹层，档位与选中值都按实测走', async () => {
   const id = await rt.mount(ROOT)
   await rt.click(id, '[data-testid="acc-row-record"]', 80)
   await wait(380)
+
+  /* 清晰度：底部弹层，三档 2K / 1080P / 720P */
   await rt.click(id, '[data-testid="rec-resolution"]', 80)
   await wait(380)
-  assert.equal(await rt.count(id, '[data-testid="acc-pending"]'), 1, '应落到缺口页而不是假选择器')
-  assert.equal(await rt.text(id, '[data-testid="acc-pending"] h3'), '清晰度')
-  assert.equal(await rt.count(id, '.picker-row'), 0, '不得再出现编造的档位列表')
+  assert.equal(await rt.count(id, '.picker-row'), 3, '清晰度只有三档')
+  assert.deepEqual(await rt.texts(id, '.picker-label'), ['超高清 (2K)', '超清 (1080P)', '高清 (720P)'])
+  assert.equal(await rt.text(id, '.picker-title'), '清晰度')
+  await rt.clickText(id, '.picker-row', '超高清 (2K)', 80)
+  await wait(320)
+  assert.equal(await rt.text(id, '[data-testid="rec-resolution"] .rec-value'), '超高清 (2K)', '选中后值应更新')
+
+  /* 帧率：两档 60 / 24 */
+  await rt.click(id, '[data-testid="rec-frame-rate"]', 80)
+  await wait(380)
+  assert.deepEqual(await rt.texts(id, '.picker-label'), ['高帧率 (60 FPS)', '低帧率 (24 FPS)'])
+  await rt.clickText(id, '.picker-row', '高帧率 (60 FPS)', 80)
+  await wait(320)
+  assert.equal(await rt.text(id, '[data-testid="rec-frame-rate"] .rec-value'), '高帧率 (60 FPS)')
   await rt.unmount(id)
 })
 
-test('浏览器：未取证深层入口落到缺口页，不伪装成已实现', async () => {
+test('浏览器：游戏模式两层（游戏管理 / XArena）都进真页，不再走缺口页', async () => {
   const id = await rt.mount(ROOT)
   await rt.click(id, '[data-testid="acc-row-game"]', 80)
+  await wait(380)
+  assert.equal(await rt.text(id, '.sub-shell .gn-title'), '游戏模式')
+  assert.equal(await rt.count(id, '.acc-dot'), 2, '游戏模式真机 2 个圆点')
+  assert.equal(await rt.text(id, '.acc-illus-desc'), '游戏中可侧滑呼出游戏助手。')
+
+  /* 游戏管理：说明 + 13 行应用、无搜索框 */
   await rt.click(id, '[data-testid="game-manage"]', 80)
-  assert.equal(await rt.count(id, '[data-testid="acc-pending"]'), 1, '应落到缺口页')
-  assert.equal(await rt.text(id, '[data-testid="acc-pending"] h3'), '游戏管理')
-  const body = await rt.text(id, '[data-testid="acc-pending"]')
-  assert.ok(body.includes('没有真机采集'), '缺口页必须写清未采集')
+  await wait(380)
+  assert.equal(await rt.count(id, '[data-testid="acc-pending"]'), 0, '不应再有缺口页')
+  assert.equal(await rt.text(id, '.sub-shell .gn-title'), '游戏管理')
+  assert.equal(await rt.text(id, '.manage-hint'), '请选择以游戏模式运行的应用。')
+  assert.equal(await rt.count(id, '[data-testid="game-apps"] .acc-approw'), 13)
+  assert.equal(await rt.text(id, '[data-testid="acc-approw-bilibili"] .acc-appname'), '哔哩哔哩')
+  await rt.click(id, '.sub-shell .gn-back', 80)
+  await wait(380)
+
+  /* XArena：横幅 + 进入按钮 + 四项，且「游戏自动更新」是空态页 */
+  await rt.click(id, '[data-testid="game-xarena"]', 80)
+  await wait(380)
+  assert.equal(await rt.text(id, '.sub-shell .gn-title'), 'XArena')
+  assert.equal(await rt.text(id, '.xarena-enter'), '进入 XArena')
+  const banner = await rt.rect(id, '.xarena-banner')
+  assert.equal(Math.round(banner.width), 328, '横幅真机 328 宽')
+  assert.equal(Math.round(banner.height), 143, '横幅真机 143 高')
+  await rt.clickText(id, '.list-cell', '游戏自动更新', 80)
+  await wait(380)
+  assert.equal(await rt.text(id, '.sub-shell .gn-title'), '游戏自动更新')
+  assert.equal(await rt.text(id, '[data-testid="auto-update-empty"]'), '无游戏')
   await rt.unmount(id)
+})
+
+test('浏览器：侧边栏四个深层入口全部进真页（浮标 / 中转站 / 软件管理 / 更多功能）', async () => {
+  const id = await rt.mount(ROOT)
+  await rt.click(id, '[data-testid="acc-row-sidebar"]', 80)
+  await wait(380)
+
+  await rt.click(id, '[data-testid="sidebar-floatmark"]', 80)
+  await wait(380)
+  assert.equal(await rt.text(id, '.sub-shell .gn-title'), '浮标设置')
+  assert.equal(await rt.count(id, '.buoy-style'), 2, '常驻 / 隐藏 两套预览')
+  assert.equal(await rt.count(id, '.buoy-radio.checked'), 1, '默认选中「常驻」')
+  assert.equal(await rt.text(id, '.buoy-value'), '右', '屏幕位置真机默认「右」')
+  /* 透明度真机把手停在轨道 50%；浏览器把 % 算成 px，这里按比例核对 */
+  const trackW = (await rt.rect(id, '[data-testid="buoy-opacity"] .acc-slider-track')).width
+  const knobLeft = parseFloat(await rt.style(id, '[data-testid="buoy-opacity"] .acc-slider-knob', 'left'))
+  assert.ok(Math.abs(knobLeft / trackW - 0.5) < 0.02, `透明度把手在 ${(knobLeft / trackW * 100).toFixed(1)}%，真机约 50%`)
+  await rt.click(id, '[data-testid="buoy-position"]', 80)
+  assert.equal(await rt.text(id, '.buoy-value'), '左', '上下双箭头切换左右')
+  await rt.click(id, '[data-testid="buoy-reset"]', 80)
+  assert.equal(await rt.text(id, '.buoy-value'), '右', '恢复默认设置回到「右」')
+  await rt.click(id, '.sub-shell .gn-back', 80)
+  await wait(380)
+
+  await rt.click(id, '[data-testid="sidebar-relay"]', 80)
+  await wait(380)
+  assert.equal(await rt.text(id, '.sub-shell .gn-title'), '中转站')
+  assert.equal(await rt.text(id, '.acc-illus-title'), '拖入中转站')
+  assert.equal(await rt.count(id, '.acc-dot'), 3)
+  await rt.click(id, '[data-testid="relay-switch"] .toggle-switch', 80)
+  await wait(200)
+  assert.equal(await rt.text(id, '.acc-illus-desc'), '拖拽文本、图片、文件至悬浮面板，即可打开中转站暂存。')
+  await rt.click(id, '.sub-shell .gn-back', 80)
+  await wait(380)
+
+  /* 可用的应用 → 落地标题是「软件管理」，前三个默认开 */
+  await rt.click(id, '[data-testid="sidebar-apps"]', 80)
+  await wait(380)
+  assert.equal(await rt.text(id, '.sub-shell .gn-title'), '软件管理', '入口文案与落地标题不一致是真机原样')
+  assert.equal(await rt.count(id, '[data-testid="sidebar-apps"] .acc-approw'), 30)
+  assert.equal(
+    await rt.evaluate(({ hostId }) => {
+      const host = window.__wbHosts.get(hostId).host
+      return [...host.querySelectorAll('.acc-approw')]
+        .filter(r => r.querySelector('.toggle-switch')?.getAttribute('aria-checked') === 'true')
+        .map(r => r.querySelector('.acc-appname').textContent)
+    }, { hostId: id }).then(l => l.join('|')),
+    'Google TV|Visha播放器|YouTube',
+    '真机默认只有前三个是开的'
+  )
+  await rt.click(id, '.sub-shell .gn-back', 80)
+  await wait(380)
+
+  await rt.click(id, '[data-testid="sidebar-more"]', 80)
+  await wait(380)
+  assert.equal(await rt.text(id, '.sub-shell .gn-title'), '更多功能')
+  assert.equal(await rt.count(id, '[data-testid="more-features-card"] .list-cell'), 5, '真机 5 行')
+  assert.equal(
+    await rt.evaluate(({ hostId }) => {
+      const host = window.__wbHosts.get(hostId).host
+      return host.querySelector('[data-testid="more-flash"]').classList.contains('is-disabled')
+    }, { hostId: id }),
+    true,
+    '本机没装 WhatsApp → 闪光灯提醒整行置灰（真机原样）'
+  )
+  await rt.unmount(id)
+})
+
+test('浏览器：晕动舒缓顶部两段标签，乘车 4 页 / 游戏 2 页且卡标题跟着换', async () => {
+  const id = await rt.mount(ROOT)
+  await rt.click(id, '[data-testid="acc-row-motion"]', 80)
+  await wait(380)
+  assert.equal(await rt.count(id, '.motion-tab'), 2)
+  assert.equal(await rt.count(id, '.acc-dot'), 4, '乘车真机 4 个圆点')
+  assert.equal(await rt.text(id, '.acc-illus-title'), '加速或减速')
+  assert.equal(await rt.text(id, '[data-testid="motion-card"] .lc-title'), '晕动舒缓显示')
+  assert.equal(await rt.text(id, '.motion-note'), '自定义时，圆点将保持显示以便查看效果。')
+
+  await rt.click(id, '[data-testid="motion-tab-game"]', 120)
+  await wait(320)
+  assert.equal(await rt.count(id, '.acc-dot'), 2, '游戏真机 2 个圆点')
+  assert.equal(await rt.text(id, '.acc-illus-title'), '角色移动')
+  assert.equal(await rt.text(id, '[data-testid="motion-card"] .lc-title'), '游戏防眩晕')
+  assert.ok((await rt.text(id, '.motion-note')).includes('PUBG Mobile'), '游戏脚注列支持的游戏')
+  await rt.unmount(id)
+})
+
+test('浏览器：应用双开四个推荐应用 + ⋮ 菜单，防偷窥两页', async () => {
+  const id = await rt.mount(ROOT)
+  await rt.clickText(id, '.relative-link-btn', '应用双开', 120)
+  await wait(420)
+  assert.equal(await rt.text(id, '.sub-shell .gn-title'), '应用双开')
+  assert.deepEqual(
+    await rt.texts(id, '.clone-row .clone-name'),
+    ['Facebook', 'Instagram', 'Telegram', '微信', '体验更多应用']
+  )
+  assert.equal(await rt.count(id, '[data-testid="clone-menu"]'), 0, '菜单默认收起')
+  await rt.click(id, '[data-testid="clone-more"]', 120)
+  assert.equal(await rt.text(id, '.clone-menu-item'), '清理双开空间')
+  await rt.click(id, '[data-testid="clone-more"]', 120)
+  assert.equal(await rt.count(id, '[data-testid="clone-menu"]'), 0, '再点收起')
+  await rt.click(id, '[data-testid="clone-more-apps"]', 120)
+  await wait(320)
+  assert.equal(await rt.text(id, '[data-testid="acc-pending"] h3'), '体验更多应用')
+  await rt.unmount(id)
+
+  const id2 = await rt.mount(ROOT)
+  await rt.clickText(id2, '.relative-link-btn', '防偷窥', 120)
+  await wait(420)
+  assert.equal(await rt.text(id2, '.sub-shell .gn-title'), '防偷窥')
+  assert.equal(await rt.count(id2, '.acc-dot'), 2)
+  assert.equal(await rt.text(id2, '.acc-illus-desc'), '拖拽底部角标，调整遮罩区域的范围。')
+  await rt.unmount(id2)
 })
 
 test('浏览器：防误触切换后卸载重挂仍保持（真机无二次确认、即时生效）', async () => {

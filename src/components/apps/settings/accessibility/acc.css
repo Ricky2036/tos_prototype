@@ -63,8 +63,8 @@
    真机插图带从导航栏下沿（设计 y=110）开始，正好等于 .sub-body 的 padding-top。 */
 .acc-illus {
   margin: 0 -16px;
-  /* 圆点距下方卡片/组标题：真机侧边栏页 34、截屏页 24，取中间 30（两页偏差都在 4px 内） */
-  padding-bottom: 30px;
+  /* 圆点行底 → 下方卡片：真机中转站页实测 24（圆点底 435 / 卡顶 459，2026-11-14 复核） */
+  padding-bottom: 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
