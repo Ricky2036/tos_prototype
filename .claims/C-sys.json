@@ -9,6 +9,7 @@
     "src/components/apps/settings/pages/dateTime.js",
     "src/components/apps/settings/dateTime/**",
     "src/stores/dateTimeStore.js",
+    "src/stores/systemSettingsStore.js",
     "tests/systemSettings.test.js",
     "tests/dateTimeSettings.test.js"
   ]

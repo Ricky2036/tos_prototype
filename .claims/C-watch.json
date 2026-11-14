@@ -1,0 +1,11 @@
+{
+  "cluster": "C-watch",
+  "owner": "dsh",
+  "since": "2026-11-14",
+  "note": "COORD-WATCH-01 协作监测框架：只读scan+共享事件队列+去重冲突隔离+watch",
+  "files": [
+    "tools/team-watch/**",
+    "docs/reports/COORD-WATCH-01.md",
+    ".tasks/queue/COORD-WATCH-01.md"
+  ]
+}
