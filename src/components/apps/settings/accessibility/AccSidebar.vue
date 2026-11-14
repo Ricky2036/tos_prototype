@@ -3,37 +3,39 @@ import SubPageShell from '../subpage/SubPageShell.vue'
 import ListCell from '../../../ui/ListCell.vue'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 import AccCarousel from './AccCarousel.vue'
-import AccPending from './AccPending.vue'
-import illus from '../../../../assets/icons/accessibility/illus/illus-sidebar.png'
+import AccFloatMark from './AccFloatMark.vue'
+import AccRelay from './AccRelay.vue'
+import AccAppManage from './AccAppManage.vue'
+import AccMoreFeatures from './AccMoreFeatures.vue'
 import { ref } from 'vue'
 import { useAccessibilitySettingsStore } from '../../../../stores/accessibilitySettingsStore.js'
 import './acc.css'
 
+import illus from '../../../../assets/icons/accessibility/illus/illus-sidebar.png'
+
 /**
  * 智能侧边栏（真机 com.transsion.smartpanel MainPluginActivity）
- * 插图 3 点，页 1 文案「侧滑呼出侧边栏，快捷开启小窗应用。」；其余页未采。
- * 卡 1：智能侧边栏（开）/ 浮标设置 / 最近文件（关）/ 中转站（值「关闭」）/ 振动开关（关）
- * 分组「场景助手」：场景建议（开）/ 视频助手（开）/ 可用的应用 / 社交助手（开）/ 更多功能
- * unknown：浮标设置、中转站、可用的应用、更多功能 四个深层页未采 → 走取证缺口页。
+ *
+ * 结构（2026-11-14 采集）：插图 3 点，页 1 只有一行灰字说明「侧滑呼出侧边栏，快捷开启小窗应用。」
+ *   卡 1：智能侧边栏（开）/ 浮标设置 / 最近文件（关）/ 中转站（值「关闭」）/ 振动开关（关）
+ *   分组「场景助手」：场景建议 / 视频助手 / 可用的应用 / 社交助手 / 更多功能
+ *
+ * 四个深层入口 2026-11-14 全部采到，直接进本地真页，不再走缺口页。
+ * 「可用的应用」的落地页标题是真机的「软件管理」，入口文案与落地标题不一致是真机原样。
  */
 const emit = defineEmits(['back'])
 const acc = useAccessibilitySettingsStore()
 
 const pages = [{ src: illus, desc: '侧滑呼出侧边栏，快捷开启小窗应用。' }]
 
-const pending = ref('')
-function openPending(title) {
-  pending.value = title
-}
+const sub = ref('')
 </script>
 
 <template>
-  <AccPending
-    v-if="pending"
-    :title="pending"
-    reason="该入口属于侧边栏的服务配置层，涉及浮标/中转站/场景助手的具体能力，需单独采集。"
-    @back="pending = ''"
-  />
+  <AccFloatMark v-if="sub === 'floatmark'" @back="sub = ''" />
+  <AccRelay v-else-if="sub === 'relay'" @back="sub = ''" />
+  <AccAppManage v-else-if="sub === 'apps'" @back="sub = ''" />
+  <AccMoreFeatures v-else-if="sub === 'more'" @back="sub = ''" />
   <SubPageShell v-else title="智能侧边栏" @back="emit('back')">
     <div class="acc-page">
       <AccCarousel :pages="pages" :dots="3" />
@@ -49,10 +51,11 @@ function openPending(title) {
           </template>
         </ListCell>
         <ListCell
+          data-testid="sidebar-floatmark"
           title="浮标设置"
           subtitle="设置浮标大小、透明度和位置。"
           chevron
-          @click="openPending('浮标设置')"
+          @click="sub = 'floatmark'"
         />
         <ListCell
           title="最近文件"
@@ -67,11 +70,12 @@ function openPending(title) {
           </template>
         </ListCell>
         <ListCell
+          data-testid="sidebar-relay"
           title="中转站"
           subtitle="高效的跨应用内容流转工具。"
           :value="acc.sidebarRelay"
           chevron
-          @click="openPending('中转站')"
+          @click="sub = 'relay'"
         />
         <ListCell title="振动开关" last>
           <template #right>
@@ -111,9 +115,10 @@ function openPending(title) {
           </template>
         </ListCell>
         <ListCell
+          data-testid="sidebar-apps"
           title="可用的应用"
           chevron
-          @click="openPending('可用的应用')"
+          @click="sub = 'apps'"
         />
         <ListCell
           title="社交助手"
@@ -127,7 +132,13 @@ function openPending(title) {
             />
           </template>
         </ListCell>
-        <ListCell title="更多功能" chevron last @click="openPending('更多功能')" />
+        <ListCell
+          data-testid="sidebar-more"
+          title="更多功能"
+          chevron
+          last
+          @click="sub = 'more'"
+        />
       </div>
     </div>
   </SubPageShell>

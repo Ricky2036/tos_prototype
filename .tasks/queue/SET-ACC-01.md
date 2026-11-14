@@ -99,3 +99,63 @@
 1. 首页入口已存在（`SettingsApp.vue` 硬编码 `push('accessibility')`），**无需改主壳**
 2. 搜索池已由 `pages/accessibility.js` 自声明（11 项，action 由主壳注入），无主壳 diff
 3. 若同意把 `accessibility/**` 纳入 C2，请在 `.claims/C2.json` 追加（本轮按用户授权先实现，登记待补）
+
+
+---
+
+## 第三轮：把 8 个 AccPending 全部收掉（2026-11-14 上午，设备恢复后）
+
+设备重新连上（`Infinix_X6878` / serial `159467059A001123`），按共享租约补采，采完立即释放锁。
+本轮**新增 9 个真页 + 1 个共用弹层 + 1 个滑块控件**，模块内 `AccPending` 从 8 处降到 4 处（剩下的都指向真机里存在、但本轮确实没采到的层，理由逐条写在页面上）。
+
+### 新增/重写
+
+| 文件 | 内容 | 依据 |
+|---|---|---|
+| `AccFloatMark.vue` + `AccSlider.vue` | 浮标设置：两套预览 + 大小/透明度滑块（轨道 10、钮 22 蓝环）+ 屏幕位置（左右切换）+ 恢复默认 | 7.1 |
+| `AccRelay.vue` | 中转站：插图 3 点 + 中转站开关 + 功能介绍 | 7.1 |
+| `AccAppManage.vue` + `AccAppToggleList.vue` | 软件管理：30 行应用（真机图标裁切）+ 开关，默认前三个开 | 7.1 |
+| `AccMoreFeatures.vue` | 更多功能：5 行，首行置灰 | 7.1 |
+| `AccGameManage.vue` | 游戏管理：说明 + 13 行应用 | 7.2 |
+| `AccXArena.vue` | XArena：横幅 + 说明 + 蓝色胶囊 + 四项 | 7.2 |
+| `AccGameAutoUpdate.vue` | 游戏自动更新：空态「无游戏」 | 7.2 |
+| `AccAppClone.vue` | 应用双开：⋮ 菜单 + 4 个推荐应用 + 体验更多应用 + XGuard 水印 | 7.5 |
+| `AccAntiPeep.vue` | 防偷窥：2 页手绘插图 + 开关 + 水印 | 7.5 |
+| `AccMotion.vue`（重写） | 乘车/游戏两段标签 + 4/2 页插图 + 自定义外观 + 脚注 | 7.4 |
+| `AccScreenRecord.vue`（重写） | 清晰度/帧率接仓里既有的 `SheetOptionPicker`，档位换成实测 2K/1080P/720P、60/24 | 7.3 |
+| `AccGame.vue`（重写） | 插图 2 页 + 两个深层入口接真页 | 7.2 |
+| `AccSidebar.vue`（重写） | 四个深层入口接真页 | 7.1 |
+| `SettingsAccessibility.vue` | 「动作与手势」→「手势体感」；「你可能想找」两入口接真页；删掉 `AccPending` 兜底 | 三 |
+| `accessibilitySettingsStore.js` | 新增 relayEnabled / buoy* / cloneApps / antiPeep / motionTab / gameApps / sidebarApps / xarena*；`sidebarRelay` 改为由开关派生的 computed | — |
+
+### 素材
+
+- 插图 10 张新增/重出：`illus-relay` `illus-game2` `illus-motion(重出)/2/3/4` `illus-motion-game1/2` `illus-peep1/2` `xarena-banner` `buoy-persistent/hidden`
+- 应用图标 36 张：`assets/icons/accessibility/apps/*.png`（真机截图逐行裁切，81 物理 px → 48px）
+
+### 几何复核（真机 vs 原型，设计 px）
+
+| 位置 | 真机 | 原型 |
+|---|---|---|
+| 浮标：预览图 x/宽 | 50 / 96 | 50 / 96 |
+| 浮标：标签顶 / 圆点顶 | 328 / 358 | 328 / 358 |
+| 浮标：卡 1 顶 / 高 | 419 / 223 | 419 / 223 |
+| 浮标：轨道中线 | 477 | 477 |
+| 更多功能：卡顶 / 卡高 | 98.3 / 333 | 98 / 332.4 |
+| XArena：按钮顶 / 卡顶 | 344.5 / 436 | 342 / 434 |
+| 软件管理：卡顶 | 98 | 98（margin-top −10） |
+| 应用双开：卡顶 | 122 | 122 |
+| 录屏：卡 1 顶 | 134 | 134 |
+| 晕动：卡 1 顶 | 530 | 526 |
+| 圆点行底 → 卡顶 | 24 | 24（acc.css 由 30 调到 24） |
+
+### 验证
+
+- `tests/accessibilityModule.test.js` **22/22 PASS**（重写 3 条过时断言 + 新增 4 条：侧边栏四层、游戏两层、录屏弹层档位、晕动两段标签、双开+防偷窥）
+- 全量单测 **973/973 PASS**；`vite build` 通过
+- 浏览器逐页走查 16 张真机并排对照：`/tmp/acc02/cmp/*.png`，主体误差 ≤4px
+- 顺手修：`SheetOptionPicker` 遮罩层级（⋮ 菜单原来压住导航栏，改 z-index 11 → 导航栏仍可点）
+
+### 仍为缺口（页面内明示，不伪装）
+
+中转站「功能介绍」/ 更多功能四层 / 晕动「自定义外观」/ 双开「体验更多应用」/ XArena「进入 XArena」（跨应用）/ 各页第 2+ 页插图（圆点数已按实测，画面未采）。

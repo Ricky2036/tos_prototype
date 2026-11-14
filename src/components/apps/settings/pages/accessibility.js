@@ -25,7 +25,7 @@ export default {
     { id: 'accessibilityA11y', title: '无障碍', group: '系统' },
     { id: 'accessibilityRecord', title: '录屏', group: '系统' },
     { id: 'accessibilityScreenshot', title: '截屏', group: '系统' },
-    { id: 'accessibilitySmartGrip', title: '智感握姿（动作与手势）', group: '系统' },
+    { id: 'accessibilitySmartGrip', title: '智感握姿（手势体感）', group: '系统' },
     { id: 'accessibilitySplit', title: '应用分屏', group: '系统' },
     { id: 'accessibilityFloatWindow', title: '小窗', group: '系统' },
     { id: 'accessibilitySidebar', title: '智能侧边栏', group: '系统' },

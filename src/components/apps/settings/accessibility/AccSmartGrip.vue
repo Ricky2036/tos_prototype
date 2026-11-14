@@ -8,7 +8,8 @@ import './acc.css'
 
 /**
  * 智感握姿（真机 com.transsion.microintelligence SmartGripSettingActivity）
- * 主页「动作与手势」与「智感握姿」两个入口落到**同一个 Activity**，标题都是「智感握姿」。
+ * 主页「手势体感」与「智感握姿」两个入口落到**同一个 Activity**，标题都是「智感握姿」。
+ * （2026-11-14 复核：主页第 4 行文案已由「动作与手势」改为「手势体感」，落地页未变。）
  * 无分页圆点；行内开关默认开；底部两条脚注为真机原文。
  */
 const emit = defineEmits(['back'])
