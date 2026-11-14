@@ -43,3 +43,21 @@ const acc = useAccessibilitySettingsStore()
     </div>
   </SubPageShell>
 </template>
+
+<style scoped>
+/* 真机单行卡实测 61 设计 px（同一页的分组行只有 52）：本包局部标定，不动共享 ListCell */
+.acc-card :deep(.list-cell) {
+  min-height: 61px;
+}
+
+/* 脚注距卡片底 11.7 设计 px（比卡片间距 16 还小），抵掉 6px */
+.acc-footnote-outside {
+  padding-top: 0;
+  margin-top: -6px;
+}
+
+/* 本页标题真机距插图带底 30.5（截屏页是 22.9，两个系统应用不同），局部标注 */
+.acc-illus-title {
+  margin-top: 30px;
+}
+</style>

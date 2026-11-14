@@ -111,14 +111,18 @@ test('开始/结束时间只接受 HH:mm，且分别写入各自字段', () => {
   assert.equal(s.outdoorEnd, '22:15')
 })
 
-test('清晰度/帧率只接受候选值，避免写入真机没有的档位', () => {
+test('清晰度/帧率只接受已取证档位（猜出来的 720P/480P、30/60FPS 必须被拒）', () => {
   const s = fresh()
-  assert.equal(s.setRecResolution('4K'), false)
-  assert.equal(s.setRecResolution(RECORDING_RESOLUTIONS[1]), true)
-  assert.equal(s.recResolution, RECORDING_RESOLUTIONS[1])
-  assert.equal(s.setRecFrameRate('120 FPS'), false)
-  assert.equal(s.setRecFrameRate(RECORDING_FRAME_RATES[2]), true)
-  assert.equal(s.recFrameRate, RECORDING_FRAME_RATES[2])
+  // 真机只采到当前值；未取证档位一律拒绝，避免把猜的能力写进状态
+  assert.deepEqual(RECORDING_RESOLUTIONS, ['超清 (1080P)'])
+  assert.deepEqual(RECORDING_FRAME_RATES, ['低帧率 (24 FPS)'])
+  assert.equal(s.setRecResolution('高清 (720P)'), false)
+  assert.equal(s.setRecResolution('标清 (480P)'), false)
+  assert.equal(s.recResolution, '超清 (1080P)')
+  assert.equal(s.setRecFrameRate('标准 (30 FPS)'), false)
+  assert.equal(s.setRecFrameRate('高帧率 (60 FPS)'), false)
+  assert.equal(s.recFrameRate, '低帧率 (24 FPS)')
+  assert.equal(s.setRecResolution('超清 (1080P)'), true, '已取证档位可重复写入')
 })
 
 /* ==================== 页面自声明 ==================== */
@@ -232,6 +236,18 @@ test('浏览器：定时开启选中后展开开始/结束时间，选回已关�
   await rt.unmount(id)
 })
 
+test('浏览器：录屏清晰度/帧率不再弹猜测选择器，落到缺口页', async () => {
+  const id = await rt.mount(ROOT)
+  await rt.click(id, '[data-testid="acc-row-record"]', 80)
+  await wait(380)
+  await rt.click(id, '[data-testid="rec-resolution"]', 80)
+  await wait(380)
+  assert.equal(await rt.count(id, '[data-testid="acc-pending"]'), 1, '应落到缺口页而不是假选择器')
+  assert.equal(await rt.text(id, '[data-testid="acc-pending"] h3'), '清晰度')
+  assert.equal(await rt.count(id, '.picker-row'), 0, '不得再出现编造的档位列表')
+  await rt.unmount(id)
+})
+
 test('浏览器：未取证深层入口落到缺口页，不伪装成已实现', async () => {
   const id = await rt.mount(ROOT)
   await rt.click(id, '[data-testid="acc-row-game"]', 80)
@@ -260,4 +276,55 @@ test('浏览器：防误触切换后卸载重挂仍保持（真机无二次确�
   }, { hostId: again })
   assert.equal(after, 'false', '重进应保持关闭')
   await rt.unmount(again)
+})
+
+/* ==================== 浏览器：真机几何标定 ====================
+   数值来自 `22_acc_main_full.png` / `52_sidebar2_full.png` / `42_screenshot_full.png`
+   在**卡片中线 x=1000**（避开 16px 圆角内缩）逐像素扫色带得到，
+   设计画布 360 宽 = 物理 1208 ÷ 3.3556。容差 ±2px（真机行高本身有 ±1 抖动）。 */
+test('浏览器：主页几何对齐真机（hero 179 · 图标 48 · 卡间距 16 · 行高 56/50/67/72）', async () => {
+  const id = await rt.mount(ROOT)
+  const hero = await rt.rect(id, '.accessibility-hero-card')
+  assert.ok(Math.abs(hero.height - 178.8) <= 2, `hero 高 ${hero.height.toFixed(1)}，真机 178.8`)
+  const icon = await rt.rect(id, '.hero-icon-img')
+  assert.equal(Math.round(icon.width), 48, '真机 hero 图标 47.7×47.7')
+  assert.equal(Math.round(icon.height), 48)
+
+  const a11y = await rt.rect(id, '[data-testid="acc-row-a11y"]')
+  const rec = await rt.rect(id, '[data-testid="acc-row-record"]')
+  const floatRow = await rt.rect(id, '[data-testid="acc-row-float"]')
+  const mistouch = await rt.rect(id, '[data-testid="acc-row-mistouch"]')
+  assert.equal(Math.round(a11y.height), 56, '单行卡「无障碍」真机 56.3')
+  assert.equal(Math.round(mistouch.height), 72, '单行卡「防误触」（带副标题）真机 72.1')
+  assert.equal(Math.round(rec.height), 50, '分组内无副标题行真机 50.4')
+  assert.equal(Math.round(floatRow.height), 67, '分组内带副标题行真机 67.2')
+  assert.equal(Math.round(rec.top - (a11y.top + a11y.height)), 16, '卡片间距真机 16.1')
+  await rt.unmount(id)
+})
+
+test('浏览器：子页插图是满幅横带 360×240，侧边栏真机只有一行灰字说明', async () => {
+  const id = await rt.mount(ROOT)
+  await rt.click(id, '[data-testid="acc-row-sidebar"]', 80)
+  await wait(420)
+  const img = await rt.rect(id, '.acc-illus-img')
+  assert.equal(Math.round(img.width), 360, '插图带必须满幅（素材本身就含页面底色）')
+  assert.equal(Math.round(img.height), 240, '插图带真机高 240')
+  assert.equal(await rt.count(id, '.acc-illus-title'), 0, '真机侧边栏没有加粗标题，只有一行说明')
+  assert.equal(await rt.count(id, '.acc-illus-desc.is-solo'), 1, '无标题时说明走 solo 间距')
+  assert.equal(await rt.text(id, '.acc-illus-desc'), '侧滑呼出侧边栏，快捷开启小窗应用。')
+  assert.equal(await rt.count(id, '.acc-dot'), 3, '真机 3 个圆点')
+  await rt.unmount(id)
+})
+
+test('浏览器：截屏页标题+说明+4 圆点，组标题「截屏方式」14px 灰字', async () => {
+  const id = await rt.mount(ROOT)
+  await rt.click(id, '[data-testid="acc-row-screenshot"]', 80)
+  await wait(420)
+  assert.equal(await rt.text(id, '.acc-illus-title'), '截取全屏')
+  assert.equal(await rt.text(id, '.acc-illus-desc'), '三指下滑快速截取全屏。')
+  assert.equal(await rt.count(id, '.acc-dot'), 4, '真机 4 个圆点')
+  assert.equal(await rt.count(id, '.acc-illus-desc.is-solo'), 0, '有标题时说明不套 solo 间距')
+  assert.equal(await rt.text(id, '.acc-group-title'), '截屏方式')
+  assert.equal(await rt.style(id, '.acc-group-title', 'font-size'), '14px', '真机组标题 14px')
+  await rt.unmount(id)
 })

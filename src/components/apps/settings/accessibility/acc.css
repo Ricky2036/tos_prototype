@@ -5,23 +5,29 @@
  */
 
 .acc-page {
-  padding: 8px 16px 28px;
+  /* ⚠️ 左右不留内边距：外层 SubPageShell 的 .sub-body 已经有 16px，
+     两处都留会让卡片只有 296 宽、整体右移 16（真机卡片是 16→344，328 宽）。
+     需要贴边的插图用负外边距、需要缩进的文字（组标题/脚注）自己补 16。 */
+  padding: 0 0 28px;
   box-sizing: border-box;
 }
 
+/* 卡片间距：真机实测底色带 54 物理 px = 16 设计 px（在卡片中线 x=1000 处量，避开圆角）
+   —— 之前在卡片左缘量到 113 物理 px，那是圆角内缩造成的假象，按那个值做到 28px 反而更远。 */
 .acc-card {
   background: #ffffff;
   border-radius: 16px;
   overflow: hidden;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
-/* 组标题（真机只有「支持的功能 / 自动开关 / 场景助手 / 截屏方式 / 声音」这类才出现） */
+/* 组标题（真机只有「支持的功能 / 自动开关 / 场景助手 / 截屏方式 / 声音」这类才出现）
+   真机实测：文字左缘 32.3（页面 16 + 这里 16）、字号 14、行盒 18、距下方卡片 4~8。 */
 .acc-group-title {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 18px;
   color: #8e8e93;
-  padding: 14px 4px 8px;
+  padding: 0 4px 6px 16px;
 }
 
 /* 带总开关的功能卡：标题 + 说明 + 右侧开关 */
@@ -29,7 +35,8 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 16px 16px 18px;
+  /* 真机户外增强顶部卡 84.6 高：上 15 / 下 17，标题行 20 + 间距 1 + 说明两行 16 */
+  padding: 15px 16px 17px;
 }
 
 .acc-master-text {
@@ -38,39 +45,44 @@
 }
 
 .acc-master-title {
-  font-size: 17px;
-  line-height: 24px;
+  font-size: 16px;
+  line-height: 20px;
   font-weight: 500;
   color: #111;
-  margin-bottom: 4px;
+  margin-bottom: 1px;
 }
 
 .acc-master-desc {
-  font-size: 13px;
-  line-height: 19px;
+  font-size: 12.5px;
+  line-height: 16px;
   color: #8e8e93;
 }
 
-/* 插图区：真机是示意画（手机线框 + 灰块），素材取自真机截图裁切 */
+/* 插图区：素材是真机整条插图横带（360×240 设计 px，含页面底色），
+   所以容器要满幅、不能有内边距，否则插图位置和大小都会漂。
+   真机插图带从导航栏下沿（设计 y=110）开始，正好等于 .sub-body 的 padding-top。 */
 .acc-illus {
-  padding: 10px 0 4px;
+  margin: 0 -16px;
+  /* 圆点距下方卡片/组标题：真机侧边栏页 34、截屏页 24，取中间 30（两页偏差都在 4px 内） */
+  padding-bottom: 30px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .acc-illus-img {
-  height: 188px;
-  width: auto;
-  max-width: 100%;
+  /* 素材天生 720×480（= 360×240 设计 px），按 100% 宽铺满即与真机 1:1 */
+  width: 100%;
+  height: 240px;
   object-fit: contain;
   display: block;
   user-select: none;
   pointer-events: none;
 }
 
+/* 标题：真机「截取全屏」文字距插图带底 26.7 设计 px */
 .acc-illus-title {
-  margin-top: 12px;
+  margin-top: 23px;
   font-size: 16px;
   line-height: 22px;
   font-weight: 500;
@@ -79,19 +91,26 @@
 }
 
 .acc-illus-desc {
-  margin-top: 4px;
-  font-size: 13px;
-  line-height: 19px;
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 16px;
   color: #8e8e93;
   text-align: center;
-  padding: 0 32px;
+  /* 真机说明文字可用宽度 ≈330（智感握姿页首行 26 字、占 285 ink、左右各留 37），
+     留 32px 会提前换行，多出一行。 */
+  padding: 0 16px;
+}
+
+/* 只有一行灰字说明、没有加粗标题时（侧边栏 / 游戏模式）：说明距插图带底 26.8 设计 px */
+.acc-illus-desc.is-solo {
+  margin-top: 25px;
 }
 
 .acc-dots {
   display: flex;
   justify-content: center;
   gap: 6px;
-  margin-top: 12px;
+  margin-top: 15px;
   height: 8px;
   align-items: center;
 }
@@ -110,7 +129,8 @@
 
 /* 脚注（智感握姿页：支持应用清单 / 引导路径） */
 .acc-footnote {
-  padding: 4px 16px 14px;
+  /* 真机脚注文字左缘 32.2 = 页面 16 + 这里 16 */
+  padding: 4px 32px 14px 32px;
   font-size: 12px;
   line-height: 18px;
   color: #8e8e93;
