@@ -277,6 +277,29 @@ test('浏览器：关自动时区 → 城市列表 6 行 → 一次返回回主�
   await rt.unmount(id)
 })
 
+test('浏览器：关自动时间 → 点日期唤起 DatePickerSheet，点时间唤起 TimePickerSheet', async () => {
+  const id = await rt.mount(PAGE)
+  await rt.click(id, '[data-dt-row="autoTime"] .toggle-switch', 80)
+
+  // 1. 打开日期选择器
+  await rt.click(id, '[data-dt-row="date"]', 200)
+  assert.equal(await rt.count(id, '[data-date-wheel]'), 1, '应唤起 DateWheel')
+  assert.equal(await rt.text(id, '[data-dps-title]'), '设置日期')
+  // 点取消关闭（需等待 leave 动画结束）
+  await rt.click(id, '[data-dps-cancel]', 350)
+  assert.equal(await rt.count(id, '[data-date-wheel]'), 0, '取消后弹层关闭')
+
+  // 2. 打开时间选择器
+  await rt.click(id, '[data-dt-row="time"]', 200)
+  assert.equal(await rt.count(id, '[data-time-wheel]'), 1, '应唤起 TimeWheel')
+  assert.equal(await rt.text(id, '[data-tps-title]'), '设置时间')
+  // 点确定关闭（需等待 leave 动画结束）
+  await rt.click(id, '[data-tps-confirm]', 350)
+  assert.equal(await rt.count(id, '[data-time-wheel]'), 0, '确定后弹层关闭')
+
+  await rt.unmount(id)
+})
+
 test('页面自声明与 route 契约在第二条链路后仍不变', () => {
   assert.equal(page.id, 'dateTime')
   assert.equal(typeof page.component, 'function')

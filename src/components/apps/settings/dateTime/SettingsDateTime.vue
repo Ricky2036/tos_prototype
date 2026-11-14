@@ -14,9 +14,12 @@ import { computed, inject, ref } from 'vue'
 import GlassNavBar from '../../../ui/GlassNavBar.vue'
 import ListCell from '../../../ui/ListCell.vue'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
+import DatePickerSheet from '../../../ui/DatePickerSheet.vue'
+import TimePickerSheet from '../../../ui/TimePickerSheet.vue'
 import DateTimeTimezonePicker from './DateTimeTimezonePicker.vue'
 import { useDateTimeStore } from '../../../../stores/dateTimeStore.js'
 import { useBackHandler } from '../../../../composables/backRegistry.js'
+import { parseDateValue, toDateString, toChineseDateString } from '../../../../utils/datePicker.js'
 import '../../../../styles/layer-transitions.css'
 
 const emit = defineEmits(['back', 'open-picker'])
@@ -77,40 +80,55 @@ if (nav) {
   })
 }
 
+function storeTimeTo24Hour(timeStr) {
+  if (!timeStr) return '07:00'
+  const match = timeStr.match(/^(上午|下午)?\s*(\d{1,2}):(\d{1,2})$/)
+  if (match) {
+    const period = match[1]
+    let h = parseInt(match[2], 10)
+    const m = match[3]
+    if (period === '下午' && h < 12) h += 12
+    if (period === '上午' && h === 12) h = 0
+    return `${String(h).padStart(2, '0')}:${m}`
+  }
+  return '07:00'
+}
+
+function time24ToStoreTime(val24, use24Hour) {
+  const [hStr, mStr] = val24.split(':')
+  let h = parseInt(hStr, 10)
+  const m = mStr
+  if (use24Hour) {
+    return `${String(h).padStart(2, '0')}:${m}`
+  }
+  const period = h >= 12 ? '下午' : '上午'
+  if (h > 12) h -= 12
+  if (h === 0) h = 12
+  return `${period}${h}:${m}`
+}
+
 function openPicker(key) {
   emit('open-picker', key)
   if (key === 'date' && !store.canEditDate()) return
   if (key === 'time' && !store.canEditTime()) return
+  if (key === 'date') {
+    const { year, month, day } = parseDateValue(store.date)
+    pickerDate.value = toDateString(year, month, day)
+  }
+  if (key === 'time') {
+    pickerTime.value = storeTimeTo24Hour(store.time)
+  }
   activePicker.value = key
 }
 
-function saveDatePicker() {
-  if (pickerDate.value) {
-    const parts = pickerDate.value.split('-')
-    if (parts.length === 3) {
-      store.setDate(`${parts[0]}年${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日`)
-    }
-  }
+function onDateConfirm(val) {
+  const { year, month, day } = parseDateValue(val)
+  store.setDate(toChineseDateString(year, month, day))
   activePicker.value = null
 }
 
-function saveTimePicker() {
-  if (pickerTime.value) {
-    const parts = pickerTime.value.split(':')
-    if (parts.length === 2) {
-      let h = parseInt(parts[0], 10)
-      const m = parts[1]
-      let prefix = ''
-      if (!store.use24Hour) {
-        prefix = h >= 12 ? '下午' : '上午'
-        if (h > 12) h -= 12
-        if (h === 0) h = 12
-        store.setTime(`${prefix}${h}:${m}`)
-      } else {
-        store.setTime(`${parts[0]}:${m}`)
-      }
-    }
-  }
+function onTimeConfirm(val) {
+  store.setTime(time24ToStoreTime(val, store.use24Hour))
   activePicker.value = null
 }
 
@@ -230,31 +248,26 @@ function selectDualClockPosition(pos) {
           </div>
         </div>
 
-        <!-- 交互弹窗：日期选择器 -->
-        <div v-if="activePicker === 'date'" class="dt-modal-overlay" @click.self="activePicker = null">
-          <div class="dt-modal-card">
-            <div class="modal-header">
-              <span class="modal-title">设置日期</span>
-              <button class="modal-btn-confirm" @click="saveDatePicker">完成</button>
-            </div>
-            <div class="input-wrap">
-              <input v-model="pickerDate" type="date" class="modal-date-input" />
-            </div>
-          </div>
-        </div>
+        <!-- 标准底部弹层：日期选择器 -->
+        <DatePickerSheet
+          :visible="activePicker === 'date'"
+          title="设置日期"
+          :model-value="pickerDate"
+          @confirm="onDateConfirm"
+          @cancel="activePicker = null"
+          @close="activePicker = null"
+        />
 
-        <!-- 交互弹窗：时间选择器 -->
-        <div v-if="activePicker === 'time'" class="dt-modal-overlay" @click.self="activePicker = null">
-          <div class="dt-modal-card">
-            <div class="modal-header">
-              <span class="modal-title">设置时间</span>
-              <button class="modal-btn-confirm" @click="saveTimePicker">完成</button>
-            </div>
-            <div class="input-wrap">
-              <input v-model="pickerTime" type="time" class="modal-date-input" />
-            </div>
-          </div>
-        </div>
+        <!-- 标准底部弹层：时间选择器 -->
+        <TimePickerSheet
+          :visible="activePicker === 'time'"
+          title="设置时间"
+          :model-value="pickerTime"
+          :show-period="!store.use24Hour"
+          @confirm="onTimeConfirm"
+          @cancel="activePicker = null"
+          @close="activePicker = null"
+        />
 
         <!-- 交互弹窗：常驻地选择 -->
         <div v-if="activePicker === 'residence'" class="dt-modal-overlay" @click.self="activePicker = null">
