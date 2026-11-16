@@ -1,27 +1,25 @@
 <script setup>
 /**
- * 系统导航 · 真机实测版（com.transsion.microintelligence）
+ * 系统导航 · 真机实测版（com.transsion.microintelligence / Android 17）
  * ==========================================================
- * 真实证据：
- *   - .local-evidence/SET-SYS-01/device/real_sys_nav.xml
- *   - /tmp/nav_page.xml (手势导航)
- *   - /tmp/nav_page2.xml (灵敏度滑块与侧边跟手动画)
- *   - /tmp/three_btn.xml (三键导航与按键布局选择)
- *
- * 交互链路：
- *   1. 顶部左右并列大卡片：左「手势导航」，右「三键导航」。
- *   2. 选中「手势导航」时：
- *      - 选项：学习手势、隐藏手势导航条、圈定即搜、语音助手；
- *      - 返回手势灵敏度滑块（低-高）与冲突提示；
- *      - 侧边跟手动画开关。
- *   3. 选中「三键导航」时：
- *      - 按键布局单选切换（◁ ○ □ 与 □ ○ ◁）；
- *      - 圈定即搜开关。
+ * 依据真实手机截图与 XML 取证：
+ *   1. 顶部大卡片竖向并列两项（非左右卡片）：
+ *      - 上项「手势导航」：带手机外框（左右蓝色手势指示条 + 底部手势横条）+ 单选框 + 说明文案；
+ *      - 下项「三键导航」：带手机外框（底部 ◁ ○ □ 虚拟按键）+ 单选框 + 说明文案。
+ *   2. 「手势设置」卡片组（手势导航下）：
+ *      - 「返回手势震动提示」（默认开）
+ *      - 「隐藏手势底部指示条」（默认关）
+ *   3. 「返回手势灵敏度」分组：
+ *      - 标准水平滑块控件 HorizontalSlider（低 - 高）
+ *      - 说明文案：「较高的敏感度可能会与沿屏幕边缘执行的任何应用手势存在冲突。」
+ *   4. 切换为「三键导航」时展示按键布局选择。
  */
 import { computed, ref } from 'vue'
 import SubPageShell from '../../subpage/SubPageShell.vue'
 import ListCell from '../../../../ui/ListCell.vue'
 import ToggleSwitch from '../../../../ui/ToggleSwitch.vue'
+import HorizontalSlider from '../../../../ui/HorizontalSlider.vue'
+import RadioButton from '../../../../ui/RadioButton.vue'
 import { useSystemStore } from '../../../../../stores/systemStore.js'
 import { useSystemSettingsStore } from '../../../../../stores/systemSettingsStore.js'
 
@@ -31,9 +29,7 @@ const settingsStore = useSystemSettingsStore()
 
 const isGesture = computed(() => systemStore.navigationMode === 'gesture')
 
-const circleToSearch = ref(true)
-const voiceAssistant = ref(true)
-const predictiveBack = ref(false)
+const gestureHaptic = ref(true)
 const keyLayout = ref('standard') // 'standard' (◁ ○ □) | 'reversed' (□ ○ ◁)
 const sensitivity = ref(50) // 0..100
 const tipMsg = ref('')
@@ -51,51 +47,57 @@ function selectMode(mode) {
 <template>
   <SubPageShell title="系统导航" data-test="subpage-nav" @back="emit('back')">
     <div class="nav-container">
-      <!-- 左右并列大卡片（真机 1:1） -->
+      <!-- 模式选择卡片（真机 1:1 纵向布局） -->
       <div class="settings-card mode-select-card">
-        <div class="mode-columns">
-          <!-- 手势导航 -->
-          <div
-            class="mode-col"
-            :class="{ active: isGesture }"
-            data-test="nav-mode-gesture"
-            @click="selectMode('gesture')"
-          >
-            <div class="preview-box">
-              <div class="mock-phone">
-                <div class="mock-arrow mock-arrow-left"></div>
-                <div class="mock-arrow mock-arrow-right"></div>
-                <div class="mock-gesture-line"></div>
-              </div>
+        <!-- 1. 手势导航 -->
+        <div
+          class="mode-section"
+          :class="{ active: isGesture }"
+          data-test="nav-mode-gesture"
+          @click="selectMode('gesture')"
+        >
+          <div class="preview-box">
+            <div class="mock-phone">
+              <div class="mock-arrow mock-arrow-left"></div>
+              <div class="mock-arrow mock-arrow-right"></div>
+              <div class="mock-gesture-line"></div>
             </div>
-            <div class="mode-name">手势导航</div>
-            <div class="radio-wrap">
-              <div class="native-radio" :class="{ checked: isGesture }">
-                <div v-if="isGesture" class="radio-core"></div>
+          </div>
+          <div class="mode-info-row">
+            <RadioButton :checked="isGesture" />
+            <div class="mode-text-col">
+              <div class="mode-title">手势导航</div>
+              <div class="mode-desc">
+                从屏幕底部边缘向上滑动返回主屏幕，从左或右边缘向内滑动返回上一级。
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- 三键导航 -->
-          <div
-            class="mode-col"
-            :class="{ active: !isGesture }"
-            data-test="nav-mode-three-button"
-            @click="selectMode('threeButton')"
-          >
-            <div class="preview-box">
-              <div class="mock-phone">
-                <div class="mock-keys">
-                  <span class="key-icon">◁</span>
-                  <span class="key-icon">○</span>
-                  <span class="key-icon">□</span>
-                </div>
+        <div class="mode-divider"></div>
+
+        <!-- 2. 三键导航 -->
+        <div
+          class="mode-section"
+          :class="{ active: !isGesture }"
+          data-test="nav-mode-three-button"
+          @click="selectMode('threeButton')"
+        >
+          <div class="preview-box">
+            <div class="mock-phone">
+              <div class="mock-keys">
+                <span class="key-icon">◁</span>
+                <span class="key-icon">○</span>
+                <span class="key-icon">□</span>
               </div>
             </div>
-            <div class="mode-name">三键导航</div>
-            <div class="radio-wrap">
-              <div class="native-radio" :class="{ checked: !isGesture }">
-                <div v-if="!isGesture" class="radio-core"></div>
+          </div>
+          <div class="mode-info-row">
+            <RadioButton :checked="!isGesture" />
+            <div class="mode-text-col">
+              <div class="mode-title">三键导航</div>
+              <div class="mode-desc">
+                使用屏幕底部的虚拟按键进行返回、返回主屏幕和打开多任务。
               </div>
             </div>
           </div>
@@ -104,14 +106,23 @@ function selectMode(mode) {
 
       <!-- 分支 A：手势导航展开选项 -->
       <template v-if="isGesture">
-        <div class="settings-card options-card">
+        <div class="section-title">手势设置</div>
+        <div class="settings-card">
           <ListCell
-            title="学习手势"
-            chevron
-            @click="showTip('手势教学演示')"
-          />
+            title="返回手势震动提示"
+            subtitle="从边缘向内滑动触发返回时提供触感反馈"
+          >
+            <template #right>
+              <ToggleSwitch
+                :model-value="gestureHaptic"
+                @update:model-value="gestureHaptic = $event"
+              />
+            </template>
+          </ListCell>
           <ListCell
-            title="隐藏手势导航条"
+            title="隐藏手势底部指示条"
+            subtitle="隐藏屏幕底部的手势横条以获取完整全屏视野"
+            last
           >
             <template #right>
               <ToggleSwitch
@@ -120,64 +131,24 @@ function selectMode(mode) {
               />
             </template>
           </ListCell>
-          <ListCell
-            title="圈定即搜"
-            subtitle="轻触并按住“主屏幕”按钮或导航手柄，即可使用屏幕上的内容进行搜索。"
-          >
-            <template #right>
-              <ToggleSwitch
-                :model-value="circleToSearch"
-                @update:model-value="circleToSearch = $event"
-              />
-            </template>
-          </ListCell>
-          <ListCell
-            title="语音助手"
-            subtitle="沿屏幕底部左边缘或右边缘上滑唤起语音助手。"
-            last
-          >
-            <template #right>
-              <ToggleSwitch
-                :model-value="voiceAssistant"
-                @update:model-value="voiceAssistant = $event"
-              />
-            </template>
-          </ListCell>
         </div>
 
-        <!-- 返回手势灵敏度滑杆 -->
+        <!-- 返回手势灵敏度滑块控件 -->
         <div class="section-title">返回手势灵敏度</div>
         <div class="settings-card slider-card">
           <div class="slider-row">
             <span class="slider-label">低</span>
-            <input
+            <HorizontalSlider
               v-model="sensitivity"
-              type="range"
-              min="0"
-              max="100"
-              class="range-slider"
+              :min="0"
+              :max="100"
+              data-test="gesture-sensitivity-slider"
             />
             <span class="slider-label">高</span>
           </div>
           <div class="slider-hint">
             较高的敏感度可能会与沿屏幕边缘执行的任何应用手势存在冲突。
           </div>
-        </div>
-
-        <!-- 侧边跟手动画 -->
-        <div class="settings-card">
-          <ListCell
-            title="侧边跟手动画"
-            subtitle="侧滑返回时支持跟手动画效果。"
-            last
-          >
-            <template #right>
-              <ToggleSwitch
-                :model-value="predictiveBack"
-                @update:model-value="predictiveBack = $event"
-              />
-            </template>
-          </ListCell>
         </div>
       </template>
 
@@ -191,9 +162,7 @@ function selectMode(mode) {
             @click="keyLayout = 'standard'"
           >
             <template #right>
-              <div class="native-radio" :class="{ checked: keyLayout === 'standard' }">
-                <div v-if="keyLayout === 'standard'" class="radio-core"></div>
-              </div>
+              <RadioButton :checked="keyLayout === 'standard'" />
             </template>
           </ListCell>
           <ListCell
@@ -203,24 +172,7 @@ function selectMode(mode) {
             @click="keyLayout = 'reversed'"
           >
             <template #right>
-              <div class="native-radio" :class="{ checked: keyLayout === 'reversed' }">
-                <div v-if="keyLayout === 'reversed'" class="radio-core"></div>
-              </div>
-            </template>
-          </ListCell>
-        </div>
-
-        <div class="settings-card">
-          <ListCell
-            title="圈定即搜"
-            subtitle="轻触并按住“主屏幕”按钮或导航手柄，即可使用屏幕上的内容进行搜索。"
-            last
-          >
-            <template #right>
-              <ToggleSwitch
-                :model-value="circleToSearch"
-                @update:model-value="circleToSearch = $event"
-              />
+              <RadioButton :checked="keyLayout === 'reversed'" />
             </template>
           </ListCell>
         </div>
@@ -243,95 +195,89 @@ function selectMode(mode) {
 .mode-select-card {
   padding: 16px;
 }
-.mode-columns {
-  display: flex;
-  gap: 16px;
-}
-.mode-col {
-  flex: 1;
+.mode-section {
   display: flex;
   flex-direction: column;
-  align-items: center;
   cursor: pointer;
-  padding: 12px 8px;
-  border-radius: 14px;
-  background: #F3F4F6;
-  border: 1.5px solid transparent;
-  transition: all 0.2s ease;
-}
-.mode-col.active {
-  border-color: #0066FF;
-  background: #EFF6FF;
+  border-radius: 12px;
+  transition: all 0.15s ease;
 }
 .preview-box {
   width: 100%;
-  height: 120px;
+  height: 130px;
+  background: #F4F6F8;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .mock-phone {
-  width: 72px;
-  height: 108px;
+  width: 120px;
+  height: 84px;
   background: #FFFFFF;
   border-radius: 10px;
-  border: 2px solid #D1D5DB;
+  border: 1.5px solid #D1D5DB;
   position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 .mock-arrow {
   position: absolute;
-  top: 40%;
-  width: 3px;
-  height: 18px;
-  background: #0066FF;
+  top: 36%;
+  width: 3.5px;
+  height: 20px;
+  background: #60A5FA;
   border-radius: 2px;
 }
 .mock-arrow-left { left: 4px; }
 .mock-arrow-right { right: 4px; }
 .mock-gesture-line {
-  width: 28px;
+  width: 38px;
   height: 3px;
   background: #111827;
   border-radius: 2px;
-  margin-bottom: 6px;
+  margin-bottom: 7px;
 }
 .mock-keys {
   display: flex;
-  gap: 6px;
+  gap: 16px;
   margin-bottom: 6px;
   font-size: 11px;
-  color: #4B5563;
+  color: #6B7280;
 }
-.mode-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1F2937;
-  margin-top: 8px;
+.key-icon {
+  display: inline-block;
+  line-height: 1;
 }
-.radio-wrap {
-  margin-top: 8px;
-}
-.native-radio {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2px solid #D1D5DB;
+.mode-info-row {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 4px 6px;
 }
-.native-radio.checked {
-  border-color: #0066FF;
+.mode-text-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
-.radio-core {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #0066FF;
+.mode-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 20px;
+}
+.mode-desc {
+  font-size: 13px;
+  color: #6B7280;
+  line-height: 1.45;
+}
+.mode-divider {
+  height: 1px;
+  background: #E5E7EB;
+  margin: 16px 0;
 }
 .section-title {
   font-size: 13px;
@@ -345,21 +291,19 @@ function selectMode(mode) {
 .slider-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 .slider-label {
-  font-size: 13px;
-  color: #6B7280;
-}
-.range-slider {
-  flex: 1;
-  accent-color: #0066FF;
+  font-size: 14px;
+  font-weight: 500;
+  color: #4B5563;
+  flex-shrink: 0;
 }
 .slider-hint {
-  font-size: 12px;
-  color: #9CA3AF;
-  line-height: 1.5;
-  margin-top: 10px;
+  font-size: 13px;
+  color: #6B7280;
+  line-height: 1.45;
+  margin-top: 12px;
 }
 .toast-tip {
   position: fixed;

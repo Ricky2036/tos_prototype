@@ -193,7 +193,7 @@ function onBack() {
 
 /* 确认模态弹窗 */
 .confirm-modal-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
   display: flex;

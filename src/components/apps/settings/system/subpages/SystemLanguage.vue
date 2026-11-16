@@ -16,6 +16,7 @@ import { ref } from 'vue'
 import SubPageShell from '../../subpage/SubPageShell.vue'
 import ListCell from '../../../../ui/ListCell.vue'
 import ToggleSwitch from '../../../../ui/ToggleSwitch.vue'
+import RadioButton from '../../../../ui/RadioButton.vue'
 
 const emit = defineEmits(['back'])
 
@@ -165,9 +166,7 @@ function onBack() {
               @click="selectIme(ime)"
             >
               <span class="ime-name">{{ ime }}</span>
-              <div class="native-radio" :class="{ checked: currentKeyboard === ime }">
-                <div v-if="currentKeyboard === ime" class="radio-core"></div>
-              </div>
+              <RadioButton :checked="currentKeyboard === ime" />
             </div>
           </div>
           <div class="modal-actions">
@@ -246,7 +245,7 @@ function onBack() {
 
 /* 弹层样式 */
 .modal-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
   display: flex;

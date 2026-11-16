@@ -21,6 +21,7 @@ import SubPageShell from '../../subpage/SubPageShell.vue'
 import ToggleSwitch from '../../../../ui/ToggleSwitch.vue'
 import ListCell from '../../../../ui/ListCell.vue'
 import TimePickerSheet from '../../../../ui/TimePickerSheet.vue'
+import Checkbox from '../../../../ui/Checkbox.vue'
 import { useSystemSettingsStore } from '../../../../../stores/systemSettingsStore.js'
 
 const emit = defineEmits(['back'])
@@ -263,11 +264,7 @@ function onMainBack() {
             @click="toggleDay(day)"
           >
             <span class="day-label">{{ day }}</span>
-            <div class="native-checkbox" :class="{ checked: selectedDays.includes(day) }">
-              <svg v-if="selectedDays.includes(day)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </div>
+            <Checkbox :model-value="selectedDays.includes(day)" />
           </div>
         </div>
         <div class="repeat-dialog-actions">
@@ -364,7 +361,7 @@ function onMainBack() {
 
 /* 重复多选弹层 */
 .repeat-dialog-mask {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
   display: flex;

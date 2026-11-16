@@ -11,6 +11,7 @@
  */
 import SubPageShell from '../../subpage/SubPageShell.vue'
 import ListCell from '../../../../ui/ListCell.vue'
+import RadioButton from '../../../../ui/RadioButton.vue'
 import { useSystemSettingsStore } from '../../../../../stores/systemSettingsStore.js'
 
 const emit = defineEmits(['back'])
@@ -32,9 +33,7 @@ function selectOption(opt) {
           @click="selectOption('powerMenu')"
         >
           <template #right>
-            <div class="radio-circle" :class="{ checked: store.longPressPower === 'powerMenu' }">
-              <div v-if="store.longPressPower === 'powerMenu'" class="radio-dot"></div>
-            </div>
+            <RadioButton :checked="store.longPressPower === 'powerMenu'" />
           </template>
         </ListCell>
 
@@ -45,9 +44,7 @@ function selectOption(opt) {
           @click="selectOption('assistant')"
         >
           <template #right>
-            <div class="radio-circle" :class="{ checked: store.longPressPower === 'assistant' }">
-              <div v-if="store.longPressPower === 'assistant'" class="radio-dot"></div>
-            </div>
+            <RadioButton :checked="store.longPressPower === 'assistant'" />
           </template>
         </ListCell>
       </div>
