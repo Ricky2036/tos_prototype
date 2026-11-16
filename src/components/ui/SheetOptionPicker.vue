@@ -47,7 +47,7 @@ function pick(value) {
   <SheetModal :visible="visible" padding="16px 20px 24px" @close="emit('close')">
     <!-- 顶部 Header（真机 1:1 左标题 + 右关闭胶囊） -->
     <div class="picker-header">
-      <div class="picker-title">{{ title }}</div>
+      <div class="picker-title sheet-title">{{ title }}</div>
       <button
         v-if="headerClose"
         type="button"
@@ -59,12 +59,12 @@ function pick(value) {
     </div>
 
     <!-- 选项列表 -->
-    <div class="picker-list">
+    <div class="picker-list sheet-options-list">
       <button
         v-for="opt in normalizedOptions"
         :key="opt.value"
         type="button"
-        class="picker-row"
+        class="picker-row sheet-option-item"
         @click="pick(opt.value)"
       >
         <span class="picker-text">

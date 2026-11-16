@@ -16,9 +16,8 @@ import ListCell from '../../../ui/ListCell.vue'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 import DatePickerSheet from '../../../ui/DatePickerSheet.vue'
 import TimePickerSheet from '../../../ui/TimePickerSheet.vue'
-import SheetModal from '../../../ui/SheetModal.vue'
+import SheetOptionPicker from '../../../ui/SheetOptionPicker.vue'
 import DateTimeTimezonePicker from './DateTimeTimezonePicker.vue'
-import DateTimeResidencePicker from './DateTimeResidencePicker.vue'
 import { useDateTimeStore } from '../../../../stores/dateTimeStore.js'
 import { useBackHandler } from '../../../../composables/backRegistry.js'
 import { parseDateValue, toDateString, toChineseDateString } from '../../../../utils/datePicker.js'
@@ -28,18 +27,28 @@ const emit = defineEmits(['back', 'open-picker'])
 const store = useDateTimeStore()
 const nav = inject('settingsNav', null)
 
-const subPage = ref(null) // 'timezone' | 'residence'
+const subPage = ref(null) // 'timezone'
 const isBack = ref(false)
 
-const activePicker = ref(null) // 'date' | 'time' | 'dualClockPosition'
+const activePicker = ref(null) // 'date' | 'time' | 'residence' | 'dualClockPosition'
 const pickerDate = ref('2026-11-14')
 const pickerTime = ref('14:00')
 
-/** 真机 com.android.settings 实测选项（去除自造的“仅”字） */
+/** 真机实测选项（Infinix X6878 Android 17 media_1794797024755_80c82962） */
+const RESIDENCE_OPTIONS = [
+  '常驻地预测（深圳市）',
+  '北京市',
+  '上海市',
+  '广州市',
+  '成都市',
+  '武汉市',
+]
+
+/** 真机实测选项（Infinix X6878 Android 17 media_1794797043644_c6f57c39） */
 const DUAL_CLOCK_POSITIONS = [
-  '锁屏',
-  '时钟桌面小部件',
   '锁屏和时钟桌面小部件',
+  '仅桌面小部件',
+  '仅锁屏',
 ]
 
 const hourExample = computed(() => (store.use24Hour ? '13:00' : '下午1:00'))
@@ -49,8 +58,7 @@ function openTimezone() {
   subPage.value = 'timezone'
 }
 function openResidence() {
-  isBack.value = false
-  subPage.value = 'residence'
+  activePicker.value = 'residence'
 }
 function closeSubPage() {
   isBack.value = true
@@ -145,7 +153,6 @@ function selectDualClockPosition(pos) {
   <div class="settings-datetime-page">
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <DateTimeTimezonePicker v-if="subPage === 'timezone'" key="timezone" @back="closeSubPage" />
-      <DateTimeResidencePicker v-else-if="subPage === 'residence'" key="residence" @back="closeSubPage" />
       <div v-else key="main" class="dt-main">
         <GlassNavBar overlay title="日期与时间" @back="back" />
 
@@ -268,28 +275,25 @@ function selectDualClockPosition(pos) {
           @close="activePicker = null"
         />
 
-        <!-- 标准底部单选弹层：双时钟显示位置（对齐真机单枚大胶囊取消按钮） -->
-        <SheetModal
-          :visible="activePicker === 'dualClockPosition'"
-          padding="16px 20px 20px"
+        <!-- 标准单选底部弹层控件：选择常驻地（真机 1:1 media_1794797024755_80c82962） -->
+        <SheetOptionPicker
+          :visible="activePicker === 'residence'"
+          title="选择常驻地"
+          :options="RESIDENCE_OPTIONS"
+          :model-value="store.residence"
+          @pick="selectResidence"
           @close="activePicker = null"
-        >
-          <div class="sheet-title">双时钟显示位置</div>
-          <div class="sheet-options-list">
-            <div
-              v-for="pos in DUAL_CLOCK_POSITIONS"
-              :key="pos"
-              class="sheet-option-item"
-              @click="selectDualClockPosition(pos)"
-            >
-              <span class="option-label">{{ pos }}</span>
-              <span v-if="store.dualClockPosition === pos" class="option-check">✓</span>
-            </div>
-          </div>
-          <div class="sheet-actions">
-            <button type="button" class="sheet-btn-cancel" @click="activePicker = null">取消</button>
-          </div>
-        </SheetModal>
+        />
+
+        <!-- 标准单选底部弹层控件：双时钟显示位置（真机 1:1 media_1794797043644_c6f57c39） -->
+        <SheetOptionPicker
+          :visible="activePicker === 'dualClockPosition'"
+          title="双时钟显示位置"
+          :options="DUAL_CLOCK_POSITIONS"
+          :model-value="store.dualClockPosition"
+          @pick="selectDualClockPosition"
+          @close="activePicker = null"
+        />
       </div>
     </Transition>
   </div>

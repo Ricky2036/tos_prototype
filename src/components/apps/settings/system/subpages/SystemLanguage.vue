@@ -140,17 +140,27 @@ function onBack() {
       <div class="settings-card">
         <ListCell
           title="温度"
-          subtitle="摄氏度 (°C)"
+          subtitle="使用应用默认设置"
           chevron
-          @click="showTip('温度单位设置')"
+          @click="showTip('温度设置')"
         />
         <ListCell
-          title="首周开始日"
-          subtitle="星期日"
+          title="度量制"
+          subtitle="使用应用默认设置"
+          chevron
+          @click="showTip('度量制设置')"
+        />
+        <ListCell
+          title="一周的第一天"
+          subtitle="使用应用默认设置"
           last
           chevron
-          @click="showTip('首周开始日设置')"
+          @click="showTip('一周的第一天设置')"
         />
+      </div>
+
+      <div class="footer-note">
+        不支持地区偏好设置的应用将使用默认语言区域设置。详细了解语言偏好设置
       </div>
 
       <!-- 输入法切换对话框 (对齐真机 ime_dialog) -->
@@ -230,6 +240,12 @@ function onBack() {
   font-weight: 500;
   color: #6B7280;
   padding: 12px 16px 4px;
+}
+.footer-note {
+  font-size: 13px;
+  color: #8E8E93;
+  line-height: 1.5;
+  padding: 8px 16px 16px;
 }
 .format-sample-card {
   padding: 16px;
