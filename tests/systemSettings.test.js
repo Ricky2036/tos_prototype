@@ -176,7 +176,7 @@ test('浏览器：进入子页与返回链闭环', async () => {
   assert.equal(await rt.text(id, '[data-test="subpage-reset"] .gn-title'), '重置手机')
   await rt.click(id, '[data-test="reset-network"]', 100)
   assert.equal(await rt.count(id, '.confirm-modal-card'), 1, '弹出二次确认弹窗')
-  await rt.click(id, '.modal-btn-cancel', 100)
+  await rt.click(id, '.modal-btn-cancel', 300)
   assert.equal(await rt.count(id, '.confirm-modal-card'), 0, '取消后关闭弹窗')
   await rt.click(id, '[data-test="subpage-reset"] [data-nav-back]', 100)
   await wait(400)

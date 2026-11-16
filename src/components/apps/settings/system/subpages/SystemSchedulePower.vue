@@ -1,28 +1,38 @@
 <script setup>
+/**
+ * 定时开关机与重启 · 真机实测版（com.mediatek.schpwronoff）
+ * ==========================================================
+ * 真实证据：.local-evidence/SET-SYS-01/device/real_sys_power_schedule.xml
+ * 3 个独立分组卡片：
+ *   1. 定时开机：大字号时间（07:00）+ 周期（每天）+ 开关
+ *   2. 定时关机：大字号时间（20:00）+ 周期（周一、周二、周三、周四、周五）+ 开关
+ *   3. 定时重启：大字号时间（05:00）+ 周期（星期三）+ 开关
+ * 点击时间唤起全仓标准控件 TimePickerSheet 编辑。
+ */
 import { ref } from 'vue'
 import SubPageShell from '../../subpage/SubPageShell.vue'
-import ListCell from '../../../../ui/ListCell.vue'
 import ToggleSwitch from '../../../../ui/ToggleSwitch.vue'
+import TimePickerSheet from '../../../../ui/TimePickerSheet.vue'
 import { useSystemSettingsStore } from '../../../../../stores/systemSettingsStore.js'
 
 const emit = defineEmits(['back'])
 const store = useSystemSettingsStore()
 
-const editingField = ref(null) // 'powerOnTime' | 'powerOffTime' | 'restartTime'
-const tempTime = ref('07:00')
+const editingField = ref(null) // 'powerOn' | 'powerOff' | 'restart'
+const editingTime = ref('07:00')
 
-function openTimeEdit(field, currentVal) {
+function openEdit(field, currentVal) {
   editingField.value = field
-  tempTime.value = currentVal
+  editingTime.value = currentVal
 }
 
-function saveTime() {
-  if (editingField.value === 'powerOnTime') {
-    store.setPowerOnTime(tempTime.value)
-  } else if (editingField.value === 'powerOffTime') {
-    store.setPowerOffTime(tempTime.value)
-  } else if (editingField.value === 'restartTime') {
-    store.setRestartTime(tempTime.value)
+function onTimeConfirm(val) {
+  if (editingField.value === 'powerOn') {
+    store.setPowerOnTime(val)
+  } else if (editingField.value === 'powerOff') {
+    store.setPowerOffTime(val)
+  } else if (editingField.value === 'restart') {
+    store.setRestartTime(val)
   }
   editingField.value = null
 }
@@ -31,179 +41,106 @@ function saveTime() {
 <template>
   <SubPageShell title="定时开关机与重启" @back="emit('back')">
     <div class="schedule-container">
-      <!-- 定时开机卡片 -->
+      <!-- 组 1：定时开机 -->
       <div class="section-title">定时开机</div>
-      <div class="settings-card">
-        <ListCell
-          title="开启定时开机"
-          :subtitle="store.scheduledPowerOn ? `将在 ${store.powerOnTime} 自动开机` : '未开启'"
-        >
-          <template #right>
+      <div class="settings-card schedule-card">
+        <div class="schedule-row" @click="openEdit('powerOn', store.powerOnTime)">
+          <div class="time-info">
+            <div class="time-display">{{ store.powerOnTime }}</div>
+            <div class="time-repeat">{{ store.powerOnRepeat || '每天' }}</div>
+          </div>
+          <div class="switch-wrap" @click.stop>
             <ToggleSwitch
-              data-test="toggle-power-on"
               :model-value="store.scheduledPowerOn"
               @update:model-value="store.setScheduledPowerOn"
             />
-          </template>
-        </ListCell>
-
-        <template v-if="store.scheduledPowerOn">
-          <ListCell
-            title="开机时间"
-            :subtitle="store.powerOnTime"
-            chevron
-            @click="openTimeEdit('powerOnTime', store.powerOnTime)"
-          />
-          <ListCell
-            title="重复模式"
-            :subtitle="store.powerOnRepeat"
-            chevron
-            last
-            @click="store.setPowerOnRepeat(store.powerOnRepeat === '每天' ? '工作日' : '每天')"
-          />
-        </template>
+          </div>
+        </div>
       </div>
 
-      <!-- 定时关机卡片 -->
+      <!-- 组 2：定时关机 -->
       <div class="section-title">定时关机</div>
-      <div class="settings-card">
-        <ListCell
-          title="开启定时关机"
-          :subtitle="store.scheduledPowerOff ? `将在 ${store.powerOffTime} 自动关机` : '未开启'"
-        >
-          <template #right>
+      <div class="settings-card schedule-card">
+        <div class="schedule-row" @click="openEdit('powerOff', store.powerOffTime)">
+          <div class="time-info">
+            <div class="time-display">{{ store.powerOffTime }}</div>
+            <div class="time-repeat">{{ store.powerOffRepeat || '周一、周二、周三、周四、周五' }}</div>
+          </div>
+          <div class="switch-wrap" @click.stop>
             <ToggleSwitch
-              data-test="toggle-power-off"
               :model-value="store.scheduledPowerOff"
               @update:model-value="store.setScheduledPowerOff"
             />
-          </template>
-        </ListCell>
-
-        <template v-if="store.scheduledPowerOff">
-          <ListCell
-            title="关机时间"
-            :subtitle="store.powerOffTime"
-            chevron
-            @click="openTimeEdit('powerOffTime', store.powerOffTime)"
-          />
-          <ListCell
-            title="重复模式"
-            :subtitle="store.powerOffRepeat"
-            chevron
-            last
-            @click="store.setPowerOffRepeat(store.powerOffRepeat === '每天' ? '工作日' : '每天')"
-          />
-        </template>
+          </div>
+        </div>
       </div>
 
-      <!-- 定时重启卡片 -->
-      <div class="section-title">自动重启</div>
-      <div class="settings-card">
-        <ListCell
-          title="夜间自动重启"
-          subtitle="在手机空闲且电量充足时自动重启，保持系统流畅"
-        >
-          <template #right>
+      <!-- 组 3：定时重启 -->
+      <div class="section-title">定时重启</div>
+      <div class="settings-card schedule-card">
+        <div class="schedule-row" @click="openEdit('restart', store.restartTime)">
+          <div class="time-info">
+            <div class="time-display">{{ store.restartTime }}</div>
+            <div class="time-repeat">星期三</div>
+          </div>
+          <div class="switch-wrap" @click.stop>
             <ToggleSwitch
-              data-test="toggle-restart"
               :model-value="store.scheduledRestart"
               @update:model-value="store.setScheduledRestart"
             />
-          </template>
-        </ListCell>
-
-        <template v-if="store.scheduledRestart">
-          <ListCell
-            title="重启时段"
-            :subtitle="store.restartTime"
-            chevron
-            last
-            @click="openTimeEdit('restartTime', store.restartTime)"
-          />
-        </template>
-      </div>
-
-      <!-- 时间修改简易模态 -->
-      <div v-if="editingField" class="time-modal-overlay" @click.self="editingField = null">
-        <div class="time-modal-card">
-          <div class="modal-header">
-            <span class="modal-title">设置时间</span>
-            <button class="modal-btn-confirm" @click="saveTime">完成</button>
-          </div>
-          <div class="time-input-group">
-            <input v-model="tempTime" type="time" class="native-time-input" />
           </div>
         </div>
       </div>
     </div>
+
+    <!-- 标准底部时间选择弹层 -->
+    <TimePickerSheet
+      :visible="editingField !== null"
+      title="设置时间"
+      :model-value="editingTime"
+      :show-period="false"
+      @confirm="onTimeConfirm"
+      @cancel="editingField = null"
+      @close="editingField = null"
+    />
   </SubPageShell>
 </template>
 
 <style scoped>
 .schedule-container {
   padding: 12px 0 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-
 .section-title {
   font-size: 13px;
   font-weight: 500;
   color: #6B7280;
-  padding: 14px 16px 6px;
+  padding: 8px 16px 2px;
 }
-
-.time-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: flex-end;
-  z-index: 1000;
+.schedule-card {
+  padding: 14px 16px;
 }
-
-.time-modal-card {
-  width: 100%;
-  background: #FFFFFF;
-  border-radius: 20px 20px 0 0;
-  padding: 20px 24px 36px;
-}
-
-.modal-header {
+.schedule-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-}
-
-.modal-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: #111827;
-}
-
-.modal-btn-confirm {
-  background: #007AFF;
-  color: #FFFFFF;
-  border: none;
-  border-radius: 8px;
-  padding: 6px 16px;
-  font-size: 14px;
-  font-weight: 500;
   cursor: pointer;
 }
-
-.time-input-group {
-  display: flex;
-  justify-content: center;
-  padding: 16px 0;
+.time-display {
+  font-size: 26px;
+  font-weight: 700;
+  color: #111111;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
-
-.native-time-input {
-  font-size: 28px;
-  font-weight: bold;
-  padding: 8px 16px;
-  border: 1px solid #CBD5E1;
-  border-radius: 12px;
-  color: #1E293B;
+.time-repeat {
+  font-size: 13px;
+  color: #8E8E93;
+  margin-top: 4px;
+}
+.switch-wrap {
+  flex-shrink: 0;
 }
 </style>

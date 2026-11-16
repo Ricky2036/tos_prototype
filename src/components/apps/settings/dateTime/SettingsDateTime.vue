@@ -16,7 +16,9 @@ import ListCell from '../../../ui/ListCell.vue'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 import DatePickerSheet from '../../../ui/DatePickerSheet.vue'
 import TimePickerSheet from '../../../ui/TimePickerSheet.vue'
+import SheetModal from '../../../ui/SheetModal.vue'
 import DateTimeTimezonePicker from './DateTimeTimezonePicker.vue'
+import DateTimeResidencePicker from './DateTimeResidencePicker.vue'
 import { useDateTimeStore } from '../../../../stores/dateTimeStore.js'
 import { useBackHandler } from '../../../../composables/backRegistry.js'
 import { parseDateValue, toDateString, toChineseDateString } from '../../../../utils/datePicker.js'
@@ -26,26 +28,18 @@ const emit = defineEmits(['back', 'open-picker'])
 const store = useDateTimeStore()
 const nav = inject('settingsNav', null)
 
-const subPage = ref(null)
+const subPage = ref(null) // 'timezone' | 'residence'
 const isBack = ref(false)
 
-const activePicker = ref(null) // 'date' | 'time' | 'residence' | 'dualClockPosition'
+const activePicker = ref(null) // 'date' | 'time' | 'dualClockPosition'
 const pickerDate = ref('2026-11-14')
 const pickerTime = ref('14:00')
 
-const RESIDENCE_OPTIONS = [
-  '常驻地预测（深圳市）',
-  '北京市',
-  '上海市',
-  '广州市',
-  '成都市',
-  '武汉市',
-]
-
+/** 真机 com.android.settings 实测选项（去除自造的“仅”字） */
 const DUAL_CLOCK_POSITIONS = [
+  '锁屏',
+  '时钟桌面小部件',
   '锁屏和时钟桌面小部件',
-  '仅桌面小部件',
-  '仅锁屏',
 ]
 
 const hourExample = computed(() => (store.use24Hour ? '13:00' : '下午1:00'))
@@ -53,6 +47,10 @@ const hourExample = computed(() => (store.use24Hour ? '13:00' : '下午1:00'))
 function openTimezone() {
   isBack.value = false
   subPage.value = 'timezone'
+}
+function openResidence() {
+  isBack.value = false
+  subPage.value = 'residence'
 }
 function closeSubPage() {
   isBack.value = true
@@ -147,6 +145,7 @@ function selectDualClockPosition(pos) {
   <div class="settings-datetime-page">
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <DateTimeTimezonePicker v-if="subPage === 'timezone'" key="timezone" @back="closeSubPage" />
+      <DateTimeResidencePicker v-else-if="subPage === 'residence'" key="residence" @back="closeSubPage" />
       <div v-else key="main" class="dt-main">
         <GlassNavBar overlay title="日期与时间" @back="back" />
 
@@ -234,7 +233,7 @@ function selectDualClockPosition(pos) {
                 title="常驻地"
                 :subtitle="store.residence"
                 chevron
-                @click="openPicker('residence')"
+                @click="openResidence"
               />
               <ListCell
                 data-dt-row="dualClockPosition"
@@ -242,7 +241,7 @@ function selectDualClockPosition(pos) {
                 :subtitle="store.dualClockPosition"
                 chevron
                 last
-                @click="openPicker('dualClockPosition')"
+                @click="activePicker = 'dualClockPosition'"
               />
             </div>
           </div>
@@ -269,47 +268,28 @@ function selectDualClockPosition(pos) {
           @close="activePicker = null"
         />
 
-        <!-- 交互弹窗：常驻地选择 -->
-        <div v-if="activePicker === 'residence'" class="dt-modal-overlay" @click.self="activePicker = null">
-          <div class="dt-modal-card">
-            <div class="modal-header">
-              <span class="modal-title">选择常驻地</span>
-              <button class="modal-btn-close" @click="activePicker = null">关闭</button>
-            </div>
-            <div class="picker-options-list">
-              <div
-                v-for="city in RESIDENCE_OPTIONS"
-                :key="city"
-                class="picker-opt-row"
-                @click="selectResidence(city)"
-              >
-                <span>{{ city }}</span>
-                <span v-if="store.residence === city" class="check">✓</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 交互弹窗：双时钟显示位置选择 -->
-        <div v-if="activePicker === 'dualClockPosition'" class="dt-modal-overlay" @click.self="activePicker = null">
-          <div class="dt-modal-card">
-            <div class="modal-header">
-              <span class="modal-title">双时钟显示位置</span>
-              <button class="modal-btn-close" @click="activePicker = null">关闭</button>
-            </div>
-            <div class="picker-options-list">
-              <div
-                v-for="pos in DUAL_CLOCK_POSITIONS"
-                :key="pos"
-                class="picker-opt-row"
-                @click="selectDualClockPosition(pos)"
-              >
-                <span>{{ pos }}</span>
-                <span v-if="store.dualClockPosition === pos" class="check">✓</span>
-              </div>
+        <!-- 标准底部单选弹层：双时钟显示位置（对齐真机单枚大胶囊取消按钮） -->
+        <SheetModal
+          :visible="activePicker === 'dualClockPosition'"
+          padding="16px 20px 20px"
+          @close="activePicker = null"
+        >
+          <div class="sheet-title">双时钟显示位置</div>
+          <div class="sheet-options-list">
+            <div
+              v-for="pos in DUAL_CLOCK_POSITIONS"
+              :key="pos"
+              class="sheet-option-item"
+              @click="selectDualClockPosition(pos)"
+            >
+              <span class="option-label">{{ pos }}</span>
+              <span v-if="store.dualClockPosition === pos" class="option-check">✓</span>
             </div>
           </div>
-        </div>
+          <div class="sheet-actions">
+            <button type="button" class="sheet-btn-cancel" @click="activePicker = null">取消</button>
+          </div>
+        </SheetModal>
       </div>
     </Transition>
   </div>
@@ -372,94 +352,50 @@ function selectDualClockPosition(pos) {
   border-bottom-color: #E0E0E0;
 }
 
-.dt-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: flex-end;
-  z-index: 1000;
+.sheet-title {
+  text-align: center;
+  font-size: 15px;
+  color: #8E8E93;
+  padding-bottom: 8px;
 }
-
-.dt-modal-card {
-  width: 100%;
-  background: #FFFFFF;
-  border-radius: 20px 20px 0 0;
-  padding: 20px 24px 36px;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.modal-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: #111827;
-}
-
-.modal-btn-confirm {
-  background: #007AFF;
-  color: #FFFFFF;
-  border: none;
-  border-radius: 8px;
-  padding: 6px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.modal-btn-close {
-  background: #F1F5F9;
-  color: #475569;
-  border: none;
-  border-radius: 8px;
-  padding: 6px 14px;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.input-wrap {
-  display: flex;
-  justify-content: center;
-  padding: 16px 0;
-}
-
-.modal-date-input {
-  font-size: 20px;
-  padding: 10px 16px;
-  border: 1px solid #CBD5E1;
-  border-radius: 12px;
-  color: #1E293B;
-}
-
-.picker-options-list {
+.sheet-options-list {
   display: flex;
   flex-direction: column;
 }
-
-.picker-opt-row {
+.sheet-option-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 0;
+  padding: 14px 4px;
   border-bottom: 1px solid #F1F5F9;
-  font-size: 15px;
-  color: #1E293B;
+  font-size: 16px;
+  color: #111111;
   cursor: pointer;
 }
-
-.picker-opt-row:last-child {
+.sheet-option-item:last-child {
   border-bottom: none;
 }
-
-.picker-opt-row .check {
-  color: #007AFF;
-  font-weight: bold;
+.option-check {
+  color: #2F6BF6;
+  font-weight: 700;
+  font-size: 17px;
+}
+.sheet-actions {
+  margin-top: 12px;
+}
+.sheet-btn-cancel {
+  width: 100%;
+  height: 44px;
+  border: none;
+  border-radius: 24px;
+  background: #E9E9EC;
+  color: #3C3C43;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sheet-btn-cancel:active {
+  opacity: 0.85;
 }
 </style>
