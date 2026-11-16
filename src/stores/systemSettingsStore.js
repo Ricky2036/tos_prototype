@@ -15,6 +15,7 @@ export const SYSTEM_SETTINGS_KEYS = {
   POWER_OFF_REPEAT: 'tos_system_power_off_repeat',
   SCHEDULED_RESTART: 'tos_system_scheduled_restart',
   RESTART_TIME: 'tos_system_restart_time',
+  RESTART_REPEAT: 'tos_system_restart_repeat',
   GOOGLE_BACKUP_ENABLED: 'tos_system_google_backup_enabled',
   GOOGLE_BACKUP_ACCOUNT: 'tos_system_google_backup_account',
   DEVELOPER_OPTIONS_ENABLED: 'tos_system_developer_options_enabled',
@@ -42,7 +43,8 @@ export const SYSTEM_SETTINGS_DEFAULTS = {
   powerOffTime: '23:00',
   powerOffRepeat: '每天',
   scheduledRestart: false,
-  restartTime: '04:00',
+  restartTime: '05:00',
+  restartRepeat: '星期三',
   googleBackupEnabled: true,
   googleBackupAccount: 'google.user@example.com',
   developerOptionsEnabled: true,
@@ -71,6 +73,7 @@ export const useSystemSettingsStore = defineStore('systemSettings', () => {
   const powerOffRepeat = ref(readString(SYSTEM_SETTINGS_KEYS.POWER_OFF_REPEAT, SYSTEM_SETTINGS_DEFAULTS.powerOffRepeat))
   const scheduledRestart = ref(readBool(SYSTEM_SETTINGS_KEYS.SCHEDULED_RESTART, SYSTEM_SETTINGS_DEFAULTS.scheduledRestart))
   const restartTime = ref(readString(SYSTEM_SETTINGS_KEYS.RESTART_TIME, SYSTEM_SETTINGS_DEFAULTS.restartTime))
+  const restartRepeat = ref(readString(SYSTEM_SETTINGS_KEYS.RESTART_REPEAT, SYSTEM_SETTINGS_DEFAULTS.restartRepeat))
   const googleBackupEnabled = ref(readBool(SYSTEM_SETTINGS_KEYS.GOOGLE_BACKUP_ENABLED, SYSTEM_SETTINGS_DEFAULTS.googleBackupEnabled))
   const googleBackupAccount = ref(readString(SYSTEM_SETTINGS_KEYS.GOOGLE_BACKUP_ACCOUNT, SYSTEM_SETTINGS_DEFAULTS.googleBackupAccount))
   const developerOptionsEnabled = ref(readBool(SYSTEM_SETTINGS_KEYS.DEVELOPER_OPTIONS_ENABLED, SYSTEM_SETTINGS_DEFAULTS.developerOptionsEnabled))
@@ -133,6 +136,10 @@ export const useSystemSettingsStore = defineStore('systemSettings', () => {
     restartTime.value = String(v)
     writeRaw(SYSTEM_SETTINGS_KEYS.RESTART_TIME, restartTime.value)
   }
+  function setRestartRepeat(v) {
+    restartRepeat.value = String(v)
+    writeRaw(SYSTEM_SETTINGS_KEYS.RESTART_REPEAT, restartRepeat.value)
+  }
   function setGoogleBackupEnabled(v) {
     googleBackupEnabled.value = Boolean(v)
     writeRaw(SYSTEM_SETTINGS_KEYS.GOOGLE_BACKUP_ENABLED, String(googleBackupEnabled.value))
@@ -187,7 +194,7 @@ export const useSystemSettingsStore = defineStore('systemSettings', () => {
     longPressPower,
     scheduledPowerOn, powerOnTime, powerOnRepeat,
     scheduledPowerOff, powerOffTime, powerOffRepeat,
-    scheduledRestart, restartTime,
+    scheduledRestart, restartTime, restartRepeat,
     googleBackupEnabled, googleBackupAccount,
     developerOptionsEnabled, usbDebugging, keepAwake, pointerLocation, showTaps,
     windowAnimationScale, transitionAnimationScale, animatorDurationScale,
@@ -196,7 +203,7 @@ export const useSystemSettingsStore = defineStore('systemSettings', () => {
     setLongPressPower,
     setScheduledPowerOn, setPowerOnTime, setPowerOnRepeat,
     setScheduledPowerOff, setPowerOffTime, setPowerOffRepeat,
-    setScheduledRestart, setRestartTime,
+    setScheduledRestart, setRestartTime, setRestartRepeat,
     setGoogleBackupEnabled,
     setDeveloperOptionsEnabled, setUsbDebugging, setKeepAwake, setPointerLocation, setShowTaps,
     setWindowAnimationScale, setTransitionAnimationScale, setAnimatorDurationScale,
