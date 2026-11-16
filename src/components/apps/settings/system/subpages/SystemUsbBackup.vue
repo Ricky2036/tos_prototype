@@ -1,81 +1,61 @@
 <script setup>
+/**
+ * USB 备份和恢复 · 真机实测版（com.transsion.mobilecloner）
+ * ========================================================
+ * 真实证据：.local-evidence/SET-SYS-01/device/real_usb_backup.xml
+ * 状态：
+ *   - 等待 USB 连接
+ *   - 存储容量显示：0 B / 0.00 GB
+ */
 import { ref } from 'vue'
 import SubPageShell from '../../subpage/SubPageShell.vue'
 import ListCell from '../../../../ui/ListCell.vue'
 
 const emit = defineEmits(['back'])
 
-const isBackingUp = ref(false)
-const backupSuccess = ref(false)
-const backupHistory = ref([
-  { id: '1', date: '2026年10月28日 14:20', size: '2.4 GB', device: 'SanDisk OTG' },
-])
+const isConnected = ref(false)
+const tipMsg = ref('')
 
-function runBackup() {
-  isBackingUp.value = true
-  setTimeout(() => {
-    isBackingUp.value = false
-    backupSuccess.value = true
-    backupHistory.value.unshift({
-      id: String(Date.now()),
-      date: '刚刚',
-      size: '2.6 GB',
-      device: 'SanDisk OTG',
-    })
-    setTimeout(() => {
-      backupSuccess.value = false
-    }, 3000)
-  }, 1200)
+function checkUsb() {
+  tipMsg.value = '未检测到 OTG 存储设备，请连接 USB 设备后重试'
+  setTimeout(() => { tipMsg.value = '' }, 2500)
 }
 </script>
 
 <template>
   <SubPageShell title="USB 备份和恢复" @back="emit('back')">
     <div class="usb-container">
-      <div class="device-status-card">
-        <div class="status-icon">💾</div>
-        <div class="status-content">
-          <div class="status-title">OTG 存储设备已就绪</div>
-          <div class="status-desc">可用空间：58.4 GB / 64.0 GB</div>
+      <!-- 存储状态卡片 -->
+      <div class="settings-card status-card">
+        <div class="status-title">等待 USB 连接</div>
+        <div class="storage-row">
+          <span class="used-text">0 B</span>
+          <span class="total-text">0.00 GB</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-bar" style="width: 0%"></div>
         </div>
       </div>
 
-      <div class="section-title">备份选项</div>
+      <!-- 操作卡片 -->
+      <div class="section-title">备份与恢复</div>
       <div class="settings-card">
         <ListCell
-          title="备份到存储设备"
-          subtitle="备份联系人、短信、通话记录与系统设置"
+          title="备份数据至 USB 存储设备"
+          subtitle="将通讯录、信息、照片与应用数据导出"
           chevron
-          @click="runBackup"
+          @click="checkUsb"
         />
         <ListCell
-          title="从存储设备恢复"
-          subtitle="选择已有的备份文件恢复到本机"
-          chevron
+          title="从 USB 存储设备恢复数据"
+          subtitle="导入此前备份的数据"
           last
-          @click="() => {}"
-        />
-      </div>
-
-      <div class="section-title">备份历史</div>
-      <div class="settings-card">
-        <ListCell
-          v-for="(item, i) in backupHistory"
-          :key="item.id"
-          :title="item.date"
-          :subtitle="`${item.device} · ${item.size}`"
-          :last="i === backupHistory.length - 1"
           chevron
-          @click="() => {}"
+          @click="checkUsb"
         />
       </div>
 
-      <div v-if="isBackingUp" class="toast-loading">
-        正在备份数据，请勿拔出 USB 设备...
-      </div>
-      <div v-if="backupSuccess" class="toast-success">
-        备份成功已保存至 OTG 设备
-      </div>
+      <div v-if="tipMsg" class="toast-tip">{{ tipMsg }}</div>
     </div>
   </SubPageShell>
 </template>
@@ -83,42 +63,55 @@ function runBackup() {
 <style scoped>
 .usb-container {
   padding: 12px 0 32px;
-}
-
-.device-status-card {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  background: #FFFFFF;
-  border-radius: 16px;
-  padding: 16px;
+  flex-direction: column;
+  gap: 12px;
+}
+.status-card {
+  padding: 18px 16px 20px;
+}
+.status-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111111;
+  margin-bottom: 14px;
+}
+.storage-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
   margin-bottom: 8px;
 }
-
-.status-icon {
-  font-size: 28px;
+.used-text {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111111;
+  font-variant-numeric: tabular-nums;
 }
-
-.status-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 2px;
+.total-text {
+  font-size: 14px;
+  color: #8E8E93;
+  font-variant-numeric: tabular-nums;
 }
-
-.status-desc {
-  font-size: 13px;
-  color: #059669;
+.progress-track {
+  width: 100%;
+  height: 6px;
+  background: #E5E7EB;
+  border-radius: 3px;
+  overflow: hidden;
 }
-
+.progress-bar {
+  height: 100%;
+  background: #2F6BF6;
+  border-radius: 3px;
+}
 .section-title {
   font-size: 13px;
   font-weight: 500;
   color: #6B7280;
-  padding: 14px 16px 6px;
+  padding: 8px 16px 2px;
 }
-
-.toast-loading, .toast-success {
+.toast-tip {
   position: fixed;
   bottom: 40px;
   left: 50%;
@@ -129,10 +122,7 @@ function runBackup() {
   border-radius: 20px;
   font-size: 13px;
   z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.toast-success {
-  background: #059669;
+  text-align: center;
+  max-width: 80%;
 }
 </style>

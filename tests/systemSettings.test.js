@@ -146,10 +146,10 @@ test('浏览器：主页 10 行顺序严格对齐真机 system.xml，4 卡 1 独
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
 
-test('浏览器：进入子页与返回链闭环', async () => {
+test('浏览器：全部 10 个子页完整遍历与返回链闭环', async () => {
   const id = await rt.mount(SYSTEM_PAGE)
 
-  // 1. 进入系统导航
+  // 1. 系统导航
   await rt.click(id, '[data-system-row="systemNavigation"]', 100)
   await wait(400)
   assert.equal(await rt.count(id, '[data-test="subpage-nav"]'), 1)
@@ -158,7 +158,24 @@ test('浏览器：进入子页与返回链闭环', async () => {
   await wait(400)
   assert.equal(await rt.text(id, '.system-main .gn-title'), '系统', '返回系统主页')
 
-  // 2. 进入按住电源按钮
+  // 2. 日期与时间
+  await rt.click(id, '[data-system-row="dateTime"]', 100)
+  await wait(400)
+  assert.equal(await rt.count(id, '.settings-datetime-page'), 1)
+  assert.equal(await rt.text(id, '.settings-datetime-page .gn-title'), '日期与时间')
+  await rt.click(id, '.settings-datetime-page .gn-back', 100)
+  await wait(400)
+  assert.equal(await rt.text(id, '.system-main .gn-title'), '系统')
+
+  // 3. 语言与输入法
+  await rt.click(id, '[data-system-row="languageInput"]', 100)
+  await wait(400)
+  assert.equal(await rt.text(id, '.sub-shell .gn-title'), '语言与输入法')
+  await rt.click(id, '.sub-shell [data-nav-back]', 100)
+  await wait(400)
+  assert.equal(await rt.text(id, '.system-main .gn-title'), '系统')
+
+  // 4. 按住电源按钮
   await rt.click(id, '[data-system-row="powerButton"]', 100)
   await wait(400)
   assert.equal(await rt.count(id, '[data-test="subpage-power"]'), 1)
@@ -169,25 +186,57 @@ test('浏览器：进入子页与返回链闭环', async () => {
   assert.equal(await rt.text(id, '.system-main .gn-title'), '系统')
   assert.equal(await rt.text(id, '[data-system-row="powerButton"] .lc-value'), '电源菜单', '副标题实时联动更新')
 
-  // 3. 进入重置手机
+  // 5. 定时开关机与重启
+  await rt.click(id, '[data-system-row="schedulePower"]', 100)
+  await wait(400)
+  assert.equal(await rt.text(id, '.sub-shell .gn-title'), '定时开关机与重启')
+  await rt.click(id, '.sub-shell [data-nav-back]', 100)
+  await wait(400)
+  assert.equal(await rt.text(id, '.system-main .gn-title'), '系统')
+
+  // 6. 备份到Google云端硬盘
+  await rt.click(id, '[data-system-row="googleBackup"]', 100)
+  await wait(400)
+  assert.equal(await rt.text(id, '.sub-shell .gn-title'), '备份到Google云端硬盘')
+  await rt.click(id, '.sub-shell [data-nav-back]', 100)
+  await wait(400)
+  assert.equal(await rt.text(id, '.system-main .gn-title'), '系统')
+
+  // 7. USB 备份和恢复
+  await rt.click(id, '[data-system-row="usbBackup"]', 100)
+  await wait(400)
+  assert.equal(await rt.text(id, '.sub-shell .gn-title'), 'USB 备份和恢复')
+  await rt.click(id, '.sub-shell [data-nav-back]', 100)
+  await wait(400)
+  assert.equal(await rt.text(id, '.system-main .gn-title'), '系统')
+
+  // 8. 重置手机
   await rt.click(id, '[data-system-row="resetPhone"]', 100)
   await wait(400)
   assert.equal(await rt.count(id, '[data-test="subpage-reset"]'), 1)
   assert.equal(await rt.text(id, '[data-test="subpage-reset"] .gn-title'), '重置手机')
   await rt.click(id, '[data-test="reset-network"]', 100)
   assert.equal(await rt.count(id, '.confirm-modal-card'), 1, '弹出二次确认弹窗')
-  await rt.click(id, '.modal-btn-cancel', 300)
+  await rt.click(id, '.modal-btn-cancel', 100)
   assert.equal(await rt.count(id, '.confirm-modal-card'), 0, '取消后关闭弹窗')
   await rt.click(id, '[data-test="subpage-reset"] [data-nav-back]', 100)
   await wait(400)
   assert.equal(await rt.text(id, '.system-main .gn-title'), '系统')
 
-  // 4. 进入开发者选项
+  // 9. 开发者选项
   await rt.click(id, '[data-system-row="developerOptions"]', 100)
   await wait(400)
   assert.equal(await rt.count(id, '[data-test="subpage-dev"]'), 1)
   assert.equal(await rt.text(id, '[data-test="subpage-dev"] .gn-title'), '开发者选项')
   await rt.click(id, '[data-test="subpage-dev"] [data-nav-back]', 100)
+  await wait(400)
+  assert.equal(await rt.text(id, '.system-main .gn-title'), '系统')
+
+  // 10. 增强服务
+  await rt.click(id, '[data-system-row="enhancedServices"]', 100)
+  await wait(400)
+  assert.equal(await rt.text(id, '.sub-shell .gn-title'), '增强服务')
+  await rt.click(id, '.sub-shell [data-nav-back]', 100)
   await wait(400)
   assert.equal(await rt.text(id, '.system-main .gn-title'), '系统')
 

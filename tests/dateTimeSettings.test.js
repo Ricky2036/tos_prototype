@@ -300,6 +300,29 @@ test('浏览器：关自动时间 → 点日期唤起 DatePickerSheet，点时�
   await rt.unmount(id)
 })
 
+test('浏览器：常驻地进入二级页面、选择城市并写回 store', async () => {
+  const id = await rt.mount(PAGE)
+  // 进入常驻地
+  await rt.click(id, '[data-dt-row="residence"]', 200)
+  assert.equal(await rt.text(id, '.gn-title'), '常驻地')
+  // 点击阿比让
+  await rt.clickText(id, '.settings-card .lc-title', '阿比让', 200)
+  // 自动返回
+  assert.equal(await rt.text(id, '.gn-title'), '日期与时间')
+  assert.equal(await rt.text(id, '[data-dt-row="residence"] .lc-subtitle'), '阿比让')
+  await rt.unmount(id)
+})
+
+test('浏览器：双时钟显示位置唤起 SheetModal，选择项写回 store', async () => {
+  const id = await rt.mount(PAGE)
+  await rt.click(id, '[data-dt-row="dualClockPosition"]', 200)
+  assert.equal(await rt.text(id, '.sheet-title'), '双时钟显示位置')
+  // 选「锁屏」
+  await rt.clickText(id, '.sheet-option-item', '锁屏', 200)
+  assert.equal(await rt.text(id, '[data-dt-row="dualClockPosition"] .lc-subtitle'), '锁屏')
+  await rt.unmount(id)
+})
+
 test('页面自声明与 route 契约在第二条链路后仍不变', () => {
   assert.equal(page.id, 'dateTime')
   assert.equal(typeof page.component, 'function')
