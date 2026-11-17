@@ -28,6 +28,8 @@ import SegmentedSlider from '../../../../ui/SegmentedSlider.vue'
 import RadioButton from '../../../../ui/RadioButton.vue'
 import { useSystemStore } from '../../../../../stores/systemStore.js'
 import { useSystemSettingsStore } from '../../../../../stores/systemSettingsStore.js'
+import navGestureImg from '../../../../../assets/img/phone_settings/system_nav_gesture.png'
+import navThreeBtnImg from '../../../../../assets/img/phone_settings/system_nav_three_btn.png'
 
 const emit = defineEmits(['back'])
 const systemStore = useSystemStore()
@@ -56,7 +58,7 @@ function selectMode(mode) {
 <template>
   <SubPageShell title="系统导航" data-test="subpage-nav" @back="emit('back')">
     <div class="nav-container">
-      <!-- 1. 顶部大卡片：左右并列两列（真机 ViewGroup id=ll_img & ll_name） -->
+      <!-- 1. 顶部大卡片：左右并列两列（真机 Infinix X6878 原厂 UI 结构） -->
       <div class="settings-card mode-select-card" data-test="mode-select-card">
         <div class="mode-columns">
           <!-- 左列：手势导航 -->
@@ -66,12 +68,8 @@ function selectMode(mode) {
             data-test="nav-mode-gesture"
             @click="selectMode('gesture')"
           >
-            <div class="preview-box">
-              <div class="mock-phone">
-                <div class="mock-arrow mock-arrow-left"></div>
-                <div class="mock-arrow mock-arrow-right"></div>
-                <div class="mock-gesture-line"></div>
-              </div>
+            <div class="thumb-container">
+              <img class="nav-thumb-img" :src="navGestureImg" alt="手势导航" />
             </div>
             <div class="mode-title">手势导航</div>
             <div class="radio-wrap">
@@ -86,20 +84,8 @@ function selectMode(mode) {
             data-test="nav-mode-three-button"
             @click="selectMode('threeButton')"
           >
-            <div class="preview-box">
-              <div class="mock-phone keys-phone">
-                <div class="mock-keys">
-                  <svg class="key-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4B4B4B" stroke-width="2.2" stroke-linejoin="round">
-                    <polygon points="19 20 6 12 19 4 19 20"/>
-                  </svg>
-                  <svg class="key-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4B4B4B" stroke-width="2.2">
-                    <circle cx="12" cy="12" r="8"/>
-                  </svg>
-                  <svg class="key-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4B4B4B" stroke-width="2.2">
-                    <rect x="5" y="5" width="14" height="14" rx="2"/>
-                  </svg>
-                </div>
-              </div>
+            <div class="thumb-container">
+              <img class="nav-thumb-img" :src="navThreeBtnImg" alt="三键导航" />
             </div>
             <div class="mode-title">三键导航</div>
             <div class="radio-wrap">
@@ -272,14 +258,15 @@ function selectMode(mode) {
   box-shadow: none;
 }
 
-/* 顶部左右并列双列大卡片（真机 1:1） */
+/* 顶部左右并列双列大卡片（真机 1:1 实测对齐） */
 .mode-select-card {
-  padding: 16px;
+  padding: 24px 16px 20px;
 }
 
 .mode-columns {
   display: flex;
   gap: 16px;
+  justify-content: center;
 }
 
 .mode-col {
@@ -290,69 +277,28 @@ function selectMode(mode) {
   cursor: pointer;
 }
 
-.preview-box {
+.thumb-container {
   width: 100%;
-  height: 184px;
-  background: #F4F5F7;
-  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
-.mock-phone {
-  width: 108px;
-  height: 160px;
-  background: #FFFFFF;
-  border-radius: 16px;
-  position: relative;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
-}
-
-.mock-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3.5px;
-  height: 30px;
-  background: #3375F6;
-  border-radius: 2px;
-}
-.mock-arrow-left { left: 4.5px; }
-.mock-arrow-right { right: 4.5px; }
-
-.mock-gesture-line {
-  position: absolute;
-  bottom: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 3.5px;
-  background: #181818;
-  border-radius: 2px;
-}
-
-.mock-keys {
-  position: absolute;
-  bottom: 12px;
-  left: 0;
-  right: 0;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-evenly;
-}
-
-.key-svg {
+.nav-thumb-img {
+  width: 104px;
+  height: 208px;
+  object-fit: contain;
   display: block;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .mode-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 500;
   color: #111111;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   text-align: center;
 }
 
