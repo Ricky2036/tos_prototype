@@ -191,7 +191,7 @@ let isTrackingSwipe = false
 
 function onCcPointerDown(e) {
   if (e.button != null && e.button !== 0) return
-  if (control.fineTuningMode || editing.value) return
+  if (control.fineTuningMode || editing.value || focusSwitcherOpen.value) return
 
   // 点击/触摸在任何可交互元素（网格、开关、胶囊、媒体、滑块等）上时，严禁触发上滑关闭手势检测
   if (e.target.closest('.cc-grid, .cc-cell, .gb-wrap, .cc-pill, .cc-media, .cc-sliders, .cc-header, .focus-switcher, button, input, a, .ft-hud')) {
@@ -269,6 +269,10 @@ function onCcClick(e) {
       return
     }
     control.setEditing(false)
+    return
+  }
+  // 专注模式全屏面板打开期间，点击任何区域不退出控制中心（由面板自身的空白处点击处理收起）
+  if (focusSwitcherOpen.value || e.target.closest('.focus-switcher')) {
     return
   }
   // 点击卡片、胶囊、按钮、滑块等交互元素时不退出

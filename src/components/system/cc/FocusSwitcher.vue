@@ -120,6 +120,8 @@ function requestClose() {
 function handleBlankClick(e) {
   // 点击空白处收起：点击落在卡片行、新建按钮或新建流程之外的空白处时收起
   if (e.target.closest('.focus-switcher-row, .focus-switcher-new, .focus-create-flow')) return
+  e.stopPropagation()
+  e.preventDefault()
   requestClose()
 }
 

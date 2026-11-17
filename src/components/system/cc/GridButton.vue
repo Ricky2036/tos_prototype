@@ -363,9 +363,19 @@ let flashlightHold
 let flashlightLongPressed = false
 let flashlightStart
 
+let dndHold = null
+let dndLongPressed = false
+let dndStart = null
+
 function cancelFlashlightHold() {
   clearTimeout(flashlightHold)
   flashlightStart = null
+}
+
+function cancelDndHold() {
+  if (dndHold) clearTimeout(dndHold)
+  dndHold = null
+  dndStart = null
 }
 
 function openFlashlightPanel(tile) {
@@ -392,11 +402,52 @@ function moveFlashlightHold(event) {
   }
 }
 
-onBeforeUnmount(cancelFlashlightHold)
+function startDndHold(event) {
+  if (props.item.id !== 'dnd' || props.editing || isFineTuning.value || !event.isPrimary || event.button !== 0) return
+  cancelDndHold()
+  dndLongPressed = false
+  dndStart = { x: event.clientX, y: event.clientY }
+  dndHold = setTimeout(() => {
+    dndLongPressed = true
+    dndStart = null
+    emit('activate', props.item.id)
+  }, 450)
+}
+
+function moveDndHold(event) {
+  if (dndStart && Math.hypot(event.clientX - dndStart.x, event.clientY - dndStart.y) > 7) {
+    cancelDndHold()
+  }
+}
+
+function onTilePointerDown(event) {
+  startFlashlightHold(event)
+  startDndHold(event)
+}
+
+function onTilePointerMove(event) {
+  moveFlashlightHold(event)
+  moveDndHold(event)
+}
+
+function onTilePointerEnd() {
+  cancelFlashlightHold()
+  cancelDndHold()
+}
+
+onBeforeUnmount(() => {
+  cancelFlashlightHold()
+  cancelDndHold()
+})
 
 function onClick(e) {
   if (isFlashlight.value && flashlightLongPressed) {
     flashlightLongPressed = false
+    e?.stopPropagation()
+    return
+  }
+  if (props.item.id === 'dnd' && dndLongPressed) {
+    dndLongPressed = false
     e?.stopPropagation()
     return
   }
@@ -462,11 +513,11 @@ function onResizeDown(e) {
     :tabindex="isFlashlight && !editing ? 0 : undefined"
     :role="isFlashlight && !editing ? 'button' : undefined"
     :aria-label="isFlashlight ? '手电筒' : undefined"
-    @pointerdown="startFlashlightHold"
-    @pointermove="moveFlashlightHold"
-    @pointerup="cancelFlashlightHold"
-    @pointerleave="cancelFlashlightHold"
-    @pointercancel="cancelFlashlightHold"
+    @pointerdown="onTilePointerDown"
+    @pointermove="onTilePointerMove"
+    @pointerup="onTilePointerEnd"
+    @pointerleave="onTilePointerEnd"
+    @pointercancel="onTilePointerEnd"
     @keydown.enter.self.prevent="isFlashlight && !editing && !isFineTuning && openFlashlightPanel($event.currentTarget)"
     @click="onClick"
   >

@@ -232,7 +232,7 @@ export const useControlStore = defineStore('control', {
     flashlightPanelOpen: false,
     flashlightGuidanceSeen: false,
     flashlightArrowGuidanceSeen: false,
-    flashlightGuidanceMode: 'dot',
+    flashlightGuidanceMode: 'arrow',
     flashlightResetRevision: 0,
     flashlightPanelAnchor: null,
     flashlightTileSnapshot: null,
@@ -371,6 +371,7 @@ export const useControlStore = defineStore('control', {
     openFlashlightPanel(anchor = null) {
       if (this.flashlightTileSnapshot === null) this.flashlightTileSnapshot = this.flashlightActive
       this.flashlightPanelAnchor = anchor
+      this.setFlashlight(true)
       this.flashlightPanelOpen = true
     },
     toggleMediaPlaying() {
