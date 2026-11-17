@@ -24,7 +24,7 @@ import { computed, ref } from 'vue'
 import SubPageShell from '../../subpage/SubPageShell.vue'
 import ListCell from '../../../../ui/ListCell.vue'
 import ToggleSwitch from '../../../../ui/ToggleSwitch.vue'
-import HorizontalSlider from '../../../../ui/HorizontalSlider.vue'
+import SegmentedSlider from '../../../../ui/SegmentedSlider.vue'
 import RadioButton from '../../../../ui/RadioButton.vue'
 import { useSystemStore } from '../../../../../stores/systemStore.js'
 import { useSystemSettingsStore } from '../../../../../stores/systemSettingsStore.js'
@@ -39,7 +39,8 @@ const circleToSearch = ref(true)
 const voiceAssistant = ref(true)
 const predictiveBack = ref(false)
 const keyLayout = ref('standard') // 'standard' (◁ ○ □) | 'reversed' (□ ○ ◁)
-const sensitivity = ref(50) // 0..100
+// 三段式灵敏度：0 (低) | 0.5 (中) | 1 (高)
+const sensitivityRatio = ref(0.5)
 const tipMsg = ref('')
 
 function showTip(msg) {
@@ -86,11 +87,17 @@ function selectMode(mode) {
             @click="selectMode('threeButton')"
           >
             <div class="preview-box">
-              <div class="mock-phone">
+              <div class="mock-phone keys-phone">
                 <div class="mock-keys">
-                  <span class="key-icon">◁</span>
-                  <span class="key-icon">○</span>
-                  <span class="key-icon">□</span>
+                  <svg class="key-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4B4B4B" stroke-width="2.2" stroke-linejoin="round">
+                    <polygon points="19 20 6 12 19 4 19 20"/>
+                  </svg>
+                  <svg class="key-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4B4B4B" stroke-width="2.2">
+                    <circle cx="12" cy="12" r="8"/>
+                  </svg>
+                  <svg class="key-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4B4B4B" stroke-width="2.2">
+                    <rect x="5" y="5" width="14" height="14" rx="2"/>
+                  </svg>
                 </div>
               </div>
             </div>
@@ -155,16 +162,14 @@ function selectMode(mode) {
         <!-- 外露标题：返回手势灵敏度 -->
         <div class="section-title">返回手势灵敏度</div>
 
-        <!-- 卡片 3：灵敏度滑动条 -->
+        <!-- 卡片 3：灵敏度三段式分段滑块（参考真机字体设置页面 3 档规范） -->
         <div class="settings-card slider-card" data-test="card-sensitivity">
           <div class="slider-row">
             <span class="slider-label">低</span>
             <div class="slider-wrap">
-              <HorizontalSlider
-                v-model="sensitivity"
-                :min="0"
-                :max="100"
-                :step="1"
+              <SegmentedSlider
+                v-model="sensitivityRatio"
+                :steps="3"
               />
             </div>
             <span class="slider-label">高</span>
@@ -287,9 +292,9 @@ function selectMode(mode) {
 
 .preview-box {
   width: 100%;
-  height: 180px;
+  height: 184px;
   background: #F4F5F7;
-  border-radius: 12px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -297,50 +302,50 @@ function selectMode(mode) {
 }
 
 .mock-phone {
-  width: 100px;
-  height: 150px;
+  width: 108px;
+  height: 160px;
   background: #FFFFFF;
-  border-radius: 10px;
+  border-radius: 16px;
   position: relative;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .mock-arrow {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 4px;
-  height: 24px;
-  background: #4A90E2;
+  width: 3.5px;
+  height: 30px;
+  background: #3375F6;
   border-radius: 2px;
 }
-.mock-arrow-left { left: 4px; }
-.mock-arrow-right { right: 4px; }
+.mock-arrow-left { left: 4.5px; }
+.mock-arrow-right { right: 4.5px; }
 
 .mock-gesture-line {
   position: absolute;
-  bottom: 8px;
+  bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
-  width: 38px;
-  height: 3px;
-  background: #111111;
+  width: 40px;
+  height: 3.5px;
+  background: #181818;
   border-radius: 2px;
 }
 
 .mock-keys {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  height: 16px;
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  width: 100%;
-  height: 100%;
-  padding-top: 110px;
+  justify-content: space-evenly;
 }
 
-.key-icon {
-  font-size: 13px;
-  color: #666666;
-  font-weight: 600;
+.key-svg {
+  display: block;
 }
 
 .mode-title {

@@ -51,6 +51,13 @@ function onPointerUp() {
 }
 
 const pct = computed(() => `${clamp(props.modelValue, 0, 1) * 100}%`)
+
+function calcTickLeft(i) {
+  if (props.steps <= 1) return '0%'
+  const ratio = (i - 1) / (props.steps - 1)
+  // 两端内缩 5px，使刻度圆点中心对准轨道端头半圆中心，绝不跑出轨道外部
+  return `calc(5px + (100% - 10px) * ${ratio})`
+}
 </script>
 
 <template>
@@ -73,7 +80,7 @@ const pct = computed(() => `${clamp(props.modelValue, 0, 1) * 100}%`)
         v-for="i in (steps > 1 ? steps : 0)"
         :key="i"
         class="h-slider-tick"
-        :style="{ left: `${((i - 1) / (steps - 1)) * 100}%` }"
+        :style="{ left: calcTickLeft(i) }"
         :class="{ covered: ((i - 1) / (steps - 1)) * 100 <= parseFloat(pct) + 0.01 }"
       ></i>
       <div class="h-slider-thumb" :style="{ left: pct }"></div>
@@ -138,7 +145,7 @@ const pct = computed(() => `${clamp(props.modelValue, 0, 1) * 100}%`)
   background: #CECECE;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  z-index: 2;
+  z-index: 1;
 }
 
 .h-slider-tick.covered {
@@ -155,5 +162,6 @@ const pct = computed(() => `${clamp(props.modelValue, 0, 1) * 100}%`)
   background: #FFFFFF;
   border: 3px solid #3375F6;
   transform: translate(-50%, -50%);
+  z-index: 4;
 }
 </style>
