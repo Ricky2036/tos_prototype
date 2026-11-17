@@ -287,7 +287,7 @@ export const useControlStore = defineStore('control', {
     /* ---- 控制台 / 编辑模式（与 App.vue 控制台共享） ---- */
     editing: false,        // 控制中心编辑模式（控制台可切换）
     dragMode: 'swap',      // 'swap' 绝对坐标沉降 | 'flow' 流式推挤（控制台切换）
-    layoutPreset: 'camon', // 'camon' | 'note' | 'gt' —— 默认布局（控制台切换）
+    layoutPreset: 'note17', // 'camon' | 'note' | 'gt' | 'note17' —— 默认布局（控制台切换）
     showPrivacyIndicators: false, // 控制中心顶部隐私图标（默认不显示）
     showDualSim: false,           // 控制中心双卡显示切换（默认单卡，开启显示双卡双行）
 

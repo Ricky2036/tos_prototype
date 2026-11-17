@@ -514,7 +514,7 @@ function onResizeDown(e) {
             transition: resizing ? 'none' : 'opacity 0.25s ease-out 0.08s, transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)'
           }"
         >
-          <template v-if="item.id === 'dnd'"><span class="gb-focus-label">专注模式</span><LIcon name="chevronDown" :size="13" /></template>
+          <template v-if="item.id === 'dnd'"><span class="gb-focus-label">专注模式</span></template>
           <template v-else>{{ i18n.ccLabel(item.id) }}</template>
         </span>
       </div>

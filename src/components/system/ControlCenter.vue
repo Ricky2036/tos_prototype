@@ -42,6 +42,7 @@ const i18n = useI18nStore()
 const focus = useFocusSettingsStore()
 const notifications = useNotificationsStore()
 const focusSwitcherOpen = ref(false)
+const focusAnchor = ref(null)
 
 /* 音量面板相关文案（长按音量条的 aria 等）住在 locales/volume.js，
    与 CC 自身的磁贴名（locales/cc-labels.js）分文件，避免两个 feature 互相踩。 */
@@ -315,7 +316,7 @@ const TOGGLES = [
   { id: 'location', icon: 'mapPin', fillOnActive: true, activeBg: '#fff', activeColor: '#258FFF' },
   { id: 'screenshot', icon: 'scissors', activeBg: '#fff', activeColor: '#258FFF' },
   { id: 'darkMode', icon: 'darkTheme', activeBg: '#fff', activeColor: '#258FFF', defaultSize: '1x1' },
-  { id: 'dnd', icon: 'moon', fillOnActive: true, activeBg: '#fff', activeColor: '#5E5CE6', defaultSize: '2x1', hasBadge: false },
+  { id: 'dnd', icon: 'moon', fillOnActive: true, activeBg: '#fff', activeColor: '#5E5CE6', defaultSize: '1x1', hasBadge: false },
   { id: 'sound', icon: 'bell', fillOnActive: false, activeBg: '#fff', activeColor: '#258FFF', defaultSize: '1x1' },
   { id: 'rotationLock', icon: 'rotationLock', activeBg: '#fff', activeColor: '#FF3B30' },
   { id: 'screenRecord', icon: 'video', fillOnActive: true, activeBg: '#fff', activeColor: '#FF4942' },
@@ -350,14 +351,14 @@ const DEFAULT_TOGGLE_IDS = [
   'flashlight', 'sound',
   'bluetooth', 'hotspot', 'airplane', 'location',
   'screenshot', 'darkMode', 'dnd', 'rotationLock',
-  'screenRecord', 'batterySaver', 'autoRotate', 'share',
+  'screenRecord', 'batterySaver', 'calculator', 'autoRotate', 'share',
   /* 倒数第二排顺序（Ricky 2026-09-09）：肩键 → 液冷散热 → 灯效 → 晕动舒缓。
      GT / GT 17 都按这个相对顺序；CAMON、NOTE 没有肩键和液冷，剩下的
      灯效 → 晕动舒缓 相对顺序不变，所以不受影响。 */
   'shoulderKey', 'liquidCooling', 'boost', 'motionComfort',
   /* 收尾三个固定为 快速分享 / 扫一扫 / 钱包 —— 所有默认布局统一（Ricky 2026-09-08）。
      注意要放在机型独占项之后，否则 GT 的液冷/肩键会插到末尾把它们挤掉。 */
-  'cast', 'scan', 'calculator'
+  'cast', 'scan'
   /* 关机垫底已移除（Ricky 2026-09-20）。删掉它回到「加磁贴之前」的基线高度：
      note17 / gt17 恢复 9 行且不再进入溢出态（「空白处上滑关闭」随之回归），
      其余 5 个预设本来就在溢出态，只是末行少一格。
@@ -404,7 +405,7 @@ const HIOS17_ITEMS = [
   { id: 'flashlight', type: 'toggle', size: '1x1' },
   { id: 'location', type: 'toggle', size: '1x1' },
   { id: 'rotationLock', type: 'toggle', size: '1x1' },
-  { id: 'dnd', type: 'toggle', size: '2x1' },
+  { id: 'dnd', type: 'toggle', size: '1x1' },
   { id: 'batterySaver', type: 'toggle', size: '1x1' },
   { id: 'screenRecord', type: 'toggle', size: '1x1' },
   { id: 'screenshot', type: 'toggle', size: '1x1' },
@@ -710,6 +711,13 @@ function onActivate(id) {
        · powerTransition（本文件上方）：菜单开着时把 CC 内容钉在 opacity 1；
        · status watch：CC 被重新拉开时 closePowerMenu()，免得 CC 内容被钉死。 */
   if (id === 'dnd') {
+    const el = gridRef.value?.querySelector('.cc-cell[data-id="dnd"]')
+    if (el) {
+      const r = el.getBoundingClientRect()
+      focusAnchor.value = { x: r.x, y: r.y, width: r.width, height: r.height }
+    } else {
+      focusAnchor.value = null
+    }
     focusSwitcherOpen.value = true
     return
   }
@@ -1467,7 +1475,12 @@ const glassRing = computed(() =>
       </div>
     </div>
     </div>
-    <FocusSwitcher :visible="focusSwitcherOpen" @close="focusSwitcherOpen = false" @open-settings="openFocusSettings" />
+    <FocusSwitcher
+      :visible="focusSwitcherOpen"
+      :anchor="focusAnchor"
+      @close="focusSwitcherOpen = false"
+      @open-settings="openFocusSettings"
+    />
   </div>
 </template>
 
