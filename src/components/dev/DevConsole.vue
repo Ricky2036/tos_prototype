@@ -751,7 +751,21 @@ function onToggleFineTune(enabled) {
             <!-- 虚线分割 -->
             <div class="pc-divider-dashed"></div>
 
+            <!-- 1x1 Joy Connect / 心率血氧 数值显示方式 -->
+            <div class="pc-section">
+            <div class="pc-card-header">
+            <span class="pc-card-title">1*1 Joy Connect&amp;心率血氧样式</span>
+            </div>
+            <div class="pc-seg" role="radiogroup" aria-label="1*1 Joy Connect&amp;心率血氧样式">
+            <div class="pc-seg-thumb-3" :style="{ transform: `translate(${['none', 'below', 'center'].indexOf(control.deviceTileValuePosition) * 100}%)` }"></div>
+            <button v-for="option in [{value:'none',label:'仅图标'},{value:'below',label:'数值在下'},{value:'center',label:'数值居中'}]" :key="option.value" class="pc-seg-btn" :class="{on:control.deviceTileValuePosition === option.value}" role="radio" :aria-checked="control.deviceTileValuePosition === option.value" @click="control.deviceTileValuePosition = option.value">{{ option.label }}</button>
+            </div>
+            </div>
+
+            <!-- 虚线分割 -->
+            <div class="pc-divider-dashed"></div>
             <!-- 区域 4：微调图标尺寸 -->
+
             <div class="pc-section">
               <div class="pc-card-header" style="margin-bottom: 0;">
                 <span class="pc-card-title">图标尺寸</span>
@@ -1328,7 +1342,21 @@ function onToggleFineTune(enabled) {
                     <!-- 虚线分割 -->
                     <div class="pc-divider-dashed"></div>
 
+                    <!-- 1x1 Joy Connect / 心率血氧 数值显示方式 -->
+                    <div class="pc-section">
+                    <div class="pc-card-header">
+                    <span class="pc-card-title">1*1 Joy Connect&amp;心率血氧样式</span>
+                    </div>
+                    <div class="pc-seg" role="radiogroup" aria-label="1*1 Joy Connect&amp;心率血氧样式">
+                    <div class="pc-seg-thumb-3" :style="{ transform: `translate(${['none', 'below', 'center'].indexOf(control.deviceTileValuePosition) * 100}%)` }"></div>
+                    <button v-for="option in [{value:'none',label:'仅图标'},{value:'below',label:'数值在下'},{value:'center',label:'数值居中'}]" :key="option.value" class="pc-seg-btn" :class="{on:control.deviceTileValuePosition === option.value}" role="radio" :aria-checked="control.deviceTileValuePosition === option.value" @click="control.deviceTileValuePosition = option.value">{{ option.label }}</button>
+                    </div>
+                    </div>
+
+                    <!-- 虚线分割 -->
+                    <div class="pc-divider-dashed"></div>
                     <!-- 区域 4：微调图标尺寸 -->
+
                     <div class="pc-section">
                       <div class="pc-card-header" style="margin-bottom: 0;">
                         <span class="pc-card-title">图标尺寸</span>

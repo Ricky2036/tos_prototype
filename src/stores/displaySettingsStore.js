@@ -13,6 +13,7 @@ const K = {
   THEME_SCHEDULE: 'tos_display_theme_schedule',
   DARK_WALLPAPER_DIM: 'tos_display_dark_wallpaper_dim',
   SLEEP_ASSIST: 'tos_display_sleep_assist',
+  AUTO_BRIGHTNESS: 'tos_display_auto_brightness',
   EYE_CARE: 'tos_display_eye_care',
   EYE_CARE_SCHEDULE: 'tos_display_eye_care_schedule',
   EYE_CARE_TEMP: 'tos_display_eye_care_temp',
@@ -40,6 +41,7 @@ export const useDisplaySettingsStore = defineStore('displaySettings', () => {
   const themeSchedule = ref(readString(K.THEME_SCHEDULE, 'off'))
   const darkWallpaperDim = ref(readBool(K.DARK_WALLPAPER_DIM, true))
   const sleepAssist = ref(readBool(K.SLEEP_ASSIST, false))
+  const autoBrightness = ref(readBool(K.AUTO_BRIGHTNESS, true))
   const eyeCare = ref(readBool(K.EYE_CARE, false))
   const eyeCareSchedule = ref(readString(K.EYE_CARE_SCHEDULE, 'off'))
   const eyeCareTemp = ref(readNumber(K.EYE_CARE_TEMP, 0.5))
@@ -128,6 +130,7 @@ export const useDisplaySettingsStore = defineStore('displaySettings', () => {
     const map = {
       darkWallpaperDim: [darkWallpaperDim, K.DARK_WALLPAPER_DIM],
       sleepAssist: [sleepAssist, K.SLEEP_ASSIST],
+      autoBrightness: [autoBrightness, K.AUTO_BRIGHTNESS],
       eyeCare: [eyeCare, K.EYE_CARE],
       gestureQuickSize: [gestureQuickSize, K.GESTURE_QUICK_SIZE],
       strongLightMode: [strongLightMode, K.STRONG_LIGHT]
@@ -164,6 +167,7 @@ export const useDisplaySettingsStore = defineStore('displaySettings', () => {
     themeSchedule,
     darkWallpaperDim,
     sleepAssist,
+    autoBrightness,
     eyeCare,
     eyeCareSchedule,
     eyeCareTemp,

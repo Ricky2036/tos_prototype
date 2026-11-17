@@ -20,6 +20,7 @@ import ControlCenter from '../system/ControlCenter.vue'
 import AppLibrary from '../system/AppLibrary.vue'
 import AppSwitcher from '../system/AppSwitcher.vue'
 import VolumePanel from '../system/VolumePanel.vue'
+import FlashlightPanel from '../system/FlashlightPanel.vue'
 import SideVolumeOverlay from '../system/SideVolumeOverlay.vue'
 import PowerMenu from '../system/PowerMenu.vue'
 import ShareSheet from '../system/ShareSheet.vue'
@@ -346,6 +347,7 @@ useSwipeGesture(sideEdgeRef, {
 
     <!-- 音量 Plus 浮层：全屏音量面板 / 侧边音量 / 电源菜单（层级见 tokens.css 的 --z-volume-* / --z-side-volume* / --z-power-menu） -->
     <VolumePanel />
+    <FlashlightPanel />
     <SideVolumeOverlay />
     <PowerMenu />
     <ShareSheet />

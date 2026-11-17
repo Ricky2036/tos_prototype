@@ -1,8 +1,9 @@
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useControlStore } from '../../../stores/controlStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import LIcon from '../../ui/LIcon.vue'
+import ResizeHandleIcon from '../../ui/ResizeHandleIcon.vue'
 
 /**
  * 控制中心网格开关按钮（移植自 android_control_center.tsx GridButton）。
@@ -20,6 +21,60 @@ const emit = defineEmits(['activate', 'resize-start', 'remove'])
 
 const control = useControlStore()
 const i18n = useI18nStore()
+const tileElement = ref(null)
+const frozenFlashlightActive = ref(control.flashlightPanelOpen ? (control.flashlightTileSnapshot ?? control.flashlightActive) : null)
+let previousTile
+let handoffAnimation
+let incomingAnimation
+let handoffGeneration = 0
+
+function clearFlashlightHandoff() {
+  handoffGeneration++
+  handoffAnimation?.cancel()
+  handoffAnimation = null
+  incomingAnimation?.cancel()
+  incomingAnimation = null
+  previousTile?.remove()
+  previousTile = null
+  tileElement.value?.classList.remove('gb-state-sync')
+}
+
+// Keep the old tile visually intact during fullscreen interaction. On dismissal,
+// crossfade that saved tile over the already-updated state, alongside the panel.
+watch(() => control.flashlightPanelOpen, async (open) => {
+  if (props.item.id !== 'flashlight') return
+  clearFlashlightHandoff()
+  if (open) {
+    frozenFlashlightActive.value = control.flashlightTileSnapshot ?? control.flashlightActive
+    return
+  }
+  if (frozenFlashlightActive.value === null || frozenFlashlightActive.value === control.flashlightActive) {
+    frozenFlashlightActive.value = null
+    return
+  }
+  const root = tileElement.value
+  const body = root?.querySelector('.gb-body')
+  if (!body) return
+  const generation = handoffGeneration
+  const saved = body.cloneNode(true)
+  saved.classList.add('gb-state-previous')
+  saved.setAttribute('aria-hidden', 'true')
+  root.classList.add('gb-state-sync')
+  root.appendChild(saved)
+  previousTile = saved
+  await nextTick()
+  if (generation !== handoffGeneration) return
+  const timing = {
+    duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 300,
+    easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards'
+  }
+  incomingAnimation = body.animate([{ opacity: 0 }, { opacity: 1 }], timing)
+  handoffAnimation = saved.animate([{ opacity: 1 }, { opacity: 0 }], timing)
+  handoffAnimation.finished.then(() => {
+    if (generation === handoffGeneration) clearFlashlightHandoff()
+  }).catch(() => {})
+}, { flush: 'sync' })
+onBeforeUnmount(clearFlashlightHandoff)
 
 const isSound = computed(() => props.item.id === 'sound')
 const isLocation = computed(() => props.item.id === 'location')
@@ -30,6 +85,11 @@ const isFineTuning = computed(() => control.fineTuningMode)
 /** 激活状态绑定 controlStore */
 const isActive = computed(() => {
   const id = props.item.id
+  if (id === 'flashlight') {
+    if (control.flashlightPanelOpen && frozenFlashlightActive.value !== null) return frozenFlashlightActive.value
+    if (control.flashlightTileSnapshot !== null) return control.flashlightTileSnapshot
+    return control.flashlightActive
+  }
   if (id === 'sound') {
     // 1x1 状态下：静音 (mute) 和振动 (vibrate) 属于激活高亮状态
     return control.soundMode === 'mute' || control.soundMode === 'vibrate'
@@ -299,7 +359,47 @@ function onSoundSegClick(mode, e) {
   }
 }
 
+let flashlightHold
+let flashlightLongPressed = false
+let flashlightStart
+
+function cancelFlashlightHold() {
+  clearTimeout(flashlightHold)
+  flashlightStart = null
+}
+
+function openFlashlightPanel(tile) {
+  const { x, y, width, height } = tile.getBoundingClientRect()
+  control.openFlashlightPanel({ x, y, width, height })
+}
+
+function startFlashlightHold(event) {
+  if (!isFlashlight.value || props.editing || isFineTuning.value || !event.isPrimary || event.button !== 0) return
+  cancelFlashlightHold()
+  flashlightLongPressed = false
+  const tile = event.currentTarget
+  flashlightStart = { x: event.clientX, y: event.clientY }
+  flashlightHold = setTimeout(() => {
+    flashlightLongPressed = true
+    flashlightStart = null
+    openFlashlightPanel(tile)
+  }, 500)
+}
+
+function moveFlashlightHold(event) {
+  if (flashlightStart && Math.hypot(event.clientX - flashlightStart.x, event.clientY - flashlightStart.y) > 7) {
+    cancelFlashlightHold()
+  }
+}
+
+onBeforeUnmount(cancelFlashlightHold)
+
 function onClick(e) {
+  if (isFlashlight.value && flashlightLongPressed) {
+    flashlightLongPressed = false
+    e?.stopPropagation()
+    return
+  }
   if (e) {
     e.stopPropagation()
   }
@@ -349,6 +449,7 @@ function onResizeDown(e) {
 
 <template>
   <div
+    ref="tileElement"
     class="gb-wrap"
     :class="{
       editing: editing && !resizing,
@@ -357,6 +458,16 @@ function onResizeDown(e) {
       'ft-selected': isSelected
     }"
     :style="{ width: computedWidth + 'px', transition: resizing ? 'none' : 'width 350ms cubic-bezier(0.2, 0.8, 0.2, 1)' }"
+    :data-testid="isFlashlight ? 'flashlight-tile' : undefined"
+    :tabindex="isFlashlight && !editing ? 0 : undefined"
+    :role="isFlashlight && !editing ? 'button' : undefined"
+    :aria-label="isFlashlight ? '手电筒' : undefined"
+    @pointerdown="startFlashlightHold"
+    @pointermove="moveFlashlightHold"
+    @pointerup="cancelFlashlightHold"
+    @pointerleave="cancelFlashlightHold"
+    @pointercancel="cancelFlashlightHold"
+    @keydown.enter.self.prevent="isFlashlight && !editing && !isFineTuning && openFlashlightPanel($event.currentTarget)"
     @click="onClick"
   >
     <div
@@ -477,21 +588,7 @@ function onResizeDown(e) {
       @pointerdown="onResizeDown"
       @dragstart.prevent.stop
     >
-      <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path
-          d="M14.9434 4.60134C14.9434 2.06009 16.9708 0 19.4717 0C21.9726 0 24 2.06009 24 4.60134C24 15.5287 15.2822 24.3871 4.5283 24.3871C2.02739 24.3871 0 22.327 0 19.7858C0 17.2445 2.02739 15.1844 4.5283 15.1844C10.2804 15.1844 14.9434 10.4462 14.9434 4.60134Z"
-          fill="rgba(255, 255, 255, 0.22)"
-          stroke="url(#gb_resize_stroke)"
-          stroke-width="1.2"
-        />
-        <defs>
-          <linearGradient id="gb_resize_stroke" x1="0" y1="0" x2="24" y2="25" gradientUnits="userSpaceOnUse">
-            <stop stop-color="white" stop-opacity="0.95"/>
-            <stop offset="0.5" stop-color="white" stop-opacity="0.3"/>
-            <stop offset="1" stop-color="white" stop-opacity="0.8"/>
-          </linearGradient>
-        </defs>
-      </svg>
+      <ResizeHandleIcon />
     </div>
   </div>
 </template>
@@ -505,6 +602,9 @@ function onResizeDown(e) {
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.18));
 }
 .gb-wrap.editing { cursor: move; }
+.gb-state-sync > .gb-body:not(.gb-state-previous),
+.gb-state-sync > .gb-body:not(.gb-state-previous) :deep(*) { transition: none !important; }
+.gb-state-previous { z-index: 3; pointer-events: none; }
 .gb-body {
   position: absolute;
   inset: 0;

@@ -1,5 +1,7 @@
 import { defineStore, acceptHMRUpdate } from 'pinia'
 
+export const FLASHLIGHT_MAX_HALF_ANGLE = 60
+
 /* ---- 控制中心图标/底板默认尺寸基准表 ---- */
 export const DEFAULT_ICON_SIZES = {
   wifi: 26,
@@ -212,7 +214,7 @@ let mediaDismissTimer = null
 /** 控制中心 / 状态栏 / 亮度滤镜共享的真实开关状态 */
 export const useControlStore = defineStore('control', {
   state: () => ({
-    brightness: 1.0,     // 0.25..1，驱动屏幕滤镜（默认全亮纯白）
+    brightness: 1.0,     // 0..1，驱动屏幕滤镜（默认全亮纯白）
     volume: 0.65,        // 默认与设计图 65% 一致
     airplane: false,
     wifi: true,
@@ -221,6 +223,19 @@ export const useControlStore = defineStore('control', {
     doNotDisturb: false,
     rotationLock: false,
     flashlight: false,
+    frontFlashlightOn: false,
+    frontFlashlightRemembered: false,
+    flashlightBrightness: 1,
+    flashlightRememberedBrightness: 1,
+    flashlightBeam: 1,
+    flashlightLamps: { front: false, rear: true, highBeam: true },
+    flashlightPanelOpen: false,
+    flashlightGuidanceSeen: false,
+    flashlightArrowGuidanceSeen: false,
+    flashlightGuidanceMode: 'dot',
+    flashlightResetRevision: 0,
+    flashlightPanelAnchor: null,
+    flashlightTileSnapshot: null,
     battery: 0.86,
 
     /* ---- 安卓控制中心扩展 ---- */
@@ -255,7 +270,8 @@ export const useControlStore = defineStore('control', {
        这一组来自 volume-plus-mode 原型，整体为纯增量：
        旧逻辑只认 volume(0..1)，这里在它之上叠一层「Plus 档位」和三条独立的浮层状态机。 */
     volumePlusLevel: 0,        // 0 | 2 | 3 | 5，对应普通音量 / 200% / 300% / 500%
-    volumePanelOpen: false,    // 全屏音量面板（长按 CC 音量条打开）
+    sliderPanelKind: 'volume', // 'volume' | 'brightness'，长按 CC 竖滑块展开的全屏面板类型
+    volumePanelOpen: false,    // 控制中心全屏滑条面板（长按 CC 音量/亮度条打开）
     volumePanelAnchor: null,   // 打开时的锚点矩形，供 FLIP 从 CC 音量条放大到全屏
     volumeAnchorHidden: false, // 锚点移交期间隐藏 CC 里那条音量条，避免重影
     sideVolumeMode: 'hidden',  // hidden | expanded | compact | panel | media
@@ -277,6 +293,7 @@ export const useControlStore = defineStore('control', {
 
     /* ---- 像素级微调模式 (Fine-Tuning Mode) ---- */
     fineTuningMode: false,
+    deviceTileValuePosition: 'none', // 'none' | 'below' | 'center'，Joy Connect / 心率血氧 1x1 数值位置
     selectedTarget: 'wifi',
     selectedSubTarget: 'icon', // 'icon' | 'bg'，默认选中修改图标尺寸
     customDefaultIconSizes: { ...DEFAULT_ICON_SIZES, ...initialDefaults.icons },
@@ -288,6 +305,8 @@ export const useControlStore = defineStore('control', {
   }),
 
   getters: {
+    flashlightBeamHalfAngle: (state) => state.flashlightBeam * FLASHLIGHT_MAX_HALF_ANGLE,
+    flashlightActive: (state) => state.flashlight || (state.flashlightLamps.front && state.frontFlashlightOn),
     /** 格子边长（px） */
     cellSize() { return BASE_CELL * this.gridScale },
     /** 行列间距（px） */
@@ -306,7 +325,53 @@ export const useControlStore = defineStore('control', {
         this.toggleMediaPlaying()
         return
       }
-      if (typeof this[key] === 'boolean') this[key] = !this[key]
+      if (key === 'flashlight') this.setFlashlight(!this.flashlightActive)
+      else if (typeof this[key] === 'boolean') this[key] = !this[key]
+    },
+    setFlashlightBrightness(value, { remember = true } = {}) {
+      const brightness = Math.max(0, Math.min(1, value))
+      // A one-percent endpoint zone absorbs subpixel/finger jitter at zero.
+      this.flashlightBrightness = brightness <= 0.01 ? 0 : brightness
+      this.flashlight = this.flashlightBrightness > 0
+      if (remember) this.rememberFlashlightBrightness()
+    },
+    rememberFlashlightBrightness() {
+      if (this.flashlightBrightness > 0) this.flashlightRememberedBrightness = this.flashlightBrightness
+    },
+    setFlashlightBeam(value) {
+      this.flashlightBeam = Math.max(0, Math.min(1, value))
+    },
+    setRearFlashlight(on) {
+      if (on && this.flashlightBrightness === 0) this.flashlightBrightness = this.flashlightRememberedBrightness || 1
+      this.flashlight = on
+    },
+    setFrontFlashlight(on) {
+      if (!this.flashlightLamps.front) return
+      this.frontFlashlightOn = !!on
+      this.frontFlashlightRemembered = !!on
+    },
+    setFlashlight(on) {
+      this.frontFlashlightOn = !!on && this.flashlightLamps.front && this.frontFlashlightRemembered
+      this.setRearFlashlight(on)
+    },
+    resetFlashlight() {
+      this.$patch({
+        flashlight: false,
+        frontFlashlightOn: false,
+        frontFlashlightRemembered: false,
+        flashlightBrightness: 1,
+        flashlightRememberedBrightness: 1,
+        flashlightBeam: 1,
+        flashlightLamps: { front: false, rear: true, highBeam: true },
+        flashlightGuidanceSeen: false,
+        flashlightArrowGuidanceSeen: false,
+        flashlightResetRevision: this.flashlightResetRevision + 1
+      })
+    },
+    openFlashlightPanel(anchor = null) {
+      if (this.flashlightTileSnapshot === null) this.flashlightTileSnapshot = this.flashlightActive
+      this.flashlightPanelAnchor = anchor
+      this.flashlightPanelOpen = true
     },
     toggleMediaPlaying() {
       this.mediaPlaying = !this.mediaPlaying
@@ -353,7 +418,7 @@ export const useControlStore = defineStore('control', {
     },
     setShowPrivacyIndicators(v) { this.showPrivacyIndicators = !!v },
     setShowDualSim(v) { this.showDualSim = !!v },
-    setBrightness(v) { this.brightness = Math.min(1, Math.max(0.25, v)) },
+    setBrightness(v) { this.brightness = Math.min(1, Math.max(0, v)) },
     setVolume(v) {
       this.volume = Math.min(1, Math.max(0, v))
       // 拖滑块 / 点轨道都视为主动离开 Plus 档（volumePlus.test.js 有断言）
@@ -396,8 +461,10 @@ export const useControlStore = defineStore('control', {
       if (direction === 'down') this.volumeDown()
     },
 
-    /* ---- 全屏音量面板（长按 CC 音量条）---- */
-    openVolumePanel(anchor = null) {
+    /* ---- 全屏滑条面板（长按 CC 亮度/音量条）---- */
+    openVolumePanel(anchor = null, kind = 'volume') {
+      if (this.volumePanelOpen) return
+      this.sliderPanelKind = kind
       this.volumePanelAnchor = anchor
       this.volumeAnchorHidden = Boolean(anchor)
       this.volumePanelOpen = true
@@ -497,9 +564,9 @@ export const useControlStore = defineStore('control', {
         this.selectedTarget = `sound_${this.soundMode}_${suffix}`
       }
       if (id === 'flashlight_on') {
-        this.flashlight = true
+        this.setFlashlight(true)
       } else if (id === 'flashlight_off') {
-        this.flashlight = false
+        this.setFlashlight(false)
       }
     },
     setSelectedSubTarget(sub) {

@@ -1,7 +1,14 @@
 <script setup>
+import joyConnectIcon from '../../assets/icons/control-center/joy-connect.svg'
+import joyConnectBelow from '../../assets/icons/control-center/joy-connect-below.svg'
+import healthBelow from '../../assets/icons/control-center/health-below.svg'
+import healthCenter from '../../assets/icons/control-center/health-center.svg'
+import healthIcon from '../../assets/icons/control-center/health-icon.svg'
+import ResizeHandleIcon from '../ui/ResizeHandleIcon.vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useSystemStore } from '../../stores/systemStore'
 import { useControlStore, LAYOUT_PRESETS, PRESET_EXCLUSIVE_IDS } from '../../stores/controlStore'
+import { useDisplaySettingsStore } from '../../stores/displaySettingsStore'
 import { useI18nStore } from '../../stores/i18nStore'
 import { useSwipeGesture } from '../../composables/useSwipeGesture'
 import { useCapture } from '../../composables/useCapture'
@@ -14,6 +21,7 @@ import FocusSwitcher from './cc/FocusSwitcher.vue'
 import { useFocusSettingsStore } from '../../stores/focusSettingsStore.js'
 import { useNotificationsStore } from '../../stores/notificationsStore.js'
 import LIcon from '../ui/LIcon.vue'
+import BrightnessPowerHint from './cc/BrightnessPowerHint.vue'
 import StatusIcons from '../ui/StatusIcons.vue'
 import MaterialBlur from '../ui/MaterialBlur.vue'
 import { VOLUME_LABELS } from '../../locales/volume.js'
@@ -29,6 +37,7 @@ import albumCover from '../../assets/icons/album_cover.png'
  */
 const system = useSystemStore()
 const control = useControlStore()
+const display = useDisplaySettingsStore()
 const i18n = useI18nStore()
 const focus = useFocusSettingsStore()
 const notifications = useNotificationsStore()
@@ -131,20 +140,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('pointercancel', onResizeEnd)
   resizeState = null
 
-  // 滑块拖拽
-  if (sliderMoveHandler) {
-    window.removeEventListener('pointermove', sliderMoveHandler)
-    sliderMoveHandler = null
-  }
-  if (sliderUpHandler) {
-    window.removeEventListener('pointerup', sliderUpHandler)
-    window.removeEventListener('pointercancel', sliderUpHandler)
-    sliderUpHandler = null
-  }
-
-  // 音量条：拖动句柄 + 长按展开定时器（长按期间没有任何 pointermove，
-  // 与亮度条那套句柄语义互斥，所以是独立的一份，必须单独摘）
-  clearVolumeSliderGestures()
+  // 亮度/音量滑块拖拽与长按定时器
+  clearSliderGesture()
 
   // 定时器
   if (interactTimer) { clearTimeout(interactTimer); interactTimer = null }
@@ -455,7 +452,7 @@ const presetItems = computed(() => {
   //   packLayout 按数组顺序紧凑填入 4 列网格，恰好复刻截图里的排版）。
   //   EE1 的 CAMON 版用 layout:'ee1' 走 EE1_ITEMS（HiOS 清单 + 热点/定位微调）。
   if (preset.id === 'camon') {
-    items = PRIVACY_CONTROL_ITEMS
+    items = [...PRIVACY_CONTROL_ITEMS, { id: 'flashlight', type: 'toggle', size: '1x1' }]
   } else if (preset.id === 'hios17' || preset.layout === 'hios17') {
     items = HIOS17_ITEMS
   } else if (preset.layout === 'ee1') {
@@ -631,7 +628,7 @@ let resizeState = null
 function onResizeStart(e, id) {
   markInteracting()
   const item = layout.value.find((i) => i.id === id)
-  if (!item || item.type !== 'toggle') return
+  if (!item || (item.type !== 'toggle' && !['joyConnect', 'joyHeart'].includes(item.id))) return
   resizeState = {
     id,
     startX: e.clientX,
@@ -813,137 +810,71 @@ watch(
 
 /* ================= 竖向滑块（亮度/音量） ================= */
 
-/* 滑块拖拽的 window 监听句柄提升到组件作用域，卸载时可精确摘除 */
-let sliderMoveHandler = null
-let sliderUpHandler = null
+const SLIDER_LONG_PRESS_MS = 500
+const SLIDER_LONG_PRESS_SLOP = 7
+let clearSliderGesture = () => {}
 
-function sliderPointer(e, key) {
-  if (editing.value) return
+/* 亮度条与音量条共用一套「拖动跟手 / 按住 500ms 展开全屏面板」手势。
+   位移超过 7px 判为拖动并撤销长按；整套监听在 pointerup/cancel/卸载时精确摘除。 */
+function sliderPointer(e, kind) {
+  if (editing.value || !e.isPrimary || e.button !== 0) return
   e.stopPropagation()
+  clearSliderGesture()
   const track = e.currentTarget
-  const setFromEvent = (ev) => {
-    const r = track.getBoundingClientRect()
-    const ratio = clamp((r.bottom - ev.clientY) / r.height, 0, 1)
-    if (key === 'brightness') control.setBrightness(Math.max(0.25, ratio))
-    else control.setVolume(ratio)
-  }
-  setFromEvent(e)
-
-  // 上一次拖拽若未正常结束（多指 / 组件被切走），先摘掉残留监听
-  if (sliderMoveHandler) window.removeEventListener('pointermove', sliderMoveHandler)
-  if (sliderUpHandler) {
-    window.removeEventListener('pointerup', sliderUpHandler)
-    window.removeEventListener('pointercancel', sliderUpHandler)
-  }
-
-  sliderMoveHandler = (ev) => setFromEvent(ev)
-  sliderUpHandler = () => {
-    window.removeEventListener('pointermove', sliderMoveHandler)
-    window.removeEventListener('pointerup', sliderUpHandler)
-    window.removeEventListener('pointercancel', sliderUpHandler)
-    sliderMoveHandler = null
-    sliderUpHandler = null
-  }
-  window.addEventListener('pointermove', sliderMoveHandler)
-  window.addEventListener('pointerup', sliderUpHandler, { once: true })
-  window.addEventListener('pointercancel', sliderUpHandler, { once: true })
-}
-
-/* ---- 音量条：拖动调音量 + 按住 500ms 展开全屏面板 ---- */
-
-/* 长按判定：位移不超过这个像素数才算「按住不动」（与拖动共用一次 pointer 序列）。
-   7px 取的是「手指/鼠标按住时的自然抖动上界」：再小会把静止长按误判成拖动，
-   再大会让「想微调音量却拖不动」的手感变钝。 */
-const VOLUME_LONG_PRESS_SLOP = 7
-/** 起手到展开的等待时间。500ms 是长按的通用阈值（Android long press / HIG 同值）。 */
-const VOLUME_LONG_PRESS_MS = 500
-
-/* ⚠️ 不复用上面亮度那条的 sliderMoveHandler/sliderUpHandler：
-   长按期间整段没有 pointermove，两套语义（「按住不动」vs「跟手拖动」）互斥，
-   共用句柄会让后一次交互把前一次的监听摘掉。所以这里是一套独立句柄，
-   并在 onBeforeUnmount 里通过 clearVolumeSliderGestures() 一并摘除。 */
-let volumeSliderMoveHandler = null
-let volumeSliderUpHandler = null
-let volumeSliderTimer = null
-
-function clearVolumeSliderGestures() {
-  if (volumeSliderTimer) {
-    clearTimeout(volumeSliderTimer)
-    volumeSliderTimer = null
-  }
-  if (volumeSliderMoveHandler) {
-    window.removeEventListener('pointermove', volumeSliderMoveHandler)
-    volumeSliderMoveHandler = null
-  }
-  if (volumeSliderUpHandler) {
-    window.removeEventListener('pointerup', volumeSliderUpHandler)
-    window.removeEventListener('pointercancel', volumeSliderUpHandler)
-    volumeSliderUpHandler = null
-  }
-}
-
-function volumeSliderPointer(e) {
-  if (editing.value) return
-  e.stopPropagation()
-  const track = e.currentTarget
-  const startY = e.clientY
+  const { clientX, clientY, pointerId } = e
   let moved = false
-  let longPressed = false
 
-  const setFromEvent = (ev) => {
+  function update(ev) {
     const r = track.getBoundingClientRect()
-    control.setVolume(clamp((r.bottom - ev.clientY) / r.height, 0, 1))
+    const value = clamp((r.bottom - ev.clientY) / r.height, 0, 1)
+    if (kind === 'brightness') control.setBrightness(value)
+    else control.setVolume(value)
+  }
+  function move(ev) {
+    if (ev.pointerId !== pointerId) return
+    if (!moved && Math.hypot(ev.clientX - clientX, ev.clientY - clientY) <= SLIDER_LONG_PRESS_SLOP) return
+    moved = true
+    clearTimeout(timer)
+    update(ev)
+  }
+  function end(ev) {
+    if (ev.pointerId !== pointerId) return
+    clearSliderGesture()
+    if (ev.type === 'pointerup' && !moved) update(ev)
   }
 
-  // 上一次拖拽若未正常结束（多指 / 组件被切走），先摘掉残留监听与残留定时器
-  clearVolumeSliderGestures()
-
-  volumeSliderMoveHandler = (ev) => {
-    if (Math.abs(ev.clientY - startY) > VOLUME_LONG_PRESS_SLOP) moved = true
-    if (!moved) return
-    // 确认为拖动后立刻撤销长按；setVolume 内部会把 Plus 档清零（volumePlus.test.js 有断言）
-    if (volumeSliderTimer) {
-      clearTimeout(volumeSliderTimer)
-      volumeSliderTimer = null
+  const timer = window.setTimeout(() => {
+    clearSliderGesture()
+    if (track.isConnected && !editing.value && system.overlays.controlCenter.status === 'open') {
+      openSliderPanel(track, kind)
     }
-    setFromEvent(ev)
+  }, SLIDER_LONG_PRESS_MS)
+
+  clearSliderGesture = () => {
+    clearTimeout(timer)
+    window.removeEventListener('pointermove', move)
+    window.removeEventListener('pointerup', end)
+    window.removeEventListener('pointercancel', end)
+    clearSliderGesture = () => {}
   }
 
-  volumeSliderUpHandler = (ev) => {
-    // pointercancel = 手势被系统/滚动抢走，不是用户有意定位，绝不能当作单击落音量
-    const wasTap = ev.type === 'pointerup' && !moved && !longPressed
-    clearVolumeSliderGestures()
-    /* 单击 = 直接跳到该位置的音量（亮度条一直是这个行为，音量条此前也是）。
-       快照的原版把 setFromEvent 只挂在 move 上，等于顺手砍掉了「点哪到哪」；
-       这里补回来 —— 长按已经在上面的 timer 里分流，两者不冲突。 */
-    if (wasTap) setFromEvent(ev)
-  }
-
-  volumeSliderTimer = window.setTimeout(() => {
-    if (moved) return
-    longPressed = true
-    volumeSliderTimer = null
-    // 按住不动满 500ms：以音量条当前渲染矩形为锚点展开全屏面板
-    openVolumePanel(track)
-    clearVolumeSliderGestures()
-  }, VOLUME_LONG_PRESS_MS)
-
-  window.addEventListener('pointermove', volumeSliderMoveHandler)
-  window.addEventListener('pointerup', volumeSliderUpHandler)
-  window.addEventListener('pointercancel', volumeSliderUpHandler)
+  window.addEventListener('pointermove', move)
+  window.addEventListener('pointerup', end)
+  window.addEventListener('pointercancel', end)
 }
 
-/** 把音量条的真实渲染矩形交给面板，供其做「从条原位长大」的锚点动画。
- *  取的是 getBoundingClientRect 的**合成后**尺寸 —— CC 本身有 translateY 变换，
- *  面板展开时 CC 已经收起，所以面板侧会用屏幕坐标系直接用这个矩形。 */
-function openVolumePanel(track) {
-  const r = track?.getBoundingClientRect?.()
-  control.openVolumePanel(r ? { x: r.x, y: r.y, width: r.width, height: r.height } : null)
+function openSliderPanel(track, kind) {
+  if (editing.value) return
+  const r = track.getBoundingClientRect()
+  control.openVolumePanel({ x: r.x, y: r.y, width: r.width, height: r.height }, kind)
 }
 
 /* ================= 其他 ================= */
 
 const brightnessPct = computed(() => control.brightness * 100)
+const brightnessIconFilled = computed(() =>
+  control.brightness * (control.cellSize * 2 + control.gridGap) >= 44
+)
 
 /* Plus 档（音量已到顶后继续按音量键）在 CC 上表现为三件事同时发生：
    条子填充铺满 100%、顶部叠一层琥珀渐变、条内显示档位数字（200 / 300 / 500）。
@@ -1350,20 +1281,37 @@ const glassRing = computed(() =>
 
           <!-- 亮度 / 音量竖滑块 (2x2 138x138) -->
           <div v-else-if="item.id === 'mediaControls'" class="cc-sliders">
-            <div class="cc-vslider" @pointerdown="sliderPointer($event, 'brightness')">
-              <svg class="cc-vslider-bg-svg" width="100%" height="100%" viewBox="0 0 62 138" preserveAspectRatio="none" fill="none">
-                <rect x="0.5" y="0.5" width="61" height="137" rx="30.5" fill="rgba(255, 255, 255, 0.04)" />
-              </svg>
-              <div class="cc-vslider-fill" :style="{ height: brightnessPct + '%' }"></div>
-              <div class="cc-vslider-icon">
-                <LIcon name="sun" :size="26" />
+            <div
+              class="cc-vslider cc-glass-track"
+              :class="{ 'anchor-hidden': control.volumeAnchorHidden && control.sliderPanelKind === 'brightness' }"
+              data-testid="brightness-slider"
+              tabindex="0"
+              :aria-label="vLabel('brightnessSliderAria')"
+              @pointerdown="sliderPointer($event, 'brightness')"
+              @keydown.enter.prevent="openSliderPanel($event.currentTarget, 'brightness')"
+            >
+              <div class="cc-vslider-fill" :style="{ height: brightnessPct + '%' }">
+                <BrightnessPowerHint :brightness="control.brightness" />
               </div>
+              <button
+                type="button"
+                class="cc-brightness-toggle"
+                :class="{ 'on-fill': brightnessIconFilled }"
+                :aria-label="vLabel('autoBrightness')"
+                :aria-pressed="display.autoBrightness"
+                :disabled="editing"
+                @pointerdown.stop
+                @keydown.enter.stop
+                @click.stop="display.setBool('autoBrightness', !display.autoBrightness)"
+              >
+                <LIcon name="brightnessAuto" :size="26" aria-hidden="true" />
+              </button>
             </div>
             <div
-              class="cc-vslider cc-volume-slider"
+              class="cc-vslider cc-volume-slider cc-glass-track"
               :class="{
                 'is-plus': volumePlusActive,
-                'anchor-hidden': control.volumeAnchorHidden,
+                'anchor-hidden': control.volumeAnchorHidden && control.sliderPanelKind === 'volume',
                 'plus-200': control.volumePlusLevel === 2,
                 'plus-300': control.volumePlusLevel === 3,
                 'plus-500': control.volumePlusLevel === 5
@@ -1371,14 +1319,11 @@ const glassRing = computed(() =>
               data-testid="volume-slider"
               tabindex="0"
               :aria-label="vLabel('sliderAria')"
-              @pointerdown="volumeSliderPointer"
-              @keydown.enter.prevent="openVolumePanel($event.currentTarget)"
+              @pointerdown="sliderPointer($event, 'volume')"
+              @keydown.enter.prevent="openSliderPanel($event.currentTarget, 'volume')"
             >
-              <svg class="cc-vslider-bg-svg" width="100%" height="100%" viewBox="0 0 62 138" preserveAspectRatio="none" fill="none">
-                <rect x="0.5" y="0.5" width="61" height="137" rx="30.5" fill="rgba(255, 255, 255, 0.04)" />
-              </svg>
               <div class="cc-vslider-fill" :style="{ height: volumePct + '%' }"></div>
-              <!-- Plus 态：琥珀渐变 + 档位数字（z-index 夹在 fill(1) 与描边 svg(2) 之间） -->
+              <!-- Plus 态：琥珀渐变 + 档位数字（叠在音量填充层上） -->
               <div v-if="volumePlusActive" class="cc-volume-plus-gradient" aria-hidden="true"></div>
               <div v-if="volumePlusActive" class="cc-volume-value" data-testid="volume-value">
                 {{ volumeDisplayPct }}%
@@ -1394,20 +1339,23 @@ const glassRing = computed(() =>
             </div>
           </div>
 
-          <!-- OneLeap (2x1) -->
+          <!-- Joy Connect: 1x1 icon / 2x1 label -->
           <div
             v-else-if="item.id === 'joyConnect'"
-            class="cc-pill"
+            class="cc-pill cc-adaptive-pill"
+            :style="{ width: toggleWidth(item) + 'px', transition: resizingId === item.id ? 'none' : undefined }"
             :class="{
+              'cc-adaptive-compact': item.size === '1x1',
               'ft-selectable': control.fineTuningMode,
               'ft-selected': control.fineTuningMode && control.selectedTarget === 'oneLeap'
             }"
             @click="onPillClick($event, 'oneLeap')"
           >
-            <svg class="cc-pill-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
+            <svg class="cc-pill-bg-svg" width="100%" height="100%" :viewBox="`0 0 ${toggleWidth(item)} ${control.cellSize}`" preserveAspectRatio="none" fill="none">
+              <rect x="0.5" y="0.5" :width="toggleWidth(item) - 1" :height="control.cellSize - 1" :rx="control.cellSize / 2 - 0.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
             </svg>
             <div
+              v-if="item.size !== '1x1'"
               class="cc-pill-icon"
               :style="{
                 width: control.getBgSize('oneLeap') + 'px',
@@ -1416,25 +1364,38 @@ const glassRing = computed(() =>
                 background: 'rgba(255, 255, 255, 0.16)'
               }"
             >
-              <LIcon name="link2" :size="control.getIconSize('oneLeap')" />
+              <img :src="joyConnectIcon" :width="control.getIconSize('oneLeap')" :height="control.getIconSize('oneLeap')" alt="" aria-hidden="true" />
             </div>
-            <div class="cc-pill-text"><span class="cc-pill-title">{{ control.layoutPreset === 'camon' ? 'OneLeap' : i18n.ccLabel('oneLeap') }}</span></div>
+            <div class="cc-pill-text cc-device-text">
+              <span class="cc-pill-title">{{ control.layoutPreset === 'camon' ? 'OneLeap' : i18n.ccLabel('oneLeap') }}</span>
+            </div>
+            <img
+              v-if="item.size === '1x1'"
+              class="cc-compact-art"
+              :class="'cc-art-joyConnect-' + control.deviceTileValuePosition"
+              :src="control.deviceTileValuePosition === 'below' ? joyConnectBelow : joyConnectIcon"
+              alt=""
+              aria-hidden="true"
+            />
           </div>
 
-          <!-- Health&SPO (2x1) -->
+          <!-- Health: 1x1 icon / 2x1 readings -->
           <div
             v-else-if="item.id === 'joyHeart'"
-            class="cc-pill"
+            class="cc-pill cc-adaptive-pill"
+            :style="{ width: toggleWidth(item) + 'px', transition: resizingId === item.id ? 'none' : undefined }"
             :class="{
+              'cc-adaptive-compact': item.size === '1x1',
               'ft-selectable': control.fineTuningMode,
               'ft-selected': control.fineTuningMode && control.selectedTarget === 'health'
             }"
             @click="onPillClick($event, 'health')"
           >
-            <svg class="cc-pill-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
+            <svg class="cc-pill-bg-svg" width="100%" height="100%" :viewBox="`0 0 ${toggleWidth(item)} ${control.cellSize}`" preserveAspectRatio="none" fill="none">
+              <rect x="0.5" y="0.5" :width="toggleWidth(item) - 1" :height="control.cellSize - 1" :rx="control.cellSize / 2 - 0.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
             </svg>
             <div
+              v-if="item.size !== '1x1'"
               class="cc-pill-icon"
               :style="{
                 width: control.getBgSize('health') + 'px',
@@ -1443,9 +1404,20 @@ const glassRing = computed(() =>
                 background: 'rgba(255, 255, 255, 0.16)'
               }"
             >
-              <LIcon name="health" :size="control.getIconSize('health')" />
+              <img :src="healthIcon" :width="control.getIconSize('health')" :height="control.getIconSize('health')" alt="" aria-hidden="true" />
             </div>
-            <div class="cc-pill-text"><span class="cc-pill-title">{{ control.layoutPreset === 'camon' ? 'Health&SPO' : i18n.ccLabel('health') }}</span></div>
+            <div class="cc-pill-text cc-device-text" data-testid="health-readings">
+              <span class="cc-pill-title">71bpm · 98%</span>
+              <span class="cc-pill-title">22ms · 64</span>
+            </div>
+            <img
+              v-if="item.size === '1x1'"
+              class="cc-compact-art"
+              :class="'cc-art-joyHeart-' + control.deviceTileValuePosition"
+              :src="control.deviceTileValuePosition === 'below' ? healthBelow : control.deviceTileValuePosition === 'center' ? healthCenter : healthIcon"
+              alt=""
+              aria-hidden="true"
+            />
           </div>
 
           <!-- 圆形开关 -->
@@ -1460,6 +1432,18 @@ const glassRing = computed(() =>
             @resize-start="onResizeStart"
             @remove="onRemove"
           />
+
+          <button
+            v-if="editing && ['joyConnect', 'joyHeart'].includes(item.id)"
+            class="cc-widget-resize"
+            :style="{ left: toggleWidth(item) - 24 + 'px' }"
+            :aria-label="item.id === 'joyConnect' ? '调整 Joy Connect 尺寸' : '调整心率血氧尺寸'"
+            @pointerdown.prevent.stop="onResizeStart($event, item.id)"
+            @dragstart.prevent.stop
+            @click.stop
+          >
+            <ResizeHandleIcon aria-hidden="true" />
+          </button>
 
           <!-- 编辑模式统一删除徽标（widget 类型，挂在 cell 级避免被容器 overflow 裁切） -->
           <div
@@ -1855,6 +1839,25 @@ const glassRing = computed(() =>
   overflow: hidden;
   transition: background 0.3s ease;
 }
+.cc-adaptive-pill { transition: width 350ms cubic-bezier(.2,.8,.2,1), background .3s ease; }
+.cc-pill.cc-adaptive-pill .cc-pill-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); transition: top 220ms ease, left 350ms cubic-bezier(.2,.8,.2,1), transform 350ms cubic-bezier(.2,.8,.2,1), background .3s ease; }
+.cc-adaptive-pill .cc-pill-text { margin-left: 46px; opacity: 1; transition: opacity 180ms ease; }
+.cc-pill.cc-adaptive-pill.cc-adaptive-compact .cc-pill-icon { left: 50%; transform: translate(-50%, -50%); background: transparent !important; box-shadow: none; }
+.cc-adaptive-compact .cc-pill-text { opacity: 0; }
+/* Native SVG art includes the exact glyph positions and outlined value text. */
+.cc-pill.cc-adaptive-pill .cc-compact-art { position: absolute; left: 50%; transform: translateX(-50%); pointer-events: none; object-fit: contain; }
+.cc-art-joyConnect-below { top: calc(50% - 15px * var(--cc-k, 1)); width: calc(30px * var(--cc-k, 1)); height: calc(37px * var(--cc-k, 1)); }
+.cc-art-joyHeart-below { top: calc(50% - 19px * var(--cc-k, 1)); width: calc(32px * var(--cc-k, 1)); height: calc(41px * var(--cc-k, 1)); }
+/* Keep the actual SVG glyph at its native scale in every value mode.
+   The below-value SVG adds a text area; it does not scale the icon itself. */
+.cc-pill.cc-adaptive-pill .cc-art-joyConnect-none,
+.cc-pill.cc-adaptive-pill .cc-art-joyConnect-center { top: calc(50% + .5px * var(--cc-k, 1)); left: calc(50% + .5px * var(--cc-k, 1)); width: calc(22px * var(--cc-k, 1)); height: calc(22px * var(--cc-k, 1)); transform: translate(-50%, -50%); }
+.cc-pill.cc-adaptive-pill .cc-art-joyHeart-none,
+.cc-pill.cc-adaptive-pill .cc-art-joyHeart-center { top: 50%; width: calc(32px * var(--cc-k, 1)); height: calc(32px * var(--cc-k, 1)); transform: translate(-50%, -50%); }
+.cc-widget-resize { position: absolute; bottom: 0; width: 24px; height: 25px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; cursor: ew-resize; touch-action: none; z-index: 30; overflow: visible; filter: drop-shadow(0 2px 4px rgba(0,0,0,.25)); transition: transform .15s ease, opacity .15s ease, filter .15s ease; }
+.cc-widget-resize:hover { transform: scale(1.08); }
+.cc-widget-resize:active { transform: scale(.92); }
+.cc-widget-resize:focus-visible { outline: 2px solid white; border-radius: 50%; }
 .cc-pill:hover { background: rgba(255, 255, 255, 0.22); }
 .cc-pill.ft-selectable {
   cursor: pointer;
@@ -1909,6 +1912,12 @@ const glassRing = computed(() =>
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.cc-device-text .cc-pill-title {
+  font: 400 10px/1.2 var(--font-stack);
+  letter-spacing: 0;
+  color: #fff;
+}
+.cc-device-text { gap: 0; }
 .cc-pill-sub {
   font: 400 11px/1.2 var(--font-stack);
   color: rgba(255, 255, 255, 0.65);
@@ -2020,30 +2029,11 @@ const glassRing = computed(() =>
 .cc-vslider {
   flex: 1;
   border-radius: calc(var(--cc-cell) / 2);
-  /* 白色毛玻璃（配方见 styles/tokens.css 的 `--glass-white-*`）。
-     ⚠️⚠️ 这里的 backdrop-filter 是**死的**，实测无效 —— 别指望它给滑块去饱和：
-     `.cc-content`(will-change: transform, opacity) 与 `.control-center`(will-change: transform)
-     都会建立 **backdrop root**，而滑块就是该 root 里最底层的东西 ⇒ 采样结果为透明。
-     验证方法：把 token 的 saturate 从 200% 改成 0%，屏上像素**一个字节都不变**
-     （scripts/probe-volume-glass.mjs 的 cc 段就是这条回归）。
-     滑块背后的模糊已由 CC 自己的 MaterialBlur 提供，所以观感不受影响；
-     但也因此**拿不到 saturate(45%) 的去饱和补偿**，只能靠 α 把紫色压下去。
-     改这个 α 之前先跑探针，别凭手感。 */
-  background: var(--glass-white-bar);
-  backdrop-filter: var(--glass-white-blur);
-  -webkit-backdrop-filter: var(--glass-white-blur);
+  /* 底色与渐变描边由全局 .cc-glass-track 提供，和普通磁贴同一套玻璃配方。 */
   position: relative;
   overflow: hidden;
   cursor: pointer;
   touch-action: none;
-}
-.cc-vslider-bg-svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 2;
 }
 .cc-vslider-fill {
   position: absolute;
@@ -2061,6 +2051,26 @@ const glassRing = computed(() =>
   pointer-events: none;
   z-index: 3;
 }
+
+.cc-brightness-toggle {
+  position: absolute;
+  left: 50%;
+  bottom: 15px;
+  translate: -50% 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+}
+.cc-brightness-toggle.on-fill { color: #81858d; }
+.cc-brightness-toggle[aria-pressed="true"] { color: var(--cc-brightness-orange); }
 
 /* ---- 音量条 Plus 态（2026-09-20 集成外部 volume-plus-mode 快照）---- */
 /* 音量推满后继续按音量键 → 满格 + 琥珀渐变 + 档位数字（200/300/500），
@@ -2082,7 +2092,7 @@ const glassRing = computed(() =>
   pointer-events: none;
 }
 /* 面板从这条条子上长大期间源条让位（VolumePanel 按同一矩形做展开动画） */
-.cc-volume-slider.anchor-hidden {
+.cc-vslider.anchor-hidden {
   opacity: 0;
   transition: none;
 }
@@ -2096,13 +2106,13 @@ const glassRing = computed(() =>
   transition: background 220ms ease;
 }
 .cc-volume-slider.plus-200 .cc-volume-plus-gradient {
-  background: linear-gradient(to top, rgba(253, 186, 116, 0) 0%, rgba(253, 186, 116, 0.42) 52%, rgba(251, 146, 60, 1) 100%);
+  background: var(--volume-plus-200);
 }
 .cc-volume-slider.plus-300 .cc-volume-plus-gradient {
-  background: linear-gradient(to top, rgba(251, 146, 60, 0) 0%, rgba(251, 146, 60, 0.5) 52%, rgba(249, 115, 22, 1) 100%);
+  background: var(--volume-plus-300);
 }
 .cc-volume-slider.plus-500 .cc-volume-plus-gradient {
-  background: linear-gradient(to top, rgba(249, 115, 22, 0) 0%, rgba(234, 88, 12, 0.58) 52%, rgba(194, 65, 12, 1) 100%);
+  background: var(--volume-plus-500);
 }
 .cc-volume-value {
   position: absolute;

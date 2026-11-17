@@ -1,6 +1,6 @@
 <script setup>
 /**
- * 全屏音量面板：长按控制中心音量条展开。
+ * 全屏滑条面板：长按控制中心亮度条或音量条展开。
  *
  * 动画策略（沿用原型的「插值真实外框」而不是非等比 scale）：
  * 从锚点矩形（CC 音量条）插值到终态矩形。终态尺寸不再写死 88×276 ——
@@ -10,12 +10,17 @@
  */
 import { computed, nextTick, ref, watch } from 'vue'
 import { useControlStore } from '../../stores/controlStore'
+import { useDisplaySettingsStore } from '../../stores/displaySettingsStore'
 import { useI18nStore } from '../../stores/i18nStore'
 import { VOLUME_LABELS } from '../../locales/volume.js'
 import { clamp } from '../../utils/math'
 import LIcon from '../ui/LIcon.vue'
+import BrightnessPowerHint from './cc/BrightnessPowerHint.vue'
+import soundIcon from '../../assets/icons/volume/icon_sound.svg'
+import brightnessIcon from '../../assets/icons/brightness/brightness.svg'
 
 const control = useControlStore()
+const display = useDisplaySettingsStore()
 const i18n = useI18nStore()
 const vLabel = (k) => VOLUME_LABELS[i18n.locale]?.[k] ?? VOLUME_LABELS.zh[k] ?? k
 
@@ -36,7 +41,15 @@ const volumeDisplayPct = computed(() => control.volumePlusLevel
   : Math.round(control.volume * 100)
 )
 const volumePlusActive = computed(() => control.volumePlusLevel > 0)
-const vTitle = computed(() => vLabel('panelTitle'))
+const isMuted = computed(() => control.volume === 0 && !volumePlusActive.value)
+const isBrightness = computed(() => control.sliderPanelKind === 'brightness')
+const title = computed(() => vLabel(isBrightness.value ? 'brightnessTitle' : 'panelTitle'))
+const fillPct = computed(() => isBrightness.value ? control.brightness * 100 : volumePct.value)
+const brightnessActions = computed(() => [
+  { label: vLabel('autoBrightness'), color: 'var(--cc-brightness-orange)', icon: 'brightnessAuto', active: display.autoBrightness, toggle: () => display.setBool('autoBrightness', !display.autoBrightness) },
+  { label: vLabel('darkTheme'), color: '#258fff', icon: 'brightnessDark', active: control.darkMode, toggle: () => control.setFlag('darkMode', !control.darkMode) },
+  { label: vLabel('eyeCare'), color: 'var(--cc-brightness-orange)', icon: 'brightnessEye', active: display.eyeCare, toggle: () => display.setBool('eyeCare', !display.eyeCare) }
+])
 
 function sliderPointer(e) {
   e.stopPropagation()
@@ -45,8 +58,12 @@ function sliderPointer(e) {
   let moved = false
   const setFromEvent = (ev) => {
     const r = track.getBoundingClientRect()
-    control.setVolume(clamp((r.bottom - ev.clientY) / r.height, 0, 1))
+    const value = clamp((r.bottom - ev.clientY) / r.height, 0, 1)
+    if (isBrightness.value) control.setBrightness(value)
+    else control.setVolume(value)
   }
+  // 亮度条与亮度面板一致：单击即定位；音量条保留「拖动才生效、单击不改变」的既有语义。
+  if (isBrightness.value) setFromEvent(e)
   const move = (ev) => {
     if (Math.abs(ev.clientY - startY) > 5) moved = true
     if (moved) setFromEvent(ev)
@@ -179,32 +196,62 @@ watch(
   <div
     v-if="control.volumePanelOpen"
     ref="panelRef"
-    class="volume-panel"
-    data-testid="volume-panel"
+    class="volume-panel cc-fullscreen-panel"
+    :data-testid="isBrightness ? 'brightness-panel' : 'volume-panel'"
+    @keydown.esc.stop.prevent="closePanel"
   >
-    <div ref="backdropRef" class="vp-backdrop" @click="closePanel"></div>
+    <div ref="backdropRef" class="vp-backdrop cc-fullscreen-backdrop" @click.self="closePanel">
+      <div v-if="isBrightness" class="bp-actions">
+        <button
+          v-for="action in brightnessActions"
+          :key="action.label"
+          type="button"
+          :aria-pressed="action.active"
+          :style="{ '--active-icon-color': action.color }"
+          @click="action.toggle"
+        >
+          <span class="bp-action-icon cc-glass-track">
+            <LIcon :name="action.icon" :size="32" aria-hidden="true" />
+          </span>
+          {{ action.label }}
+        </button>
+      </div>
+    </div>
     <div ref="headingRef" class="vp-heading">
-      <span :data-muted="control.volume === 0 && !volumePlusActive" data-testid="fullscreen-volume-icon">
-        <LIcon :name="control.volume === 0 && !volumePlusActive ? 'volumeX' : 'volume2'" :size="30" :stroke-width="2.5" />
+      <img v-if="isBrightness" :src="brightnessIcon" class="vp-icon" width="48" height="48" alt="" />
+      <span v-else class="vp-icon" :data-muted="isMuted" data-testid="fullscreen-volume-icon">
+        <LIcon v-if="isMuted" name="volumeX" :size="48" :stroke-width="2.5" />
+        <img v-else :src="soundIcon" width="48" height="48" alt="" />
       </span>
-      <span>{{ vTitle }}</span>
+      <span>{{ title }}</span>
     </div>
 
     <div ref="sliderShellRef" class="vp-slider-shell">
       <div
-        class="vp-slider"
+        class="vp-slider cc-glass-track"
         :class="{
-          'is-plus': volumePlusActive,
-          'plus-200': control.volumePlusLevel === 2,
-          'plus-300': control.volumePlusLevel === 3,
-          'plus-500': control.volumePlusLevel === 5
+          'is-plus': !isBrightness && volumePlusActive,
+          'plus-200': !isBrightness && control.volumePlusLevel === 2,
+          'plus-300': !isBrightness && control.volumePlusLevel === 3,
+          'plus-500': !isBrightness && control.volumePlusLevel === 5
         }"
-        data-testid="fullscreen-volume-slider"
+        :data-testid="isBrightness ? 'fullscreen-brightness-slider' : 'fullscreen-volume-slider'"
+        :role="isBrightness ? 'slider' : undefined"
+        :tabindex="isBrightness ? 0 : undefined"
+        :aria-label="isBrightness ? title : undefined"
+        :aria-valuemin="isBrightness ? 0 : undefined"
+        :aria-valuemax="isBrightness ? 100 : undefined"
+        :aria-valuenow="isBrightness ? Math.round(fillPct) : undefined"
+        :aria-orientation="isBrightness ? 'vertical' : undefined"
+        @keydown.up.prevent="isBrightness && control.setBrightness(control.brightness + 0.05)"
+        @keydown.down.prevent="isBrightness && control.setBrightness(control.brightness - 0.05)"
         @pointerdown="sliderPointer"
       >
-        <div class="vp-fill" :style="{ height: volumePct + '%' }"></div>
-        <div v-if="volumePlusActive" class="vp-plus-gradient" aria-hidden="true"></div>
-        <div v-if="volumePlusActive" class="vp-value" data-testid="fullscreen-volume-value">
+        <div class="vp-fill" :style="{ height: fillPct + '%' }">
+          <BrightnessPowerHint v-if="isBrightness" :brightness="control.brightness" />
+        </div>
+        <div v-if="!isBrightness && volumePlusActive" class="vp-plus-gradient" aria-hidden="true"></div>
+        <div v-if="!isBrightness && volumePlusActive" class="vp-value" data-testid="fullscreen-volume-value">
           {{ volumeDisplayPct }}%
         </div>
       </div>
@@ -233,6 +280,50 @@ watch(
   background: rgba(0, 0, 0, 0.22);
   backdrop-filter: blur(28px) saturate(130%);
   -webkit-backdrop-filter: blur(28px) saturate(130%);
+}
+
+.vp-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+}
+
+.bp-actions {
+  position: absolute;
+  top: 77.3%;
+  left: 10%;
+  width: 80%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.bp-actions button {
+  display: grid;
+  justify-items: center;
+  gap: 13px;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: 400 11px/1.4 var(--font-stack);
+  cursor: pointer;
+}
+
+.bp-action-icon {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-capsule, 999px);
+  transition: background-color 300ms ease, color 300ms ease, box-shadow 300ms ease;
+}
+
+.bp-actions button[aria-pressed="true"] .bp-action-icon {
+  background-color: white;
+  color: var(--active-icon-color);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 18%);
 }
 
 .vp-heading {
@@ -271,7 +362,6 @@ watch(
      而 overflow:hidden 会把子元素裁在 padding box 内 ⇒ 白 fill 铺满也盖不掉那圈环。
      （顺带去掉了顶部 1px inset 白色高光 —— 它也是一道「描边」。） */
   border: none;
-  background: var(--glass-white-bar);
   cursor: pointer;
   touch-action: none;
   will-change: contents;

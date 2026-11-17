@@ -65,6 +65,12 @@
      而 saturate(200%) 会把壁纸的紫**翻倍** —— 玻璃比壁纸还艳，这是「奇怪」的根源。
      （实测：侧栏条 chroma 72 / 紧邻壁纸 36，反解 α 为 −1.0，物理上不可能。） */
   --glass-white-bar: rgba(255, 255, 255, 0.74);
+  --volume-plus-200: linear-gradient(to top, transparent 52%, rgb(255 155 74 / 43%) 78%, #ff9b4a);
+  --volume-plus-300: linear-gradient(to top, transparent 52%, rgb(255 147 63 / 46%) 78%, #ff933f);
+  --volume-plus-500: linear-gradient(to top, transparent 52%, rgb(246 130 51 / 49%) 78%, #f68233);
+  --cc-flashlight-active: #fbb500;
+  --cc-brightness-orange: #ffad00;
+  --cc-button-glass: rgba(255, 255, 255, 0.16);
   --glass-white-bar-in-card: rgba(255, 255, 255, 0.34);
   --glass-white-card: rgba(255, 255, 255, 0.72);
   --glass-white-blur: blur(30px) saturate(75%);
@@ -144,4 +150,38 @@
   --ft-select-color: #258fff;
   --ft-select-offset: 2px;
   --ft-select-glow: 0 0 6px rgba(37, 143, 255, 0.35);
+}
+
+/* 控制中心滑条沿用普通磁贴的底色、微白叠层和渐变轮廓。 */
+.cc-glass-track {
+  background: linear-gradient(#ffffff0a, #ffffff0a), var(--cc-button-glass);
+}
+
+.cc-glass-track::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(to bottom, #ffffffcc, #ffffff33 30% 70%, #ffffff80);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* 控制中心长按展开的全屏面板共用叠层与幕布。 */
+.cc-fullscreen-panel {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-volume-panel);
+  color: white;
+}
+
+.cc-fullscreen-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 22%);
+  backdrop-filter: blur(28px) saturate(130%);
+  -webkit-backdrop-filter: blur(28px) saturate(130%);
 }
