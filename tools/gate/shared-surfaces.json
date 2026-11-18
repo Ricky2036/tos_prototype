@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "description": "共享 UI / 几何源文件 → 受影响页面的映射。这些文件一改，所有使用它们的设置页几何/外观都受影响；门禁必须把它们从「非页面文件」提升为「shared-surface」并列出受影响的已映射页面。pages=\"*\" 表示「spec 里所有已映射页面」；列数组则给出精确页面。",
+  "notes": [
+    "审计 P0-6：旧门禁只 diff src/components/apps/settings，改 ListCell.vue / tokens.css 时 changed_files=[] 直接绿。",
+    "无法从映射推出受影响页面（例如 spec-root 为空，或改了 src 下没有映射的文件）时，门禁必须写 shared-surface: needs full contract coverage 并在 --block 下 exit 3，不允许静默放行。",
+    "新增共享组件/样式目录时必须在这里登记，否则门禁会把该 src 改动判成「不可映射」而不是猜测。"
+  ],
+  "surfaces": [
+    {
+      "id": "ui-primitives",
+      "glob": [
+        "src/components/ui/**"
+      ],
+      "pages": "*"
+    },
+    {
+      "id": "styles-tokens",
+      "glob": [
+        "src/styles/**"
+      ],
+      "pages": "*"
+    },
+    {
+      "id": "app-nav-bar",
+      "glob": [
+        "**/AppNavBar.vue"
+      ],
+      "pages": "*"
+    },
+    {
+      "id": "glass-nav-bar",
+      "glob": [
+        "**/GlassNavBar.vue"
+      ],
+      "pages": "*"
+    },
+    {
+      "id": "list-cell",
+      "glob": [
+        "**/ListCell.vue"
+      ],
+      "pages": "*"
+    },
+    {
+      "id": "toggle-switch",
+      "glob": [
+        "**/ToggleSwitch.vue"
+      ],
+      "pages": "*"
+    },
+    {
+      "id": "bottom-sheets",
+      "glob": [
+        "**/*Sheet.vue"
+      ],
+      "pages": "*"
+    },
+    {
+      "id": "settings-shared-css",
+      "glob": [
+        "src/components/apps/settings/**/*.css"
+      ],
+      "pages": "*"
+    },
+    {
+      "id": "settings-shared-js",
+      "glob": [
+        "src/components/apps/settings/**/shared/**"
+      ],
+      "pages": "*"
+    },
+    {
+      "id": "settings-state",
+      "glob": [
+        "src/stores/**"
+      ],
+      "pages": "*"
+    }
+  ]
+}

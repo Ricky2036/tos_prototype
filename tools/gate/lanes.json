@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "description": "签核 lane 白名单：lane 名 → git 提交身份（email）。规则：signed_by 必须在这个白名单里，且该 lane 映射到的 email ≠ verdict.commit 的 git 作者 email（= 实现者）。新增 lane 必须改本文件并进代码评审。",
+  "notes": [
+    "author（实现者）只从 git commit author 派生，不接受任何 --author 覆盖；本文件是签核侧的唯一身份映射。",
+    "同一 email 可以出现在多个 lane（例如多个实现 lane 最终都提交成 jingzhan.chen@jn90lf.local 的历史事实），但它们都不能给同一 email 作者的判决书签核。",
+    "dsh 是验收/审查 lane，身份域 dsh@local，用于给实现 lane 的判决书签核。"
+  ],
+  "lanes": {
+    "dsh": {
+      "email": "dsh@local",
+      "kind": "review"
+    },
+    "antigravity": {
+      "email": "jingzhan.chen@jn90lf.local",
+      "kind": "implement"
+    },
+    "codex": {
+      "email": "jingzhan.chen@jn90lf.local",
+      "kind": "implement"
+    },
+    "workbuddy": {
+      "email": "jingzhan.chen@jn90lf.local",
+      "kind": "implement"
+    }
+  }
+}

@@ -1,0 +1,292 @@
+{
+  "schema_version": 1,
+  "screen": "settings/system",
+  "source": "infinix-1208",
+  "canvas": {
+    "w": 360,
+    "h": 788
+  },
+  "device_px": {
+    "w": 1208,
+    "h": 2644
+  },
+  "from": "settings/system/page.xml",
+  "xml_sha256": "e1a83c38cd732d28af8375cddf226bba9037411d022b827681328d569a036753",
+  "generated_at": "2026-11-18T11:56:05.913Z",
+  "nodes": [
+    {
+      "id": "header:title",
+      "role": "header-title",
+      "text": "系统",
+      "summary": "",
+      "bounds": {
+        "x": 80.2,
+        "y": 53.3,
+        "w": 243.8,
+        "h": 21.2
+      },
+      "clickable": false,
+      "crop": [
+        269,
+        179,
+        818,
+        71
+      ]
+    },
+    {
+      "id": "header:back",
+      "role": "header-back",
+      "text": "",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 42,
+        "w": 44.1,
+        "h": 44.1
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        141,
+        148,
+        148
+      ]
+    },
+    {
+      "id": "row:系统导航",
+      "role": "row",
+      "text": "系统导航",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 100.1,
+        "w": 327.8,
+        "h": 52.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        336,
+        1100,
+        176
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:日期与时间",
+      "role": "row",
+      "text": "日期与时间",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 152.6,
+        "w": 327.8,
+        "h": 48.6
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        512,
+        1100,
+        163
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:语言与输入法",
+      "role": "row",
+      "text": "语言与输入法",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 201.2,
+        "w": 327.8,
+        "h": 52.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        675,
+        1100,
+        176
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:按住电源按钮",
+      "role": "row",
+      "text": "按住电源按钮",
+      "summary": "访问数字助理",
+      "bounds": {
+        "x": 16.1,
+        "y": 269.7,
+        "w": 327.8,
+        "h": 55.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        905,
+        1100,
+        187
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:定时开关机与重启",
+      "role": "row",
+      "text": "定时开关机与重启",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 325.5,
+        "w": 327.8,
+        "h": 52.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1092,
+        1100,
+        176
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:备份到Google云端硬盘",
+      "role": "row",
+      "text": "备份到Google云端硬盘",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 424.1,
+        "w": 327.8,
+        "h": 52.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1423,
+        1100,
+        176
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:USB 备份和恢复",
+      "role": "row",
+      "text": "USB 备份和恢复",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 476.6,
+        "w": 327.8,
+        "h": 48.6
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1599,
+        1100,
+        163
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:重置手机",
+      "role": "row",
+      "text": "重置手机",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 525.1,
+        "w": 327.8,
+        "h": 52.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1762,
+        1100,
+        176
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:开发者选项",
+      "role": "row",
+      "text": "开发者选项",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 593.7,
+        "w": 327.8,
+        "h": 52.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1992,
+        1100,
+        176
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:增强服务",
+      "role": "row",
+      "text": "增强服务",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 646.1,
+        "w": 327.8,
+        "h": 52.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        2168,
+        1100,
+        176
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "group:备份、重置与恢复",
+      "role": "group",
+      "text": "备份、重置与恢复",
+      "summary": "",
+      "bounds": {
+        "x": 31.9,
+        "y": 394,
+        "w": 112.1,
+        "h": 30.1
+      },
+      "clickable": false,
+      "crop": [
+        107,
+        1322,
+        376,
+        101
+      ]
+    }
+  ],
+  "unknowns": [
+    {
+      "kind": "appearance",
+      "element": "row:*",
+      "reason": "图标形态/底盘/填充率/颜色/圆角无法从 a11y 树机器提取，需 appearance crop 人工补齐"
+    }
+  ]
+}
