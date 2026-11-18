@@ -496,7 +496,7 @@ function handleSearchNavigate(item) {
               <!-- 专注模式：iOS 完整流程，入口位于 Infinix AI 正下方 -->
               <ListCell title="专注模式" chevron data-setting-row="focus" @click="push('focus')">
                 <template #icon>
-                  <div class="squircle-icon" style="background:#5E5CE6"><LIcon name="moon" :size="19" /></div>
+                  <div class="squircle-icon" style="background:#5E5CE6; color:#FFFFFF"><LIcon name="moon" :size="19" /></div>
                 </template>
               </ListCell>
 
@@ -1111,6 +1111,7 @@ background: #FFFFFF;
   justify-content: center;
   flex: none;
   margin-right: 14px;
+  color: #FFFFFF;
 }
 
 .squircle-icon-img {
