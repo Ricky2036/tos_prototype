@@ -76,3 +76,28 @@ settings 模块 18 页：有 spec 1 页 / 无 spec 17 页；有 dump/证据 8 �
 - 机器只判「结构 / 位置 / 有无 / 集合差」，**不判**颜色、图标形态、圆角、字体、文案、交互态、动态内容。
 - 外观仍要人看——但人只需要看**一张并排图**（`side-by-side.png`）+ 一个 waiver 列表，不用逐页找问题。
 - 契约来自真机；没有真机 dump 的页面，机器只能判「没有证据」，不能判「做错了」。
+---
+
+## 6. 已核验的处方（settings/system）
+
+2026-11-18 实测（HEAD `247e92b`，构建 `/tmp/dist-head`）：
+
+| 状态 | 判决 |
+|---|---|
+| 当前产品代码 | **2/13** pass（`--list-metrics` 口径） |
+| 按下列处方运行时注入 | **13/13** pass，exit 0 |
+
+处方（来源：真机 `03-system-page.png` + `system.xml`，见 `spec/settings-system.list-metrics.json`）：
+
+| # | 位置 | 值 | 实测依据 |
+|---|---|---|---|
+| ① | `tokens.css --safe-top` | 54 → **42px** | 真机返回按钮顶边 141 device px = 42 画布 px |
+| ② | `.system-body` padding-top | 12 → **15.7px** | 首行内容中心 128.1 画布 px |
+| ③ | `.list-cell` min-height | 52 → **48.8px** | 行距 163.8 device px（6 样本 162.0–169.0） |
+| ④ | 卡片间距（逐项） | card2 **24.6** / group **19.7+3.1** / card3 **3.1** / card4 **23.2** | 卡片首行中心偏移 +171.0 / +323.9 / +493.5 |
+
+模拟处方脚本：`tools/accept/recipes/settings-system-prescription.mjs`（验完即弃）。
+任务单：`.tasks/queue/SET-SYS-02.md`（含逐条 diff 与验收命令）。
+
+> ⚠️ ① 是共享 token，改它等于所有带页头的设置页整体上移 12px。
+> 合并前必须对**所有已有契约的页面**跑一遍 accept；没有契约的页面要显式列为「未知影响面」，不能默认没影响。

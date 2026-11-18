@@ -32,7 +32,7 @@ import { TEXT_BOX_ROLES } from './spec.mjs'
  */
 export const BOX_MODES = {
   'header-back': { rect: 'element', edges: 'left+cy' },
-  'header-title': { rect: 'text', edges: 'top' },   // a11y 标题盒含内边距，横向与宽度都不可比；只判纵向位置
+  'header-title': { rect: 'text', edges: 'cy' },     // a11y 标题盒含内边距、横向不可比；行盒高度不同源 → 只比垂直中心（行高对称影响 top 与 h）
   'header': { rect: 'element', edges: 'left+cy' },
   'group': { rect: 'text', edges: 'top' },          // a11y 文本节点行盒 vs DOM 文本墨迹：只判顶边
   'icon': { rect: 'element', edges: 'center' },
@@ -150,6 +150,7 @@ export function diffNodes({ specNodes, matches, scale, origin }) {
       top: [delta.dy],
       'left+cy+h': [delta.dx, round01(cy(actual) - cy(expected)), delta.dh],
       center: [round01(cx(actual) - cx(expected)), round01(cy(actual) - cy(expected))],
+      cy: [round01(cy(actual) - cy(expected))],
     }[mode.edges]
     const centerDelta = {
       dx: round01(cx(actual) - cx(expected)),
