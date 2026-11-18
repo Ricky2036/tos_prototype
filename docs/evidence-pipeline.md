@@ -46,9 +46,14 @@
 ## 3. 已知读数（2026-11-18 实测）
 
 ```
-settings 模块 18 页：有 spec 1 页 / 无 spec 17 页；有 dump/证据 8 页；可 G8 1 页
-无 spec 页面 17 / 共 18
+settings 模块 18 页：有 spec 13 页 / 无 spec 5 页；有 dump/证据 16 页；可 G8 13 页
+无 spec 页面 5 / 共 18
 ```
+
+证据入库存放：`spec/captures/device-infinix/<pageId>/page.xml` + `page.png`（设备 Infinix X6878，1208×2644）。
+13 页里 9 页是系统子页（dump 来自 11-16 的遍历取证），1 页是系统主页，其余为日期/时区/常驻地/安全。
+仍缺 5 页：`display`（只有截图无 dump）、`sound`（无）、`accessibility`（只有说明）、
+`system-google-backup`（遍历没采到）、`dateTime/settings-date-time`（与 `settings/dateTime` 是同一屏的组件/路由两份清单，未重复计）。
 
 判决（`settings/system`，对 11-14 构建 `0c945b6`）：
 

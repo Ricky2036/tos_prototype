@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "screen": "settings/system/system-usb-backup",
+  "source": "infinix-1208",
+  "canvas": {
+    "w": 360,
+    "h": 788
+  },
+  "device_px": {
+    "w": 1208,
+    "h": 2644
+  },
+  "from": "settings/system/system-usb-backup/page.xml",
+  "xml_sha256": "44ac5ed7fc836f31df79928969ff82961de0220e5092f3a19b1cde0fe9a09221",
+  "generated_at": "2026-11-18T12:04:32.981Z",
+  "nodes": [
+    {
+      "id": "header:title",
+      "role": "header-title",
+      "text": "设置定时开机",
+      "summary": "",
+      "bounds": {
+        "x": 80.2,
+        "y": 51.3,
+        "w": 199.7,
+        "h": 21.2
+      },
+      "clickable": false,
+      "crop": [
+        269,
+        172,
+        670,
+        71
+      ]
+    },
+    {
+      "id": "header:back",
+      "role": "header-back",
+      "text": "",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 39.9,
+        "w": 44.1,
+        "h": 44.1
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        134,
+        148,
+        148
+      ]
+    },
+    {
+      "id": "row:时间",
+      "role": "row",
+      "text": "时间",
+      "summary": "07:00",
+      "bounds": {
+        "x": 16.1,
+        "y": 112.1,
+        "w": 327.8,
+        "h": 63.8
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        376,
+        1100,
+        214
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:重复",
+      "role": "row",
+      "text": "重复",
+      "summary": "每天",
+      "bounds": {
+        "x": 16.1,
+        "y": 175.8,
+        "w": 327.8,
+        "h": 63.8
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        590,
+        1100,
+        214
+      ],
+      "toggle": false,
+      "checked": null
+    }
+  ],
+  "unknowns": [
+    {
+      "kind": "appearance",
+      "element": "row:*",
+      "reason": "图标形态/底盘/填充率/颜色/圆角无法从 a11y 树机器提取，需 appearance crop 人工补齐"
+    }
+  ]
+}

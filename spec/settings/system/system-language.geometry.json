@@ -1,0 +1,309 @@
+{
+  "schema_version": 1,
+  "screen": "settings/system/system-language",
+  "source": "infinix-1208",
+  "canvas": {
+    "w": 360,
+    "h": 788
+  },
+  "device_px": {
+    "w": 1208,
+    "h": 2644
+  },
+  "from": "settings/system/system-language/page.xml",
+  "xml_sha256": "098365ea2acc0bc9ac6de18c4f8ff730f3863aac5d9f86a8f20f09ac831e5829",
+  "generated_at": "2026-11-18T12:04:32.981Z",
+  "nodes": [
+    {
+      "id": "header:title",
+      "role": "header-title",
+      "text": "语言与输入法",
+      "summary": "",
+      "bounds": {
+        "x": 80.2,
+        "y": 53.3,
+        "w": 243.8,
+        "h": 21.2
+      },
+      "clickable": false,
+      "crop": [
+        269,
+        179,
+        818,
+        71
+      ]
+    },
+    {
+      "id": "header:back",
+      "role": "header-back",
+      "text": "",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 42,
+        "w": 44.1,
+        "h": 44.1
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        141,
+        148,
+        148
+      ]
+    },
+    {
+      "id": "row:语言与地区",
+      "role": "row",
+      "text": "语言与地区",
+      "summary": "简体中文",
+      "bounds": {
+        "x": 16.1,
+        "y": 100.1,
+        "w": 327.8,
+        "h": 68.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        336,
+        1100,
+        230
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:应用语言",
+      "role": "row",
+      "text": "应用语言",
+      "summary": "设置各应用的语言。",
+      "bounds": {
+        "x": 16.1,
+        "y": 168.7,
+        "w": 327.8,
+        "h": 68.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        566,
+        1100,
+        230
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:当前键盘",
+      "role": "row",
+      "text": "当前键盘",
+      "summary": "搜狗输入法",
+      "bounds": {
+        "x": 16.1,
+        "y": 283.4,
+        "w": 327.8,
+        "h": 55.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        951,
+        1100,
+        187
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:键盘应用",
+      "role": "row",
+      "text": "键盘应用",
+      "summary": "Emoji Keyboard、Google 语音输入、Gboard、搜狗输入法和Google 自动填充的语言和应用设置",
+      "bounds": {
+        "x": 16.1,
+        "y": 339.2,
+        "w": 327.8,
+        "h": 80.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1138,
+        1100,
+        270
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:安全键盘",
+      "role": "row",
+      "text": "安全键盘",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 419.6,
+        "w": 327.8,
+        "h": 52.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1408,
+        1100,
+        176
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:拼写检查工具",
+      "role": "row",
+      "text": "拼写检查工具",
+      "summary": "Gboard 拼写检查工具",
+      "bounds": {
+        "x": 16.1,
+        "y": 518.3,
+        "w": 327.8,
+        "h": 68.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1739,
+        1100,
+        230
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:个人字典",
+      "role": "row",
+      "text": "个人字典",
+      "summary": "添加要在“拼写检查工具”等应用中使用的字词。",
+      "bounds": {
+        "x": 16.1,
+        "y": 586.8,
+        "w": 327.8,
+        "h": 64.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1969,
+        1100,
+        217
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:语音",
+      "role": "row",
+      "text": "语音",
+      "summary": "控制语音识别和输出。",
+      "bounds": {
+        "x": 16.1,
+        "y": 651.5,
+        "w": 327.8,
+        "h": 68.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        2186,
+        1100,
+        230
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:温度",
+      "role": "row",
+      "text": "温度",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 766.2,
+        "w": 327.8,
+        "h": 21.8
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        2571,
+        1100,
+        73
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "group:键盘",
+      "role": "group",
+      "text": "键盘",
+      "summary": "",
+      "bounds": {
+        "x": 31.9,
+        "y": 253.3,
+        "w": 28,
+        "h": 30.1
+      },
+      "clickable": false,
+      "crop": [
+        107,
+        850,
+        94,
+        101
+      ]
+    },
+    {
+      "id": "group:工具",
+      "role": "group",
+      "text": "工具",
+      "summary": "",
+      "bounds": {
+        "x": 31.9,
+        "y": 488.2,
+        "w": 28,
+        "h": 30.1
+      },
+      "clickable": false,
+      "crop": [
+        107,
+        1638,
+        94,
+        101
+      ]
+    },
+    {
+      "id": "group:地区偏好设置",
+      "role": "group",
+      "text": "地区偏好设置",
+      "summary": "",
+      "bounds": {
+        "x": 31.9,
+        "y": 736.1,
+        "w": 84,
+        "h": 30.1
+      },
+      "clickable": false,
+      "crop": [
+        107,
+        2470,
+        282,
+        101
+      ]
+    }
+  ],
+  "unknowns": [
+    {
+      "kind": "appearance",
+      "element": "row:*",
+      "reason": "图标形态/底盘/填充率/颜色/圆角无法从 a11y 树机器提取，需 appearance crop 人工补齐"
+    }
+  ]
+}

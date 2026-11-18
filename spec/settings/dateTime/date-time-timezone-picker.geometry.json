@@ -1,0 +1,320 @@
+{
+  "schema_version": 1,
+  "screen": "settings/dateTime/date-time-timezone-picker",
+  "source": "infinix-1208",
+  "canvas": {
+    "w": 360,
+    "h": 788
+  },
+  "device_px": {
+    "w": 1208,
+    "h": 2644
+  },
+  "from": "settings/dateTime/date-time-timezone-picker/page.xml",
+  "xml_sha256": "1e812f255efa626bd980a77ee0b5a28299b6bbbd58297e64ac442d2ef04053ac",
+  "generated_at": "2026-11-18T12:04:32.981Z",
+  "nodes": [
+    {
+      "id": "header:title",
+      "role": "header-title",
+      "text": "选择时区",
+      "summary": "",
+      "bounds": {
+        "x": 80.2,
+        "y": 53.3,
+        "w": 199.7,
+        "h": 21.2
+      },
+      "clickable": false,
+      "crop": [
+        269,
+        179,
+        670,
+        71
+      ]
+    },
+    {
+      "id": "header:back",
+      "role": "header-back",
+      "text": "",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 42,
+        "w": 44.1,
+        "h": 44.1
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        141,
+        148,
+        148
+      ]
+    },
+    {
+      "id": "row:吉隆坡",
+      "role": "row",
+      "text": "吉隆坡",
+      "summary": "GMT+08:00",
+      "bounds": {
+        "x": 16.1,
+        "y": 0,
+        "w": 327.8,
+        "h": 36.4
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        0,
+        1100,
+        122
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:马尼拉",
+      "role": "row",
+      "text": "马尼拉",
+      "summary": "GMT+08:00",
+      "bounds": {
+        "x": 16.1,
+        "y": 36.4,
+        "w": 327.8,
+        "h": 67.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        122,
+        1100,
+        227
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:北京",
+      "role": "row",
+      "text": "北京",
+      "summary": "GMT+08:00",
+      "bounds": {
+        "x": 16.1,
+        "y": 104,
+        "w": 327.8,
+        "h": 67.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        349,
+        1100,
+        227
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:香港",
+      "role": "row",
+      "text": "香港",
+      "summary": "GMT+08:00",
+      "bounds": {
+        "x": 16.1,
+        "y": 171.7,
+        "w": 327.8,
+        "h": 67.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        576,
+        1100,
+        227
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:新加坡",
+      "role": "row",
+      "text": "新加坡",
+      "summary": "GMT+08:00",
+      "bounds": {
+        "x": 16.1,
+        "y": 239.3,
+        "w": 327.8,
+        "h": 67.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        803,
+        1100,
+        227
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:斯里巴加湾",
+      "role": "row",
+      "text": "斯里巴加湾",
+      "summary": "GMT+08:00",
+      "bounds": {
+        "x": 16.1,
+        "y": 307,
+        "w": 327.8,
+        "h": 67.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1030,
+        1100,
+        227
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:望加锡",
+      "role": "row",
+      "text": "望加锡",
+      "summary": "GMT+08:00",
+      "bounds": {
+        "x": 16.1,
+        "y": 374.6,
+        "w": 327.8,
+        "h": 67.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1257,
+        1100,
+        227
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:首尔",
+      "role": "row",
+      "text": "首尔",
+      "summary": "GMT+09:00",
+      "bounds": {
+        "x": 16.1,
+        "y": 442.3,
+        "w": 327.8,
+        "h": 67.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1484,
+        1100,
+        227
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:东京、大阪",
+      "role": "row",
+      "text": "东京、大阪",
+      "summary": "GMT+09:00",
+      "bounds": {
+        "x": 16.1,
+        "y": 509.9,
+        "w": 327.8,
+        "h": 67.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1711,
+        1100,
+        227
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:雅库茨克",
+      "role": "row",
+      "text": "雅库茨克",
+      "summary": "GMT+09:00",
+      "bounds": {
+        "x": 16.1,
+        "y": 577.6,
+        "w": 327.8,
+        "h": 67.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1938,
+        1100,
+        227
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:赤塔",
+      "role": "row",
+      "text": "赤塔",
+      "summary": "GMT+09:00",
+      "bounds": {
+        "x": 16.1,
+        "y": 645.2,
+        "w": 327.8,
+        "h": 67.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        2165,
+        1100,
+        227
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:帝力",
+      "role": "row",
+      "text": "帝力",
+      "summary": "GMT+09:00",
+      "bounds": {
+        "x": 16.1,
+        "y": 712.9,
+        "w": 327.8,
+        "h": 67.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        2392,
+        1100,
+        227
+      ],
+      "toggle": false,
+      "checked": null
+    }
+  ],
+  "unknowns": [
+    {
+      "kind": "unbound",
+      "element": "clickable#38",
+      "reason": "可点容器无可读 TextView 文本（class=android.widget.LinearLayout），无法绑定行 id"
+    },
+    {
+      "kind": "appearance",
+      "element": "row:*",
+      "reason": "图标形态/底盘/填充率/颜色/圆角无法从 a11y 树机器提取，需 appearance crop 人工补齐"
+    }
+  ]
+}

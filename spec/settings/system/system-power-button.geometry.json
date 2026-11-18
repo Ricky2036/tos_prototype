@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "screen": "settings/system/system-power-button",
+  "source": "infinix-1208",
+  "canvas": {
+    "w": 360,
+    "h": 788
+  },
+  "device_px": {
+    "w": 1208,
+    "h": 2644
+  },
+  "from": "settings/system/system-power-button/page.xml",
+  "xml_sha256": "fa7737759ff8375d3d2c852c2ea12b715b44a46eebd6df4b1f50da750f051710",
+  "generated_at": "2026-11-18T12:04:32.981Z",
+  "nodes": [
+    {
+      "id": "header:title",
+      "role": "header-title",
+      "text": "按住电源按钮",
+      "summary": "",
+      "bounds": {
+        "x": 80.2,
+        "y": 53.3,
+        "w": 243.8,
+        "h": 21.2
+      },
+      "clickable": false,
+      "crop": [
+        269,
+        179,
+        818,
+        71
+      ]
+    },
+    {
+      "id": "header:back",
+      "role": "header-back",
+      "text": "",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 42,
+        "w": 44.1,
+        "h": 44.1
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        141,
+        148,
+        148
+      ]
+    },
+    {
+      "id": "row:电源菜单",
+      "role": "row",
+      "text": "电源菜单",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 472.7,
+        "w": 327.8,
+        "h": 54.8
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1586,
+        1100,
+        184
+      ],
+      "toggle": true,
+      "checked": false
+    },
+    {
+      "id": "row:数字助理",
+      "role": "row",
+      "text": "数字助理",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 527.5,
+        "w": 327.8,
+        "h": 54.8
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1770,
+        1100,
+        184
+      ],
+      "toggle": true,
+      "checked": true
+    },
+    {
+      "id": "group:按住电源按钮即可访问",
+      "role": "group",
+      "text": "按住电源按钮即可访问",
+      "summary": "",
+      "bounds": {
+        "x": 31.9,
+        "y": 442.6,
+        "w": 140.1,
+        "h": 30.1
+      },
+      "clickable": false,
+      "crop": [
+        107,
+        1485,
+        470,
+        101
+      ]
+    },
+    {
+      "id": "group:电源菜单： \n长按电源键 3 秒。",
+      "role": "group",
+      "text": "电源菜单： \n长按电源键 3 秒。",
+      "summary": "",
+      "bounds": {
+        "x": 31.9,
+        "y": 598.5,
+        "w": 296.2,
+        "h": 30.1
+      },
+      "clickable": false,
+      "crop": [
+        107,
+        2008,
+        994,
+        101
+      ]
+    }
+  ],
+  "unknowns": [
+    {
+      "kind": "unbound",
+      "element": "clickable#13",
+      "reason": "可点容器无可读 TextView 文本（class=android.widget.FrameLayout），无法绑定行 id"
+    },
+    {
+      "kind": "appearance",
+      "element": "row:*",
+      "reason": "图标形态/底盘/填充率/颜色/圆角无法从 a11y 树机器提取，需 appearance crop 人工补齐"
+    }
+  ]
+}

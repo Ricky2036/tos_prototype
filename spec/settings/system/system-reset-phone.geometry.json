@@ -1,0 +1,189 @@
+{
+  "schema_version": 1,
+  "screen": "settings/system/system-reset-phone",
+  "source": "infinix-1208",
+  "canvas": {
+    "w": 360,
+    "h": 788
+  },
+  "device_px": {
+    "w": 1208,
+    "h": 2644
+  },
+  "from": "settings/system/system-reset-phone/page.xml",
+  "xml_sha256": "38290d289954ec89e586a29f4f8ff650ae1497ed3764aaa891ee5b87f7f85727",
+  "generated_at": "2026-11-18T12:04:32.981Z",
+  "nodes": [
+    {
+      "id": "header:title",
+      "role": "header-title",
+      "text": "定时开关机与重启",
+      "summary": "",
+      "bounds": {
+        "x": 80.2,
+        "y": 51.3,
+        "w": 243.8,
+        "h": 21.2
+      },
+      "clickable": false,
+      "crop": [
+        269,
+        172,
+        818,
+        71
+      ]
+    },
+    {
+      "id": "header:back",
+      "role": "header-back",
+      "text": "",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 39.9,
+        "w": 44.1,
+        "h": 44.1
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        134,
+        148,
+        148
+      ]
+    },
+    {
+      "id": "row:定时开机",
+      "role": "row",
+      "text": "定时开机",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 96,
+        "w": 327.8,
+        "h": 34
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        322,
+        1100,
+        114
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:07:00",
+      "role": "row",
+      "text": "07:00",
+      "summary": "每天",
+      "bounds": {
+        "x": 16.1,
+        "y": 129.9,
+        "w": 327.8,
+        "h": 71.8
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        436,
+        1100,
+        241
+      ],
+      "toggle": true,
+      "checked": false
+    },
+    {
+      "id": "row:定时关机",
+      "role": "row",
+      "text": "定时关机",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 205.6,
+        "w": 327.8,
+        "h": 34
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        690,
+        1100,
+        114
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:20:00",
+      "role": "row",
+      "text": "20:00",
+      "summary": "周一、周二、周三、周四、周五",
+      "bounds": {
+        "x": 16.1,
+        "y": 239.6,
+        "w": 327.8,
+        "h": 71.8
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        804,
+        1100,
+        241
+      ],
+      "toggle": true,
+      "checked": false
+    },
+    {
+      "id": "row:定时重启",
+      "role": "row",
+      "text": "定时重启",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 315.3,
+        "w": 327.8,
+        "h": 34
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1058,
+        1100,
+        114
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:05:00",
+      "role": "row",
+      "text": "05:00",
+      "summary": "星期三",
+      "bounds": {
+        "x": 16.1,
+        "y": 349.3,
+        "w": 327.8,
+        "h": 71.8
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1172,
+        1100,
+        241
+      ],
+      "toggle": true,
+      "checked": false
+    }
+  ],
+  "unknowns": [
+    {
+      "kind": "appearance",
+      "element": "row:*",
+      "reason": "图标形态/底盘/填充率/颜色/圆角无法从 a11y 树机器提取，需 appearance crop 人工补齐"
+    }
+  ]
+}

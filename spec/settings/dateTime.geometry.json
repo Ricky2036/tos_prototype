@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "screen": "settings/dateTime",
+  "source": "infinix-1208",
+  "canvas": {
+    "w": 360,
+    "h": 788
+  },
+  "device_px": {
+    "w": 1208,
+    "h": 2644
+  },
+  "from": "settings/dateTime/page.xml",
+  "xml_sha256": "6f1dbcd76e58de7b746db1fb33ce0ee120e86f3d4f04c9827c4307256a8d31f8",
+  "generated_at": "2026-11-18T12:04:32.981Z",
+  "nodes": [
+    {
+      "id": "header:title",
+      "role": "header-title",
+      "text": "日期与时间",
+      "summary": "",
+      "bounds": {
+        "x": 80.2,
+        "y": 53.3,
+        "w": 243.8,
+        "h": 21.2
+      },
+      "clickable": false,
+      "crop": [
+        269,
+        179,
+        818,
+        71
+      ]
+    },
+    {
+      "id": "header:back",
+      "role": "header-back",
+      "text": "",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 42,
+        "w": 44.1,
+        "h": 44.1
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        141,
+        148,
+        148
+      ]
+    },
+    {
+      "id": "row:自动设置时间",
+      "role": "row",
+      "text": "自动设置时间",
+      "summary": "使用您的网络和无线信号自动设定",
+      "bounds": {
+        "x": 16.1,
+        "y": 100.4,
+        "w": 327.8,
+        "h": 67.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        337,
+        1100,
+        227
+      ],
+      "toggle": true,
+      "checked": true
+    },
+    {
+      "id": "row:日期",
+      "role": "row",
+      "text": "日期",
+      "summary": "2026年11月13日",
+      "bounds": {
+        "x": 16.1,
+        "y": 168.1,
+        "w": 327.8,
+        "h": 63.8
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        564,
+        1100,
+        214
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:时间",
+      "role": "row",
+      "text": "时间",
+      "summary": "下午1:49",
+      "bounds": {
+        "x": 16.1,
+        "y": 231.9,
+        "w": 327.8,
+        "h": 67.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        778,
+        1100,
+        227
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:使用 24 小时制",
+      "role": "row",
+      "text": "使用 24 小时制",
+      "summary": "下午1:00",
+      "bounds": {
+        "x": 16.1,
+        "y": 315.6,
+        "w": 327.8,
+        "h": 72.4
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1059,
+        1100,
+        243
+      ],
+      "toggle": true,
+      "checked": false
+    },
+    {
+      "id": "row:自动设置时区",
+      "role": "row",
+      "text": "自动设置时区",
+      "summary": "使用网络提供的时区。",
+      "bounds": {
+        "x": 16.1,
+        "y": 404.1,
+        "w": 327.8,
+        "h": 68.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1356,
+        1100,
+        230
+      ],
+      "toggle": true,
+      "checked": true
+    },
+    {
+      "id": "row:选择时区",
+      "role": "row",
+      "text": "选择时区",
+      "summary": "GMT+08:00 中国标准时间",
+      "bounds": {
+        "x": 16.1,
+        "y": 472.7,
+        "w": 327.8,
+        "h": 67.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1586,
+        1100,
+        227
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:系统双时钟",
+      "role": "row",
+      "text": "系统双时钟",
+      "summary": "系统时区与常驻地时区不一致时，显示双时钟。",
+      "bounds": {
+        "x": 16.1,
+        "y": 556.4,
+        "w": 327.8,
+        "h": 84.3
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1867,
+        1100,
+        283
+      ],
+      "toggle": true,
+      "checked": true
+    },
+    {
+      "id": "row:常驻地",
+      "role": "row",
+      "text": "常驻地",
+      "summary": "常驻地预测（深圳市）",
+      "bounds": {
+        "x": 16.1,
+        "y": 640.8,
+        "w": 327.8,
+        "h": 64.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        2150,
+        1100,
+        217
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:双时钟显示位置",
+      "role": "row",
+      "text": "双时钟显示位置",
+      "summary": "锁屏和时钟桌面小部件",
+      "bounds": {
+        "x": 16.1,
+        "y": 705.4,
+        "w": 327.8,
+        "h": 68.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        2367,
+        1100,
+        230
+      ],
+      "toggle": false,
+      "checked": null
+    }
+  ],
+  "unknowns": [
+    {
+      "kind": "appearance",
+      "element": "row:*",
+      "reason": "图标形态/底盘/填充率/颜色/圆角无法从 a11y 树机器提取，需 appearance crop 人工补齐"
+    }
+  ]
+}
