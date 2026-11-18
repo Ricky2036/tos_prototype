@@ -12,7 +12,7 @@
   },
   "from": "settings/system/system-enhanced-services/page.xml",
   "xml_sha256": "732b543ef727b02dfb6120fd939d7d8973dee76f71c13ef01434d47afd7622ce",
-  "generated_at": "2026-11-18T12:04:32.981Z",
+  "generated_at": "2026-11-18T12:24:01.005Z",
   "nodes": [
     {
       "id": "header:title",

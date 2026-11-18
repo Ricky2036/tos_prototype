@@ -27,7 +27,8 @@
 - `settings/system/system-usb-backup`：实际内容是「设置定时开机」时间弹层，不是 USB 备份页。
 - `settings/dateTime/date-time-residence-picker`：实际内容是「日期与时间」页本体；常驻地在实现里是底部弹层（SheetOptionPicker），不是独立页。
 
-这三页的契约已删除，覆盖矩阵里显示为「无 spec」。重采要点：
+这三份 dump 已移出采集根目录，隔离到 `spec/evidence-quarantine/`（**不参与契约生成、不被覆盖矩阵计数**）。
+覆盖矩阵里它们显示为「无 dump / 无 spec」。重采要点：
 1) 每次点击后先确认 `toolbar_title` 变成目标页标题，再 dump；
 2) 弹层类目标（时间/常驻地）要确认 dump 里出现弹层节点（如 `modal`/`sheet` 层级），不能只看 Activity；
 3) dump 落盘时把 `toolbar_title` 写进文件名，便于事后核对（本次三页错在遍历脚本没有断言标题）。

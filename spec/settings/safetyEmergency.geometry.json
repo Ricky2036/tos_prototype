@@ -12,7 +12,7 @@
   },
   "from": "settings/safetyEmergency/page.xml",
   "xml_sha256": "ca858ff8e3b901dd89d9a78b3615efdfdd68502f71c5e5f286234b3ca153a497",
-  "generated_at": "2026-11-18T12:04:32.981Z",
+  "generated_at": "2026-11-18T12:24:01.005Z",
   "nodes": [
     {
       "id": "header:title",

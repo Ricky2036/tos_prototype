@@ -12,7 +12,7 @@
   },
   "from": "settings/system/system-schedule-power/page.xml",
   "xml_sha256": "38290d289954ec89e586a29f4f8ff650ae1497ed3764aaa891ee5b87f7f85727",
-  "generated_at": "2026-11-18T12:04:32.981Z",
+  "generated_at": "2026-11-18T12:24:01.005Z",
   "nodes": [
     {
       "id": "header:title",
