@@ -46,14 +46,20 @@
 ## 3. 已知读数（2026-11-18 实测）
 
 ```
-settings 模块 18 页：有 spec 13 页 / 无 spec 5 页；有 dump/证据 16 页；可 G8 13 页
-无 spec 页面 5 / 共 18
+settings 模块 18 页：有 spec 10 页 / 无 spec 8 页；有 dump/证据 16 页；可 G8 10 页
+无 spec 页面 8 / 共 18
 ```
 
 证据入库存放：`spec/captures/device-infinix/<pageId>/page.xml` + `page.png`（设备 Infinix X6878，1208×2644）。
 13 页里 9 页是系统子页（dump 来自 11-16 的遍历取证），1 页是系统主页，其余为日期/时区/常驻地/安全。
-仍缺 5 页：`display`（只有截图无 dump）、`sound`（无）、`accessibility`（只有说明）、
-`system-google-backup`（遍历没采到）、`dateTime/settings-date-time`（与 `settings/dateTime` 是同一屏的组件/路由两份清单，未重复计）。
+仍缺 8 页，分两类（清单见 `spec/captures/device-infinix/MANIFEST.md`）：
+
+- **真没采到**（4）：`display`（只有截图无 dump）、`sound`（无）、`accessibility`（只有说明）、`system-google-backup`（遍历未采）
+- **采错了页（3）**：`system/system-reset-phone`（dump 实际是「定时开关机与重启」）、`system/system-usb-backup`（实际是「设置定时开机」弹层）、
+  `dateTime/date-time-residence-picker`（实际是「日期与时间」页本体；常驻地是底部弹层不是独立页）
+- **清单重复（1）**：`dateTime/settings-date-time` 与 `settings/dateTime` 是同一屏的组件/路由两份，未重复计。
+
+> 采错页的三份 dump 已从契约里剔除（不是"缺"，是"错"——错证据比没证据更危险：它会让人以为做对了）。
 
 判决（`settings/system`，对 11-14 构建 `0c945b6`）：
 
@@ -106,3 +112,21 @@ settings 模块 18 页：有 spec 13 页 / 无 spec 5 页；有 dump/证据 16 �
 
 > ⚠️ ① 是共享 token，改它等于所有带页头的设置页整体上移 12px。
 > 合并前必须对**所有已有契约的页面**跑一遍 accept；没有契约的页面要显式列为「未知影响面」，不能默认没影响。
+
+---
+
+## 7. 全页面基线（2026-11-18）
+
+`tools/accept/run-baseline.mjs` 一轮跑完所有有契约的页面（不跳页、不放宽容差、不改 spec）：
+
+```
+10 页里 0 页 0 fail / 10 页有 fail / 0 页环境错误
+合计 131 节点：pass 2 / fail 108 / missing 21 / extra 14
+```
+
+- 汇总：`reports/accept/baseline/summary.md`（逐页 verdict 同目录）
+- **跨页系统性偏移**：`header:back` 在 10/10 页全红，Δy 全部 **+18.0~+20.1**；`header:title` 10/10，Δy +13.7~+15.7 —— 与 SET-SYS-02 的 `--safe-top 54→42` 方向一致，说明这不是某一页的错，是全局 token。
+- 非全局缺口（真缺陷）：时区页缺 6 个城市；语言页缺「温度」行；开发者选项缺「错误报告处理程序」「WebView 开发者工具」且多「USB 调试」。
+- scale 全部 1.0000（壳 360×788），换算无异常。
+
+> 这张表就是 11-14 缺的那样东西：**不用等人逐页点，机器一次给全量清单**。

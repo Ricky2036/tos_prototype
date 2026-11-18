@@ -1,0 +1,1544 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-18T12:22:07.373Z",
+  "meta": {
+    "generatedAt": "2026-11-18T12:22:07.373Z",
+    "repo": "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh",
+    "branch": "dsh/lane",
+    "head": "9145468ad2594f2582eecae1f20caa5b84730811",
+    "buildDir": "/tmp/dist-head",
+    "url": "http://127.0.0.1:7812/",
+    "accept": "tools/accept/accept.mjs",
+    "recipe": "tools/accept/recipes/by-text-path.mjs",
+    "specCount": 10,
+    "timeoutMs": 180000,
+    "signals": {
+      "judgedNodes": 108,
+      "reasons": [
+        {
+          "reason": "geometry-out-of-tolerance",
+          "count": 85
+        },
+        {
+          "reason": "not-found-in-dom",
+          "count": 11
+        },
+        {
+          "reason": "pitch-drift-out-of-tolerance",
+          "count": 6
+        },
+        {
+          "reason": "pitch-anchor-out-of-tolerance",
+          "count": 1
+        },
+        {
+          "reason": "card-offset-out-of-tolerance",
+          "count": 1
+        },
+        {
+          "reason": "center-out-of-tolerance",
+          "count": 1
+        },
+        {
+          "reason": "duplicate-match(also:row:学习手势)",
+          "count": 1
+        }
+      ],
+      "repeatedFailNodes": [
+        {
+          "id": "header:title",
+          "role": "header-title",
+          "pageCount": 10,
+          "pages": [
+            "settings/dateTime",
+            "settings/dateTime/date-time-timezone-picker",
+            "settings/safetyEmergency",
+            "settings/system",
+            "settings/system/system-developer-options",
+            "settings/system/system-enhanced-services",
+            "settings/system/system-language",
+            "settings/system/system-navigation",
+            "settings/system/system-power-button",
+            "settings/system/system-schedule-power"
+          ],
+          "dyRange": [
+            13.7,
+            15.7
+          ],
+          "worst": 15.1
+        },
+        {
+          "id": "header:back",
+          "role": "header-back",
+          "pageCount": 10,
+          "pages": [
+            "settings/dateTime",
+            "settings/dateTime/date-time-timezone-picker",
+            "settings/safetyEmergency",
+            "settings/system",
+            "settings/system/system-developer-options",
+            "settings/system/system-enhanced-services",
+            "settings/system/system-language",
+            "settings/system/system-navigation",
+            "settings/system/system-power-button",
+            "settings/system/system-schedule-power"
+          ],
+          "dyRange": [
+            18,
+            20.1
+          ],
+          "worst": 15
+        }
+      ]
+    }
+  },
+  "build_hashes": [
+    "5372d1334837641c6e97842dc28550218c155c0acc7263e5e08e758a5b21afe5"
+  ],
+  "conclusion": "10 页里 0 页 0 fail / 10 页有 fail / 0 页环境错误",
+  "totals": {
+    "pages": 10,
+    "passPages": 0,
+    "failPages": 10,
+    "envErrorPages": 0,
+    "pagesWithZeroFail": 0,
+    "failCount": 10,
+    "passNodes": 2,
+    "failNodes": 95,
+    "missingNodes": 11,
+    "extraRows": 3
+  },
+  "cross_page_signals": {
+    "judgedNodes": 108,
+    "reasons": [
+      {
+        "reason": "geometry-out-of-tolerance",
+        "count": 85
+      },
+      {
+        "reason": "not-found-in-dom",
+        "count": 11
+      },
+      {
+        "reason": "pitch-drift-out-of-tolerance",
+        "count": 6
+      },
+      {
+        "reason": "pitch-anchor-out-of-tolerance",
+        "count": 1
+      },
+      {
+        "reason": "card-offset-out-of-tolerance",
+        "count": 1
+      },
+      {
+        "reason": "center-out-of-tolerance",
+        "count": 1
+      },
+      {
+        "reason": "duplicate-match(also:row:学习手势)",
+        "count": 1
+      }
+    ],
+    "repeatedFailNodes": [
+      {
+        "id": "header:title",
+        "role": "header-title",
+        "pageCount": 10,
+        "pages": [
+          "settings/dateTime",
+          "settings/dateTime/date-time-timezone-picker",
+          "settings/safetyEmergency",
+          "settings/system",
+          "settings/system/system-developer-options",
+          "settings/system/system-enhanced-services",
+          "settings/system/system-language",
+          "settings/system/system-navigation",
+          "settings/system/system-power-button",
+          "settings/system/system-schedule-power"
+        ],
+        "dyRange": [
+          13.7,
+          15.7
+        ],
+        "worst": 15.1
+      },
+      {
+        "id": "header:back",
+        "role": "header-back",
+        "pageCount": 10,
+        "pages": [
+          "settings/dateTime",
+          "settings/dateTime/date-time-timezone-picker",
+          "settings/safetyEmergency",
+          "settings/system",
+          "settings/system/system-developer-options",
+          "settings/system/system-enhanced-services",
+          "settings/system/system-language",
+          "settings/system/system-navigation",
+          "settings/system/system-power-button",
+          "settings/system/system-schedule-power"
+        ],
+        "dyRange": [
+          18,
+          20.1
+        ],
+        "worst": 15
+      }
+    ]
+  },
+  "scale_anomalies": [],
+  "pages": [
+    {
+      "pageId": "settings/dateTime",
+      "slug": "settings-dateTime",
+      "specPath": "spec/settings/dateTime.geometry.json",
+      "status": "fail",
+      "exitCode": 1,
+      "timedOut": false,
+      "durationMs": 5590,
+      "outDir": "reports/accept/baseline/settings-dateTime",
+      "verdictPath": "reports/accept/baseline/settings-dateTime/verdict.json",
+      "reportPath": "reports/accept/baseline/settings-dateTime/report.md",
+      "listMetrics": null,
+      "scope": ".settings-datetime-page",
+      "openPath": [
+        {
+          "text": "系统",
+          "expect": ".settings-system-page"
+        },
+        {
+          "sel": "[data-system-row=\"dateTime\"]",
+          "expect": ".settings-datetime-page"
+        }
+      ],
+      "notes": "系统页第 2 行 → settingsNav.push('dateTime')，整页替换（不是 sub-shell）",
+      "command": {
+        "bin": "/Users/jingzhan.chen/homebrew/Cellar/node/26.4.0/bin/node",
+        "args": [
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/accept.mjs",
+          "--spec",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/spec/settings/dateTime.geometry.json",
+          "--url",
+          "http://127.0.0.1:7812/",
+          "--page",
+          "settings/dateTime",
+          "--recipe",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/recipes/by-text-path.mjs",
+          "--build-dir",
+          "/tmp/dist-head",
+          "--out",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/reports/accept/baseline/settings-dateTime"
+        ],
+        "env": {
+          "OPEN_PATH": "[{\"text\":\"系统\",\"expect\":\".settings-system-page\"},{\"sel\":\"[data-system-row=\\\"dateTime\\\"]\",\"expect\":\".settings-datetime-page\"}]",
+          "SCOPE": ".settings-datetime-page"
+        }
+      },
+      "scale": 1,
+      "shell": {
+        "x": 436,
+        "y": 306,
+        "width": 360,
+        "height": 788
+      },
+      "summary": {
+        "totalSpec": 11,
+        "matched": 11,
+        "pass": 0,
+        "fail": 11,
+        "missing": 0,
+        "extra": 0,
+        "skipped": 0,
+        "matchRate": 1
+      },
+      "topReasons": [
+        {
+          "reason": "geometry-out-of-tolerance",
+          "count": 11
+        }
+      ],
+      "worstFailNodes": [
+        {
+          "id": "row:时间",
+          "role": "row",
+          "worst": 13.5,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 13.5,
+            "dw": 0.2,
+            "dh": -2
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "header:title",
+          "role": "header-title",
+          "worst": 13.1,
+          "tol": 1.5,
+          "delta": {
+            "dx": -8.2,
+            "dy": 13.7,
+            "dw": -159.8,
+            "dh": -1.2
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "header:back",
+          "role": "header-back",
+          "worst": 13,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 18,
+            "dw": -10.1,
+            "dh": -10.1
+          },
+          "reason": "geometry-out-of-tolerance"
+        }
+      ],
+      "missingIds": [],
+      "failIds": [
+        "header:title",
+        "header:back",
+        "row:自动设置时间",
+        "row:日期",
+        "row:时间",
+        "row:使用 24 小时制",
+        "row:自动设置时区",
+        "row:选择时区",
+        "row:系统双时钟",
+        "row:常驻地",
+        "row:双时钟显示位置"
+      ],
+      "extraTexts": [],
+      "pitch": null,
+      "buildHash": "5372d1334837641c6e97842dc28550218c155c0acc7263e5e08e758a5b21afe5",
+      "commitInVerdict": null
+    },
+    {
+      "pageId": "settings/dateTime/date-time-timezone-picker",
+      "slug": "settings-dateTime-date-time-timezone-picker",
+      "specPath": "spec/settings/dateTime/date-time-timezone-picker.geometry.json",
+      "status": "fail",
+      "exitCode": 1,
+      "timedOut": false,
+      "durationMs": 6912,
+      "outDir": "reports/accept/baseline/settings-dateTime-date-time-timezone-picker",
+      "verdictPath": "reports/accept/baseline/settings-dateTime-date-time-timezone-picker/verdict.json",
+      "reportPath": "reports/accept/baseline/settings-dateTime-date-time-timezone-picker/report.md",
+      "listMetrics": null,
+      "scope": ".settings-datetime-page",
+      "openPath": [
+        {
+          "text": "系统",
+          "expect": ".settings-system-page"
+        },
+        {
+          "sel": "[data-system-row=\"dateTime\"]",
+          "expect": ".settings-datetime-page"
+        },
+        {
+          "sel": "[data-dt-row=\"autoTimezone\"] .toggle-switch",
+          "expect": "[data-dt-row=\"autoTimezone\"] .toggle-switch[aria-checked=\"false\"]"
+        },
+        {
+          "sel": "[data-dt-row=\"timezone\"]",
+          "expect": ".settings-datetime-page .sub-shell"
+        }
+      ],
+      "notes": "必须先关「自动设置时区」，否则「选择时区」行是 .is-disabled 点不动；关掉后进城市列表 sub-shell",
+      "command": {
+        "bin": "/Users/jingzhan.chen/homebrew/Cellar/node/26.4.0/bin/node",
+        "args": [
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/accept.mjs",
+          "--spec",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/spec/settings/dateTime/date-time-timezone-picker.geometry.json",
+          "--url",
+          "http://127.0.0.1:7812/",
+          "--page",
+          "settings/dateTime/date-time-timezone-picker",
+          "--recipe",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/recipes/by-text-path.mjs",
+          "--build-dir",
+          "/tmp/dist-head",
+          "--out",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/reports/accept/baseline/settings-dateTime-date-time-timezone-picker"
+        ],
+        "env": {
+          "OPEN_PATH": "[{\"text\":\"系统\",\"expect\":\".settings-system-page\"},{\"sel\":\"[data-system-row=\\\"dateTime\\\"]\",\"expect\":\".settings-datetime-page\"},{\"sel\":\"[data-dt-row=\\\"autoTimezone\\\"] .toggle-switch\",\"expect\":\"[data-dt-row=\\\"autoTimezone\\\"] .toggle-switch[aria-checked=\\\"false\\\"]\"},{\"sel\":\"[data-dt-row=\\\"timezone\\\"]\",\"expect\":\".settings-datetime-page .sub-shell\"}]",
+          "SCOPE": ".settings-datetime-page"
+        }
+      },
+      "scale": 1,
+      "shell": {
+        "x": 436,
+        "y": 306,
+        "width": 360,
+        "height": 788
+      },
+      "summary": {
+        "totalSpec": 14,
+        "matched": 8,
+        "pass": 0,
+        "fail": 8,
+        "missing": 6,
+        "extra": 0,
+        "skipped": 0,
+        "matchRate": 0.571
+      },
+      "topReasons": [
+        {
+          "reason": "geometry-out-of-tolerance",
+          "count": 8
+        },
+        {
+          "reason": "not-found-in-dom",
+          "count": 6
+        }
+      ],
+      "worstFailNodes": [
+        {
+          "id": "row:马尼拉",
+          "role": "row",
+          "worst": 125.6,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 125.6,
+            "dw": 0.2,
+            "dh": -15.7
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "row:吉隆坡",
+          "role": "row",
+          "worst": 110,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 110,
+            "dw": 0.2,
+            "dh": 15.6
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "row:北京",
+          "role": "row",
+          "worst": 110,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 110,
+            "dw": 0.2,
+            "dh": -15.7
+          },
+          "reason": "geometry-out-of-tolerance"
+        }
+      ],
+      "missingIds": [
+        "row:望加锡",
+        "row:首尔",
+        "row:东京、大阪",
+        "row:雅库茨克",
+        "row:赤塔",
+        "row:帝力"
+      ],
+      "failIds": [
+        "header:title",
+        "header:back",
+        "row:吉隆坡",
+        "row:马尼拉",
+        "row:北京",
+        "row:香港",
+        "row:新加坡",
+        "row:斯里巴加湾"
+      ],
+      "extraTexts": [],
+      "pitch": null,
+      "buildHash": "5372d1334837641c6e97842dc28550218c155c0acc7263e5e08e758a5b21afe5",
+      "commitInVerdict": null
+    },
+    {
+      "pageId": "settings/safetyEmergency",
+      "slug": "settings-safetyEmergency",
+      "specPath": "spec/settings/safetyEmergency.geometry.json",
+      "status": "fail",
+      "exitCode": 1,
+      "timedOut": false,
+      "durationMs": 4328,
+      "outDir": "reports/accept/baseline/settings-safetyEmergency",
+      "verdictPath": "reports/accept/baseline/settings-safetyEmergency/verdict.json",
+      "reportPath": "reports/accept/baseline/settings-safetyEmergency/report.md",
+      "listMetrics": null,
+      "scope": ".safety-emergency-page",
+      "openPath": [
+        {
+          "text": "安全和紧急情况",
+          "expect": ".safety-emergency-page"
+        }
+      ],
+      "notes": "设置首页第 25 个 .list-cell；pages/safetyEmergency.js 懒加载，首次进入约需 >700ms 才挂载",
+      "command": {
+        "bin": "/Users/jingzhan.chen/homebrew/Cellar/node/26.4.0/bin/node",
+        "args": [
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/accept.mjs",
+          "--spec",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/spec/settings/safetyEmergency.geometry.json",
+          "--url",
+          "http://127.0.0.1:7812/",
+          "--page",
+          "settings/safetyEmergency",
+          "--recipe",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/recipes/by-text-path.mjs",
+          "--build-dir",
+          "/tmp/dist-head",
+          "--out",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/reports/accept/baseline/settings-safetyEmergency"
+        ],
+        "env": {
+          "OPEN_PATH": "[{\"text\":\"安全和紧急情况\",\"expect\":\".safety-emergency-page\"}]",
+          "SCOPE": ".safety-emergency-page"
+        }
+      },
+      "scale": 1,
+      "shell": {
+        "x": 436,
+        "y": 306,
+        "width": 360,
+        "height": 788
+      },
+      "summary": {
+        "totalSpec": 13,
+        "matched": 13,
+        "pass": 0,
+        "fail": 13,
+        "missing": 0,
+        "extra": 0,
+        "skipped": 0,
+        "matchRate": 1
+      },
+      "topReasons": [
+        {
+          "reason": "geometry-out-of-tolerance",
+          "count": 13
+        }
+      ],
+      "worstFailNodes": [
+        {
+          "id": "row:无线紧急警报",
+          "role": "row",
+          "worst": 54.3,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 54.3,
+            "dw": 0.2,
+            "dh": -29.7
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "row:紧急位置信息服务",
+          "role": "row",
+          "worst": 52.3,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 52.3,
+            "dw": 0.2,
+            "dh": -3.7
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "row:不明追踪器提醒",
+          "role": "row",
+          "worst": 48.6,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 48.6,
+            "dw": 0.2,
+            "dh": -0.5
+          },
+          "reason": "geometry-out-of-tolerance"
+        }
+      ],
+      "missingIds": [],
+      "failIds": [
+        "header:title",
+        "header:back",
+        "row:打开个人安全",
+        "row:紧急联络",
+        "row:医疗信息",
+        "row:紧急联系人",
+        "row:紧急求救",
+        "row:无线紧急警报",
+        "row:地震警报",
+        "row:灾害警报",
+        "row:驾车时将通知设为静音",
+        "row:紧急位置信息服务",
+        "row:不明追踪器提醒"
+      ],
+      "extraTexts": [],
+      "pitch": null,
+      "buildHash": "5372d1334837641c6e97842dc28550218c155c0acc7263e5e08e758a5b21afe5",
+      "commitInVerdict": null
+    },
+    {
+      "pageId": "settings/system",
+      "slug": "settings-system",
+      "specPath": "spec/settings/system.geometry.json",
+      "status": "fail",
+      "exitCode": 1,
+      "timedOut": false,
+      "durationMs": 4255,
+      "outDir": "reports/accept/baseline/settings-system",
+      "verdictPath": "reports/accept/baseline/settings-system/verdict.json",
+      "reportPath": "reports/accept/baseline/settings-system/report.md",
+      "listMetrics": "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/spec/settings-system.list-metrics.json",
+      "scope": ".settings-system-page",
+      "openPath": [
+        {
+          "text": "系统",
+          "expect": ".settings-system-page"
+        }
+      ],
+      "notes": "设置首页第 28 个 .list-cell（文本「系统」）→ push('general') → SettingsSystem 页",
+      "command": {
+        "bin": "/Users/jingzhan.chen/homebrew/Cellar/node/26.4.0/bin/node",
+        "args": [
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/accept.mjs",
+          "--spec",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/spec/settings/system.geometry.json",
+          "--url",
+          "http://127.0.0.1:7812/",
+          "--page",
+          "settings/system",
+          "--recipe",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/recipes/by-text-path.mjs",
+          "--build-dir",
+          "/tmp/dist-head",
+          "--out",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/reports/accept/baseline/settings-system",
+          "--list-metrics",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/spec/settings-system.list-metrics.json"
+        ],
+        "env": {
+          "OPEN_PATH": "[{\"text\":\"系统\",\"expect\":\".settings-system-page\"}]",
+          "SCOPE": ".settings-system-page"
+        }
+      },
+      "scale": 1,
+      "shell": {
+        "x": 436,
+        "y": 306,
+        "width": 360,
+        "height": 788
+      },
+      "summary": {
+        "totalSpec": 13,
+        "matched": 13,
+        "pass": 2,
+        "fail": 11,
+        "missing": 0,
+        "extra": 0,
+        "skipped": 0,
+        "matchRate": 1
+      },
+      "topReasons": [
+        {
+          "reason": "pitch-drift-out-of-tolerance",
+          "count": 6
+        },
+        {
+          "reason": "geometry-out-of-tolerance",
+          "count": 2
+        },
+        {
+          "reason": "pitch-anchor-out-of-tolerance",
+          "count": 1
+        }
+      ],
+      "worstFailNodes": [
+        {
+          "id": "header:title",
+          "role": "header-title",
+          "worst": 13.1,
+          "tol": 1.5,
+          "delta": {
+            "dx": -8.2,
+            "dy": 13.7,
+            "dw": -210.2,
+            "dh": -1.2
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "header:back",
+          "role": "header-back",
+          "worst": 13,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 18,
+            "dw": -10.1,
+            "dh": -10.1
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "row:系统导航",
+          "role": "row",
+          "worst": 9.9,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 11.9,
+            "dw": 0.2,
+            "dh": -0.5
+          },
+          "reason": "pitch-anchor-out-of-tolerance"
+        }
+      ],
+      "missingIds": [],
+      "failIds": [
+        "header:title",
+        "header:back",
+        "row:系统导航",
+        "row:日期与时间",
+        "row:语言与输入法",
+        "row:按住电源按钮",
+        "row:定时开关机与重启",
+        "row:USB 备份和恢复",
+        "row:重置手机",
+        "row:增强服务",
+        "group:备份、重置与恢复"
+      ],
+      "extraTexts": [],
+      "pitch": {
+        "pass": false,
+        "first": {
+          "id": "row:系统导航",
+          "actual_y": 112,
+          "expected_y": 128.1,
+          "delta": 9.9
+        }
+      },
+      "buildHash": "5372d1334837641c6e97842dc28550218c155c0acc7263e5e08e758a5b21afe5",
+      "commitInVerdict": null
+    },
+    {
+      "pageId": "settings/system/system-developer-options",
+      "slug": "settings-system-system-developer-options",
+      "specPath": "spec/settings/system/system-developer-options.geometry.json",
+      "status": "fail",
+      "exitCode": 1,
+      "timedOut": false,
+      "durationMs": 5013,
+      "outDir": "reports/accept/baseline/settings-system-system-developer-options",
+      "verdictPath": "reports/accept/baseline/settings-system-system-developer-options/verdict.json",
+      "reportPath": "reports/accept/baseline/settings-system-system-developer-options/report.md",
+      "listMetrics": null,
+      "scope": ".settings-system-page",
+      "openPath": [
+        {
+          "text": "系统",
+          "expect": ".settings-system-page"
+        },
+        {
+          "sel": "[data-system-row=\"developerOptions\"]",
+          "expect": ".settings-system-page .sub-shell"
+        }
+      ],
+      "notes": "SystemDeveloperOptions",
+      "command": {
+        "bin": "/Users/jingzhan.chen/homebrew/Cellar/node/26.4.0/bin/node",
+        "args": [
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/accept.mjs",
+          "--spec",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/spec/settings/system/system-developer-options.geometry.json",
+          "--url",
+          "http://127.0.0.1:7812/",
+          "--page",
+          "settings/system/system-developer-options",
+          "--recipe",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/recipes/by-text-path.mjs",
+          "--build-dir",
+          "/tmp/dist-head",
+          "--out",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/reports/accept/baseline/settings-system-system-developer-options"
+        ],
+        "env": {
+          "OPEN_PATH": "[{\"text\":\"系统\",\"expect\":\".settings-system-page\"},{\"sel\":\"[data-system-row=\\\"developerOptions\\\"]\",\"expect\":\".settings-system-page .sub-shell\"}]",
+          "SCOPE": ".settings-system-page"
+        }
+      },
+      "scale": 1,
+      "shell": {
+        "x": 436,
+        "y": 306,
+        "width": 360,
+        "height": 788
+      },
+      "summary": {
+        "totalSpec": 13,
+        "matched": 11,
+        "pass": 0,
+        "fail": 11,
+        "missing": 2,
+        "extra": 1,
+        "skipped": 0,
+        "matchRate": 0.846
+      },
+      "topReasons": [
+        {
+          "reason": "geometry-out-of-tolerance",
+          "count": 11
+        },
+        {
+          "reason": "not-found-in-dom",
+          "count": 2
+        },
+        {
+          "reason": "extra:unmatched-row",
+          "count": 1
+        }
+      ],
+      "worstFailNodes": [
+        {
+          "id": "row:内存",
+          "role": "row",
+          "worst": 63.6,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 63.6,
+            "dw": 0.2,
+            "dh": -1.8
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "row:错误报告",
+          "role": "row",
+          "worst": 61.8,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 61.8,
+            "dw": 0.2,
+            "dh": 3.4
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "row:自动系统更新",
+          "role": "row",
+          "worst": 36.2,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": -36.2,
+            "dw": 0.2,
+            "dh": 18.7
+          },
+          "reason": "geometry-out-of-tolerance"
+        }
+      ],
+      "missingIds": [
+        "row:错误报告处理程序",
+        "row:WebView 开发者工具"
+      ],
+      "failIds": [
+        "header:title",
+        "header:back",
+        "row:使用“开发者选项”",
+        "row:内存",
+        "row:错误报告",
+        "row:桌面备份密码",
+        "row:不锁定屏幕",
+        "row:OEM 解锁",
+        "row:正在运行的服务",
+        "row:WebView 实现",
+        "row:自动系统更新"
+      ],
+      "extraTexts": [
+        "USB 调试连接 USB 时启用调试模式"
+      ],
+      "pitch": null,
+      "buildHash": "5372d1334837641c6e97842dc28550218c155c0acc7263e5e08e758a5b21afe5",
+      "commitInVerdict": null
+    },
+    {
+      "pageId": "settings/system/system-enhanced-services",
+      "slug": "settings-system-system-enhanced-services",
+      "specPath": "spec/settings/system/system-enhanced-services.geometry.json",
+      "status": "fail",
+      "exitCode": 1,
+      "timedOut": false,
+      "durationMs": 5079,
+      "outDir": "reports/accept/baseline/settings-system-system-enhanced-services",
+      "verdictPath": "reports/accept/baseline/settings-system-system-enhanced-services/verdict.json",
+      "reportPath": "reports/accept/baseline/settings-system-system-enhanced-services/report.md",
+      "listMetrics": null,
+      "scope": ".settings-system-page",
+      "openPath": [
+        {
+          "text": "系统",
+          "expect": ".settings-system-page"
+        },
+        {
+          "sel": "[data-system-row=\"enhancedServices\"]",
+          "expect": ".settings-system-page .sub-shell"
+        }
+      ],
+      "notes": "SystemEnhancedServices",
+      "command": {
+        "bin": "/Users/jingzhan.chen/homebrew/Cellar/node/26.4.0/bin/node",
+        "args": [
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/accept.mjs",
+          "--spec",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/spec/settings/system/system-enhanced-services.geometry.json",
+          "--url",
+          "http://127.0.0.1:7812/",
+          "--page",
+          "settings/system/system-enhanced-services",
+          "--recipe",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/recipes/by-text-path.mjs",
+          "--build-dir",
+          "/tmp/dist-head",
+          "--out",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/reports/accept/baseline/settings-system-system-enhanced-services"
+        ],
+        "env": {
+          "OPEN_PATH": "[{\"text\":\"系统\",\"expect\":\".settings-system-page\"},{\"sel\":\"[data-system-row=\\\"enhancedServices\\\"]\",\"expect\":\".settings-system-page .sub-shell\"}]",
+          "SCOPE": ".settings-system-page"
+        }
+      },
+      "scale": 1,
+      "shell": {
+        "x": 436,
+        "y": 306,
+        "width": 360,
+        "height": 788
+      },
+      "summary": {
+        "totalSpec": 7,
+        "matched": 7,
+        "pass": 0,
+        "fail": 7,
+        "missing": 0,
+        "extra": 0,
+        "skipped": 0,
+        "matchRate": 1
+      },
+      "topReasons": [
+        {
+          "reason": "geometry-out-of-tolerance",
+          "count": 7
+        }
+      ],
+      "worstFailNodes": [
+        {
+          "id": "row:个人知识库服务",
+          "role": "row",
+          "worst": 117.2,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": -117.2,
+            "dw": 0.2,
+            "dh": -34.4
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "row:推荐增强服务",
+          "role": "row",
+          "worst": 89,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": -89,
+            "dw": 0.2,
+            "dh": -28.2
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "row:AI 场景增强服务",
+          "role": "row",
+          "worst": 77.1,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": -77.1,
+            "dw": 0.2,
+            "dh": -12.1
+          },
+          "reason": "geometry-out-of-tolerance"
+        }
+      ],
+      "missingIds": [],
+      "failIds": [
+        "header:title",
+        "header:back",
+        "row:智慧感知服务",
+        "row:智慧文本服务",
+        "row:AI 场景增强服务",
+        "row:推荐增强服务",
+        "row:个人知识库服务"
+      ],
+      "extraTexts": [],
+      "pitch": null,
+      "buildHash": "5372d1334837641c6e97842dc28550218c155c0acc7263e5e08e758a5b21afe5",
+      "commitInVerdict": null
+    },
+    {
+      "pageId": "settings/system/system-language",
+      "slug": "settings-system-system-language",
+      "specPath": "spec/settings/system/system-language.geometry.json",
+      "status": "fail",
+      "exitCode": 1,
+      "timedOut": false,
+      "durationMs": 4953,
+      "outDir": "reports/accept/baseline/settings-system-system-language",
+      "verdictPath": "reports/accept/baseline/settings-system-system-language/verdict.json",
+      "reportPath": "reports/accept/baseline/settings-system-system-language/report.md",
+      "listMetrics": null,
+      "scope": ".settings-system-page",
+      "openPath": [
+        {
+          "text": "系统",
+          "expect": ".settings-system-page"
+        },
+        {
+          "sel": "[data-system-row=\"languageInput\"]",
+          "expect": ".settings-system-page .sub-shell"
+        }
+      ],
+      "notes": "data-system-row=languageInput 进入 SettingsSystem 的子页 SystemLanguage",
+      "command": {
+        "bin": "/Users/jingzhan.chen/homebrew/Cellar/node/26.4.0/bin/node",
+        "args": [
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/accept.mjs",
+          "--spec",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/spec/settings/system/system-language.geometry.json",
+          "--url",
+          "http://127.0.0.1:7812/",
+          "--page",
+          "settings/system/system-language",
+          "--recipe",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/recipes/by-text-path.mjs",
+          "--build-dir",
+          "/tmp/dist-head",
+          "--out",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/reports/accept/baseline/settings-system-system-language"
+        ],
+        "env": {
+          "OPEN_PATH": "[{\"text\":\"系统\",\"expect\":\".settings-system-page\"},{\"sel\":\"[data-system-row=\\\"languageInput\\\"]\",\"expect\":\".settings-system-page .sub-shell\"}]",
+          "SCOPE": ".settings-system-page"
+        }
+      },
+      "scale": 1,
+      "shell": {
+        "x": 436,
+        "y": 306,
+        "width": 360,
+        "height": 788
+      },
+      "summary": {
+        "totalSpec": 14,
+        "matched": 13,
+        "pass": 0,
+        "fail": 13,
+        "missing": 1,
+        "extra": 0,
+        "skipped": 0,
+        "matchRate": 0.929
+      },
+      "topReasons": [
+        {
+          "reason": "geometry-out-of-tolerance",
+          "count": 13
+        },
+        {
+          "reason": "not-found-in-dom",
+          "count": 1
+        }
+      ],
+      "worstFailNodes": [
+        {
+          "id": "group:工具",
+          "role": "group",
+          "worst": 53.8,
+          "tol": 1.5,
+          "delta": {
+            "dx": 0.1,
+            "dy": 53.8,
+            "dw": -2,
+            "dh": -14.1
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "group:地区偏好设置",
+          "role": "group",
+          "worst": 50.9,
+          "tol": 1.5,
+          "delta": {
+            "dx": 0.1,
+            "dy": 50.9,
+            "dw": -6,
+            "dh": -14.1
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "row:语音",
+          "role": "row",
+          "worst": 44.9,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 44.9,
+            "dw": 0.2,
+            "dh": -2.8
+          },
+          "reason": "geometry-out-of-tolerance"
+        }
+      ],
+      "missingIds": [
+        "row:温度"
+      ],
+      "failIds": [
+        "header:title",
+        "header:back",
+        "row:语言与地区",
+        "row:应用语言",
+        "row:当前键盘",
+        "row:键盘应用",
+        "row:安全键盘",
+        "row:拼写检查工具",
+        "row:个人字典",
+        "row:语音",
+        "group:键盘",
+        "group:工具",
+        "group:地区偏好设置"
+      ],
+      "extraTexts": [],
+      "pitch": null,
+      "buildHash": "5372d1334837641c6e97842dc28550218c155c0acc7263e5e08e758a5b21afe5",
+      "commitInVerdict": null
+    },
+    {
+      "pageId": "settings/system/system-navigation",
+      "slug": "settings-system-system-navigation",
+      "specPath": "spec/settings/system/system-navigation.geometry.json",
+      "status": "fail",
+      "exitCode": 1,
+      "timedOut": false,
+      "durationMs": 5057,
+      "outDir": "reports/accept/baseline/settings-system-system-navigation",
+      "verdictPath": "reports/accept/baseline/settings-system-system-navigation/verdict.json",
+      "reportPath": "reports/accept/baseline/settings-system-system-navigation/report.md",
+      "listMetrics": null,
+      "scope": ".settings-system-page",
+      "openPath": [
+        {
+          "text": "系统",
+          "expect": ".settings-system-page"
+        },
+        {
+          "sel": "[data-system-row=\"systemNavigation\"]",
+          "expect": ".settings-system-page .sub-shell"
+        }
+      ],
+      "notes": "子页 = SubPageShell（v-if 替换主页，系统页 scope 内只剩 sub-shell）",
+      "command": {
+        "bin": "/Users/jingzhan.chen/homebrew/Cellar/node/26.4.0/bin/node",
+        "args": [
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/accept.mjs",
+          "--spec",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/spec/settings/system/system-navigation.geometry.json",
+          "--url",
+          "http://127.0.0.1:7812/",
+          "--page",
+          "settings/system/system-navigation",
+          "--recipe",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/recipes/by-text-path.mjs",
+          "--build-dir",
+          "/tmp/dist-head",
+          "--out",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/reports/accept/baseline/settings-system-system-navigation"
+        ],
+        "env": {
+          "OPEN_PATH": "[{\"text\":\"系统\",\"expect\":\".settings-system-page\"},{\"sel\":\"[data-system-row=\\\"systemNavigation\\\"]\",\"expect\":\".settings-system-page .sub-shell\"}]",
+          "SCOPE": ".settings-system-page"
+        }
+      },
+      "scale": 1,
+      "shell": {
+        "x": 436,
+        "y": 306,
+        "width": 360,
+        "height": 788
+      },
+      "summary": {
+        "totalSpec": 9,
+        "matched": 9,
+        "pass": 0,
+        "fail": 9,
+        "missing": 0,
+        "extra": 0,
+        "skipped": 0,
+        "matchRate": 1
+      },
+      "topReasons": [
+        {
+          "reason": "geometry-out-of-tolerance",
+          "count": 8
+        },
+        {
+          "reason": "duplicate-match(also:row:学习手势)",
+          "count": 1
+        }
+      ],
+      "worstFailNodes": [
+        {
+          "id": "row:学习手势",
+          "role": "row",
+          "worst": 293.4,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 20.4,
+            "dw": 0.2,
+            "dh": -293.4
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "group:手势导航",
+          "role": "group",
+          "worst": 192.3,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.2,
+            "dy": -192.3,
+            "dw": -7.8,
+            "dh": 256.9
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "group:三键导航",
+          "role": "group",
+          "worst": 192.3,
+          "tol": 1.5,
+          "delta": {
+            "dx": 8,
+            "dy": -192.3,
+            "dw": -7.8,
+            "dh": 256.9
+          },
+          "reason": "geometry-out-of-tolerance"
+        }
+      ],
+      "missingIds": [],
+      "failIds": [
+        "header:title",
+        "header:back",
+        "row:学习手势",
+        "row:学习手势#2",
+        "row:隐藏手势导航条",
+        "row:圈定即搜",
+        "row:语音助手",
+        "group:手势导航",
+        "group:三键导航"
+      ],
+      "extraTexts": [],
+      "pitch": null,
+      "buildHash": "5372d1334837641c6e97842dc28550218c155c0acc7263e5e08e758a5b21afe5",
+      "commitInVerdict": null
+    },
+    {
+      "pageId": "settings/system/system-power-button",
+      "slug": "settings-system-system-power-button",
+      "specPath": "spec/settings/system/system-power-button.geometry.json",
+      "status": "fail",
+      "exitCode": 1,
+      "timedOut": false,
+      "durationMs": 5035,
+      "outDir": "reports/accept/baseline/settings-system-system-power-button",
+      "verdictPath": "reports/accept/baseline/settings-system-system-power-button/verdict.json",
+      "reportPath": "reports/accept/baseline/settings-system-system-power-button/report.md",
+      "listMetrics": null,
+      "scope": ".settings-system-page",
+      "openPath": [
+        {
+          "text": "系统",
+          "expect": ".settings-system-page"
+        },
+        {
+          "sel": "[data-system-row=\"powerButton\"]",
+          "expect": ".settings-system-page .sub-shell"
+        }
+      ],
+      "notes": "同上，SystemPowerButton",
+      "command": {
+        "bin": "/Users/jingzhan.chen/homebrew/Cellar/node/26.4.0/bin/node",
+        "args": [
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/accept.mjs",
+          "--spec",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/spec/settings/system/system-power-button.geometry.json",
+          "--url",
+          "http://127.0.0.1:7812/",
+          "--page",
+          "settings/system/system-power-button",
+          "--recipe",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/recipes/by-text-path.mjs",
+          "--build-dir",
+          "/tmp/dist-head",
+          "--out",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/reports/accept/baseline/settings-system-system-power-button"
+        ],
+        "env": {
+          "OPEN_PATH": "[{\"text\":\"系统\",\"expect\":\".settings-system-page\"},{\"sel\":\"[data-system-row=\\\"powerButton\\\"]\",\"expect\":\".settings-system-page .sub-shell\"}]",
+          "SCOPE": ".settings-system-page"
+        }
+      },
+      "scale": 1,
+      "shell": {
+        "x": 436,
+        "y": 306,
+        "width": 360,
+        "height": 788
+      },
+      "summary": {
+        "totalSpec": 6,
+        "matched": 5,
+        "pass": 0,
+        "fail": 5,
+        "missing": 1,
+        "extra": 1,
+        "skipped": 0,
+        "matchRate": 0.833
+      },
+      "topReasons": [
+        {
+          "reason": "geometry-out-of-tolerance",
+          "count": 5
+        },
+        {
+          "reason": "not-found-in-dom",
+          "count": 1
+        },
+        {
+          "reason": "extra:unmatched-row",
+          "count": 1
+        }
+      ],
+      "worstFailNodes": [
+        {
+          "id": "row:数字助理",
+          "role": "row",
+          "worst": 321.5,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": -321.5,
+            "dw": 0.2,
+            "dh": -2.8
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "row:电源菜单",
+          "role": "row",
+          "worst": 318.7,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": -318.7,
+            "dw": 0.2,
+            "dh": -2.8
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "group:按住电源按钮即可访问",
+          "role": "group",
+          "worst": 311.6,
+          "tol": 1.5,
+          "delta": {
+            "dx": 0.1,
+            "dy": -311.6,
+            "dw": -10.1,
+            "dh": -14.1
+          },
+          "reason": "geometry-out-of-tolerance"
+        }
+      ],
+      "missingIds": [
+        "group:电源菜单： \n长按电源键 3 秒。"
+      ],
+      "failIds": [
+        "header:title",
+        "header:back",
+        "row:电源菜单",
+        "row:数字助理",
+        "group:按住电源按钮即可访问"
+      ],
+      "extraTexts": [
+        "电源菜单：长按电源键 3 秒。"
+      ],
+      "pitch": null,
+      "buildHash": "5372d1334837641c6e97842dc28550218c155c0acc7263e5e08e758a5b21afe5",
+      "commitInVerdict": null
+    },
+    {
+      "pageId": "settings/system/system-schedule-power",
+      "slug": "settings-system-system-schedule-power",
+      "specPath": "spec/settings/system/system-schedule-power.geometry.json",
+      "status": "fail",
+      "exitCode": 1,
+      "timedOut": false,
+      "durationMs": 5049,
+      "outDir": "reports/accept/baseline/settings-system-system-schedule-power",
+      "verdictPath": "reports/accept/baseline/settings-system-system-schedule-power/verdict.json",
+      "reportPath": "reports/accept/baseline/settings-system-system-schedule-power/report.md",
+      "listMetrics": null,
+      "scope": ".settings-system-page",
+      "openPath": [
+        {
+          "text": "系统",
+          "expect": ".settings-system-page"
+        },
+        {
+          "sel": "[data-system-row=\"schedulePower\"]",
+          "expect": ".settings-system-page .sub-shell"
+        }
+      ],
+      "notes": "SystemSchedulePower（定时开关机与重启）",
+      "command": {
+        "bin": "/Users/jingzhan.chen/homebrew/Cellar/node/26.4.0/bin/node",
+        "args": [
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/accept.mjs",
+          "--spec",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/spec/settings/system/system-schedule-power.geometry.json",
+          "--url",
+          "http://127.0.0.1:7812/",
+          "--page",
+          "settings/system/system-schedule-power",
+          "--recipe",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/recipes/by-text-path.mjs",
+          "--build-dir",
+          "/tmp/dist-head",
+          "--out",
+          "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/reports/accept/baseline/settings-system-system-schedule-power"
+        ],
+        "env": {
+          "OPEN_PATH": "[{\"text\":\"系统\",\"expect\":\".settings-system-page\"},{\"sel\":\"[data-system-row=\\\"schedulePower\\\"]\",\"expect\":\".settings-system-page .sub-shell\"}]",
+          "SCOPE": ".settings-system-page"
+        }
+      },
+      "scale": 1,
+      "shell": {
+        "x": 436,
+        "y": 306,
+        "width": 360,
+        "height": 788
+      },
+      "summary": {
+        "totalSpec": 8,
+        "matched": 7,
+        "pass": 0,
+        "fail": 7,
+        "missing": 1,
+        "extra": 1,
+        "skipped": 0,
+        "matchRate": 0.875
+      },
+      "topReasons": [
+        {
+          "reason": "geometry-out-of-tolerance",
+          "count": 7
+        },
+        {
+          "reason": "not-found-in-dom",
+          "count": 1
+        },
+        {
+          "reason": "extra:unmatched-row",
+          "count": 1
+        }
+      ],
+      "worstFailNodes": [
+        {
+          "id": "row:05:00",
+          "role": "row",
+          "worst": 105.9,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 105.9,
+            "dw": 0.2,
+            "dh": 10.8
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "row:定时重启",
+          "role": "row",
+          "worst": 99.9,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 99.9,
+            "dw": 0.2,
+            "dh": -6
+          },
+          "reason": "geometry-out-of-tolerance"
+        },
+        {
+          "id": "row:定时关机",
+          "role": "row",
+          "worst": 63,
+          "tol": 1.5,
+          "delta": {
+            "dx": -0.1,
+            "dy": 63,
+            "dw": 0.2,
+            "dh": -6
+          },
+          "reason": "geometry-out-of-tolerance"
+        }
+      ],
+      "missingIds": [
+        "row:20:00"
+      ],
+      "failIds": [
+        "header:title",
+        "header:back",
+        "row:定时开机",
+        "row:07:00",
+        "row:定时关机",
+        "row:定时重启",
+        "row:05:00"
+      ],
+      "extraTexts": [
+        "23:00每天"
+      ],
+      "pitch": null,
+      "buildHash": "5372d1334837641c6e97842dc28550218c155c0acc7263e5e08e758a5b21afe5",
+      "commitInVerdict": null
+    }
+  ]
+}
