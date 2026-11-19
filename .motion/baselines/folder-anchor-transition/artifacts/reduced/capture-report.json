@@ -1,0 +1,50 @@
+{
+  "tool": "mobile-motion-builder/capture_web.mjs",
+  "url": "http://127.0.0.1:8888/",
+  "viewport": {
+    "width": 393,
+    "height": 852,
+    "deviceScaleFactor": 1
+  },
+  "reducedMotion": "reduce",
+  "samples": [
+    {
+      "name": "trigger",
+      "requestedTimeMs": 0,
+      "captureStartedMs": 0.014,
+      "captureCompletedMs": 75.058,
+      "file": "00-trigger.png"
+    },
+    {
+      "name": "resolved",
+      "requestedTimeMs": 32,
+      "captureStartedMs": 75.102,
+      "captureCompletedMs": 136.694,
+      "file": "01-resolved.png"
+    }
+  ],
+  "assertions": [
+    {
+      "selector": ".folder-overlay",
+      "state": "visible",
+      "pass": true
+    },
+    {
+      "selector": ".folder-title",
+      "state": "visible",
+      "pass": true
+    }
+  ],
+  "console": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    }
+  ],
+  "pageErrors": [],
+  "functionalPass": true
+}
