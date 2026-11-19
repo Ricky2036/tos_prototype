@@ -14,6 +14,7 @@ import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import { GLYPHS } from '../../assets/icons/glyphs'
 // 兼容时钟应用图标契约引用: CLOCK_ICONS.timer GLYPHS.mic
 import PrivacyDemo from '../privacy/PrivacyDemo.vue'
+import BackScreenDemo from './BackScreenDemo.vue'
 import LIcon from '../ui/LIcon.vue'
 
 /* 微调面板改为按需异步加载 */
@@ -139,9 +140,18 @@ const initialModule = (urlParams?.get('overlay') === 'controlCenter' || urlParam
       ? 'muslim'
       : (urlParams?.get('tab') === 'privacy' || urlParams?.get('module') === 'privacy')
         ? 'privacy'
-        : 'island'
+        : (urlParams?.get('tab') === 'backscreen' || urlParams?.get('module') === 'backscreen')
+          ? 'backscreen'
+          : (urlParams?.get('tab') === 'flashlight' || urlParams?.get('module') === 'flashlight')
+            ? 'flashlight'
+            : 'island'
 
-const selectedModule = ref(initialModule) // 'control' | 'island' | 'muslim'
+const selectedModule = ref(initialModule) // 'control' | 'island' | 'muslim' | 'privacy' | 'backscreen' | 'flashlight'
+const flashlightLamps = [
+  { key: 'rear', label: '后置闪光灯', description: '支持调节亮度', locked: true },
+  { key: 'highBeam', label: '后置远光灯', description: '支持调节亮度+光束宽度' },
+  { key: 'front', label: '前置闪光灯', description: '不支持调节' }
+]
 const desktopCardRef = ref(null)
 const mobileCardRef = ref(null)
 
@@ -646,6 +656,8 @@ function onToggleFineTune(enabled) {
           <option value="muslim">礼拜模式</option>
           <option value="control">控制中心</option>
           <option value="privacy">敏感权限提示</option>
+          <option value="backscreen">可触控背屏</option>
+          <option value="flashlight">手电筒</option>
         </select>
         <svg class="pc-select-arrow" viewBox="0 0 20 20" fill="none">
           <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="m6 8 4 4 4-4"/>
@@ -786,6 +798,31 @@ function onToggleFineTune(enabled) {
 
           <!-- 模块 1.5: 敏感权限提示 (位于控制中心下方) -->
           <PrivacyDemo v-else-if="selectedModule === 'privacy'" key="privacy" />
+
+          <!-- 模块：可触控背屏预览 -->
+          <BackScreenDemo v-else-if="selectedModule === 'backscreen'" key="backscreen" />
+
+          <!-- 模块：手电筒 -->
+          <div v-else-if="selectedModule === 'flashlight'" key="flashlight" class="pc-module-section-group is-flashlight" data-testid="flashlight-console">
+            <div class="pc-section">
+              <div class="pc-card-header"><span class="pc-card-title">硬件配置</span></div>
+              <div class="flashlight-hardware-rows">
+                <div v-for="lamp in flashlightLamps" :key="lamp.key" class="flashlight-lamp-row">
+                  <div class="pc-card-header" style="margin-bottom: 0;">
+                    <div class="flashlight-lamp-copy">
+                      <span class="pc-card-title">{{ lamp.label }}</span>
+                      <span class="flashlight-lamp-description">{{ lamp.description }}</span>
+                    </div>
+                    <label class="pc-switch-wrap" :class="{ 'flashlight-lamp-locked': lamp.locked }">
+                      <input type="checkbox" :checked="lamp.locked || control.flashlightLamps[lamp.key]" @change="!lamp.locked && (control.flashlightLamps[lamp.key] = $event.target.checked)" :aria-label="lamp.label" :disabled="lamp.locked" />
+                      <div class="pc-switch"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button class="pc-btn pc-btn-secondary flashlight-reset-btn" type="button" data-testid="flashlight-reset" @click="control.resetFlashlight()">恢复初始状态</button>
+          </div>
 
           <!-- 模块 2: 灵动岛 (统一采用系统应用样式规范) -->
           <div v-else-if="selectedModule === 'island'" key="island" class="pc-module-section-group is-island">
@@ -1237,6 +1274,8 @@ function onToggleFineTune(enabled) {
                   <option value="muslim">礼拜模式</option>
                   <option value="control">控制中心</option>
                   <option value="privacy">敏感权限提示</option>
+                  <option value="backscreen">可触控背屏</option>
+                  <option value="flashlight">手电筒</option>
                 </select>
                 <svg class="pc-select-arrow" viewBox="0 0 20 20" fill="none">
                   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="m6 8 4 4 4-4"/>
@@ -1377,6 +1416,31 @@ function onToggleFineTune(enabled) {
 
                   <!-- 模块 1.5: 敏感权限提示 (位于控制中心下方) -->
                   <PrivacyDemo v-else-if="selectedModule === 'privacy'" key="privacy" />
+
+                  <!-- 模块：可触控背屏预览 -->
+                  <BackScreenDemo v-else-if="selectedModule === 'backscreen'" key="backscreen" />
+
+                  <!-- 模块：手电筒 -->
+                  <div v-else-if="selectedModule === 'flashlight'" key="flashlight" class="pc-module-section-group is-flashlight" data-testid="flashlight-console">
+                    <div class="pc-section">
+                      <div class="pc-card-header"><span class="pc-card-title">硬件配置</span></div>
+                      <div class="flashlight-hardware-rows">
+                        <div v-for="lamp in flashlightLamps" :key="lamp.key" class="flashlight-lamp-row">
+                          <div class="pc-card-header" style="margin-bottom: 0;">
+                            <div class="flashlight-lamp-copy">
+                              <span class="pc-card-title">{{ lamp.label }}</span>
+                              <span class="flashlight-lamp-description">{{ lamp.description }}</span>
+                            </div>
+                            <label class="pc-switch-wrap" :class="{ 'flashlight-lamp-locked': lamp.locked }">
+                              <input type="checkbox" :checked="lamp.locked || control.flashlightLamps[lamp.key]" @change="!lamp.locked && (control.flashlightLamps[lamp.key] = $event.target.checked)" :aria-label="lamp.label" :disabled="lamp.locked" />
+                              <div class="pc-switch"></div>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <button class="pc-btn pc-btn-secondary flashlight-reset-btn" type="button" data-testid="flashlight-reset" @click="control.resetFlashlight()">恢复初始状态</button>
+                  </div>
 
                   <!-- 模块 2: 灵动岛 (统一采用系统应用样式规范) -->
                   <div v-else-if="selectedModule === 'island'" key="island" class="pc-module-section-group is-island">
@@ -2726,4 +2790,13 @@ function onToggleFineTune(enabled) {
   opacity: 0;
   transform: scale(0.94) translateY(6px);
 }
+
+.pc-module-section-group.is-flashlight { gap: 0; }
+.flashlight-hardware-rows { display: flex; flex-direction: column; gap: 14px; }
+.flashlight-lamp-row .pc-card-header { min-height: 42px; gap: 12px; }
+.flashlight-lamp-copy { display: flex; flex-direction: column; gap: 6px; }
+.flashlight-lamp-description { color: #929dad; font: 400 11px/1.4 var(--font-stack); }
+.flashlight-lamp-locked { opacity: .42; cursor: not-allowed; }
+.flashlight-lamp-locked .pc-switch { cursor: not-allowed; }
+.flashlight-reset-btn { width: 100%; margin-top: 16px; }
 </style>

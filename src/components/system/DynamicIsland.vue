@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, nextTick, ref, watch } from 'vue'
 import { usePrayerStore } from '../../stores/prayerStore'
 import { useRecorderStore } from '../../stores/recorderStore'
 import { useClockStore } from '../../stores/clockStore'
@@ -29,6 +29,88 @@ const notificationsStore = useNotificationsStore()
 const control = useControlStore()
 const os16Store = useOs16IslandStore()
 const mediaIslandExpanded = ref(false)
+const flashlightDismissing = ref(false)
+const primaryCard = ref(null)
+let flashlightOffTimer
+let flashlightMotion
+let flashlightMotionGeneration = 0
+function cancelFlashlightDismissal() {
+  clearTimeout(flashlightOffTimer)
+  flashlightOffTimer = null
+  flashlightMotionGeneration++
+  flashlightMotion?.cancel()
+  flashlightMotion = null
+  flashlightDismissing.value = false
+}
+async function animateFlashlightAtCamera(entering) {
+  const generation = ++flashlightMotionGeneration
+  flashlightMotion?.cancel()
+  await nextTick()
+  const card = primaryCard.value
+  const hole = document.querySelector('.punch-hole')
+  if (!card || !hole || generation !== flashlightMotionGeneration || getOs16TemplateName(primaryActiveItem.value) !== OS16_TEMPLATES.FLASHLIGHT) return false
+  const bounds = card.getBoundingClientRect(), camera = hole.getBoundingClientRect()
+  const scaleX = bounds.width / card.offsetWidth, scaleY = bounds.height / card.offsetHeight
+  const dx = (camera.left + camera.width / 2 - bounds.left - bounds.width / 2) / scaleX
+  const dy = (camera.top + camera.height / 2 - bounds.top - bounds.height / 2) / scaleY
+  const cameraFrame = {
+    transform: `translate(${dx}px, ${dy}px) scale(${camera.width / bounds.width}, ${camera.height / bounds.height})`,
+    opacity: 0, transformOrigin: 'center center'
+  }
+  const fullFrame = { transform: 'translate(0px, 0px) scale(1, 1)', opacity: 1, transformOrigin: 'center center' }
+  const animation = card.animate(entering ? [cameraFrame, fullFrame] : [fullFrame, cameraFrame], {
+    duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 420,
+    easing: 'cubic-bezier(.22,.82,.18,1)', fill: 'both'
+  })
+  flashlightMotion = animation
+  try { await animation.finished } catch { return false }
+  if (generation !== flashlightMotionGeneration) return false
+  if (entering) { animation.cancel(); flashlightMotion = null }
+  return true
+}
+function scheduleFlashlightDismissal() {
+  if (flashlightOffTimer) return
+  flashlightOffTimer = setTimeout(async () => {
+    if (control.flashlightActive) return cancelFlashlightDismissal()
+    flashlightDismissing.value = true
+    // Keep the expanded card intact and shrink it directly into the camera.
+    const generation = flashlightMotionGeneration + 1
+    const finished = await animateFlashlightAtCamera(false)
+    if (generation === flashlightMotionGeneration && (finished || !flashlightMotion) && !control.flashlightActive) {
+      os16Store.closeTemplate(OS16_TEMPLATES.FLASHLIGHT)
+      cancelFlashlightDismissal()
+    }
+  }, 5000)
+}
+onBeforeUnmount(cancelFlashlightDismissal)
+
+// Present the live flashlight as a compact activity once Control Center is gone.
+watch(
+  [() => control.flashlightActive, () => system.overlays.controlCenter.status],
+  ([on, status], previous) => {
+    const template = OS16_TEMPLATES.FLASHLIGHT
+    os16Store.baseTemplateState.isFlashlightOn = on
+    if (!on) {
+      if (os16Store.isTemplateActive(template)) {
+        if (os16Store.isExpanded || flashlightOffTimer) scheduleFlashlightDismissal()
+        else os16Store.closeTemplate(template)
+      }
+      return
+    }
+    cancelFlashlightDismissal()
+    if (status !== 'closed') {
+      os16Store.isExpanded = false
+      return
+    }
+    const newlyActive = !os16Store.isTemplateActive(template)
+    if (newlyActive) os16Store.activateTemplate(template, false)
+    if (newlyActive || previous?.[1] !== 'closed') {
+      os16Store.isExpanded = false
+      animateFlashlightAtCamera(true)
+    }
+  },
+  { immediate: true }
+)
 
 if (typeof window !== 'undefined') {
   window.__clock = clockStore
@@ -152,7 +234,7 @@ function getOs16CapsuleText(t) {
   if (t === OS16_TEMPLATES.BATTERY_CHARGING) return `${os16Store.baseTemplateState.batteryPercent}%`
   if (t === OS16_TEMPLATES.PHONE_CALL) return '00:48'
   if (t === OS16_TEMPLATES.HOTSPOT) return '3m'
-  if (t === OS16_TEMPLATES.FLASHLIGHT) return os16Store.baseTemplateState.isFlashlightOn ? '开' : '关'
+  if (t === OS16_TEMPLATES.FLASHLIGHT) return control.flashlightActive ? '开' : '关'
   if (t === OS16_TEMPLATES.MICROPHONE) return '拾音中'
   if (t === OS16_TEMPLATES.TIMER) return '00:15'
   if (t === OS16_TEMPLATES.VOICE_RECORDING) return '01:28'
@@ -511,12 +593,14 @@ function handleClosePrayer(e) {
   <div v-if="hasAnyIsland" class="dynamic-island-wrapper">
     <!-- 1. 主灵动岛实体：在 compact 胶囊与 expanded 大圆角矩形之间做连续流体无缝变形 -->
     <div
+      ref="primaryCard"
       class="island-card"
       :class="[
         {
           'is-expanded': isExpanded,
           'is-compact': !isExpanded,
-          'is-media': isExpanded && primaryActiveItem === 'media'
+          'is-media': isExpanded && primaryActiveItem === 'media',
+          'is-flashlight-dismissing': flashlightDismissing && getOs16TemplateName(primaryActiveItem) === OS16_TEMPLATES.FLASHLIGHT
         },
         os16CardClass
       ]"
@@ -586,7 +670,7 @@ function handleClosePrayer(e) {
               <path d="M 25.2 4.8 A 13 13 0 0 1 25.2 23.2" stroke="#2680EB" stroke-width="2.6" stroke-linecap="round"/>
             </svg>
             <svg v-else-if="getOs16TemplateName(primaryActiveItem) === OS16_TEMPLATES.FLASHLIGHT" width="12" height="16" viewBox="218 949 14 30" fill="none">
-              <defs><linearGradient id="fl_grad_cap" x1="224.999" y1="949" x2="224.999" y2="979" gradientUnits="userSpaceOnUse"><stop stop-color="#E4E4E7"/><stop offset="1" stop-color="#71717A"/></linearGradient></defs>
+              <defs><linearGradient id="fl_grad_cap" x1="224.999" y1="949" x2="224.999" y2="979" gradientUnits="userSpaceOnUse"><stop :stop-color="control.flashlightActive ? '#FFF275' : '#E4E4E7'"/><stop offset="1" :stop-color="control.flashlightActive ? '#FF9900' : '#71717A'"/></linearGradient></defs>
               <path d="M231.993 954C231.983 954.804 231.953 955.344 231.851 955.868C231.719 956.543 231.5 957.198 231.201 957.816C230.864 958.514 230.389 959.147 229.439 960.413L229.319 960.573C229.201 960.732 229.141 960.811 229.099 960.898C229.061 960.976 229.034 961.057 229.018 961.142C228.999 961.237 228.999 961.335 228.999 961.533V975.8C228.999 976.92 228.999 977.48 228.781 977.908C228.59 978.284 228.283 978.59 227.907 978.782C227.479 979 226.919 979 225.799 979H224.199C223.079 979 222.519 979 222.091 978.782C221.715 978.59 221.409 978.284 221.217 977.908C220.999 977.48 220.999 976.92 220.999 975.8V961.533C220.999 961.335 220.999 961.237 220.98 961.142C220.964 961.057 220.937 960.976 220.899 960.898C220.857 960.811 220.797 960.732 220.679 960.573L220.559 960.413C219.609 959.147 219.134 958.514 218.797 957.816C218.498 957.198 218.279 956.543 218.147 955.868C218.045 955.344 218.015 954.804 218.005 954H231.993ZM224.999 963C224.171 963 223.499 963.672 223.499 964.5V967.5C223.499 968.328 224.171 969 224.999 969C225.827 969 226.499 968.328 226.499 967.5V964.5C226.499 963.672 225.827 963 224.999 963ZM224.999 966C225.551 966 225.999 966.448 225.999 967V967.5C225.999 968.052 225.551 968.5 224.999 968.5C224.447 968.5 223.999 968.052 223.999 967.5V967C223.999 966.448 224.447 966 224.999 966Z" fill="url(#fl_grad_cap)"/>
             </svg>
             <svg v-else-if="getOs16TemplateName(primaryActiveItem) === OS16_TEMPLATES.TIMER" width="13" height="16" viewBox="214 459 22 30" fill="none">
@@ -1264,6 +1348,10 @@ function handleClosePrayer(e) {
     border-radius 0.38s cubic-bezier(0.32, 0.72, 0, 1),
     padding 0.38s cubic-bezier(0.32, 0.72, 0, 1),
     box-shadow 0.38s ease;
+}
+
+.island-card.is-flashlight-dismissing {
+  pointer-events: none;
 }
 
 /* 收起态尺寸（紧凑胶囊） */

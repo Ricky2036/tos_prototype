@@ -151,67 +151,46 @@ watch(() => control.flashlightPanelOpen, (open) => {
   }
 }, { flush: 'post' })
 
-// First-use education is illustrative only: never write brightness/beam values.
+// A single first-use sequence: dim by sliding down, then focus inward when supported.
 const educationStep = ref(-1)
-const educationSteps = computed(() => beamEnabled.value
-  ? ['下滑调暗', '上滑调亮', '内滑聚光', '外滑泛光']
-  : ['下滑调暗', '上滑调亮'])
-const directionHintsVisible = ref(false)
+const educationTick = ref(0)
+const educationSteps = computed(() => beamEnabled.value ? ['下滑调暗', '内滑聚光'] : ['下滑调暗'])
 const adjustedThisOpen = ref(false)
 const guidanceSessionActive = ref(false)
 let educationTimer
-function stopEducation(learned = false) {
+function stopEducation() {
   clearTimeout(educationTimer)
   educationTimer = undefined
-  if (learned && educationStep.value >= 0) control.flashlightGuidanceSeen = true
   educationStep.value = -1
 }
-function hideDirectionHints() {
-  directionHintsVisible.value = false
-}
 function endGuidanceSession(dismissed = false) {
-  // One first-use session can switch forms; any explicit dismissal completes both.
-  if (dismissed && guidanceSessionActive.value) {
-    control.flashlightGuidanceSeen = true
-    control.flashlightArrowGuidanceSeen = true
-  }
+  if (dismissed && guidanceSessionActive.value) control.flashlightGuidanceSeen = true
   stopEducation()
-  hideDirectionHints()
   guidanceSessionActive.value = false
 }
 function queueEducation({ carry = false } = {}) {
   stopEducation()
-  if (control.flashlightGuidanceMode !== 'dot' || !control.flashlightPanelOpen || !control.flashlight || adjustedThisOpen.value || (!carry && control.flashlightGuidanceSeen)) return
+  if (!control.flashlightPanelOpen || !control.flashlight || adjustedThisOpen.value || (!carry && control.flashlightGuidanceSeen)) return
   guidanceSessionActive.value = true
   if (!guidanceReady.value) return
   function advance() {
     if (!control.flashlightPanelOpen || !control.flashlight) { endGuidanceSession(); return }
     educationStep.value = (educationStep.value + 1) % educationSteps.value.length
+    educationTick.value++
     educationTimer = setTimeout(advance, 2000)
   }
   advance()
 }
-watch(() => [control.flashlightPanelOpen, control.flashlight, beamEnabled.value, control.flashlightGuidanceMode, guidanceReady.value, control.flashlightResetRevision], ([open, on, , mode, ready, resetRevision], [wasOpen, , , , , previousResetRevision]) => {
+watch(() => [control.flashlightPanelOpen, control.flashlight, beamEnabled.value, guidanceReady.value, control.flashlightResetRevision], ([open, on, , , resetRevision], [wasOpen, , , , previousResetRevision]) => {
   if (open && !wasOpen) adjustedThisOpen.value = false
   if (!open || !on) {
-    // Reset intentionally clears first-use history instead of consuming it.
     endGuidanceSession(resetRevision === previousResetRevision)
     return
   }
   const carry = guidanceSessionActive.value && !adjustedThisOpen.value
   stopEducation()
-  hideDirectionHints()
   guidanceSessionActive.value = false
-  if (adjustedThisOpen.value) return
-  if (mode === 'dot') {
-    queueEducation({ carry })
-  } else if (carry || !control.flashlightArrowGuidanceSeen) {
-    guidanceSessionActive.value = true
-    if (ready) {
-      control.flashlightArrowGuidanceSeen = true
-      directionHintsVisible.value = true
-    }
-  }
+  if (!adjustedThisOpen.value) queueEducation({ carry })
 })
 // Reset values in place without releasing the frozen Control Center backdrop.
 watch(() => control.flashlightResetRevision, () => {
@@ -224,13 +203,6 @@ watch(() => control.flashlightResetRevision, () => {
   snapTo(level.value)
   lampAnimationReady.value = level.value > 0
   queueEducation()
-  if (control.flashlightPanelOpen && control.flashlight && control.flashlightGuidanceMode === 'arrow') {
-    guidanceSessionActive.value = true
-    if (guidanceReady.value) {
-      control.flashlightArrowGuidanceSeen = true
-      directionHintsVisible.value = true
-    }
-  }
 })
 function beamContourAt(sideY) {
   const halfWidth = optics.value.endX - 144
@@ -247,26 +219,16 @@ function beamContourAt(sideY) {
   return { left: 144 - sideHalfWidth, right: 144 + sideHalfWidth, sideY,
     centerY: optics.value.endY - guideRise(halfWidth) }
 }
-const markerGeometry = computed(() => {
-  const unitsPerPixel = 380 / opticsHeight.value
-  return beamContourAt(Math.max(optics.value.endY + 6 * unitsPerPixel, (optics.value.endY + sourceY) / 2 - 50 * unitsPerPixel))
-})
 const educationAnchorY = computed(() => optics.value.endY + (sourceY - optics.value.endY) * .42 - 40 * 380 / opticsHeight.value)
 const educationDotStyle = computed(() => ({ left: '50%', top: `${educationAnchorY.value / 380 * 100}%` }))
 // Use the same 24px label offset and 15px × 1.5 line-height in every continuous step.
 const continuousWidthGeometry = computed(() => beamContourAt(educationAnchorY.value + (24 + 11.25) * 380 / opticsHeight.value))
-const tiledGeometry = computed(() => {
-  const shifted = beamContourAt(Math.min(sourceY - 6, markerGeometry.value.sideY + 44 * 380 / opticsHeight.value))
-  return { ...shifted, centerY: markerGeometry.value.centerY + 44 * 380 / opticsHeight.value }
-})
 
 function widthEducationMotion(side) {
-  const inward = side === 'left' ? 36 : -36
-  return { '--width-from': `${educationStep.value === 2 ? 0 : inward}px`, '--width-to': `${educationStep.value === 2 ? inward : 0}px` }
+  return { '--width-from': '0px', '--width-to': side === 'left' ? '36px' : '-36px' }
 }
-function widthEducationAnchor(side, continuous = false) {
-  const geometry = continuous ? continuousWidthGeometry.value : tiledGeometry.value
-  return { left: `${geometry[side] / 288 * 100}%`, top: `${geometry.sideY / 380 * 100}%` }
+function widthEducationAnchor(side) {
+  return { left: `${continuousWidthGeometry.value[side] / 288 * 100}%`, top: `${continuousWidthGeometry.value.sideY / 380 * 100}%` }
 }
 
 function setTransitionOrigin(element) {
@@ -543,34 +505,22 @@ function close() {
           alt=""
           aria-hidden="true"
         />
-        <div v-if="control.flashlightGuidanceMode === 'arrow' && control.flashlight && educationStep < 0 && directionHintsVisible && !dragging" class="torch-tiled-guidance" data-testid="flashlight-tiled-guidance">
-          <div class="torch-tiled-anchor" :style="{ left: '50%', top: `calc(${tiledGeometry.centerY / 380 * 100}% + 10px)` }">
-            <span class="torch-education-dot torch-loop-dot torch-loop-vertical" data-testid="flashlight-loop-vertical" aria-hidden="true"></span>
-          </div>
-          <div class="torch-direction-copy" data-testid="flashlight-brightness-hint" :style="{ left: '50%', top: `calc(${tiledGeometry.centerY / 380 * 100}% + 40px)` }">下滑调暗，上滑调亮</div>
-          <template v-if="beamEnabled">
-            <div v-for="side in ['left', 'right']" :key="side" class="torch-tiled-anchor" :style="widthEducationAnchor(side)">
-              <span class="torch-education-dot torch-loop-dot torch-loop-width" :data-testid="`flashlight-loop-${side}`" :style="{ '--loop-inward': side === 'left' ? '36px' : '-36px' }" aria-hidden="true"></span>
-            </div>
-            <div class="torch-direction-copy torch-direction-copy-width" data-testid="flashlight-width-hint" :style="{ left: '50%', top: `${tiledGeometry.sideY / 380 * 100}%` }">内滑聚光，外滑泛光</div>
-          </template>
-        </div>
         <Transition name="torch-education">
-          <div v-if="educationStep >= 0 && educationStep < 2" class="torch-education-touch" :style="educationDotStyle" data-testid="flashlight-continuous-vertical">
-            <div :key="educationStep" class="torch-education-motion" :class="`torch-education-motion-${educationStep}`">
+          <div v-if="educationStep === 0" class="torch-education-touch" :style="educationDotStyle" data-testid="flashlight-continuous-vertical">
+            <div :key="educationTick" class="torch-education-motion" :class="`torch-education-motion-${educationStep}`">
               <span class="torch-education-dot" aria-hidden="true"></span>
             </div>
-            <div class="torch-education-copy" data-testid="flashlight-education" :data-step="educationStep" role="status" aria-live="polite">
+            <div class="torch-education-copy" data-testid="flashlight-education" :data-step="educationStep" :data-run="educationTick" role="status" aria-live="polite">
               <Transition name="torch-education-label"><span :key="educationStep">{{ educationSteps[educationStep] }}</span></Transition>
             </div>
           </div>
         </Transition>
         <Transition name="torch-education">
-          <div v-if="educationStep >= 2 && beamEnabled" class="torch-education-width-stage">
-            <div v-for="side in ['left', 'right']" :key="side" class="torch-tiled-anchor" :data-testid="`flashlight-continuous-${side}`" :style="widthEducationAnchor(side, true)">
-              <div :key="educationStep" class="torch-education-width-motion" :style="widthEducationMotion(side)"><span class="torch-education-dot" aria-hidden="true"></span></div>
+          <div v-if="educationStep === 1 && beamEnabled" class="torch-education-width-stage">
+            <div v-for="side in ['left', 'right']" :key="side" class="torch-tiled-anchor" :data-testid="`flashlight-continuous-${side}`" :style="widthEducationAnchor(side)">
+              <div :key="educationTick" class="torch-education-width-motion" :style="widthEducationMotion(side)"><span class="torch-education-dot" aria-hidden="true"></span></div>
             </div>
-            <div class="torch-education-copy torch-education-width-copy" :style="{ left: '50%', top: `${continuousWidthGeometry.sideY / 380 * 100}%` }" data-testid="flashlight-education" :data-step="educationStep" role="status" aria-live="polite">
+            <div class="torch-education-copy torch-education-width-copy" :style="{ left: '50%', top: `${continuousWidthGeometry.sideY / 380 * 100}%` }" data-testid="flashlight-education" :data-step="educationStep" :data-run="educationTick" role="status" aria-live="polite">
               <Transition name="torch-education-label"><span :key="educationStep">{{ educationSteps[educationStep] }}</span></Transition>
             </div>
           </div>
@@ -757,8 +707,7 @@ function close() {
 <style scoped>
 .torch-education-copy { position: absolute; left: 0; top: 24px; width: 96px; height: 22.5px; text-align: center; transform: translateX(-50%); white-space: nowrap; color: white; font: 500 15px/1.5 var(--font-stack); letter-spacing: .3px; pointer-events: none; text-shadow: 0 1px 6px #152b5033; }
 .torch-education-width-copy { display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); }
-.torch-education-copy.on-bright-beam, .torch-direction-copy.on-bright-beam { color: #fff; }
-.torch-education-copy span, .torch-direction-copy span { display: block; width: 100%; }
+.torch-education-copy span { display: block; width: 100%; }
 .torch-education-label-enter-active, .torch-education-label-leave-active { transition: opacity 180ms ease, transform 180ms ease; }
 .torch-education-label-leave-active { position: absolute; left: 0; top: 0; }
 .torch-education-label-enter-from { opacity: 0; transform: translateY(3px); }
@@ -767,27 +716,21 @@ function close() {
 .torch-education-dot { display: block; position: absolute; left: -11px; top: -11px; width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; background: #ffffff55; border: 1.2px solid #fff; box-shadow: 0 1px 8px #23355238; }
 .torch-education-motion { position: absolute; width: 0; height: 0; animation: torch-education-motion 2000ms cubic-bezier(.35,0,.2,1) both; }
 .torch-education-motion-0 { --from-x: 0px; --from-y: -40px; --to-x: 0px; --to-y: 0px; }
-.torch-education-motion-1 { --from-x: 0px; --from-y: 0px; --to-x: 0px; --to-y: -40px; }
 @keyframes torch-education-motion {
-  0% { transform: translate(var(--from-x), var(--from-y)); }
-  90%, 100% { transform: translate(var(--to-x), var(--to-y)); }
+  0% { opacity: 0; transform: translate(var(--from-x), var(--from-y)); }
+  12% { opacity: 1; }
+  90% { opacity: 1; transform: translate(var(--to-x), var(--to-y)); }
+  100% { opacity: 0; transform: translate(var(--to-x), var(--to-y)); }
 }
-.torch-tiled-guidance, .torch-education-width-stage { position: absolute; inset: 0; pointer-events: none; }
+.torch-education-width-stage { position: absolute; inset: 0; pointer-events: none; }
 .torch-scene.brightness-only .torch-education-width-stage { display: none; }
 .torch-tiled-anchor { position: absolute; width: 0; height: 0; pointer-events: none; }
 .torch-education-width-motion { position: absolute; width: 0; height: 0; animation: torch-education-width-motion 2000ms cubic-bezier(.35,0,.2,1) both; }
 @keyframes torch-education-width-motion { 0% { transform: translateX(var(--width-from)); } 90%,100% { transform: translateX(var(--width-to)); } }
-.torch-loop-dot { left: -8px; top: -8px; width: 16px; height: 16px; }
-.torch-loop-vertical { animation: torch-loop-vertical 4000ms ease-in-out infinite; }
-.torch-loop-width { animation: torch-loop-width 4000ms ease-in-out infinite; }
-@keyframes torch-loop-vertical { 0%,100% { transform: translateY(-16px); } 50% { transform: translateY(16px); } }
-@keyframes torch-loop-width { 0%,100% { transform: translateX(0); } 50% { transform: translateX(var(--loop-inward)); } }
-.torch-direction-copy { position: absolute; width: 156px; text-align: center; transform: translateX(-50%); font: 500 15px/1.5 var(--font-stack); white-space: nowrap; color: white; text-shadow: 0 1px 6px #152b5033; pointer-events: none; }
-.torch-direction-copy-width { transform: translate(-50%, -50%); }
 .torch-education-enter-active, .torch-education-leave-active { transition: opacity 180ms ease; }
 .torch-education-enter-from, .torch-education-leave-to { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
-  .torch-education-motion, .torch-education-width-motion, .torch-loop-dot { animation: none; }
+  .torch-education-motion, .torch-education-width-motion { animation: none; }
   .torch-education-label-enter-active, .torch-education-label-leave-active,
   .torch-education-enter-active, .torch-education-leave-active { transition: none; }
   .torch-education-dot { opacity: .8; }
