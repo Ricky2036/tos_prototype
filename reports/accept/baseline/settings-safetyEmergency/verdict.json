@@ -1,0 +1,886 @@
+{
+  "schema_version": 1,
+  "page": "settings/safetyEmergency",
+  "spec_path": "/Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/spec/settings/safetyEmergency.geometry.json",
+  "spec_sha256": "9bfc7c0fa92d3376ee924845cb23cfaf1b989d8f2374aac91337b85c5d9993d9",
+  "commit": null,
+  "commit_source": null,
+  "repo": null,
+  "repo_head": null,
+  "url": "http://127.0.0.1:7812/",
+  "shell": ".screen-view",
+  "scope": ".safety-emergency-page",
+  "shell_rect": {
+    "x": 436,
+    "y": 306,
+    "width": 360,
+    "height": 788
+  },
+  "recipe_sha256": "421b6f4e6f093a8bd9c600eebf36ece6cffaa1541e726e6a3952129ea69e3d49",
+  "build": {
+    "hash": "5372d1334837641c6e97842dc28550218c155c0acc7263e5e08e758a5b21afe5",
+    "entry": "index.html",
+    "file_count": 56,
+    "files": [
+      {
+        "path": "assets/ActionSheetModal-D-ocnXBr.css",
+        "sha256": "f1a5e30b301c13f17e098dd7ada8fc01b5aed812ef57a9cdeca23b1510f8f3b0",
+        "size": 2707
+      },
+      {
+        "path": "assets/ActionSheetModal-zvfBs7VP.js",
+        "sha256": "a23754afe100b1e07c8a39177037aefcfadfa0091aad1f29537b9b964b18009e",
+        "size": 2249
+      },
+      {
+        "path": "assets/AimateApp-CrVPNkIn.js",
+        "sha256": "0c65a399e20c8385705c1b67ab53746f7732783ed8b968ebfa1c6e857d98b5af",
+        "size": 228247
+      },
+      {
+        "path": "assets/AimateApp-Y3o8b6cE.css",
+        "sha256": "c4e86595db4390f3c776e81ccd04d2b9d8a8fdfb5d4f6676797473c561606d88",
+        "size": 106352
+      },
+      {
+        "path": "assets/AppNavBar-B8JeMtF9.js",
+        "sha256": "ed131014ad8c7daa274995db362f04c0f61803ceddd996e8f59ef275e6843b6a",
+        "size": 1101
+      },
+      {
+        "path": "assets/AppNavBar-CgdTaqM7.css",
+        "sha256": "16fa65a85ff78f7abd5bded519e23f88f1cdeb648835b0f96ed634f3511595d8",
+        "size": 1071
+      },
+      {
+        "path": "assets/CalendarApp-DqPMgtMb.js",
+        "sha256": "6a46a0b9c34d794603faeceb397e0054eedc0c4a1c11e8705d9a6b70da395cbd",
+        "size": 4148
+      },
+      {
+        "path": "assets/CalendarApp-H09SCGRm.css",
+        "sha256": "83a86574a5b9392bab03feb0595275c65e092f71dc18442f4d4b782ee36b7785",
+        "size": 2465
+      },
+      {
+        "path": "assets/CameraApp-5A-2GtG9.css",
+        "sha256": "0062d97973307796ed4beb0f69714c47125ad6683c3a0e874464684bb17d86e7",
+        "size": 2986
+      },
+      {
+        "path": "assets/CameraApp-D_eIyjpw.js",
+        "sha256": "9069e5599e5ac348c7c65553ef8bbe93c04c357323a7b206eb2c065a9cd06c41",
+        "size": 2924
+      },
+      {
+        "path": "assets/ClockApp-0NKHf_Pa.js",
+        "sha256": "33dfdc4bd2c1adbf770bee61f2bac89a1f8eb6427c7d2223dd247297973c7b3f",
+        "size": 51839
+      },
+      {
+        "path": "assets/ClockApp-Cv0kGcxg.css",
+        "sha256": "4e7744ccb386475497f9c8b773aa07c1a4a71e79770447481d0d147aafec83ea",
+        "size": 27752
+      },
+      {
+        "path": "assets/FloatingTabBar-ZdCtOr07.css",
+        "sha256": "ad5eae2195c9b8c81cbaf23b9cc543f7f7217056295d31bad2bd7a0da6eebb6a",
+        "size": 3434
+      },
+      {
+        "path": "assets/FloatingTabBar-xyJBzjn3.js",
+        "sha256": "19b3a4338f04177bbc45c60cef9f46ae0f6f45fe4b6962ff099cca434f93eb2a",
+        "size": 3866
+      },
+      {
+        "path": "assets/HSettingSlider-CnpbvDzJ.js",
+        "sha256": "50e722f0d6539ef523d4bed6b508070c2f1cd657d5396e7b8462624ccf196fb7",
+        "size": 1903
+      },
+      {
+        "path": "assets/HSettingSlider-xERdqTzV.css",
+        "sha256": "4464850ccb9def9d373842da125dad1f6a62a70b6a6615f323b363106135190d",
+        "size": 1017
+      },
+      {
+        "path": "assets/LargeTitleHeader-DKGGFDiL.js",
+        "sha256": "d45618cac3da42484e1424a8258ff0cbbda7c85caf94f5796c9dc42dd6b69a79",
+        "size": 2179
+      },
+      {
+        "path": "assets/LargeTitleHeader-DbSEODQg.css",
+        "sha256": "7e706e562d11d76746006c07758a73efef7af225e4a30ad1d470bc7cd046b796",
+        "size": 1101
+      },
+      {
+        "path": "assets/MessagesApp-CFIfq965.js",
+        "sha256": "9ffcfe8bbbf00db1a123e962ab609840f39ee59f790ddf755995572c297fb0bb",
+        "size": 4753
+      },
+      {
+        "path": "assets/MessagesApp-DdS8CaCq.css",
+        "sha256": "b6918465a8f820f8bec6cf3c79c8469a568d5272c08f3a64fd0308d065ec6061",
+        "size": 4415
+      },
+      {
+        "path": "assets/OneLeapApp-BFq7EVsL.js",
+        "sha256": "f008e075f1a4a05e235da23ce721c30474cf032e1ed3c9e35f573189d4f147f0",
+        "size": 15818
+      },
+      {
+        "path": "assets/OneLeapApp-CJtL5hQd.css",
+        "sha256": "84fdb441a2b6a05aa1290f08c40864e9df6f02126f28c49513253cec7999e48f",
+        "size": 18443
+      },
+      {
+        "path": "assets/PhoneApp-BMYtkms_.js",
+        "sha256": "767247910a9d2907c90849f4661181aa6e238301b6e4819a6aaa16ddbd951490",
+        "size": 261038
+      },
+      {
+        "path": "assets/PhoneApp-DCp4Qh7o.css",
+        "sha256": "1f5b3b152163f05f0cee6e510d875bd4ebf2a7c8de2b93f38edc46324b335971",
+        "size": 75715
+      },
+      {
+        "path": "assets/PhotosApp-CT2pGqNV.js",
+        "sha256": "556ed746229be4a7a3b1ff0cb779f2ef11412cd2e2a4cb980383fb2fe7dc63ee",
+        "size": 11691
+      },
+      {
+        "path": "assets/PhotosApp-Ciw_PsnV.css",
+        "sha256": "d7f548f4d59d6e200d60694d415a7695468ea124d62489ff4a84db06df2a815d",
+        "size": 5624
+      },
+      {
+        "path": "assets/SettingsAccessibility-BRS99Cgh.js",
+        "sha256": "2f42022d6c8c945a6dea1bd56671acc7157c708be5c57f8543598de59d43c3e1",
+        "size": 52716
+      },
+      {
+        "path": "assets/SettingsAccessibility-BtSAmyJ0.css",
+        "sha256": "b40793fcf811a5574ec24733b41db96acc91b82839011399537be11a0f545c78",
+        "size": 12622
+      },
+      {
+        "path": "assets/SettingsApp-6i3j4Cfa.js",
+        "sha256": "4a4908d93a57cc99e75bcf4083cbe6fab44b9630aa95b0dfb1634ef87ff0abaf",
+        "size": 718881
+      },
+      {
+        "path": "assets/SettingsApp-CzYCkrU1.css",
+        "sha256": "ffbdb33100fbb9c066a1aa9b4859237f0a2eebaa166ded5132a647ad7168ae37",
+        "size": 342069
+      },
+      {
+        "path": "assets/SettingsDateTime-CTG3I9ve.js",
+        "sha256": "848af81c224a7f0525972f4d0b8f56e82f5ae5312e78df10573273ce4218cc22",
+        "size": 15484
+      },
+      {
+        "path": "assets/SettingsDateTime-DY_UoTRq.css",
+        "sha256": "fb3934e4b2fb31368597e39931e5f7f5097e92705d6be0d5cf72411a45ffb95c",
+        "size": 3097
+      },
+      {
+        "path": "assets/SettingsDisplay-BFYwoZLB.js",
+        "sha256": "cc79c29e1551a20bfb8bd770c271d788c4fe032f3d675f6f8b27ca230346e46c",
+        "size": 24532
+      },
+      {
+        "path": "assets/SettingsDisplay-yQlDiRWx.css",
+        "sha256": "a9d0efcb1821d1b5fa6c02b2b5968b89357b92ac0820c5444b5de3898258ac29",
+        "size": 12812
+      },
+      {
+        "path": "assets/SettingsSafetyEmergency-BnR0yLv4.css",
+        "sha256": "036c079162214e0a36c965e7cb8c2e4aa647b500d541126f146d543c2dd3f889",
+        "size": 2687
+      },
+      {
+        "path": "assets/SettingsSafetyEmergency-CqecD2XV.js",
+        "sha256": "1f6d7cb0172fa24d29ce590b5652ddf43093ef404c185d6a44213239cb2b4994",
+        "size": 8474
+      },
+      {
+        "path": "assets/SettingsSound-BunxMi02.css",
+        "sha256": "e8aebbc78d27afac5be24ed4094ccf336539f45bca91cd57d4af4fb6cbcba286",
+        "size": 8461
+      },
+      {
+        "path": "assets/SettingsSound-DY1m78Wq.js",
+        "sha256": "949251502eaad1acac9d0fd3b0ffc8ef0d01f6e306819057f23866c42285a2c2",
+        "size": 27679
+      },
+      {
+        "path": "assets/SettingsSystem-BVAEPXZh.css",
+        "sha256": "d2c494f491ffe7a278097bf5d402f2a2d2e4a1d8a2cc6d6ce6b1a53eb12787c4",
+        "size": 15942
+      },
+      {
+        "path": "assets/SettingsSystem-DJtdtibA.js",
+        "sha256": "e320b176bc958f70a20a861f1c021f3ebe369d315e4757e21db40fa440bf83c6",
+        "size": 71732
+      },
+      {
+        "path": "assets/SubPageShell-hLu-rptz.css",
+        "sha256": "13fe92d0ded9e7768543320e08e9351f8e61e5782cb8dbe3d3652609a37f783b",
+        "size": 15098
+      },
+      {
+        "path": "assets/SubPageShell-vis0Dw6o.js",
+        "sha256": "730d9791f550370c4b4f38762c27f33987ed73921da1b5fbbd2d8d9bcdd904e1",
+        "size": 20779
+      },
+      {
+        "path": "assets/TimeWheel-DXTkroO3.css",
+        "sha256": "0bb9f1efb031baee22a3f610cc91c25393108feecbe2df0693350dbe0209a2cd",
+        "size": 617
+      },
+      {
+        "path": "assets/TimeWheel-IWMZe7Ei.js",
+        "sha256": "28b056c1c611da71a8c8b07f682a27e0baba29d6abaed16c9c57909d562d880e",
+        "size": 5359
+      },
+      {
+        "path": "assets/ToggleSwitch-C__uzSbC.js",
+        "sha256": "b0aa86344b91d806f3403aeb40f9b3d58046cd6775350f3120e7a8bb65235f34",
+        "size": 728
+      },
+      {
+        "path": "assets/ToggleSwitch-Sr75MXk9.css",
+        "sha256": "ba9003a9879d8b3088cdec7b04bb9736df24508d75fa1e8e7c84bd7cdba0b172",
+        "size": 776
+      },
+      {
+        "path": "assets/VoiceMemosApp-CBSxcCz6.js",
+        "sha256": "7669614ac81ed965e1859c687453bf0eee993e0c53eb54901635b6576e147b67",
+        "size": 5362
+      },
+      {
+        "path": "assets/VoiceMemosApp-CajzYX_1.css",
+        "sha256": "8acf4c85c08f759ceb2032110d8562c209188928b77302c2647f23a5abc34b0c",
+        "size": 5768
+      },
+      {
+        "path": "assets/dev-console-CST6O-74.js",
+        "sha256": "1736b729555cc00722fab29aa4b6728c74b2c7e8f65438a051720c7731a43d59",
+        "size": 268458
+      },
+      {
+        "path": "assets/dev-console-CeG4YoQk.css",
+        "sha256": "d9823b5d950f80e89c539fb714420b9f52883fbeba0649974054370908762f83",
+        "size": 27215
+      },
+      {
+        "path": "assets/icon-assets-Cbhe1ZrJ.js",
+        "sha256": "b35515c70f676f06dcae5847966bddc4bd6a9c91466985f8712936667f2f1f88",
+        "size": 903436
+      },
+      {
+        "path": "assets/index-BI3mCkZG.js",
+        "sha256": "e09750f174ddce6de35d57d97965b77dd396ef3486aa3775455fb25a14153bcf",
+        "size": 720133
+      },
+      {
+        "path": "assets/index-C3b6gmaU.css",
+        "sha256": "ea4aac8889ce09cdc2ea58ddd023bd39624b0aa4e3c08bd8cef22ed5bd529740",
+        "size": 233567
+      },
+      {
+        "path": "assets/lucide-icons-C3nxgjFW.js",
+        "sha256": "e46dd90cb2139b0d18c64807640aa6834b4645c7b423140c20442238b7c798c7",
+        "size": 176848
+      },
+      {
+        "path": "assets/vue-DE-dOART.js",
+        "sha256": "72145e0eb9f20181f3ac2b1a6699e71c1e14cccf289450f7bca3dec9a4733bd4",
+        "size": 88363
+      },
+      {
+        "path": "index.html",
+        "sha256": "8760290a21aa70ac22190a3a278bba929f695cb2c9d5fc067cdca5bf6149696f",
+        "size": 1878
+      }
+    ],
+    "dir": "/tmp/dist-head",
+    "url_check": {
+      "ok": true,
+      "entry": "index.html",
+      "entry_sha256": "8760290a21aa70ac22190a3a278bba929f695cb2c9d5fc067cdca5bf6149696f",
+      "skipped": null,
+      "mismatches": []
+    }
+  },
+  "scale": 1,
+  "canvas": {
+    "w": 360,
+    "h": 788
+  },
+  "viewport": {
+    "width": 1600,
+    "height": 1400
+  },
+  "device_scale_factor": 2,
+  "min_match": 0.9,
+  "summary": {
+    "totalSpec": 13,
+    "matched": 13,
+    "pass": 0,
+    "fail": 13,
+    "missing": 0,
+    "extra": 0,
+    "skipped": 0,
+    "matchRate": 1
+  },
+  "pitch": null,
+  "nodes": [
+    {
+      "id": "header:title",
+      "role": "header-title",
+      "expected": {
+        "x": 80.2,
+        "y": 53.3,
+        "w": 243.8,
+        "h": 21.2
+      },
+      "via": "text",
+      "text": {
+        "expected": "安全和紧急情况",
+        "actual": "安全和紧急情况",
+        "ok": true
+      },
+      "actual": {
+        "x": 72,
+        "y": 67,
+        "w": 117.6,
+        "h": 20
+      },
+      "delta": {
+        "dx": -8.2,
+        "dy": 13.7,
+        "dw": -126.2,
+        "dh": -1.2
+      },
+      "centerDelta": {
+        "dx": -71.3,
+        "dy": 13.1
+      },
+      "boxMode": "cy",
+      "boxRect": "text",
+      "worst": 13.1,
+      "tol": 1.5,
+      "status": "fail",
+      "reason": "geometry-out-of-tolerance"
+    },
+    {
+      "id": "header:back",
+      "role": "header-back",
+      "expected": {
+        "x": 16.1,
+        "y": 42,
+        "w": 44.1,
+        "h": 44.1
+      },
+      "via": "role:header-back",
+      "text": null,
+      "actual": {
+        "x": 16,
+        "y": 60,
+        "w": 34,
+        "h": 34
+      },
+      "delta": {
+        "dx": -0.1,
+        "dy": 18,
+        "dw": -10.1,
+        "dh": -10.1
+      },
+      "centerDelta": {
+        "dx": -5.2,
+        "dy": 13
+      },
+      "boxMode": "left+cy",
+      "boxRect": "element",
+      "worst": 13,
+      "tol": 1.5,
+      "status": "fail",
+      "reason": "geometry-out-of-tolerance"
+    },
+    {
+      "id": "row:打开个人安全",
+      "role": "row",
+      "expected": {
+        "x": 16.1,
+        "y": 100.4,
+        "w": 327.8,
+        "h": 56.3
+      },
+      "via": "row-level:text(ambiguous)",
+      "text": {
+        "expected": "打开个人安全",
+        "actual": "打开个人安全快速查看安全检查与紧急共享状态",
+        "ok": true
+      },
+      "actual": {
+        "x": 16,
+        "y": 112,
+        "w": 328,
+        "h": 68
+      },
+      "delta": {
+        "dx": -0.1,
+        "dy": 11.6,
+        "dw": 0.2,
+        "dh": 11.7
+      },
+      "centerDelta": {
+        "dx": 0,
+        "dy": 17.4
+      },
+      "boxMode": "full",
+      "boxRect": "element",
+      "worst": 11.7,
+      "tol": 1.5,
+      "status": "fail",
+      "reason": "geometry-out-of-tolerance"
+    },
+    {
+      "id": "row:紧急联络",
+      "role": "row",
+      "expected": {
+        "x": 16.1,
+        "y": 172.9,
+        "w": 327.8,
+        "h": 55.7
+      },
+      "via": "text",
+      "text": {
+        "expected": "紧急联络",
+        "actual": "紧急联络",
+        "ok": true
+      },
+      "actual": {
+        "x": 16,
+        "y": 198,
+        "w": 328,
+        "h": 26
+      },
+      "delta": {
+        "dx": -0.1,
+        "dy": 25.1,
+        "dw": 0.2,
+        "dh": -29.7
+      },
+      "centerDelta": {
+        "dx": 0,
+        "dy": 10.2
+      },
+      "boxMode": "full",
+      "boxRect": "element",
+      "worst": 29.7,
+      "tol": 1.5,
+      "status": "fail",
+      "reason": "geometry-out-of-tolerance"
+    },
+    {
+      "id": "row:医疗信息",
+      "role": "row",
+      "expected": {
+        "x": 16.1,
+        "y": 228.6,
+        "w": 327.8,
+        "h": 64.7
+      },
+      "via": "row-level:text(ambiguous)",
+      "text": {
+        "expected": "医疗信息",
+        "actual": "医疗信息姓名、血型及其他信息",
+        "ok": true
+      },
+      "actual": {
+        "x": 16,
+        "y": 224,
+        "w": 328,
+        "h": 66.7
+      },
+      "delta": {
+        "dx": -0.1,
+        "dy": -4.6,
+        "dw": 0.2,
+        "dh": 2
+      },
+      "centerDelta": {
+        "dx": 0,
+        "dy": -3.5
+      },
+      "boxMode": "full",
+      "boxRect": "element",
+      "worst": 4.6,
+      "tol": 1.5,
+      "status": "fail",
+      "reason": "geometry-out-of-tolerance"
+    },
+    {
+      "id": "row:紧急联系人",
+      "role": "row",
+      "expected": {
+        "x": 16.1,
+        "y": 293.3,
+        "w": 327.8,
+        "h": 64.7
+      },
+      "via": "row-level:text(ambiguous)",
+      "text": {
+        "expected": "紧急联系人",
+        "actual": "紧急联系人2 位联系人",
+        "ok": true
+      },
+      "actual": {
+        "x": 16,
+        "y": 290.7,
+        "w": 328,
+        "h": 65.7
+      },
+      "delta": {
+        "dx": -0.1,
+        "dy": -2.6,
+        "dw": 0.2,
+        "dh": 1
+      },
+      "centerDelta": {
+        "dx": 0,
+        "dy": -2.1
+      },
+      "boxMode": "full",
+      "boxRect": "element",
+      "worst": 2.6,
+      "tol": 1.5,
+      "status": "fail",
+      "reason": "geometry-out-of-tolerance"
+    },
+    {
+      "id": "row:紧急求救",
+      "role": "row",
+      "expected": {
+        "x": 16.1,
+        "y": 357.9,
+        "w": 327.8,
+        "h": 55.7
+      },
+      "via": "row-level:text(ambiguous)",
+      "text": {
+        "expected": "紧急求救",
+        "actual": "紧急求救（SOS）快速连按 5 次电源键启动",
+        "ok": true
+      },
+      "actual": {
+        "x": 16,
+        "y": 400.4,
+        "w": 328,
+        "h": 65.7
+      },
+      "delta": {
+        "dx": -0.1,
+        "dy": 42.5,
+        "dw": 0.2,
+        "dh": 10
+      },
+      "centerDelta": {
+        "dx": 0,
+        "dy": 47.5
+      },
+      "boxMode": "full",
+      "boxRect": "element",
+      "worst": 42.5,
+      "tol": 1.5,
+      "status": "fail",
+      "reason": "geometry-out-of-tolerance"
+    },
+    {
+      "id": "row:无线紧急警报",
+      "role": "row",
+      "expected": {
+        "x": 16.1,
+        "y": 429.8,
+        "w": 327.8,
+        "h": 55.7
+      },
+      "via": "text",
+      "text": {
+        "expected": "无线紧急警报",
+        "actual": "无线紧急警报",
+        "ok": true
+      },
+      "actual": {
+        "x": 16,
+        "y": 484.1,
+        "w": 328,
+        "h": 26
+      },
+      "delta": {
+        "dx": -0.1,
+        "dy": 54.3,
+        "dw": 0.2,
+        "dh": -29.7
+      },
+      "centerDelta": {
+        "dx": 0,
+        "dy": 39.4
+      },
+      "boxMode": "full",
+      "boxRect": "element",
+      "worst": 54.3,
+      "tol": 1.5,
+      "status": "fail",
+      "reason": "geometry-out-of-tolerance"
+    },
+    {
+      "id": "row:地震警报",
+      "role": "row",
+      "expected": {
+        "x": 16.1,
+        "y": 485.5,
+        "w": 327.8,
+        "h": 51.9
+      },
+      "via": "row-level:text(ambiguous)",
+      "text": {
+        "expected": "地震警报",
+        "actual": "地震警报已开启",
+        "ok": true
+      },
+      "actual": {
+        "x": 16,
+        "y": 510.1,
+        "w": 328,
+        "h": 52
+      },
+      "delta": {
+        "dx": -0.1,
+        "dy": 24.6,
+        "dw": 0.2,
+        "dh": 0.1
+      },
+      "centerDelta": {
+        "dx": 0,
+        "dy": 24.6
+      },
+      "boxMode": "full",
+      "boxRect": "element",
+      "worst": 24.6,
+      "tol": 1.5,
+      "status": "fail",
+      "reason": "geometry-out-of-tolerance"
+    },
+    {
+      "id": "row:灾害警报",
+      "role": "row",
+      "expected": {
+        "x": 16.1,
+        "y": 537.4,
+        "w": 327.8,
+        "h": 48.6
+      },
+      "via": "row-level:text(ambiguous)",
+      "text": {
+        "expected": "灾害警报",
+        "actual": "灾害警报",
+        "ok": true
+      },
+      "actual": {
+        "x": 16,
+        "y": 562.1,
+        "w": 328,
+        "h": 52
+      },
+      "delta": {
+        "dx": -0.1,
+        "dy": 24.7,
+        "dw": 0.2,
+        "dh": 3.4
+      },
+      "centerDelta": {
+        "dx": 0,
+        "dy": 26.4
+      },
+      "boxMode": "full",
+      "boxRect": "element",
+      "worst": 24.7,
+      "tol": 1.5,
+      "status": "fail",
+      "reason": "geometry-out-of-tolerance"
+    },
+    {
+      "id": "row:驾车时将通知设为静音",
+      "role": "row",
+      "expected": {
+        "x": 16.1,
+        "y": 585.9,
+        "w": 327.8,
+        "h": 55.7
+      },
+      "via": "row-level:text(ambiguous)",
+      "text": {
+        "expected": "驾车时将通知设为静音",
+        "actual": "驾车时将通知设为静音已关闭",
+        "ok": true
+      },
+      "actual": {
+        "x": 16,
+        "y": 614.1,
+        "w": 328,
+        "h": 52
+      },
+      "delta": {
+        "dx": -0.1,
+        "dy": 28.2,
+        "dw": 0.2,
+        "dh": -3.7
+      },
+      "centerDelta": {
+        "dx": 0,
+        "dy": 26.3
+      },
+      "boxMode": "full",
+      "boxRect": "element",
+      "worst": 28.2,
+      "tol": 1.5,
+      "status": "fail",
+      "reason": "geometry-out-of-tolerance"
+    },
+    {
+      "id": "row:紧急位置信息服务",
+      "role": "row",
+      "expected": {
+        "x": 16.1,
+        "y": 657.8,
+        "w": 327.8,
+        "h": 55.7
+      },
+      "via": "row-level:text(ambiguous)",
+      "text": {
+        "expected": "紧急位置信息服务",
+        "actual": "紧急位置信息服务已开启",
+        "ok": true
+      },
+      "actual": {
+        "x": 16,
+        "y": 710.1,
+        "w": 328,
+        "h": 52
+      },
+      "delta": {
+        "dx": -0.1,
+        "dy": 52.3,
+        "dw": 0.2,
+        "dh": -3.7
+      },
+      "centerDelta": {
+        "dx": 0,
+        "dy": 50.5
+      },
+      "boxMode": "full",
+      "boxRect": "element",
+      "worst": 52.3,
+      "tol": 1.5,
+      "status": "fail",
+      "reason": "geometry-out-of-tolerance"
+    },
+    {
+      "id": "row:不明追踪器提醒",
+      "role": "row",
+      "expected": {
+        "x": 16.1,
+        "y": 713.5,
+        "w": 327.8,
+        "h": 52.5
+      },
+      "via": "row-level:text(ambiguous)",
+      "text": {
+        "expected": "不明追踪器提醒",
+        "actual": "不明追踪器提醒",
+        "ok": true
+      },
+      "actual": {
+        "x": 16,
+        "y": 762.1,
+        "w": 328,
+        "h": 52
+      },
+      "delta": {
+        "dx": -0.1,
+        "dy": 48.6,
+        "dw": 0.2,
+        "dh": -0.5
+      },
+      "centerDelta": {
+        "dx": 0,
+        "dy": 48.3
+      },
+      "boxMode": "full",
+      "boxRect": "element",
+      "worst": 48.6,
+      "tol": 1.5,
+      "status": "fail",
+      "reason": "geometry-out-of-tolerance"
+    }
+  ],
+  "extras": [],
+  "diagnostics": [
+    {
+      "id": "row:打开个人安全",
+      "reason": "ambiguous-row-text",
+      "detail": "2 个行级元素匹配「打开个人安全」"
+    },
+    {
+      "id": "row:医疗信息",
+      "reason": "ambiguous-row-text",
+      "detail": "2 个行级元素匹配「医疗信息」"
+    },
+    {
+      "id": "row:紧急联系人",
+      "reason": "ambiguous-row-text",
+      "detail": "2 个行级元素匹配「紧急联系人」"
+    },
+    {
+      "id": "row:紧急求救",
+      "reason": "ambiguous-row-text",
+      "detail": "3 个行级元素匹配「紧急求救」"
+    },
+    {
+      "id": "row:地震警报",
+      "reason": "ambiguous-row-text",
+      "detail": "2 个行级元素匹配「地震警报」"
+    },
+    {
+      "id": "row:灾害警报",
+      "reason": "ambiguous-row-text",
+      "detail": "2 个行级元素匹配「灾害警报」"
+    },
+    {
+      "id": "row:驾车时将通知设为静音",
+      "reason": "ambiguous-row-text",
+      "detail": "2 个行级元素匹配「驾车时将通知设为静音」"
+    },
+    {
+      "id": "row:紧急位置信息服务",
+      "reason": "ambiguous-row-text",
+      "detail": "2 个行级元素匹配「紧急位置信息服务」"
+    },
+    {
+      "id": "row:不明追踪器提醒",
+      "reason": "ambiguous-row-text",
+      "detail": "2 个行级元素匹配「不明追踪器提醒」"
+    }
+  ],
+  "exit_code": 1,
+  "verdict": "fail",
+  "generated_at": "2026-11-18T12:22:24.211Z",
+  "artifacts": {
+    "actual_png": "actual.png",
+    "report_md": "report.md",
+    "verdict_json": "verdict.json"
+  },
+  "reproduce_command": "node tools/accept/accept.mjs \\\n  --spec /Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/spec/settings/safetyEmergency.geometry.json \\\n  --url http://127.0.0.1:7812/ \\\n  --page settings/safetyEmergency \\\n  --recipe /Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/tools/accept/recipes/by-text-path.mjs \\\n  --build-dir /tmp/dist-head \\\n  --out /Users/jingzhan.chen/Workbuddy/agent-workspaces/tos-dsh/reports/accept/baseline/settings-safetyEmergency"
+}

@@ -1,0 +1,294 @@
+{
+  "schema_version": 1,
+  "screen": "settings/safetyEmergency",
+  "source": "infinix-1208",
+  "canvas": {
+    "w": 360,
+    "h": 788
+  },
+  "device_px": {
+    "w": 1208,
+    "h": 2644
+  },
+  "from": "settings/safetyEmergency/page.xml",
+  "xml_sha256": "ca858ff8e3b901dd89d9a78b3615efdfdd68502f71c5e5f286234b3ca153a497",
+  "generated_at": "2026-11-18T12:24:01.005Z",
+  "nodes": [
+    {
+      "id": "header:title",
+      "role": "header-title",
+      "text": "安全和紧急情况",
+      "summary": "",
+      "bounds": {
+        "x": 80.2,
+        "y": 53.3,
+        "w": 243.8,
+        "h": 21.2
+      },
+      "clickable": false,
+      "crop": [
+        269,
+        179,
+        818,
+        71
+      ]
+    },
+    {
+      "id": "header:back",
+      "role": "header-back",
+      "text": "",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 42,
+        "w": 44.1,
+        "h": 44.1
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        141,
+        148,
+        148
+      ]
+    },
+    {
+      "id": "row:打开个人安全",
+      "role": "row",
+      "text": "打开个人安全",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 100.4,
+        "w": 327.8,
+        "h": 56.3
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        337,
+        1100,
+        189
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:紧急联络",
+      "role": "row",
+      "text": "紧急联络",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 172.9,
+        "w": 327.8,
+        "h": 55.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        580,
+        1100,
+        187
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:医疗信息",
+      "role": "row",
+      "text": "医疗信息",
+      "summary": "姓名、血型及其他信息",
+      "bounds": {
+        "x": 16.1,
+        "y": 228.6,
+        "w": 327.8,
+        "h": 64.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        767,
+        1100,
+        217
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:紧急联系人",
+      "role": "row",
+      "text": "紧急联系人",
+      "summary": "添加紧急联系人",
+      "bounds": {
+        "x": 16.1,
+        "y": 293.3,
+        "w": 327.8,
+        "h": 64.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        984,
+        1100,
+        217
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:紧急求救",
+      "role": "row",
+      "text": "紧急求救",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 357.9,
+        "w": 327.8,
+        "h": 55.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1201,
+        1100,
+        187
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:无线紧急警报",
+      "role": "row",
+      "text": "无线紧急警报",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 429.8,
+        "w": 327.8,
+        "h": 55.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1442,
+        1100,
+        187
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:地震警报",
+      "role": "row",
+      "text": "地震警报",
+      "summary": "已开启",
+      "bounds": {
+        "x": 16.1,
+        "y": 485.5,
+        "w": 327.8,
+        "h": 51.9
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1629,
+        1100,
+        174
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:灾害警报",
+      "role": "row",
+      "text": "灾害警报",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 537.4,
+        "w": 327.8,
+        "h": 48.6
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1803,
+        1100,
+        163
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:驾车时将通知设为静音",
+      "role": "row",
+      "text": "驾车时将通知设为静音",
+      "summary": "已关闭",
+      "bounds": {
+        "x": 16.1,
+        "y": 585.9,
+        "w": 327.8,
+        "h": 55.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1966,
+        1100,
+        187
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:紧急位置信息服务",
+      "role": "row",
+      "text": "紧急位置信息服务",
+      "summary": "已开启",
+      "bounds": {
+        "x": 16.1,
+        "y": 657.8,
+        "w": 327.8,
+        "h": 55.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        2207,
+        1100,
+        187
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:不明追踪器提醒",
+      "role": "row",
+      "text": "不明追踪器提醒",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 713.5,
+        "w": 327.8,
+        "h": 52.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        2394,
+        1100,
+        176
+      ],
+      "toggle": false,
+      "checked": null
+    }
+  ],
+  "unknowns": [
+    {
+      "kind": "appearance",
+      "element": "row:*",
+      "reason": "图标形态/底盘/填充率/颜色/圆角无法从 a11y 树机器提取，需 appearance crop 人工补齐"
+    }
+  ]
+}

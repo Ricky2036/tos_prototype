@@ -1,0 +1,294 @@
+{
+  "schema_version": 1,
+  "screen": "settings/system/system-developer-options",
+  "source": "infinix-1208",
+  "canvas": {
+    "w": 360,
+    "h": 788
+  },
+  "device_px": {
+    "w": 1208,
+    "h": 2644
+  },
+  "from": "settings/system/system-developer-options/page.xml",
+  "xml_sha256": "851cc4598f98bde1077e66a1c69c59943bb1d415608ff5de188b47bd597ac5e0",
+  "generated_at": "2026-11-18T12:24:01.005Z",
+  "nodes": [
+    {
+      "id": "header:title",
+      "role": "header-title",
+      "text": "开发者选项",
+      "summary": "",
+      "bounds": {
+        "x": 80.2,
+        "y": 53.3,
+        "w": 243.8,
+        "h": 21.2
+      },
+      "clickable": false,
+      "crop": [
+        269,
+        179,
+        818,
+        71
+      ]
+    },
+    {
+      "id": "header:back",
+      "role": "header-back",
+      "text": "",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 42,
+        "w": 44.1,
+        "h": 44.1
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        141,
+        148,
+        148
+      ]
+    },
+    {
+      "id": "row:使用“开发者选项”",
+      "role": "row",
+      "text": "使用“开发者选项”",
+      "summary": "",
+      "bounds": {
+        "x": 0,
+        "y": 104,
+        "w": 360,
+        "h": 68
+      },
+      "clickable": true,
+      "crop": [
+        0,
+        349,
+        1208,
+        228
+      ],
+      "toggle": true,
+      "checked": true
+    },
+    {
+      "id": "row:内存",
+      "role": "row",
+      "text": "内存",
+      "summary": "内存分析功能已停用。",
+      "bounds": {
+        "x": 16.1,
+        "y": 188.1,
+        "w": 327.8,
+        "h": 68.5
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        631,
+        1100,
+        230
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:错误报告",
+      "role": "row",
+      "text": "错误报告",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 256.6,
+        "w": 327.8,
+        "h": 48.6
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        861,
+        1100,
+        163
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:错误报告处理程序",
+      "role": "row",
+      "text": "错误报告处理程序",
+      "summary": "Android 系统",
+      "bounds": {
+        "x": 16.1,
+        "y": 305.2,
+        "w": 327.8,
+        "h": 64.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1024,
+        1100,
+        217
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:桌面备份密码",
+      "role": "row",
+      "text": "桌面备份密码",
+      "summary": "桌面完整备份当前未设置密码保护。",
+      "bounds": {
+        "x": 16.1,
+        "y": 369.9,
+        "w": 327.8,
+        "h": 64.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1241,
+        1100,
+        217
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:不锁定屏幕",
+      "role": "row",
+      "text": "不锁定屏幕",
+      "summary": "充电时屏幕不会休眠。",
+      "bounds": {
+        "x": 16.1,
+        "y": 434.5,
+        "w": 327.8,
+        "h": 63.8
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1458,
+        1100,
+        214
+      ],
+      "toggle": true,
+      "checked": true
+    },
+    {
+      "id": "row:OEM 解锁",
+      "role": "row",
+      "text": "OEM 解锁",
+      "summary": "允许通过本机账号验证解锁 bootloader。",
+      "bounds": {
+        "x": 16.1,
+        "y": 498.3,
+        "w": 327.8,
+        "h": 63.8
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1672,
+        1100,
+        214
+      ],
+      "toggle": true,
+      "checked": false
+    },
+    {
+      "id": "row:正在运行的服务",
+      "role": "row",
+      "text": "正在运行的服务",
+      "summary": "查看和控制当前正在运行的服务。",
+      "bounds": {
+        "x": 16.1,
+        "y": 562.1,
+        "w": 327.8,
+        "h": 64.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        1886,
+        1100,
+        217
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:WebView 实现",
+      "role": "row",
+      "text": "WebView 实现",
+      "summary": "Android System WebView",
+      "bounds": {
+        "x": 16.1,
+        "y": 626.8,
+        "w": 327.8,
+        "h": 64.7
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        2103,
+        1100,
+        217
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:WebView 开发者工具",
+      "role": "row",
+      "text": "WebView 开发者工具",
+      "summary": "",
+      "bounds": {
+        "x": 16.1,
+        "y": 691.4,
+        "w": 327.8,
+        "h": 48.6
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        2320,
+        1100,
+        163
+      ],
+      "toggle": false,
+      "checked": null
+    },
+    {
+      "id": "row:自动系统更新",
+      "role": "row",
+      "text": "自动系统更新",
+      "summary": "重启设备时应用更新。",
+      "bounds": {
+        "x": 16.1,
+        "y": 740,
+        "w": 327.8,
+        "h": 48
+      },
+      "clickable": true,
+      "crop": [
+        54,
+        2483,
+        1100,
+        161
+      ],
+      "toggle": true,
+      "checked": true
+    }
+  ],
+  "unknowns": [
+    {
+      "kind": "appearance",
+      "element": "row:*",
+      "reason": "图标形态/底盘/填充率/颜色/圆角无法从 a11y 树机器提取，需 appearance crop 人工补齐"
+    }
+  ]
+}

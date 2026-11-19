@@ -1,0 +1,51 @@
+{
+ "_readme": "列表行距契约（由 reports/diagnosis/measure-rows.py 从真机截图+dump 实测得出）。行框高度不可用：a11y 可点行框会不均匀吸收行间空隙（内容中心相对框中心在 +5.8/-7.5 之间交替），所以行高必须用「行距 + 首行内容中心」表达。 card_groups = 同一张卡片内的行下标（跨卡片间隔不是行距）。 card_offsets = 卡片首行相对第 1 行内容中心的偏移（画布px）；absolute_centers = 非行节点的期望中心。",
+ "screen": "settings/system",
+ "source": "infinix-1208",
+ "from": "03-system-page.png + system.xml",
+ "row_pitch": 48.8,
+ "first_row_center_y": 128.1,
+ "pitch_tolerance": 0.6,
+ "anchor_tolerance": 1.5,
+ "measurements": {
+  "device_px_pitch_median": 163.8,
+  "device_px_row_pitch_samples": [
+   163.0,
+   163.0,
+   169.0,
+   162.0,
+   163.2,
+   162.8
+  ],
+  "device_px_first_row_content_center": 429.8,
+  "note": "跨卡片/分组头的 pitch（247.8/345.2/242.8）不作为行距，另行按卡片间隔处理"
+ },
+ "card_groups": [
+  [
+   0,
+   1,
+   2
+  ],
+  [
+   3,
+   4
+  ],
+  [
+   5,
+   6,
+   7
+  ],
+  [
+   8,
+   9
+  ]
+ ],
+ "card_offsets": {
+  "3": 171.0,
+  "5": 323.9,
+  "8": 493.5
+ },
+ "absolute_centers": {
+  "group:备份、重置与恢复": 409.0
+ }
+}

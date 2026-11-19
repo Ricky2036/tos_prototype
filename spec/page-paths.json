@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "description": "全页面契约验收基线：13 个 pageId → 进入路径（OPEN_PATH）+ 判决作用域（SCOPE）。路径均为 2026-11-18 在本机 /tmp/dist-head（HEAD 9145468）实测可走通；run-baseline.mjs 读取本文件逐页注入环境变量后调 accept.mjs。",
+  "probed_at": "2026-11-18T20:20:00+08:00",
+  "build_dir": "/tmp/dist-head",
+  "url": "http://127.0.0.1:7812/",
+  "recipe": "tools/accept/recipes/by-text-path.mjs",
+  "pages": {
+    "settings/system": {
+      "openPath": [{ "text": "系统", "expect": ".settings-system-page" }],
+      "scope": ".settings-system-page",
+      "listMetrics": "spec/settings-system.list-metrics.json",
+      "notes": "设置首页第 28 个 .list-cell（文本「系统」）→ push('general') → SettingsSystem 页"
+    },
+    "settings/system/system-navigation": {
+      "openPath": [
+        { "text": "系统", "expect": ".settings-system-page" },
+        { "sel": "[data-system-row=\"systemNavigation\"]", "expect": ".settings-system-page .sub-shell" }
+      ],
+      "scope": ".settings-system-page",
+      "notes": "子页 = SubPageShell（v-if 替换主页，系统页 scope 内只剩 sub-shell）"
+    },
+    "settings/system/system-language": {
+      "openPath": [
+        { "text": "系统", "expect": ".settings-system-page" },
+        { "sel": "[data-system-row=\"languageInput\"]", "expect": ".settings-system-page .sub-shell" }
+      ],
+      "scope": ".settings-system-page",
+      "notes": "data-system-row=languageInput 进入 SettingsSystem 的子页 SystemLanguage"
+    },
+    "settings/system/system-power-button": {
+      "openPath": [
+        { "text": "系统", "expect": ".settings-system-page" },
+        { "sel": "[data-system-row=\"powerButton\"]", "expect": ".settings-system-page .sub-shell" }
+      ],
+      "scope": ".settings-system-page",
+      "notes": "同上，SystemPowerButton"
+    },
+    "settings/system/system-schedule-power": {
+      "openPath": [
+        { "text": "系统", "expect": ".settings-system-page" },
+        { "sel": "[data-system-row=\"schedulePower\"]", "expect": ".settings-system-page .sub-shell" }
+      ],
+      "scope": ".settings-system-page",
+      "notes": "SystemSchedulePower（定时开关机与重启）"
+    },
+    "settings/system/system-usb-backup": {
+      "openPath": [
+        { "text": "系统", "expect": ".settings-system-page" },
+        { "sel": "[data-system-row=\"usbBackup\"]", "expect": ".settings-system-page .sub-shell" }
+      ],
+      "scope": ".settings-system-page",
+      "notes": "⚠️ 契约抓参疑似串页：spec 抬头是「设置定时开机」/时间/重复，不是「USB 备份和恢复」"
+    },
+    "settings/system/system-reset-phone": {
+      "openPath": [
+        { "text": "系统", "expect": ".settings-system-page" },
+        { "sel": "[data-system-row=\"resetPhone\"]", "expect": ".settings-system-page .sub-shell" }
+      ],
+      "scope": ".settings-system-page",
+      "notes": "⚠️ 契约抓参疑似串页：spec 与 system-schedule-power 的 xml_sha256 完全相同（都是定时开关机页）"
+    },
+    "settings/system/system-developer-options": {
+      "openPath": [
+        { "text": "系统", "expect": ".settings-system-page" },
+        { "sel": "[data-system-row=\"developerOptions\"]", "expect": ".settings-system-page .sub-shell" }
+      ],
+      "scope": ".settings-system-page",
+      "notes": "SystemDeveloperOptions"
+    },
+    "settings/system/system-enhanced-services": {
+      "openPath": [
+        { "text": "系统", "expect": ".settings-system-page" },
+        { "sel": "[data-system-row=\"enhancedServices\"]", "expect": ".settings-system-page .sub-shell" }
+      ],
+      "scope": ".settings-system-page",
+      "notes": "SystemEnhancedServices"
+    },
+    "settings/dateTime": {
+      "openPath": [
+        { "text": "系统", "expect": ".settings-system-page" },
+        { "sel": "[data-system-row=\"dateTime\"]", "expect": ".settings-datetime-page" }
+      ],
+      "scope": ".settings-datetime-page",
+      "notes": "系统页第 2 行 → settingsNav.push('dateTime')，整页替换（不是 sub-shell）"
+    },
+    "settings/dateTime/date-time-timezone-picker": {
+      "openPath": [
+        { "text": "系统", "expect": ".settings-system-page" },
+        { "sel": "[data-system-row=\"dateTime\"]", "expect": ".settings-datetime-page" },
+        {
+          "sel": "[data-dt-row=\"autoTimezone\"] .toggle-switch",
+          "expect": "[data-dt-row=\"autoTimezone\"] .toggle-switch[aria-checked=\"false\"]"
+        },
+        { "sel": "[data-dt-row=\"timezone\"]", "expect": ".settings-datetime-page .sub-shell" }
+      ],
+      "scope": ".settings-datetime-page",
+      "notes": "必须先关「自动设置时区」，否则「选择时区」行是 .is-disabled 点不动；关掉后进城市列表 sub-shell"
+    },
+    "settings/dateTime/date-time-residence-picker": {
+      "openPath": [
+        { "text": "系统", "expect": ".settings-system-page" },
+        { "sel": "[data-system-row=\"dateTime\"]", "expect": ".settings-datetime-page" },
+        { "sel": "[data-dt-row=\"residence\"]", "expect": ".settings-datetime-page .sheet-mask" }
+      ],
+      "scope": ".settings-datetime-page",
+      "notes": "常驻地在实现里是 SheetOptionPicker 底部弹层（不是 DateTimeResidencePicker 子页）；⚠️ 契约没有弹层节点，抓的是日期与时间页本体，判决必然出现 extra"
+    },
+    "settings/safetyEmergency": {
+      "openPath": [{ "text": "安全和紧急情况", "expect": ".safety-emergency-page" }],
+      "scope": ".safety-emergency-page",
+      "notes": "设置首页第 25 个 .list-cell；pages/safetyEmergency.js 懒加载，首次进入约需 >700ms 才挂载"
+    }
+  }
+}

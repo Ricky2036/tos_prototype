@@ -53,6 +53,7 @@ const EVIDENCE = withE2e
 
 const red = (s) => `\x1b[31m${s}\x1b[0m`
 const green = (s) => `\x1b[32m${s}\x1b[0m`
+const yellow = (s) => `\x1b[33m${s}\x1b[0m`
 const dim = (s) => `\x1b[2m${s}\x1b[0m`
 
 const steps = [
@@ -61,6 +62,11 @@ const steps = [
   ...(fast ? [] : [{ id: 'G3b', name: '生产构建', cmd: 'npm', args: ['run', 'build'] }]),
   { id: 'Gspec', name: '画布换算无硬编码', cmd: process.execPath, args: ['scripts/check-spec-literals.mjs'] },
   { id: 'Gtask', name: '任务板可生成', cmd: process.execPath, args: ['scripts/gen-task-board.mjs'] },
+  // G0b 契约覆盖（advisory）：每个 settings 页面必须有真机契约，否则不得开实现单。
+  // 先只提示不阻塞，见到真实数字后再转 blocking（见 docs/evidence-pipeline.md）。
+  { id: 'G0b', name: '契约覆盖（advisory）', cmd: process.execPath,
+    args: ['tools/contract/spec-coverage.mjs', '--repo', ROOT, '--spec-root', 'spec'],
+    advisory: true },
   { id: 'Gclaim', name: '认领边界（advisory）', cmd: process.execPath, args: ['scripts/claim-check.mjs'] },
   { id: 'G5', name: '裸样式棘轮（advisory）', cmd: process.execPath, args: ['scripts/check-style-ratchet.mjs'] },
   // G4 必须在 G7 之前：棘轮要校验的正是这一轮 e2e 的结果
@@ -97,6 +103,7 @@ if (LOAD > CPUS * 2) {
 
 const t0 = Date.now()
 const failed = []
+const warned = []
 for (const s of steps) {
   process.stdout.write(dim(`▶ ${s.id} ${s.name} ... `))
   const t = Date.now()
@@ -107,7 +114,10 @@ for (const s of steps) {
   }
   const sec = ((Date.now() - t) / 1000).toFixed(1)
   const ok = r.status === 0
-  if (!ok) {
+  if (!ok && s.advisory) {
+    warned.push({ ...s, out: (r.stdout || '') + (r.stderr || '') })
+    console.log(yellow(`WARN ${sec}s`))
+  } else if (!ok) {
     failed.push({ ...s, out: (r.stdout || '') + (r.stderr || '') })
     console.log(red(`FAIL ${sec}s`))
   } else {
@@ -116,6 +126,12 @@ for (const s of steps) {
 }
 
 console.log(`\n合计 ${((Date.now() - t0) / 1000).toFixed(1)}s`)
+if (warned.length) {
+  for (const w of warned) {
+    console.error(yellow(`\n── ${w.id} ${w.name}（advisory，不阻塞）──`))
+    console.error(w.out.split('\n').filter(Boolean).slice(-6).join('\n'))
+  }
+}
 if (failed.length) {
   for (const f of failed) {
     console.error(red(`\n── ${f.id} ${f.name} ──`))
@@ -124,4 +140,5 @@ if (failed.length) {
   console.error(red(`\ngate:merge FAIL · ${failed.length}/${steps.length} 步未过`))
   process.exit(1)
 }
-console.log(green(`gate:merge PASS · ${steps.length} 步全过`))
+console.log(green(`gate:merge PASS · ${steps.length} 步全过`) +
+  (warned.length ? yellow(`（${warned.length} 条 advisory 警告）`) : ''))
