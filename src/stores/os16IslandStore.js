@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useControlStore } from './controlStore.js'
 
 export const OS16_TEMPLATES = {
   // 1. 进度模板 (Progress Templates)
@@ -24,6 +25,7 @@ export const OS16_TEMPLATES = {
 }
 
 export const useOs16IslandStore = defineStore('os16Island', () => {
+  const control = useControlStore()
   // 当前激活的所有模版列表（支持多岛共存，最多 4 个）
   const activeTemplates = ref([])
 
@@ -290,8 +292,12 @@ export const useOs16IslandStore = defineStore('os16Island', () => {
     translationState.value.isSpeaking = !translationState.value.isSpeaking
   }
 
+  watch(() => control.flashlightActive, (on) => {
+    baseTemplateState.value.isFlashlightOn = on
+  }, { immediate: true, flush: 'sync' })
+
   function toggleFlashlight() {
-    baseTemplateState.value.isFlashlightOn = !baseTemplateState.value.isFlashlightOn
+    control.toggle('flashlight')
   }
 
   function toggleRecordingPause() {

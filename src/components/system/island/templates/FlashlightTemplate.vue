@@ -1,13 +1,13 @@
 <script setup>
 import { computed } from 'vue'
-import { useOs16IslandStore } from '../../../../stores/os16IslandStore'
+import { useControlStore } from '../../../../stores/controlStore'
 
-const store = useOs16IslandStore()
+const control = useControlStore()
 
-const isOn = computed(() => store.baseTemplateState?.isFlashlightOn ?? false)
+const isOn = computed(() => control.flashlightActive)
 
 function onToggle() {
-  store.toggleFlashlight()
+  control.toggle('flashlight')
 }
 </script>
 
@@ -40,8 +40,8 @@ function onToggle() {
       </div>
 
       <div class="text-col">
-        <div class="main-title">{{ isOn ? 'Open' : 'Closed' }}</div>
-        <div class="sub-text">Flashlight</div>
+        <div class="main-title">{{ isOn ? '已开启' : '已关闭' }}</div>
+        <div class="sub-text">手电筒</div>
       </div>
     </div>
 
@@ -53,7 +53,7 @@ function onToggle() {
         @click.stop="onToggle"
         title="开启/关闭手电筒"
       >
-        {{ isOn ? 'Close' : 'Open' }}
+        {{ isOn ? '关闭' : '打开' }}
       </button>
     </div>
   </div>

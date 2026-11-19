@@ -231,8 +231,6 @@ export const useControlStore = defineStore('control', {
     flashlightLamps: { front: false, rear: true, highBeam: true },
     flashlightPanelOpen: false,
     flashlightGuidanceSeen: false,
-    flashlightArrowGuidanceSeen: false,
-    flashlightGuidanceMode: 'arrow',
     flashlightResetRevision: 0,
     flashlightPanelAnchor: null,
     flashlightTileSnapshot: null,
@@ -364,7 +362,6 @@ export const useControlStore = defineStore('control', {
         flashlightBeam: 1,
         flashlightLamps: { front: false, rear: true, highBeam: true },
         flashlightGuidanceSeen: false,
-        flashlightArrowGuidanceSeen: false,
         flashlightResetRevision: this.flashlightResetRevision + 1
       })
     },

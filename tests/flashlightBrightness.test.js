@@ -1,5 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
 import { createPinia, setActivePinia } from 'pinia'
 import { useControlStore, FLASHLIGHT_MAX_HALF_ANGLE } from '../src/stores/controlStore.js'
 
@@ -108,3 +110,53 @@ test('1x1 设备磁贴数值位置在三种模式间切换', () => {
   control.deviceTileValuePosition = 'center'
   assert.equal(control.deviceTileValuePosition, 'center')
 })
+
+test('手电筒硬件灯位独立控制与状态复位', () => {
+  const control = freshControl()
+  assert.deepEqual(control.flashlightLamps, {
+    rear: true,
+    highBeam: true,
+    front: false,
+  })
+  assert.equal(control.flashlightActive, false)
+
+  // 开启前置补光灯硬件支持与点亮状态
+  control.flashlightLamps.front = true
+  control.frontFlashlightOn = true
+  assert.equal(control.flashlightActive, true)
+
+  // 关闭前置，开启后置
+  control.frontFlashlightOn = false
+  assert.equal(control.flashlightActive, false)
+  control.setRearFlashlight(true)
+  assert.equal(control.flashlightActive, true)
+
+  // 复位
+  control.resetFlashlight()
+  assert.equal(control.flashlightActive, false)
+  assert.equal(control.frontFlashlightOn, false)
+  assert.equal(control.flashlightBrightness, 1)
+  assert.equal(control.flashlightBeam, 1)
+  assert.equal(control.flashlightGuidanceSeen, false)
+})
+
+test('DevConsole 和 FlashlightPanel 包含更新后的手电筒引导与控制台硬件开关', () => {
+  const devConsolePath = path.resolve('src/components/dev/DevConsole.vue')
+  const devConsoleContent = fs.readFileSync(devConsolePath, 'utf8')
+  assert.ok(devConsoleContent.includes('value="flashlight"'))
+  assert.ok(devConsoleContent.includes('data-testid="flashlight-console"'))
+  assert.ok(devConsoleContent.includes('data-testid="flashlight-reset"'))
+  assert.ok(devConsoleContent.includes('flashlightLamps'))
+  assert.ok(devConsoleContent.includes('后置闪光灯'))
+  assert.ok(devConsoleContent.includes('后置远光灯'))
+  assert.ok(devConsoleContent.includes('前置闪光灯'))
+
+  const flashlightPanelPath = path.resolve('src/components/system/FlashlightPanel.vue')
+  const flashlightPanelContent = fs.readFileSync(flashlightPanelPath, 'utf8')
+  assert.ok(flashlightPanelContent.includes('educationTick'))
+  assert.ok(flashlightPanelContent.includes('下滑调暗'))
+  assert.ok(flashlightPanelContent.includes('内滑聚光'))
+  assert.ok(!flashlightPanelContent.includes('flashlightArrowGuidanceSeen'))
+  assert.ok(!flashlightPanelContent.includes('directionHintsVisible'))
+})
+
