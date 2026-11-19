@@ -1,0 +1,71 @@
+{
+  "tool": "mobile-motion-builder/capture_web.mjs",
+  "url": "http://127.0.0.1:8888/",
+  "viewport": {
+    "width": 393,
+    "height": 852,
+    "deviceScaleFactor": 1
+  },
+  "reducedMotion": "no-preference",
+  "samples": [
+    {
+      "name": "trigger",
+      "requestedTimeMs": 0,
+      "captureStartedMs": 0.009,
+      "captureCompletedMs": 58.562,
+      "file": "00-trigger.png"
+    },
+    {
+      "name": "close-31",
+      "requestedTimeMs": 80,
+      "captureStartedMs": 80.894,
+      "captureCompletedMs": 147.702,
+      "file": "01-close-31.png"
+    },
+    {
+      "name": "close-62",
+      "requestedTimeMs": 160,
+      "captureStartedMs": 160.975,
+      "captureCompletedMs": 226.754,
+      "file": "02-close-62.png"
+    },
+    {
+      "name": "close-92",
+      "requestedTimeMs": 240,
+      "captureStartedMs": 241.145,
+      "captureCompletedMs": 285.263,
+      "file": "03-close-92.png"
+    },
+    {
+      "name": "closed",
+      "requestedTimeMs": 320,
+      "captureStartedMs": 320.609,
+      "captureCompletedMs": 364.425,
+      "file": "04-closed.png"
+    }
+  ],
+  "assertions": [
+    {
+      "selector": ".folder-overlay",
+      "state": "detached",
+      "pass": true
+    },
+    {
+      "selector": "[data-home-item^='folder:'] [data-folder-shell]",
+      "state": "visible",
+      "pass": true
+    }
+  ],
+  "console": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    }
+  ],
+  "pageErrors": [],
+  "functionalPass": true
+}
