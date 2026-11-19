@@ -11,6 +11,7 @@ import { SETTINGS_TITLES } from '../../../config/settingsTitles'
 import SettingsSearchDock from '../../ui/SettingsSearchDock.vue'
 import SettingsSystemIcon from '../../ui/SettingsSystemIcon.vue'
 import SettingsNotifications from './SettingsNotifications.vue'
+import SettingsBackScreen from './SettingsBackScreen.vue'
 import SettingsDND from './SettingsDND.vue'
 import SettingsPrayer from './SettingsPrayer.vue'
 import SettingsPersonalization from './personalization/SettingsPersonalization.vue'
@@ -230,6 +231,7 @@ const pageEventHandlers = {
 
 const viewTitles = computed(() => ({
   wifi: i18n.t('wifi') || 'WLAN',
+  backScreen: '灵动背屏',
   general: '系统',
   language: '语言与输入法',
   navigation: '系统导航方式',
@@ -310,6 +312,7 @@ const allSearchableItems = [
   { id: 'circleSearch', title: '圈定即搜', group: 'Infinix AI', action: () => push('infinixAi') },
   { id: 'aiCall', title: 'AI通话助手', group: 'Infinix AI', action: () => push('infinixAi') },
   { id: 'wallpaper', title: SETTINGS_TITLES.personalization, group: '个性化', action: () => push('personalization') },
+  { id: 'backScreen', title: '灵动背屏', group: '特色功能', action: () => push('backScreen') },
   { id: 'notifications', title: '通知与状态栏', group: '通知', action: () => push('notifications') },
   { id: 'security', title: '密码与安全', group: '安全与隐私', action: () => push('security') },
   { id: 'lockScreenPwd', title: '锁屏密码', group: '安全与隐私', action: () => push('security') },
@@ -514,6 +517,19 @@ function handleSearchNavigate(item) {
                 <template #icon>
                   <div class="squircle-icon bg-wallpaper">
                     <SettingsSystemIcon name="wallpaper" :size="19" />
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 灵动背屏 -->
+              <ListCell title="灵动背屏" chevron @click="push('backScreen')">
+                <template #icon>
+                  <div class="squircle-icon bg-back-screen">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect x="3.5" y="3" width="17" height="18" rx="5" />
+                      <circle cx="12" cy="12" r="4.1" />
+                      <circle cx="12" cy="12" r="1.1" fill="white" stroke="none" />
+                    </svg>
                   </div>
                 </template>
               </ListCell>
@@ -749,6 +765,11 @@ function handleSearchNavigate(item) {
       <!-- ================= 主题与个性化 ================= -->
       <div v-else-if="view === 'personalization'" key="personalization" class="settings-page">
         <SettingsPersonalization ref="personalizationRef" @back="pop" />
+      </div>
+
+      <!-- ================= 灵动背屏 ================= -->
+      <div v-else-if="view === 'backScreen'" key="backScreen" class="settings-page">
+        <SettingsBackScreen @back="pop" />
       </div>
 
       <!-- ================= 账号中心 (Infinix ID) ================= -->
@@ -1136,6 +1157,7 @@ background: #FFFFFF;
 
 .bg-infinix-ai { background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 50%, #EC4899 100%); }
 .bg-modes { background: #5E4DE6; }
+.bg-back-screen { background: linear-gradient(135deg, #1d88f7 0%, #5d56d9 58%, #7d54e8 100%); }
 .bg-wallpaper { background: #F43F5E; }
 .bg-display { background: #F59E0B; }
 .bg-sound { background: #EF4444; }

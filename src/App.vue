@@ -1,10 +1,17 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useClock } from './composables/useClock'
 import PhoneFrame from './components/phone/PhoneFrame.vue'
 import ScreenView from './components/phone/ScreenView.vue'
 import DevConsole from './components/dev/DevConsole.vue'
 import { useSystemStore } from './stores/systemStore'
 import { useControlStore } from './stores/controlStore'
+import { useBackScreenStore, BACK_SCREEN_PRODUCT_LINES, BACK_SCREEN_TRACKS } from './stores/backScreenStore'
+import BackScreenWeather from './components/dev/BackScreenWeather.vue'
+import BackScreenClockWallpaper from './components/dev/BackScreenClockWallpaper.vue'
+import BackScreenPassiveDisplay from './components/dev/BackScreenPassiveDisplay.vue'
+import BackScreenCalendar from './components/dev/BackScreenCalendar.vue'
+import BackScreenCamera from './components/dev/BackScreenCamera.vue'
 import { useCapture } from './composables/useCapture'
 
 /**
@@ -18,9 +25,27 @@ const stageRef = ref(null)
 const phoneScaleRef = ref(null)
 const system = useSystemStore()
 const control = useControlStore()
+const backScreen = useBackScreenStore()
+const backScreenTrack = () => BACK_SCREEN_TRACKS[backScreen.musicTrackIndex] || BACK_SCREEN_TRACKS[0]
+const backScreenProduct = () => BACK_SCREEN_PRODUCT_LINES.find((item) => item.id === backScreen.productLine) || BACK_SCREEN_PRODUCT_LINES.at(-1)
+function backScreenProductStyle() {
+  const level = Number(backScreen.settings.backlightLevel.replace('等级 ', '')) || 5
+  return { ...backScreenProduct().theme, filter: `brightness(${0.4 + level * 0.12})` }
+}
+function selectRearMusicTrack(direction) {
+  backScreen.musicTrackIndex = (backScreen.musicTrackIndex + direction + BACK_SCREEN_TRACKS.length) % BACK_SCREEN_TRACKS.length
+}
+function toggleRearMusic() { backScreen.isMusicPlaying = !backScreen.isMusicPlaying }
+function formatBackDuration(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0')
+  const seconds = (totalSeconds % 60).toString().padStart(2, '0')
+  return `${minutes}:${seconds}`
+}
+const { timeShort: backTimeShort, dateLong: backDateLong } = useClock()
 const BASE_SCREEN_W = 360
 const BASE_SCREEN_H = 788
 const scale = ref(1)
+const phoneFace = ref('front')
 const isMobile = ref(false)
 const mobileScale = ref(1)
 const mobileLogicalHeight = ref(BASE_SCREEN_H)
@@ -56,6 +81,16 @@ if (typeof window !== 'undefined') {
 
 let fitStage = null
 
+function togglePhoneFace() {
+  const turningToBack = phoneFace.value === 'front'
+  phoneFace.value = phoneFace.value === 'front' ? 'back' : 'front'
+  if (turningToBack && backScreen.settings.flipToWake) backScreen.isDisplayAwake = true
+}
+
+watch(() => [system.screenOn, backScreen.settings.followMainDisplay], ([screenOn, followMainDisplay]) => {
+  if (followMainDisplay) backScreen.isDisplayAwake = screenOn
+}, { immediate: true })
+
 onMounted(() => {
   fitStage = () => {
     updateStageMetrics()
@@ -63,6 +98,7 @@ onMounted(() => {
   fitStage()
   window.addEventListener('resize', fitStage)
   window.visualViewport?.addEventListener('resize', fitStage)
+  window.addEventListener('tos-phone-flip', togglePhoneFace)
 })
 
 onBeforeUnmount(() => {
@@ -70,6 +106,7 @@ onBeforeUnmount(() => {
     window.removeEventListener('resize', fitStage)
     window.visualViewport?.removeEventListener('resize', fitStage)
   }
+  window.removeEventListener('tos-phone-flip', togglePhoneFace)
 })
 
 /* ================= 录屏 / 截图 ================= */
@@ -133,9 +170,61 @@ function takeScreenshot() {
 
     <!-- 桌面端：带金属外壳与等比居中缩放 -->
     <div v-else ref="phoneScaleRef" class="phone-scale" :style="{ transform: `scale(${scale})` }">
-      <PhoneFrame>
-        <ScreenView />
-      </PhoneFrame>
+      <div class="phone-turntable" :class="{ 'is-back': phoneFace === 'back' }">
+        <div class="phone-turntable-face phone-turntable-front">
+          <PhoneFrame>
+            <ScreenView />
+          </PhoneFrame>
+        </div>
+        <div class="phone-turntable-face phone-turntable-back">
+          <PhoneFrame face="back" :product-line="backScreen.productLine">
+            <template #back>
+              <div
+                class="rear-display-scene"
+                :class="[`page-${backScreen.activePage}`, `product-${backScreen.productLine}`, { 'is-off': !backScreen.isScreenOn }]"
+                :style="backScreenProductStyle()"
+                @dblclick="backScreen.isScreenOn && backScreen.settings.doubleTapToWake && backScreen.activePage === 'clock' && backScreen.clockFeature === 'clock' && (backScreen.isDisplayAwake = !backScreen.isDisplayAwake)"
+              >
+                <template v-if="backScreen.isScreenOn">
+                  <span class="rear-display-status"><i></i> {{ backScreenProduct().label }} 背屏已开启</span>
+                  <template v-if="backScreen.activeGroup === 'active'">
+                    <template v-if="backScreen.activePage === 'clock'">
+                      <BackScreenClockWallpaper v-if="backScreen.clockFeature === 'clock' && backScreen.isDisplayAwake && backScreen.settings.dialStyle === '动态表盘'" :date="backDateLong" :time="backTimeShort" />
+                      <div v-else-if="backScreen.clockFeature === 'clock' && backScreen.isDisplayAwake" class="rear-display-alt-dial" :class="`dial-${backScreen.settings.dialStyle === '简约表盘' ? 'minimal' : 'digital'}`"><span>{{ backDateLong }}</span><strong>{{ backTimeShort }}</strong><small>{{ backScreen.settings.dialStyle }}</small></div>
+                      <span v-else-if="backScreen.clockFeature === 'clock'" class="rear-display-sleep">双击背屏亮屏</span>
+                      <template v-else>
+                        <span class="rear-display-feature-value">{{ backScreen.clockFeature === 'alarm' ? '07:00' : formatBackDuration(backScreen.clockFeature === 'stopwatch' ? backScreen.stopwatchSeconds : backScreen.countdownSeconds) }}</span>
+                        <span class="rear-display-subfeature">{{ backScreen.clockFeature === 'alarm' ? '闹钟 · 每天' : backScreen.clockFeature === 'stopwatch' ? (backScreen.isStopwatchRunning ? '计时中' : '计时器') : (backScreen.isCountdownRunning ? '倒计时中' : backScreen.countdownSeconds === 0 ? '倒计时结束' : '倒计时') }}</span>
+                      </template>
+                      <div class="rear-clock-feature-tabs" aria-label="时钟子功能">
+                        <button v-for="feature in [{id:'alarm',label:'闹钟'},{id:'stopwatch',label:'计时器'},{id:'countdown',label:'倒计时'}]" :key="feature.id" type="button" :class="{active:backScreen.clockFeature===feature.id}" @click.stop="backScreen.clockFeature=feature.id; backScreen.isDisplayAwake=true">{{ feature.label }}</button>
+                      </div>
+                    </template>
+                    <BackScreenWeather v-else-if="backScreen.activePage === 'weather'" />
+                    <BackScreenCalendar v-else-if="backScreen.activePage === 'calendar'" :view="backScreen.calendarView" @update:view="backScreen.calendarView = $event" />
+                    <BackScreenCamera v-else-if="backScreen.activePage === 'camera'" :mode="backScreen.cameraMode" @update:mode="backScreen.cameraMode = $event" />
+                    <div v-else class="rear-music-display">
+                      <span class="rear-display-album"><i></i></span>
+                      <span class="rear-display-track">{{ backScreenTrack().title }}</span>
+                      <span class="rear-display-hint">{{ backScreenTrack().artist }}</span>
+                      <div class="rear-music-controls">
+                        <button type="button" aria-label="上一首" @click.stop="selectRearMusicTrack(-1)">‹</button>
+                        <button type="button" class="play" :aria-label="backScreen.isMusicPlaying?'暂停':'播放'" @click.stop="toggleRearMusic">{{ backScreen.isMusicPlaying?'Ⅱ':'▶' }}</button>
+                        <button type="button" aria-label="下一首" @click.stop="selectRearMusicTrack(1)">›</button>
+                      </div>
+                    </div>
+                  </template>
+                  <BackScreenPassiveDisplay v-else :mode="backScreen.passivePage" :call-status="backScreen.callStatus" :startup-run="backScreen.startupRun" @answer-call="backScreen.callStatus='connected'" @hang-up="backScreen.callStatus='ended'" />
+                </template>
+                <span v-else class="rear-display-off">背屏已关闭</span>
+              </div>
+            </template>
+          </PhoneFrame>
+        </div>
+      </div>
+      <button class="phone-flip-control" type="button" @click="togglePhoneFace" :aria-label="phoneFace === 'back' ? '返回手机正面' : '翻转到手机背面'">
+        <span aria-hidden="true">⟲</span>{{ phoneFace === 'back' ? '返回正面' : '翻转手机' }}
+      </button>
     </div>
 
     <!-- 控制台：桌面侧边栏 / 移动端悬浮球与抽屉 -->
@@ -223,12 +312,119 @@ function takeScreenshot() {
 .phone-scale {
   transform-origin: center center;
   transition: transform 0.2s ease;
+  perspective: 1400px;
   display: inline-flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   padding: 6px;
   box-sizing: content-box;
   border-radius: calc(var(--screen-radius) + 16px);
+}
+
+.phone-flip-control {
+  display: inline-flex;
+  min-width: 104px;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+  border: 1px solid rgba(154, 174, 222, .28);
+  border-radius: 999px;
+  padding: 0 13px;
+  color: #d9e2f4;
+  background: rgba(20, 24, 35, .68);
+  box-shadow: inset 0 .5px 0 rgba(255,255,255,.08), 0 4px 16px rgba(0,0,0,.2);
+  font: 600 11px/1 var(--font-stack);
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+.phone-flip-control:hover { border-color: rgba(154, 184, 245, .58); background: rgba(54, 75, 120, .42); }
+.phone-flip-control:active { transform: translateY(1px); }
+.phone-flip-control span { font-size: 15px; line-height: .8; }
+
+.phone-turntable {
+  position: relative;
+  width: calc(var(--screen-w) + 20px);
+  height: calc(var(--screen-h) + 20px);
+  transform-style: preserve-3d;
+  transition: transform 1.15s cubic-bezier(0.2, 0.78, 0.18, 1);
+  will-change: transform;
+}
+
+.phone-turntable.is-back { transform: rotateY(180deg); }
+
+.phone-turntable-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.phone-turntable-back { transform: rotateY(180deg); }
+
+.rear-display-scene {
+  position: absolute;
+  inset: -1px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 0;
+  color: #f7f9ff;
+  background: radial-gradient(ellipse at 50% 28%, var(--product-glow, #263c66) 0%, var(--product-panel-a, #14213a) 44%, var(--product-panel-b, #0c111c) 100%);
+  box-shadow: inset 0 0 28px rgba(140, 175, 239, 0.08), 0 0 28px rgba(44, 72, 126, 0.18);
+}
+
+.rear-display-orb,
+.rear-display-ribbon { position: absolute; pointer-events: none; }
+.rear-display-orb {
+  width: 165px; height: 165px; top: -74px; left: calc(50% - 82px); border-radius: 50%;
+  background: radial-gradient(circle at 38% 66%, var(--product-glow, rgba(116,167,255,.62)), rgba(76,116,198,.1) 62%, transparent 73%);
+  animation: rear-orbit 1.8s ease-in-out infinite alternate;
+}
+.rear-display-ribbon {
+  width: 180%; height: 70%; left: -40%; bottom: -44%; border-radius: 50% 50% 0 0;
+  background: linear-gradient(170deg, rgba(101,137,202,.28), rgba(24,39,67,.9) 55%, #090e17);
+  animation: rear-drift 1.3s ease-in-out infinite alternate;
+}
+.rear-display-status,.rear-display-date,.rear-display-time,.rear-display-hint { position: relative; z-index: 1; }
+.rear-display-status { position:absolute; top:8px; left:8px; display:flex; align-items:center; gap:5px; font-size:7px; color:#bdcbe5; }
+.rear-display-status i { width:4px; height:4px; border-radius:50%; background:#5ed69a; box-shadow:0 0 7px #5ed69a; }
+.rear-display-date { color:rgba(227,234,249,.8); font-size:8px; }
+.rear-display-time { font-size:44px; font-weight:300; letter-spacing:-2px; line-height:1; font-variant-numeric:tabular-nums; }
+.rear-display-hint { margin-top:2px; color:rgba(210,220,243,.65); font-size:7px; }
+.rear-display-scene.is-off { background:#080a10; box-shadow:inset 0 0 26px rgba(0,0,0,.9); }
+.rear-display-scene.is-off .rear-display-status { display:none; }
+.rear-display-sleep,.rear-display-off { color:rgba(210,220,243,.78); font-size:10px; }
+.rear-display-alt-dial { position:absolute; inset:0; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:rgba(239,245,255,.9); }
+.rear-display-alt-dial span { font-size:8px; opacity:.7; }
+.rear-display-alt-dial strong { font-size:34px; line-height:1; font-weight:350; letter-spacing:-.05em; }
+.rear-display-alt-dial small { margin-top:3px; color:rgba(221,232,250,.55); font-size:7px; }
+.rear-display-alt-dial.dial-minimal { background:radial-gradient(ellipse at 50% 50%,rgba(103,154,220,.22),transparent 68%); }
+.rear-display-alt-dial.dial-digital strong { font-variant-numeric:tabular-nums; font-weight:600; letter-spacing:.06em; }
+.rear-display-feature-value { position:relative; z-index:1; color:#f8fafc; font-size:36px; font-weight:300; letter-spacing:-1.5px; font-variant-numeric:tabular-nums; }
+.rear-display-subfeature { position:relative; z-index:1; margin-top:-5px; color:rgba(210,220,243,.7); font-size:7px; }
+.rear-display-album { width:44px; height:44px; border-radius:10px; display:grid; place-items:center; background:linear-gradient(135deg,var(--product-accent,#d6b48a),var(--product-panel-a,#53687c) 55%,var(--product-panel-b,#222b3e)); box-shadow:0 4px 14px rgba(0,0,0,.3); }
+.rear-display-album i { width:19px; height:19px; border-radius:50%; border:1px solid rgba(255,255,255,.7); }
+.rear-display-track { font-size:12px; font-weight:600; }
+.rear-clock-feature-tabs { position:absolute; z-index:4; right:4%; bottom:4%; left:4%; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:3px; }
+.rear-clock-feature-tabs button { min-width:0; min-height:17px; border:1px solid rgba(213,228,255,.18); border-radius:6px; padding:0 2px; color:#d7e2f4; background:rgba(5,12,24,.64); font:600 6px/1 var(--font-stack); cursor:pointer; }
+.rear-clock-feature-tabs button.active { border-color:rgba(102,169,255,.72); color:#fff; background:rgba(54,112,194,.58); }
+.rear-music-display { position:absolute; inset:8% 0 0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+.rear-music-controls { display:flex; gap:9px; align-items:center; margin-top:4px; }
+.rear-music-controls button { width:18px; height:18px; display:grid; place-items:center; border:0; border-radius:50%; color:#fff; background:rgba(255,255,255,.16); font-size:9px; cursor:pointer; }
+.rear-music-controls button.play { width:23px; height:23px; background:rgba(255,255,255,.28); }
+
+@keyframes rear-orbit { from { transform:translate(-20px,-4px) scale(.85) rotate(-8deg); } to { transform:translate(24px,18px) scale(1.14) rotate(9deg); } }
+@keyframes rear-drift { from { transform:translate(-24px,14px) rotate(-18deg); } to { transform:translate(28px,-16px) rotate(5deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .rear-display-orb, .rear-display-ribbon { animation-duration: 10s; }
 }
 
 /* ============ 录制中指示器 ============ */

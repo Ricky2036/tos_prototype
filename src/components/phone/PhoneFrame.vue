@@ -5,6 +5,8 @@ import { useSystemStore } from '../../stores/systemStore'
 
 const control = useControlStore()
 const system = useSystemStore()
+const props = defineProps({ face: { type: String, default: 'front' }, productLine: { type: String, default: 'itel' } })
+const rearBrand = computed(() => ({ itel: 'itel', camon: 'CAMON', pova: 'POVA', spark: 'SPARK', note: 'NOTE', gt: 'GT', hot: 'HOT', smart: 'SMART' }[props.productLine] || 'itel'))
 
 const powerTitle = computed(() => `电源键 (${system.powerButtonText})`)
 
@@ -251,16 +253,25 @@ onBeforeUnmount(() => {
     <div class="side-btn camera-control"></div>
 
     <div class="frame-inner">
-      <!-- 顶部超窄微缝听筒孔 -->
-      <div class="speaker-slit"></div>
-
-      <div class="screen">
-        <!-- 居中打孔摄像头 -->
-        <div class="punch-hole"></div>
-        <!-- 屏幕表面超细微玻璃微光 -->
-        <div class="glass-sheen"></div>
-        <slot></slot>
+      <div v-if="props.face === 'back'" class="phone-rear-surface" :class="`product-${props.productLine}`">
+        <div class="phone-rear-camera" aria-hidden="true">
+          <div class="phone-rear-lenses"><i></i><i></i></div>
+          <div class="phone-rear-display"><slot name="back"></slot></div>
+        </div>
+        <span class="phone-rear-brand">{{ rearBrand }}</span>
       </div>
+      <template v-else>
+        <!-- 顶部超窄微缝听筒孔 -->
+        <div class="speaker-slit"></div>
+
+        <div class="screen">
+          <!-- 居中打孔摄像头 -->
+          <div class="punch-hole"></div>
+          <!-- 屏幕表面超细微玻璃微光 -->
+          <div class="glass-sheen"></div>
+          <slot></slot>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -325,6 +336,102 @@ onBeforeUnmount(() => {
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.04),
     0 0 0 0.5px rgba(0, 0, 0, 0.95);
 }
+
+.phone-rear-surface {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--screen-radius);
+  background:
+    radial-gradient(ellipse at 22% 12%, rgba(255,255,255,.12), transparent 38%),
+    linear-gradient(145deg, #343943, #191b20 48%, #292d35);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.11), inset 0 0 34px rgba(0,0,0,.18);
+  transition: background .55s ease, box-shadow .55s ease;
+}
+
+.phone-rear-camera {
+  position: absolute;
+  z-index: 2;
+  top: 24px;
+  left: 14px;
+  display: grid;
+  width: calc(100% - 28px);
+  height: 166px;
+  grid-template-columns: 74px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(255,255,255,.17);
+  border-radius: 29px;
+  padding: 9px;
+  background: linear-gradient(145deg, #424752, #22252c);
+  box-shadow: 0 7px 16px rgba(0,0,0,.3), inset 0 1px 1px rgba(255,255,255,.14);
+  transition: background .55s ease, border-color .55s ease, box-shadow .55s ease;
+}
+
+.phone-rear-lenses {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.phone-rear-camera i {
+  display: block;
+  width: 62px;
+  height: 62px;
+  border: 2px solid #68717e;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, #576d8e 0 10%, #11151d 37%, #030405 72%);
+  box-shadow: inset 0 0 0 3px #13161c, 0 0 0 1px rgba(0,0,0,.55);
+}
+
+.phone-rear-display {
+  position: relative;
+  min-width: 0;
+  height: 142px;
+  overflow: hidden;
+  border: 1px solid rgba(205,220,248,.31);
+  border-radius: 17px;
+  background: #101a2b;
+  box-shadow: 0 10px 26px rgba(0,0,0,.24);
+  transition: border-color .55s ease, box-shadow .55s ease;
+}
+
+.phone-rear-brand {
+  position: absolute;
+  top: 52%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(235,239,248,.46);
+  font-size: 38px;
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: -2px;
+  transition: color .55s ease, text-shadow .55s ease;
+}
+
+.phone-rear-surface.product-camon { background:radial-gradient(ellipse at 50% 12%,rgba(255,223,177,.22),transparent 42%),linear-gradient(145deg,#75624d,#24242a 52%,#343039); }
+.phone-rear-surface.product-camon .phone-rear-camera { background:linear-gradient(145deg,#9d8870,#343139); border-color:rgba(255,225,184,.42); }
+.phone-rear-surface.product-camon .phone-rear-display { border-color:rgba(255,219,171,.58); }
+.phone-rear-surface.product-pova { background:radial-gradient(ellipse at 80% 18%,rgba(112,255,121,.12),transparent 35%),linear-gradient(145deg,#242e2b,#0c1112 52%,#252a27); }
+.phone-rear-surface.product-pova .phone-rear-camera { background:linear-gradient(145deg,#36443e,#131a17); border-color:rgba(134,255,114,.48); }
+.phone-rear-surface.product-pova .phone-rear-brand { color:rgba(171,255,127,.72); text-shadow:0 0 12px rgba(110,255,120,.2); }
+.phone-rear-surface.product-spark { background:radial-gradient(ellipse at 50% 5%,rgba(247,199,255,.28),transparent 42%),linear-gradient(145deg,#655d70,#27242e 53%,#39323b); }
+.phone-rear-surface.product-spark .phone-rear-camera { background:linear-gradient(145deg,#81788d,#312d38); border-color:rgba(245,215,255,.5); }
+.phone-rear-surface.product-spark .phone-rear-display { border-color:rgba(244,206,255,.55); }
+.phone-rear-surface.product-note { background:radial-gradient(ellipse at 48% 0%,rgba(195,227,255,.26),transparent 43%),linear-gradient(145deg,#596979,#242b34 52%,#343a44); }
+.phone-rear-surface.product-note .phone-rear-camera { background:linear-gradient(145deg,#74849a,#303944); border-color:rgba(189,225,255,.55); }
+.phone-rear-surface.product-note .phone-rear-display { border-color:rgba(185,225,255,.55); }
+.phone-rear-surface.product-gt { background:radial-gradient(ellipse at 78% 15%,rgba(0,214,255,.2),transparent 38%),linear-gradient(145deg,#252d37,#080d14 52%,#19242d); }
+.phone-rear-surface.product-gt .phone-rear-camera { background:linear-gradient(145deg,#344451,#101820); border-color:rgba(54,226,255,.6); }
+.phone-rear-surface.product-gt .phone-rear-brand { color:rgba(115,244,255,.76); text-shadow:0 0 13px rgba(28,215,255,.35); }
+.phone-rear-surface.product-hot { background:radial-gradient(ellipse at 50% 0%,rgba(255,161,79,.2),transparent 40%),linear-gradient(145deg,#655044,#24201d 52%,#3a3028); }
+.phone-rear-surface.product-hot .phone-rear-camera { background:linear-gradient(145deg,#88705d,#383029); border-color:rgba(255,190,124,.52); }
+.phone-rear-surface.product-smart { background:radial-gradient(ellipse at 24% 15%,rgba(157,235,183,.18),transparent 40%),linear-gradient(145deg,#4b625b,#1b2827 52%,#293738); }
+.phone-rear-surface.product-smart .phone-rear-camera { background:linear-gradient(145deg,#627b72,#25322f); border-color:rgba(168,235,198,.45); }
+.phone-rear-surface.product-smart .phone-rear-brand { color:rgba(196,255,222,.72); }
 
 /* 旗舰级 BM 压边黑圈遮罩（置于屏幕最顶层，彻底杜绝四角圆角抗锯齿和叠层硬件加速透底） */
 .frame-inner::after {
