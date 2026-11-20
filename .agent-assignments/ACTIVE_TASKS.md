@@ -231,9 +231,12 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | DSH | LEAD-DSH-001/002：G6 执行者身份校验与 e2e 证据链绑定（带身份时间戳负载），C0 认领表重构 | `dsh/lane` | None (locks released) | `9661b6f` | `9267628` |
 | Merged | Workbuddy | LEAD-WB-001/002：任务板队列事实源重构与 65 个 verify 脚本盘点收编（8 归档，21 改 ARTIFACT_DIR） | `workbuddy/lane` | None (locks released) | `9661b6f` | `b40f87a` |
 | Merged | Antigravity | SET-SYS-01：设置系统主页与全部子菜单 100% 真机复刻（含日期与时间深层缺口） | `antigravity/lane` | None (merged & locks released) | `461af32` | `0c945b6` |
-| Review | Workbuddy | SET-ACC-01：设置辅助功能真机复刻（基础与9子页已合入f2ca677，保留侧边栏深层/游戏管理/录屏选择器形态等缺口） | `workbuddy/lane` | `src/components/apps/settings/SettingsAccessibility.vue`; `src/components/apps/settings/pages/accessibility.js`; `src/components/apps/settings/accessibility/**`; `src/stores/accessibilitySettingsStore.js`; `tests/accessibilityModule.test.js`; `spec/captures/SET-ACC-01-accessibility.md`; `src/assets/icons/accessibility/illus/**` | `461af32` | `f2ca677` |
+| Merged | Workbuddy | SET-ACC-01：设置辅助功能真机复刻（补齐侧边栏深层/游戏管理/录屏选择器形态等缺口） | `workbuddy/lane` | None (merged & locks released) | `461af32` | `6a89ff6` |
 | Merged | DSH | SET-BAT-01：设置电池与省电全链路真机复刻 | `dsh/lane` | None (merged & locks released) | `63725b5` | `6517145` |
 | Merged | DSH | COORD-WATCH-01：协作监测框架（只读scan+共享事件队列+去重冲突隔离+watch） | `dsh/lane` | None (merged & locks released) | `9d0a18d` | `bd94ae5` |
+| Merged | Workbuddy | SET-SIM-TRAFFIC-01：流量管理真机整套复刻（主页+8个三级页+2个补页、分段控件、图表、应用用量与限制） | `workbuddy/lane` | None (merged & locks released) | `0853867` | `1fe0924` |
+| Merged | DSH | 修正 SIM 卡与 Infinix AI 三级页标题 mustache 绑定，并增加 templateBinding 守卫 | `dsh/lane` | None (merged & locks released) | `61ef535` | `70f2d14` |
+| Merged | Codex | 工程评审 2026-11-19 交付入库 | `codex/lane` | None (merged & locks released) | `61ef535` | `b4c4868` |
 | Blocked | Antigravity | SET-AG-01a：安全和紧急情况链路深度复刻（旧任务保留未完成记录，本轮不派发） | `antigravity/lane` | `src/components/apps/settings/pages/safetyEmergency.js`; `src/components/apps/settings/safety/**`; `src/stores/safetyStore.js`; `tests/safetyEmergency.test.js` | `c6a5d06` | pending |
 | Blocked | Antigravity | SET-AG-01b：用户与账号链路深度复刻（旧任务保留未完成记录，本轮不派发） | `antigravity/lane` | `src/components/apps/settings/pages/accounts.js`; `src/components/apps/settings/accounts/**`; `src/stores/accountsStore.js`; `tests/accountsSettings.test.js` | `c6a5d06` | pending |
 
