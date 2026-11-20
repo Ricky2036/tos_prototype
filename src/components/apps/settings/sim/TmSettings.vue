@@ -31,7 +31,7 @@ function setFlag(key, v) {
 
     <div class="tm-body scrollable" data-testid="tm-settings">
       <template v-for="(row, i) in TM_SETTINGS.rows" :key="row.key">
-        <div v-if="i === 3" class="tm-block-gap"></div>
+        <div v-if="i === 1 || i === 3" class="tm-block-gap"></div>
 
         <div
           v-if="row.link"
@@ -50,7 +50,7 @@ function setFlag(key, v) {
         <div
           v-else
           class="tm-row"
-          :class="{ 'has-desc': row.desc, 'is-roomy': row.key === 'speed' }"
+          :class="{ 'has-desc': row.desc }"
           :data-testid="`tm-row-${row.key}`"
         >
           <div class="tm-row-text">
