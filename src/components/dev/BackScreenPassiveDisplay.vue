@@ -307,10 +307,15 @@ defineEmits(['answer-call', 'hang-up'])
 }
 
 .call-action-icon {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   object-fit: contain;
   pointer-events: none;
+}
+
+.answer-call .call-action-icon {
+  width: 7.5px;
+  height: 7.5px;
 }
 
 .replay-call {
