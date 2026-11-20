@@ -1752,7 +1752,7 @@ function onToggleFineTune(enabled) {
   flex: none;
   background: #18181c;
   border-radius: 24px;
-  padding: 14px;
+  padding: 14px 14px 18px;
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow:
@@ -1763,15 +1763,35 @@ function onToggleFineTune(enabled) {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-height: calc(100vh - 64px);
+  max-height: calc(100dvh - 64px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.24) transparent;
 }
 
-.proto-console:has(.privacy-demo) {
-  max-height: 90dvh;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #ffffff30 transparent;
+.proto-console > * {
+  flex-shrink: 0;
 }
-.proto-console:has(.privacy-demo) > * { flex-shrink: 0; }
+
+.proto-console::-webkit-scrollbar {
+  width: 5px;
+}
+
+.proto-console::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.proto-console::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+
+.proto-console::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
 
 .pc-glow {
   position: absolute;

@@ -71,7 +71,7 @@ function updateStageMetrics() {
     scale.value = 1
     return
   }
-  const phoneH = (phoneScaleRef.value?.offsetHeight || 810) + 60
+  const phoneH = (phoneScaleRef.value?.offsetHeight || 810) + 96
   const s = Math.min(1, (window.innerHeight - 32) / phoneH)
   scale.value = Math.max(0.62, s)
 }
@@ -332,6 +332,7 @@ function takeScreenshot() {
 }
 
 .phone-scale {
+  position: relative;
   transform-origin: center center;
   transition: transform 0.2s ease;
   perspective: 1400px;
@@ -345,6 +346,11 @@ function takeScreenshot() {
 }
 
 .phone-flip-control {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
   display: inline-flex;
   min-width: 104px;
   min-height: 32px;
@@ -363,7 +369,7 @@ function takeScreenshot() {
   transition: border-color .18s ease, background .18s ease, transform .18s ease;
 }
 .phone-flip-control:hover { border-color: rgba(154, 184, 245, .58); background: rgba(54, 75, 120, .42); }
-.phone-flip-control:active { transform: translateY(1px); }
+.phone-flip-control:active { transform: translateX(-50%) translateY(1px); }
 .phone-flip-control span { font-size: 15px; line-height: .8; }
 
 .phone-turntable {
