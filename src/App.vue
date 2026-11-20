@@ -46,6 +46,7 @@ const BASE_SCREEN_W = 360
 const BASE_SCREEN_H = 788
 const scale = ref(1)
 const phoneFace = ref('front')
+const isFlipping = ref(false)
 const isMobile = ref(false)
 const mobileScale = ref(1)
 const mobileLogicalHeight = ref(BASE_SCREEN_H)
@@ -80,10 +81,16 @@ if (typeof window !== 'undefined') {
 }
 
 let fitStage = null
+let flipTimer = null
 
 function togglePhoneFace() {
   const turningToBack = phoneFace.value === 'front'
   phoneFace.value = phoneFace.value === 'front' ? 'back' : 'front'
+  isFlipping.value = true
+  clearTimeout(flipTimer)
+  flipTimer = setTimeout(() => {
+    isFlipping.value = false
+  }, 1200)
   if (turningToBack && backScreen.settings.flipToWake) backScreen.isDisplayAwake = true
 }
 
@@ -102,6 +109,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (flipTimer) clearTimeout(flipTimer)
   if (fitStage) {
     window.removeEventListener('resize', fitStage)
     window.visualViewport?.removeEventListener('resize', fitStage)
@@ -170,7 +178,7 @@ function takeScreenshot() {
 
     <!-- 桌面端：带金属外壳与等比居中缩放 -->
     <div v-else ref="phoneScaleRef" class="phone-scale" :style="{ transform: `scale(${scale})` }">
-      <div class="phone-turntable" :class="{ 'is-back': phoneFace === 'back' }">
+      <div class="phone-turntable" :class="{ 'is-back': phoneFace === 'back', 'is-flipping': isFlipping }">
         <div class="phone-turntable-face phone-turntable-front">
           <PhoneFrame>
             <ScreenView />
@@ -348,12 +356,18 @@ function takeScreenshot() {
   position: relative;
   width: calc(var(--screen-w) + 20px);
   height: calc(var(--screen-h) + 20px);
-  transform-style: preserve-3d;
   transition: transform 1.15s cubic-bezier(0.2, 0.78, 0.18, 1);
+}
+
+.phone-turntable.is-flipping {
+  transform-style: preserve-3d;
   will-change: transform;
 }
 
-.phone-turntable.is-back { transform: rotateY(180deg); }
+.phone-turntable.is-back {
+  transform: rotateY(180deg);
+  transform-style: preserve-3d;
+}
 
 .phone-turntable-face {
   position: absolute;
@@ -362,7 +376,18 @@ function takeScreenshot() {
   -webkit-backface-visibility: hidden;
 }
 
-.phone-turntable-back { transform: rotateY(180deg); }
+.phone-turntable-back {
+  transform: rotateY(180deg);
+  pointer-events: none;
+}
+
+.phone-turntable.is-back:not(.is-flipping) .phone-turntable-front {
+  pointer-events: none;
+}
+
+.phone-turntable.is-back .phone-turntable-back {
+  pointer-events: auto;
+}
 
 .rear-display-scene {
   position: absolute;
