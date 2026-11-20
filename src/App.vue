@@ -194,7 +194,6 @@ function takeScreenshot() {
                 @dblclick="backScreen.isScreenOn && backScreen.settings.doubleTapToWake && backScreen.activePage === 'clock' && backScreen.clockFeature === 'clock' && (backScreen.isDisplayAwake = !backScreen.isDisplayAwake)"
               >
                 <template v-if="backScreen.isScreenOn">
-                  <span class="rear-display-status"><i></i> {{ backScreenProduct().label }} 背屏已开启</span>
                   <template v-if="backScreen.activeGroup === 'active'">
                     <template v-if="backScreen.activePage === 'clock'">
                       <BackScreenClockWallpaper v-if="backScreen.clockFeature === 'clock' && backScreen.isDisplayAwake && backScreen.settings.dialStyle === '动态表盘'" :date="backDateLong" :time="backTimeShort" />
@@ -205,7 +204,7 @@ function takeScreenshot() {
                         <span class="rear-display-subfeature">{{ backScreen.clockFeature === 'alarm' ? '闹钟 · 每天' : backScreen.clockFeature === 'stopwatch' ? (backScreen.isStopwatchRunning ? '计时中' : '计时器') : (backScreen.isCountdownRunning ? '倒计时中' : backScreen.countdownSeconds === 0 ? '倒计时结束' : '倒计时') }}</span>
                       </template>
                       <div class="rear-clock-feature-tabs" aria-label="时钟子功能">
-                        <button v-for="feature in [{id:'alarm',label:'闹钟'},{id:'stopwatch',label:'计时器'},{id:'countdown',label:'倒计时'}]" :key="feature.id" type="button" :class="{active:backScreen.clockFeature===feature.id}" @click.stop="backScreen.clockFeature=feature.id; backScreen.isDisplayAwake=true">{{ feature.label }}</button>
+                        <button v-for="feature in [{id:'alarm',label:'闹钟'},{id:'stopwatch',label:'计时器'},{id:'countdown',label:'倒计时'}]" :key="feature.id" type="button" :class="{active:backScreen.clockFeature===feature.id}" @click.stop="backScreen.clockFeature = (backScreen.clockFeature === feature.id ? 'clock' : feature.id); backScreen.isDisplayAwake = true">{{ feature.label }}</button>
                       </div>
                     </template>
                     <BackScreenWeather v-else-if="backScreen.activePage === 'weather'" />
@@ -417,14 +416,11 @@ function takeScreenshot() {
   background: linear-gradient(170deg, rgba(101,137,202,.28), rgba(24,39,67,.9) 55%, #090e17);
   animation: rear-drift 1.3s ease-in-out infinite alternate;
 }
-.rear-display-status,.rear-display-date,.rear-display-time,.rear-display-hint { position: relative; z-index: 1; }
-.rear-display-status { position:absolute; top:8px; left:8px; display:flex; align-items:center; gap:5px; font-size:7px; color:#bdcbe5; }
-.rear-display-status i { width:4px; height:4px; border-radius:50%; background:#5ed69a; box-shadow:0 0 7px #5ed69a; }
+.rear-display-date,.rear-display-time,.rear-display-hint { position: relative; z-index: 1; }
 .rear-display-date { color:rgba(227,234,249,.8); font-size:8px; }
 .rear-display-time { font-size:44px; font-weight:300; letter-spacing:-2px; line-height:1; font-variant-numeric:tabular-nums; }
 .rear-display-hint { margin-top:2px; color:rgba(210,220,243,.65); font-size:7px; }
 .rear-display-scene.is-off { background:#080a10; box-shadow:inset 0 0 26px rgba(0,0,0,.9); }
-.rear-display-scene.is-off .rear-display-status { display:none; }
 .rear-display-sleep,.rear-display-off { color:rgba(210,220,243,.78); font-size:10px; }
 .rear-display-alt-dial { position:absolute; inset:0; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:rgba(239,245,255,.9); }
 .rear-display-alt-dial span { font-size:8px; opacity:.7; }

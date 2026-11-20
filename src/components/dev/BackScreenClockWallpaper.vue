@@ -149,7 +149,7 @@ defineProps({
   position: absolute;
   z-index: 2;
   left: 7%;
-  bottom: 8%;
+  bottom: clamp(18px, 18cqh, 24px);
   color: rgba(196,216,235,.44);
   font-size: clamp(5px, 4cqh, 7px);
   letter-spacing: .16em;

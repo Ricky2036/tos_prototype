@@ -188,18 +188,6 @@ clockInterval = window.setInterval(() => { now.value = new Date() }, 1000)
 <template>
   <div class="pc-module-section-group is-backscreen">
     <div class="pc-section back-screen-section">
-      <div class="pc-card-header back-screen-header">
-        <div>
-          <span class="pc-card-title">可触控背屏</span>
-          <p class="back-screen-caption">控制背屏主动与被动场景</p>
-        </div>
-        <div class="back-screen-header-actions">
-          <button class="back-screen-feature-toggle" :class="{ 'is-on': isScreenOn }" type="button" role="switch" :aria-checked="isScreenOn" aria-label="背屏功能开关" @click="isScreenOn = !isScreenOn">
-            <span>背屏</span><i aria-hidden="true"><b></b></i>
-          </button>
-        </div>
-      </div>
-
       <div class="back-screen-product-picker">
         <label for="back-screen-product-line">产品线</label>
         <select id="back-screen-product-line" v-model="productLine" aria-label="背屏产品线">
@@ -209,29 +197,26 @@ clockInterval = window.setInterval(() => { now.value = new Date() }, 1000)
 
       <div class="back-screen-preview" :class="[`page-${activePage}`, `product-${productLine}`, { 'is-off': !isScreenOn }]" :style="previewStyle">
         <template v-if="isScreenOn">
-          <span class="back-screen-status"><span class="back-screen-dot"></span>{{ currentProductLine.label }} 背屏已开启</span>
           <template v-if="activeGroup === 'active'">
             <div v-if="activePage === 'clock'" class="clock-page-content">
-              <div class="clock-feature-display">
-                <BackScreenClockWallpaper v-if="clockFeature === 'clock' && isDisplayAwake && backScreen.settings.dialStyle === '动态表盘'" :date="defaultClockDate" :time="defaultClockTime" />
-                <div v-else-if="clockFeature === 'clock' && isDisplayAwake" class="back-screen-alternate-dial" :class="`dial-${backScreen.settings.dialStyle === '简约表盘' ? 'minimal' : 'digital'}`">
-                  <span>{{ defaultClockDate }}</span><strong>{{ defaultClockTime }}</strong><small>{{ backScreen.settings.dialStyle }}</small>
-                </div>
-                <div v-else-if="clockFeature === 'clock'" class="back-screen-sleep-state" @dblclick.stop.prevent="toggleDisplayAwake"><span class="sleep-indicator"></span><span>双击背屏亮屏</span></div>
-                <template v-else>
-                  <span class="clock-feature-value">{{ clockValue }}</span><span class="clock-feature-caption">{{ clockCaption }}</span>
-                </template>
+              <BackScreenClockWallpaper v-if="clockFeature === 'clock' && isDisplayAwake && backScreen.settings.dialStyle === '动态表盘'" :date="defaultClockDate" :time="defaultClockTime" />
+              <div v-else-if="clockFeature === 'clock' && isDisplayAwake" class="back-screen-alternate-dial" :class="`dial-${backScreen.settings.dialStyle === '简约表盘' ? 'minimal' : 'digital'}`">
+                <span>{{ defaultClockDate }}</span><strong>{{ defaultClockTime }}</strong><small>{{ backScreen.settings.dialStyle }}</small>
+              </div>
+              <div v-else-if="clockFeature === 'clock'" class="back-screen-sleep-state" @dblclick.stop.prevent="toggleDisplayAwake"><span class="sleep-indicator"></span><span>双击背屏亮屏</span></div>
+              <div v-else class="clock-feature-content">
+                <span class="clock-feature-value">{{ clockValue }}</span><span class="clock-feature-caption">{{ clockCaption }}</span>
                 <div v-if="clockFeature === 'stopwatch'" class="clock-feature-controls">
-                  <button class="clock-control-button primary" type="button" @click="toggleStopwatch">{{ isStopwatchRunning ? '暂停' : '开始' }}</button>
-                  <button class="clock-control-button" type="button" @click="resetStopwatch">重置</button>
+                  <button class="clock-control-button primary" type="button" @click.stop="toggleStopwatch">{{ isStopwatchRunning ? '暂停' : '开始' }}</button>
+                  <button class="clock-control-button" type="button" @click.stop="resetStopwatch">重置</button>
                 </div>
                 <div v-else-if="clockFeature === 'countdown'" class="clock-feature-controls">
-                  <button class="clock-control-button primary" type="button" @click="toggleCountdown">{{ isCountdownRunning ? '暂停' : countdownSeconds === 0 ? '再来一次' : '开始' }}</button>
-                  <button class="clock-control-button" type="button" @click="resetCountdown">重置</button>
+                  <button class="clock-control-button primary" type="button" @click.stop="toggleCountdown">{{ isCountdownRunning ? '暂停' : countdownSeconds === 0 ? '再来一次' : '开始' }}</button>
+                  <button class="clock-control-button" type="button" @click.stop="resetCountdown">重置</button>
                 </div>
               </div>
               <div class="clock-feature-tabs" aria-label="时钟子功能">
-                <button v-for="feature in clockFeatures" :key="feature.id" type="button" :class="{ active: clockFeature === feature.id }" @click="selectClockFeature(feature.id)">{{ feature.label }}</button>
+                <button v-for="feature in clockFeatures" :key="feature.id" type="button" :class="{ active: clockFeature === feature.id }" @click.stop="selectClockFeature(feature.id)">{{ feature.label }}</button>
               </div>
             </div>
 
@@ -284,11 +269,7 @@ clockInterval = window.setInterval(() => { now.value = new Date() }, 1000)
   gap: 12px;
 }
 
-.back-screen-header {
-  margin-bottom: 0;
-}
-
-.back-screen-product-picker { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; }
+.back-screen-product-picker { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:0; margin-bottom:10px; }
 .back-screen-product-picker label { color:#aeb3c0; font-size:10px; font-weight:600; }
 .back-screen-product-picker select { width:calc(100% - 58px); min-height:30px; border:1px solid rgba(149,176,232,.2); border-radius:9px; padding:0 10px; color:#f0f3fb; background:#191a23; font:600 10px/1 var(--font-stack); outline:none; }
 .back-screen-product-picker select:focus-visible { border-color:rgba(105,151,255,.7); box-shadow:0 0 0 2px rgba(79,130,244,.16); }
@@ -296,84 +277,18 @@ clockInterval = window.setInterval(() => { now.value = new Date() }, 1000)
 .back-screen-feature-groups { display:flex; flex-direction:column; gap:9px; }
 .back-screen-feature-group { display:flex; flex-direction:column; gap:5px; }
 .back-screen-group-title { color:#b8c2d5; font-size:10px; font-weight:650; letter-spacing:.04em; }
-.back-screen-status { z-index:5; }
-.back-screen-header-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  flex: 0 0 auto;
-}
-
-.back-screen-feature-toggle {
-  display: inline-flex;
-  min-width: 88px;
-  min-height: 28px;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border: 1px solid rgba(153, 177, 224, .24);
-  border-radius: 9px;
-  padding: 0 7px;
-  color: #aebbd4;
-  background: rgba(20, 24, 34, .7);
-  font: 600 10px/1 var(--font-stack);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: border-color .18s ease, background .18s ease, color .18s ease;
-}
-
-.back-screen-feature-toggle i {
-  position: relative;
-  display: block;
-  width: 30px;
-  height: 17px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: #464752;
-  transition: background .18s ease;
-}
-
-.back-screen-feature-toggle i b {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  background: #f7f8fc;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .28);
-  transition: transform .18s ease;
-}
-
-.back-screen-feature-toggle.is-on {
-  border-color: rgba(73, 131, 255, .48);
-  color: #e9f0ff;
-  background: rgba(45, 91, 175, .18);
-}
-
-.back-screen-feature-toggle.is-on i { background: #3478f6; }
-.back-screen-feature-toggle.is-on i b { transform: translateX(13px); }
-
-.back-screen-caption {
-  margin: 4px 0 0;
-  color: #858590;
-  font-size: 10.5px;
-  line-height: 1.35;
-}
 
 .back-screen-preview {
   position: relative;
   width: 100%;
-  min-height: 182px;
+  aspect-ratio: 231 / 142;
   overflow: hidden;
-  border: 1px solid rgba(149, 176, 232, 0.2);
-  border-radius: 14px;
-  padding: 14px;
+  border: 1px solid rgba(205, 220, 248, 0.31);
+  border-radius: 17px;
   color: #f8fafc;
   background:
-    radial-gradient(ellipse at 50% 15%, rgba(96, 165, 250, 0.26), transparent 55%),
-    linear-gradient(155deg, #182943, #0d1421 72%);
+    radial-gradient(ellipse at 50% 28%, var(--product-glow, #263c66) 0%, var(--product-panel-a, #14213a) 44%, var(--product-panel-b, #0c111c) 100%);
+  box-shadow: inset 0 0 28px rgba(140, 175, 239, 0.08), 0 10px 26px rgba(0, 0, 0, 0.24);
   transition: background 0.25s ease, border-color 0.25s ease, transform 0.18s ease;
 }
 
@@ -387,19 +302,9 @@ clockInterval = window.setInterval(() => { now.value = new Date() }, 1000)
 
 .back-screen-preview.is-off {
   border-color: #303039;
-  background: linear-gradient(145deg, #0a0a0d, #15151a);
+  background: #080a10;
+  box-shadow: inset 0 0 26px rgba(0,0,0,.9);
   cursor: default;
-}
-
-.back-screen-status {
-  position: absolute;
-  top: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #c5d2e7;
-  font-size: 9px;
-  letter-spacing: 0.2px;
 }
 
 .back-screen-sleep-state {
@@ -427,20 +332,13 @@ clockInterval = window.setInterval(() => { now.value = new Date() }, 1000)
 .clock-page-content {
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 28px 9px 8px;
+  overflow: hidden;
 }
 
-.clock-feature-display {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  width: 100%;
+.clock-feature-content {
+  position: absolute;
+  inset: 0 0 24px 0;
   display: flex;
-  min-height: 0;
-  flex: 1;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -618,28 +516,33 @@ clockInterval = window.setInterval(() => { now.value = new Date() }, 1000)
 }
 
 .clock-feature-tabs {
+  position: absolute;
+  z-index: 4;
+  right: 4%;
+  bottom: 4%;
+  left: 4%;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 5px;
+  gap: 4px;
 }
 
 .clock-feature-tabs button {
   min-width: 0;
-  min-height: 23px;
-  border: 1px solid rgba(207, 218, 240, 0.16);
-  border-radius: 7px;
-  padding: 0 3px;
-  color: #c4ccdc;
-  background: rgba(12, 17, 31, 0.55);
-  font: 600 9px/1 var(--font-stack);
+  min-height: 18px;
+  border: 1px solid rgba(213, 228, 255, 0.18);
+  border-radius: 6px;
+  padding: 0 2px;
+  color: #d7e2f4;
+  background: rgba(5, 12, 24, 0.64);
+  font: 600 8px/1 var(--font-stack);
   cursor: pointer;
   transition: 0.18s ease;
 }
 
 .clock-feature-tabs button.active {
-  border-color: rgba(127, 151, 255, 0.75);
+  border-color: rgba(102, 169, 255, 0.72);
   color: #fff;
-  background: rgba(87, 108, 220, 0.46);
+  background: rgba(54, 112, 194, 0.58);
 }
 
 .back-screen-page-content {
@@ -652,7 +555,7 @@ clockInterval = window.setInterval(() => { now.value = new Date() }, 1000)
   justify-content: center;
   border: 0;
   border-radius: inherit;
-  padding: 18px 14px 22px;
+  padding: 8px 10px;
   color: inherit;
   background: transparent;
   cursor: pointer;
@@ -664,13 +567,17 @@ clockInterval = window.setInterval(() => { now.value = new Date() }, 1000)
 }
 
 .music-page-content { gap: 2px; }
-.music-controls { display:flex; align-items:center; justify-content:center; gap:14px; margin-top:5px; }
-.music-controls button { display:grid; width:25px; height:25px; place-items:center; border:0; border-radius:50%; color:#eff3ff; background:rgba(255,255,255,.13); font:600 14px/1 var(--font-stack); cursor:pointer; }
-.music-controls .music-play-button { width:32px; height:32px; border:1px solid rgba(255,255,255,.5); background:rgba(255,255,255,.22); font-size:11px; }
+.music-controls { display:flex; align-items:center; justify-content:center; gap:12px; margin-top:4px; }
+.music-controls button { display:grid; width:22px; height:22px; place-items:center; border:0; border-radius:50%; color:#eff3ff; background:rgba(255,255,255,.13); font:600 12px/1 var(--font-stack); cursor:pointer; }
+.music-controls .music-play-button { width:26px; height:26px; border:1px solid rgba(255,255,255,.5); background:rgba(255,255,255,.22); font-size:10px; }
 
 .back-screen-off-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   color: #73737e;
-  font-size: 13px;
+  font-size: 11px;
 }
 
 .back-screen-pages {
