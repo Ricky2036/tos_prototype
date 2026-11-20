@@ -43,7 +43,7 @@ function handleToggle(row, value) {
 
 <template>
   <div class="ai-sub-page">
-    <GlassNavBar overlay title="{{ title }}" @back="emit('back')" />
+    <GlassNavBar overlay :title="title" @back="emit('back')" />
 
     <div style="padding-top: var(--nav-h)" class="ai-sub-body scrollable">
       <!-- 头图区 -->
