@@ -36,13 +36,11 @@ before(async () => { rt = await createRuntime() })
 after(async () => { if (rt) await rt.close() })
 
 /** 读当前 host 自己的 pinia 里的 phoneStore 字段 */
-const storeOf = (id, expr) => rt.evaluate(async ({ id, expr }) => {
+const storeOf = (id, field) => rt.evaluate(async ({ id, field }) => {
   const pinia = window.__wbHosts.get(id).host.__wbPinia
   const m = await import('/src/stores/phoneStore.js')
-  const s = m.usePhoneStore(pinia)
-  // eslint-disable-next-line no-new-func
-  return new Function('s', `return (${expr})`)(s)
-}, { id, expr })
+  return m.usePhoneStore(pinia)[field]
+}, { id, field })
 
 test('phoneStore manages call logs, contacts, keypad, and settings properly', () => {
   setActivePinia(createPinia())
@@ -206,12 +204,12 @@ test('PhoneApp 集成了最近任务 / 拨号盘 / 搜索 / 设置，且 tab 与
   await rt.click(h, '.filter-tab-btn:nth-child(2)', 220)
   const missedRows = await rt.count(h, '.recent-swipe-cell')
   assert.ok(missedRows < allRows, `切到「未接来电」后行数应减少（${allRows} → ${missedRows}）`)
-  assert.equal(await storeOf(h, 's.recentsFilter'), 'missed', '筛选状态应真的写进 store')
+  assert.equal(await storeOf(h, 'recentsFilter'), 'missed', '筛选状态应真的写进 store')
 
   // 拨号键：点一个数字键后 store 的 dialedNumber 应变化
-  const before = await storeOf(h, 's.dialedNumber')
+  const before = await storeOf(h, 'dialedNumber')
   await rt.click(h, '.keypad-circle-btn', 120)
-  const after = await storeOf(h, 's.dialedNumber')
+  const after = await storeOf(h, 'dialedNumber')
   assert.notEqual(after, before, '点数字键应真的写入拨号缓冲')
   assert.ok(after.length > 0, '拨号缓冲不应为空')
 
@@ -263,9 +261,9 @@ test('来电显示弹窗：大卡容器 + 双机型预览 + 点选项真的改 s
   }
   assert.equal(await rt.count(h, '.custom-radio'), 2, '两个自定义单选圈')
 
-  const before = await storeOf(h, 's.callDisplayMode')
+  const before = await storeOf(h, 'callDisplayMode')
   await rt.click(h, '.display-option-col:nth-child(2)', 180)
-  const after = await storeOf(h, 's.callDisplayMode')
+  const after = await storeOf(h, 'callDisplayMode')
   assert.notEqual(after, before, '点第二项应真的切换来电显示模式')
   assert.equal(after, 'fullscreen', '应切到全屏显示')
   await rt.unmount(h)
@@ -337,9 +335,9 @@ test('拨号盘没有顶部拖拽手柄，按键 / 呼叫键 / 更多选项都�
   assert.equal(await rt.visibleCount(h, '.main-call-btn'), 1, '主呼叫键应可见')
   assert.equal(await rt.visibleCount(h, '.action-aux-btn'), 1, '辅助操作键应可见')
 
-  const num0 = await storeOf(h, 's.dialedNumber')
+  const num0 = await storeOf(h, 'dialedNumber')
   await rt.click(h, '.keypad-circle-btn', 120)
-  const num1 = await storeOf(h, 's.dialedNumber')
+  const num1 = await storeOf(h, 'dialedNumber')
   assert.notEqual(num1, num0, '点数字键应写入拨号缓冲')
   assert.ok(/^[0-9*#]+$/.test(num1), `拨号内容应只有数字（实际 ${num1}）`)
 

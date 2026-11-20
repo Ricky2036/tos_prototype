@@ -99,15 +99,9 @@ export async function createRuntime() {
 
   /** 浏览器端统一取 host：所有查询都落在这个容器里，不污染 document 其它部分 */
   const H = (id) => `window.__wbHosts.get(${JSON.stringify(id)})?.host`
+  /** 表达式体直接在页面上下文求值（Playwright 原生支持传表达式字符串，无需在包内构造函数） */
   const call = (fnBody, arg) =>
-    page.evaluate(
-      ({ fnBody, arg }) => {
-        // eslint-disable-next-line no-new-func
-        const fn = new Function('arg', `return (${fnBody})(arg)`)
-        return fn(arg)
-      },
-      { fnBody, arg },
-    )
+    page.evaluate(`(${fnBody})(${JSON.stringify(arg === undefined ? null : arg)})`)
 
   const api = {
     page,
