@@ -122,15 +122,19 @@ async function run() {
   check('B1 两个页面级分组标题', groups[0] === '当前使用的套餐' && groups[1] === '流量使用情况', JSON.stringify(groups.slice(0, 3)))
 
   const card = await cssSize(page, T('tm-plan-card'))
-  check('B2 套餐卡 328 宽 / 圆角 16 / 蓝色渐变',
-    Boolean(card) && Math.round(card.w) === 328 && card.radius === '16px' && /linear-gradient/.test(card.bg),
+  check('B2 套餐卡 328 宽 / 圆角 20 / 蓝色渐变',
+    Boolean(card) && Math.round(card.w) === 328 && card.radius === '20px' && /linear-gradient/.test(card.bg),
     card ? `${card.w}×${card.h} r=${card.radius}` : 'null')
   check('B3 套餐卡高 171（真机 208 物理 px）', Boolean(card) && Math.abs(card.h - 171) <= 1.5, card ? String(card.h) : 'null')
   check('B4 卡内空态文案', (await text(page, '.tm-plan-title')) === '无使用中的套餐')
   check('B5 卡内「全部套餐」入口可点', (await visibleCount(page, T('tm-all-plans'))) === 1)
 
+  // 真机 1208×2644 截图取样：页面 #F7F7F8 + 白卡（444px 录屏把这层近白对比压平了，别照录屏做纯白）
   const pageBg = await page.evaluate(() => getComputedStyle(document.querySelector('[data-testid="tm-main"]')).backgroundColor)
-  check('B6 页面底色是纯白（这一页不是设置的 #F0F1F2）', pageBg === 'rgb(255, 255, 255)', pageBg)
+  check('B6 页面底色 #F7F7F8（灰底白卡，不是录屏里的纯白平铺）', pageBg === 'rgb(247, 247, 248)', pageBg)
+  const cardBg = await page.evaluate(() => getComputedStyle(document.querySelector('.tm-card-chart')).backgroundColor)
+  const cardRadius = await page.evaluate(() => getComputedStyle(document.querySelector('.tm-card-chart')).borderTopLeftRadius)
+  check('B6b 图表卡是白底圆角 20', cardBg === 'rgb(255, 255, 255)' && cardRadius === '20px', `${cardBg} / ${cardRadius}`)
 
   /* 今天：0.0 B + 5 条刻度 + 无柱 */
   check('B7 今天已用流量 = 0.0 B', (await text(page, T('tm-usage-value'))) === '0.0 B')
@@ -141,8 +145,23 @@ async function run() {
   check('B9 今天没有柱子', (await visibleCount(page, `${T('tm-chart-today')} .tm-bar`)) === 0)
   const xToday = await texts(page, `${T('tm-chart-today')} .tm-xlabel`)
   check('B10 今天横轴 6:00 / 12:00 / 18:00', xToday.join('|') === '6:00|12:00|18:00', JSON.stringify(xToday))
-  check('B11 未选中的标签页是灰字常规体（不是蓝色下划线那一套）',
-    (await page.evaluate(() => getComputedStyle(document.querySelector('[data-testid="tm-tab-week"]')).color)) === 'rgb(142, 142, 147)')
+  const lines = await visibleCount(page, `${T('tm-chart-today')} .tm-gridline`)
+  check('B10b 横向虚线网格条数 = 刻度数（真机是虚线，录屏里被压没了）', lines === todayTicks.length, `${lines} vs ${todayTicks.length}`)
+  const dash = await page.evaluate(() => {
+    const el = document.querySelector('[data-testid="tm-chart-today"] .tm-gridline')
+    return el ? getComputedStyle(el).backgroundImage : ''
+  })
+  check('B10c 网格线是 repeating 虚线（不是实线）', /repeating-linear-gradient/.test(dash), dash.slice(0, 40))
+  const seg = await page.evaluate(() => {
+    const track = document.querySelector('[data-testid="tm-segment"]')
+    const pill = document.querySelector('.tm-segment-pill')
+    const cs = getComputedStyle(track)
+    return { h: parseFloat(cs.height), radius: cs.borderTopLeftRadius, trackBg: cs.backgroundColor, pillBg: getComputedStyle(pill).backgroundColor }
+  })
+  check('B11 分段控件：灰轨道 + 白色胶囊（真机不是下划线标签页）',
+    Math.round(seg.h) === 38 && seg.radius === '19px' && seg.trackBg !== 'rgb(255, 255, 255)' && seg.pillBg === 'rgb(255, 255, 255)',
+    JSON.stringify(seg))
+  check('B11b 未选中段是灰字', (await page.evaluate(() => getComputedStyle(document.querySelector('[data-testid="tm-tab-week"]')).color)) === 'rgb(155, 155, 159)')
 
   /* 过去 7 天：166.0 MB + 7 柱 + 4 刻度 */
   await click(page, T('tm-tab-week'), 520)
@@ -169,7 +188,7 @@ async function run() {
   const rowTitleBox = await rectOf(page, `${T('tm-row-limit')} .tm-row-title`)
   const screenX = await rectOf(page, '.phone-frame .screen')
   const scale = 360 / screenX.width
-  check('B19 列表行高 48', Boolean(rowBox) && Math.abs(rowBox.height * scale - 48) <= 1.2, rowBox ? String(+(rowBox.height * scale).toFixed(1)) : 'null')
+  check('B19 列表行高 54（卡片版式）', Boolean(rowBox) && Math.abs(rowBox.height * scale - 54) <= 1.2, rowBox ? String(+(rowBox.height * scale).toFixed(1)) : 'null')
   check('B20 行文字左缘 32（页面 16 + 行内 16）',
     Boolean(rowTitleBox) && Math.abs((rowTitleBox.left - screenX.left) * scale - 32) <= 1.2,
     rowTitleBox ? String(+((rowTitleBox.left - screenX.left) * scale).toFixed(1)) : 'null')

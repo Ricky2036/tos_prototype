@@ -65,6 +65,7 @@ function cancel() {
     <GlassNavBar overlay :title="TM_LIMIT.title" @back="emit('back')" />
 
     <div class="tm-body scrollable" data-testid="tm-limit">
+      <div class="tm-card">
       <div class="tm-row has-desc">
         <div class="tm-row-text">
           <div class="tm-row-title">{{ TM_LIMIT.dailyTitle }}</div>
@@ -76,8 +77,6 @@ function cancel() {
           @update:model-value="v => traffic.setFlag('limitEnabled', v)"
         />
       </div>
-
-      <div class="tm-block-gap"></div>
 
       <div
         class="tm-row is-tap"
@@ -92,6 +91,7 @@ function cancel() {
         <svg class="tm-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
           <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
+      </div>
       </div>
 
       <div class="tm-bottom-space"></div>

@@ -19,6 +19,7 @@ const traffic = useTrafficStore()
     <GlassNavBar overlay :title="TM_SCREEN_OFF.title" @back="emit('back')" />
 
     <div class="tm-body scrollable" data-testid="tm-screen-off">
+      <div class="tm-card">
       <div class="tm-row">
         <div class="tm-row-text">
           <div class="tm-row-title">{{ TM_SCREEN_OFF.title }}</div>
@@ -28,6 +29,7 @@ const traffic = useTrafficStore()
           testid="tm-switch-screenOff"
           @update:model-value="v => traffic.setFlag('screenOff', v)"
         />
+      </div>
       </div>
 
       <div class="tm-group">{{ TM_SCREEN_OFF.groupLabel }}</div>

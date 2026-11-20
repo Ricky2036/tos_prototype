@@ -21,6 +21,7 @@ const rows = computed(() => tmAppUsage())
     <div class="tm-body scrollable" data-testid="tm-app-usage">
       <div class="tm-group is-first">{{ TM_APP_USAGE.groupLabel }} · {{ TM_APP_USAGE.totalLabel }}</div>
 
+      <div class="tm-card">
       <div
         v-for="row in rows"
         :key="row.app.id"
@@ -30,6 +31,7 @@ const rows = computed(() => tmAppUsage())
         <RegisteredAppIcon :app="row.app" :size="38" />
         <span class="tm-appname">{{ row.app.name }}</span>
         <span class="tm-row-value">{{ tmFormat(row.bytes) }}</span>
+      </div>
       </div>
 
       <div class="tm-bottom-space"></div>

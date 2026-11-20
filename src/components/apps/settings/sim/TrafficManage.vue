@@ -140,68 +140,73 @@ function openRow(key) {
 
           <div class="tm-group">流量使用情况</div>
 
-          <div class="tm-tabs">
-            <button
-              type="button"
-              class="tm-tab"
-              :class="{ 'is-active': tab === 'today' }"
-              data-testid="tm-tab-today"
-              @click="tab = 'today'"
-            >今天</button>
-            <button
-              type="button"
-              class="tm-tab"
-              :class="{ 'is-active': tab === 'week' }"
-              data-testid="tm-tab-week"
-              @click="tab = 'week'"
-            >过去 7 天</button>
-          </div>
-
-          <div class="tm-usage">
-            <div class="tm-usage-label">已用流量</div>
-            <div class="tm-usage-value" data-testid="tm-usage-value">
-              {{ usage.num }} <small>{{ usage.unit }}</small>
+          <div class="tm-card tm-card-chart">
+            <div class="tm-segment" :class="{ 'is-week': tab === 'week' }" data-testid="tm-segment">
+              <span class="tm-segment-pill" aria-hidden="true"></span>
+              <button
+                type="button"
+                class="tm-tab"
+                :class="{ 'is-active': tab === 'today' }"
+                data-testid="tm-tab-today"
+                @click="tab = 'today'"
+              >今天</button>
+              <button
+                type="button"
+                class="tm-tab"
+                :class="{ 'is-active': tab === 'week' }"
+                data-testid="tm-tab-week"
+                @click="tab = 'week'"
+              >过去 7 天</button>
             </div>
-          </div>
 
-          <TmChart
-            :key="usage.testid"
-            :bars="usage.bars"
-            :x-labels="usage.xLabels"
-            :height="215"
-            :testid="usage.testid"
-          />
-
-          <div class="tm-footnote">{{ TM_FOOTNOTE }}</div>
-
-          <div class="tm-approw" data-testid="tm-row-appUsage" @click="open('appUsage')">
-            <div class="tm-approw-main">
-              <div class="tm-approw-title">应用流量使用管理</div>
-              <div class="tm-icon-stack" data-testid="tm-icon-stack">
-                <RegisteredAppIcon v-for="row in iconApps" :key="row.app.id" :app="row.app" :size="38" />
-                <span v-if="restCount" class="tm-icon-more">+{{ restCount }}</span>
+            <div class="tm-usage">
+              <div class="tm-usage-label">已用流量</div>
+              <div class="tm-usage-value" data-testid="tm-usage-value">
+                {{ usage.num }} <small>{{ usage.unit }}</small>
               </div>
             </div>
-            <svg class="tm-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </div>
 
-          <template v-for="group in TM_GROUPS" :key="group.label">
-            <div class="tm-group">{{ group.label }}</div>
-            <div
-              v-for="row in group.rows"
-              :key="row.key"
-              class="tm-row is-tap"
-              :data-testid="`tm-row-${row.key}`"
-              @click="openRow(row.key)"
-            >
-              <div class="tm-row-text">
-                <div class="tm-row-title">{{ row.title }}</div>
+            <TmChart
+              :key="usage.testid"
+              :bars="usage.bars"
+              :x-labels="usage.xLabels"
+              :height="173"
+              :testid="usage.testid"
+            />
+
+            <div class="tm-footnote">{{ TM_FOOTNOTE }}</div>
+
+            <div class="tm-approw" data-testid="tm-row-appUsage" @click="open('appUsage')">
+              <div class="tm-approw-main">
+                <div class="tm-approw-title">应用流量使用管理</div>
+                <div class="tm-icon-stack" data-testid="tm-icon-stack">
+                  <RegisteredAppIcon v-for="row in iconApps" :key="row.app.id" :app="row.app" :size="42" />
+                  <span v-if="restCount" class="tm-icon-more">+{{ restCount }}</span>
+                </div>
               </div>
               <svg class="tm-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
                 <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
+            </div>
+          </div>
+
+          <template v-for="group in TM_GROUPS" :key="group.label">
+            <div class="tm-group">{{ group.label }}</div>
+            <div class="tm-card">
+              <div
+                v-for="row in group.rows"
+                :key="row.key"
+                class="tm-row is-tap"
+                :data-testid="`tm-row-${row.key}`"
+                @click="openRow(row.key)"
+              >
+                <div class="tm-row-text">
+                  <div class="tm-row-title">{{ row.title }}</div>
+                </div>
+                <svg class="tm-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
+                  <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
             </div>
           </template>
 

@@ -28,8 +28,9 @@ function jump(letter) {
 
     <div ref="body" class="tm-body scrollable" data-testid="tm-wifi-apps">
       <div class="tm-note" style="padding-top: 2px">{{ TM_WIFI_APPS.desc }}</div>
-      <div style="height: 12px"></div>
+      <div class="tm-card">
       <TmAppList :sections="sections" list="wifiAllowed" testid="tm-wifi-list" />
+      </div>
       <div class="tm-bottom-space"></div>
     </div>
 

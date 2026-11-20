@@ -19,6 +19,7 @@ const traffic = useTrafficStore()
     <GlassNavBar overlay :title="TM_SAVE_MODE.title" @back="emit('back')" />
 
     <div class="tm-body scrollable" data-testid="tm-save-mode">
+      <div class="tm-card">
       <div class="tm-row">
         <div class="tm-row-text">
           <div class="tm-row-title">{{ TM_SAVE_MODE.rowTitle }}</div>
@@ -42,6 +43,7 @@ const traffic = useTrafficStore()
         <svg class="tm-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
           <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
+      </div>
       </div>
 
       <div class="tm-note" data-testid="tm-save-mode-note">

@@ -56,7 +56,9 @@ function jump(letter) {
 
     <div ref="body" class="tm-body scrollable" data-testid="tm-unrestricted">
       <div class="tm-group is-first">{{ TM_UNRESTRICTED.groupLabel }}</div>
+      <div class="tm-card">
       <TmAppList :sections="sections" list="unrestricted" testid="tm-unrestricted-list" />
+      </div>
       <div class="tm-bottom-space"></div>
     </div>
 

@@ -18,10 +18,12 @@
   --tm-sub: #8e8e93;
   --tm-faint: #b0b3b8;
   --tm-track: #e9e9ea;
+  /* 真机实测（1208×2644 截图取样）：页面底色 #F7F7F8、白卡圆角 20、卡间距 14 */
+  --tm-page-bg: #f7f7f8;
 
   position: absolute;
   inset: 0;
-  background: #ffffff;
+  background: var(--tm-page-bg);
   display: flex;
   flex-direction: column;
   z-index: 30;
@@ -53,9 +55,22 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 48px;
+  min-height: 54px;
   padding: 0 16px;
   box-sizing: border-box;
+}
+
+/* 白卡：设置全仓的列表形态（圆角 16 / 间距 14 / 行内 16） */
+.tm-card {
+  background: #ffffff;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+/* 图表卡：真机是「分段控件 + 已用流量 + 柱图 + 脚注 + 应用用量行」同一张卡 */
+.tm-card-chart {
+  padding: 16px 16px 20px;
 }
 
 /* 带副标题的行：真机 64 高（标题行 22 + 说明 17，上下各留 12）
@@ -79,7 +94,7 @@
 
 /* 块间距：同一页里两组之间（示例：设置页「流量提醒」与「流量使用报告」之间 24） */
 .tm-block-gap {
-  height: 24px;
+  height: 14px;
 }
 
 .tm-row.is-tap {  cursor: pointer;
@@ -129,20 +144,19 @@
 
 /* 组标题：与真机一致，距上一行 26、距下一行 12 */
 .tm-group {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 18px;
   color: var(--tm-sub);
-  padding: 28px 16px 14px;
+  padding: 24px 8px 8px;
 }
 
 .tm-group.is-first {
-  padding-top: 6px;
-  padding-bottom: 8px;
+  padding-top: 4px;
 }
 
 /* 说明段落（灰字多行，左对齐到 32） */
 .tm-note {
-  padding: 12px 16px 0;
+  padding: 8px 16px 14px;
   font-size: 12px;
   line-height: 17px;
   color: var(--tm-sub);
@@ -167,7 +181,7 @@
   position: relative;
   height: 171px;
   margin: 0;
-  border-radius: var(--radius-cell-group);
+  border-radius: 20px;
   overflow: hidden;
   background: linear-gradient(180deg, #286efc 0%, #3f80fd 46%, #67a4ff 100%);
   color: #fff;
@@ -215,33 +229,57 @@
   padding: 0;
 }
 
-/* ---------------- 标签页 ---------------- */
-.tm-tabs {
+/* ---------------- 分段控件（真机不是下划线标签页） ---------------- */
+.tm-segment {
+  position: relative;
   display: flex;
-  padding: 8px 20px 0;
+  height: 38px;
+  padding: 2px;
+  box-sizing: border-box;
+  border-radius: 19px;
+  background: #ededef;
+}
+
+.tm-segment-pill {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  border-radius: 17px;
+  background: #ffffff;
+  border: 0.5px solid #e3e3e5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: transform 0.22s cubic-bezier(0.3, 0.9, 0.35, 1);
+}
+
+.tm-segment.is-week .tm-segment-pill {
+  transform: translateX(100%);
 }
 
 .tm-tab {
+  position: relative;
+  z-index: 1;
   flex: 1;
   border: none;
   background: none;
   font-family: inherit;
-  font-size: 16px;
-  line-height: 24px;
-  padding: 8px 0;
-  color: var(--tm-sub);
+  font-size: 15.5px;
+  line-height: 34px;
+  color: #9b9b9f;
   font-weight: 400;
   cursor: pointer;
+  padding: 0;
 }
 
 .tm-tab.is-active {
   color: var(--tm-ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* ---------------- 用量与图表 ---------------- */
 .tm-usage {
-  padding: 13px 16px 0;
+  padding: 18px 0 0;
 }
 
 .tm-usage-label {
@@ -260,20 +298,29 @@
 }
 
 .tm-usage-value small {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
 }
 
 .tm-plot-wrap {
   position: relative;
-  margin: 20px 16px 0;
-  height: 176px;
+  margin: 26px 0 0;
+}
+
+/* 横向虚线网格：每条刻度一条（真机是浅灰虚线，别再做成「无网格」） */
+.tm-gridline {
+  position: absolute;
+  left: 15px;
+  right: 44px;
+  height: 1px;
+  background-image: repeating-linear-gradient(90deg, #e5e5e8 0 3px, transparent 3px 7px);
+  pointer-events: none;
 }
 
 .tm-plot {
   position: absolute;
-  left: 33px;
-  right: 37px;
+  left: 15px;
+  right: 44px;
   top: 0;
   bottom: 0;
   display: flex;
@@ -289,44 +336,42 @@
 }
 
 .tm-bar {
-  width: 22px;
-  border-radius: 1px;
-  background: linear-gradient(180deg, #5e97ff 0%, #a9cdff 100%);
+  width: 23px;
+  background: linear-gradient(180deg, #6f9eff 0%, #c2d8fd 100%);
   min-height: 0;
 }
 
 .tm-tick {
   position: absolute;
   right: 0;
-  width: 37px;
-  padding-left: 6px;
-  box-sizing: border-box;
+  width: 44px;
+  text-align: right;
   font-size: 10.5px;
-  line-height: 12px;
-  color: #9aa0a6;
+  line-height: 13px;
+  color: #9b9b9f;
   transform: translateY(50%);
   white-space: nowrap;
 }
 
 .tm-xaxis {
   position: absolute;
-  left: 33px;
-  right: 37px;
-  bottom: -29px;
+  left: 15px;
+  right: 44px;
+  bottom: -26px;
   display: flex;
 }
 
 .tm-xlabel {
   flex: 1;
   text-align: center;
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 14px;
-  color: #9aa0a6;
+  color: #9b9b9f;
   white-space: nowrap;
 }
 
 .tm-footnote {
-  padding: 42px 16px 0;
+  padding: 34px 0 0;
   font-size: 11px;
   line-height: 16px;
   color: #9aa0a6;
@@ -337,8 +382,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 16px 18px;
-  min-height: 66px;
+  padding: 18px 0 0;
   box-sizing: border-box;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -362,33 +406,39 @@
 .tm-icon-stack {
   display: flex;
   align-items: center;
-  margin-top: 9px;
+  margin-top: 12px;
 }
 
-/* 图标叠压：真机是 38px 圆角方图，相邻叠 12 */
+/* 图标叠压：真机 42px 圆角方图，相邻叠约 10，叠口不描边（照片里是硬边） */
 .tm-page .tm-icon-stack .registered-app-icon {
-  margin-right: -12px;
+  margin-right: -10px;
   border-radius: 11px;
-  box-shadow: 0 0 0 1.5px #fff;
 }
 
 .tm-icon-more {
-  margin-left: 20px;
-  font-size: 13px;
-  color: var(--tm-sub);
+  margin-left: 16px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #efeff1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12.5px;
+  color: #8e8e93;
+  flex: none;
 }
 
 /* ---------------- 应用开关列表（Wi-Fi 权限 / 不受限制） ---------------- */
 .tm-applist {
   position: relative;
-  padding-bottom: 24px;
 }
 
 .tm-appitem {
   display: flex;
   align-items: center;
   gap: 16px;
-  min-height: 64px;
+  min-height: 62px;
   padding: 0 16px;
   box-sizing: border-box;
   cursor: pointer;
@@ -453,11 +503,14 @@
 
 /* ---------------- 熄屏监控历史卡 ---------------- */
 .tm-history {
-  padding: 0 16px;
+  padding: 0;
 }
 
 .tm-history-card {
-  padding: 4px 0 48px;
+  background: #ffffff;
+  border-radius: var(--radius-cell-group);
+  padding: 16px 16px 18px;
+  margin-bottom: 14px;
 }
 
 .tm-history-title {
@@ -813,8 +866,10 @@
 
 /* ---------------- 提醒比例滑杆 ---------------- */
 .tm-ratio {
-  /* 真机实测（画布）：上一行底 → 「提醒比例」墨迹 10；滑杆圆心距该行顶 78；块底到下一行 39 */
-  padding: 6px 16px 46px;
+  background: #ffffff;
+  border-radius: var(--radius-cell-group);
+  margin-bottom: 14px;
+  padding: 16px 16px 18px;
 }
 
 .tm-ratio-scale {

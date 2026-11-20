@@ -58,6 +58,7 @@ function onUp(e) {
     <GlassNavBar overlay :title="TM_ALERTS.title" @back="emit('back')" />
 
     <div class="tm-body scrollable" data-testid="tm-alerts">
+      <div class="tm-card">
       <div class="tm-row has-desc">
         <div class="tm-row-text">
           <div class="tm-row-title">{{ TM_ALERTS.customTitle }}</div>
@@ -68,6 +69,7 @@ function onUp(e) {
           testid="tm-switch-customAlerts"
           @update:model-value="v => traffic.setFlag('customAlerts', v)"
         />
+      </div>
       </div>
 
       <div class="tm-ratio" :class="{ 'is-off': !traffic.customAlerts }" data-testid="tm-ratio">
@@ -101,8 +103,7 @@ function onUp(e) {
         </div>
       </div>
 
-      <div class="tm-block-gap"></div>
-
+      <div class="tm-card">
       <div class="tm-row has-desc">
         <div class="tm-row-text">
           <div class="tm-row-title">{{ TM_ALERTS.planTitle }}</div>
@@ -125,6 +126,7 @@ function onUp(e) {
           testid="tm-switch-autoOff"
           @update:model-value="v => traffic.setFlag('autoDisableData', v)"
         />
+      </div>
       </div>
 
       <div class="tm-bottom-space"></div>
