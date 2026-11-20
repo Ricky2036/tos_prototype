@@ -6,6 +6,8 @@ import { useI18nStore } from '../../stores/i18nStore'
 import { useBackScreenStore } from '../../stores/backScreenStore'
 import NotificationIcon from '../ui/NotificationIcon.vue'
 import { formatRelativeTime } from '../../utils/timeFormat'
+import iconHangup from '../../assets/island/base/icon_hangup.svg'
+import iconAnswer from '../../assets/island/base/icon_answer.svg'
 
 const notificationStore = useNotificationsStore()
 const i18n = useI18nStore()
@@ -125,8 +127,18 @@ defineEmits(['answer-call', 'hang-up'])
         </div>
       </div>
       <div v-if="callStatus !== 'ended'" class="passive-call-actions">
-        <button v-if="callStatus === 'ringing'" class="answer-call" type="button" @click="$emit('answer-call')"><i>✓</i>接听</button>
-        <button class="hangup-call" type="button" @click="$emit('hang-up')"><i>×</i>{{ callStatus === 'ringing' ? '挂断' : '结束通话' }}</button>
+        <button v-if="callStatus === 'ringing'" class="answer-call" type="button" @click="$emit('answer-call')">
+          <i class="btn-icon">
+            <img :src="iconAnswer" alt="" class="call-action-icon" />
+          </i>
+          <span>接听</span>
+        </button>
+        <button class="hangup-call" type="button" @click="$emit('hang-up')">
+          <i class="btn-icon">
+            <img :src="iconHangup" alt="" class="call-action-icon" />
+          </i>
+          <span>{{ callStatus === 'ringing' ? '挂断' : '结束通话' }}</span>
+        </button>
       </div>
       <button v-else class="replay-call" type="button" @click="$emit('answer-call')">重新演示来电</button>
     </template>
@@ -280,20 +292,25 @@ defineEmits(['answer-call', 'hang-up'])
 }
 
 .passive-call-actions button i {
-  display: grid;
-  width: 16px;
-  height: 16px;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
-  color: white;
-  background: #eb5966;
-  font-style: normal;
-  font-size: 10px;
-  font-weight: bold;
+  background: #f54240;
+  flex-shrink: 0;
 }
 
 .passive-call-actions .answer-call i {
-  background: #2ac783;
+  background: #28cc71;
+}
+
+.call-action-icon {
+  width: 10px;
+  height: 10px;
+  object-fit: contain;
+  pointer-events: none;
 }
 
 .replay-call {
