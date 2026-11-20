@@ -125,7 +125,7 @@ async function run() {
   check('B2 套餐卡 328 宽 / 圆角 20 / 蓝色渐变',
     Boolean(card) && Math.round(card.w) === 328 && card.radius === '20px' && /linear-gradient/.test(card.bg),
     card ? `${card.w}×${card.h} r=${card.radius}` : 'null')
-  check('B3 套餐卡高 171（真机 208 物理 px）', Boolean(card) && Math.abs(card.h - 171) <= 1.5, card ? String(card.h) : 'null')
+  check('B3 套餐卡高 169（真机 1208 截图量得 168.7）', Boolean(card) && Math.abs(card.h - 169) <= 1.5, card ? String(card.h) : 'null')
   check('B4 卡内空态文案', (await text(page, '.tm-plan-title')) === '无使用中的套餐')
   check('B5 卡内「全部套餐」入口可点', (await visibleCount(page, T('tm-all-plans'))) === 1)
 
@@ -205,21 +205,63 @@ async function run() {
 
   await click(page, T('tm-row-unrestricted'), 620)
   check('C5 进入不受限制的应用', (await text(page, '.glass-nav .gn-title')) === '不受限制的应用')
+
   const registeredCount = await page.evaluate(async () => {
     const mod = await import('/src/composables/useRegisteredApps.js')
     return mod.getRegisteredApps().length
   })
-  check('C6 应用行数 = 注册表应用数（⛔ 不是另写的一份名单）',
+  const sectionLabels = await texts(page, '.tm-section-label')
+  check('C6 两段分组：不受限制的应用 + 其他应用',
+    sectionLabels.includes('不受限制的应用') && sectionLabels.includes('其他应用'),
+    JSON.stringify(sectionLabels))
+  check('C7 应用行数 = 注册表应用数（⛔ 不是另写的一份名单）',
     (await visibleCount(page, `${T('tm-unrestricted-list')} .tm-appitem`)) === registeredCount,
     `行数 vs ${registeredCount}`)
-  check('C7 A-Z 导轨 27 个字母', (await visibleCount(page, `${T('tm-index')} .tm-index-letter`)) === 27)
-  check('C8 右上角有 ⋮（全部允许/全部禁止）', (await visibleCount(page, T('tm-unrestricted-menu'))) === 1)
-  await shot(page, '04_unrestricted')
+
+  /* 导轨：★ + 只出现**有应用**的首字母（真机就缺 N / R 这种） */
+  const idx = await page.evaluate((sel) => {
+    const bar = document.querySelector(sel)
+    const letters = [...bar.querySelectorAll('.tm-index-letter')].map(e => e.textContent.trim())
+    const rows = [...document.querySelectorAll('[data-testid="tm-unrestricted-list"] .tm-appitem')].map(e => e.dataset.letter)
+    return { letters, hasStar: letters[0] === '★', rowLetters: [...new Set(rows)].sort() }
+  }, T('tm-index'))
+  const idxLetters = idx.letters.filter(l => l !== '★')
+  check('C8 导轨首项是 ★（回顶部）', idx.hasStar, JSON.stringify(idx.letters.slice(0, 4)))
+  check('C9 导轨字母 = 列表里实际存在的首字母（不多不少）',
+    JSON.stringify(idxLetters) === JSON.stringify(idx.rowLetters), `${idxLetters.join('')} vs ${idx.rowLetters.join('')}`)
+
+  /* 右上 ⋮ → 弹层「显示系统应用」 */
+  check('C10 导航右上角有圆形更多按钮', (await visibleCount(page, T('tm-unrestricted-menu'))) === 1)
+  const moreStyle = await page.evaluate((sel) => {
+    const cs = getComputedStyle(document.querySelector(sel))
+    return { r: cs.borderRadius, w: parseFloat(cs.width), bg: cs.backgroundColor }
+  }, T('tm-unrestricted-menu'))
+  check('C11 更多按钮是与返回键同款圆形玻璃（34 圆角 50%）',
+    Math.round(moreStyle.w) === 34 && moreStyle.r === '50%' && /rgba/.test(moreStyle.bg), JSON.stringify(moreStyle))
+  await click(page, T('tm-unrestricted-menu'), 380)
+  check('C12 点开弹层且只有「显示系统应用」一项',
+    (await text(page, T('tm-unrestricted-popover'))).replace(/\s+/g, '') === '显示系统应用')
+  await shot(page, '04_unrestricted_menu')
+
+  /* 关掉一个应用 → 落到「其他应用」 */
+  const beforeOn = await visibleCount(page, `${T('tm-unrestricted-list')} .toggle-switch.on`)
+  const firstName = await text(page, `${T('tm-unrestricted-list')} .tm-appitem .tm-appname`)
+  await page.locator(`${T('tm-unrestricted-list')} .tm-appitem`).first().click()
+  await page.waitForTimeout(420)
+  const afterOn = await visibleCount(page, `${T('tm-unrestricted-list')} .toggle-switch.on`)
+  check('C13 关掉一个应用（行可点）后放行数 -1', afterOn === beforeOn - 1, `${beforeOn} → ${afterOn}`)
+  const inOther = await page.evaluate((name) => {
+    const labels = [...document.querySelectorAll('.tm-section-label')]
+    const other = labels.find(e => e.textContent.trim() === '其他应用')
+    const card = other?.nextElementSibling
+    return [...(card?.querySelectorAll('.tm-appname') || [])].map(e => e.textContent.trim()).includes(name)
+  }, firstName)
+  check('C14 关掉的「' + firstName + '」落进「其他应用」段', inOther === true)
 
   await back(page)
-  check('C9 返回落在「后台流量限制」而不是主页面', (await text(page, '.glass-nav .gn-title')) === '后台流量限制')
+  check('C15 返回落在「后台流量限制」而不是主页面', (await text(page, '.glass-nav .gn-title')) === '后台流量限制')
   await back(page)
-  check('C10 再返回落回主页面', (await visibleCount(page, T('tm-main'))) === 1)
+  check('C16 再返回落回主页面', (await visibleCount(page, T('tm-main'))) === 1)
 
   /* ==================== D. 流量限额 ==================== */
   await click(page, T('tm-row-limit'), 560)

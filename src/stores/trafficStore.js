@@ -15,6 +15,21 @@ import { TM_ALERTS, TM_LIMIT } from '../components/apps/settings/sim/trafficData
  */
 const KEY = 'tos.settings.traffic.v1'
 
+/**
+ * 「显示系统应用」筛掉的名单（真机 ⋮ 里那一项）。
+ * 只列本原型桌面注册表里确有的系统自带应用；⛔ 不从应用名猜，按 id 写死更可控。
+ */
+export const TRAFFIC_SYSTEM_APP_IDS = [
+  'phone', 'messages', 'settings', 'camera', 'photos', 'clock', 'calendar',
+  'calculator', 'notes', 'files', 'compass', 'voicememos', 'weather', 'tips'
+]
+
+/**
+ * 「不受限制的应用」默认放行名单（真机截图口径：通话/信息类 + 系统自带应用放行，
+ * 其余一律落在「其他应用」里，开关默认关）。
+ */
+export const TRAFFIC_DEFAULT_UNRESTRICTED_EXTRA = ['wechat', 'gmail']
+
 export const TRAFFIC_DEFAULTS = {
   saveMode: false,
   limitEnabled: true,
@@ -28,6 +43,12 @@ export const TRAFFIC_DEFAULTS = {
   speedDisplay: true,
   usageReport: true,
   autoSync: true
+}
+
+/** 默认放行名单 = 系统自带 + 通讯类（只保留注册表里确实存在的） */
+function defaultUnrestricted() {
+  const ids = new Set(getRegisteredApps().map(a => a.id))
+  return [...TRAFFIC_SYSTEM_APP_IDS, ...TRAFFIC_DEFAULT_UNRESTRICTED_EXTRA].filter(id => ids.has(id))
 }
 
 function load() {
@@ -51,11 +72,13 @@ export const useTrafficStore = defineStore('trafficSettings', () => {
   const speedDisplay = ref(readBool(`${KEY}.speedDisplay`, saved.speedDisplay))
   const usageReport = ref(readBool(`${KEY}.usageReport`, saved.usageReport))
   const autoSync = ref(readBool(`${KEY}.autoSync`, saved.autoSync))
+  /** ⋮ 里「显示系统应用」：默认显示（真机列表里本来就有电话/短信这类系统应用） */
+  const showSystemApps = ref(readBool(`${KEY}.showSystemApps`, true))
 
   /* 应用开关：名单一律取注册表，⛔ 不硬编码应用名 */
   const appIds = computed(() => getRegisteredApps().map(a => a.id))
   const wifiAllowed = ref(readJson(`${KEY}.wifiAllowed`, appIds.value))
-  const unrestricted = ref(readJson(`${KEY}.unrestricted`, appIds.value))
+  const unrestricted = ref(readJson(`${KEY}.unrestricted`, defaultUnrestricted()))
 
   function persist() {
     writeRaw(KEY, JSON.stringify({
@@ -71,6 +94,7 @@ export const useTrafficStore = defineStore('trafficSettings', () => {
       speedDisplay: speedDisplay.value,
       usageReport: usageReport.value,
       autoSync: autoSync.value,
+      showSystemApps: showSystemApps.value,
       wifiAllowed: wifiAllowed.value,
       unrestricted: unrestricted.value
     }))
@@ -153,6 +177,7 @@ export const useTrafficStore = defineStore('trafficSettings', () => {
     speedDisplay,
     usageReport,
     autoSync,
+    showSystemApps,
     wifiAllowed,
     unrestricted,
     appIds,

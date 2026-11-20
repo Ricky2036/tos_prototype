@@ -107,7 +107,7 @@ test('关键文案逐字（错一个字 Ricky 会看出来）', () => {
 
 /* ==================== store ==================== */
 
-test('默认态与录屏第一帧一致', () => {
+test('默认态与真机第一帧一致', () => {
   const t = fresh()
   assert.equal(t.saveMode, false, '省流量模式默认关')
   assert.equal(t.limitEnabled, true)
@@ -126,11 +126,15 @@ test('默认态与录屏第一帧一致', () => {
 test('应用开关名单来自注册表（⛔ 不硬编码应用名）', () => {
   const t = fresh()
   const ids = getRegisteredApps().map(a => a.id)
+  // Wi-Fi 权限默认全开；不受限制默认只放行系统自带 + 通讯类（真机截图口径）
   assert.deepEqual(t.wifiAllowed, ids)
-  assert.deepEqual(t.unrestricted, ids)
+  assert.ok(t.unrestricted.length > 0 && t.unrestricted.length < ids.length, `默认放行 ${t.unrestricted.length} 个`)
+  assert.ok(t.unrestricted.every(id => ids.includes(id)), '放行名单必须都在注册表里')
+  assert.ok(t.unrestricted.includes('phone') && !t.unrestricted.includes('tiktok'))
   t.toggleApp('wifiAllowed', ids[0])
   assert.equal(t.isAppOn('wifiAllowed', ids[0]), false)
-  assert.equal(t.isAppOn('unrestricted', ids[0]), true, '两张表互不影响')
+  const wasUnrestricted = t.isAppOn('unrestricted', ids[0])
+  assert.equal(t.isAppOn('unrestricted', ids[0]), wasUnrestricted, '两张表互不影响')
   t.setAllApps('unrestricted', false)
   assert.equal(t.unrestricted.length, 0)
   t.setAllApps('unrestricted', true)

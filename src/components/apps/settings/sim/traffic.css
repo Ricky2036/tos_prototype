@@ -17,7 +17,8 @@
   --tm-ink: #111111;
   --tm-sub: #8e8e93;
   --tm-faint: #b0b3b8;
-  --tm-track: #e9e9ea;
+  /* 真机取色：关闭态轨道 #C7C7C7（iOS 那套 #E9E9EA 在这页偏白） */
+  --tm-track: #c7c7c7;
   /* 真机实测（1208×2644 截图取样）：页面底色 #F7F7F8、白卡圆角 20、卡间距 14 */
   --tm-page-bg: #f7f7f8;
 
@@ -176,10 +177,73 @@
   background: var(--tm-track);
 }
 
+/* 导航右上「更多」：与返回键同款 34px 圆形玻璃按钮 */
+.tm-nav-more {
+  position: absolute;
+  right: 16px;
+  top: calc(var(--safe-top, 0px) + 6px);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 16;
+  background: rgba(255, 255, 255, 0.66);
+  backdrop-filter: blur(16px) saturate(180%);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1), inset 0 0 0 0.5px rgba(255, 255, 255, 0.85);
+}
+
+.tm-nav-more:active {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* 更多弹层：贴着按钮右对齐，白色圆角卡 + 轻投影（真机就一项） */
+.tm-popover {
+  position: absolute;
+  right: 12px;
+  top: calc(var(--safe-top, 0px) + 46px);
+  min-width: 148px;
+  padding: 6px 0;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.06);
+  z-index: 40;
+  transform-origin: top right;
+}
+
+.tm-popover-item {
+  display: block;
+  padding: 13px 20px;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--tm-ink);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tm-popover-item.is-on {
+  color: var(--tm-blue);
+  font-weight: 600;
+}
+
+.tm-pop-enter-active,
+.tm-pop-leave-active {
+  transition: opacity 0.14s ease, transform 0.16s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.tm-pop-enter-from,
+.tm-pop-leave-to {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
 /* ---------------- 套餐卡 ---------------- */
 .tm-plan-card {
   position: relative;
-  height: 171px;
+  height: 169px;
   margin: 0;
   border-radius: 20px;
   overflow: hidden;
@@ -189,24 +253,25 @@
   flex-direction: column;
   align-items: center;
   box-sizing: border-box;
-  padding-top: 34px;
+  padding-top: 28px;
 }
 
 .tm-plan-glyph {
   display: block;
   flex: none;
+  margin-left: 3px;
 }
 
 .tm-plan-title {
-  margin-top: 16px;
-  font-size: 20px;
+  margin-top: 18px;
+  font-size: 17px;
   line-height: 24px;
   font-weight: 500;
   color: #fff;
 }
 
 .tm-plan-divider {
-  margin-top: 14px;
+  margin-top: 15px;
   width: calc(100% - 32px);
   height: 0.5px;
   background: rgba(255, 255, 255, 0.45);
@@ -220,6 +285,7 @@
   justify-content: center;
   gap: 4px;
   font-size: 15px;
+  min-height: 38px;
   font-weight: 500;
   color: #fff;
   border: none;
@@ -430,19 +496,38 @@
 }
 
 /* ---------------- 应用开关列表（Wi-Fi 权限 / 不受限制） ---------------- */
+.tm-section-label {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--tm-sub);
+  padding: 24px 16px 8px;
+}
+
 .tm-applist {
   position: relative;
 }
 
 .tm-appitem {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 16px;
-  min-height: 62px;
+  min-height: 60px;
   padding: 0 16px;
   box-sizing: border-box;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* 行分隔线：真机从应用名左缘起画（16 + 40 图标 + 16 间距 = 72） */
+.tm-appitem + .tm-appitem::before {
+  content: '';
+  position: absolute;
+  left: 72px;
+  right: 0;
+  top: 0;
+  height: 0.5px;
+  background: #efeff1;
 }
 
 .tm-appitem:active {
@@ -457,7 +542,7 @@
 .tm-appname {
   flex: 1;
   min-width: 0;
-  font-size: 16px;
+  font-size: 16.5px;
   line-height: 22px;
   color: var(--tm-ink);
   overflow: hidden;
@@ -472,33 +557,46 @@
   color: var(--tm-sub);
 }
 
-/* A-Z 导轨：贴在右缘，点击跳转 */
+/* A-Z 导轨（真机口径）：贴右缘一列，条目 15 高、字号 10；
+   ★ 回顶部；只出现有应用的首字母；当前分组字母变蓝加粗（跟滚动走，不是选中态） */
 .tm-index {
   position: absolute;
-  right: 1px;
+  right: 6px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
-  z-index: 4;
-  padding: 2px 1px;
-  border-radius: 8px;
+  z-index: 6;
+  padding: 4px 0;
   touch-action: none;
+  user-select: none;
 }
 
 .tm-index-letter {
-  width: 13px;
-  font-size: 8px;
-  line-height: 10.5px;
+  width: 17px;
+  height: 15px;
+  font-size: 10px;
+  line-height: 15px;
   text-align: center;
-  color: #c6c9ce;
+  color: #6e7178;
   font-weight: 500;
+  transition: color 0.12s ease;
 }
 
-.tm-index-letter.has-apps {
+.tm-index-letter.is-active {
+  color: var(--tm-blue);
+  font-weight: 700;
+}
+
+.tm-index-star {
+  font-size: 11px;
   color: #9aa0a6;
+  margin-bottom: 2px;
+}
+
+.tm-index-star.is-active {
+  color: var(--tm-blue);
 }
 
 /* ---------------- 熄屏监控历史卡 ---------------- */

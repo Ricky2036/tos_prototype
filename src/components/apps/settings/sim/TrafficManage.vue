@@ -115,18 +115,17 @@ function openRow(key) {
           <div class="tm-group is-first">当前使用的套餐</div>
 
           <div class="tm-plan-card" data-testid="tm-plan-card">
-            <svg class="tm-plan-glyph" width="44" height="42" viewBox="0 0 44 42" fill="none" aria-hidden="true">
+            <svg class="tm-plan-glyph" width="34" height="46" viewBox="0 0 34 46" fill="none" aria-hidden="true">
+              <!-- 后面那张只露一条窄边 -->
+              <rect x="0" y="13" width="13" height="28" rx="4.5" fill="rgba(255,255,255,0.22)" />
+              <!-- 前面一张：右上切角大一些，白杠压在左下 -->
               <path
-                d="M6 10h14l11 9v15a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V14a4 4 0 0 1 4-4Z"
-                fill="rgba(255,255,255,0.22)"
+                d="M10 2h12l10 10v29a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3Z"
+                fill="rgba(255,255,255,0.44)"
               />
-              <path
-                d="M14 2h14l13 10v20a4 4 0 0 1-4 4H14a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4Z"
-                fill="rgba(255,255,255,0.34)"
-              />
-              <rect x="17.4" y="21" width="3.4" height="10.4" rx="1.7" fill="#fff" />
-              <rect x="24" y="21" width="3.4" height="10.4" rx="1.7" fill="#fff" />
-              <rect x="30.6" y="21" width="3.4" height="10.4" rx="1.7" fill="#fff" />
+              <rect x="11.2" y="30.5" width="3.2" height="8.6" rx="1.6" fill="#fff" />
+              <rect x="16.4" y="30.5" width="3.2" height="8.6" rx="1.6" fill="#fff" />
+              <rect x="21.6" y="30.5" width="3.2" height="8.6" rx="1.6" fill="#fff" />
             </svg>
             <div class="tm-plan-title">无使用中的套餐</div>
             <div class="tm-plan-divider"></div>
