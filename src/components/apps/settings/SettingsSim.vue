@@ -6,6 +6,7 @@ import { useSubPageNav } from '../../../composables/useSubPageNav'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import SettingsSystemIcon from '../../ui/SettingsSystemIcon.vue'
+import TrafficManage from './sim/TrafficManage.vue'
 
 const emit = defineEmits(['back'])
 
@@ -24,6 +25,9 @@ function showToast(msg) {
 
 // 规范层级切换与导航状态
 const { activeSubView, isBack, openSubView, closeSubView } = useSubPageNav('main')
+
+// 流量管理（内含自己的三级/四级栈，返回逐层消费）
+const trafficRef = ref(null)
 
 // 实体卡 1 字段
 const sim1 = network.simCards[0]
@@ -49,6 +53,10 @@ function toggleCallCard() {
 function back() {
   if (showNetworkTypeModal.value) {
     showNetworkTypeModal.value = false
+    return true
+  }
+  // 流量管理先消费自己的层级栈，主页面才退出到本页
+  if (trafficRef.value?.back?.()) {
     return true
   }
   if (closeSubView()) {
@@ -150,41 +158,9 @@ defineExpose({ back })
       </div>
     </div>
 
-    <!-- 2. 全屏三级页：流量管理 -->
+    <!-- 2. 全屏三级页：流量管理（真机整套复刻，自带三级/四级栈） -->
     <div v-else-if="activeSubView === 'trafficManage'" key="trafficManage" class="subpage-view-pane">
-      <GlassNavBar overlay title="流量管理" @back="closeSubView" />
-
-      <div style="padding-top: var(--nav-h)" class="sim-scroll-body scrollable">
-        <div class="settings-card traffic-hero-card">
-          <div class="traffic-circle">
-            <span class="traffic-num">14.28</span>
-            <span class="traffic-unit">GB</span>
-          </div>
-          <div class="traffic-desc">本计费周期已用流量 · 剩余 35.72 GB</div>
-        </div>
-
-        <div class="group-label">套餐与限制</div>
-        <div class="settings-card">
-          <ListCell title="套餐限额" value="50.00 GB" chevron clickable @click="showToast('套餐限额设置：50 GB / 月')" />
-          <ListCell title="流量预警" value="40.00 GB" chevron clickable @click="showToast('已设置流量预警')" />
-          <ListCell title="超出套餐断网" subtitle="当月流量用尽后自动关闭移动数据" last>
-            <template #right>
-              <ToggleSwitch :model-value="false" @change="showToast('已更新自动断网设置')" />
-            </template>
-          </ListCell>
-        </div>
-
-        <div class="group-label">应用数据用量排行</div>
-        <div class="settings-card">
-          <ListCell title="微信" value="5.62 GB" chevron clickable @click="showToast('微信：5.62 GB')" />
-          <ListCell title="抖音" value="4.18 GB" chevron clickable @click="showToast('抖音：4.18 GB')" />
-          <ListCell title="Bilibili" value="2.35 GB" chevron clickable @click="showToast('Bilibili：2.35 GB')" />
-          <ListCell title="浏览器" value="1.12 GB" chevron clickable @click="showToast('浏览器：1.12 GB')" />
-          <ListCell title="系统服务与应用更新" value="1.01 GB" last chevron clickable @click="showToast('系统服务：1.01 GB')" />
-        </div>
-
-        <div class="bottom-spacer"></div>
-      </div>
+      <TrafficManage ref="trafficRef" @back="closeSubView" />
     </div>
 
     <!-- 3. SIM 卡与网络设置主页 -->
@@ -618,46 +594,6 @@ background: #FFFFFF;
   font-weight: 600;
   border: none;
   cursor: pointer;
-}
-
-.traffic-hero-card {
-  padding: 32px 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.traffic-overview-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 24px 0;
-}
-
-.traffic-circle {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  margin-bottom: 10px;
-}
-
-.traffic-num {
-  font-size: 44px;
-  font-weight: 800;
-  color: #007AFF;
-  letter-spacing: -1px;
-}
-
-.traffic-unit {
-  font-size: 18px;
-  font-weight: 600;
-  color: #8E8E93;
-}
-
-.traffic-desc {
-  font-size: 13px;
-  color: #8E8E93;
 }
 
 .settings-toast {

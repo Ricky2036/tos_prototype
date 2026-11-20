@@ -1,0 +1,14 @@
+{
+  "cluster": "C-sim-traffic",
+  "owner": "workbuddy",
+  "since": "2026-11-20",
+  "note": "SET-SIM-TRAFFIC-01 流量管理（SIM 卡与网络设置 → 流量管理）按录屏整页复刻：主页 + 8 个录屏内三级页 + 2 个补页",
+  "files": [
+    "src/components/apps/settings/sim/**",
+    "src/components/apps/settings/SettingsSim.vue",
+    "src/stores/trafficStore.js",
+    "tests/trafficManage.test.js",
+    "scripts/verify-traffic-manage.mjs",
+    "scripts/run-e2e.mjs"
+  ]
+}

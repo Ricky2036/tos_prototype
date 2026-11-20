@@ -1,0 +1,1049 @@
+/**
+ * 流量管理（SIM 卡与网络设置 → 流量管理）共用样式
+ * =================================================
+ * 真机依据：录屏 444×960（kx = 360/444，ky = 788/960）。
+ *
+ * 关键几何（都按画布 360 换算，量法写在注释里）：
+ *   页面底色纯白（不是设置的 #F0F1F2），行与行之间**没有分隔线、没有卡片**
+ *   行高 48、行内左右各 16（文字落点 x=32 = 页面 16 + 行内 16）
+ *   组标题 14 灰 #8E8E93，距上一行底 26、距下一行顶 12
+ *   蓝色套餐卡 328×168、圆角 16、渐变 #286EFC → #67A4FF
+ *   开关 46×26（Material 轨道，蓝 #2F6BF6，白滑块 22）
+ *   柱状图绘图区 x 49~307，纵轴刻度贴在右侧 37 宽的空档里
+ */
+.tm-page {
+  --tm-blue: #2f6bf6;
+  --tm-blue-soft: #e8f1fe;
+  --tm-ink: #111111;
+  --tm-sub: #8e8e93;
+  --tm-faint: #b0b3b8;
+  /* 真机取色：关闭态轨道 #C7C7C7（iOS 那套 #E9E9EA 在这页偏白） */
+  --tm-track: #c7c7c7;
+  /* 真机实测（1208×2644 截图取样）：页面底色 #F7F7F8、白卡圆角 20、卡间距 14 */
+  --tm-page-bg: #f7f7f8;
+
+  position: absolute;
+  inset: 0;
+  background: var(--tm-page-bg);
+  display: flex;
+  flex-direction: column;
+  z-index: 30;
+  color: var(--tm-ink);
+  font-family: var(--font-stack);
+  -webkit-font-smoothing: antialiased;
+}
+
+.tm-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* 玻璃导航是浮层，内容从它下面穿过 */
+  padding: calc(var(--nav-h) + 10px) 16px 0;
+  box-sizing: border-box;
+  scrollbar-width: none;
+}
+
+.tm-body::-webkit-scrollbar {
+  display: none;
+}
+
+.tm-bottom-space {
+  height: 32px;
+}
+
+/* ---------------- 行 ---------------- */
+.tm-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+/* 白卡：设置全仓的列表形态（圆角 16 / 间距 14 / 行内 16） */
+.tm-card {
+  background: #ffffff;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+/* 图表卡：真机是「分段控件 + 已用流量 + 柱图 + 脚注 + 应用用量行」同一张卡 */
+.tm-card-chart {
+  padding: 16px 16px 20px;
+}
+
+/* 带副标题的行：真机 64 高（标题行 22 + 说明 17，上下各留 12）
+   ⚠️ 「设置」首行与「日流量限额」在真机上是 88（说明离标题更远），用 .is-roomy 单独放宽。
+   ⚠️ 说明文字在真机上会横穿到开关下面（「每日自动同步一次 SIM 卡内流量套餐信息。」是一行），
+      所以这类行的开关要脱离文档流，否则文字列被开关挤窄、提前换行。 */
+.tm-row.has-desc {
+  position: relative;
+  min-height: 64px;
+  padding-right: 16px;
+}
+
+.tm-row.has-desc > .tm-switch {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+
+
+/* 块间距：同一页里两组之间（示例：设置页「流量提醒」与「流量使用报告」之间 24） */
+.tm-block-gap {
+  height: 14px;
+}
+
+.tm-row.is-tap {  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tm-row.is-tap:active {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.tm-row.is-disabled {
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+.tm-row-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.tm-row-title {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 500;
+  color: var(--tm-ink);
+  letter-spacing: -0.1px;
+}
+
+.tm-row-desc {
+  margin-top: 3px;
+  font-size: 12.5px;
+  line-height: 17px;
+  color: var(--tm-sub);
+}
+
+.tm-row-value {
+  font-size: 14px;
+  color: var(--tm-sub);
+  white-space: nowrap;
+}
+
+.tm-chevron {
+  flex: none;
+  color: #c7c7cc;
+  display: block;
+}
+
+/* 组标题：与真机一致，距上一行 26、距下一行 12 */
+.tm-group {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--tm-sub);
+  padding: 24px 8px 8px;
+}
+
+.tm-group.is-first {
+  padding-top: 4px;
+}
+
+/* 说明段落（灰字多行，左对齐到 32） */
+.tm-note {
+  padding: 8px 16px 14px;
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--tm-sub);
+}
+
+.tm-note p + p {
+  margin-top: 6px;
+}
+
+/* ---------------- 开关 ---------------- */
+/* 公共开关的换色：全局样式表里没有 :deep()，靠「多一层祖先」把权重抬过组件自身 */
+.tm-page .tm-switch .toggle-switch.on {
+  background: var(--tm-blue);
+}
+
+.tm-page .tm-switch .toggle-switch {
+  background: var(--tm-track);
+}
+
+/* 导航右上「更多」：与返回键同款 34px 圆形玻璃按钮 */
+.tm-nav-more {
+  position: absolute;
+  right: 16px;
+  top: calc(var(--safe-top, 0px) + 6px);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 16;
+  background: rgba(255, 255, 255, 0.66);
+  backdrop-filter: blur(16px) saturate(180%);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1), inset 0 0 0 0.5px rgba(255, 255, 255, 0.85);
+}
+
+.tm-nav-more:active {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* 更多弹层：贴着按钮右对齐，白色圆角卡 + 轻投影（真机就一项） */
+.tm-popover {
+  position: absolute;
+  right: 12px;
+  top: calc(var(--safe-top, 0px) + 46px);
+  min-width: 148px;
+  padding: 6px 0;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.06);
+  z-index: 40;
+  transform-origin: top right;
+}
+
+.tm-popover-item {
+  display: block;
+  padding: 13px 20px;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--tm-ink);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tm-popover-item.is-on {
+  color: var(--tm-blue);
+  font-weight: 600;
+}
+
+.tm-pop-enter-active,
+.tm-pop-leave-active {
+  transition: opacity 0.14s ease, transform 0.16s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.tm-pop-enter-from,
+.tm-pop-leave-to {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
+/* ---------------- 套餐卡 ---------------- */
+.tm-plan-card {
+  position: relative;
+  height: 169px;
+  margin: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #286efc 0%, #3f80fd 46%, #67a4ff 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  padding-top: 28px;
+}
+
+.tm-plan-glyph {
+  display: block;
+  flex: none;
+  margin-left: 3px;
+}
+
+.tm-plan-title {
+  margin-top: 18px;
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.tm-plan-divider {
+  margin-top: 15px;
+  width: calc(100% - 32px);
+  height: 0.5px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.tm-plan-all {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 15px;
+  min-height: 38px;
+  font-weight: 500;
+  color: #fff;
+  border: none;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ---------------- 分段控件（真机不是下划线标签页） ---------------- */
+.tm-segment {
+  position: relative;
+  display: flex;
+  height: 38px;
+  padding: 2px;
+  box-sizing: border-box;
+  border-radius: 19px;
+  background: #ededef;
+}
+
+.tm-segment-pill {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  border-radius: 17px;
+  background: #ffffff;
+  border: 0.5px solid #e3e3e5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: transform 0.22s cubic-bezier(0.3, 0.9, 0.35, 1);
+}
+
+.tm-segment.is-week .tm-segment-pill {
+  transform: translateX(100%);
+}
+
+.tm-tab {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 15.5px;
+  line-height: 34px;
+  color: #9b9b9f;
+  font-weight: 400;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tm-tab.is-active {
+  color: var(--tm-ink);
+  font-weight: 600;
+}
+
+/* ---------------- 用量与图表 ---------------- */
+.tm-usage {
+  padding: 18px 0 0;
+}
+
+.tm-usage-label {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--tm-sub);
+}
+
+.tm-usage-value {
+  margin-top: 2px;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  color: var(--tm-ink);
+}
+
+.tm-usage-value small {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.tm-plot-wrap {
+  position: relative;
+  margin: 26px 0 0;
+}
+
+/* 横向虚线网格：每条刻度一条（真机是浅灰虚线，别再做成「无网格」） */
+.tm-gridline {
+  position: absolute;
+  left: 15px;
+  right: 44px;
+  height: 1px;
+  background-image: repeating-linear-gradient(90deg, #e5e5e8 0 3px, transparent 3px 7px);
+  pointer-events: none;
+}
+
+.tm-plot {
+  position: absolute;
+  left: 15px;
+  right: 44px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+}
+
+.tm-plot-col {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.tm-bar {
+  width: 23px;
+  background: linear-gradient(180deg, #6f9eff 0%, #c2d8fd 100%);
+  min-height: 0;
+}
+
+.tm-tick {
+  position: absolute;
+  right: 0;
+  width: 44px;
+  text-align: right;
+  font-size: 10.5px;
+  line-height: 13px;
+  color: #9b9b9f;
+  transform: translateY(50%);
+  white-space: nowrap;
+}
+
+.tm-xaxis {
+  position: absolute;
+  left: 15px;
+  right: 44px;
+  bottom: -26px;
+  display: flex;
+}
+
+.tm-xlabel {
+  flex: 1;
+  text-align: center;
+  font-size: 11px;
+  line-height: 14px;
+  color: #9b9b9f;
+  white-space: nowrap;
+}
+
+.tm-footnote {
+  padding: 34px 0 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: #9aa0a6;
+}
+
+/* ---------------- 应用图标叠层行 ---------------- */
+.tm-approw {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 0 0;
+  box-sizing: border-box;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tm-approw:active {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.tm-approw-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.tm-approw-title {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 500;
+}
+
+.tm-icon-stack {
+  display: flex;
+  align-items: center;
+  margin-top: 12px;
+}
+
+/* 图标叠压：真机 42px 圆角方图，相邻叠约 10，叠口不描边（照片里是硬边） */
+.tm-page .tm-icon-stack .registered-app-icon {
+  margin-right: -10px;
+  border-radius: 11px;
+}
+
+.tm-icon-more {
+  margin-left: 16px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #efeff1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12.5px;
+  color: #8e8e93;
+  flex: none;
+}
+
+/* ---------------- 应用开关列表（Wi-Fi 权限 / 不受限制） ---------------- */
+.tm-section-label {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--tm-sub);
+  padding: 24px 16px 8px;
+}
+
+.tm-applist {
+  position: relative;
+}
+
+.tm-appitem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 60px;
+  padding: 0 16px;
+  box-sizing: border-box;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 行分隔线：真机从应用名左缘起画（16 + 40 图标 + 16 间距 = 72） */
+.tm-appitem + .tm-appitem::before {
+  content: '';
+  position: absolute;
+  left: 72px;
+  right: 0;
+  top: 0;
+  height: 0.5px;
+  background: #efeff1;
+}
+
+.tm-appitem:active {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.tm-page .tm-appitem .registered-app-icon {
+  margin-right: 0;
+  border-radius: 10px;
+}
+
+.tm-appname {
+  flex: 1;
+  min-width: 0;
+  font-size: 16.5px;
+  line-height: 22px;
+  color: var(--tm-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tm-letter-head {
+  padding: 14px 16px 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--tm-sub);
+}
+
+/* A-Z 导轨（真机口径）：贴右缘一列，条目 15 高、字号 10；
+   ★ 回顶部；只出现有应用的首字母；当前分组字母变蓝加粗（跟滚动走，不是选中态） */
+.tm-index {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 6;
+  padding: 4px 0;
+  touch-action: none;
+  user-select: none;
+}
+
+.tm-index-letter {
+  width: 17px;
+  height: 15px;
+  font-size: 10px;
+  line-height: 15px;
+  text-align: center;
+  color: #6e7178;
+  font-weight: 500;
+  transition: color 0.12s ease;
+}
+
+.tm-index-letter.is-active {
+  color: var(--tm-blue);
+  font-weight: 700;
+}
+
+.tm-index-star {
+  font-size: 11px;
+  color: #9aa0a6;
+  margin-bottom: 2px;
+}
+
+.tm-index-star.is-active {
+  color: var(--tm-blue);
+}
+
+/* ---------------- 熄屏监控历史卡 ---------------- */
+.tm-history {
+  padding: 0;
+}
+
+.tm-history-card {
+  background: #ffffff;
+  border-radius: var(--radius-cell-group);
+  padding: 16px 16px 18px;
+  margin-bottom: 14px;
+}
+
+.tm-history-title {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 500;
+}
+
+.tm-history-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.tm-drop {
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: var(--tm-blue-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tm-blue);
+  flex: none;
+}
+
+.tm-history-num {
+  font-size: 24px;
+  line-height: 28px;
+  font-weight: 700;
+  color: var(--tm-blue);
+  letter-spacing: -0.3px;
+}
+
+.tm-history-unit {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--tm-blue);
+  margin-left: 1px;
+}
+
+.tm-history-speed {
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 17px;
+  color: var(--tm-sub);
+}
+
+.tm-history-range {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 16px;
+  font-size: 12px;
+  line-height: 16px;
+  color: #5276ba;
+}
+
+/* ---------------- 周报 ---------------- */
+.tm-weekly {
+  position: absolute;
+  inset: 0;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+.tm-weekly-hero {
+  position: relative;
+  flex: none;
+  padding-bottom: 36px;
+  background: linear-gradient(180deg, #3f83ff 0%, #5c95fe 58%, #79a9fe 100%);
+  overflow: hidden;
+}
+
+/* 真机背景有几圈极淡的同心弧 */
+.tm-weekly-arc {
+  position: absolute;
+  left: 50%;
+  top: 128px;
+  width: 420px;
+  height: 420px;
+  margin-left: -210px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.tm-weekly-arc.is-two {
+  width: 520px;
+  height: 520px;
+  margin-left: -260px;
+  top: 88px;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.tm-weekly-nav {
+  position: relative;
+  height: var(--nav-h);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: calc(var(--safe-top, 0px) + 6px) 16px 0;
+  box-sizing: border-box;
+  z-index: 2;
+}
+
+.tm-weekly-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.28);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.tm-weekly-head {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: #fff;
+  padding-top: 6px;
+}
+
+.tm-weekly-kicker {
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 500;
+}
+
+.tm-weekly-range {
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 16px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.tm-weekly-big {
+  margin-top: 26px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+}
+
+.tm-weekly-big b {
+  font-size: 92px;
+  line-height: 96px;
+  font-weight: 700;
+}
+
+.tm-weekly-big span {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.tm-weekly-saved {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.tm-weekly-sheet {
+  flex: 1;
+  margin-top: -16px;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  background: #fff;
+  overflow-y: auto;
+  padding: 18px 16px 32px;
+  box-sizing: border-box;
+  scrollbar-width: none;
+  position: relative;
+  z-index: 3;
+}
+
+.tm-weekly-sheet::-webkit-scrollbar {
+  display: none;
+}
+
+.tm-weekly-used {
+  font-size: 13px;
+  color: var(--tm-sub);
+}
+
+.tm-weekly-used-value {
+  margin-top: 2px;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+}
+
+.tm-rec {
+  margin-top: 56px;
+}
+
+.tm-rec-title {
+  font-size: 14px;
+  color: var(--tm-sub);
+}
+
+.tm-rec-icon {
+  margin-top: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #58d977 0%, #34c759 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.tm-rec-head {
+  margin-top: 12px;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.tm-rec-body {
+  margin-top: 4px;
+  font-size: 12.5px;
+  line-height: 18px;
+  color: var(--tm-sub);
+}
+
+/* ---------------- 限额编辑弹层 ---------------- */
+.tm-sheet-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.18);
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 16px calc(var(--safe-bottom, 34px) - 18px);
+  box-sizing: border-box;
+}
+
+.tm-sheet {
+  width: 100%;
+  background: #fff;
+  border-radius: 22px;
+  padding: 18px 18px 16px;
+  box-sizing: border-box;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.16);
+}
+
+.tm-sheet-title {
+  text-align: center;
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 500;
+}
+
+.tm-sheet-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 6px 22px;
+}
+
+.tm-sheet-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  font-family: inherit;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 500;
+  color: var(--tm-ink);
+  caret-color: var(--tm-blue);
+  padding: 0;
+}
+
+.tm-sheet-unit {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  color: #5f6368;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: inherit;
+}
+
+.tm-sheet-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.tm-sheet-btn {
+  height: 42px;
+  border: none;
+  border-radius: 21px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.tm-sheet-btn.is-cancel {
+  flex: 1;
+  background: #f2f3f5;
+  color: #3c4043;
+}
+
+.tm-sheet-btn.is-ok {
+  flex: 2;
+  background: var(--tm-blue);
+  color: #fff;
+}
+
+.tm-sheet-btn.is-ok:disabled {
+  opacity: 0.4;
+}
+
+/* 单位选择（限额弹层内） */
+.tm-unit-menu {
+  position: absolute;
+  right: 18px;
+  bottom: 92px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  overflow: hidden;
+  z-index: 70;
+}
+
+.tm-unit-item {
+  padding: 10px 22px;
+  font-size: 14px;
+  color: #3c4043;
+  cursor: pointer;
+}
+
+.tm-unit-item.is-active {
+  color: var(--tm-blue);
+  font-weight: 600;
+}
+
+/* ---------------- 提醒比例滑杆 ---------------- */
+.tm-ratio {
+  background: #ffffff;
+  border-radius: var(--radius-cell-group);
+  margin-bottom: 14px;
+  padding: 16px 16px 18px;
+}
+
+.tm-ratio-scale {
+  position: relative;
+  height: 16px;
+  /* 与滑轨同宽：真机 10% / 50% 正好压在轨道两端 */
+  margin: 16px 12px 0;
+}
+
+.tm-ratio-mark {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--tm-sub);
+}
+
+.tm-ratio-track {
+  position: relative;
+  height: 26px;
+  margin: 4px 12px 0;
+  display: flex;
+  align-items: center;
+}
+
+.tm-ratio-rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 2px;
+  background: #dfe3ea;
+}
+
+.tm-ratio-fill {
+  position: absolute;
+  left: 0;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--tm-blue);
+}
+
+.tm-ratio-knob {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin-left: -11px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--tm-blue);
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+/* 空态（全部套餐 / 无数据） */
+.tm-empty {
+  padding: 64px 24px 0;
+  text-align: center;
+  color: var(--tm-sub);
+  font-size: 13px;
+  line-height: 19px;
+}
+
+.tm-empty-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 14px;
+  border-radius: 20px;
+  background: var(--tm-blue-soft);
+  color: var(--tm-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 套餐卡正下方的组标题：真机卡片底 → 标题墨迹只有 25，比常规组间距紧 */
+.tm-plan-card + .tm-group {
+  padding-top: 22px;
+}
