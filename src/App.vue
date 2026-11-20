@@ -83,15 +83,22 @@ if (typeof window !== 'undefined') {
 let fitStage = null
 let flipTimer = null
 
-function togglePhoneFace() {
-  const turningToBack = phoneFace.value === 'front'
-  phoneFace.value = phoneFace.value === 'front' ? 'back' : 'front'
+function flipPhone(targetFace) {
+  const nextFace = targetFace || (phoneFace.value === 'front' ? 'back' : 'front')
+  if (phoneFace.value === nextFace) return
+  const turningToBack = nextFace === 'back'
+  phoneFace.value = nextFace
   isFlipping.value = true
   clearTimeout(flipTimer)
   flipTimer = setTimeout(() => {
     isFlipping.value = false
   }, 1200)
   if (turningToBack && backScreen.settings.flipToWake) backScreen.isDisplayAwake = true
+}
+
+function handlePhoneFlipEvent(e) {
+  const targetFace = e?.detail?.face
+  flipPhone(targetFace)
 }
 
 watch(() => [system.screenOn, backScreen.settings.followMainDisplay], ([screenOn, followMainDisplay]) => {
@@ -105,7 +112,7 @@ onMounted(() => {
   fitStage()
   window.addEventListener('resize', fitStage)
   window.visualViewport?.addEventListener('resize', fitStage)
-  window.addEventListener('tos-phone-flip', togglePhoneFace)
+  window.addEventListener('tos-phone-flip', handlePhoneFlipEvent)
 })
 
 onBeforeUnmount(() => {
@@ -114,7 +121,7 @@ onBeforeUnmount(() => {
     window.removeEventListener('resize', fitStage)
     window.visualViewport?.removeEventListener('resize', fitStage)
   }
-  window.removeEventListener('tos-phone-flip', togglePhoneFace)
+  window.removeEventListener('tos-phone-flip', handlePhoneFlipEvent)
 })
 
 /* ================= 录屏 / 截图 ================= */
@@ -237,7 +244,7 @@ function takeScreenshot() {
           </PhoneFrame>
         </div>
       </div>
-      <button class="phone-flip-control" type="button" @click="togglePhoneFace" :aria-label="phoneFace === 'back' ? '返回手机正面' : '翻转到手机背面'">
+      <button class="phone-flip-control" type="button" @click="flipPhone()" :aria-label="phoneFace === 'back' ? '返回手机正面' : '翻转到手机背面'">
         <span aria-hidden="true">⟲</span>{{ phoneFace === 'back' ? '返回正面' : '翻转手机' }}
       </button>
     </div>

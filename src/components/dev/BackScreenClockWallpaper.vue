@@ -36,7 +36,6 @@ defineProps({
       <strong>{{ time }}</strong>
       <span class="clock-wallpaper-weather">24°</span>
     </div>
-    <span class="clock-wallpaper-caption">WORLD CLOCK</span>
   </div>
 </template>
 
@@ -145,15 +144,6 @@ defineProps({
   line-height: 1.2;
 }
 .clock-wallpaper-weather { margin-top: 3px; }
-.clock-wallpaper-caption {
-  position: absolute;
-  z-index: 2;
-  left: 7%;
-  bottom: clamp(18px, 18cqh, 24px);
-  color: rgba(196,216,235,.44);
-  font-size: clamp(5px, 4cqh, 7px);
-  letter-spacing: .16em;
-}
 @keyframes earth-rotate { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @keyframes earth-float { from { margin-top: 2px; } to { margin-top: -7px; } }
 @keyframes cloud-drift { from { transform: translateX(-8%) rotate(-8deg); } to { transform: translateX(8%) rotate(8deg); } }

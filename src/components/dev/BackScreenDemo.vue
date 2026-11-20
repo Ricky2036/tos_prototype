@@ -11,7 +11,6 @@ import BackScreenCamera from './BackScreenCamera.vue'
 const backScreen = useBackScreenStore()
 const { isScreenOn, isDisplayAwake, activeGroup, activePage, calendarView, cameraMode, passivePage, callStatus, startupRun, productLine, clockFeature, stopwatchSeconds, countdownSeconds, isStopwatchRunning, isCountdownRunning, musicTrackIndex, isMusicPlaying } = storeToRefs(backScreen)
 const now = ref(new Date())
-const touchCount = ref(0)
 
 const pages = [
   { id: 'clock', label: '时钟' },
@@ -70,17 +69,14 @@ function selectClockFeature(id) {
   if (!isScreenOn.value) return
   isDisplayAwake.value = true
   clockFeature.value = id
-  touchCount.value += 1
 }
 
 function toggleDisplayAwake() {
   if (!isScreenOn.value || !backScreen.settings.doubleTapToWake || activePage.value !== 'clock' || clockFeature.value !== 'clock') return
   isDisplayAwake.value = !isDisplayAwake.value
-  touchCount.value += 1
 }
 
 function toggleStopwatch() {
-  touchCount.value += 1
   isStopwatchRunning.value = !isStopwatchRunning.value
   if (stopwatchInterval) clearInterval(stopwatchInterval)
   stopwatchInterval = isStopwatchRunning.value
@@ -89,7 +85,6 @@ function toggleStopwatch() {
 }
 
 function resetStopwatch() {
-  touchCount.value += 1
   isStopwatchRunning.value = false
   if (stopwatchInterval) clearInterval(stopwatchInterval)
   stopwatchInterval = null
@@ -97,7 +92,6 @@ function resetStopwatch() {
 }
 
 function toggleCountdown() {
-  touchCount.value += 1
   if (isCountdownRunning.value) {
     isCountdownRunning.value = false
     if (countdownInterval) clearInterval(countdownInterval)
@@ -119,7 +113,6 @@ function toggleCountdown() {
 }
 
 function resetCountdown() {
-  touchCount.value += 1
   isCountdownRunning.value = false
   if (countdownInterval) clearInterval(countdownInterval)
   countdownInterval = null
@@ -129,13 +122,11 @@ function resetCountdown() {
 function selectMusicTrack(direction) {
   if (!isScreenOn.value) return
   musicTrackIndex.value = (musicTrackIndex.value + direction + BACK_SCREEN_TRACKS.length) % BACK_SCREEN_TRACKS.length
-  touchCount.value += 1
 }
 
 function toggleMusic() {
   if (!isScreenOn.value) return
   isMusicPlaying.value = !isMusicPlaying.value
-  touchCount.value += 1
 }
 
 function selectPassiveFeature(id) {
@@ -146,11 +137,10 @@ function selectPassiveFeature(id) {
   passivePage.value = id
   if (id === 'call') callStatus.value = 'ringing'
   if (id === 'startup') startupRun.value += 1
-  touchCount.value += 1
 }
 
-function answerCall() { callStatus.value = 'connected'; touchCount.value += 1 }
-function hangUpCall() { callStatus.value = 'ended'; touchCount.value += 1 }
+function answerCall() { callStatus.value = 'connected' }
+function hangUpCall() { callStatus.value = 'ended' }
 
 function selectPage(id) {
   if (!isScreenOn.value) return
@@ -260,8 +250,6 @@ clockInterval = window.setInterval(() => { now.value = new Date() }, 1000)
           </div>
         </section>
       </div>
-
-      <div class="back-screen-touch-count" role="status" aria-live="polite"><span>触控响应</span><strong>{{ touchCount }} 次</strong></div>
     </div>
   </div>
 </template>
@@ -276,15 +264,12 @@ clockInterval = window.setInterval(() => { now.value = new Date() }, 1000)
 .back-screen-product-picker select { width:calc(100% - 58px); min-height:30px; border:1px solid rgba(149,176,232,.2); border-radius:9px; padding:0 10px; color:#f0f3fb; background:#191a23; font:600 10px/1 var(--font-stack); outline:none; }
 .back-screen-product-picker select:focus-visible { border-color:rgba(105,151,255,.7); box-shadow:0 0 0 2px rgba(79,130,244,.16); }
 
-.back-screen-feature-groups { display:flex; flex-direction:column; gap:9px; }
-.back-screen-feature-group { display:flex; flex-direction:column; gap:5px; }
-.back-screen-group-title { color:#b8c2d5; font-size:10px; font-weight:650; letter-spacing:.04em; }
-
 .back-screen-preview {
   position: relative;
   width: 100%;
   aspect-ratio: 231 / 142;
   overflow: hidden;
+  margin-bottom: 8px;
   border: 1px solid rgba(205, 220, 248, 0.31);
   border-radius: 17px;
   color: #f8fafc;
@@ -293,6 +278,15 @@ clockInterval = window.setInterval(() => { now.value = new Date() }, 1000)
   box-shadow: inset 0 0 28px rgba(140, 175, 239, 0.08), 0 10px 26px rgba(0, 0, 0, 0.24);
   transition: background 0.25s ease, border-color 0.25s ease, transform 0.18s ease;
 }
+
+.back-screen-feature-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+.back-screen-feature-group { display:flex; flex-direction:column; gap:6px; }
+.back-screen-group-title { color:#b8c2d5; font-size:10px; font-weight:650; letter-spacing:.04em; }
 
 .back-screen-preview.page-weather {
   background:linear-gradient(155deg, var(--product-panel-a, #26344a), var(--product-panel-b, #101722) 82%);
@@ -675,18 +669,5 @@ clockInterval = window.setInterval(() => { now.value = new Date() }, 1000)
 .back-screen-pages button:disabled {
   opacity: 0.45;
   cursor: default;
-}
-
-.back-screen-touch-count {
-  display: flex;
-  justify-content: space-between;
-  color: #858590;
-  font-size: 10px;
-}
-
-.back-screen-touch-count strong {
-  color: #cbd5e1;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
 }
 </style>

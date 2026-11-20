@@ -197,6 +197,13 @@ watch(selectedModule, (newMod, oldMod) => {
   if (newMod !== oldMod) {
     if (desktopCardRef.value) animateCardTransition(desktopCardRef.value)
     if (mobileCardRef.value) animateCardTransition(mobileCardRef.value)
+    if (typeof window !== 'undefined') {
+      if (newMod === 'backscreen') {
+        window.dispatchEvent(new CustomEvent('tos-phone-flip', { detail: { face: 'back' } }))
+      } else if (oldMod === 'backscreen') {
+        window.dispatchEvent(new CustomEvent('tos-phone-flip', { detail: { face: 'front' } }))
+      }
+    }
   }
   if (newMod === 'control') {
     nextTick(() => {
@@ -427,6 +434,10 @@ onMounted(() => {
 
   // 页面加载完成后优雅旋转一次作为彩蛋
   triggerEasterEggSpin(400)
+
+  if (selectedModule.value === 'backscreen') {
+    window.dispatchEvent(new CustomEvent('tos-phone-flip', { detail: { face: 'back' } }))
+  }
 })
 
 onBeforeUnmount(() => {
