@@ -134,11 +134,11 @@ const contentStyle = computed(() => ({
 }))
 const appSurfaceStyle = computed(() => ({
   background: app.value?.gradient || '#f2f2f7',
-  opacity: contentReady.value ? (frame.value?.appSurfaceOpacity ?? 0) : 0
+  opacity: (contentReady.value || isOpen.value) ? (frame.value?.appSurfaceOpacity ?? 1) : 0
 }))
 const heroFillStyle = computed(() => ({
   background: app.value?.heroBackground || '#f2f2f7',
-  opacity: frame.value?.heroFillOpacity ?? 0
+  opacity: isOpen.value ? 0 : (frame.value?.heroFillOpacity ?? 0)
 }))
 const launchAnchor = ref(null)
 const nativeIconSize = computed(() => launchAnchor.value?.width || 60)

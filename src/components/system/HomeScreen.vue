@@ -5,6 +5,7 @@ import { useSystemStore } from '../../stores/systemStore'
 import { globalRankForPageIndex, homeItemMetrics, insertionIndexAtPoint, layoutHomeOrder, moveHomeOrderItem, resolveDesktopPage } from '../../utils/homeLayout.js'
 import { setLaunchRect } from '../../utils/appIconAnchors.js'
 import { rectRelativeToScreen } from '../../utils/dom.js'
+import { preloadApp } from '../apps/registry'
 import AppGrid from './AppGrid.vue'
 import DockBar from './DockBar.vue'
 import PageIndicator from '../ui/PageIndicator.vue'
@@ -1121,6 +1122,14 @@ onMounted(() => {
     resizeFrame = requestAnimationFrame(measureViewport)
   })
   resizeObserver.observe(rootRef.value)
+  if (typeof window !== 'undefined') {
+    const schedule = window.requestIdleCallback || ((cb) => setTimeout(cb, 300))
+    schedule(() => {
+      preloadApp('settings')
+      setTimeout(() => preloadApp('clock'), 400)
+      setTimeout(() => preloadApp('photos'), 800)
+    })
+  }
 })
 onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resizeFrame); clearTimeout(unlockTimer); clearTimeout(pageIndicatorTimer); clearTimeout(wheelResetTimer); clearTimeout(pinchWheelTimer); clearTimeout(suppressClickTimer); clearTimers(); unbindWindow(); unbindPinchWindow(); window.removeEventListener('keydown',onHomeKeydown); document.querySelectorAll('.folder-merge-clone,.multi-drop-clone').forEach((node) => node.remove()) })
 </script>

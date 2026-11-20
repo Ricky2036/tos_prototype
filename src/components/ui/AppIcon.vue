@@ -102,6 +102,11 @@ const resolvedImage = computed(() => {
   return `${base}${clean}`
 })
 
+function onPointerEnter() {
+  const shouldPreload = props.preloadOnPress ?? props.launchOnClick
+  if (shouldPreload && props.app?.id) preloadApp(props.app.id)
+}
+
 function onPointerDown() {
   const shouldPreload = props.preloadOnPress ?? props.launchOnClick
   if (shouldPreload && props.app?.id) preloadApp(props.app.id)
@@ -135,6 +140,7 @@ onBeforeUnmount(() => {
     :class="{ 'is-hidden': hidden }"
     :data-app-id="app.id"
     :style="{ '--enter-delay': enterDelay + 'ms', width: size + 'px', '--scale': size / 60 }"
+    @pointerenter="onPointerEnter"
     @pointerdown="onPointerDown"
     @click="open"
   >
