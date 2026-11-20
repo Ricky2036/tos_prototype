@@ -200,6 +200,22 @@ const SUITES = [
     ]
   },
   {
+    id: 'traffic',
+    script: 'verify-traffic-manage.mjs',
+    covers: [
+      'src/components/apps/settings/sim/',
+      'src/components/apps/settings/SettingsSim.vue',
+      'src/stores/trafficStore.js',
+      'src/components/ui/GlassNavBar.vue',
+      'src/components/ui/ToggleSwitch.vue',
+      'src/components/ui/RegisteredAppIcon.vue',
+      'src/composables/useRegisteredApps.js',
+      'src/config/apps.js',
+      'src/config/drawerApps.js',
+      'tests/trafficManage.test.js'
+    ]
+  },
+  {
     id: 'phone',
     script: 'verify-phone-flow.mjs',
     covers: [
