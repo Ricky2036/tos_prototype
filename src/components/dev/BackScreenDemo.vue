@@ -227,16 +227,18 @@ clockInterval = window.setInterval(() => { now.value = new Date() }, 1000)
             <BackScreenCamera v-else-if="activePage === 'camera'" :mode="cameraMode" @update:mode="cameraMode = $event" />
 
             <div v-else class="back-screen-page-content music-page-content" role="group" aria-label="音乐预览">
-              <span class="back-screen-album" aria-hidden="true"><span></span></span>
-              <span class="back-screen-track">{{ currentTrack.title }}</span>
-              <span class="back-screen-detail">{{ currentTrack.artist }}</span>
-              <span class="back-screen-progress"><i :class="{ playing: isMusicPlaying }"></i></span>
-              <div class="music-controls" aria-label="音乐控制">
-                <button type="button" aria-label="上一首" title="上一首" @click.stop="selectMusicTrack(-1)">‹</button>
-                <button type="button" class="music-play-button" :aria-label="isMusicPlaying ? '暂停' : '播放'" :title="isMusicPlaying ? '暂停' : '播放'" @click.stop="toggleMusic">{{ isMusicPlaying ? 'Ⅱ' : '▶' }}</button>
-                <button type="button" aria-label="下一首" title="下一首" @click.stop="selectMusicTrack(1)">›</button>
+              <div class="rear-music-album">
+                <span class="rear-display-album"><i></i></span>
               </div>
-              <span class="back-screen-page-label">音乐 · {{ isMusicPlaying ? '正在播放' : '已暂停' }}</span>
+              <div class="rear-music-body">
+                <span class="back-screen-track">{{ currentTrack.title }}</span>
+                <span class="back-screen-detail">{{ currentTrack.artist }}</span>
+                <div class="music-controls" aria-label="音乐控制">
+                  <button type="button" aria-label="上一首" title="上一首" @click.stop="selectMusicTrack(-1)">‹</button>
+                  <button type="button" class="music-play-button" :aria-label="isMusicPlaying ? '暂停' : '播放'" :title="isMusicPlaying ? '暂停' : '播放'" @click.stop="toggleMusic">{{ isMusicPlaying ? 'Ⅱ' : '▶' }}</button>
+                  <button type="button" aria-label="下一首" title="下一首" @click.stop="selectMusicTrack(1)">›</button>
+                </div>
+              </div>
             </div>
           </template>
           <BackScreenPassiveDisplay v-else :mode="passivePage" :call-status="callStatus" :startup-run="startupRun" @answer-call="answerCall" @hang-up="hangUpCall" />
@@ -347,17 +349,17 @@ clockInterval = window.setInterval(() => { now.value = new Date() }, 1000)
 
 .back-screen-alternate-dial {
   position: absolute;
-  inset: 0;
+  inset: 0 0 24px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
   color: rgba(239, 245, 255, .9);
 }
-.back-screen-alternate-dial span { font-size: 9px; opacity: .7; }
-.back-screen-alternate-dial strong { font-size: clamp(32px, 11cqh, 58px); line-height: 1; font-weight: 350; letter-spacing: -.05em; }
-.back-screen-alternate-dial small { margin-top: 4px; color: rgba(221, 232, 250, .55); font-size: 8px; }
+.back-screen-alternate-dial span { font-size: 8px; opacity: .7; }
+.back-screen-alternate-dial strong { font-size: 32px; line-height: 1; font-weight: 350; letter-spacing: -.05em; }
+.back-screen-alternate-dial small { margin-top: 2px; color: rgba(221, 232, 250, .55); font-size: 7.5px; }
 .back-screen-alternate-dial.dial-minimal { background:radial-gradient(ellipse at 50% 50%, rgba(103,154,220,.22), transparent 68%); }
 .back-screen-alternate-dial.dial-digital strong { font-variant-numeric:tabular-nums; font-weight:600; letter-spacing:.06em; }
 
@@ -566,10 +568,76 @@ clockInterval = window.setInterval(() => { now.value = new Date() }, 1000)
   transform: scale(0.985);
 }
 
-.music-page-content { gap: 2px; }
-.music-controls { display:flex; align-items:center; justify-content:center; gap:12px; margin-top:4px; }
-.music-controls button { display:grid; width:22px; height:22px; place-items:center; border:0; border-radius:50%; color:#eff3ff; background:rgba(255,255,255,.13); font:600 12px/1 var(--font-stack); cursor:pointer; }
-.music-controls .music-play-button { width:26px; height:26px; border:1px solid rgba(255,255,255,.5); background:rgba(255,255,255,.22); font-size:10px; }
+.music-page-content {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 10px 16px;
+}
+.rear-music-album { flex: none; }
+.rear-display-album {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--product-accent, #d6b48a), var(--product-panel-a, #53687c) 55%, var(--product-panel-b, #222b3e));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+.rear-display-album i {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.3);
+}
+.rear-music-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  text-align: left;
+}
+.back-screen-track {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.back-screen-detail {
+  font-size: 9.5px;
+  color: rgba(210, 220, 243, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.music-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+.music-controls button {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 11px;
+  cursor: pointer;
+}
+.music-controls .music-play-button {
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.28);
+}
 
 .back-screen-off-label {
   position: absolute;

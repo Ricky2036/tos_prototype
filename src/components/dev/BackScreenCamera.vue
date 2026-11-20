@@ -23,7 +23,7 @@ const emit = defineEmits(['update:mode'])
 </template>
 
 <style scoped>
-.back-camera { position:absolute; inset:22px 9px 7px; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:8px 7px 3px; border:1px solid rgba(206,222,250,.12); border-radius:10px; color:#f3f6fc; background:radial-gradient(ellipse at 50% 35%,rgba(112,151,212,.16),transparent 60%),rgba(5,10,18,.22); container-type:size; }
+.back-camera { position:absolute; inset:8px 8px 8px; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:8px 7px 5px; border:1px solid rgba(206,222,250,.12); border-radius:12px; color:#f3f6fc; background:radial-gradient(ellipse at 50% 35%,rgba(112,151,212,.16),transparent 60%),rgba(5,10,18,.22); container-type:size; }
 .camera-placeholder { display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:6px; color:rgba(226,235,250,.75); }
 .camera-placeholder strong { font-size:8cqh; font-weight:500; letter-spacing:.03em; }
 .camera-lens { position:relative; display:grid; width:26cqh; max-width:18cqw; aspect-ratio:1; place-items:center; border:1px solid rgba(175,203,249,.23); border-radius:50%; background:radial-gradient(circle at 40% 35%,rgba(111,157,221,.22),rgba(21,34,55,.25) 67%); }

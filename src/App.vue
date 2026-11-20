@@ -197,12 +197,16 @@ function takeScreenshot() {
                   <template v-if="backScreen.activeGroup === 'active'">
                     <template v-if="backScreen.activePage === 'clock'">
                       <BackScreenClockWallpaper v-if="backScreen.clockFeature === 'clock' && backScreen.isDisplayAwake && backScreen.settings.dialStyle === '动态表盘'" :date="backDateLong" :time="backTimeShort" />
-                      <div v-else-if="backScreen.clockFeature === 'clock' && backScreen.isDisplayAwake" class="rear-display-alt-dial" :class="`dial-${backScreen.settings.dialStyle === '简约表盘' ? 'minimal' : 'digital'}`"><span>{{ backDateLong }}</span><strong>{{ backTimeShort }}</strong><small>{{ backScreen.settings.dialStyle }}</small></div>
+                      <div v-else-if="backScreen.clockFeature === 'clock' && backScreen.isDisplayAwake" class="rear-display-alt-dial" :class="`dial-${backScreen.settings.dialStyle === '简约表盘' ? 'minimal' : 'digital'}`">
+                        <span>{{ backDateLong }}</span>
+                        <strong>{{ backTimeShort }}</strong>
+                        <small>{{ backScreen.settings.dialStyle }}</small>
+                      </div>
                       <span v-else-if="backScreen.clockFeature === 'clock'" class="rear-display-sleep">双击背屏亮屏</span>
-                      <template v-else>
+                      <div v-else class="rear-clock-subfeature-view">
                         <span class="rear-display-feature-value">{{ backScreen.clockFeature === 'alarm' ? '07:00' : formatBackDuration(backScreen.clockFeature === 'stopwatch' ? backScreen.stopwatchSeconds : backScreen.countdownSeconds) }}</span>
                         <span class="rear-display-subfeature">{{ backScreen.clockFeature === 'alarm' ? '闹钟 · 每天' : backScreen.clockFeature === 'stopwatch' ? (backScreen.isStopwatchRunning ? '计时中' : '计时器') : (backScreen.isCountdownRunning ? '倒计时中' : backScreen.countdownSeconds === 0 ? '倒计时结束' : '倒计时') }}</span>
-                      </template>
+                      </div>
                       <div class="rear-clock-feature-tabs" aria-label="时钟子功能">
                         <button v-for="feature in [{id:'alarm',label:'闹钟'},{id:'stopwatch',label:'计时器'},{id:'countdown',label:'倒计时'}]" :key="feature.id" type="button" :class="{active:backScreen.clockFeature===feature.id}" @click.stop="backScreen.clockFeature = (backScreen.clockFeature === feature.id ? 'clock' : feature.id); backScreen.isDisplayAwake = true">{{ feature.label }}</button>
                       </div>
@@ -211,13 +215,17 @@ function takeScreenshot() {
                     <BackScreenCalendar v-else-if="backScreen.activePage === 'calendar'" :view="backScreen.calendarView" @update:view="backScreen.calendarView = $event" />
                     <BackScreenCamera v-else-if="backScreen.activePage === 'camera'" :mode="backScreen.cameraMode" @update:mode="backScreen.cameraMode = $event" />
                     <div v-else class="rear-music-display">
-                      <span class="rear-display-album"><i></i></span>
-                      <span class="rear-display-track">{{ backScreenTrack().title }}</span>
-                      <span class="rear-display-hint">{{ backScreenTrack().artist }}</span>
-                      <div class="rear-music-controls">
-                        <button type="button" aria-label="上一首" @click.stop="selectRearMusicTrack(-1)">‹</button>
-                        <button type="button" class="play" :aria-label="backScreen.isMusicPlaying?'暂停':'播放'" @click.stop="toggleRearMusic">{{ backScreen.isMusicPlaying?'Ⅱ':'▶' }}</button>
-                        <button type="button" aria-label="下一首" @click.stop="selectRearMusicTrack(1)">›</button>
+                      <div class="rear-music-album">
+                        <span class="rear-display-album"><i></i></span>
+                      </div>
+                      <div class="rear-music-body">
+                        <span class="rear-display-track">{{ backScreenTrack().title }}</span>
+                        <span class="rear-display-hint">{{ backScreenTrack().artist }}</span>
+                        <div class="rear-music-controls">
+                          <button type="button" aria-label="上一首" @click.stop="selectRearMusicTrack(-1)">‹</button>
+                          <button type="button" class="play" :aria-label="backScreen.isMusicPlaying ? '暂停' : '播放'" @click.stop="toggleRearMusic">{{ backScreen.isMusicPlaying ? 'Ⅱ' : '▶' }}</button>
+                          <button type="button" aria-label="下一首" @click.stop="selectRearMusicTrack(1)">›</button>
+                        </div>
                       </div>
                     </div>
                   </template>
@@ -422,24 +430,28 @@ function takeScreenshot() {
 .rear-display-hint { margin-top:2px; color:rgba(210,220,243,.65); font-size:7px; }
 .rear-display-scene.is-off { background:#080a10; box-shadow:inset 0 0 26px rgba(0,0,0,.9); }
 .rear-display-sleep,.rear-display-off { color:rgba(210,220,243,.78); font-size:10px; }
-.rear-display-alt-dial { position:absolute; inset:0; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:rgba(239,245,255,.9); }
+.rear-display-alt-dial { position:absolute; inset:0 0 24px 0; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; color:rgba(239,245,255,.9); }
 .rear-display-alt-dial span { font-size:8px; opacity:.7; }
-.rear-display-alt-dial strong { font-size:34px; line-height:1; font-weight:350; letter-spacing:-.05em; }
-.rear-display-alt-dial small { margin-top:3px; color:rgba(221,232,250,.55); font-size:7px; }
+.rear-display-alt-dial strong { font-size:32px; line-height:1; font-weight:350; letter-spacing:-.05em; }
+.rear-display-alt-dial small { margin-top:2px; color:rgba(221,232,250,.55); font-size:7.5px; }
 .rear-display-alt-dial.dial-minimal { background:radial-gradient(ellipse at 50% 50%,rgba(103,154,220,.22),transparent 68%); }
 .rear-display-alt-dial.dial-digital strong { font-variant-numeric:tabular-nums; font-weight:600; letter-spacing:.06em; }
-.rear-display-feature-value { position:relative; z-index:1; color:#f8fafc; font-size:36px; font-weight:300; letter-spacing:-1.5px; font-variant-numeric:tabular-nums; }
-.rear-display-subfeature { position:relative; z-index:1; margin-top:-5px; color:rgba(210,220,243,.7); font-size:7px; }
-.rear-display-album { width:44px; height:44px; border-radius:10px; display:grid; place-items:center; background:linear-gradient(135deg,var(--product-accent,#d6b48a),var(--product-panel-a,#53687c) 55%,var(--product-panel-b,#222b3e)); box-shadow:0 4px 14px rgba(0,0,0,.3); }
-.rear-display-album i { width:19px; height:19px; border-radius:50%; border:1px solid rgba(255,255,255,.7); }
-.rear-display-track { font-size:12px; font-weight:600; }
+.rear-clock-subfeature-view { position:absolute; inset:0 0 24px 0; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+.rear-display-feature-value { color:#f8fafc; font-size:34px; font-weight:300; letter-spacing:-1.5px; font-variant-numeric:tabular-nums; line-height:1; }
+.rear-display-subfeature { color:rgba(210,220,243,.7); font-size:8px; margin-top:2px; }
 .rear-clock-feature-tabs { position:absolute; z-index:4; right:4%; bottom:4%; left:4%; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:3px; }
 .rear-clock-feature-tabs button { min-width:0; min-height:17px; border:1px solid rgba(213,228,255,.18); border-radius:6px; padding:0 2px; color:#d7e2f4; background:rgba(5,12,24,.64); font:600 6px/1 var(--font-stack); cursor:pointer; }
 .rear-clock-feature-tabs button.active { border-color:rgba(102,169,255,.72); color:#fff; background:rgba(54,112,194,.58); }
-.rear-music-display { position:absolute; inset:8% 0 0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
-.rear-music-controls { display:flex; gap:9px; align-items:center; margin-top:4px; }
-.rear-music-controls button { width:18px; height:18px; display:grid; place-items:center; border:0; border-radius:50%; color:#fff; background:rgba(255,255,255,.16); font-size:9px; cursor:pointer; }
-.rear-music-controls button.play { width:23px; height:23px; background:rgba(255,255,255,.28); }
+.rear-music-display { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:14px; padding:10px 16px; }
+.rear-music-album { flex:none; }
+.rear-display-album { width:48px; height:48px; border-radius:12px; display:grid; place-items:center; background:linear-gradient(135deg,var(--product-accent,#d6b48a),var(--product-panel-a,#53687c) 55%,var(--product-panel-b,#222b3e)); box-shadow:0 4px 14px rgba(0,0,0,.35); }
+.rear-display-album i { width:20px; height:20px; border-radius:50%; border:1px solid rgba(255,255,255,.7); background:rgba(0,0,0,.3); }
+.rear-music-body { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.rear-display-track { font-size:13px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rear-display-hint { font-size:9.5px; color:rgba(210,220,243,.75); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rear-music-controls { display:flex; gap:8px; align-items:center; margin-top:4px; }
+.rear-music-controls button { width:22px; height:22px; display:grid; place-items:center; border:0; border-radius:50%; color:#fff; background:rgba(255,255,255,.16); font-size:11px; cursor:pointer; }
+.rear-music-controls button.play { width:26px; height:26px; background:rgba(255,255,255,.28); }
 
 @keyframes rear-orbit { from { transform:translate(-20px,-4px) scale(.85) rotate(-8deg); } to { transform:translate(24px,18px) scale(1.14) rotate(9deg); } }
 @keyframes rear-drift { from { transform:translate(-24px,14px) rotate(-18deg); } to { transform:translate(28px,-16px) rotate(5deg); } }

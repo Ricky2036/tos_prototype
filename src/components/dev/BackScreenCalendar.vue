@@ -50,7 +50,7 @@ const dates = computed(() => {
 </template>
 
 <style scoped>
-.back-calendar { position:absolute; inset:23px 9px 7px; display:flex; flex-direction:column; gap:6px; min-width:0; color:#f4f7ff; container-type:size; }
+.back-calendar { position:absolute; inset:10px 10px 8px; display:flex; flex-direction:column; gap:6px; min-width:0; color:#f4f7ff; container-type:size; }
 .calendar-header { display:flex; align-items:center; justify-content:space-between; min-height:20px; }
 .calendar-header strong { font-size:9cqh; font-weight:650; letter-spacing:.02em; }
 .calendar-view-switch { display:flex; gap:2px; padding:2px; border:1px solid rgba(197,215,245,.16); border-radius:999px; background:rgba(5,10,20,.48); }

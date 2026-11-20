@@ -118,9 +118,11 @@ defineEmits(['answer-call', 'hang-up'])
           <i></i><i></i><i></i>
           <span class="caller-avatar">来</span>
         </div>
-        <span class="call-caption">{{ callStatus === 'ringing' ? '来电' : callStatus === 'connected' ? '通话中' : '通话已结束' }}</span>
-        <strong class="caller-name">来电演示</strong>
-        <span class="caller-number">移动来电 · SIM 1</span>
+        <div class="caller-info">
+          <span class="call-caption">{{ callStatus === 'ringing' ? '来电' : callStatus === 'connected' ? '通话中' : '通话已结束' }}</span>
+          <strong class="caller-name">来电演示</strong>
+          <span class="caller-number">移动来电 · SIM 1</span>
+        </div>
       </div>
       <div v-if="callStatus !== 'ended'" class="passive-call-actions">
         <button v-if="callStatus === 'ringing'" class="answer-call" type="button" @click="$emit('answer-call')"><i>✓</i>接听</button>
@@ -176,25 +178,170 @@ defineEmits(['answer-call', 'hang-up'])
 
 <style scoped>
 .back-passive-display { position:absolute; inset:0; overflow:hidden; container-type:size; color:#f7faff; background:radial-gradient(ellipse at 50% 45%,var(--product-glow,rgba(45,115,189,.3)),transparent 63%),linear-gradient(150deg,var(--product-panel-a,#18243b),var(--product-panel-b,#080e18)); }
-.passive-call-visual { position:absolute; inset:8% 4% 31%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.2cqh; }
-.call-rings { position:relative; display:grid; width:34cqh; aspect-ratio:1; max-width:34cqw; place-items:center; border-radius:50%; background:rgba(114,158,224,.13); }
-.call-rings i { position:absolute; inset:0; border:1px solid rgba(121,179,255,.56); border-radius:50%; animation:call-ring 2.1s ease-out infinite; }
-.call-rings i:nth-child(2) { animation-delay:.7s; }
-.call-rings i:nth-child(3) { animation-delay:1.4s; }
-.call-rings.is-connected i { animation-duration:4s; border-color:rgba(89,223,164,.38); }
-.call-rings.is-ended { opacity:.4; }
-.caller-avatar { display:grid; width:65%; aspect-ratio:1; place-items:center; border:1px solid rgba(255,255,255,.28); border-radius:50%; color:#eaf2ff; background:linear-gradient(145deg,#6686b5,#233958); font-size:15cqh; font-weight:600; }
-.call-caption { color:#86e5b1; font-size:6.3cqh; letter-spacing:.12em; }
-.caller-name { font-size:10.5cqh; font-weight:600; }
-.caller-number { color:#aebbd0; font-size:6cqh; }
-.passive-call-actions { position:absolute; right:8%; bottom:9%; left:8%; display:flex; justify-content:center; gap:8%; }
-.passive-call-actions button { min-width:32%; min-height:14cqh; display:flex; align-items:center; justify-content:center; gap:5px; border:1px solid rgba(255,255,255,.2); border-radius:999px; color:#fff; background:rgba(255,255,255,.1); font-size:7cqh; cursor:pointer; }
-.passive-call-actions button i { display:grid; width:1.7em; aspect-ratio:1; place-items:center; border-radius:50%; color:white; background:#eb5966; font-style:normal; font-size:11cqh; }
-.passive-call-actions .answer-call i { background:#2ac783; }
-.replay-call { position:absolute; bottom:9%; left:50%; transform:translateX(-50%); border:1px solid rgba(255,255,255,.22); border-radius:999px; padding:.6em 1.1em; color:white; background:rgba(255,255,255,.12); font-size:7cqh; cursor:pointer; }
-.passive-notification-stage { position:absolute; inset:15% 4% 4%; overflow:hidden; border-radius:10px; touch-action:none; cursor:grab; outline:none; }
-.passive-notification-stage.is-dragging { cursor:grabbing; }
-.passive-lock-notification { position:absolute; left:0; right:0; height:70%; display:flex; align-items:center; gap:5%; padding:4.5%; overflow:hidden; border:1px solid rgba(255,255,255,.52); border-radius:min(17px,10cqh); background:rgba(255,255,255,var(--notification-card-alpha,.82)); -webkit-backdrop-filter:blur(30px) saturate(170%) brightness(1.06); backdrop-filter:blur(30px) saturate(170%) brightness(1.06); box-shadow:0 7px 24px rgba(0,0,0,.12),inset 0 .5px 0 rgba(255,255,255,.78); color:#1c1c1e; user-select:none; will-change:top,transform,opacity; }
+.passive-call-visual {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.call-rings {
+  position: relative;
+  display: grid;
+  width: 46px;
+  height: 46px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(114, 158, 224, 0.13);
+}
+
+.call-rings i {
+  position: absolute;
+  inset: -4px;
+  border: 1px solid rgba(121, 179, 255, 0.56);
+  border-radius: 50%;
+  animation: call-ring 2.1s ease-out infinite;
+}
+
+.call-rings i:nth-child(2) { animation-delay: .7s; }
+.call-rings i:nth-child(3) { animation-delay: 1.4s; }
+.call-rings.is-connected i { animation-duration: 4s; border-color: rgba(89, 223, 164, 0.38); }
+.call-rings.is-ended { opacity: .4; }
+
+.caller-avatar {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+  color: #eaf2ff;
+  background: linear-gradient(145deg, #6686b5, #233958);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.caller-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.call-caption {
+  color: #86e5b1;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.caller-name {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.caller-number {
+  color: #aebbd0;
+  font-size: 9.5px;
+}
+
+.passive-call-actions {
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  left: 18px;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.passive-call-actions button {
+  flex: 1;
+  max-width: 95px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.passive-call-actions button i {
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: #eb5966;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.passive-call-actions .answer-call i {
+  background: #2ac783;
+}
+
+.replay-call {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  padding: 5px 14px;
+  color: white;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.passive-notification-stage {
+  position: absolute;
+  inset: 10px 10px 8px;
+  overflow: hidden;
+  border-radius: 12px;
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+}
+
+.passive-notification-stage.is-dragging { cursor: grabbing; }
+
+.passive-lock-notification {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 80%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, var(--notification-card-alpha, 0.82));
+  -webkit-backdrop-filter: blur(30px) saturate(170%) brightness(1.06);
+  backdrop-filter: blur(30px) saturate(170%) brightness(1.06);
+  box-shadow: 0 7px 24px rgba(0, 0, 0, 0.12), inset 0 0.5px 0 rgba(255, 255, 255, 0.78);
+  color: #1c1c1e;
+  user-select: none;
+  will-change: top, transform, opacity;
+}
 .passive-lock-notification:active { background:rgba(255,255,255,.9); }
 .notification-app-icon { flex:none; filter:drop-shadow(0 2px 5px rgba(0,0,0,.08)); }
 .lock-notification-copy { min-width:0; display:flex; flex:1; flex-direction:column; justify-content:center; }
