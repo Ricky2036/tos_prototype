@@ -46,12 +46,11 @@ before(async () => { rt = await createRuntime() })
 after(async () => { if (rt) await rt.close() })
 
 /** 读当前 host 的 displaySettingsStore 字段 */
-const displayOf = (id, expr) => rt.evaluate(async ({ id, expr }) => {
+const displayOf = (id, field) => rt.evaluate(async ({ id, field }) => {
   const pinia = window.__wbHosts.get(id).host.__wbPinia
   const m = await import('/src/stores/displaySettingsStore.js')
-  // eslint-disable-next-line no-new-func
-  return new Function('s', `return (${expr})`)(m.useDisplaySettingsStore(pinia))
-}, { id, expr })
+  return m.useDisplaySettingsStore(pinia)[field]
+}, { id, field })
 
 /** 点一行后等共享外壳真的出现，别用固定 sleep 赌转场 */
 async function clickIntoSubpage(id, label) {
@@ -442,7 +441,7 @@ test('屏幕刷新率：选「高」要先弹功耗确认，确认后才写 stor
     m.useDisplaySettingsStore(pinia).setRefreshRate('auto')
   }, { id: h })
   await rt.settle(h, 80)
-  assert.equal(await displayOf(h, 's.refreshRate'), 'auto', '默认是智能切换')
+  assert.equal(await displayOf(h, 'refreshRate'), 'auto', '默认是智能切换')
   assert.equal(await rt.count(h, '.confirm-title'), 0, '初始不应有确认弹窗')
 
   await rt.evaluate(({ id }) => {
@@ -458,11 +457,11 @@ test('屏幕刷新率：选「高」要先弹功耗确认，确认后才写 stor
   assert.equal(await rt.count(h, '.confirm-title'), 1, '选「高」应弹确认')
   assert.equal(await rt.text(h, '.confirm-title'), '切换为高刷新率', '确认弹窗标题')
   assert.equal(await rt.text(h, '.confirm-desc'), '高刷新率将增加耗电，推荐保持智能切换模式。', '确认弹窗正文')
-  assert.equal(await displayOf(h, 's.refreshRate'), 'auto', '未确认前不能写 store')
+  assert.equal(await displayOf(h, 'refreshRate'), 'auto', '未确认前不能写 store')
 
   await rt.click(h, '.confirm-btn.primary', 220)
   assert.equal(await rt.count(h, '.confirm-title'), 0, '确认后弹窗应关闭')
-  assert.equal(await displayOf(h, 's.refreshRate'), 'high', '确认后才写入 high')
+  assert.equal(await displayOf(h, 'refreshRate'), 'high', '确认后才写入 high')
   await rt.unmount(h)
 })
 
@@ -497,7 +496,7 @@ test('刷新率页：该行用 disabled 表达绑定关系，而不是静默无�
     m.useDisplaySettingsStore(pinia).setRefreshRate('auto')
   }, { id: locked })
   await rt.settle(locked, 80)
-  assert.equal(await displayOf(locked, 's.refreshRate'), 'auto', '智能切换档位')
+  assert.equal(await displayOf(locked, 'refreshRate'), 'auto', '智能切换档位')
   assert.equal(await rt.count(locked, '.list-cell.is-disabled'), 1, '非高亮率档位应有一行禁用')
   const titlesBefore = await rt.texts(locked, '.gn-title')
   await rt.clickText(locked, '.list-cell.is-disabled', '自定义应用刷新率', 300)
