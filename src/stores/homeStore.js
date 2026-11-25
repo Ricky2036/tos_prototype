@@ -103,7 +103,7 @@ function reconcile(raw, wide) {
   return state
 }
 
-const designedStorageKey = mode => HOME_STORAGE_KEY + (mode === 'slab' ? '.slab-design' : '.wide')
+const designedStorageKey = mode => HOME_STORAGE_KEY + (mode === 'slab' ? '.slab-design.v2' : '.wide')
 
 export function loadHomeState(storage = safeStorage(), wide = false) {
   if (wide) {
