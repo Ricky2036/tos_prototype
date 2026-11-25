@@ -22,6 +22,8 @@ const ControlCenterFineTunePanel = defineAsyncComponent(() =>
   import('./ControlCenterFineTunePanel.vue')
 )
 
+const previewForm = defineModel('previewForm', { type: String, default: 'slab' })
+
 const props = defineProps({
   mode: {
     type: String,
@@ -570,6 +572,18 @@ function onToggleFineTune(enabled) {
     <div class="pc-card">
       <div class="pc-card-header">
         <span class="pc-card-title">原型控制</span>
+        <label class="pc-switch-wrap pc-form-picker">
+          <span>阔直板</span>
+          <input
+            type="checkbox"
+            role="switch"
+            data-testid="wide-form-switch"
+            :checked="previewForm === 'wide'"
+            :disabled="isRecording || isCapturing"
+            @change="previewForm = $event.target.checked ? 'wide' : 'slab'"
+          />
+          <span class="pc-switch" aria-hidden="true"></span>
+        </label>
       </div>
       <div class="pc-btn-group-2">
         <!-- 全屏动作按钮 -->
@@ -1188,6 +1202,18 @@ function onToggleFineTune(enabled) {
             <div class="pc-card">
               <div class="pc-card-header">
                 <span class="pc-card-title">原型控制</span>
+        <label class="pc-switch-wrap pc-form-picker">
+          <span>阔直板</span>
+          <input
+            type="checkbox"
+            role="switch"
+            data-testid="wide-form-switch"
+            :checked="previewForm === 'wide'"
+            :disabled="isRecording || isCapturing"
+            @change="previewForm = $event.target.checked ? 'wide' : 'slab'"
+          />
+          <span class="pc-switch" aria-hidden="true"></span>
+        </label>
               </div>
               <div class="pc-btn-group-2">
                 <!-- 全屏动作按钮 -->
@@ -1745,6 +1771,42 @@ function onToggleFineTune(enabled) {
 </template>
 
 <style scoped>
+.pc-form-picker {
+  position: relative;
+  min-height: 26px;
+}
+
+.pc-switch-wrap.pc-form-picker input {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  z-index: 1;
+  cursor: pointer;
+}
+
+.pc-form-picker input:focus-visible + .pc-switch {
+  outline: 2px solid #a8bcfc;
+  outline-offset: 2px;
+}
+
+.pc-form-picker input:disabled {
+  cursor: default;
+}
+
+.pc-form-picker input:disabled + .pc-switch {
+  opacity: .5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-form-picker .pc-switch,
+  .pc-form-picker .pc-switch::after {
+    transition: none;
+  }
+}
 /* ================= 桌面控制台容器 ================= */
 .proto-console {
   position: relative;

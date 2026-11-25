@@ -1,6 +1,7 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useClock } from './composables/useClock'
+import { useSpring } from './composables/useSpring'
 import PhoneFrame from './components/phone/PhoneFrame.vue'
 import ScreenView from './components/phone/ScreenView.vue'
 import DevConsole from './components/dev/DevConsole.vue'
@@ -44,12 +45,109 @@ function formatBackDuration(totalSeconds) {
 const { timeShort: backTimeShort, dateLong: backDateLong } = useClock()
 const BASE_SCREEN_W = 360
 const BASE_SCREEN_H = 788
-const scale = ref(1)
+const WIDE_SCREEN_W = 1280 / 3
+const WIDE_SCREEN_H = 2200 / 3
+const FORM_STORAGE_KEY = 'tos.previewForm'
+
+function readInitialForm() {
+  if (typeof window === 'undefined') return 'slab'
+  const q = new URLSearchParams(window.location.search).get('form')
+  if (q === 'wide' || q === 'slab') return q
+  try {
+    const saved = window.localStorage?.getItem(FORM_STORAGE_KEY)
+    if (saved === 'wide' || saved === 'slab') return saved
+  } catch {}
+  return 'slab'
+}
+
+const previewForm = ref(readInitialForm())
+const formMoving = ref(false)
+const previewViewport = ref({ width: BASE_SCREEN_W, height: BASE_SCREEN_H, stageHeight: BASE_SCREEN_H })
+const reducedMotion =
+  typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-reduced-motion: reduce)')
+    : null
+const selectedFormAmount = () => (previewForm.value === 'wide' ? 1 : 0)
+const formSpring = useSpring(selectedFormAmount())
+const formAmount = computed(() => Math.max(0, Math.min(1, formSpring.value.value)))
+const interpolate = (from, to, amount) => from + (to - from) * amount
+
+let formRun = 0
+watch(previewForm, (next) => {
+  try {
+    window.localStorage?.setItem(FORM_STORAGE_KEY, next)
+  } catch {}
+  const run = ++formRun
+  formMoving.value = !(reducedMotion?.matches)
+  const target = selectedFormAmount()
+  if (reducedMotion?.matches) {
+    formSpring.snapTo(target)
+  } else {
+    formSpring.animateTo(target, {
+      config: { mass: 1, stiffness: 420, damping: 41 },
+      onDone: () => {
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            if (run === formRun) formMoving.value = false
+          })
+        )
+      }
+    })
+  }
+})
+
+function syncReducedMotion(event) {
+  if (event.matches) {
+    formMoving.value = false
+    formSpring.snapTo(selectedFormAmount())
+  }
+}
+
 const phoneFace = ref('front')
 const isFlipping = ref(false)
 const isMobile = ref(false)
 const mobileScale = ref(1)
 const mobileLogicalHeight = ref(BASE_SCREEN_H)
+
+const previewGeometry = computed(() => {
+  const amount = formAmount.value
+  const { width, height, stageHeight } = previewViewport.value
+  const screenW = interpolate(BASE_SCREEN_W, WIDE_SCREEN_W, amount)
+  const slabH = isMobile.value ? mobileLogicalHeight.value : BASE_SCREEN_H
+  const screenH = interpolate(slabH, WIDE_SCREEN_H, amount)
+  const stage = {
+    '--screen-w': `${screenW}px`,
+    '--screen-h': `${screenH}px`,
+    '--preview-progress': amount
+  }
+
+  if (!isMobile.value) {
+    stage['--preview-scale'] = Math.max(0.62, Math.min(1, (stageHeight - 32) / (screenH + 32 + 96)))
+    return stage
+  }
+
+  const wideScale = Math.min((width - 16) / WIDE_SCREEN_W, (height - 16) / WIDE_SCREEN_H)
+  const slabScale = mobileScale.value
+  const visualW = interpolate(BASE_SCREEN_W * slabScale, WIDE_SCREEN_W * wideScale, amount)
+  const displayScale = visualW / screenW
+  const left = (visualW - BASE_SCREEN_W * slabScale) / -2
+  const top = (screenH * displayScale - slabH * slabScale) / -2
+  stage['--preview-left'] = `${left}px`
+  stage['--preview-top'] = `${top}px`
+  stage['--preview-scale'] = displayScale
+  return stage
+})
+
+function applyPreviewGeometry() {
+  const stage = stageRef.value
+  if (!stage) return
+  stage.dataset.formMoving = String(formMoving.value)
+  for (const [property, value] of Object.entries(previewGeometry.value)) {
+    stage.style.setProperty(property, value)
+  }
+}
+
+watch([previewGeometry, formMoving], applyPreviewGeometry, { flush: 'post' })
 
 function checkMobile() {
   if (typeof window === 'undefined') return
@@ -62,18 +160,14 @@ function checkMobile() {
 function updateStageMetrics() {
   if (typeof window === 'undefined') return
   checkMobile()
+  const vw = Math.max(280, window.visualViewport?.width || window.innerWidth || BASE_SCREEN_W)
+  const vh = Math.max(480, window.visualViewport?.height || window.innerHeight || BASE_SCREEN_H)
+  previewViewport.value = { width: vw, height: vh, stageHeight: window.innerHeight || vh }
   if (isMobile.value) {
-    const vw = Math.max(280, window.visualViewport?.width || window.innerWidth || BASE_SCREEN_W)
-    const vh = Math.max(480, window.visualViewport?.height || window.innerHeight || BASE_SCREEN_H)
     const s = vw / BASE_SCREEN_W
     mobileScale.value = s
     mobileLogicalHeight.value = Math.round((vh / s) * 100) / 100
-    scale.value = 1
-    return
   }
-  const phoneH = (phoneScaleRef.value?.offsetHeight || 810) + 96
-  const s = Math.min(1, (window.innerHeight - 32) / phoneH)
-  scale.value = Math.max(0.62, s)
 }
 
 if (typeof window !== 'undefined') {
@@ -110,6 +204,8 @@ onMounted(() => {
     updateStageMetrics()
   }
   fitStage()
+  applyPreviewGeometry()
+  reducedMotion?.addEventListener('change', syncReducedMotion)
   window.addEventListener('resize', fitStage)
   window.visualViewport?.addEventListener('resize', fitStage)
   window.addEventListener('tos-phone-flip', handlePhoneFlipEvent)
@@ -117,6 +213,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (flipTimer) clearTimeout(flipTimer)
+  reducedMotion?.removeEventListener('change', syncReducedMotion)
   if (fitStage) {
     window.removeEventListener('resize', fitStage)
     window.visualViewport?.removeEventListener('resize', fitStage)
@@ -167,24 +264,24 @@ function takeScreenshot() {
 </script>
 
 <template>
-  <div class="stage" :class="{ 'is-mobile': isMobile }" ref="stageRef">
+  <div class="stage" :class="{ 'is-mobile': isMobile }" :data-preview-form="previewForm" ref="stageRef">
     <!-- 移动端：直接无外壳全屏满铺，基于 360px 标准宽度等比同步缩放所有 UI -->
     <div v-if="isMobile" class="mobile-screen-wrap">
       <div
         class="screen mobile-screen"
-        :style="{
+        :style="previewForm === 'slab' && !formMoving ? {
           width: `${BASE_SCREEN_W}px`,
           height: `${mobileLogicalHeight}px`,
           transform: `scale(${mobileScale})`,
           transformOrigin: 'top left'
-        }"
+        } : undefined"
       >
         <ScreenView />
       </div>
     </div>
 
     <!-- 桌面端：带金属外壳与等比居中缩放 -->
-    <div v-else ref="phoneScaleRef" class="phone-scale" :style="{ transform: `scale(${scale})` }">
+    <div v-else ref="phoneScaleRef" class="phone-scale">
       <div class="phone-turntable" :class="{ 'is-back': phoneFace === 'back', 'is-flipping': isFlipping }">
         <div class="phone-turntable-face phone-turntable-front">
           <PhoneFrame>
@@ -251,6 +348,7 @@ function takeScreenshot() {
 
     <!-- 控制台：桌面侧边栏 / 移动端悬浮球与抽屉 -->
     <DevConsole
+      v-model:preview-form="previewForm"
       :mode="isMobile ? 'mobile' : 'desktop'"
       :is-recording="isRecording"
       :is-transcoding="isTranscoding"
@@ -283,6 +381,27 @@ function takeScreenshot() {
 </template>
 
 <style scoped>
+.stage[data-preview-form] {
+  gap: calc(48px + (clamp(16px, 2.5vw, 48px) - 48px) * var(--preview-progress, 0));
+}
+
+.stage .phone-scale {
+  transform: scale(var(--preview-scale, 1));
+  transition: none;
+}
+
+.stage .mobile-screen {
+  position: absolute;
+  top: var(--preview-top, 0px);
+  left: var(--preview-left, 0px);
+  width: var(--screen-w);
+  height: var(--screen-h);
+  transform: scale(var(--preview-scale, 1));
+  transform-origin: top left;
+  border-radius: calc(var(--screen-radius) * var(--preview-progress, 0)) !important;
+  box-shadow: 0 0 0 calc(2px * var(--preview-progress, 0)) #535765;
+}
+
 .stage {
   height: 100%;
   display: flex;
