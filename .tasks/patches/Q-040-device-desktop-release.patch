@@ -1,0 +1,1365 @@
+diff --git a/scripts/preview-wide/wide-phone-preview.mjs b/scripts/preview-wide/wide-phone-preview.mjs
+--- a/scripts/preview-wide/wide-phone-preview.mjs
++++ b/scripts/preview-wide/wide-phone-preview.mjs
+@@ -1,57 +1,7 @@
+-import { createRequire } from 'node:module'
+-import path from 'node:path'
+-import { modelId, wideHomePlugin } from './wide-home-runtime.mjs'
+-import { fileURLToPath, pathToFileURL } from 'node:url'
++import { createServer } from 'vite'
++import { fileURLToPath } from 'node:url'
+ 
+-const root = fileURLToPath(new URL('../..', import.meta.url)).replace(/\/$/, '')
+-const require = createRequire(path.join(root, 'package.json'))
+-const { createServer } = await import(pathToFileURL(require.resolve('vite/package.json').replace(/package\.json$/, 'dist/node/index.js')).href)
+-const { default: vue } = await import(pathToFileURL(require.resolve('@vitejs/plugin-vue')).href)
+-
+-function replaceOnce(source, before, after) {
+-  if (source.split(before).length !== 2) {
+-    throw new Error(`Preview hook changed: ${before.slice(0, 100)}`)
+-  }
+-  return source.replace(before, () => after)
+-}
+-
+-function previewApp(source) {
+-  source = replaceOnce(source, '<script setup>', `<script setup>
+-import { wideMode, formMetrics, formMoving as desktopFormMoving } from '${modelId}'`)
+-  source = replaceOnce(source, 'const previewForm = ref(readInitialForm())', `const previewForm = ref(readInitialForm())
+-watch(previewForm, form => { wideMode.value = form === 'wide' }, { immediate: true, flush: 'sync' })`)
+-  return replaceOnce(source, '  stage.dataset.formMoving = String(formMoving.value)', `  stage.dataset.formMoving = String(formMoving.value)
+-  desktopFormMoving.value = formMoving.value
+-  const geometry = previewGeometry.value
+-  formMetrics.value = {
+-    width: parseFloat(geometry['--screen-w']),
+-    height: parseFloat(geometry['--screen-h']),
+-    progress: geometry['--preview-progress'],
+-    slabHeight: isMobile.value ? mobileLogicalHeight.value : BASE_SCREEN_H,
+-    wideHeight: WIDE_SCREEN_H
+-  }`)
+-}
+-
+-const appPath = path.join(root, 'src/App.vue')
+-
+-const server = await createServer({
+-  root,
+-  configFile: false,
+-  base: './',
+-  cacheDir: path.join(root, 'node_modules/.vite-preview-wide'),
+-  plugins: [
+-    {
+-      name: 'tos-wide-phone-visual-preview',
+-      enforce: 'pre',
+-      transform(source, id) {
+-        return id === appPath ? { code: previewApp(source), map: null } : null
+-      }
+-    },
+-    wideHomePlugin(root),
+-    vue()
+-  ],
+-  server: { host: '127.0.0.1', port: 8888, strictPort: true }
+-})
+-
++const root = fileURLToPath(new URL('../..', import.meta.url))
++const server = await createServer({ root, server: { port: 8888, strictPort: true } })
+ await server.listen()
+ server.printUrls()
+diff --git a/src/App.vue b/src/App.vue
+--- a/src/App.vue
++++ b/src/App.vue
+@@ -1,4 +1,5 @@
+ <script setup>
++import { wideMode, formMetrics, formMoving as desktopFormMoving } from './config/deviceDesktop.js'
+ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+ import { useClock } from './composables/useClock'
+ import { useSpring } from './composables/useSpring'
+@@ -61,6 +62,7 @@
+ }
+ 
+ const previewForm = ref(readInitialForm())
++watch(previewForm, form => { wideMode.value = form === 'wide' }, { immediate: true, flush: 'sync' })
+ const formMoving = ref(false)
+ const previewViewport = ref({ width: BASE_SCREEN_W, height: BASE_SCREEN_H, stageHeight: BASE_SCREEN_H })
+ const reducedMotion =
+@@ -142,6 +144,15 @@
+   const stage = stageRef.value
+   if (!stage) return
+   stage.dataset.formMoving = String(formMoving.value)
++  desktopFormMoving.value = formMoving.value
++  const geometry = previewGeometry.value
++  formMetrics.value = {
++    width: parseFloat(geometry['--screen-w']),
++    height: parseFloat(geometry['--screen-h']),
++    progress: geometry['--preview-progress'],
++    slabHeight: isMobile.value ? mobileLogicalHeight.value : BASE_SCREEN_H,
++    wideHeight: WIDE_SCREEN_H
++  }
+   for (const [property, value] of Object.entries(previewGeometry.value)) {
+     stage.style.setProperty(property, value)
+   }
+diff --git a/src/components/home/HomeFolder.vue b/src/components/home/HomeFolder.vue
+--- a/src/components/home/HomeFolder.vue
++++ b/src/components/home/HomeFolder.vue
+@@ -278,6 +278,21 @@
+ </template>
+ 
+ <style scoped>
++.is-wide-layout .folder-name { font:400 11px/15px var(--font-stack); text-shadow:none; }
++.stage[data-form-moving=true] .folder-apps {transition:none}
++@media (prefers-reduced-motion:reduce) { .is-wide-layout .folder-apps {transition:none} }
++.is-wide-layout .folder-apps.size-1-1 {
++  padding:calc(var(--icon-size) * .12);gap:calc(var(--icon-size) * .035);
++  grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));
++  align-items:center;justify-items:center;
++}
++.is-wide-layout .folder-apps.size-1-1 :deep(.app-icon),
++.is-wide-layout .folder-apps.size-1-1 :deep(.app-icon-anchor),
++.is-wide-layout .folder-apps.size-1-1 :deep(.icon-tile) {
++  width:calc(var(--icon-size) * .207) !important;
++  height:calc(var(--icon-size) * .207) !important;
++}
++
+ .home-folder,
+ .folder-surface {
+   width: 100%;
+diff --git a/src/components/phone/ScreenView.vue b/src/components/phone/ScreenView.vue
+--- a/src/components/phone/ScreenView.vue
++++ b/src/components/phone/ScreenView.vue
+@@ -1,4 +1,5 @@
+ <script setup>
++import { wideMode } from '../../config/deviceDesktop.js'
+ import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
+ import { useControlStore } from '../../stores/controlStore'
+ import { useSystemStore } from '../../stores/systemStore'
+@@ -49,7 +50,7 @@
+ const system = useSystemStore()
+ const wallpaperStore = useWallpaperStore()
+ const shareStore = useShareStore()
+-const activeWallpaper = computed(() => wallpaperStore.homeWallpaper || wallpaperStore.active || wallpaper)
++const activeWallpaper = computed(() => (wideMode.value ? wallpaperStore.lockWallpaper : wallpaperStore.homeWallpaper) || wallpaperStore.active || wallpaper)
+ const heroVisual = ref(null)
+ 
+ const rootEl = ref(null)
+@@ -93,7 +94,8 @@
+ const isWallpaperVisible = computed(() => {
+   if (!system.screenOn) return false
+   if (system.baseLayer === 'app') {
+-    if (heroVisual.value?.phase === 'open' && system.homeGestureProgress === 0) {
++    const widgetSwipe = heroVisual.value?.widgetLaunch && system.switcherProgress > 0.01
++    if (heroVisual.value?.phase === 'open' && system.homeGestureProgress === 0 && !widgetSwipe) {
+       return false
+     }
+   }
+@@ -106,6 +108,7 @@
+  * 3. 锁屏/桌面默认：浅色 chrome（白字/白条）
+  */
+ const chromeLight = computed(() => {
++  if (heroVisual.value?.showingWidgetOnOpen) return true
+   if (privacy.settingsPage) return false
+   if (system.chromeStyleOverride === 'light') return true
+   if (system.chromeStyleOverride === 'dark') return false
+@@ -386,6 +389,8 @@
+ </template>
+ 
+ <style scoped>
++.screen-view:has(.app-window[data-widget-hero]) .wallpaper { opacity:1 !important; }
++
+ .screen-view {
+   position: absolute;
+   inset: 0;
+diff --git a/src/components/system/AppGrid.vue b/src/components/system/AppGrid.vue
+--- a/src/components/system/AppGrid.vue
++++ b/src/components/system/AppGrid.vue
+@@ -1,5 +1,6 @@
+ <script setup>
+-import { computed, onBeforeUpdate, onUpdated } from 'vue'
++import { modernWidgets, formMoving } from '../../config/deviceDesktop.js'
++import { computed, onBeforeUpdate, onUpdated, watch } from 'vue'
+ import { getApp } from '../../config/apps'
+ import AppIcon from '../ui/AppIcon.vue'
+ import ClockWidget from '../widgets/ClockWidget.vue'
+@@ -25,10 +26,21 @@
+ const itemElements = new Map()
+ let previousRects = new Map()
+ function setItemRef(id, element) { if (element) itemElements.set(id, element); else itemElements.delete(id) }
+-onBeforeUpdate(() => { previousRects = new Map([...itemElements].map(([id,el]) => [id,el.getBoundingClientRect()])) })
++let renderedProfile = props.profile
++onBeforeUpdate(() => {
++  previousRects = formMoving.value || renderedProfile !== props.profile
++    ? new Map()
++    : new Map([...itemElements].map(([id, el]) => [id, el.getBoundingClientRect()]))
++})
++watch(formMoving, moving => {
++  if (moving) for (const el of itemElements.values()) for (const animation of el.getAnimations()) animation.cancel()
++}, { flush: 'sync' })
+ onUpdated(() => {
++  renderedProfile = props.profile
++  if (formMoving.value || !previousRects.size) return
+   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+   requestAnimationFrame(() => {
++    if (formMoving.value) return
+     for (const [id,el] of itemElements) {
+       const before = previousRects.get(id), after = el.getBoundingClientRect()
+       if (!before) continue
+@@ -46,8 +58,8 @@
+ const appFor = (item) => item?.type === 'app' ? getApp(item.appId) : null
+ const folderFor = (item) => item?.type === 'folder' ? props.folders[item.folderId] : null
+ const widgetTitle = (item) => {
+-  if (item?.widgetId === 'clock') return '时钟'
+-  if (item?.widgetId === 'smart') return '建议'
++  if (item?.widgetId === 'clock') return props.profile.wide && modernWidgets ? 'Clock' : '时钟'
++  if (item?.widgetId === 'smart') return props.profile.wide && modernWidgets ? 'AI Suggestions' : '建议'
+   return item?.title || '小组件'
+ }
+ function itemStyle(id) {
+@@ -78,15 +90,15 @@
+ </script>
+ 
+ <template>
+-  <div class="app-grid" :class="{ 'is-editing': editing }" :data-page="pageIndex">
++  <div class="app-grid" :class="{ 'is-editing': editing, 'is-wide-grid': profile.wide }" :data-page="pageIndex">
+     <div v-for="(id, index) in itemIds" :key="id" :ref="el => setItemRef(id,el)" class="home-item"
+       :class="{ 'is-editing': editing, 'is-selected': selected.has(id), 'is-dragging-source': draggingId === id || dragging.has(id), 'is-settling-destination': settling.has(id), 'is-large': (positions[id]?.w || 1) > 1 || (positions[id]?.h || 1) > 1, 'is-widget': items[id]?.type === 'widget', 'is-folder-candidate': folderCandidateId === id, 'is-folder-armed': folderCandidateArmed && folderCandidateId === id, 'is-folder-target': folderTargetId === id, 'is-folder-open': items[id]?.folderId === openFolderId, 'is-removing': removing.has(id) }"
+       :data-home-item="id" :data-page-index="pageIndex" :data-item-index="index" :style="itemStyle(id)"
+       @pointerdown="emit('item-pointerdown', $event, id, pageIndex, index)"
+       @click.capture="activate($event, id, items[id])">
+       <div v-if="items[id]?.type === 'widget'" class="widget-surface">
+-        <ClockWidget v-if="items[id].widgetId === 'clock'" />
+-        <SmartSuggestionWidget v-else />
++        <ClockWidget v-if="items[id].widgetId === 'clock'" :wide="profile.wide && modernWidgets" />
++        <SmartSuggestionWidget v-else :wide="profile.wide && modernWidgets" />
+         <span class="widget-name" data-widget-title>{{ widgetTitle(items[id]) }}</span>
+       </div>
+       <AppIcon v-else-if="appFor(items[id])" :app="appFor(items[id])" :size="profile.iconSize * profile.compactScale" :enter-delay="120 + index * 28" :home-anchor="registerHomeAnchors" />
+@@ -99,6 +111,10 @@
+ </template>
+ 
+ <style scoped>
++.stage[data-form-moving=true] .home-item {transition:none}
++.is-wide-grid .widget-surface { gap: 6px; }
++.is-wide-grid .widget-name { font-size:11px; text-shadow:none; }
++
+ .app-grid { position:relative;width:100%;height:100%;box-sizing:border-box; }
+ .app-grid.is-editing { transform:translate3d(0,20px,0) scale(.85); transform-origin:50% 36%; transition:transform 320ms cubic-bezier(.22,.8,.26,1); }
+ .home-item { position:absolute;left:0;top:0;min-width:0;display:flex;align-items:flex-start;justify-content:center;transition:width 240ms cubic-bezier(.22,.8,.24,1),height 240ms cubic-bezier(.22,.8,.24,1);touch-action:none;will-change:transform; }
+diff --git a/src/components/system/AppWindow.vue b/src/components/system/AppWindow.vue
+--- a/src/components/system/AppWindow.vue
++++ b/src/components/system/AppWindow.vue
+@@ -1,5 +1,5 @@
+ <script setup>
+-import { computed, onBeforeUnmount, onErrorCaptured, onMounted, ref, watch } from 'vue'
++import { computed, nextTick, onBeforeUnmount, onErrorCaptured, onMounted, ref, watch } from 'vue'
+ import { getApp } from '../../config/apps'
+ import { appComponents, isAppPreloaded, resolveAppComponent } from '../apps/registry'
+ import PlaceholderApp from '../apps/PlaceholderApp.vue'
+@@ -143,13 +143,83 @@
+ }))
+ const heroFillStyle = computed(() => ({
+   background: app.value?.heroBackground || '#f2f2f7',
+-  opacity: isOpen.value ? 0 : (frame.value?.heroFillOpacity ?? 0)
++  opacity: isOpen.value ? 0 : (widgetAnchor.value ? 1 : (frame.value?.heroFillOpacity ?? 0))
+ }))
+ const launchAnchor = ref(null)
++const widgetMirrorHost = ref(null)
++const widgetAnchor = ref(null)
++let hiddenWidget = null
++let swipeFrame = null
++
++function desktopWidget(screen, widgetId) {
++  if (!widgetId) return null
++  return screen?.querySelector(
++    `[data-page="${home.currentPage}"] [data-home-item="widget:${widgetId}"] :is(.clock-widget, .wide-clock-widget, .smart-suggestion-stack)`
++  )
++}
++
++function restoreWidget() {
++  hiddenWidget?.removeAttribute('data-widget-hero-source')
++  hiddenWidget = null
++}
++
++function screenLocalBounds(node, screen) {
++  if (!node || !screen?.offsetWidth || !screen.offsetHeight) return null
++  const source = node.getBoundingClientRect()
++  const bounds = screen.getBoundingClientRect()
++  if (!source.width || !source.height || !bounds.width || !bounds.height) return null
++  const scaleX = bounds.width / screen.offsetWidth
++  const scaleY = bounds.height / screen.offsetHeight
++  return {
++    x: (source.left - bounds.left) / scaleX,
++    y: (source.top - bounds.top) / scaleY,
++    width: source.width / scaleX,
++    height: source.height / scaleY
++  }
++}
++
++function prepareWidgetMirror(screen, widgetId) {
++  restoreWidget()
++  widgetMirrorHost.value.replaceChildren()
++  const widget = desktopWidget(screen, widgetId)
++  const rect = screenLocalBounds(widget, screen)
++  if (!rect) return null
++  const radius = Number.parseFloat(getComputedStyle(widget).borderTopLeftRadius)
++  return { widget, rect, radius }
++}
++
++function showWidgetMirror(anchor) {
++  const copy = anchor.widget.cloneNode(true)
++  copy.style.width = anchor.rect.width + 'px'
++  copy.style.height = anchor.rect.height + 'px'
++  widgetMirrorHost.value.replaceChildren(copy)
++  hiddenWidget = anchor.widget
++  hiddenWidget.setAttribute('data-widget-hero-source', '')
++}
++
++function reduceWidgetMotion() {
++  return Boolean(launchAnchor.value?.widgetId && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
++}
++
++const widgetMirrorStyle = computed(() => {
++  const current = frame.value
++  const anchor = widgetAnchor.value
++  if (!anchor || !current?.iconOpacity) return { visibility: 'hidden' }
++  const scale = current.iconNative ? 1 : current.windowRect.width / anchor.rect.width
++  return { opacity: current.iconOpacity, transform: `scale(${scale})` }
++})
++
++const windowClipStyle = computed(() => {
++  const current = frame.value
++  if (!widgetAnchor.value || !current || isOpen.value) return clipStyle.value
++  const clipPath = `inset(0 round ${current.radius}px)`
++  return { clipPath, '--widget-hero-clip': clipPath, opacity: 1 - current.iconOpacity }
++})
++
+ const nativeIconSize = computed(() => launchAnchor.value?.width || 60)
+ const iconWrapperStyle = computed(() => {
+   const current = frame.value
+-  if (!current || current.iconOpacity <= 0) return { opacity: 0, pointerEvents: 'none' }
++  if (widgetAnchor.value || !current || current.iconOpacity <= 0) return { opacity: 0, pointerEvents: 'none' }
+   const baseSize = nativeIconSize.value
+   const scale = current.iconScale || (current.windowRect ? current.windowRect.width / baseSize : 1)
+   return {
+@@ -165,7 +235,12 @@
+   if (['closing', 'handoff', 'closed'].includes(phase.value)) return
+   const screen = screenRef.el
+   const viewport = readViewport()
+-  let anchor = getAnchorRect(props.appId, screen)
++  const widget = prepareWidgetMirror(screen, launchAnchor.value?.widgetId)
++  widgetAnchor.value = widget
++  const reducedMotion = reduceWidgetMotion()
++  if (widget && !reducedMotion) showWidgetMirror(widget)
++  if (!widget && launchAnchor.value?.widgetId) home.hideIcon(props.appId)
++  let anchor = widget?.rect || getAnchorRect(props.appId, screen)
+   if (!anchor || !anchor.width) {
+     anchor = launchAnchor.value
+   }
+@@ -177,15 +252,22 @@
+   }
+ 
+   // 手势进度在这里之前保持不变；当前跟手帧就是关闭动画的精确起点。
+-  const startRect = frame.value?.windowRect || viewport
++  const startRect = swipeFrame?.rect || frame.value?.windowRect || viewport
++  const startRadius = swipeFrame?.radius ?? frame.value?.radius
++  swipeFrame = null
+   hero.beginClose({
+     viewportRect: viewport,
+     anchorRect: anchor,
++    anchorRadius: widget?.radius,
++    reducedMotion,
+     startRect,
+-    startRadius: frame.value?.radius,
++    startRadius,
+     startBackdropStrength: frame.value?.backdropStrength,
+     viewportRadius: viewportRadius.value,
+-    onHandoff: () => home.showIcon(),
++    onHandoff: () => {
++      restoreWidget()
++      home.showIcon()
++    },
+     onClosed: () => system.finishGoHome()
+   })
+   system.setHomeGestureProgress(0)
+@@ -204,10 +286,16 @@
+   }
+ 
+   launchAnchor.value = launchRect
+-  home.hideIcon(props.appId)
++  const widget = prepareWidgetMirror(screen, launchRect.widgetId)
++  const reducedMotion = reduceWidgetMotion()
++  widgetAnchor.value = widget
++  if (widget && !reducedMotion) showWidgetMirror(widget)
++  if (!widget) home.hideIcon(props.appId)
+   hero.beginOpen({
+     viewportRect: viewport,
+-    anchorRect: launchRect,
++    anchorRect: widget?.rect || launchRect,
++    anchorRadius: widget?.radius,
++    reducedMotion,
+     viewportRadius: viewportRadius.value
+   })
+   ready.value = true
+@@ -216,13 +304,31 @@
+ watch(
+   () => system.homeGestureProgress,
+   (progress) => {
+-    if (!viewportRect.value) return
++    if (!viewportRect.value || reduceWidgetMotion()) return
+     hero.setPreview({
+       viewportRect: viewportRect.value,
+       progress,
+       viewportRadius: viewportRadius.value
+     })
+   }
++)
++
++watch(
++  () => system.switcherProgress,
++  (progress, previous) => {
++    if (!launchAnchor.value?.widgetId || !previous || progress > 0.01 || reduceWidgetMotion()) return
++    const screen = screenRef.el
++    const card = screen?.querySelector('.switcher-card.is-follow')
++    const rect = screenLocalBounds(card, screen)
++    if (!rect) return
++
++    // Read the currently painted follow card before Vue removes it on release.
++    const radius = Number.parseFloat(getComputedStyle(card).borderTopLeftRadius)
++    const scale = Math.min(rect.width / card.offsetWidth, rect.height / card.offsetHeight)
++    swipeFrame = { rect, radius: radius * scale }
++    nextTick(() => { swipeFrame = null })
++  },
++  { flush: 'sync' }
+ )
+ 
+ watch(
+@@ -236,12 +342,13 @@
+ watch(
+   [frame, phase],
+   ([current, currentPhase]) => emit('hero-frame', current
+-    ? { phase: currentPhase, backdropStrength: current.backdropStrength }
++    ? { phase: currentPhase, backdropStrength: current.backdropStrength, widgetLaunch: Boolean(launchAnchor.value?.widgetId), showingWidgetOnOpen: Boolean(widgetAnchor.value && currentPhase === "opening" && current.iconOpacity > 0) }
+     : null),
+   { immediate: true, flush: 'sync' }
+ )
+ 
+ onBeforeUnmount(() => {
++  restoreWidget()
+   emit('hero-frame', null)
+   hero.stop()
+   home.showIcon()
+@@ -252,11 +359,12 @@
+   <div
+     class="app-window"
+     :data-phase="phase"
++    :data-widget-hero="launchAnchor?.widgetId"
+     :data-app-id="appId"
+     :data-content-ready="contentReady ? 'true' : 'false'"
+     :style="windowStyle"
+   >
+-    <div class="aw-clip" :style="clipStyle">
++    <div class="aw-clip" :style="windowClipStyle">
+       <div class="aw-fill" :style="heroFillStyle"></div>
+       <div class="aw-fixed-container" :style="fixedContainerStyle">
+         <div class="aw-app-surface" :style="appSurfaceStyle"></div>
+@@ -267,6 +375,8 @@
+         </div>
+       </div>
+     </div>
++
++    <div ref="widgetMirrorHost" class="aw-widget-mirror" :style="widgetMirrorStyle" aria-hidden="true" inert></div>
+ 
+     <div class="aw-icon-wrapper" :style="iconWrapperStyle">
+       <AppIcon
+@@ -283,6 +393,13 @@
+ </template>
+ 
+ <style scoped>
++:global(.home-layer [data-widget-hero-source]) { visibility:hidden }
++.aw-widget-mirror { position:absolute; top:0; left:0; pointer-events:none; transform-origin:top left; z-index:10 }
++:global(body.is-capturing .app-window[data-widget-hero]) { inset:0 auto auto 0 !important; }
++:global(body.is-capturing .app-window[data-widget-hero] .aw-clip) {
++  clip-path:var(--widget-hero-clip, none) !important;
++}
++
+ .app-window {
+   position: absolute;
+   z-index: var(--z-app-window);
+diff --git a/src/components/system/DockBar.vue b/src/components/system/DockBar.vue
+--- a/src/components/system/DockBar.vue
++++ b/src/components/system/DockBar.vue
+@@ -16,7 +16,7 @@
+ </script>
+ 
+ <template>
+-  <div class="dock-bar" :class="{ 'has-target':dockTargetIndex != null }" :style="{height:`${profile.dockRect.height}px`,bottom:`${profile.height-profile.dockRect.bottom}px`}">
++  <div class="dock-bar" :class="{ 'has-target':dockTargetIndex != null, 'wide-dock':profile.wide }" :style="{height:`${profile.dockRect.height}px`,bottom:`${profile.height-profile.dockRect.bottom}px`}">
+     <div v-for="(id,index) in home.dock" :key="id" class="dock-item"
+       :class="{ 'is-editing':home.editing, 'is-selected':selected.has(id), 'is-dragging-source':draggingId === id, 'is-drop-target':dockTargetIndex === index, 'is-removing':removingIds.includes(id) }"
+       :data-dock-item="id" :data-dock-index="index"
+@@ -29,6 +29,11 @@
+ </template>
+ 
+ <style scoped>
++.dock-bar.wide-dock {
++  left:4.93%;right:4.93%;padding:0;border:0;background:none;box-shadow:none;
++  backdrop-filter:none;-webkit-backdrop-filter:none;
++}
++
+ .dock-bar {
+   position: absolute;
+   left: 14px;
+diff --git a/src/components/system/HomeScreen.vue b/src/components/system/HomeScreen.vue
+--- a/src/components/system/HomeScreen.vue
++++ b/src/components/system/HomeScreen.vue
+@@ -1,4 +1,5 @@
+ <script setup>
++import { wideMode, wideAsset, formMetrics } from '../../config/deviceDesktop.js'
+ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+ import { useHomeStore } from '../../stores/homeStore'
+ import { useSystemStore } from '../../stores/systemStore'
+@@ -1099,11 +1100,22 @@
+     showToast('空白页')
+   }
+ }
++watch(wideMode, () => {
++  if (pointer) cleanup(true)
++  openFolderId.value = null
++  folderOperation.value = null
++  measureViewport()
++}, { flush: 'sync' })
++watch(formMetrics, measureViewport)
+ let resizeObserver = null
+ let resizeFrame = null
+ function measureViewport() {
+   const root = rootRef.value
+   if (!root) return
++  if (formMetrics.value) {
++    home.setViewport(formMetrics.value)
++    return
++  }
+   if (pointer) cleanup(true)
+   const style = getComputedStyle(root)
+   home.setViewport({
+@@ -1121,7 +1133,7 @@
+     cancelAnimationFrame(resizeFrame)
+     resizeFrame = requestAnimationFrame(measureViewport)
+   })
+-  resizeObserver.observe(rootRef.value)
++  if (!formMetrics.value) resizeObserver.observe(rootRef.value)
+   if (typeof window !== 'undefined') {
+     const schedule = window.requestIdleCallback || ((cb) => setTimeout(cb, 300))
+     schedule(() => {
+@@ -1135,7 +1147,7 @@
+ </script>
+ 
+ <template>
+-  <div ref="rootRef" class="home-screen" :class="{ 'just-unlocked':justUnlocked, 'is-editing':home.editing }" :style="homeStyle" @pointerdown.capture="onRootPointerDownCapture" @pointerdown="onEmptyPointerDown" @wheel="onWheel" @dragstart.prevent>
++  <div ref="rootRef" class="home-screen" :class="{ 'just-unlocked':justUnlocked, 'is-editing':home.editing, 'is-wide-layout':home.profile.wide, 'is-slab-design':!wideMode }" :style="homeStyle" @pointerdown.capture="onRootPointerDownCapture" @pointerdown="onEmptyPointerDown" @wheel="onWheel" @dragstart.prevent>
+     <div class="home-page-strip" :style="stripStyle">
+       <section v-for="(page,pageIndex) in displayPages" :key="pageIndex" class="home-page">
+         <AppGrid :page-index="pageIndex" :item-ids="page" :items="home.items" :positions="displayPositions[pageIndex] || {}" :profile="home.profile"
+@@ -1161,7 +1173,14 @@
+       </div>
+       <button type="button" class="done-pill" @click="home.setEditing(false)">完成</button>
+     </div>
+-    <div class="indicator-wrap" :style="indicatorStyle"><PageIndicator :count="hasSelection ? thumbnailPages.length : displayPages.length" :current="home.currentPage" :show-pages="home.editing || showPageDots" @search="emit('open-library')" /></div>
++    <div class="indicator-wrap" :style="indicatorStyle"><PageIndicator :wide="home.profile.wide" @go="home.setPage($event)" :count="hasSelection ? thumbnailPages.length : displayPages.length" :current="home.currentPage" :show-pages="home.editing || showPageDots" @search="emit('open-library')" /></div>
++    <form v-if="home.profile.wide && !home.editing" class="wide-google-search" role="search"
++      aria-label="Google 搜索条" action="https://www.google.com/search" target="_blank" rel="noopener" @pointerdown.stop>
++      <button type="submit" aria-label="Google 搜索"><img :src="wideAsset('search-google')" alt=""></button>
++      <input type="search" name="q" aria-label="搜索 Google" autocomplete="off" required>
++      <img class="wide-mic" :src="wideAsset('search-mic')" alt="" aria-hidden="true">
++      <img class="wide-lens" :src="wideAsset('search-lens')" alt="" aria-hidden="true">
++    </form>
+     <DockBar v-if="!home.editing" :profile="home.profile" :dragging-id="dragging?.id" :dock-target-index="dockTargetIndex" :removing-ids="removingIds" :suppress-click-id="suppressedClickId" @item-pointerdown="onDockPointerDown"
+       @toggle-select="home.toggleSelected" @request-remove="requestRemove" />
+     <HomeFolderOverlay v-if="openFolderId && home.folders[openFolderId]" :folder="home.folders[openFolderId]" :origin="folderOrigin"
+@@ -1311,6 +1330,30 @@
+ </template>
+ 
+ <style scoped>
++.wide-google-search {
++  position: absolute;
++  bottom: 4.63%;
++  left: 9.15%;
++  width: 81.7%;
++  height: 5.72%;
++  z-index: var(--z-dock);
++  display: flex;
++  align-items: center;
++  gap: 12px;
++  padding: 0 15px 0 11px;
++  background: linear-gradient(rgba(255,255,245,.92),rgba(255,255,245,.72));
++  border: .758px solid rgba(255,255,255,.2);
++  border-radius: 24px;
++  backdrop-filter: blur(3.788px);
++  color: #181818;
++}
++.wide-google-search button { display:grid; place-items:center; background:transparent; border:0; padding:0; cursor:pointer; }
++.wide-google-search button img { width:23px; height:23px; }
++.wide-google-search input { min-width:0; flex:1; height:100%; background:none; border:0; color:#181818; outline-offset:-3px; padding:0; font:14px var(--font-stack); }
++.is-slab-design .wide-google-search {bottom:3.5%;height:5.25%;left:7.8%;width:84.4%}
++.wide-mic { width:13px; height:20px; }
++.wide-lens { width:17px; height:17px; }
++
+ :global(.screen-view:has(.home-screen.is-editing) .status-bar) {
+   opacity: 0.4;
+   transition: opacity 280ms cubic-bezier(.22,.8,.26,1);
+diff --git a/src/components/ui/AppIcon.vue b/src/components/ui/AppIcon.vue
+--- a/src/components/ui/AppIcon.vue
++++ b/src/components/ui/AppIcon.vue
+@@ -1,4 +1,5 @@
+ <script setup>
++import { wideAsset, wideIconLabels, wideGoogleIds, wideIconMask } from '../../config/deviceDesktop.js'
+ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+ import { GLYPHS } from '../../assets/icons/glyphs'
+ import { NOTIF_ICONS } from './notifIcons'
+@@ -36,7 +37,12 @@
+ const anchorRef = ref(null)
+ const { today, hourDeg, minuteDeg, secondDeg } = useClock()
+ 
+-const appDisplayName = computed(() => i18n.appName(props.app.id) || props.app.name)
++const artwork = computed(() => (wideIconLabels[props.app.id] || wideGoogleIds.includes(props.app.id)) ? wideAsset(props.app.id) : null)
++const appDisplayName = computed(() => wideIconLabels[props.app.id] || i18n.appName(props.app.id) || props.app.name)
++const calendarWeekday = computed(() => {
++  const t = today.value
++  return new Intl.DateTimeFormat('en', { weekday: 'short' }).format(new Date(t.year,t.month,t.date))
++})
+ /* 用 today 的星期而非 new Date()：后者在 setup 时求值一次，跨零点不会更新。
+    today 是日期粒度的 shallowRef，只在跨天时变化，不会每秒重算。 */
+ const weekday = computed(() => {
+@@ -137,7 +143,7 @@
+ <template>
+   <button
+     class="app-icon"
+-    :class="{ 'is-hidden': hidden }"
++    :class="{ 'is-hidden': hidden, 'has-wide-artwork': artwork }"
+     :data-app-id="app.id"
+     :style="{ '--enter-delay': enterDelay + 'ms', width: size + 'px', '--scale': size / 60 }"
+     @pointerenter="onPointerEnter"
+@@ -147,7 +153,7 @@
+     <span ref="anchorRef" class="app-icon-anchor" :style="{ width: size + 'px', height: size + 'px' }">
+       <span class="icon-tile squircle-mask" :class="app.special ? 'tile-' + app.special : ''" :style="{ ...(app.special ? {} : { background: app.gradient || '#fff' }), width: size + 'px', height: size + 'px' }">
+         <!-- 图片图标：略微放大以切除原图可能自带的不完美圆角和毛刺 -->
+-        <img v-if="app.image" :src="resolvedImage" alt="" draggable="false" :style="{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.02)' }" />
++        <img v-if="artwork || app.image" :src="artwork || resolvedImage" alt="" draggable="false" :style="{ width: '100%', height: '100%', objectFit: artwork ? 'contain' : 'cover', maskImage: artwork ? wideIconMask(app.id) : undefined, maskSize: '100% 100%', maskRepeat: 'no-repeat', borderRadius: artwork && app.id === 'gemini' ? '27.78%' : undefined, transform: artwork ? 'none' : 'scale(1.02)' }" />
+ 
+         <!-- 标准：glyph -->
+         <svg v-else-if="app.glyph" width="32" height="32" viewBox="0 0 24 24" :style="{ transform: `scale(${size / 60})` }">
+@@ -185,6 +191,10 @@
+           <circle cx="30" cy="30" r="1.6" fill="#1c1c1e"/>
+         </svg>
+       </span>
++      <svg v-if="artwork && app.id === 'calendar'" class="wide-calendar-text" viewBox="0 0 58 58" aria-hidden="true">
++        <text x="29" y="14" class="wide-calendar-day">{{ calendarWeekday }}</text>
++        <text x="29" y="44" class="wide-calendar-number">{{ today.date }}</text>
++      </svg>
+ 
+       <!-- 应用数字红角标：绝对锚定于图标瓦片右上角，自适应任意图标尺寸，防止尺寸变化引起飘移 -->
+       <span v-if="showBadge && badge && size >= 36" class="icon-badge">{{ badge }}</span>
+@@ -195,6 +205,13 @@
+ </template>
+ 
+ <style scoped>
++.has-wide-artwork .icon-tile { background:transparent!important;box-shadow:none;mask-image:none;-webkit-mask-image:none; }
++.has-wide-artwork .icon-label { font:400 11px/15px var(--font-stack); max-width:95px; text-shadow:none;overflow:visible; }
++.wide-calendar-text{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;font-family:var(--font-stack);text-anchor:middle}
++.wide-calendar-day{font-size:10.741px;font-weight:700;fill:#1489fb}
++.wide-calendar-number{font-size:30.074px;font-weight:500;letter-spacing:-.716px;fill:#2d3132}
++.app-icon.is-hidden .wide-calendar-text{visibility:hidden}
++
+ .app-icon {
+   position: relative;
+   display: flex;
+diff --git a/src/components/ui/PageIndicator.vue b/src/components/ui/PageIndicator.vue
+--- a/src/components/ui/PageIndicator.vue
++++ b/src/components/ui/PageIndicator.vue
+@@ -4,17 +4,23 @@
+ 
+ /** iOS 16 风格分页指示：圆点 + 搜索胶囊 */
+ const props = defineProps({
++  wide: { type: Boolean, default: false },
+   count: { type: Number, default: 1 },
+   current: { type: Number, default: 0 },
+   showPages: { type: Boolean, default: false }
+ })
+-const emit = defineEmits(['search'])
++const emit = defineEmits(['search','go'])
+ const i18n = useI18nStore()
+ </script>
+ 
+ <template>
+   <div class="page-indicator">
+-    <Transition name="indicator-swap" mode="out-in">
++    <nav v-if="wide" class="wide-page-dots" aria-label="桌面页面" @pointerdown.stop>
++      <button type="button" class="wide-drawer-indicator" aria-label="打开应用抽屉" @click="emit('search')">=</button>
++      <button v-for="i in count" :key="i" type="button" class="wide-page-dot"
++        :aria-label="'第 ' + i + ' 页'" :aria-current="i - 1 === current ? 'page' : undefined" @click="emit('go', i - 1)"></button>
++    </nav>
++    <Transition v-else name="indicator-swap" mode="out-in">
+       <div v-if="showPages" key="pages" class="page-dots" aria-label="桌面页面">
+         <span v-for="i in count" :key="i" class="dot" :class="{ active: i - 1 === current }"></span>
+       </div>
+@@ -27,6 +33,12 @@
+ </template>
+ 
+ <style scoped>
++.wide-page-dots{display:flex;align-items:center;gap:4px}
++.wide-page-dots button{width:12px;height:20px;display:grid;place-items:center;background:none;border:0;padding:0;cursor:pointer;color:#fff6}
++.wide-page-dot::before{content:'';display:block;width:6px;height:6px;border-radius:50%;background:#ffffff55}
++.wide-page-dot[aria-current]::before{background:#ffffffe0}
++.wide-drawer-indicator {font:600 9px/1 var(--font-stack);}
++
+ .page-indicator {
+   display: flex;
+   align-items: center;
+diff --git a/src/components/widgets/ClockWidget.vue b/src/components/widgets/ClockWidget.vue
+--- a/src/components/widgets/ClockWidget.vue
++++ b/src/components/widgets/ClockWidget.vue
+@@ -1,29 +1,43 @@
+ <script setup>
+-import { ref } from 'vue'
++import { wideAsset } from '../../config/deviceDesktop.js'
++import { computed, ref } from 'vue'
+ import { useClock } from '../../composables/useClock'
+ import { useSystemStore } from '../../stores/systemStore'
+-import { getAnchorRect, setLaunchRect } from '../../utils/appIconAnchors'
++import { setLaunchRect } from '../../utils/appIconAnchors'
+ import { rectRelativeToScreen } from '../../utils/dom'
+ 
+ /** 时钟 Widget（2×2）：白底实时指针表盘，表盘放大居中显示，点击打开时钟 App */
+-const { hourDeg, minuteDeg, secondDeg } = useClock()
++const props = defineProps({ wide: Boolean })
++const { hourDeg, minuteDeg, secondDeg, now } = useClock()
++const wideTime = computed(() => new Intl.DateTimeFormat('en-GB', {hour:'2-digit',minute:'2-digit',hour12:false}).format(now.value))
++const wideDate = computed(() => new Intl.DateTimeFormat('en-US', {weekday:'short',month:'short',day:'numeric'}).format(now.value))
+ const system = useSystemStore()
+ const widgetRef = ref(null)
+ 
+ function openClock() {
+   const screenEl = document.querySelector('.screen-view')
+   const launchRect = (screenEl && widgetRef.value)
+-    ? (getAnchorRect('clock', screenEl) || rectRelativeToScreen(widgetRef.value, screenEl))
++    ? rectRelativeToScreen(widgetRef.value, screenEl)
+     : null
+   if (launchRect) {
+-    setLaunchRect('clock', launchRect)
++    setLaunchRect('clock', { ...launchRect, widgetId: 'clock' })
+   }
+   system.openApp('clock')
+ }
+ </script>
+ 
+ <template>
+-  <div ref="widgetRef" class="widget clock-widget" @click="openClock">
++  <button v-if="props.wide" ref="widgetRef" type="button" class="widget wide-clock-widget" aria-label="打开时钟" @click="openClock">
++    <img :src="wideAsset('clock-face')" alt="">
++    <span class="wide-clock-date">{{ wideDate }}</span>
++    <span class="wide-clock-temp" aria-label="温度 26 度">26°</span>
++    <time class="wide-clock-time" :aria-label="wideTime">
++      <svg viewBox="0 0 154 154" aria-hidden="true">
++        <text x="77" y="97" text-anchor="middle">{{ wideTime }}</text>
++      </svg>
++    </time>
++  </button>
++  <div v-else ref="widgetRef" class="widget clock-widget" @click="openClock">
+     <svg class="cw-face" viewBox="0 0 120 120">
+       <circle cx="60" cy="60" r="57" fill="#fff" />
+       <!-- 刻度 -->
+@@ -53,6 +67,19 @@
+ </template>
+ 
+ <style scoped>
++.wide-clock-widget { position:relative; display:block; padding:0; border:0; background:none; box-shadow:none; cursor:pointer; container-type:inline-size; }
++.wide-clock-widget img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
++.wide-clock-date {position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;top:14%;font:600 6.9cqw/1.2 var(--font-stack);color:#0008}
++.wide-clock-temp {position:absolute;left:50.5%;top:76.55%;font:600 6.9cqw/1.2 var(--font-stack);color:#0008;white-space:nowrap}
++.wide-clock-time,.wide-clock-time svg {position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
++.wide-clock-time text {
++  font-family:"Transsion Tecno pnum",-apple-system,"SF Pro Rounded","Arial Rounded MT Bold","Helvetica Neue",sans-serif;
++  font-size:70px;
++  font-weight:840;
++  font-variation-settings:"wght" 840,"ytde" 235;
++  fill:#181818;
++}
++
+ .widget {
+   width: 100%;
+   aspect-ratio: 1 / 1;
+diff --git a/src/components/widgets/PhotoWidget.vue b/src/components/widgets/PhotoWidget.vue
+--- a/src/components/widgets/PhotoWidget.vue
++++ b/src/components/widgets/PhotoWidget.vue
+@@ -25,7 +25,9 @@
+   if (widgetRef.value) {
+     const screenEl = document.querySelector('.screen-view')
+     if (screenEl) {
+-      setLaunchRect('settings', rectRelativeToScreen(widgetRef.value, screenEl))
++      const stack = widgetRef.value.closest('.smart-suggestion-stack')
++      const rect = rectRelativeToScreen(stack || widgetRef.value, screenEl)
++      if (rect?.width) setLaunchRect('settings', stack ? { ...rect, widgetId: 'smart' } : rect)
+     }
+   }
+   system.openApp('settings')
+diff --git a/src/components/widgets/SmartSuggestionWidget.vue b/src/components/widgets/SmartSuggestionWidget.vue
+--- a/src/components/widgets/SmartSuggestionWidget.vue
++++ b/src/components/widgets/SmartSuggestionWidget.vue
+@@ -1,10 +1,21 @@
+ <script setup>
++import { wideAsset } from '../../config/deviceDesktop.js'
+ import { computed, ref } from 'vue'
++import { useHomeStore } from '../../stores/homeStore'
+ import { usePrayerStore } from '../../stores/prayerStore'
+ import { useSystemStore } from '../../stores/systemStore'
++import { setLaunchRect } from '../../utils/appIconAnchors'
++import { rectRelativeToScreen } from '../../utils/dom'
+ import WeatherWidget from './WeatherWidget.vue'
+ import PhotoWidget from './PhotoWidget.vue'
+ 
++const props = defineProps({ wide: Boolean })
++const wideTiles = [
++  { id:'tips', label:'Tips', art:'suggestion-tips' },
++  { id:'calculator', label:'Calculator', art:'suggestion-calculator' },
++  { id:'oneleap', label:'OneLeap', art:'suggestion-switch' },
++  { id:'weather', label:'Weather', art:'suggestion-weather' }
++]
+ const prayerStore = usePrayerStore()
+ const system = useSystemStore()
+ const currentMode = computed(() => prayerStore.userMode)
+@@ -21,7 +32,9 @@
+   prayerStore.setUserMode(currentMode.value === 'muslim' ? 'normal' : 'muslim')
+ }
+ 
++const desktopHome = useHomeStore()
+ function onStackPointerDown(event) {
++  if (props.wide && !desktopHome.editing) event.stopPropagation()
+   if (event.button != null && event.button !== 0) return
+   isTracking = true
+   didSwipe = false
+@@ -85,6 +98,13 @@
+   toggleMode()
+ }
+ 
++function openFromSuggestions(appId, event) {
++  const widget = event.currentTarget.closest('.smart-suggestion-stack')
++  const rect = rectRelativeToScreen(widget, widget?.closest('.screen-view'))
++  if (rect?.width) setLaunchRect(appId, { ...rect, widgetId: 'smart' })
++  system.openApp(appId)
++}
++
+ function onPrayerClick(event) {
+   if (didSwipe) {
+     event.preventDefault()
+@@ -92,7 +112,7 @@
+     return
+   }
+   prayerStore.setTargetView('prayer')
+-  system.openApp('settings')
++  openFromSuggestions('settings', event)
+ }
+ 
+ function onStackClickCapture(event) {
+@@ -120,9 +140,14 @@
+     <div
+       class="stack-card weather-card"
+       :class="{ active: currentMode === 'normal', exited: currentMode === 'muslim' }"
+-      @click="onWeatherClick"
++      @click="!props.wide && onWeatherClick($event)"
+     >
+-      <WeatherWidget />
++      <div v-if="props.wide" class="wide-suggestions" aria-label="AI Suggestions">
++        <button v-for="tile in wideTiles" :key="tile.id" type="button" :aria-label="tile.label" @click.stop="openFromSuggestions(tile.id, $event)">
++          <img :src="wideAsset(tile.art)" alt="">
++        </button>
++      </div>
++      <WeatherWidget v-else />
+     </div>
+ 
+     <!-- 3. 穆斯林用户：朝拜时段卡片 (上下轻扫翻转至天气模式，点击进入设置-礼拜模式) -->
+@@ -137,6 +162,10 @@
+ </template>
+ 
+ <style scoped>
++.wide-suggestions { width:100%;height:100%;display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(2,minmax(0,1fr)); gap:8%; padding:8.4%; box-sizing:border-box; border:1px solid #fff2; border-radius:21px; background:linear-gradient(#ffffff38,#ffffff2a); }
++.wide-suggestions button { display:block; min-width:0; min-height:0; padding:0; border:0; background:none; cursor:pointer; }
++.wide-suggestions img { display:block; width:100%;height:100%;object-fit:contain;border-radius:27%; }
++
+ .smart-suggestion-stack {
+   position: relative;
+   width: 100%;
+diff --git a/src/composables/useHeroTransition.js b/src/composables/useHeroTransition.js
+--- a/src/composables/useHeroTransition.js
++++ b/src/composables/useHeroTransition.js
+@@ -36,7 +36,7 @@
+     phase.value = progress > 0 ? 'preview' : 'open'
+   }
+ 
+-  function beginOpen({ viewportRect, anchorRect, viewportRadius = 47, onOpened } = {}) {
++  function beginOpen({ viewportRect, anchorRect, anchorRadius, viewportRadius = 47, reducedMotion, onOpened } = {}) {
+     stop()
+     const run = generation
+     const options = {
+@@ -44,8 +44,16 @@
+       viewportRect,
+       anchorRect,
+       viewportRadius,
++      anchorRadius,
+       duration: openDuration
+     }
++    if (reducedMotion) {
++      frame.value = deriveHeroFrame({ ...options, timeMs: openDuration })
++      phase.value = 'open'
++      onOpened?.()
++      return
++    }
++
+     phase.value = 'opening'
+     frame.value = deriveHeroFrame({ ...options, timeMs: 0 })
+     let startedAt = typeof performance !== 'undefined' ? performance.now() : null
+@@ -68,6 +76,8 @@
+   function beginClose({
+     viewportRect,
+     anchorRect,
++    anchorRadius,
++    reducedMotion,
+     startRect,
+     startRadius,
+     startBackdropStrength,
+@@ -87,12 +97,20 @@
+       direction: 'close',
+       viewportRect,
+       anchorRect,
++      anchorRadius,
+       startRect,
+       startRadius,
+       startBackdropStrength,
+       viewportRadius,
+       duration
+     }
++    if (reducedMotion) {
++      phase.value = 'closed'
++      onHandoff?.()
++      onClosed?.()
++      return
++    }
++
+     phase.value = 'closing'
+     frame.value = deriveHeroFrame({ ...options, timeMs: 0 })
+ 
+diff --git a/src/config/apps.js b/src/config/apps.js
+--- a/src/config/apps.js
++++ b/src/config/apps.js
+@@ -1,3 +1,4 @@
++import { newHomeApps, wideAsset, wideIconLabels, wideGoogleIds } from './deviceDesktop.js'
+ /**
+  * 统一纯数据应用表 —— 全仓唯一的应用元数据事实来源。
+  * `APPS` / `DRAWER_APPS` / `APP_NAMES` / `DARK_BG_APPS` 均由此表派生。
+@@ -448,7 +449,14 @@
+ /** 按 ID 查询任意已注册应用（包含 hiddenOnDesktop 应用）。 */
+ export const getApp = (id) => {
+   const found = APP_CATALOG.find((a) => a.id === id)
+-  return found ? toDesktopApp(found) : undefined
++  if (!found) return undefined
++  const app = toDesktopApp(found)
++  if (wideIconLabels[id] || wideGoogleIds.includes(id)) {
++    app.name = wideIconLabels[id] || app.name
++    app.wideArtwork = wideAsset(id)
++    app.image = app.wideArtwork
++  }
++  return app
+ }
+ 
+ const catalogListeners = new Set()
+@@ -508,3 +516,7 @@
+   for (const listener of catalogListeners) listener(descriptor)
+   return descriptor
+ }
++
++for (const [id, name] of Object.entries(newHomeApps)) {
++  registerCatalogApp({ id, name, icon: wideAsset(id), depth: 'placeholder', hiddenOnDesktop: true })
++}
+diff --git a/src/config/deviceDesktop.js b/src/config/deviceDesktop.js
+new file mode 100644
+--- /dev/null
++++ b/src/config/deviceDesktop.js
+@@ -0,0 +1,164 @@
++import { ref, shallowRef } from 'vue'
++
++export const formMetrics = shallowRef(null)
++export const formMoving = ref(false)
++const formQuery = new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search)
++export const modernWidgets = formQuery.get('widgets') !== 'legacy'
++export const wideMode = ref(formQuery.get('form') === 'wide')
++const nativeAssets = {
++  gemini: 'gemini.png', hola: 'hola.png', phone: 'phone.png', camera: 'camera.png',
++  chrome: 'chrome.png', settings: 'settings.svg', 'phone-master': 'phone-master.svg',
++  'suggestion-switch': 'suggestion-switch.png', 'suggestion-tips': 'suggestion-tips.png',
++  'suggestion-weather': 'suggestion-weather.svg'
++}
++
++const exportedArtwork = import.meta.env
++  ? import.meta.glob('../../scripts/preview-wide/wide-home-*/*.{png,svg}', { eager: true, query: '?url&no-inline', import: 'default' })
++  : {}
++
++function artworkUrl(folder, name) {
++  return exportedArtwork[`../../scripts/preview-wide/${folder}/${name}`] || ''
++}
++
++export function wideAsset(name) {
++  const original = wideGoogleIds.includes(name) ? name + '.png' : nativeAssets[name]
++  return original ? artworkUrl('wide-home-icons', original) : artworkUrl('wide-home-cuts', name + '.png')
++}
++
++export function wideIconMask(name) {
++  const mask = wideGoogleIds.includes(name) ? 'icon-mask.svg'
++    : ['phone', 'camera', 'chrome'].includes(name) ? 'dock-mask.svg'
++    : name === 'hola' ? 'hola-mask.svg' : null
++  return mask ? `url("${artworkUrl('wide-home-icons', mask)}")` : undefined
++}
++
++export const newHomeApps = {
++  'play-store': 'Play Store',
++  gemini: 'Gemini',
++  videos: 'Videos',
++  'phone-master': 'Phone Master',
++  'app-center': 'App Center',
++  hola: 'Hola',
++  chrome: 'Chrome',
++  maps: 'Maps', drive: 'Drive', 'yt-music': 'YouTube Music',
++  'google-tv': 'Google TV', meet: 'Meet', 'google-photos': 'Google Photos'
++}
++export const wideIconLabels = {
++  ...newHomeApps,
++  settings: 'Settings', photos: 'AI Gallery', theme: 'Themes', calendar: 'Calendar',
++  games: 'Games', phone: 'Phone', messages: 'Messages', camera: 'Camera'
++}
++export const wideDockIds = ['phone', 'messages', 'chrome', 'camera']
++export const wideGoogleIds = ['google', 'gmail', 'maps', 'youtube', 'drive', 'yt-music', 'google-tv', 'meet', 'google-photos']
++export const wideHomeFolder = {
++  id: 'wide-google', name: 'Google', appIds: wideGoogleIds, width: 1, height: 1
++}
++const mainApps = [
++  'play-store', 'gemini', 'settings', 'photos', 'theme', 'videos', 'calendar',
++  'phone-master', 'app-center', 'games', 'hola'
++]
++
++export function wideDefaultOrder(items) {
++  const first = ['widget:clock', 'widget:smart', 'folder:wide-google', ...mainApps.map(id => `app:${id}`)]
++  const excluded = new Set([...first, ...[...wideDockIds, ...wideGoogleIds].map(id => `app:${id}`)])
++  const rest = Object.keys(items).filter(id => !excluded.has(id))
++  return [...first, 'page-break:wide-default', ...rest]
++}
++
++const designRows = [63, 159, 254.5, 351.67, 449.67]
++
++export function wideGridProfile({ width, height, progress, wideHeight }, native, slab) {
++  const amount = progress ?? (slab ? 0 : 1)
++  const mix = (a, b) => a + (b - a) * amount
++  const sx = width / 426
++  const slabY = native.height / 788
++  const wideY = (wideHeight ?? height) / 734
++  const sy = mix(slabY, wideY)
++  const nativeStride = (native.iconSize + native.labelHeight + native.gapY) * native.compactScale
++  const rowStride = mix(nativeStride, 96 * wideY)
++  const rowY = designRows.map((y, i) => mix(native.workspaceRect.top + i * nativeStride, y * wideY))
++  const iconSize = mix(native.iconSize, 58)
++  const compactScale = mix(native.compactScale, 1)
++  const stepX = mix((native.iconSize + native.gapX) * native.compactScale, 96)
++  const left = mix(native.insetX, 40)
++  const right = width - left
++  const dockTop = mix(646 * slabY, 581 * wideY)
++  const workspaceBottom = mix(native.workspaceRect.bottom, 546 * wideY)
++  return {
++    wide: true, nativeGrid: slab, nativeMetrics: slab && amount === 0, width, height, columns: 4, rows: 5, sx, sy,
++    iconSize, compactScale, insetX: left, stepX, gapX: stepX / compactScale - iconSize,
++    gapY: mix(native.gapY, 22 * wideY), labelHeight: mix(native.labelHeight, 16 * wideY),
++    rowStride, tallCardHeight: mix(nativeStride + native.iconSize * native.compactScale, 154),
++    rowY,
++    workspaceRect: { left, top: rowY[0], right, bottom: workspaceBottom, width: right - left, height: workspaceBottom - rowY[0] },
++    dockRect: { left: 21 * sx, top: dockTop, right: width - 21 * sx, bottom: dockTop + iconSize, height: iconSize },
++    indicatorY: mix(632 * slabY, 565 * wideY)
++  }
++}
++
++export function wideItemMetrics(span, profile) {
++  const { iconSize, compactScale, stepX, gapX, gapY, rowStride, tallCardHeight, nativeGrid } = profile
++  const unit = iconSize * compactScale
++  const labelHeight = profile.labelHeight * compactScale
++  const width = (span.w - 1) * stepX + unit
++  const cardHeight = span.h === 2 ? tallCardHeight : unit
++  const height = nativeGrid ? (span.h - 1) * rowStride + unit + labelHeight : cardHeight + labelHeight
++  return {
++    spanX: span.w, spanY: span.h, width, height, unit,
++    gapX: gapX * compactScale,
++    gapY: nativeGrid ? rowStride - unit - labelHeight : gapY,
++    cardWidth: span.w === 2 && span.h === 2 ? cardHeight : width,
++    cardHeight, rowStride, labelHeight
++  }
++}
++
++export function packWideOrder(order, items, folders, profile, itemSpan) {
++  const pages = [[]]
++  const frames = { 0: {} }
++  const grid = () => Array.from({ length: profile.rows }, () => Array(profile.columns).fill(false))
++  let occupied = grid()
++  let page = 0
++
++  function nextPage() {
++    occupied = grid()
++    pages.push([])
++    frames[++page] = {}
++  }
++  function find(span) {
++    for (let row = 0; row <= profile.rows - span.h; row++) {
++      for (let col = 0; col <= profile.columns - span.w; col++) {
++        if (occupied.slice(row, row + span.h).every(cells => cells.slice(col, col + span.w).every(cell => !cell))) return { row, col }
++      }
++    }
++    return null
++  }
++
++  for (const id of new Set(order || [])) {
++    if (id.startsWith('page-break:')) {
++      if (pages[page].length) nextPage()
++      continue
++    }
++    if (!items[id]) continue
++    const span = itemSpan(items[id], folders)
++    let slot = find(span)
++    if (!slot) {
++      nextPage()
++      slot = find(span)
++    }
++    const { row, col } = slot
++    for (let r = row; r < row + span.h; r++) occupied[r].fill(true, col, col + span.w)
++    const m = wideItemMetrics(span, profile)
++    pages[page].push(id)
++    frames[page][id] = {
++      x: profile.insetX + col * profile.stepX,
++      y: profile.rowY[row],
++      width: m.width, height: m.height, cardWidth: m.cardWidth, cardHeight: m.cardHeight,
++      row, col, spanX: span.w, spanY: span.h, w: span.w, h: span.h
++    }
++  }
++  if (page > 0 && !pages[page].length) {
++    pages.pop()
++    delete frames[page]
++  }
++  return { pages, frames, positions: frames }
++}
+diff --git a/src/config/drawerApps.js b/src/config/drawerApps.js
+--- a/src/config/drawerApps.js
++++ b/src/config/drawerApps.js
+@@ -1,3 +1,4 @@
++import { newHomeApps } from './deviceDesktop.js'
+ /**
+  * 应用抽屉全量元数据与 A-Z 拼音索引配置。
+  * 数据全部从 `src/config/apps.js` 的统一纯数据应用表 `APP_CATALOG` 派生，不再重复维护。
+@@ -31,12 +32,12 @@
+ }
+ 
+ export const DRAWER_APPS = APP_CATALOG
+-  .filter((a) => !a.hiddenOnDesktop)
++  .filter((a) => !a.hiddenOnDesktop || Object.hasOwn(newHomeApps, a.id))
+   .map(toDrawerApp)
+   .sort(compareDrawerOrder)
+ 
+ subscribeCatalog((entry) => {
+-  if (entry.hiddenOnDesktop) return
++  if (entry.hiddenOnDesktop && !Object.hasOwn(newHomeApps, entry.id)) return
+   if (DRAWER_APPS.some((a) => a.id === entry.id)) return
+   DRAWER_APPS.push(toDrawerApp(entry))
+ })
+diff --git a/src/stores/homeStore.js b/src/stores/homeStore.js
+--- a/src/stores/homeStore.js
++++ b/src/stores/homeStore.js
+@@ -1,3 +1,4 @@
++import { wideMode, newHomeApps, wideDefaultOrder, wideDockIds, wideHomeFolder, wideGridProfile } from '../config/deviceDesktop.js'
+ import { defineStore } from 'pinia'
+ import { APPS, dockApps, gridApps } from '../config/apps.js'
+ import { HOME_LAYOUT_VERSION, cloneHomeState, createHomeGridProfile, globalRankForPageIndex, layoutHomeOrder, locateHomeItem, moveHomeOrderItem } from '../utils/homeLayout.js'
+@@ -8,12 +9,16 @@
+ const folderItemId = (id) => `folder:${id}`
+ const unique = (values) => [...new Set(values || [])]
+ 
+-function defaultItems() {
++function defaultItems(wide) {
+   const items = {
+     'widget:clock': { id: 'widget:clock', type: 'widget', widgetId: 'clock', w: 2, h: 2 },
+     'widget:smart': { id: 'widget:smart', type: 'widget', widgetId: 'smart', w: 2, h: 2 }
+   }
+   for (const app of APPS) items[appItemId(app.id)] = { id: appItemId(app.id), type: 'app', appId: app.id, w: 1, h: 1 }
++  if (wide) {
++    for (const id of Object.keys(newHomeApps)) items[appItemId(id)] = { id: appItemId(id), type: 'app', appId: id, w: 1, h: 1 }
++    items['folder:wide-google'] = { id: 'folder:wide-google', type: 'folder', folderId: 'wide-google', w: 1, h: 1 }
++  }
+   return items
+ }
+ 
+@@ -24,7 +29,7 @@
+   state.currentPage = Math.max(0, Math.min(Number(state.currentPage) || 0, state.pages.length - 1))
+ }
+ 
+-export function createDefaultHomeState() {
++export function createDefaultHomeState(wide = false) {
+   const state = {
+     version: HOME_LAYOUT_VERSION, currentPage: 0,
+     order: [
+@@ -33,10 +38,18 @@
+       'page-break:default',
+       ...gridApps.slice(15).map((app) => appItemId(app.id))
+     ],
+-    pages: [[]], positions: {}, profile: createHomeGridProfile(), items: defaultItems(), folders: {},
++    pages: [[]], positions: {}, profile: createHomeGridProfile(), items: defaultItems(wide), folders: {},
+     dock: dockApps.map((app) => appItemId(app.id)).slice(0, 4),
+     uninstalledAppIds: [], hiddenDesktopAppIds: [], removedWidgetIds: [], hiddenIconId: null,
+     editing: false, selectedItemIds: []
++  }
++  if (wide) {
++    state.order = wideDefaultOrder(state.items)
++    state.folders[wideHomeFolder.id] = { ...wideHomeFolder, appIds: [...wideHomeFolder.appIds] }
++    state.dock = wideDockIds.map(appItemId)
++    state.profile = designedGridProfile({ width: wide === 'slab' ? 360 : 426, height: wide === 'slab' ? 788 : 734 }, wide)
++    const extraPage = state.order.indexOf('page-break:wide-default') + 1
++    state.hiddenDesktopAppIds = state.order.splice(extraPage + 20).map(id => state.items[id].appId)
+   }
+   deriveLayout(state)
+   return state
+@@ -52,10 +65,10 @@
+   }
+ }
+ 
+-function reconcile(raw) {
+-  const defaults = createDefaultHomeState()
++function reconcile(raw, wide) {
++  const defaults = createDefaultHomeState(wide)
+   if (!raw?.items || !raw.items['app:whatsapp'] || (raw.version === 2 ? !Array.isArray(raw.order) : !Array.isArray(raw.pages))) return defaults
+-  const knownApps = new Set(APPS.map((app) => app.id))
++  const knownApps = new Set(Object.values(defaults.items).filter(item => item.type === 'app').map(item => item.appId))
+   const uninstalled = new Set((raw.uninstalledAppIds || []).filter((id) => knownApps.has(id)))
+   const hidden = new Set((raw.hiddenDesktopAppIds || []).filter((id) => knownApps.has(id) && !uninstalled.has(id)))
+   const removedWidgets = new Set(raw.removedWidgetIds || [])
+@@ -90,7 +103,17 @@
+   return state
+ }
+ 
+-export function loadHomeState(storage = safeStorage()) {
++const designedStorageKey = mode => HOME_STORAGE_KEY + (mode === 'slab' ? '.slab-design' : '.wide')
++
++export function loadHomeState(storage = safeStorage(), wide = false) {
++  if (wide) {
++    try {
++      const saved = storage?.getItem(designedStorageKey(wide))
++        || (wide === 'slab' && (storage?.getItem(HOME_STORAGE_KEY) || storage?.getItem(LEGACY_HOME_STORAGE_KEY)))
++      if (saved) return reconcile(JSON.parse(saved), wide)
++    } catch {}
++    return createDefaultHomeState(wide)
++  }
+   if (!storage) return createDefaultHomeState()
+   try {
+     const current = storage.getItem(HOME_STORAGE_KEY)
+@@ -101,8 +124,8 @@
+ }
+ 
+ let folderSequence = 0
+-export const useHomeStore = defineStore('home', {
+-  state: () => loadHomeState(),
++const createHomeDefinition = wide => ({
++  state: () => loadHomeState(undefined, wide),
+   getters: {
+     pageCount: (state) => state.pages.length,
+     currentItems: (state) => state.pages[state.currentPage] || [],
+@@ -113,11 +136,11 @@
+   actions: {
+     persist() {
+       const storage = safeStorage(); if (!storage) return
+-      try { storage.setItem(HOME_STORAGE_KEY, JSON.stringify(cloneHomeState({ version: this.version, currentPage: this.currentPage, order: this.order, items: this.items, folders: this.folders, dock: this.dock, uninstalledAppIds: this.uninstalledAppIds, hiddenDesktopAppIds: this.hiddenDesktopAppIds, removedWidgetIds: this.removedWidgetIds }))) } catch {}
++      try { storage.setItem(wide ? designedStorageKey(wide) : HOME_STORAGE_KEY, JSON.stringify(cloneHomeState({ version: this.version, currentPage: this.currentPage, order: this.order, items: this.items, folders: this.folders, dock: this.dock, uninstalledAppIds: this.uninstalledAppIds, hiddenDesktopAppIds: this.hiddenDesktopAppIds, removedWidgetIds: this.removedWidgetIds }))) } catch {}
+     },
+     reflow() { deriveLayout(this) },
+     setLayoutProfile(profile) { this.profile = profile; this.reflow() },
+-    setViewport(metrics) { this.setLayoutProfile(createHomeGridProfile(metrics)) },
++    setViewport(metrics) { this.setLayoutProfile(wide ? designedGridProfile(metrics, wide) : createHomeGridProfile(metrics)) },
+     setPage(index) { this.currentPage = Math.max(0, Math.min(Number(index) || 0, this.pages.length - 1)); this.persist() },
+     setEditing(value) { this.editing = Boolean(value); if (!this.editing) this.selectedItemIds = [] },
+     toggleSelected(id) { if (this.items[id]) this.selectedItemIds = this.selectedItemIds.includes(id) ? this.selectedItemIds.filter((value) => value !== id) : [...this.selectedItemIds, id] },
+@@ -255,6 +278,41 @@
+     },
+     removeWidget(widgetId) { const itemId = `widget:${widgetId}`; if (!this.items[itemId]) return false; this.order = this.order.filter((id) => id !== itemId); delete this.items[itemId]; if (!this.removedWidgetIds.includes(widgetId)) this.removedWidgetIds.push(widgetId); this.reflow(); this.persist(); return true },
+     hideIcon(appId) { this.hiddenIconId = appId }, showIcon() { this.hiddenIconId = null },
+-    resetLayout() { Object.assign(this, createDefaultHomeState()); this.persist() }
++    resetLayout() { Object.assign(this, createDefaultHomeState(wide)); this.persist() }
+   }
+ })
++
++function designedGridProfile(metrics, mode) {
++  const native = createHomeGridProfile({
++    width: 360,
++    height: metrics.slabHeight ?? (mode === 'slab' ? metrics.height : 788)
++  })
++  return wideGridProfile(metrics, native, mode === 'slab')
++}
++
++const useSlabHome = defineStore('home-slab-design', createHomeDefinition('slab'))
++const useWideHome = defineStore('home-wide', createHomeDefinition(true))
++const storeViews = new WeakMap()
++
++export function useHomeStore(...args) {
++  const slab = useSlabHome(...args)
++  if (storeViews.has(slab)) return storeViews.get(slab)
++  const wide = useWideHome(...args)
++  const current = () => wideMode.value ? wide : slab
++  const heroActions = {
++    hideIcon(appId) {
++      slab.hideIcon(appId)
++      wide.hideIcon(appId)
++    },
++    showIcon() {
++      slab.showIcon()
++      wide.showIcon()
++    }
++  }
++  const view = new Proxy({}, {
++    get: (_, key) => Object.hasOwn(heroActions, key) ? heroActions[key] : Reflect.get(current(), key),
++    set: (_, key, value) => Reflect.set(current(), key, value)
++  })
++  storeViews.set(slab, view)
++  return view
++}
+diff --git a/src/stores/i18nStore.js b/src/stores/i18nStore.js
+--- a/src/stores/i18nStore.js
++++ b/src/stores/i18nStore.js
+@@ -1,3 +1,4 @@
++import { newHomeApps } from '../config/deviceDesktop.js'
+ import { defineStore } from 'pinia'
+ /* 词条数据 2026-09-11 起分包到 src/locales/，这里只做组装。
+  * 新增应用词条：新建 src/locales/<app>.js 并在 loader 里注册，别往 messages.js 塞。 */
+@@ -33,7 +34,7 @@
+     demoContacts: (s) => MESSAGES[s.locale]?.demoContacts || MESSAGES.zh.demoContacts,
+     currentWeekDays: (s) => MESSAGES[s.locale]?.weekDays || MESSAGES.zh.weekDays || [],
+     calWeekDays: (s) => MESSAGES[s.locale]?.calWeekDays || MESSAGES.zh.calWeekDays || [],
+-    appName: (s) => (appId) => APP_NAMES[s.locale]?.[appId] || APP_NAMES.zh[appId] || appId,
++    appName: (s) => (appId) => APP_NAMES[s.locale]?.[appId] || APP_NAMES.zh[appId] || newHomeApps[appId] || appId,
+     /**
+      * AI Mate 词条：路径式取用，缺项回落到中文。
+      * 例：am('fan.power') / am('home.group.wear') / am('fan.modes')（数组直接返回）
+diff --git a/src/utils/homeLayout.js b/src/utils/homeLayout.js
+--- a/src/utils/homeLayout.js
++++ b/src/utils/homeLayout.js
+@@ -1,3 +1,4 @@
++import { wideItemMetrics, packWideOrder } from '../config/deviceDesktop.js'
+ export const HOME_LAYOUT_VERSION = 2
+ export const HOME_COLUMNS = 4
+ export const HOME_ROWS = 6
+@@ -48,6 +49,7 @@
+ 
+ export function homeItemMetrics(item, folders = {}, profile = createHomeGridProfile()) {
+   const span = itemSpan(item, folders)
++  if (profile.wide && !profile.nativeMetrics) return wideItemMetrics(span, profile)
+   const scale = profile.compactScale || 1
+   const unit = profile.iconSize * scale
+   const gapX = profile.gapX * scale
+@@ -74,6 +76,7 @@
+ 
+ /** Packs canonical item order into viewport-derived pages and pixel frames. */
+ export function layoutHomeOrder(order, items, folders = {}, profile = createHomeGridProfile()) {
++  if (profile.wide && !profile.nativeGrid) return packWideOrder(order, items, folders, profile, itemSpan)
+   const source = [...new Set((order || []).filter((id) => items[id] || (typeof id === 'string' && id.startsWith('page-break:'))))]
+   const pages = []
+   const frames = {}
