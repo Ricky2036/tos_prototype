@@ -6,6 +6,8 @@ Development port: `7777`
 
 Role: **工程基建 + 业务簇实现**。执行协议见 `docs/tOS-pipeline-1.0.md`。
 
+本 lane 的私有工作目录（不入库）：`.dsh/`（`scratch` / `build` / `evidence` / `notes`，见 `.dsh/README.md`）。
+
 ## Owns（工具与新文件为主）
 
 - `tools/pixel-gate/**` — 图侧几何工具（迁入 + 维护）

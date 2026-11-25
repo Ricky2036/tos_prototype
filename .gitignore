@@ -29,6 +29,7 @@ user_svgs/
 
 # ---- AI 工作区与本地评审产物（不入库） ----
 .workbuddy/
+.dsh/
 code-review-*.html
 
 # ---- Motion Builder deterministic capture output ----
