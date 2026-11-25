@@ -757,6 +757,11 @@ function onActivate(id) {
     void takeScreenshot()
     return
   }
+  if (id === 'oneHanded') {
+    control.toggle('oneHanded')
+    if (control.oneHanded) system.requestCloseOverlay('controlCenter')
+    return
+  }
   if (id === 'sound') return // 由 GridButton 内部 cycleSoundMode 处理
   control.toggle(id)
 }
