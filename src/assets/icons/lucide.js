@@ -574,8 +574,8 @@ const jbl = `<svg width="32" height="32" viewBox="0 0 84 84" fill="none" xmlns="
    到时直接替换下面这个 `vpn` 常量即可，其它代码一行都不用动。 */
 const vpn = `<svg width="32" height="32" viewBox="0 0 84 84" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M42 6L74 17V42C74 60 60 73 42 78C24 73 10 60 10 42V17L42 6ZM19 34L24.7 52L27.3 52L33 34H29.7L26 43.5L22.3 34H19ZM36 34H44.2C47.8 34 50 36.2 50 39.8C50 43.4 47.8 45.6 44.2 45.6H39.8V52H36V34ZM39.8 37.5V42.6H44C45.4 42.6 46.3 41.4 46.3 39.9C46.3 38.4 45.4 37.5 44 37.5H39.8ZM53 52V34H56.3L61.7 43.8V34H65V52H61.7L56.3 42.2V52H53Z" fill="white"/></svg>`
 
-/* 31. 单手模式（阔直板控制中心专属） */
-const oneHanded = `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="3.5" width="20" height="25" rx="4.2" stroke="currentColor" stroke-width="2.4"/><rect x="9.2" y="12.8" width="9.6" height="12.5" rx="1.8" fill="currentColor"/></svg>`
+/* 31. 单手模式（阔直板控制中心专属，右下角贴边实心块） */
+const oneHanded = `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="cc-onehanded-clip"><rect x="7" y="3.5" width="18" height="25" rx="4"/></clipPath></defs><path d="M14.2 16C14.2 14.2327 15.6327 12.8 17.4 12.8H25V28.5H14.2V16Z" fill="currentColor" clip-path="url(#cc-onehanded-clip)"/><rect x="7" y="3.5" width="18" height="25" rx="4" stroke="currentColor" stroke-width="2.4"/></svg>`
 
 // 官方锁屏与系统级相机矢量图标 (camera)
 const camera = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
