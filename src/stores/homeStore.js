@@ -109,7 +109,6 @@ export function loadHomeState(storage = safeStorage(), wide = false) {
   if (wide) {
     try {
       const saved = storage?.getItem(designedStorageKey(wide))
-        || (wide === 'slab' && (storage?.getItem(HOME_STORAGE_KEY) || storage?.getItem(LEGACY_HOME_STORAGE_KEY)))
       if (saved) return reconcile(JSON.parse(saved), wide)
     } catch {}
     return createDefaultHomeState(wide)
