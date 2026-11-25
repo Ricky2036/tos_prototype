@@ -1,0 +1,632 @@
+{
+  "baselineSha": "dfe31aba1bb81dd3b2030d3a247b62823604b4fe",
+  "status": "source-inventory-draft",
+  "notes": "Source discovery only. An entry or route in this inventory still needs desktop and wide browser validation. Baseline captures and physical-device signoff are pending.",
+  "apps": [
+    {
+      "id": "phone",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": "src/components/apps/phone/entry.js",
+      "implementation": "registered-component",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "messages",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": "src/components/apps/messages/entry.js",
+      "implementation": "registered-component",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "safari",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "camera",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": "src/components/apps/camera/entry.js",
+      "implementation": "registered-component",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "weather",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "notes",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "files",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "voicememos",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": "src/components/apps/voicememos/entry.js",
+      "implementation": "registered-component",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "fitness",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "calculator",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "theme",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "settings",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": "src/components/apps/settings/entry.js",
+      "implementation": "registered-component",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "aimate",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": "src/components/apps/aimate/entry.js",
+      "implementation": "registered-component",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "calendar",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": "src/components/apps/calendar/entry.js",
+      "implementation": "registered-component",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "photos",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": "src/components/apps/photos/entry.js",
+      "implementation": "registered-component",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "clock",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": "src/components/apps/clock/entry.js",
+      "implementation": "registered-component",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "keynote",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "games",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "tips",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "compass",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "whatsapp",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "facebook",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "tiktok",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "spotify",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "gmail",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "amazon",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "snapchat",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "uber",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "google",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "pinterest",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "wechat",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "instagram",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "x",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "netflix",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "telegram",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "youtube",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "linkedin",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "alipay",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": null,
+      "implementation": "placeholder-fallback",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "oneleap",
+      "catalogSource": "src/config/apps.js",
+      "componentEntry": "src/components/apps/oneleap/entry.js",
+      "implementation": "registered-component",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    }
+  ],
+  "settingsRoutes": [
+    {
+      "id": "about",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "accessibility",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "account",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "accountLogin",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "accountSecurity",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "appsManage",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "backScreen",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "battery",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "bluetooth",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "cloudBackup",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "cloudHome",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "dateTime",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "digitalHealth",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "display",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "dnd",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "focus",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "general",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "hotspot",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "infinixAi",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "language",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "location",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "modes",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "multiDevice",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "navigation",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "nfc",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "notifications",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "oneTap",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "parental",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "personalization",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "placeholder",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "prayer",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "privacy",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "safetyEmergency",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "satellite",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "search",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "security",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "sim",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "sound",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "storage",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "wallet",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    },
+    {
+      "id": "wifi",
+      "source": "src/components/apps/settings/SettingsApp.vue",
+      "verification": "pending",
+      "ownerCard": "Q-037"
+    }
+  ],
+  "settingsPageSources": [
+    "src/components/apps/settings/pages/accessibility.js",
+    "src/components/apps/settings/pages/dateTime.js",
+    "src/components/apps/settings/pages/display.js",
+    "src/components/apps/settings/pages/safetyEmergency.js",
+    "src/components/apps/settings/pages/sound.js",
+    "src/components/apps/settings/pages/system.js"
+  ],
+  "scenarios": [
+    {
+      "id": "device-switch",
+      "ownerCard": "Q-040",
+      "source": [
+        "src/App.vue",
+        "src/components/dev/DevConsole.vue"
+      ],
+      "verify": "Same screen and app instance across slab → wide → slab. Preserve application route, input and scroll state."
+    },
+    {
+      "id": "desktop",
+      "ownerCard": "Q-034",
+      "source": [
+        "src/components/system/HomeScreen.vue",
+        "src/components/system/AppGrid.vue",
+        "src/components/system/DockBar.vue",
+        "src/stores/homeStore.js"
+      ],
+      "verify": "Compare form-specific items, native grid, dock, app drawer, folders, wallpaper and widget interactions with the prototype."
+    },
+    {
+      "id": "app-hero",
+      "ownerCard": "Q-031",
+      "source": [
+        "src/components/system/AppWindow.vue",
+        "src/components/phone/HomeIndicator.vue",
+        "src/composables/useHeroTransition.js"
+      ],
+      "verify": "Trace launch, swipe release and native artwork handoff for widget and app icon origins."
+    },
+    {
+      "id": "lock",
+      "ownerCard": "Q-035",
+      "source": [
+        "src/components/system/LockScreen.vue"
+      ],
+      "verify": "Verify wallpaper crop, depth layer, clock and unlock gestures."
+    },
+    {
+      "id": "overlays",
+      "ownerCard": "Q-036",
+      "source": [
+        "src/components/phone/ScreenView.vue"
+      ],
+      "verify": "Verify overlays, input hit zones, edge gestures and system back behavior."
+    },
+    {
+      "id": "capture",
+      "ownerCard": "Q-038",
+      "source": [
+        "src/composables/useCapture.js",
+        "src/App.vue"
+      ],
+      "verify": "Capture both sizes and verify widget handoffs, wallpaper, back screen and recording constraints."
+    }
+  ]
+}
