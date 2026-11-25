@@ -8,7 +8,7 @@ import { useHeroTransition } from '../../composables/useHeroTransition'
 import { useHomeStore } from '../../stores/homeStore'
 import { useSystemStore } from '../../stores/systemStore'
 import { consumeLaunchRect, getAnchorRect } from '../../utils/appIconAnchors'
-import { buildHeroClipPath, makeViewportRect } from '../../utils/heroGeometry'
+import { deriveHeroClipGeometry, makeViewportRect } from '../../utils/heroGeometry'
 import { screenRef } from '../../utils/screenRef'
 
 const props = defineProps({
@@ -123,9 +123,14 @@ const clipStyle = computed(() => {
       clipPath: 'none'
     }
   }
+  const geometry = deriveHeroClipGeometry(current)
+  const { width, height } = current.windowRect
+  const maxR = Math.max(0, Math.min(width, height) / 2)
+  const topR = Math.min(maxR, Math.max(0, geometry.topRadius))
+  const bottomR = Math.min(maxR, Math.max(0, geometry.bottomRadius))
   return {
-    borderRadius: `${current.radius}px`,
-    clipPath: buildHeroClipPath(current)
+    borderRadius: `${topR}px ${topR}px ${bottomR}px ${bottomR}px`,
+    clipPath: `inset(0 round ${topR}px ${topR}px ${bottomR}px ${bottomR}px)`
   }
 })
 
@@ -281,7 +286,7 @@ onBeforeUnmount(() => {
 .app-window {
   position: absolute;
   z-index: var(--z-app-window);
-  will-change: transform, width, height, border-radius;
+  will-change: transform, width, height;
 }
 .app-window[data-phase="open"] {
   will-change: auto;
@@ -290,7 +295,6 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  will-change: border-radius;
 }
 .app-window[data-phase="open"] .aw-clip {
   will-change: auto;
