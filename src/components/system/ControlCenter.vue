@@ -8,6 +8,7 @@ import ResizeHandleIcon from '../ui/ResizeHandleIcon.vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useSystemStore } from '../../stores/systemStore'
 import { useControlStore, LAYOUT_PRESETS, PRESET_EXCLUSIVE_IDS } from '../../stores/controlStore'
+import { wideMode } from '../../config/deviceDesktop'
 import { useDisplaySettingsStore } from '../../stores/displaySettingsStore'
 import { useI18nStore } from '../../stores/i18nStore'
 import { useSwipeGesture } from '../../composables/useSwipeGesture'
@@ -483,6 +484,9 @@ const presetItems = computed(() => {
       return { id, type: 'toggle', size, w, h }
     })
     items = [...items.slice(0, insertAt), ...extra, ...items.slice(insertAt)]
+  }
+  if (wideMode.value) {
+    items = items.filter((i) => i.id !== 'joyHeart' && i.id !== 'boost')
   }
   return items
 })
