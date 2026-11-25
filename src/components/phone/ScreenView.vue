@@ -62,6 +62,11 @@ onMounted(() => {
 watch(() => privacy.needsTick, (shouldRun) => {
   syncPrivacyTicker(shouldRun)
 })
+watch(() => [system.baseLayer, system.screenOn], ([layer, on]) => {
+  if ((layer === 'lock' || !on) && control.oneHanded) {
+    control.oneHanded = false
+  }
+})
 onBeforeUnmount(() => syncPrivacyTicker(false))
 
 /** 亮度滤镜：控制中心亮度滑块真实压暗屏幕（打开叠层时不遮罩控制中心/通知中心自身） */
@@ -300,11 +305,18 @@ useSwipeGesture(sideEdgeRef, {
 </script>
 
 <template>
-  <div
-    ref="rootEl"
-    class="screen-view"
-    :class="{ 'is-screen-off': !system.screenOn }"
-  >
+  <div class="screen-stage" :class="{ 'is-one-handed': control.oneHanded }">
+    <div
+      v-if="control.oneHanded"
+      class="onehanded-backdrop"
+      :style="{ backgroundImage: `url(${activeWallpaper})` }"
+      @click="control.oneHanded = false"
+    ></div>
+    <div
+      ref="rootEl"
+      class="screen-view"
+      :class="{ 'is-screen-off': !system.screenOn, 'is-one-handed': control.oneHanded }"
+    >
     <!-- 桌面/锁屏统一壁纸（notificationscreen.tsx 同款，本地化） -->
     <div
       v-show="isWallpaperVisible"
@@ -386,9 +398,27 @@ useSwipeGesture(sideEdgeRef, {
     <HomeIndicator v-if="system.navigationMode === 'gesture'" :dark="navDark" />
     <ThreeButtonNav v-else :dark="navDark" />
   </div>
+  </div>
 </template>
 
 <style scoped>
+
+.screen-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background: #000;
+}
+
+.onehanded-backdrop {
+  position: absolute;
+  inset: -24px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(28px) brightness(0.42) saturate(1.1);
+  transform: scale(1.06);
+}
 
 .screen-view {
   position: absolute;
@@ -403,6 +433,15 @@ useSwipeGesture(sideEdgeRef, {
      与 border-radius 同值，视觉不变。 */
   clip-path: inset(0 round var(--screen-radius));
   background: #000;
+  transform-origin: right bottom;
+  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), border-radius 0.34s ease, clip-path 0.34s ease;
+}
+
+.screen-view.is-one-handed {
+  transform: translate3d(-8px, -10px, 0) scale(0.72);
+  border-radius: calc(var(--screen-radius) * 0.88);
+  clip-path: inset(0 round calc(var(--screen-radius) * 0.88));
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.16);
 }
 
 .home-layer {
