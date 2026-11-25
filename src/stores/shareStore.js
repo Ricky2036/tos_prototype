@@ -3,11 +3,13 @@ import { defineStore } from 'pinia'
 /**
  * 相册内置真实照片资源清单
  */
+const BASE_URL = (import.meta.env?.BASE_URL || '/').replace(/\/?$/, '/')
+
 export const DEFAULT_ALBUM_PHOTOS = [
   {
     id: 'photo-1',
     title: '海岸落日',
-    url: '/photos/photo-01-beach.jpg',
+    url: `${BASE_URL}photos/photo-01-beach.jpg`,
     isVideo: false,
     selected: true,
     time: '2026年10月12日 下午06:06'
@@ -15,7 +17,7 @@ export const DEFAULT_ALBUM_PHOTOS = [
   {
     id: 'photo-2',
     title: '街角咖啡',
-    url: '/photos/photo-02-cafe.jpg',
+    url: `${BASE_URL}photos/photo-02-cafe.jpg`,
     isVideo: false,
     selected: true,
     time: '2026年10月12日 下午04:30'
@@ -23,7 +25,7 @@ export const DEFAULT_ALBUM_PHOTOS = [
   {
     id: 'photo-3',
     title: '林间小径',
-    url: '/photos/photo-03-forest.jpg',
+    url: `${BASE_URL}photos/photo-03-forest.jpg`,
     isVideo: true,
     duration: '00:15',
     selected: false,
@@ -32,7 +34,7 @@ export const DEFAULT_ALBUM_PHOTOS = [
   {
     id: 'photo-4',
     title: '城市天际线',
-    url: '/photos/photo-04-city.jpg',
+    url: `${BASE_URL}photos/photo-04-city.jpg`,
     isVideo: false,
     selected: false,
     time: '2026年10月10日 晚上08:22'
@@ -40,7 +42,7 @@ export const DEFAULT_ALBUM_PHOTOS = [
   {
     id: 'photo-5',
     title: '金毛萌宠',
-    url: '/photos/photo-05-dog.jpg',
+    url: `${BASE_URL}photos/photo-05-dog.jpg`,
     isVideo: false,
     selected: false,
     time: '2026年10月09日 下午03:12'
@@ -48,7 +50,7 @@ export const DEFAULT_ALBUM_PHOTOS = [
   {
     id: 'photo-6',
     title: '生日聚会',
-    url: '/photos/photo-06-birthday.jpg',
+    url: `${BASE_URL}photos/photo-06-birthday.jpg`,
     isVideo: false,
     selected: false,
     time: '2026年10月08日 晚上07:45'
