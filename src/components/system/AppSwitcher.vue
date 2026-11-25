@@ -98,6 +98,7 @@ const screenH = ref(0)
    两者都从 CSS 变量读，避免与 StatusBar / .switcher-dock 的样式脱钩。 */
 const safeTop = ref(0)
 const homeInset = ref(DECK.DEFAULT_HOME_INSET)
+const screenRadius = ref(50)
 
 /**
  * 屏幕尺寸 —— 必须早于「跟手卡/堆叠卡」的首次渲染就绪。
@@ -123,6 +124,8 @@ function measure() {
   if (Number.isFinite(st) && st > 0 && st !== safeTop.value) safeTop.value = st
   const hi = parseFloat(cs.getPropertyValue('--home-indicator-inset'))
   if (Number.isFinite(hi) && hi !== homeInset.value) homeInset.value = hi
+  const sr = parseFloat(cs.getPropertyValue('--screen-radius'))
+  if (Number.isFinite(sr) && sr > 0 && sr !== screenRadius.value) screenRadius.value = sr
 }
 
 let ro = null
@@ -1179,6 +1182,7 @@ function stackStyle(i) {
     filter: `brightness(${p.bright})`,
     zIndex: deckZ(i),
     borderRadius: RADIUS.value + 'px',
+    '--card-radius': RADIUS.value + 'px',
     opacity,
     transitionDelay: delay,
     /* 需求②：阴影按层深给值（详见 cardShadowOf）—— 走 CSS 变量而不是写死，
@@ -1438,13 +1442,16 @@ const followStyle = computed(() => {
   const g = followGeom.value
   if (!g) return null
   const { p, cx, cy, sx, sy } = g
+  /* 圆角从屏幕圆角（--screen-radius）平滑过渡到卡片圆角（RADIUS），
+     并按缩放分量补偿，避免起手时呈直角或横向挤压拉成椭圆 */
+  const visualRadius = screenRadius.value + (RADIUS.value - screenRadius.value) * Math.min(1, p)
+  const r = visualRadius / Math.max(Math.min(sx, sy), 0.01)
   return {
     width: screenW.value + 'px',
     height: screenH.value + 'px',
     transform: `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%) scale(${sx}, ${sy})`,
-    /* 圆角要按【各自的】缩放分量补偿，否则横向挤压会把圆角拉成椭圆 */
-    borderRadius:
-      (RADIUS.value * Math.min(1, p)) / Math.max(Math.min(sx, sy), 0.01) + 'px',
+    borderRadius: r + 'px',
+    '--card-radius': r + 'px',
     opacity: 1,
     zIndex: Z_FOLLOW
   }
@@ -1470,7 +1477,7 @@ function contentScale(isFollow) {
  * 退场（closing）：恒 0，且 .is-closing 下【关掉过渡】（transition: none）——
  *   这就是「点击空白处回桌面时立即消失」，不许它慢悠悠地淡（Ricky 要的是「立即」）。 */
 const chromeOpacity = computed(() => {
-  if (closing.value) return 0
+  if (closing.value || expanding.value || expandHold.value) return 0
   return system.appSwitcherOpen ? 1 : 0
 })
 
@@ -2282,7 +2289,8 @@ function dismissingStyle(f) {
        第九轮就已经定成 `opacity: 1`（参考视频末帧残余卡条仍纯白）—— 两条统一。 */
     opacity: 1,
     zIndex: deckZ(f.index),
-    borderRadius: RADIUS.value + 'px'
+    borderRadius: RADIUS.value + 'px',
+    '--card-radius': RADIUS.value + 'px'
   }
 }
 
@@ -2360,6 +2368,7 @@ function expandingStyle(i) {
   const cx = expandTo.value ? screenW.value / 2 : slot.x + (cardW.value * slot.scale) / 2
   const cy = expandTo.value ? screenH.value / 2 : slot.y + (cardH.value * slot.scale) / 2
   const s = expandTo.value ? 1 : s0
+  const r = expandTo.value ? screenRadius.value : RADIUS.value / Math.max(s, 0.01)
   return {
     width: screenW.value + 'px',
     height: screenH.value + 'px',
@@ -2367,13 +2376,26 @@ function expandingStyle(i) {
        中心锚点缩放才与跟手卡同构。 */
     transformOrigin: 'center center',
     transform: `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%) scale(${s})`,
-    borderRadius: expandTo.value ? '0px' : RADIUS.value / Math.max(s, 0.01) + 'px',
+    borderRadius: r + 'px',
+    '--card-radius': r + 'px',
     filter: 'brightness(1)',
     zIndex: Z_EXPAND,
     opacity: 1,
     transition: expandTo.value
       ? `transform ${RESUME_MS}ms cubic-bezier(0.32, 1, 0.6, 1), border-radius ${RESUME_MS}ms linear`
       : 'none'
+  }
+}
+
+function expandingClipStyle(i) {
+  const idx = apps.value.indexOf(expanding.value)
+  const pi = idx < 0 ? i : idx
+  const slot = poseOf(pi)
+  const s = expandTo.value ? 1 : previewScale.value * slot.scale
+  const r = expandTo.value ? screenRadius.value : RADIUS.value / Math.max(s, 0.01)
+  return {
+    clipPath: `inset(0 round ${r}px)`,
+    transition: expandTo.value ? `clip-path ${RESUME_MS}ms linear` : 'none'
   }
 }
 
@@ -2426,6 +2448,7 @@ function clearingStyle(i) {
     filter: `brightness(${p.bright})`,
     zIndex: deckZ(i),
     borderRadius: RADIUS.value + 'px',
+    '--card-radius': RADIUS.value + 'px',
     /* 覆盖 .switcher-card 的默认过渡（0.32s 弹性缓出）—— 那条是「吸附收尾」的曲线，
        一键清理要的是「从静止加速甩出」的 ease-in。delay 承担多卡错峰。 */
     transition: `transform ${CLEAR_MS}ms cubic-bezier(0.55, 0, 0.9, 0.35) ${clearDelayOf(i)}ms`
@@ -2662,16 +2685,18 @@ onBeforeUnmount(() => {
           </div>
         </div>
         <div class="switcher-card-body">
-          <div
-            class="switcher-card-content"
-            :style="{
-              width: screenW + 'px',
-              height: screenH + 'px',
-              transform: `scale(${contentScale(true)})`,
-              transformOrigin: '0 0'
-            }"
-          >
-            <component :is="compOf(system.activeAppId)" :app="appOf(system.activeAppId)" />
+          <div class="switcher-card-clip">
+            <div
+              class="switcher-card-content"
+              :style="{
+                width: screenW + 'px',
+                height: screenH + 'px',
+                transform: `scale(${contentScale(true)})`,
+                transformOrigin: '0 0'
+              }"
+            >
+              <component :is="compOf(system.activeAppId)" :app="appOf(system.activeAppId)" />
+            </div>
           </div>
         </div>
       </div>
@@ -2710,16 +2735,18 @@ onBeforeUnmount(() => {
           <!-- 卡体单独吃一份透明度（bodyOpacityOf）：前卡被跟手卡顶替时只淡卡体、
                卡根留 1 —— 这样标签行在停驻期就一直在场，交接那一帧也不用淡入（需求③）。 -->
           <div class="switcher-card-body" :style="{ opacity: bodyOpacityOf(c.i) }">
-            <div
-              class="switcher-card-content"
-              :style="{
-                width: screenW + 'px',
-                height: screenH + 'px',
-                transform: `scale(${c.id === expanding ? 1 : previewScale})`,
-                transformOrigin: '0 0'
-              }"
-            >
-              <component :is="compOf(c.id)" :app="appOf(c.id)" />
+            <div class="switcher-card-clip" :style="c.id === expanding ? expandingClipStyle(c.i) : null">
+              <div
+                class="switcher-card-content"
+                :style="{
+                  width: screenW + 'px',
+                  height: screenH + 'px',
+                  transform: `scale(${c.id === expanding ? 1 : previewScale})`,
+                  transformOrigin: '0 0'
+                }"
+              >
+                <component :is="compOf(c.id)" :app="appOf(c.id)" />
+              </div>
             </div>
           </div>
         </div>
@@ -2797,7 +2824,8 @@ onBeforeUnmount(() => {
 /* 第九轮（需求②）：退场时垃圾桶【立即消失】——
    这里必须是 transition:none，不能沿用 180ms 淡出（Ricky 原话「点击空白处回桌面时立即消失」）。
    它的淡入过渡写在 .switcher-dock 基础规则里（松手后才出现那一段需要淡入）。 */
-.app-switcher.is-closing .switcher-dock {
+.app-switcher.is-closing .switcher-dock,
+.app-switcher.is-resuming .switcher-dock {
   transition: none;
 }
 
@@ -2895,6 +2923,15 @@ onBeforeUnmount(() => {
      旧值是常量 `0 14px 36px rgba(0,0,0,0.42)` —— Ricky 反馈「卡片间的阴影过重」，
      42% 的黑配 36px 模糊，水平外溢全糊在邻居卡那一条 23~52px 的露出条上。 */
   box-shadow: var(--card-shadow, 0 12px 26px rgba(0, 0, 0, 0.28));
+}
+
+/* 绘制期圆角裁剪：合成层下 overflow:hidden + border-radius 会丢失，clip-path 挂在内层以保留 body 阴影 */
+.switcher-card-clip {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  clip-path: inset(0 round var(--card-radius, var(--radius-card)));
 }
 
 .switcher-card-content {
