@@ -1,4 +1,5 @@
 <script setup>
+import { wideMode } from '../../config/deviceDesktop.js'
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useControlStore } from '../../stores/controlStore'
 import { useSystemStore } from '../../stores/systemStore'
@@ -49,7 +50,7 @@ const control = useControlStore()
 const system = useSystemStore()
 const wallpaperStore = useWallpaperStore()
 const shareStore = useShareStore()
-const activeWallpaper = computed(() => wallpaperStore.homeWallpaper || wallpaperStore.active || wallpaper)
+const activeWallpaper = computed(() => (wideMode.value ? wallpaperStore.lockWallpaper : wallpaperStore.homeWallpaper) || wallpaperStore.active || wallpaper)
 const heroVisual = ref(null)
 
 const rootEl = ref(null)
@@ -93,7 +94,8 @@ const homeInteractive = computed(() => system.baseLayer !== 'app' && !privacy.se
 const isWallpaperVisible = computed(() => {
   if (!system.screenOn) return false
   if (system.baseLayer === 'app') {
-    if (heroVisual.value?.phase === 'open' && system.homeGestureProgress === 0) {
+    const widgetSwipe = heroVisual.value?.widgetLaunch && system.switcherProgress > 0.01
+    if (heroVisual.value?.phase === 'open' && system.homeGestureProgress === 0 && !widgetSwipe) {
       return false
     }
   }
@@ -106,6 +108,7 @@ const isWallpaperVisible = computed(() => {
  * 3. 锁屏/桌面默认：浅色 chrome（白字/白条）
  */
 const chromeLight = computed(() => {
+  if (heroVisual.value?.showingWidgetOnOpen) return true
   if (privacy.settingsPage) return false
   if (system.chromeStyleOverride === 'light') return true
   if (system.chromeStyleOverride === 'dark') return false
@@ -386,6 +389,8 @@ useSwipeGesture(sideEdgeRef, {
 </template>
 
 <style scoped>
+.screen-view:has(.app-window[data-widget-hero]) .wallpaper { opacity:1 !important; }
+
 .screen-view {
   position: absolute;
   inset: 0;

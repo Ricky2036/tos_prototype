@@ -1,4 +1,5 @@
 <script setup>
+import { wideAsset, wideIconLabels, wideGoogleIds, wideIconMask } from '../../config/deviceDesktop.js'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { GLYPHS } from '../../assets/icons/glyphs'
 import { NOTIF_ICONS } from './notifIcons'
@@ -36,7 +37,12 @@ const i18n = useI18nStore()
 const anchorRef = ref(null)
 const { today, hourDeg, minuteDeg, secondDeg } = useClock()
 
-const appDisplayName = computed(() => i18n.appName(props.app.id) || props.app.name)
+const artwork = computed(() => (wideIconLabels[props.app.id] || wideGoogleIds.includes(props.app.id)) ? wideAsset(props.app.id) : null)
+const appDisplayName = computed(() => wideIconLabels[props.app.id] || i18n.appName(props.app.id) || props.app.name)
+const calendarWeekday = computed(() => {
+  const t = today.value
+  return new Intl.DateTimeFormat('en', { weekday: 'short' }).format(new Date(t.year,t.month,t.date))
+})
 /* 用 today 的星期而非 new Date()：后者在 setup 时求值一次，跨零点不会更新。
    today 是日期粒度的 shallowRef，只在跨天时变化，不会每秒重算。 */
 const weekday = computed(() => {
@@ -137,7 +143,7 @@ onBeforeUnmount(() => {
 <template>
   <button
     class="app-icon"
-    :class="{ 'is-hidden': hidden }"
+    :class="{ 'is-hidden': hidden, 'has-wide-artwork': artwork }"
     :data-app-id="app.id"
     :style="{ '--enter-delay': enterDelay + 'ms', width: size + 'px', '--scale': size / 60 }"
     @pointerenter="onPointerEnter"
@@ -147,7 +153,7 @@ onBeforeUnmount(() => {
     <span ref="anchorRef" class="app-icon-anchor" :style="{ width: size + 'px', height: size + 'px' }">
       <span class="icon-tile squircle-mask" :class="app.special ? 'tile-' + app.special : ''" :style="{ ...(app.special ? {} : { background: app.gradient || '#fff' }), width: size + 'px', height: size + 'px' }">
         <!-- 图片图标：略微放大以切除原图可能自带的不完美圆角和毛刺 -->
-        <img v-if="app.image" :src="resolvedImage" alt="" draggable="false" :style="{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.02)' }" />
+        <img v-if="artwork || app.image" :src="artwork || resolvedImage" alt="" draggable="false" :style="{ width: '100%', height: '100%', objectFit: artwork ? 'contain' : 'cover', maskImage: artwork ? wideIconMask(app.id) : undefined, maskSize: '100% 100%', maskRepeat: 'no-repeat', borderRadius: artwork && app.id === 'gemini' ? '27.78%' : undefined, transform: artwork ? 'none' : 'scale(1.02)' }" />
 
         <!-- 标准：glyph -->
         <svg v-else-if="app.glyph" width="32" height="32" viewBox="0 0 24 24" :style="{ transform: `scale(${size / 60})` }">
@@ -185,6 +191,10 @@ onBeforeUnmount(() => {
           <circle cx="30" cy="30" r="1.6" fill="#1c1c1e"/>
         </svg>
       </span>
+      <svg v-if="artwork && app.id === 'calendar'" class="wide-calendar-text" viewBox="0 0 58 58" aria-hidden="true">
+        <text x="29" y="14" class="wide-calendar-day">{{ calendarWeekday }}</text>
+        <text x="29" y="44" class="wide-calendar-number">{{ today.date }}</text>
+      </svg>
 
       <!-- 应用数字红角标：绝对锚定于图标瓦片右上角，自适应任意图标尺寸，防止尺寸变化引起飘移 -->
       <span v-if="showBadge && badge && size >= 36" class="icon-badge">{{ badge }}</span>
@@ -195,6 +205,13 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.has-wide-artwork .icon-tile { background:transparent!important;box-shadow:none;mask-image:none;-webkit-mask-image:none; }
+.has-wide-artwork .icon-label { font:400 11px/15px var(--font-stack); max-width:95px; text-shadow:none;overflow:visible; }
+.wide-calendar-text{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;font-family:var(--font-stack);text-anchor:middle}
+.wide-calendar-day{font-size:10.741px;font-weight:700;fill:#1489fb}
+.wide-calendar-number{font-size:30.074px;font-weight:500;letter-spacing:-.716px;fill:#2d3132}
+.app-icon.is-hidden .wide-calendar-text{visibility:hidden}
+
 .app-icon {
   position: relative;
   display: flex;

@@ -25,7 +25,9 @@ function handleAction(e) {
   if (widgetRef.value) {
     const screenEl = document.querySelector('.screen-view')
     if (screenEl) {
-      setLaunchRect('settings', rectRelativeToScreen(widgetRef.value, screenEl))
+      const stack = widgetRef.value.closest('.smart-suggestion-stack')
+      const rect = rectRelativeToScreen(stack || widgetRef.value, screenEl)
+      if (rect?.width) setLaunchRect('settings', stack ? { ...rect, widgetId: 'smart' } : rect)
     }
   }
   system.openApp('settings')

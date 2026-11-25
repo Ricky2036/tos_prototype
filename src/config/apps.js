@@ -1,3 +1,4 @@
+import { newHomeApps, wideAsset, wideIconLabels, wideGoogleIds } from './deviceDesktop.js'
 /**
  * 统一纯数据应用表 —— 全仓唯一的应用元数据事实来源。
  * `APPS` / `DRAWER_APPS` / `APP_NAMES` / `DARK_BG_APPS` 均由此表派生。
@@ -445,10 +446,34 @@ export const gridApps = APPS.filter((a) => !a.dock)
 /** Dock 图标。 */
 export const dockApps = APPS.filter((a) => a.dock)
 
-/** 按 ID 查询任意已注册应用（包含 hiddenOnDesktop 应用）。 */
+/** 阔直板专属补充应用（不计入默认 39 项 APP_CATALOG 基线，按 ID 查询时回落）。 */
+const WIDE_EXTRA_APPS = new Map(
+  Object.entries(newHomeApps).map(([id, name]) => [
+    id,
+    {
+      id,
+      names: { zh: name, en: name, bn: name },
+      initial: (name[0] || '#').toUpperCase(),
+      pinyin: id.toLowerCase(),
+      depth: 'placeholder',
+      heroBackground: '#F5F5F7',
+      icon: wideAsset(id),
+      hiddenOnDesktop: true
+    }
+  ])
+)
+
+/** 按 ID 查询任意已注册应用（包含 hiddenOnDesktop 与阔直板补充应用）。 */
 export const getApp = (id) => {
-  const found = APP_CATALOG.find((a) => a.id === id)
-  return found ? toDesktopApp(found) : undefined
+  const found = APP_CATALOG.find((a) => a.id === id) || WIDE_EXTRA_APPS.get(id)
+  if (!found) return undefined
+  const app = toDesktopApp(found)
+  if (wideIconLabels[id] || wideGoogleIds.includes(id)) {
+    app.name = wideIconLabels[id] || app.name
+    app.wideArtwork = wideAsset(id)
+    app.image = app.wideArtwork
+  }
+  return app
 }
 
 const catalogListeners = new Set()

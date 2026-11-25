@@ -4,17 +4,23 @@ import { useI18nStore } from '../../stores/i18nStore'
 
 /** iOS 16 风格分页指示：圆点 + 搜索胶囊 */
 const props = defineProps({
+  wide: { type: Boolean, default: false },
   count: { type: Number, default: 1 },
   current: { type: Number, default: 0 },
   showPages: { type: Boolean, default: false }
 })
-const emit = defineEmits(['search'])
+const emit = defineEmits(['search','go'])
 const i18n = useI18nStore()
 </script>
 
 <template>
   <div class="page-indicator">
-    <Transition name="indicator-swap" mode="out-in">
+    <nav v-if="wide" class="wide-page-dots" aria-label="桌面页面" @pointerdown.stop>
+      <button type="button" class="wide-drawer-indicator" aria-label="打开应用抽屉" @click="emit('search')">=</button>
+      <button v-for="i in count" :key="i" type="button" class="wide-page-dot"
+        :aria-label="'第 ' + i + ' 页'" :aria-current="i - 1 === current ? 'page' : undefined" @click="emit('go', i - 1)"></button>
+    </nav>
+    <Transition v-else name="indicator-swap" mode="out-in">
       <div v-if="showPages" key="pages" class="page-dots" aria-label="桌面页面">
         <span v-for="i in count" :key="i" class="dot" :class="{ active: i - 1 === current }"></span>
       </div>
@@ -27,6 +33,12 @@ const i18n = useI18nStore()
 </template>
 
 <style scoped>
+.wide-page-dots{display:flex;align-items:center;gap:4px}
+.wide-page-dots button{width:12px;height:20px;display:grid;place-items:center;background:none;border:0;padding:0;cursor:pointer;color:#fff6}
+.wide-page-dot::before{content:'';display:block;width:6px;height:6px;border-radius:50%;background:#ffffff55}
+.wide-page-dot[aria-current]::before{background:#ffffffe0}
+.wide-drawer-indicator {font:600 9px/1 var(--font-stack);}
+
 .page-indicator {
   display: flex;
   align-items: center;

@@ -16,7 +16,7 @@ function activate(event,id) {
 </script>
 
 <template>
-  <div class="dock-bar" :class="{ 'has-target':dockTargetIndex != null }" :style="{height:`${profile.dockRect.height}px`,bottom:`${profile.height-profile.dockRect.bottom}px`}">
+  <div class="dock-bar" :class="{ 'has-target':dockTargetIndex != null, 'wide-dock':profile.wide }" :style="{height:`${profile.dockRect.height}px`,bottom:`${profile.height-profile.dockRect.bottom}px`}">
     <div v-for="(id,index) in home.dock" :key="id" class="dock-item"
       :class="{ 'is-editing':home.editing, 'is-selected':selected.has(id), 'is-dragging-source':draggingId === id, 'is-drop-target':dockTargetIndex === index, 'is-removing':removingIds.includes(id) }"
       :data-dock-item="id" :data-dock-index="index"
@@ -29,6 +29,11 @@ function activate(event,id) {
 </template>
 
 <style scoped>
+.dock-bar.wide-dock {
+  left:4.93%;right:4.93%;padding:0;border:0;background:none;box-shadow:none;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+}
+
 .dock-bar {
   position: absolute;
   left: 14px;

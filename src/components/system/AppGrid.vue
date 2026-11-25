@@ -1,5 +1,6 @@
 <script setup>
-import { computed, onBeforeUpdate, onUpdated } from 'vue'
+import { modernWidgets, formMoving } from '../../config/deviceDesktop.js'
+import { computed, onBeforeUpdate, onUpdated, watch } from 'vue'
 import { getApp } from '../../config/apps'
 import AppIcon from '../ui/AppIcon.vue'
 import ClockWidget from '../widgets/ClockWidget.vue'
@@ -25,10 +26,21 @@ const removing = computed(() => new Set(props.removingIds))
 const itemElements = new Map()
 let previousRects = new Map()
 function setItemRef(id, element) { if (element) itemElements.set(id, element); else itemElements.delete(id) }
-onBeforeUpdate(() => { previousRects = new Map([...itemElements].map(([id,el]) => [id,el.getBoundingClientRect()])) })
+let renderedProfile = props.profile
+onBeforeUpdate(() => {
+  previousRects = formMoving.value || renderedProfile !== props.profile
+    ? new Map()
+    : new Map([...itemElements].map(([id, el]) => [id, el.getBoundingClientRect()]))
+})
+watch(formMoving, moving => {
+  if (moving) for (const el of itemElements.values()) for (const animation of el.getAnimations()) animation.cancel()
+}, { flush: 'sync' })
 onUpdated(() => {
+  renderedProfile = props.profile
+  if (formMoving.value || !previousRects.size) return
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
   requestAnimationFrame(() => {
+    if (formMoving.value) return
     for (const [id,el] of itemElements) {
       const before = previousRects.get(id), after = el.getBoundingClientRect()
       if (!before) continue
@@ -46,8 +58,8 @@ onUpdated(() => {
 const appFor = (item) => item?.type === 'app' ? getApp(item.appId) : null
 const folderFor = (item) => item?.type === 'folder' ? props.folders[item.folderId] : null
 const widgetTitle = (item) => {
-  if (item?.widgetId === 'clock') return '时钟'
-  if (item?.widgetId === 'smart') return '建议'
+  if (item?.widgetId === 'clock') return props.profile.wide && modernWidgets ? 'Clock' : '时钟'
+  if (item?.widgetId === 'smart') return props.profile.wide && modernWidgets ? 'AI Suggestions' : '建议'
   return item?.title || '小组件'
 }
 function itemStyle(id) {
@@ -78,15 +90,15 @@ function activate(event, id, item) {
 </script>
 
 <template>
-  <div class="app-grid" :class="{ 'is-editing': editing }" :data-page="pageIndex">
+  <div class="app-grid" :class="{ 'is-editing': editing, 'is-wide-grid': profile.wide }" :data-page="pageIndex">
     <div v-for="(id, index) in itemIds" :key="id" :ref="el => setItemRef(id,el)" class="home-item"
       :class="{ 'is-editing': editing, 'is-selected': selected.has(id), 'is-dragging-source': draggingId === id || dragging.has(id), 'is-settling-destination': settling.has(id), 'is-large': (positions[id]?.w || 1) > 1 || (positions[id]?.h || 1) > 1, 'is-widget': items[id]?.type === 'widget', 'is-folder-candidate': folderCandidateId === id, 'is-folder-armed': folderCandidateArmed && folderCandidateId === id, 'is-folder-target': folderTargetId === id, 'is-folder-open': items[id]?.folderId === openFolderId, 'is-removing': removing.has(id) }"
       :data-home-item="id" :data-page-index="pageIndex" :data-item-index="index" :style="itemStyle(id)"
       @pointerdown="emit('item-pointerdown', $event, id, pageIndex, index)"
       @click.capture="activate($event, id, items[id])">
       <div v-if="items[id]?.type === 'widget'" class="widget-surface">
-        <ClockWidget v-if="items[id].widgetId === 'clock'" />
-        <SmartSuggestionWidget v-else />
+        <ClockWidget v-if="items[id].widgetId === 'clock'" :wide="profile.wide && modernWidgets" />
+        <SmartSuggestionWidget v-else :wide="profile.wide && modernWidgets" />
         <span class="widget-name" data-widget-title>{{ widgetTitle(items[id]) }}</span>
       </div>
       <AppIcon v-else-if="appFor(items[id])" :app="appFor(items[id])" :size="profile.iconSize * profile.compactScale" :enter-delay="120 + index * 28" :home-anchor="registerHomeAnchors" />
@@ -99,6 +111,10 @@ function activate(event, id, item) {
 </template>
 
 <style scoped>
+.stage[data-form-moving=true] .home-item {transition:none}
+.is-wide-grid .widget-surface { gap: 6px; }
+.is-wide-grid .widget-name { font-size:11px; text-shadow:none; }
+
 .app-grid { position:relative;width:100%;height:100%;box-sizing:border-box; }
 .app-grid.is-editing { transform:translate3d(0,20px,0) scale(.85); transform-origin:50% 36%; transition:transform 320ms cubic-bezier(.22,.8,.26,1); }
 .home-item { position:absolute;left:0;top:0;min-width:0;display:flex;align-items:flex-start;justify-content:center;transition:width 240ms cubic-bezier(.22,.8,.24,1),height 240ms cubic-bezier(.22,.8,.24,1);touch-action:none;will-change:transform; }

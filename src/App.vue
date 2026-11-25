@@ -1,4 +1,5 @@
 <script setup>
+import { wideMode, formMetrics, formMoving as desktopFormMoving } from './config/deviceDesktop.js'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useClock } from './composables/useClock'
 import { useSpring } from './composables/useSpring'
@@ -61,6 +62,7 @@ function readInitialForm() {
 }
 
 const previewForm = ref(readInitialForm())
+watch(previewForm, form => { wideMode.value = form === 'wide' }, { immediate: true, flush: 'sync' })
 const formMoving = ref(false)
 const previewViewport = ref({ width: BASE_SCREEN_W, height: BASE_SCREEN_H, stageHeight: BASE_SCREEN_H })
 const reducedMotion =
@@ -142,6 +144,15 @@ function applyPreviewGeometry() {
   const stage = stageRef.value
   if (!stage) return
   stage.dataset.formMoving = String(formMoving.value)
+  desktopFormMoving.value = formMoving.value
+  const geometry = previewGeometry.value
+  formMetrics.value = {
+    width: parseFloat(geometry['--screen-w']),
+    height: parseFloat(geometry['--screen-h']),
+    progress: geometry['--preview-progress'],
+    slabHeight: isMobile.value ? mobileLogicalHeight.value : BASE_SCREEN_H,
+    wideHeight: WIDE_SCREEN_H
+  }
   for (const [property, value] of Object.entries(previewGeometry.value)) {
     stage.style.setProperty(property, value)
   }

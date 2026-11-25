@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onErrorCaptured, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onErrorCaptured, onMounted, ref, watch } from 'vue'
 import { getApp } from '../../config/apps'
 import { appComponents, isAppPreloaded, resolveAppComponent } from '../apps/registry'
 import PlaceholderApp from '../apps/PlaceholderApp.vue'
@@ -143,13 +143,83 @@ const appSurfaceStyle = computed(() => ({
 }))
 const heroFillStyle = computed(() => ({
   background: app.value?.heroBackground || '#f2f2f7',
-  opacity: isOpen.value ? 0 : (frame.value?.heroFillOpacity ?? 0)
+  opacity: isOpen.value ? 0 : (widgetAnchor.value ? 1 : (frame.value?.heroFillOpacity ?? 0))
 }))
 const launchAnchor = ref(null)
+const widgetMirrorHost = ref(null)
+const widgetAnchor = ref(null)
+let hiddenWidget = null
+let swipeFrame = null
+
+function desktopWidget(screen, widgetId) {
+  if (!widgetId) return null
+  return screen?.querySelector(
+    `[data-page="${home.currentPage}"] [data-home-item="widget:${widgetId}"] :is(.clock-widget, .wide-clock-widget, .smart-suggestion-stack)`
+  )
+}
+
+function restoreWidget() {
+  hiddenWidget?.removeAttribute('data-widget-hero-source')
+  hiddenWidget = null
+}
+
+function screenLocalBounds(node, screen) {
+  if (!node || !screen?.offsetWidth || !screen.offsetHeight) return null
+  const source = node.getBoundingClientRect()
+  const bounds = screen.getBoundingClientRect()
+  if (!source.width || !source.height || !bounds.width || !bounds.height) return null
+  const scaleX = bounds.width / screen.offsetWidth
+  const scaleY = bounds.height / screen.offsetHeight
+  return {
+    x: (source.left - bounds.left) / scaleX,
+    y: (source.top - bounds.top) / scaleY,
+    width: source.width / scaleX,
+    height: source.height / scaleY
+  }
+}
+
+function prepareWidgetMirror(screen, widgetId) {
+  restoreWidget()
+  widgetMirrorHost.value.replaceChildren()
+  const widget = desktopWidget(screen, widgetId)
+  const rect = screenLocalBounds(widget, screen)
+  if (!rect) return null
+  const radius = Number.parseFloat(getComputedStyle(widget).borderTopLeftRadius)
+  return { widget, rect, radius }
+}
+
+function showWidgetMirror(anchor) {
+  const copy = anchor.widget.cloneNode(true)
+  copy.style.width = anchor.rect.width + 'px'
+  copy.style.height = anchor.rect.height + 'px'
+  widgetMirrorHost.value.replaceChildren(copy)
+  hiddenWidget = anchor.widget
+  hiddenWidget.setAttribute('data-widget-hero-source', '')
+}
+
+function reduceWidgetMotion() {
+  return Boolean(launchAnchor.value?.widgetId && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+}
+
+const widgetMirrorStyle = computed(() => {
+  const current = frame.value
+  const anchor = widgetAnchor.value
+  if (!anchor || !current?.iconOpacity) return { visibility: 'hidden' }
+  const scale = current.iconNative ? 1 : current.windowRect.width / anchor.rect.width
+  return { opacity: current.iconOpacity, transform: `scale(${scale})` }
+})
+
+const windowClipStyle = computed(() => {
+  const current = frame.value
+  if (!widgetAnchor.value || !current || isOpen.value) return clipStyle.value
+  const clipPath = `inset(0 round ${current.radius}px)`
+  return { clipPath, '--widget-hero-clip': clipPath, opacity: 1 - current.iconOpacity }
+})
+
 const nativeIconSize = computed(() => launchAnchor.value?.width || 60)
 const iconWrapperStyle = computed(() => {
   const current = frame.value
-  if (!current || current.iconOpacity <= 0) return { opacity: 0, pointerEvents: 'none' }
+  if (widgetAnchor.value || !current || current.iconOpacity <= 0) return { opacity: 0, pointerEvents: 'none' }
   const baseSize = nativeIconSize.value
   const scale = current.iconScale || (current.windowRect ? current.windowRect.width / baseSize : 1)
   return {
@@ -165,7 +235,12 @@ function closeToLiveAnchor() {
   if (['closing', 'handoff', 'closed'].includes(phase.value)) return
   const screen = screenRef.el
   const viewport = readViewport()
-  let anchor = getAnchorRect(props.appId, screen)
+  const widget = prepareWidgetMirror(screen, launchAnchor.value?.widgetId)
+  widgetAnchor.value = widget
+  const reducedMotion = reduceWidgetMotion()
+  if (widget && !reducedMotion) showWidgetMirror(widget)
+  if (!widget && launchAnchor.value?.widgetId) home.hideIcon(props.appId)
+  let anchor = widget?.rect || getAnchorRect(props.appId, screen)
   if (!anchor || !anchor.width) {
     anchor = launchAnchor.value
   }
@@ -177,15 +252,22 @@ function closeToLiveAnchor() {
   }
 
   // 手势进度在这里之前保持不变；当前跟手帧就是关闭动画的精确起点。
-  const startRect = frame.value?.windowRect || viewport
+  const startRect = swipeFrame?.rect || frame.value?.windowRect || viewport
+  const startRadius = swipeFrame?.radius ?? frame.value?.radius
+  swipeFrame = null
   hero.beginClose({
     viewportRect: viewport,
     anchorRect: anchor,
+    anchorRadius: widget?.radius,
+    reducedMotion,
     startRect,
-    startRadius: frame.value?.radius,
+    startRadius,
     startBackdropStrength: frame.value?.backdropStrength,
     viewportRadius: viewportRadius.value,
-    onHandoff: () => home.showIcon(),
+    onHandoff: () => {
+      restoreWidget()
+      home.showIcon()
+    },
     onClosed: () => system.finishGoHome()
   })
   system.setHomeGestureProgress(0)
@@ -204,10 +286,16 @@ onMounted(() => {
   }
 
   launchAnchor.value = launchRect
-  home.hideIcon(props.appId)
+  const widget = prepareWidgetMirror(screen, launchRect.widgetId)
+  const reducedMotion = reduceWidgetMotion()
+  widgetAnchor.value = widget
+  if (widget && !reducedMotion) showWidgetMirror(widget)
+  if (!widget) home.hideIcon(props.appId)
   hero.beginOpen({
     viewportRect: viewport,
-    anchorRect: launchRect,
+    anchorRect: widget?.rect || launchRect,
+    anchorRadius: widget?.radius,
+    reducedMotion,
     viewportRadius: viewportRadius.value
   })
   ready.value = true
@@ -216,13 +304,31 @@ onMounted(() => {
 watch(
   () => system.homeGestureProgress,
   (progress) => {
-    if (!viewportRect.value) return
+    if (!viewportRect.value || reduceWidgetMotion()) return
     hero.setPreview({
       viewportRect: viewportRect.value,
       progress,
       viewportRadius: viewportRadius.value
     })
   }
+)
+
+watch(
+  () => system.switcherProgress,
+  (progress, previous) => {
+    if (!launchAnchor.value?.widgetId || !previous || progress > 0.01 || reduceWidgetMotion()) return
+    const screen = screenRef.el
+    const card = screen?.querySelector('.switcher-card.is-follow')
+    const rect = screenLocalBounds(card, screen)
+    if (!rect) return
+
+    // Read the currently painted follow card before Vue removes it on release.
+    const radius = Number.parseFloat(getComputedStyle(card).borderTopLeftRadius)
+    const scale = Math.min(rect.width / card.offsetWidth, rect.height / card.offsetHeight)
+    swipeFrame = { rect, radius: radius * scale }
+    nextTick(() => { swipeFrame = null })
+  },
+  { flush: 'sync' }
 )
 
 watch(
@@ -236,12 +342,13 @@ watch(
 watch(
   [frame, phase],
   ([current, currentPhase]) => emit('hero-frame', current
-    ? { phase: currentPhase, backdropStrength: current.backdropStrength }
+    ? { phase: currentPhase, backdropStrength: current.backdropStrength, widgetLaunch: Boolean(launchAnchor.value?.widgetId), showingWidgetOnOpen: Boolean(widgetAnchor.value && currentPhase === "opening" && current.iconOpacity > 0) }
     : null),
   { immediate: true, flush: 'sync' }
 )
 
 onBeforeUnmount(() => {
+  restoreWidget()
   emit('hero-frame', null)
   hero.stop()
   home.showIcon()
@@ -252,11 +359,12 @@ onBeforeUnmount(() => {
   <div
     class="app-window"
     :data-phase="phase"
+    :data-widget-hero="launchAnchor?.widgetId"
     :data-app-id="appId"
     :data-content-ready="contentReady ? 'true' : 'false'"
     :style="windowStyle"
   >
-    <div class="aw-clip" :style="clipStyle">
+    <div class="aw-clip" :style="windowClipStyle">
       <div class="aw-fill" :style="heroFillStyle"></div>
       <div class="aw-fixed-container" :style="fixedContainerStyle">
         <div class="aw-app-surface" :style="appSurfaceStyle"></div>
@@ -267,6 +375,8 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </div>
+
+    <div ref="widgetMirrorHost" class="aw-widget-mirror" :style="widgetMirrorStyle" aria-hidden="true" inert></div>
 
     <div class="aw-icon-wrapper" :style="iconWrapperStyle">
       <AppIcon
@@ -283,6 +393,13 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+:global(.home-layer [data-widget-hero-source]) { visibility:hidden }
+.aw-widget-mirror { position:absolute; top:0; left:0; pointer-events:none; transform-origin:top left; z-index:10 }
+:global(body.is-capturing .app-window[data-widget-hero]) { inset:0 auto auto 0 !important; }
+:global(body.is-capturing .app-window[data-widget-hero] .aw-clip) {
+  clip-path:var(--widget-hero-clip, none) !important;
+}
+
 .app-window {
   position: absolute;
   z-index: var(--z-app-window);

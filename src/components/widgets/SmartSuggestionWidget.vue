@@ -1,10 +1,21 @@
 <script setup>
+import { wideAsset } from '../../config/deviceDesktop.js'
 import { computed, ref } from 'vue'
+import { useHomeStore } from '../../stores/homeStore'
 import { usePrayerStore } from '../../stores/prayerStore'
 import { useSystemStore } from '../../stores/systemStore'
+import { setLaunchRect } from '../../utils/appIconAnchors'
+import { rectRelativeToScreen } from '../../utils/dom'
 import WeatherWidget from './WeatherWidget.vue'
 import PhotoWidget from './PhotoWidget.vue'
 
+const props = defineProps({ wide: Boolean })
+const wideTiles = [
+  { id:'tips', label:'Tips', art:'suggestion-tips' },
+  { id:'calculator', label:'Calculator', art:'suggestion-calculator' },
+  { id:'oneleap', label:'OneLeap', art:'suggestion-switch' },
+  { id:'weather', label:'Weather', art:'suggestion-weather' }
+]
 const prayerStore = usePrayerStore()
 const system = useSystemStore()
 const currentMode = computed(() => prayerStore.userMode)
@@ -21,7 +32,9 @@ function toggleMode() {
   prayerStore.setUserMode(currentMode.value === 'muslim' ? 'normal' : 'muslim')
 }
 
+const desktopHome = useHomeStore()
 function onStackPointerDown(event) {
+  if (props.wide && !desktopHome.editing) event.stopPropagation()
   if (event.button != null && event.button !== 0) return
   isTracking = true
   didSwipe = false
@@ -85,6 +98,13 @@ function onWeatherClick(event) {
   toggleMode()
 }
 
+function openFromSuggestions(appId, event) {
+  const widget = event.currentTarget.closest('.smart-suggestion-stack')
+  const rect = rectRelativeToScreen(widget, widget?.closest('.screen-view'))
+  if (rect?.width) setLaunchRect(appId, { ...rect, widgetId: 'smart' })
+  system.openApp(appId)
+}
+
 function onPrayerClick(event) {
   if (didSwipe) {
     event.preventDefault()
@@ -92,6 +112,9 @@ function onPrayerClick(event) {
     return
   }
   prayerStore.setTargetView('prayer')
+  const widget = event.currentTarget.closest('.smart-suggestion-stack')
+  const rect = rectRelativeToScreen(widget, widget?.closest('.screen-view'))
+  if (rect?.width) setLaunchRect('settings', { ...rect, widgetId: 'smart' })
   system.openApp('settings')
 }
 
@@ -120,9 +143,14 @@ function onStackClickCapture(event) {
     <div
       class="stack-card weather-card"
       :class="{ active: currentMode === 'normal', exited: currentMode === 'muslim' }"
-      @click="onWeatherClick"
+      @click="!props.wide && onWeatherClick($event)"
     >
-      <WeatherWidget />
+      <div v-if="props.wide" class="wide-suggestions" aria-label="AI Suggestions">
+        <button v-for="tile in wideTiles" :key="tile.id" type="button" :aria-label="tile.label" @click.stop="openFromSuggestions(tile.id, $event)">
+          <img :src="wideAsset(tile.art)" alt="">
+        </button>
+      </div>
+      <WeatherWidget v-else />
     </div>
 
     <!-- 3. 穆斯林用户：朝拜时段卡片 (上下轻扫翻转至天气模式，点击进入设置-礼拜模式) -->
@@ -137,6 +165,10 @@ function onStackClickCapture(event) {
 </template>
 
 <style scoped>
+.wide-suggestions { width:100%;height:100%;display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(2,minmax(0,1fr)); gap:8%; padding:8.4%; box-sizing:border-box; border:1px solid #fff2; border-radius:21px; background:linear-gradient(#ffffff38,#ffffff2a); }
+.wide-suggestions button { display:block; min-width:0; min-height:0; padding:0; border:0; background:none; cursor:pointer; }
+.wide-suggestions img { display:block; width:100%;height:100%;object-fit:contain;border-radius:27%; }
+
 .smart-suggestion-stack {
   position: relative;
   width: 100%;

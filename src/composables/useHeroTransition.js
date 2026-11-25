@@ -36,7 +36,7 @@ export function useHeroTransition({
     phase.value = progress > 0 ? 'preview' : 'open'
   }
 
-  function beginOpen({ viewportRect, anchorRect, viewportRadius = 47, onOpened } = {}) {
+  function beginOpen({ viewportRect, anchorRect, anchorRadius, viewportRadius = 47, reducedMotion, onOpened } = {}) {
     stop()
     const run = generation
     const options = {
@@ -44,8 +44,16 @@ export function useHeroTransition({
       viewportRect,
       anchorRect,
       viewportRadius,
+      anchorRadius,
       duration: openDuration
     }
+    if (reducedMotion) {
+      frame.value = deriveHeroFrame({ ...options, timeMs: openDuration })
+      phase.value = 'open'
+      onOpened?.()
+      return
+    }
+
     phase.value = 'opening'
     frame.value = deriveHeroFrame({ ...options, timeMs: 0 })
     let startedAt = typeof performance !== 'undefined' ? performance.now() : null
@@ -68,6 +76,8 @@ export function useHeroTransition({
   function beginClose({
     viewportRect,
     anchorRect,
+    anchorRadius,
+    reducedMotion,
     startRect,
     startRadius,
     startBackdropStrength,
@@ -87,12 +97,20 @@ export function useHeroTransition({
       direction: 'close',
       viewportRect,
       anchorRect,
+      anchorRadius,
       startRect,
       startRadius,
       startBackdropStrength,
       viewportRadius,
       duration
     }
+    if (reducedMotion) {
+      phase.value = 'closed'
+      onHandoff?.()
+      onClosed?.()
+      return
+    }
+
     phase.value = 'closing'
     frame.value = deriveHeroFrame({ ...options, timeMs: 0 })
 
