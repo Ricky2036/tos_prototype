@@ -7,10 +7,9 @@ export function fill(str, params) {
   return str.replace(/\{(\w+)\}/g, (m, k) => (params && params[k] != null ? String(params[k]) : m))
 }
 
-/* ⚠️ 不要用 `import.meta.env.BASE_URL` —— 它是 Vite 专有的，`node --test` 下
-   `import.meta.env` 是 undefined 会直接抛错（单测就 import 这个 store）。
-   public/ 下的素材按仓库惯例写绝对路径（同 `config/apps.js` 的 `/icons/*.png`）。 */
-const stock = (name) => `/photos/${name}`
+/* 使用可选链读取 BASE_URL：Vite 下按 base ('./') 拼接以适配 GitHub Pages 子路径，node --test 下安全回落为 '/' */
+const BASE_URL = (import.meta.env?.BASE_URL || '/').replace(/\/?$/, '/')
+const stock = (name) => `${BASE_URL}photos/${name}`
 
 /**
  * 相册数据源。

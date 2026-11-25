@@ -86,13 +86,15 @@ export const PHOTO_GROUPS = ['recent', 'favorites', 'camera', 'travel']
  * 归档 gallery 铺了 12 格（6 张图各出现两次），这里只放不重复的 6 张 ——
  * 同一张照片出现两次会被当成渲染 bug，且「今天 · N 张照片」的 N 也才是实数。
  */
+const BASE_URL = (import.meta.env?.BASE_URL || '/').replace(/\/?$/, '/')
+
 export const PRINTER_PHOTOS = [
-  { id: 'p1', src: '/photos/photo-01-beach.jpg', groups: ['recent', 'travel'] },
-  { id: 'p2', src: '/photos/photo-02-cafe.jpg', groups: ['recent'] },
-  { id: 'p3', src: '/photos/photo-03-forest.jpg', groups: ['recent', 'travel'] },
-  { id: 'p4', src: '/photos/photo-04-city.jpg', groups: ['recent', 'travel'] },
-  { id: 'p5', src: '/photos/photo-05-dog.jpg', groups: ['recent', 'camera'] },
-  { id: 'p6', src: '/photos/photo-06-birthday.jpg', groups: ['recent', 'favorites'] }
+  { id: 'p1', src: `${BASE_URL}photos/photo-01-beach.jpg`, groups: ['recent', 'travel'] },
+  { id: 'p2', src: `${BASE_URL}photos/photo-02-cafe.jpg`, groups: ['recent'] },
+  { id: 'p3', src: `${BASE_URL}photos/photo-03-forest.jpg`, groups: ['recent', 'travel'] },
+  { id: 'p4', src: `${BASE_URL}photos/photo-04-city.jpg`, groups: ['recent', 'travel'] },
+  { id: 'p5', src: `${BASE_URL}photos/photo-05-dog.jpg`, groups: ['recent', 'camera'] },
+  { id: 'p6', src: `${BASE_URL}photos/photo-06-birthday.jpg`, groups: ['recent', 'favorites'] }
 ]
 /** 裁剪比例（归档 crop pane 前三项：原始 / 3:4 / 1:1；第 4 项「旋转」是动作） */
 export const EDIT_CROPS = ['original', 'ratio34', 'square']
