@@ -1,3 +1,4 @@
+import { wideItemMetrics, packWideOrder } from '../config/deviceDesktop.js'
 export const HOME_LAYOUT_VERSION = 2
 export const HOME_COLUMNS = 4
 export const HOME_ROWS = 6
@@ -48,6 +49,7 @@ export function createHomeGridProfile({ width = 360, height = 788, safeTop = 54,
 
 export function homeItemMetrics(item, folders = {}, profile = createHomeGridProfile()) {
   const span = itemSpan(item, folders)
+  if (profile.wide && !profile.nativeMetrics) return wideItemMetrics(span, profile)
   const scale = profile.compactScale || 1
   const unit = profile.iconSize * scale
   const gapX = profile.gapX * scale
@@ -74,6 +76,7 @@ function findSkylinePosition(bottoms, metrics, profile) {
 
 /** Packs canonical item order into viewport-derived pages and pixel frames. */
 export function layoutHomeOrder(order, items, folders = {}, profile = createHomeGridProfile()) {
+  if (profile.wide && !profile.nativeGrid) return packWideOrder(order, items, folders, profile, itemSpan)
   const source = [...new Set((order || []).filter((id) => items[id] || (typeof id === 'string' && id.startsWith('page-break:'))))]
   const pages = []
   const frames = {}

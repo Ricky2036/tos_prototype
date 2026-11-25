@@ -278,6 +278,21 @@ function onSurfaceClick(event) {
 </template>
 
 <style scoped>
+.is-wide-layout .folder-name { font:400 11px/15px var(--font-stack); text-shadow:none; }
+.stage[data-form-moving=true] .folder-apps {transition:none}
+@media (prefers-reduced-motion:reduce) { .is-wide-layout .folder-apps {transition:none} }
+.is-wide-layout .folder-apps.size-1-1 {
+  padding:calc(var(--icon-size) * .12);gap:calc(var(--icon-size) * .035);
+  grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));
+  align-items:center;justify-items:center;
+}
+.is-wide-layout .folder-apps.size-1-1 :deep(.app-icon),
+.is-wide-layout .folder-apps.size-1-1 :deep(.app-icon-anchor),
+.is-wide-layout .folder-apps.size-1-1 :deep(.icon-tile) {
+  width:calc(var(--icon-size) * .207) !important;
+  height:calc(var(--icon-size) * .207) !important;
+}
+
 .home-folder,
 .folder-surface {
   width: 100%;

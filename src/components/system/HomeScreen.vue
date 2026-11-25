@@ -1,4 +1,5 @@
 <script setup>
+import { wideMode, wideAsset, formMetrics } from '../../config/deviceDesktop.js'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useHomeStore } from '../../stores/homeStore'
 import { useSystemStore } from '../../stores/systemStore'
@@ -1099,11 +1100,22 @@ function chooseThumbnailCard(index) {
     showToast('空白页')
   }
 }
+watch(wideMode, () => {
+  if (pointer) cleanup(true)
+  openFolderId.value = null
+  folderOperation.value = null
+  measureViewport()
+}, { flush: 'sync' })
+watch(formMetrics, measureViewport)
 let resizeObserver = null
 let resizeFrame = null
 function measureViewport() {
   const root = rootRef.value
   if (!root) return
+  if (formMetrics.value) {
+    home.setViewport(formMetrics.value)
+    return
+  }
   if (pointer) cleanup(true)
   const style = getComputedStyle(root)
   home.setViewport({
@@ -1121,7 +1133,7 @@ onMounted(() => {
     cancelAnimationFrame(resizeFrame)
     resizeFrame = requestAnimationFrame(measureViewport)
   })
-  resizeObserver.observe(rootRef.value)
+  if (!formMetrics.value) resizeObserver.observe(rootRef.value)
   if (typeof window !== 'undefined') {
     const schedule = window.requestIdleCallback || ((cb) => setTimeout(cb, 300))
     schedule(() => {
@@ -1135,7 +1147,7 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
 </script>
 
 <template>
-  <div ref="rootRef" class="home-screen" :class="{ 'just-unlocked':justUnlocked, 'is-editing':home.editing }" :style="homeStyle" @pointerdown.capture="onRootPointerDownCapture" @pointerdown="onEmptyPointerDown" @wheel="onWheel" @dragstart.prevent>
+  <div ref="rootRef" class="home-screen" :class="{ 'just-unlocked':justUnlocked, 'is-editing':home.editing, 'is-wide-layout':home.profile.wide, 'is-slab-design':!wideMode }" :style="homeStyle" @pointerdown.capture="onRootPointerDownCapture" @pointerdown="onEmptyPointerDown" @wheel="onWheel" @dragstart.prevent>
     <div class="home-page-strip" :style="stripStyle">
       <section v-for="(page,pageIndex) in displayPages" :key="pageIndex" class="home-page">
         <AppGrid :page-index="pageIndex" :item-ids="page" :items="home.items" :positions="displayPositions[pageIndex] || {}" :profile="home.profile"
@@ -1161,7 +1173,14 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
       </div>
       <button type="button" class="done-pill" @click="home.setEditing(false)">完成</button>
     </div>
-    <div class="indicator-wrap" :style="indicatorStyle"><PageIndicator :count="hasSelection ? thumbnailPages.length : displayPages.length" :current="home.currentPage" :show-pages="home.editing || showPageDots" @search="emit('open-library')" /></div>
+    <div class="indicator-wrap" :style="indicatorStyle"><PageIndicator :wide="home.profile.wide" @go="home.setPage($event)" :count="hasSelection ? thumbnailPages.length : displayPages.length" :current="home.currentPage" :show-pages="home.editing || showPageDots" @search="emit('open-library')" /></div>
+    <form v-if="home.profile.wide && !home.editing" class="wide-google-search" role="search"
+      aria-label="Google 搜索条" action="https://www.google.com/search" target="_blank" rel="noopener" @pointerdown.stop>
+      <button type="submit" aria-label="Google 搜索"><img :src="wideAsset('search-google')" alt=""></button>
+      <input type="search" name="q" aria-label="搜索 Google" autocomplete="off" required>
+      <img class="wide-mic" :src="wideAsset('search-mic')" alt="" aria-hidden="true">
+      <img class="wide-lens" :src="wideAsset('search-lens')" alt="" aria-hidden="true">
+    </form>
     <DockBar v-if="!home.editing" :profile="home.profile" :dragging-id="dragging?.id" :dock-target-index="dockTargetIndex" :removing-ids="removingIds" :suppress-click-id="suppressedClickId" @item-pointerdown="onDockPointerDown"
       @toggle-select="home.toggleSelected" @request-remove="requestRemove" />
     <HomeFolderOverlay v-if="openFolderId && home.folders[openFolderId]" :folder="home.folders[openFolderId]" :origin="folderOrigin"
@@ -1311,6 +1330,30 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
 </template>
 
 <style scoped>
+.wide-google-search {
+  position: absolute;
+  bottom: 4.63%;
+  left: 9.15%;
+  width: 81.7%;
+  height: 5.72%;
+  z-index: var(--z-dock);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 15px 0 11px;
+  background: linear-gradient(rgba(255,255,245,.92),rgba(255,255,245,.72));
+  border: .758px solid rgba(255,255,255,.2);
+  border-radius: 24px;
+  backdrop-filter: blur(3.788px);
+  color: #181818;
+}
+.wide-google-search button { display:grid; place-items:center; background:transparent; border:0; padding:0; cursor:pointer; }
+.wide-google-search button img { width:23px; height:23px; }
+.wide-google-search input { min-width:0; flex:1; height:100%; background:none; border:0; color:#181818; outline-offset:-3px; padding:0; font:14px var(--font-stack); }
+.is-slab-design .wide-google-search {bottom:3.5%;height:5.25%;left:7.8%;width:84.4%}
+.wide-mic { width:13px; height:20px; }
+.wide-lens { width:17px; height:17px; }
+
 :global(.screen-view:has(.home-screen.is-editing) .status-bar) {
   opacity: 0.4;
   transition: opacity 280ms cubic-bezier(.22,.8,.26,1);

@@ -1,29 +1,43 @@
 <script setup>
-import { ref } from 'vue'
+import { wideAsset } from '../../config/deviceDesktop.js'
+import { computed, ref } from 'vue'
 import { useClock } from '../../composables/useClock'
 import { useSystemStore } from '../../stores/systemStore'
-import { getAnchorRect, setLaunchRect } from '../../utils/appIconAnchors'
+import { setLaunchRect } from '../../utils/appIconAnchors'
 import { rectRelativeToScreen } from '../../utils/dom'
 
 /** 时钟 Widget（2×2）：白底实时指针表盘，表盘放大居中显示，点击打开时钟 App */
-const { hourDeg, minuteDeg, secondDeg } = useClock()
+const props = defineProps({ wide: Boolean })
+const { hourDeg, minuteDeg, secondDeg, now } = useClock()
+const wideTime = computed(() => new Intl.DateTimeFormat('en-GB', {hour:'2-digit',minute:'2-digit',hour12:false}).format(now.value))
+const wideDate = computed(() => new Intl.DateTimeFormat('en-US', {weekday:'short',month:'short',day:'numeric'}).format(now.value))
 const system = useSystemStore()
 const widgetRef = ref(null)
 
 function openClock() {
   const screenEl = document.querySelector('.screen-view')
   const launchRect = (screenEl && widgetRef.value)
-    ? (getAnchorRect('clock', screenEl) || rectRelativeToScreen(widgetRef.value, screenEl))
+    ? rectRelativeToScreen(widgetRef.value, screenEl)
     : null
   if (launchRect) {
-    setLaunchRect('clock', launchRect)
+    setLaunchRect('clock', { ...launchRect, widgetId: 'clock' })
   }
   system.openApp('clock')
 }
 </script>
 
 <template>
-  <div ref="widgetRef" class="widget clock-widget" @click="openClock">
+  <button v-if="props.wide" ref="widgetRef" type="button" class="widget wide-clock-widget" aria-label="打开时钟" @click="openClock">
+    <img :src="wideAsset('clock-face')" alt="">
+    <span class="wide-clock-date">{{ wideDate }}</span>
+    <span class="wide-clock-temp" aria-label="温度 26 度">26°</span>
+    <time class="wide-clock-time" :aria-label="wideTime">
+      <svg viewBox="0 0 154 154" aria-hidden="true">
+        <text x="77" y="97" text-anchor="middle">{{ wideTime }}</text>
+      </svg>
+    </time>
+  </button>
+  <div v-else ref="widgetRef" class="widget clock-widget" @click="openClock">
     <svg class="cw-face" viewBox="0 0 120 120">
       <circle cx="60" cy="60" r="57" fill="#fff" />
       <!-- 刻度 -->
@@ -53,6 +67,19 @@ function openClock() {
 </template>
 
 <style scoped>
+.wide-clock-widget { position:relative; display:block; padding:0; border:0; background:none; box-shadow:none; cursor:pointer; container-type:inline-size; }
+.wide-clock-widget img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+.wide-clock-date {position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;top:14%;font:600 6.9cqw/1.2 var(--font-stack);color:#0008}
+.wide-clock-temp {position:absolute;left:50.5%;top:76.55%;font:600 6.9cqw/1.2 var(--font-stack);color:#0008;white-space:nowrap}
+.wide-clock-time,.wide-clock-time svg {position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.wide-clock-time text {
+  font-family:"Transsion Tecno pnum",-apple-system,"SF Pro Rounded","Arial Rounded MT Bold","Helvetica Neue",sans-serif;
+  font-size:70px;
+  font-weight:840;
+  font-variation-settings:"wght" 840,"ytde" 235;
+  fill:#181818;
+}
+
 .widget {
   width: 100%;
   aspect-ratio: 1 / 1;

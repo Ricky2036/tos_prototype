@@ -1,3 +1,4 @@
+import { wideMode, newHomeApps, wideDefaultOrder, wideDockIds, wideHomeFolder, wideGridProfile } from '../config/deviceDesktop.js'
 import { defineStore } from 'pinia'
 import { APPS, dockApps, gridApps } from '../config/apps.js'
 import { HOME_LAYOUT_VERSION, cloneHomeState, createHomeGridProfile, globalRankForPageIndex, layoutHomeOrder, locateHomeItem, moveHomeOrderItem } from '../utils/homeLayout.js'
@@ -8,12 +9,16 @@ const appItemId = (id) => `app:${id}`
 const folderItemId = (id) => `folder:${id}`
 const unique = (values) => [...new Set(values || [])]
 
-function defaultItems() {
+function defaultItems(wide) {
   const items = {
     'widget:clock': { id: 'widget:clock', type: 'widget', widgetId: 'clock', w: 2, h: 2 },
     'widget:smart': { id: 'widget:smart', type: 'widget', widgetId: 'smart', w: 2, h: 2 }
   }
   for (const app of APPS) items[appItemId(app.id)] = { id: appItemId(app.id), type: 'app', appId: app.id, w: 1, h: 1 }
+  if (wide) {
+    for (const id of Object.keys(newHomeApps)) items[appItemId(id)] = { id: appItemId(id), type: 'app', appId: id, w: 1, h: 1 }
+    items['folder:wide-google'] = { id: 'folder:wide-google', type: 'folder', folderId: 'wide-google', w: 1, h: 1 }
+  }
   return items
 }
 
@@ -24,7 +29,7 @@ function deriveLayout(state) {
   state.currentPage = Math.max(0, Math.min(Number(state.currentPage) || 0, state.pages.length - 1))
 }
 
-export function createDefaultHomeState() {
+export function createDefaultHomeState(wide = false) {
   const state = {
     version: HOME_LAYOUT_VERSION, currentPage: 0,
     order: [
@@ -33,10 +38,18 @@ export function createDefaultHomeState() {
       'page-break:default',
       ...gridApps.slice(15).map((app) => appItemId(app.id))
     ],
-    pages: [[]], positions: {}, profile: createHomeGridProfile(), items: defaultItems(), folders: {},
+    pages: [[]], positions: {}, profile: createHomeGridProfile(), items: defaultItems(wide), folders: {},
     dock: dockApps.map((app) => appItemId(app.id)).slice(0, 4),
     uninstalledAppIds: [], hiddenDesktopAppIds: [], removedWidgetIds: [], hiddenIconId: null,
     editing: false, selectedItemIds: []
+  }
+  if (wide) {
+    state.order = wideDefaultOrder(state.items)
+    state.folders[wideHomeFolder.id] = { ...wideHomeFolder, appIds: [...wideHomeFolder.appIds] }
+    state.dock = wideDockIds.map(appItemId)
+    state.profile = designedGridProfile({ width: wide === 'slab' ? 360 : 426, height: wide === 'slab' ? 788 : 734 }, wide)
+    const extraPage = state.order.indexOf('page-break:wide-default') + 1
+    state.hiddenDesktopAppIds = state.order.splice(extraPage + 20).map(id => state.items[id].appId)
   }
   deriveLayout(state)
   return state
@@ -52,10 +65,10 @@ function safeStorage() {
   }
 }
 
-function reconcile(raw) {
-  const defaults = createDefaultHomeState()
+function reconcile(raw, wide) {
+  const defaults = createDefaultHomeState(wide)
   if (!raw?.items || !raw.items['app:whatsapp'] || (raw.version === 2 ? !Array.isArray(raw.order) : !Array.isArray(raw.pages))) return defaults
-  const knownApps = new Set(APPS.map((app) => app.id))
+  const knownApps = new Set(Object.values(defaults.items).filter(item => item.type === 'app').map(item => item.appId))
   const uninstalled = new Set((raw.uninstalledAppIds || []).filter((id) => knownApps.has(id)))
   const hidden = new Set((raw.hiddenDesktopAppIds || []).filter((id) => knownApps.has(id) && !uninstalled.has(id)))
   const removedWidgets = new Set(raw.removedWidgetIds || [])
@@ -90,7 +103,17 @@ function reconcile(raw) {
   return state
 }
 
-export function loadHomeState(storage = safeStorage()) {
+const designedStorageKey = mode => HOME_STORAGE_KEY + (mode === 'slab' ? '.slab-design' : '.wide')
+
+export function loadHomeState(storage = safeStorage(), wide = false) {
+  if (wide) {
+    try {
+      const saved = storage?.getItem(designedStorageKey(wide))
+        || (wide === 'slab' && (storage?.getItem(HOME_STORAGE_KEY) || storage?.getItem(LEGACY_HOME_STORAGE_KEY)))
+      if (saved) return reconcile(JSON.parse(saved), wide)
+    } catch {}
+    return createDefaultHomeState(wide)
+  }
   if (!storage) return createDefaultHomeState()
   try {
     const current = storage.getItem(HOME_STORAGE_KEY)
@@ -101,8 +124,8 @@ export function loadHomeState(storage = safeStorage()) {
 }
 
 let folderSequence = 0
-export const useHomeStore = defineStore('home', {
-  state: () => loadHomeState(),
+const createHomeDefinition = wide => ({
+  state: () => loadHomeState(undefined, wide),
   getters: {
     pageCount: (state) => state.pages.length,
     currentItems: (state) => state.pages[state.currentPage] || [],
@@ -113,11 +136,11 @@ export const useHomeStore = defineStore('home', {
   actions: {
     persist() {
       const storage = safeStorage(); if (!storage) return
-      try { storage.setItem(HOME_STORAGE_KEY, JSON.stringify(cloneHomeState({ version: this.version, currentPage: this.currentPage, order: this.order, items: this.items, folders: this.folders, dock: this.dock, uninstalledAppIds: this.uninstalledAppIds, hiddenDesktopAppIds: this.hiddenDesktopAppIds, removedWidgetIds: this.removedWidgetIds }))) } catch {}
+      try { storage.setItem(wide ? designedStorageKey(wide) : HOME_STORAGE_KEY, JSON.stringify(cloneHomeState({ version: this.version, currentPage: this.currentPage, order: this.order, items: this.items, folders: this.folders, dock: this.dock, uninstalledAppIds: this.uninstalledAppIds, hiddenDesktopAppIds: this.hiddenDesktopAppIds, removedWidgetIds: this.removedWidgetIds }))) } catch {}
     },
     reflow() { deriveLayout(this) },
     setLayoutProfile(profile) { this.profile = profile; this.reflow() },
-    setViewport(metrics) { this.setLayoutProfile(createHomeGridProfile(metrics)) },
+    setViewport(metrics) { this.setLayoutProfile(wide ? designedGridProfile(metrics, wide) : createHomeGridProfile(metrics)) },
     setPage(index) { this.currentPage = Math.max(0, Math.min(Number(index) || 0, this.pages.length - 1)); this.persist() },
     setEditing(value) { this.editing = Boolean(value); if (!this.editing) this.selectedItemIds = [] },
     toggleSelected(id) { if (this.items[id]) this.selectedItemIds = this.selectedItemIds.includes(id) ? this.selectedItemIds.filter((value) => value !== id) : [...this.selectedItemIds, id] },
@@ -255,6 +278,41 @@ export const useHomeStore = defineStore('home', {
     },
     removeWidget(widgetId) { const itemId = `widget:${widgetId}`; if (!this.items[itemId]) return false; this.order = this.order.filter((id) => id !== itemId); delete this.items[itemId]; if (!this.removedWidgetIds.includes(widgetId)) this.removedWidgetIds.push(widgetId); this.reflow(); this.persist(); return true },
     hideIcon(appId) { this.hiddenIconId = appId }, showIcon() { this.hiddenIconId = null },
-    resetLayout() { Object.assign(this, createDefaultHomeState()); this.persist() }
+    resetLayout() { Object.assign(this, createDefaultHomeState(wide)); this.persist() }
   }
 })
+
+function designedGridProfile(metrics, mode) {
+  const native = createHomeGridProfile({
+    width: 360,
+    height: metrics.slabHeight ?? (mode === 'slab' ? metrics.height : 788)
+  })
+  return wideGridProfile(metrics, native, mode === 'slab')
+}
+
+const useSlabHome = defineStore('home-slab-design', createHomeDefinition('slab'))
+const useWideHome = defineStore('home-wide', createHomeDefinition(true))
+const storeViews = new WeakMap()
+
+export function useHomeStore(...args) {
+  const slab = useSlabHome(...args)
+  if (storeViews.has(slab)) return storeViews.get(slab)
+  const wide = useWideHome(...args)
+  const current = () => wideMode.value ? wide : slab
+  const heroActions = {
+    hideIcon(appId) {
+      slab.hideIcon(appId)
+      wide.hideIcon(appId)
+    },
+    showIcon() {
+      slab.showIcon()
+      wide.showIcon()
+    }
+  }
+  const view = new Proxy({}, {
+    get: (_, key) => Object.hasOwn(heroActions, key) ? heroActions[key] : Reflect.get(current(), key),
+    set: (_, key, value) => Reflect.set(current(), key, value)
+  })
+  storeViews.set(slab, view)
+  return view
+}

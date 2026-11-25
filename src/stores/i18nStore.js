@@ -1,3 +1,4 @@
+import { newHomeApps } from '../config/deviceDesktop.js'
 import { defineStore } from 'pinia'
 /* 词条数据 2026-09-11 起分包到 src/locales/，这里只做组装。
  * 新增应用词条：新建 src/locales/<app>.js 并在 loader 里注册，别往 messages.js 塞。 */
@@ -33,7 +34,7 @@ export const useI18nStore = defineStore('i18n', {
     demoContacts: (s) => MESSAGES[s.locale]?.demoContacts || MESSAGES.zh.demoContacts,
     currentWeekDays: (s) => MESSAGES[s.locale]?.weekDays || MESSAGES.zh.weekDays || [],
     calWeekDays: (s) => MESSAGES[s.locale]?.calWeekDays || MESSAGES.zh.calWeekDays || [],
-    appName: (s) => (appId) => APP_NAMES[s.locale]?.[appId] || APP_NAMES.zh[appId] || appId,
+    appName: (s) => (appId) => APP_NAMES[s.locale]?.[appId] || APP_NAMES.zh[appId] || newHomeApps[appId] || appId,
     /**
      * AI Mate 词条：路径式取用，缺项回落到中文。
      * 例：am('fan.power') / am('home.group.wear') / am('fan.modes')（数组直接返回）

@@ -1,7 +1,3 @@
-/**
- * 应用抽屉全量元数据与 A-Z 拼音索引配置。
- * 数据全部从 `src/config/apps.js` 的统一纯数据应用表 `APP_CATALOG` 派生，不再重复维护。
- */
 import { APP_CATALOG, subscribeCatalog } from './apps.js'
 
 /** 将统一目录项转换为抽屉应用结构。 */
