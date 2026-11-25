@@ -7,7 +7,7 @@ export const modernWidgets = formQuery.get('widgets') !== 'legacy'
 export const wideMode = ref(formQuery.get('form') === 'wide')
 const nativeAssets = {
   gemini: 'gemini.png', hola: 'hola.png', phone: 'phone.png', camera: 'camera.png',
-  chrome: 'chrome.png', settings: 'settings.svg', 'phone-master': 'phone-master.svg',
+  chrome: 'chrome.png', settings: 'settings.png', 'phone-master': 'phone-master.svg',
   'suggestion-switch': 'suggestion-switch.png', 'suggestion-tips': 'suggestion-tips.png',
   'suggestion-weather': 'suggestion-weather.svg'
 }

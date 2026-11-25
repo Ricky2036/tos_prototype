@@ -94,8 +94,8 @@ const homeInteractive = computed(() => system.baseLayer !== 'app' && !privacy.se
 const isWallpaperVisible = computed(() => {
   if (!system.screenOn) return false
   if (system.baseLayer === 'app') {
-    const widgetSwipe = heroVisual.value?.widgetLaunch && system.switcherProgress > 0.01
-    if (heroVisual.value?.phase === 'open' && system.homeGestureProgress === 0 && !widgetSwipe) {
+    const isFollowingSwipe = system.switcherProgress > 0.01
+    if (heroVisual.value?.phase === 'open' && system.homeGestureProgress === 0 && !isFollowingSwipe) {
       return false
     }
   }
@@ -389,7 +389,6 @@ useSwipeGesture(sideEdgeRef, {
 </template>
 
 <style scoped>
-.screen-view:has(.app-window[data-widget-hero]) .wallpaper { opacity:1 !important; }
 
 .screen-view {
   position: absolute;

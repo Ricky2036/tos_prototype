@@ -213,7 +213,7 @@ const windowClipStyle = computed(() => {
   const current = frame.value
   if (!widgetAnchor.value || !current || isOpen.value) return clipStyle.value
   const clipPath = `inset(0 round ${current.radius}px)`
-  return { clipPath, '--widget-hero-clip': clipPath, opacity: 1 - current.iconOpacity }
+  return { clipPath, opacity: 1 - current.iconOpacity }
 })
 
 const nativeIconSize = computed(() => launchAnchor.value?.width || 60)
@@ -316,7 +316,7 @@ watch(
 watch(
   () => system.switcherProgress,
   (progress, previous) => {
-    if (!launchAnchor.value?.widgetId || !previous || progress > 0.01 || reduceWidgetMotion()) return
+    if (!previous || progress > 0.01 || reduceWidgetMotion()) return
     const screen = screenRef.el
     const card = screen?.querySelector('.switcher-card.is-follow')
     const rect = screenLocalBounds(card, screen)
@@ -342,7 +342,7 @@ watch(
 watch(
   [frame, phase],
   ([current, currentPhase]) => emit('hero-frame', current
-    ? { phase: currentPhase, backdropStrength: current.backdropStrength, widgetLaunch: Boolean(launchAnchor.value?.widgetId), showingWidgetOnOpen: Boolean(widgetAnchor.value && currentPhase === "opening" && current.iconOpacity > 0) }
+    ? { phase: currentPhase, backdropStrength: current.backdropStrength, showingWidgetOnOpen: Boolean(widgetAnchor.value && currentPhase === "opening" && current.iconOpacity > 0) }
     : null),
   { immediate: true, flush: 'sync' }
 )
@@ -395,10 +395,6 @@ onBeforeUnmount(() => {
 <style scoped>
 :global(.home-layer [data-widget-hero-source]) { visibility:hidden }
 .aw-widget-mirror { position:absolute; top:0; left:0; pointer-events:none; transform-origin:top left; z-index:10 }
-:global(body.is-capturing .app-window[data-widget-hero]) { inset:0 auto auto 0 !important; }
-:global(body.is-capturing .app-window[data-widget-hero] .aw-clip) {
-  clip-path:var(--widget-hero-clip, none) !important;
-}
 
 .app-window {
   position: absolute;

@@ -700,9 +700,7 @@ body.is-capturing .frame-inner {
 
 body.is-capturing .screen,
 body.is-capturing .screen-view,
-body.is-capturing .mobile-screen,
-body.is-capturing .app-window,
-body.is-capturing .aw-clip {
+body.is-capturing .mobile-screen {
   border-radius: 0 !important;
   clip-path: none !important;
 }
@@ -713,8 +711,7 @@ body.is-capturing .screen-view {
 }
 
 body.is-capturing .wallpaper,
-body.is-capturing .ls-wallpaper,
-body.is-capturing .app-window {
+body.is-capturing .ls-wallpaper {
   inset: -3px !important;
 }
 
@@ -728,10 +725,6 @@ body.is-capturing .side-btn {
   opacity: 0 !important;
   visibility: hidden !important;
   box-shadow: none !important;
-}
-
-body.is-capturing:has(.app-window) .wallpaper {
-  opacity: 0 !important;
 }
 
 /* 带壳采集态：保留完整金属机身 3D 内倒角高光与侧边实体按键，
