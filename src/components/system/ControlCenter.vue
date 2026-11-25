@@ -340,6 +340,7 @@ const TOGGLES = [
   { id: 'shoulderKey', icon: 'shoulderKey', activeBg: '#fff', activeColor: '#258FFF' },
   /* EE1 系列新增：VPN（插在 快速分享(cast) 之前，见 presetItems 的 extra 处理） */
   { id: 'vpn', icon: 'vpn', activeBg: '#fff', activeColor: '#258FFF' },
+  { id: 'oneHanded', icon: 'oneHanded', activeBg: '#fff', activeColor: '#258FFF' },
   // 已从默认布局下线（Ricky 2026-09-08）：定义保留，方便以后一键恢复。
   // 恢复方式 = 同时做两件事：把 'jbl' 加回下面的 DEFAULT_TOGGLE_IDS，
   //   并把 'jbl' 加回 controlStore 里 NOTE 的 only —— 只加一处不会生效。
@@ -487,6 +488,14 @@ const presetItems = computed(() => {
   }
   if (wideMode.value) {
     items = items.filter((i) => i.id !== 'joyHeart' && i.id !== 'boost')
+    const calcIdx = items.findIndex((i) => i.id === 'calculator')
+    if (calcIdx >= 0) {
+      const [calc] = items.splice(calcIdx, 1)
+      items.push(calc)
+    }
+    const shareIdx = items.findIndex((i) => i.id === 'share')
+    const oneHandedItem = { id: 'oneHanded', type: 'toggle', size: '1x1', w: 1, h: 1 }
+    items.splice(shareIdx >= 0 ? shareIdx + 1 : items.length, 0, oneHandedItem)
   }
   return items
 })

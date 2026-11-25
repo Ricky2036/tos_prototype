@@ -44,7 +44,8 @@ export const DEFAULT_ICON_SIZES = {
   liquidCooling: 32,
   shoulderKey: 32,
   jbl: 32,
-  vpn: 30
+  vpn: 30,
+  oneHanded: 32
 }
 
 export const DEFAULT_BG_SIZES = {
@@ -100,7 +101,8 @@ export const ITEM_LABELS = {
   liquidCooling: '液冷散热',
   shoulderKey: '肩键',
   jbl: 'JBL',
-  vpn: 'VPN'
+  vpn: 'VPN',
+  oneHanded: '单手模式'
 }
 
 /* ---- 宫格整体缩放（gridScale）：格子 + 间距 + 图标 + 底板一起等比缩放 ----
@@ -258,6 +260,7 @@ export const useControlStore = defineStore('control', {
     shoulderKey: false,
     jbl: false,
     vpn: false,
+    oneHanded: false,
     dnd: false,
     mediaPlaying: false,
     mediaActive: false,
