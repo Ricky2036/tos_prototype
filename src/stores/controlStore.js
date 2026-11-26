@@ -426,14 +426,12 @@ export const useControlStore = defineStore('control', {
     setShowPrivacyIndicators(v) { this.showPrivacyIndicators = !!v },
     setShowDualSim(v) { this.showDualSim = !!v },
     cycleOneHandedPosition() {
-      const order = ['left', 'center', 'right']
-      const idx = order.indexOf(this.oneHandedPosition)
-      this.oneHandedPosition = order[(idx + 1) % order.length]
+      this.oneHandedPosition = this.oneHandedPosition === 'left' ? 'right' : 'left'
     },
     setOneHandedScale(v) {
       const n = Number(v)
       if (!Number.isFinite(n)) return
-      this.oneHandedScale = Math.min(0.86, Math.max(0.52, Math.round(n * 1000) / 1000))
+      this.oneHandedScale = Math.min(0.9, Math.max(0.52, Math.round(n * 1000) / 1000))
     },
     exitOneHanded() {
       this.oneHanded = false
