@@ -1123,7 +1123,7 @@ function measureViewport() {
   const root = rootRef.value
   if (!root) return
   if (wideMode.value && control.oneHanded && control.oneHandedRatio === 'slab') {
-    home.setViewport({ width: 360, height: 788, safeTop: 54, safeBottom: 34, forceSlabProfile: true })
+    home.setViewport({ width: 360, height: 788, slabHeight: 788, slabRatio: true })
     return
   }
   if (formMetrics.value) {
