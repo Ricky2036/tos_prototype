@@ -525,14 +525,14 @@ useSwipeGesture(sideEdgeRef, {
           data-testid="onehanded-full-btn"
           @click="onOneHandedFullClick"
         >
-          <svg width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true">
             <defs>
               <mask id="oh-full-cut">
                 <rect width="32" height="32" fill="white"/>
-                <path d="M9.5 14V9.5H14M22.5 14V9.5H18M9.5 18V22.5H14M22.5 18V22.5H18" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8.5 12.8V8.5H12.8M23.5 12.8V8.5H19.2M8.5 19.2V23.5H12.8M23.5 19.2V23.5H19.2" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
               </mask>
             </defs>
-            <rect x="4.5" y="4.5" width="23" height="23" rx="6" fill="currentColor" mask="url(#oh-full-cut)"/>
+            <rect x="4" y="4" width="24" height="24" rx="6.5" fill="currentColor" mask="url(#oh-full-cut)"/>
           </svg>
         </button>
         <button
@@ -544,23 +544,31 @@ useSwipeGesture(sideEdgeRef, {
           data-testid="onehanded-resize-btn"
           @click="onOneHandedEditClick"
         >
-          <svg v-if="control.oneHandedEditing" width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <svg v-if="control.oneHandedEditing" width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true">
             <defs>
               <mask id="oh-save-cut">
                 <rect width="32" height="32" fill="white"/>
-                <path d="M10.5 16.5L14.2 20.2L21.8 12.2" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9.5 16.5L14 21L22.5 11.5" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
               </mask>
             </defs>
-            <rect x="4.5" y="4.5" width="23" height="23" rx="6" fill="currentColor" mask="url(#oh-save-cut)"/>
+            <rect x="4" y="4" width="24" height="24" rx="6.5" fill="currentColor" mask="url(#oh-save-cut)"/>
           </svg>
-          <svg v-else width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <svg
+            v-else
+            width="24"
+            height="24"
+            viewBox="0 0 32 32"
+            fill="none"
+            aria-hidden="true"
+            :style="{ transform: control.oneHandedPosition === 'left' ? 'scaleX(-1)' : undefined }"
+          >
             <defs>
               <mask id="oh-resize-cut">
                 <rect width="32" height="32" fill="white"/>
-                <path d="M11 21L21 11M15.5 11H21V16.5M16.5 21H11V15.5" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 21L10.5 10.5M10.5 17V10.5H17" stroke="black" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
               </mask>
             </defs>
-            <rect x="4.5" y="4.5" width="23" height="23" rx="6" fill="currentColor" mask="url(#oh-resize-cut)"/>
+            <rect x="4" y="4" width="24" height="24" rx="6.5" fill="currentColor" mask="url(#oh-resize-cut)"/>
           </svg>
         </button>
         <button
