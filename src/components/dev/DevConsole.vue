@@ -627,75 +627,6 @@ function onToggleFineTune(enabled) {
       </div>
     </div>
 
-    <!-- 单手模式控制台（仅阔直板显示） -->
-    <div v-if="previewForm === 'wide'" class="pc-card" data-testid="onehanded-console-card">
-      <div class="pc-card-header">
-        <span class="pc-card-title">单手模式</span>
-        <label class="pc-switch-wrap">
-          <span>{{ control.oneHanded ? '开启' : '关闭' }}</span>
-          <input
-            type="checkbox"
-            data-testid="onehanded-console-switch"
-            :checked="control.oneHanded"
-            @change="$event.target.checked ? control.toggle('oneHanded') : control.exitOneHanded()"
-          />
-          <div class="pc-switch"></div>
-        </label>
-      </div>
-      <div class="pc-oh-rows">
-        <div class="pc-oh-row">
-          <span class="pc-oh-label">背景</span>
-          <div class="pc-oh-seg">
-            <button
-              type="button"
-              class="pc-oh-seg-btn"
-              :class="{ 'is-active': control.oneHandedBackdrop === 'blur' }"
-              data-testid="onehanded-bg-blur"
-              @click="control.oneHandedBackdrop = 'blur'"
-            >虚化</button>
-            <button
-              type="button"
-              class="pc-oh-seg-btn"
-              :class="{ 'is-active': control.oneHandedBackdrop === 'black' }"
-              data-testid="onehanded-bg-black"
-              @click="control.oneHandedBackdrop = 'black'"
-            >纯黑</button>
-          </div>
-        </div>
-        <div class="pc-oh-row">
-          <span class="pc-oh-label">比例</span>
-          <div class="pc-oh-seg">
-            <button
-              type="button"
-              class="pc-oh-seg-btn"
-              :class="{ 'is-active': control.oneHandedRatio === 'wide' }"
-              data-testid="onehanded-ratio-wide"
-              @click="control.oneHandedRatio = 'wide'"
-            >阔直板</button>
-            <button
-              type="button"
-              class="pc-oh-seg-btn"
-              :class="{ 'is-active': control.oneHandedRatio === 'slab' }"
-              data-testid="onehanded-ratio-slab"
-              @click="control.oneHandedRatio = 'slab'"
-            >直板</button>
-          </div>
-        </div>
-        <div class="pc-oh-row">
-          <span class="pc-oh-label">窗口贴边</span>
-          <label class="pc-switch-wrap">
-            <input
-              type="checkbox"
-              data-testid="onehanded-edge-switch"
-              :checked="control.oneHandedEdgeSnap"
-              @change="control.oneHandedEdgeSnap = $event.target.checked"
-            />
-            <div class="pc-switch"></div>
-          </label>
-        </div>
-      </div>
-    </div>
-
     <!-- 常用功能：截屏录屏合一卡片（带壳作为通用选项置于标题右侧，按钮精简） -->
     <div class="pc-card">
       <div class="pc-card-header">
@@ -752,6 +683,7 @@ function onToggleFineTune(enabled) {
           <option value="privacy">敏感权限提示</option>
           <option value="backscreen">可触控背屏</option>
           <option value="flashlight">手电筒</option>
+          <option value="onehanded">单手模式</option>
         </select>
         <svg class="pc-select-arrow" viewBox="0 0 20 20" fill="none">
           <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="m6 8 4 4 4-4"/>
@@ -916,6 +848,77 @@ function onToggleFineTune(enabled) {
               </div>
             </div>
             <button class="pc-btn pc-btn-secondary flashlight-reset-btn" type="button" data-testid="flashlight-reset" @click="control.resetFlashlight()">恢复初始状态</button>
+          </div>
+
+          <!-- 模块：单手模式 -->
+          <div v-else-if="selectedModule === 'onehanded'" key="onehanded" class="pc-module-section-group is-onehanded" data-testid="onehanded-console">
+            <div class="pc-section">
+              <div class="pc-card-header">
+                <span class="pc-card-title">单手模式</span>
+                <label class="pc-switch-wrap">
+                  <span>{{ control.oneHanded ? '开启' : '关闭' }}</span>
+                  <input
+                    type="checkbox"
+                    data-testid="onehanded-console-switch"
+                    :checked="control.oneHanded"
+                    @change="$event.target.checked ? control.toggle('oneHanded') : control.exitOneHanded()"
+                  />
+                  <div class="pc-switch"></div>
+                </label>
+              </div>
+              <div class="pc-oh-rows">
+                <div class="pc-oh-row">
+                  <span class="pc-oh-label">背景</span>
+                  <div class="pc-oh-seg">
+                    <button
+                      type="button"
+                      class="pc-oh-seg-btn"
+                      :class="{ 'is-active': control.oneHandedBackdrop === 'blur' }"
+                      data-testid="onehanded-bg-blur"
+                      @click="control.oneHandedBackdrop = 'blur'"
+                    >虚化</button>
+                    <button
+                      type="button"
+                      class="pc-oh-seg-btn"
+                      :class="{ 'is-active': control.oneHandedBackdrop === 'black' }"
+                      data-testid="onehanded-bg-black"
+                      @click="control.oneHandedBackdrop = 'black'"
+                    >纯黑</button>
+                  </div>
+                </div>
+                <div class="pc-oh-row">
+                  <span class="pc-oh-label">比例</span>
+                  <div class="pc-oh-seg">
+                    <button
+                      type="button"
+                      class="pc-oh-seg-btn"
+                      :class="{ 'is-active': control.oneHandedRatio === 'wide' }"
+                      data-testid="onehanded-ratio-wide"
+                      @click="control.oneHandedRatio = 'wide'"
+                    >阔直板</button>
+                    <button
+                      type="button"
+                      class="pc-oh-seg-btn"
+                      :class="{ 'is-active': control.oneHandedRatio === 'slab' }"
+                      data-testid="onehanded-ratio-slab"
+                      @click="control.oneHandedRatio = 'slab'"
+                    >直板</button>
+                  </div>
+                </div>
+                <div class="pc-oh-row">
+                  <span class="pc-oh-label">窗口贴边</span>
+                  <label class="pc-switch-wrap">
+                    <input
+                      type="checkbox"
+                      data-testid="onehanded-edge-switch"
+                      :checked="control.oneHandedEdgeSnap"
+                      @change="control.oneHandedEdgeSnap = $event.target.checked"
+                    />
+                    <div class="pc-switch"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- 模块 2: 灵动岛 (统一采用系统应用样式规范) -->
@@ -1326,69 +1329,6 @@ function onToggleFineTune(enabled) {
               </div>
             </div>
 
-            <!-- 单手模式控制台（仅阔直板显示） -->
-            <div v-if="previewForm === 'wide'" class="pc-card">
-              <div class="pc-card-header">
-                <span class="pc-card-title">单手模式</span>
-                <label class="pc-switch-wrap">
-                  <span>{{ control.oneHanded ? '开启' : '关闭' }}</span>
-                  <input
-                    type="checkbox"
-                    :checked="control.oneHanded"
-                    @change="$event.target.checked ? control.toggle('oneHanded') : control.exitOneHanded()"
-                  />
-                  <div class="pc-switch"></div>
-                </label>
-              </div>
-              <div class="pc-oh-rows">
-                <div class="pc-oh-row">
-                  <span class="pc-oh-label">背景</span>
-                  <div class="pc-oh-seg">
-                    <button
-                      type="button"
-                      class="pc-oh-seg-btn"
-                      :class="{ 'is-active': control.oneHandedBackdrop === 'blur' }"
-                      @click="control.oneHandedBackdrop = 'blur'"
-                    >虚化</button>
-                    <button
-                      type="button"
-                      class="pc-oh-seg-btn"
-                      :class="{ 'is-active': control.oneHandedBackdrop === 'black' }"
-                      @click="control.oneHandedBackdrop = 'black'"
-                    >纯黑</button>
-                  </div>
-                </div>
-                <div class="pc-oh-row">
-                  <span class="pc-oh-label">比例</span>
-                  <div class="pc-oh-seg">
-                    <button
-                      type="button"
-                      class="pc-oh-seg-btn"
-                      :class="{ 'is-active': control.oneHandedRatio === 'wide' }"
-                      @click="control.oneHandedRatio = 'wide'"
-                    >阔直板</button>
-                    <button
-                      type="button"
-                      class="pc-oh-seg-btn"
-                      :class="{ 'is-active': control.oneHandedRatio === 'slab' }"
-                      @click="control.oneHandedRatio = 'slab'"
-                    >直板</button>
-                  </div>
-                </div>
-                <div class="pc-oh-row">
-                  <span class="pc-oh-label">窗口贴边</span>
-                  <label class="pc-switch-wrap">
-                    <input
-                      type="checkbox"
-                      :checked="control.oneHandedEdgeSnap"
-                      @change="control.oneHandedEdgeSnap = $event.target.checked"
-                    />
-                    <div class="pc-switch"></div>
-                  </label>
-                </div>
-              </div>
-            </div>
-
             <!-- 常用功能：截屏录屏合一卡片 -->
             <div class="pc-card">
               <div class="pc-card-header">
@@ -1445,6 +1385,7 @@ function onToggleFineTune(enabled) {
                   <option value="privacy">敏感权限提示</option>
                   <option value="backscreen">可触控背屏</option>
                   <option value="flashlight">手电筒</option>
+                  <option value="onehanded">单手模式</option>
                 </select>
                 <svg class="pc-select-arrow" viewBox="0 0 20 20" fill="none">
                   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="m6 8 4 4 4-4"/>
@@ -1609,6 +1550,71 @@ function onToggleFineTune(enabled) {
                       </div>
                     </div>
                     <button class="pc-btn pc-btn-secondary flashlight-reset-btn" type="button" data-testid="flashlight-reset" @click="control.resetFlashlight()">恢复初始状态</button>
+                  </div>
+
+                  <!-- 模块：单手模式 -->
+                  <div v-else-if="selectedModule === 'onehanded'" key="onehanded" class="pc-module-section-group is-onehanded" data-testid="onehanded-console">
+                    <div class="pc-section">
+                      <div class="pc-card-header">
+                        <span class="pc-card-title">单手模式</span>
+                        <label class="pc-switch-wrap">
+                          <span>{{ control.oneHanded ? '开启' : '关闭' }}</span>
+                          <input
+                            type="checkbox"
+                            :checked="control.oneHanded"
+                            @change="$event.target.checked ? control.toggle('oneHanded') : control.exitOneHanded()"
+                          />
+                          <div class="pc-switch"></div>
+                        </label>
+                      </div>
+                      <div class="pc-oh-rows">
+                        <div class="pc-oh-row">
+                          <span class="pc-oh-label">背景</span>
+                          <div class="pc-oh-seg">
+                            <button
+                              type="button"
+                              class="pc-oh-seg-btn"
+                              :class="{ 'is-active': control.oneHandedBackdrop === 'blur' }"
+                              @click="control.oneHandedBackdrop = 'blur'"
+                            >虚化</button>
+                            <button
+                              type="button"
+                              class="pc-oh-seg-btn"
+                              :class="{ 'is-active': control.oneHandedBackdrop === 'black' }"
+                              @click="control.oneHandedBackdrop = 'black'"
+                            >纯黑</button>
+                          </div>
+                        </div>
+                        <div class="pc-oh-row">
+                          <span class="pc-oh-label">比例</span>
+                          <div class="pc-oh-seg">
+                            <button
+                              type="button"
+                              class="pc-oh-seg-btn"
+                              :class="{ 'is-active': control.oneHandedRatio === 'wide' }"
+                              @click="control.oneHandedRatio = 'wide'"
+                            >阔直板</button>
+                            <button
+                              type="button"
+                              class="pc-oh-seg-btn"
+                              :class="{ 'is-active': control.oneHandedRatio === 'slab' }"
+                              @click="control.oneHandedRatio = 'slab'"
+                            >直板</button>
+                          </div>
+                        </div>
+                        <div class="pc-oh-row">
+                          <span class="pc-oh-label">窗口贴边</span>
+                          <label class="pc-switch-wrap">
+                            <input
+                              type="checkbox"
+                              :checked="control.oneHandedEdgeSnap"
+                              @change="control.oneHandedEdgeSnap = $event.target.checked"
+                            />
+                            <div class="pc-switch"></div>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <!-- 模块 2: 灵动岛 (统一采用系统应用样式规范) -->
