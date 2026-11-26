@@ -3,6 +3,7 @@ import { wideMode, wideAsset, formMetrics } from '../../config/deviceDesktop.js'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useHomeStore } from '../../stores/homeStore'
 import { useSystemStore } from '../../stores/systemStore'
+import { useControlStore } from '../../stores/controlStore'
 import { globalRankForPageIndex, homeItemMetrics, insertionIndexAtPoint, layoutHomeOrder, moveHomeOrderItem, resolveDesktopPage } from '../../utils/homeLayout.js'
 import { setLaunchRect } from '../../utils/appIconAnchors.js'
 import { rectRelativeToScreen } from '../../utils/dom.js'
@@ -16,6 +17,7 @@ import ActionModal from '../ui/ActionModal.vue'
 const emit = defineEmits(['open-library'])
 const system = useSystemStore()
 const home = useHomeStore()
+const control = useControlStore()
 const rootRef = ref(null)
 const previewOrder = ref(null)
 const pageDragX = ref(0)
@@ -1107,11 +1109,23 @@ watch(wideMode, () => {
   measureViewport()
 }, { flush: 'sync' })
 watch(formMetrics, measureViewport)
+watch(
+  [() => control.oneHanded, () => control.oneHandedRatio],
+  () => {
+    if (pointer) cleanup(true)
+    measureViewport()
+  },
+  { flush: 'sync' },
+)
 let resizeObserver = null
 let resizeFrame = null
 function measureViewport() {
   const root = rootRef.value
   if (!root) return
+  if (wideMode.value && control.oneHanded && control.oneHandedRatio === 'slab') {
+    home.setViewport({ width: 360, height: 788, safeTop: 54, safeBottom: 34, forceSlabProfile: true })
+    return
+  }
   if (formMetrics.value) {
     home.setViewport(formMetrics.value)
     return

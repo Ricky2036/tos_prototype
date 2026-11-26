@@ -25,7 +25,6 @@ import FlashlightPanel from '../system/FlashlightPanel.vue'
 import SideVolumeOverlay from '../system/SideVolumeOverlay.vue'
 import PowerMenu from '../system/PowerMenu.vue'
 import ShareSheet from '../system/ShareSheet.vue'
-import GlassCircleButton from '../ui/GlassCircleButton.vue'
 import { DARK_BG_APPS } from '../../config/apps'
 import { registerDriver } from '../../composables/driverRegistry'
 import { runBackHandler } from '../../composables/backRegistry'
@@ -119,9 +118,7 @@ function onOneHandedFullClick() {
 }
 
 const oneHandedPositionLabel = computed(() => {
-  if (control.oneHandedPosition === 'left') return '左下角'
-  if (control.oneHandedPosition === 'center') return '居中'
-  return '右下角'
+  return control.oneHandedPosition === 'left' ? '左下角' : '右下角'
 })
 
 const oneHandedLayout = computed(() => {
@@ -132,17 +129,16 @@ const oneHandedLayout = computed(() => {
   const vw = useSlabRatio ? 360 : sw
   const vh = useSlabRatio ? 788 : sh
   const fitScale = useSlabRatio ? Math.min(sw / vw, sh / vh) : 1
-  const s = control.oneHandedScale * fitScale
-  const visW = vw * s
-  const visH = vh * s
   const edgeX = control.oneHandedEdgeSnap ? 0 : 8
   const edgeY = control.oneHandedEdgeSnap ? 0 : 10
+  const maxVisW = Math.max(160, sw - edgeX - 52)
+  const s = Math.min(control.oneHandedScale * fitScale, maxVisW / vw)
+  const visW = vw * s
+  const visH = vh * s
   const top = Math.max(0, sh - visH - edgeY)
-  let left
-  if (control.oneHandedPosition === 'left') left = edgeX
-  else if (control.oneHandedPosition === 'center') left = (sw - visW) / 2
-  else left = sw - visW - edgeX
-  return { sw, sh, vw, vh, s, visW, visH, left, top }
+  const isLeft = control.oneHandedPosition === 'left'
+  const left = isLeft ? edgeX : sw - visW - edgeX
+  return { sw, sh, vw, vh, fitScale, s, visW, visH, left, top, isLeft }
 })
 
 const oneHandedViewStyle = computed(() => {
@@ -168,11 +164,11 @@ const oneHandedViewStyle = computed(() => {
 const oneHandedControlsStyle = computed(() => {
   const L = oneHandedLayout.value
   if (!L) return undefined
-  const btnSize = 40
+  const btnSize = 42
   const leftGap = L.left
   const rightGap = L.sw - (L.left + L.visW)
   const centerY = L.top + L.visH / 2
-  if (control.oneHandedPosition === 'right' && leftGap >= btnSize + 8) {
+  if (!L.isLeft && leftGap >= btnSize + 8) {
     return {
       left: `${leftGap / 2}px`,
       top: `${centerY}px`,
@@ -180,17 +176,9 @@ const oneHandedControlsStyle = computed(() => {
       flexDirection: 'column'
     }
   }
-  if (control.oneHandedPosition === 'left' && rightGap >= btnSize + 8) {
+  if (L.isLeft && rightGap >= btnSize + 8) {
     return {
       left: `${L.left + L.visW + rightGap / 2}px`,
-      top: `${centerY}px`,
-      transform: 'translate(-50%, -50%)',
-      flexDirection: 'column'
-    }
-  }
-  if (leftGap >= btnSize + 8) {
-    return {
-      left: `${leftGap / 2}px`,
       top: `${centerY}px`,
       transform: 'translate(-50%, -50%)',
       flexDirection: 'column'
@@ -231,12 +219,14 @@ function onOneHandedResizeDown(e) {
   const startScale = control.oneHandedScale
   const stageRect = stageEl.value.getBoundingClientRect()
   const outerScale = L.sw > 0 ? stageRect.width / L.sw : 1
-  const dirX = control.oneHandedPosition === 'right' ? -1 : 1
+  const dirX = L.isLeft ? 1 : -1
+  const edgeX = control.oneHandedEdgeSnap ? 0 : 8
+  const maxScaleByGap = (L.sw - edgeX - 52) / (L.vw * L.fitScale)
   const onMove = (ev) => {
     const dx = ((ev.clientX - startX) / outerScale) * dirX
     const dy = -((ev.clientY - startY) / outerScale)
     const delta = (dx / L.sw + dy / L.sh) * 0.65
-    control.setOneHandedScale(startScale + delta)
+    control.setOneHandedScale(Math.min(startScale + delta, maxScaleByGap))
   }
   const onUp = () => {
     oneHandedResizing.value = false
@@ -553,40 +543,46 @@ useSwipeGesture(sideEdgeRef, {
         :style="oneHandedControlsStyle"
         @click.stop
       >
-        <GlassCircleButton
-          class="oh-circle-btn"
-          :size="40"
-          :label="`切换窗口位置（当前：${oneHandedPositionLabel}）`"
-          data-testid="onehanded-pos-btn"
-          @click="onOneHandedPosClick"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/>
-          </svg>
-        </GlassCircleButton>
-        <GlassCircleButton
-          class="oh-circle-btn"
-          :class="{ 'is-active': control.oneHandedEditing }"
-          :size="40"
-          :label="control.oneHandedEditing ? '完成尺寸调节' : '尺寸调节'"
-          data-testid="onehanded-resize-btn"
-          @click="onOneHandedEditClick"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>
-          </svg>
-        </GlassCircleButton>
-        <GlassCircleButton
-          class="oh-circle-btn"
-          :size="40"
-          label="恢复全屏"
+        <button
+          type="button"
+          class="oh-cc-btn"
+          aria-label="恢复全屏"
+          title="恢复全屏"
           data-testid="onehanded-full-btn"
           @click="onOneHandedFullClick"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M4 10V4h6L7.7 6.3l2.6 2.6-1.4 1.4-2.6-2.6L4 10Zm16 0V4h-6l2.3 2.3-2.6 2.6 1.4 1.4 2.6-2.6L20 10ZM4 14v6h6l-2.3-2.3 2.6-2.6-1.4-1.4-2.6 2.6L4 14Zm16 0v6h-6l2.3-2.3-2.6-2.6 1.4-1.4 2.6 2.6L20 14Z"/>
           </svg>
-        </GlassCircleButton>
+        </button>
+        <button
+          type="button"
+          class="oh-cc-btn"
+          :class="{ 'is-active': control.oneHandedEditing }"
+          :aria-label="control.oneHandedEditing ? '保存尺寸' : '尺寸调节'"
+          :title="control.oneHandedEditing ? '保存' : '尺寸调节'"
+          data-testid="onehanded-resize-btn"
+          @click="onOneHandedEditClick"
+        >
+          <svg v-if="control.oneHandedEditing" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M9.55 18.2 4.3 12.95a1.1 1.1 0 0 1 1.55-1.55l3.7 3.7 8.6-8.6a1.1 1.1 0 1 1 1.55 1.55l-9.38 9.38a1.1 1.1 0 0 1-1.55 0Z"/>
+          </svg>
+          <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M13 3h8v8l-3.1-3.1-9 9L12 20H4v-8l3.1 3.1 9-9L13 3Z"/>
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="oh-cc-btn"
+          :aria-label="`切换窗口位置（当前：${oneHandedPositionLabel}）`"
+          :title="`切换窗口位置（当前：${oneHandedPositionLabel}）`"
+          data-testid="onehanded-pos-btn"
+          @click="onOneHandedPosClick"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M16.5 4.5 21 9l-4.5 4.5v-3H6v-3h10.5v-3Zm-9 15L3 15l4.5-4.5v3H18v3H7.5v3Z"/>
+          </svg>
+        </button>
       </div>
     </Transition>
 
@@ -741,10 +737,33 @@ useSwipeGesture(sideEdgeRef, {
   gap: 14px;
 }
 
-.oh-circle-btn.is-active {
-  background: rgba(255, 255, 255, 0.88) !important;
-  color: #16181f !important;
-  border-color: rgba(255, 255, 255, 0.95) !important;
+.oh-cc-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.2);
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.18));
+  cursor: pointer;
+  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s ease, color 0.2s ease;
+}
+
+.oh-cc-btn:active {
+  transform: scale(0.92);
+}
+
+.oh-cc-btn.is-active {
+  background: #fff;
+  color: #258FFF;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
 .oh-bar-enter-active,
@@ -784,8 +803,7 @@ useSwipeGesture(sideEdgeRef, {
   left: -7px;
 }
 
-.onehanded-resize-handle.pos-left,
-.onehanded-resize-handle.pos-center {
+.onehanded-resize-handle.pos-left {
   top: -7px;
   right: -7px;
   cursor: nesw-resize;
