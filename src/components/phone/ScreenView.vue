@@ -544,14 +544,8 @@ useSwipeGesture(sideEdgeRef, {
           data-testid="onehanded-resize-btn"
           @click="onOneHandedEditClick"
         >
-          <svg v-if="control.oneHandedEditing" width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-            <defs>
-              <mask id="oh-save-cut">
-                <rect width="32" height="32" fill="white"/>
-                <path d="M9.5 16.5L14 21L22.5 11.5" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </mask>
-            </defs>
-            <rect x="4" y="4" width="24" height="24" rx="6.5" fill="currentColor" mask="url(#oh-save-cut)"/>
+          <svg v-if="control.oneHandedEditing" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5.5 12.5L10 17L18.5 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <svg
             v-else
@@ -565,7 +559,7 @@ useSwipeGesture(sideEdgeRef, {
             <defs>
               <mask id="oh-resize-cut">
                 <rect width="32" height="32" fill="white"/>
-                <path d="M19 19L11.5 11.5M11.5 16.5V11.5H16.5" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M18 18L11.2 11.2M11.2 17V11.2H17" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
               </mask>
             </defs>
             <rect x="4" y="4" width="24" height="24" rx="6.5" fill="currentColor" mask="url(#oh-resize-cut)"/>
