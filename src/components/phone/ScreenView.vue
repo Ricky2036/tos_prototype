@@ -106,7 +106,7 @@ const oneHandedLayout = computed(() => {
   const fitScale = useSlabRatio ? Math.min(sw / vw, sh / vh) : 1
   const edgeX = control.oneHandedEdgeSnap ? 0 : 8
   const edgeY = control.oneHandedEdgeSnap ? 0 : 10
-  const maxVisW = Math.max(160, sw - edgeX - 52)
+  const maxVisW = Math.max(160, sw - edgeX - 68)
   const maxVisH = Math.max(240, sh - edgeY - 46)
   const s = Math.min(control.oneHandedScale * fitScale, maxVisW / vw, maxVisH / vh)
   const visW = vw * s
@@ -199,7 +199,7 @@ function onOneHandedResizeDown(e) {
   const edgeX = control.oneHandedEdgeSnap ? 0 : 8
   const edgeY = control.oneHandedEdgeSnap ? 0 : 10
   const maxScaleByBounds = Math.min(
-    (L.sw - edgeX - 52) / (L.vw * L.fitScale),
+    (L.sw - edgeX - 68) / (L.vw * L.fitScale),
     (L.sh - edgeY - 46) / (L.vh * L.fitScale)
   )
   const onMove = (ev) => {
