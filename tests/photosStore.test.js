@@ -522,19 +522,29 @@ test('底栏 / 搜索圆钮 / 渐隐遮罩三者几何配对', () => {
   assert.ok(/height="62px"/.test(APP_SRC), '底栏高度走标准控件默认值 62px')
   assert.ok(/bottom="22px"/.test(APP_SRC), '底栏距底走标准控件默认值 22px')
   assert.ok(/:dark="false"/.test(APP_SRC), '浅色页面必须 dark=false（否则底栏走深色玻璃）')
+
+  // 🔴 双体停靠：搜索圆钮必须挂控件 `#action` 槽（与电话应用同一套排版）。
+  //    2026-11-26 之前是本页自己 `position:absolute` + `:deep` 改控件 left/width，
+  //    两个玻璃体基线各算各的，间隙只剩 10px、阴影糊成一片。
+  assert.ok(/#action/.test(APP_SRC), '搜索圆钮必须挂在 FloatingTabBar 的 #action 槽')
   assert.ok(
     !/home-indicator-zone/.test(rule(STYLE, '.photos-app :deep(.floating-tab-bar)')),
     '别给底栏塞 home-indicator-zone（会把底栏顶到 56px、浮在卡片中间）'
   )
 
+  const dock = rule(STYLE, '.photos-app :deep(.floating-dock-container)')
+  assert.ok(dock.includes('padding: 0 22px'), '停靠容器左右基准 = 标准底栏位 22px')
+  assert.ok(dock.includes('padding: 0 22px') && !dock.includes('18px'), '别退回控件默认的 18px')
+
   const deep = rule(STYLE, '.photos-app :deep(.floating-tab-bar)')
-  assert.ok(deep.includes('left: 22px'), '底栏左边缘对齐 22px')
-  assert.ok(deep.includes('transform: none'), '必须撤掉控件自带的 translateX(-50%)，否则左移量算错')
-  assert.ok(deep.includes('62px'), '宽度算式必须给右侧搜索圆钮让出 62px')
+  assert.ok(deep.includes('width: 236px'), '胶囊宽度 236 = 360 − 22×2 − 62 − 18')
+  assert.ok(!/transform\s*:\s*none/.test(deep), '⛔ 别再撤 translateX 硬摆（dock 布局自带基线）')
+  assert.ok(!/\bleft\s*:/.test(deep), '⛔ 别再自己写 left（位置由停靠容器决定）')
 
   const search = rule(STYLE, '.pv-search')
-  assert.ok(search.includes('right: 22px') && search.includes('bottom: 22px'), '搜索圆钮与底栏同基线')
   assert.ok(/width\s*:\s*62px/.test(search) && /height\s*:\s*62px/.test(search), '搜索圆钮 62×62，与底栏等高')
+  assert.ok(!/position\s*:\s*absolute/.test(search), '圆钮由 #action 槽排版，⛔ 不再自己绝对定位')
+  assert.ok(/box-shadow\s*:\s*0 4px 16px/.test(search), '圆钮投影走轻量单层（与胶囊同值）')
 
   const scroll = rule(STYLE, '.pv-scroll')
   assert.ok(scroll.includes('mask-image'), '滚动容器必须挂渐隐遮罩（底栏浮在内容上，没有遮罩会糊在一起）')

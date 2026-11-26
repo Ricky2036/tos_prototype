@@ -219,15 +219,24 @@ assert('  三个按钮都可点', (await n('[data-photos-head] button')) === 3)
 
 /* ═════════════ 4. 底栏 / 搜索圆钮 / 渐隐遮罩 ═════════════ */
 head('底栏与搜索圆钮')
-const tb = await box('[data-photos-tabbar]')
+/* ⚠️ `[data-photos-tabbar]` 挂在控件的停靠容器上（同时含胶囊与圆钮）；
+   量胶囊本体要再往里取一层 —— 否则读到的是满宽的透明容器。 */
+/* 宿主把整机等比缩放（红线 3）：`box()` 给的是渲染 px，绝对值断言必须除回设计 px。 */
+const scale = await p.evaluate(() => document.querySelector('.photos-app').getBoundingClientRect().width / 360)
+const dpx = (v) => +(v / scale).toFixed(1)
+const tb = await box('[data-photos-tabbar] .floating-tab-bar')
 const se = await box('[data-photos-search]')
 assert('底栏与搜索圆钮同基线（bottom 均 22px 级）',
   Math.abs(tb.bottomFromApp - se.bottomFromApp) <= 2, { tabbar: tb.bottomFromApp, search: se.bottomFromApp })
+assert('  两者等高（双体停靠同基线）', Math.abs(tb.h - se.h) <= 1, { tabbar: tb.h, search: se.h })
 assert(`底栏高度 = 62px（computed ${tb.cssH}）`, tb.cssH === '62px', tb.cssH)
 assert(`搜索圆钮 62×62（computed ${se.cssW}×${se.cssH}）`, se.cssH === '62px' && se.cssW === '62px', se)
 assert('底栏右边缘让开了搜索圆钮（不重叠）',
   tb.right <= se.right - se.w + 1, { tabbarRight: tb.right, searchLeft: se.right - se.w })
-assert('底栏左边缘 = 22px 级', Math.abs(tb.leftFromApp - 22) <= 2, tb.leftFromApp)
+assert(`胶囊与圆钮间隙 = 18px 设计级（实测 ${dpx(se.leftFromApp - tb.leftFromApp - tb.w)}）`,
+  Math.abs(dpx(se.leftFromApp - tb.leftFromApp - tb.w) - 18) <= 2, { gap: dpx(se.leftFromApp - tb.leftFromApp - tb.w) })
+assert(`底栏左边缘 = 22px 设计级（实测 ${dpx(tb.leftFromApp)}）`, Math.abs(dpx(tb.leftFromApp) - 22) <= 2, dpx(tb.leftFromApp))
+assert(`搜索圆钮右边缘 = 22px 设计级（实测 ${dpx(se.rightFromApp)}）`, Math.abs(dpx(se.rightFromApp) - 22) <= 2, dpx(se.rightFromApp))
 assert('三个 Tab 文案 = 照片/相册/发现',
   JSON.stringify(await p.locator('[data-photos-tabbar] .tab-label-text').allTextContents()) === JSON.stringify(['照片', '相册', '发现']),
   await p.locator('[data-photos-tabbar] .tab-label-text').allTextContents())
@@ -588,8 +597,8 @@ assert(`全屏时状态栏切白图标（chrome=light，实测 ${chromeViewer}�
 head('全屏竖向栈')
 const bar = await box('[data-photos-viewer-bar]')
 const scan = await box('[data-photos-viewer-scan]')
-assert(`操作栏 bottom = 22px 级（与首页底栏同位，实测 ${bar.bottomFromApp}）`,
-  Math.abs(bar.bottomFromApp - 22) <= 2, bar.bottomFromApp)
+assert(`操作栏 bottom = 22px 设计级（与首页底栏同位，实测 ${dpx(bar.bottomFromApp)}）`,
+  Math.abs(dpx(bar.bottomFromApp) - 22) <= 2, dpx(bar.bottomFromApp))
 assert('  与首页底栏在同一水平线（±2px）', Math.abs(bar.bottomFromApp - tb.bottomFromApp) <= 2, { bar: bar.bottomFromApp, tabbar: tb.bottomFromApp })
 assert(`  扫描钮骑在操作栏上方（下沿 ${scan.bottomFromApp} ≥ 操作栏上沿 ${(bar.bottomFromApp + bar.h).toFixed(1)}）`,
   scan.bottomFromApp >= bar.bottomFromApp + bar.h - 1, { scan, bar })
