@@ -12,7 +12,7 @@ const props = defineProps({
   },
   height: {
     type: [String, Number],
-    default: 62
+    default: 60
   },
   bottom: {
     type: [String, Number],
@@ -211,7 +211,7 @@ function selectTab(tab) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 18px;
+  padding: 0 20px;
   box-sizing: border-box;
   pointer-events: none;
   z-index: 40;
@@ -232,7 +232,7 @@ function selectTab(tab) {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  width: calc(100% - 44px);
+  width: calc(100% - 40px);
   max-width: 420px;
   background: rgba(24, 26, 26, 0.88);
   border-radius: 9999px;
@@ -310,7 +310,7 @@ function selectTab(tab) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 4px;
   cursor: pointer;
   z-index: 2;
   -webkit-tap-highlight-color: transparent;

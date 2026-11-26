@@ -252,8 +252,8 @@ async function run() {
     return { cssHeight: cs.height, cssBottom: cs.bottom, 距屏底: +(sr.bottom - br.bottom).toFixed(1) }
   })
   check(
-    '悬浮导航尺寸走标准控件（高 62px / 贴底 22px）',
-    barGeo.cssHeight === '62px' && barGeo.cssBottom === '22px',
+    '悬浮导航尺寸走统一档（高 60px / 贴底 22px）',
+    barGeo.cssHeight === '60px' && barGeo.cssBottom === '22px',
     JSON.stringify(barGeo)
   )
   check(

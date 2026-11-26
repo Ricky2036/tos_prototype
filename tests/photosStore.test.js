@@ -519,7 +519,7 @@ test('滚动容器真的能滚 + 渐隐遮罩挂在自身（否则大标题永�
 
 test('底栏 / 搜索圆钮 / 渐隐遮罩三者几何配对', () => {
   const tabbar = read('src/components/ui/FloatingTabBar.vue')
-  assert.ok(/height="62px"/.test(APP_SRC), '底栏高度走标准控件默认值 62px')
+  assert.ok(/height="60px"/.test(APP_SRC), '底栏高度走统一档 60px（真机实测 59.6，三应用同值）')
   assert.ok(/bottom="22px"/.test(APP_SRC), '底栏距底走标准控件默认值 22px')
   assert.ok(/:dark="false"/.test(APP_SRC), '浅色页面必须 dark=false（否则底栏走深色玻璃）')
 
@@ -532,23 +532,22 @@ test('底栏 / 搜索圆钮 / 渐隐遮罩三者几何配对', () => {
     '别给底栏塞 home-indicator-zone（会把底栏顶到 56px、浮在卡片中间）'
   )
 
-  const dock = rule(STYLE, '.photos-app :deep(.floating-dock-container)')
-  assert.ok(dock.includes('padding: 0 22px'), '停靠容器左右基准 = 标准底栏位 22px')
-  assert.ok(dock.includes('padding: 0 22px') && !dock.includes('18px'), '别退回控件默认的 18px')
+  // 左右 20 由控件 `.floating-dock-container` 统一给（真机三应用实测同值），本页不再覆盖
+  assert.ok(!/\.floating-dock-container/.test(STYLE), '⛔ 本页别再覆盖停靠容器 padding（统一值在控件里）')
 
   const deep = rule(STYLE, '.photos-app :deep(.floating-tab-bar)')
-  assert.ok(deep.includes('width: 236px'), '胶囊宽度 236 = 360 − 22×2 − 62 − 18')
+  assert.ok(deep.includes('width: 244px'), '胶囊宽度 244 = 360 − 20×2 − 60 − 16（真机 243.5）')
   assert.ok(!/transform\s*:\s*none/.test(deep), '⛔ 别再撤 translateX 硬摆（dock 布局自带基线）')
   assert.ok(!/\bleft\s*:/.test(deep), '⛔ 别再自己写 left（位置由停靠容器决定）')
 
   const search = rule(STYLE, '.pv-search')
-  assert.ok(/width\s*:\s*62px/.test(search) && /height\s*:\s*62px/.test(search), '搜索圆钮 62×62，与底栏等高')
+  assert.ok(/width\s*:\s*60px/.test(search) && /height\s*:\s*60px/.test(search), '搜索圆钮 60×60，与底栏等高（真机 59.6）')
   assert.ok(!/position\s*:\s*absolute/.test(search), '圆钮由 #action 槽排版，⛔ 不再自己绝对定位')
   assert.ok(/box-shadow\s*:\s*0 4px 16px/.test(search), '圆钮投影走轻量单层（与胶囊同值）')
 
   const scroll = rule(STYLE, '.pv-scroll')
   assert.ok(scroll.includes('mask-image'), '滚动容器必须挂渐隐遮罩（底栏浮在内容上，没有遮罩会糊在一起）')
-  assert.ok(/calc\(100% - 92px\)/.test(scroll), '渐隐起点 100%-92px（底栏上沿外 8px）')
+  assert.ok(/calc\(100% - 90px\)/.test(scroll), '渐隐起点 100%-90px（底栏上沿 82px 外 8px）')
   assert.ok(/calc\(100% - 22px\)/.test(scroll), '渐隐终点 100%-22px（与底栏底边同锚）')
   assert.ok(/height\s*:\s*110px/.test(rule(STYLE, '.pv-pad')), '底部留白 110px，最后一行才不会被底栏吞掉')
 

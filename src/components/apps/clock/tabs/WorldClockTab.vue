@@ -196,14 +196,14 @@ const displayCities = computed(() => {
   -webkit-mask-image: linear-gradient(
     to bottom,
     black 0%,
-    black calc(100% - 92px),
+    black calc(100% - 90px),
     rgba(0, 0, 0, 0.45) calc(100% - 55px),
     transparent calc(100% - 22px)
   );
   mask-image: linear-gradient(
     to bottom,
     black 0%,
-    black calc(100% - 92px),
+    black calc(100% - 90px),
     rgba(0, 0, 0, 0.45) calc(100% - 55px),
     transparent calc(100% - 22px)
   );

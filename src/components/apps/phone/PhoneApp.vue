@@ -445,8 +445,8 @@ function handleAppWheel(e) {
     <FloatingTabBar
       :model-value="phoneStore.currentTab"
       :tabs="tabs"
-      height="54px"
-      bottom="28px"
+      height="60px"
+      bottom="22px"
       accent-color="#00C853"
       :dark="false"
       @update:model-value="switchTab"
@@ -829,21 +829,21 @@ function handleAppWheel(e) {
   z-index: 20;
 }
 
-/* 规范 FloatingTabBar 胶囊适配：严格对齐真机比例（宽 176px，高 54px，48.9% 屏宽），给右侧留出充足呼吸感 */
+/* FloatingTabBar 胶囊适配：跟控件标准档（高 60 / padding 4 / 单项 84），与时钟、相册、AI Mate 同一套 */
 .phone-app :deep(.floating-dock-container) {
   z-index: 40 !important;
 }
 
 .phone-app :deep(.floating-tab-bar) {
-  width: 176px;
+  width: 176px;      /* 2 × 单项 84 + padding 4×2（真机实测 175.8） */
   max-width: 176px;
-  height: 54px;
+  height: 60px;
   background: rgba(255, 255, 255, 0.90);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 0.5px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  padding: 3px;
+  padding: 4px;
   border-radius: 9999px;
   pointer-events: auto;
 }
@@ -851,10 +851,10 @@ function handleAppWheel(e) {
 /* 悬浮底栏高亮背景胶囊：平滑滑动底托，轻柔浅绿背景包裹高亮 Tab */
 .phone-app :deep(.nav-sliding-pill-track) {
   display: flex !important;
-  top: 3px;
-  bottom: 3px;
-  left: 3px;
-  height: calc(100% - 6px);
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  height: calc(100% - 8px);
   pointer-events: none;
   z-index: 1;
 }
@@ -887,7 +887,7 @@ function handleAppWheel(e) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 4px;
   width: 100%;
   height: 100%;
   user-select: none;
@@ -922,7 +922,7 @@ function handleAppWheel(e) {
 }
 
 .tab-name {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 500;
   color: #656668;
   line-height: 1;
@@ -937,14 +937,14 @@ function handleAppWheel(e) {
   font-weight: 600;
 }
 
-/* 右侧独立圆形悬浮操作球 (FAB)：严格 54px × 54px，与胶囊高度对齐 */
+/* 右侧独立圆形悬浮操作球 (FAB)：60px × 60px，与胶囊同高（全仓动作圆钮统一档） */
 .phone-fab {
-  width: 54px !important;
-  height: 54px !important;
-  min-width: 54px !important;
-  min-height: 54px !important;
-  max-width: 54px !important;
-  max-height: 54px !important;
+  width: 60px !important;
+  height: 60px !important;
+  min-width: 60px !important;
+  min-height: 60px !important;
+  max-width: 60px !important;
+  max-height: 60px !important;
   aspect-ratio: 1 / 1 !important;
   border-radius: 50% !important;
   background: rgba(255, 255, 255, 0.92);
@@ -981,7 +981,7 @@ function handleAppWheel(e) {
   border-top-left-radius: 28px;
   border-top-right-radius: 28px;
   box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.05);
-  padding-bottom: calc(28px + 54px + 12px);
+  padding-bottom: calc(22px + 60px + 12px);
   will-change: transform;
 }
 
