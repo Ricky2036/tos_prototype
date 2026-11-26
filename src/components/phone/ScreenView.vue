@@ -565,7 +565,7 @@ useSwipeGesture(sideEdgeRef, {
             <defs>
               <mask id="oh-resize-cut">
                 <rect width="32" height="32" fill="white"/>
-                <path d="M21 21L10.5 10.5M10.5 17V10.5H17" stroke="black" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M19 19L12 12M12 18.5V12H18.5" stroke="black" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
               </mask>
             </defs>
             <rect x="4" y="4" width="24" height="24" rx="6.5" fill="currentColor" mask="url(#oh-resize-cut)"/>
