@@ -67,49 +67,24 @@ function syncStageSize() {
 
 const oneHandedControlsVisible = ref(false)
 const oneHandedResizing = ref(false)
-let oneHandedHideTimer = null
-
-function clearOneHandedHideTimer() {
-  if (oneHandedHideTimer) {
-    clearTimeout(oneHandedHideTimer)
-    oneHandedHideTimer = null
-  }
-}
-
-function scheduleOneHandedHide() {
-  clearOneHandedHideTimer()
-  if (!control.oneHanded || control.oneHandedEditing) return
-  oneHandedHideTimer = setTimeout(() => {
-    if (control.oneHanded && !control.oneHandedEditing) {
-      oneHandedControlsVisible.value = false
-    }
-  }, 5000)
-}
 
 function onOneHandedBackdropClick() {
   if (!control.oneHanded) return
   if (control.oneHandedEditing) {
     control.oneHandedEditing = false
-    scheduleOneHandedHide()
     return
   }
   oneHandedControlsVisible.value = !oneHandedControlsVisible.value
-  if (oneHandedControlsVisible.value) scheduleOneHandedHide()
-  else clearOneHandedHideTimer()
 }
 
 function onOneHandedPosClick() {
   control.cycleOneHandedPosition()
-  scheduleOneHandedHide()
 }
 
 function onOneHandedEditClick() {
   control.oneHandedEditing = !control.oneHandedEditing
   if (control.oneHandedEditing) {
     oneHandedControlsVisible.value = true
-    clearOneHandedHideTimer()
-  } else {
-    scheduleOneHandedHide()
   }
 }
 
@@ -132,7 +107,8 @@ const oneHandedLayout = computed(() => {
   const edgeX = control.oneHandedEdgeSnap ? 0 : 8
   const edgeY = control.oneHandedEdgeSnap ? 0 : 10
   const maxVisW = Math.max(160, sw - edgeX - 52)
-  const s = Math.min(control.oneHandedScale * fitScale, maxVisW / vw)
+  const maxVisH = Math.max(240, sh - edgeY - 46)
+  const s = Math.min(control.oneHandedScale * fitScale, maxVisW / vw, maxVisH / vh)
   const visW = vw * s
   const visH = vh * s
   const top = Math.max(0, sh - visH - edgeY)
@@ -221,12 +197,16 @@ function onOneHandedResizeDown(e) {
   const outerScale = L.sw > 0 ? stageRect.width / L.sw : 1
   const dirX = L.isLeft ? 1 : -1
   const edgeX = control.oneHandedEdgeSnap ? 0 : 8
-  const maxScaleByGap = (L.sw - edgeX - 52) / (L.vw * L.fitScale)
+  const edgeY = control.oneHandedEdgeSnap ? 0 : 10
+  const maxScaleByBounds = Math.min(
+    (L.sw - edgeX - 52) / (L.vw * L.fitScale),
+    (L.sh - edgeY - 46) / (L.vh * L.fitScale)
+  )
   const onMove = (ev) => {
     const dx = ((ev.clientX - startX) / outerScale) * dirX
     const dy = -((ev.clientY - startY) / outerScale)
     const delta = (dx / L.sw + dy / L.sh) * 0.65
-    control.setOneHandedScale(Math.min(startScale + delta, maxScaleByGap))
+    control.setOneHandedScale(Math.min(startScale + delta, maxScaleByBounds))
   }
   const onUp = () => {
     oneHandedResizing.value = false
@@ -263,9 +243,7 @@ watch(() => control.oneHanded, (active) => {
   if (active) {
     syncStageSize()
     oneHandedControlsVisible.value = true
-    scheduleOneHandedHide()
   } else {
-    clearOneHandedHideTimer()
     oneHandedControlsVisible.value = false
     control.oneHandedEditing = false
     resizeCleanup?.()
@@ -274,14 +252,10 @@ watch(() => control.oneHanded, (active) => {
 watch(() => control.oneHandedEditing, (editing) => {
   if (editing) {
     oneHandedControlsVisible.value = true
-    clearOneHandedHideTimer()
-  } else if (control.oneHanded) {
-    scheduleOneHandedHide()
   }
 })
 onBeforeUnmount(() => {
   syncPrivacyTicker(false)
-  clearOneHandedHideTimer()
   resizeCleanup?.()
   if (stageObs) {
     stageObs.disconnect()
@@ -551,8 +525,14 @@ useSwipeGesture(sideEdgeRef, {
           data-testid="onehanded-full-btn"
           @click="onOneHandedFullClick"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M4 10V4h6L7.7 6.3l2.6 2.6-1.4 1.4-2.6-2.6L4 10Zm16 0V4h-6l2.3 2.3-2.6 2.6 1.4 1.4 2.6-2.6L20 10ZM4 14v6h6l-2.3-2.3 2.6-2.6-1.4-1.4-2.6 2.6L4 14Zm16 0v6h-6l2.3-2.3-2.6-2.6 1.4-1.4 2.6 2.6L20 14Z"/>
+          <svg width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <defs>
+              <mask id="oh-full-cut">
+                <rect width="32" height="32" fill="white"/>
+                <path d="M9.5 14V9.5H14M22.5 14V9.5H18M9.5 18V22.5H14M22.5 18V22.5H18" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </mask>
+            </defs>
+            <rect x="4.5" y="4.5" width="23" height="23" rx="6" fill="currentColor" mask="url(#oh-full-cut)"/>
           </svg>
         </button>
         <button
@@ -564,11 +544,23 @@ useSwipeGesture(sideEdgeRef, {
           data-testid="onehanded-resize-btn"
           @click="onOneHandedEditClick"
         >
-          <svg v-if="control.oneHandedEditing" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M9.55 18.2 4.3 12.95a1.1 1.1 0 0 1 1.55-1.55l3.7 3.7 8.6-8.6a1.1 1.1 0 1 1 1.55 1.55l-9.38 9.38a1.1 1.1 0 0 1-1.55 0Z"/>
+          <svg v-if="control.oneHandedEditing" width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <defs>
+              <mask id="oh-save-cut">
+                <rect width="32" height="32" fill="white"/>
+                <path d="M10.5 16.5L14.2 20.2L21.8 12.2" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </mask>
+            </defs>
+            <rect x="4.5" y="4.5" width="23" height="23" rx="6" fill="currentColor" mask="url(#oh-save-cut)"/>
           </svg>
-          <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M13 3h8v8l-3.1-3.1-9 9L12 20H4v-8l3.1 3.1 9-9L13 3Z"/>
+          <svg v-else width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <defs>
+              <mask id="oh-resize-cut">
+                <rect width="32" height="32" fill="white"/>
+                <path d="M11 21L21 11M15.5 11H21V16.5M16.5 21H11V15.5" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </mask>
+            </defs>
+            <rect x="4.5" y="4.5" width="23" height="23" rx="6" fill="currentColor" mask="url(#oh-resize-cut)"/>
           </svg>
         </button>
         <button
@@ -579,8 +571,19 @@ useSwipeGesture(sideEdgeRef, {
           data-testid="onehanded-pos-btn"
           @click="onOneHandedPosClick"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M16.5 4.5 21 9l-4.5 4.5v-3H6v-3h10.5v-3Zm-9 15L3 15l4.5-4.5v3H18v3H7.5v3Z"/>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 32 32"
+            fill="none"
+            aria-hidden="true"
+            :style="{ transform: control.oneHandedPosition === 'right' ? 'scaleX(-1)' : undefined }"
+          >
+            <defs>
+              <clipPath id="oh-cc-pos-clip"><rect x="7" y="3.5" width="18" height="25" rx="4"/></clipPath>
+            </defs>
+            <path d="M14.2 16C14.2 14.2327 15.6327 12.8 17.4 12.8H25V28.5H14.2V16Z" fill="currentColor" clip-path="url(#oh-cc-pos-clip)"/>
+            <rect x="7" y="3.5" width="18" height="25" rx="4" stroke="currentColor" stroke-width="2.4"/>
           </svg>
         </button>
       </div>

@@ -139,7 +139,7 @@ const createHomeDefinition = wide => ({
     },
     reflow() { deriveLayout(this) },
     setLayoutProfile(profile) { this.profile = profile; this.reflow() },
-    setViewport(metrics) { this.setLayoutProfile(wide && !metrics?.forceSlabProfile ? designedGridProfile(metrics, wide) : createHomeGridProfile(metrics)) },
+    setViewport(metrics) { this.setLayoutProfile(wide ? designedGridProfile(metrics, wide) : createHomeGridProfile(metrics)) },
     setPage(index) { this.currentPage = Math.max(0, Math.min(Number(index) || 0, this.pages.length - 1)); this.persist() },
     setEditing(value) { this.editing = Boolean(value); if (!this.editing) this.selectedItemIds = [] },
     toggleSelected(id) { if (this.items[id]) this.selectedItemIds = this.selectedItemIds.includes(id) ? this.selectedItemIds.filter((value) => value !== id) : [...this.selectedItemIds, id] },
@@ -286,7 +286,7 @@ function designedGridProfile(metrics, mode) {
     width: 360,
     height: metrics.slabHeight ?? (mode === 'slab' ? metrics.height : 788)
   })
-  return wideGridProfile(metrics, native, mode === 'slab')
+  return wideGridProfile(metrics, native, mode === 'slab' || Boolean(metrics.slabRatio))
 }
 
 const useSlabHome = defineStore('home-slab-design', createHomeDefinition('slab'))
