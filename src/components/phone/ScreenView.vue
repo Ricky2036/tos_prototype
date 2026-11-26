@@ -25,6 +25,7 @@ import FlashlightPanel from '../system/FlashlightPanel.vue'
 import SideVolumeOverlay from '../system/SideVolumeOverlay.vue'
 import PowerMenu from '../system/PowerMenu.vue'
 import ShareSheet from '../system/ShareSheet.vue'
+import ResizeHandleIcon from '../ui/ResizeHandleIcon.vue'
 import { DARK_BG_APPS } from '../../config/apps'
 import { registerDriver } from '../../composables/driverRegistry'
 import { runBackHandler } from '../../composables/backRegistry'
@@ -54,8 +55,170 @@ const activeWallpaper = computed(() => (wideMode.value ? wallpaperStore.lockWall
 const heroVisual = ref(null)
 
 const rootEl = ref(null)
+const stageEl = ref(null)
+const stageSize = ref({ width: 360, height: 788 })
+let stageObs = null
+
+function syncStageSize() {
+  if (!stageEl.value) return
+  const w = stageEl.value.offsetWidth
+  const h = stageEl.value.offsetHeight
+  if (w > 0 && h > 0) stageSize.value = { width: w, height: h }
+}
+
+const oneHandedControlsVisible = ref(false)
+const oneHandedResizing = ref(false)
+let oneHandedHideTimer = null
+
+function clearOneHandedHideTimer() {
+  if (oneHandedHideTimer) {
+    clearTimeout(oneHandedHideTimer)
+    oneHandedHideTimer = null
+  }
+}
+
+function scheduleOneHandedHide() {
+  clearOneHandedHideTimer()
+  if (!control.oneHanded || control.oneHandedEditing) return
+  oneHandedHideTimer = setTimeout(() => {
+    if (control.oneHanded && !control.oneHandedEditing) {
+      oneHandedControlsVisible.value = false
+    }
+  }, 5000)
+}
+
+function onOneHandedBackdropClick() {
+  if (!control.oneHanded) return
+  if (control.oneHandedEditing) {
+    control.oneHandedEditing = false
+    scheduleOneHandedHide()
+    return
+  }
+  oneHandedControlsVisible.value = !oneHandedControlsVisible.value
+  if (oneHandedControlsVisible.value) scheduleOneHandedHide()
+  else clearOneHandedHideTimer()
+}
+
+function onOneHandedPosClick() {
+  control.cycleOneHandedPosition()
+  scheduleOneHandedHide()
+}
+
+function onOneHandedEditClick() {
+  control.oneHandedEditing = !control.oneHandedEditing
+  if (control.oneHandedEditing) {
+    oneHandedControlsVisible.value = true
+    clearOneHandedHideTimer()
+  } else {
+    scheduleOneHandedHide()
+  }
+}
+
+function onOneHandedFullClick() {
+  control.exitOneHanded()
+}
+
+const oneHandedPositionLabel = computed(() => {
+  if (control.oneHandedPosition === 'left') return '左下角'
+  if (control.oneHandedPosition === 'center') return '居中'
+  return '右下角'
+})
+
+const oneHandedLayout = computed(() => {
+  if (!control.oneHanded) return null
+  const sw = stageSize.value.width || (wideMode.value ? 426.6666667 : 360)
+  const sh = stageSize.value.height || (wideMode.value ? 733.3333333 : 788)
+  const useSlabRatio = wideMode.value && control.oneHandedRatio === 'slab'
+  const vw = useSlabRatio ? 360 : sw
+  const vh = useSlabRatio ? 788 : sh
+  const fitScale = useSlabRatio ? Math.min(sw / vw, sh / vh) : 1
+  const s = control.oneHandedScale * fitScale
+  const visW = vw * s
+  const visH = vh * s
+  const edgeX = control.oneHandedEdgeSnap ? 0 : 8
+  const edgeY = control.oneHandedEdgeSnap ? 0 : 10
+  const top = Math.max(0, sh - visH - edgeY)
+  let left
+  if (control.oneHandedPosition === 'left') left = edgeX
+  else if (control.oneHandedPosition === 'center') left = (sw - visW) / 2
+  else left = sw - visW - edgeX
+  return { sw, sh, vw, vh, s, visW, visH, left, top }
+})
+
+const oneHandedViewStyle = computed(() => {
+  const L = oneHandedLayout.value
+  if (!L) return undefined
+  const radius = control.oneHandedEdgeSnap
+    ? 'var(--screen-radius)'
+    : 'calc(var(--screen-radius) * 0.88)'
+  return {
+    width: `${L.vw}px`,
+    height: `${L.vh}px`,
+    right: 'auto',
+    bottom: 'auto',
+    transform: `translate3d(${L.left}px, ${L.top}px, 0) scale(${L.s})`,
+    borderRadius: radius,
+    clipPath: `inset(0 round ${radius})`,
+    transition: oneHandedResizing.value
+      ? 'none'
+      : 'transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), border-radius 0.34s ease, clip-path 0.34s ease'
+  }
+})
+
+const oneHandedEditFrameStyle = computed(() => {
+  const L = oneHandedLayout.value
+  if (!L) return undefined
+  return {
+    left: `${L.left}px`,
+    top: `${L.top}px`,
+    width: `${L.visW}px`,
+    height: `${L.visH}px`,
+    borderRadius: control.oneHandedEdgeSnap
+      ? 'var(--screen-radius)'
+      : 'calc(var(--screen-radius) * 0.88)',
+    transition: oneHandedResizing.value
+      ? 'none'
+      : 'left 0.34s cubic-bezier(0.22, 1, 0.36, 1), top 0.34s cubic-bezier(0.22, 1, 0.36, 1), width 0.34s cubic-bezier(0.22, 1, 0.36, 1), height 0.34s cubic-bezier(0.22, 1, 0.36, 1)'
+  }
+})
+
+let resizeCleanup = null
+function onOneHandedResizeDown(e) {
+  const L = oneHandedLayout.value
+  if (!L || !stageEl.value) return
+  oneHandedResizing.value = true
+  const startX = e.clientX
+  const startY = e.clientY
+  const startScale = control.oneHandedScale
+  const stageRect = stageEl.value.getBoundingClientRect()
+  const outerScale = L.sw > 0 ? stageRect.width / L.sw : 1
+  const dirX = control.oneHandedPosition === 'right' ? -1 : 1
+  const onMove = (ev) => {
+    const dx = ((ev.clientX - startX) / outerScale) * dirX
+    const dy = -((ev.clientY - startY) / outerScale)
+    const delta = (dx / L.sw + dy / L.sh) * 0.65
+    control.setOneHandedScale(startScale + delta)
+  }
+  const onUp = () => {
+    oneHandedResizing.value = false
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup', onUp)
+    window.removeEventListener('pointercancel', onUp)
+    resizeCleanup = null
+  }
+  resizeCleanup = onUp
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', onUp)
+  window.addEventListener('pointercancel', onUp)
+}
+
 onMounted(() => {
   screenRef.el = rootEl.value
+  syncStageSize()
+  if (stageEl.value && typeof ResizeObserver !== 'undefined') {
+    stageObs = new ResizeObserver(syncStageSize)
+    stageObs.observe(stageEl.value)
+  }
   privacy.tick()
   syncPrivacyTicker(privacy.needsTick)
 })
@@ -64,10 +227,38 @@ watch(() => privacy.needsTick, (shouldRun) => {
 })
 watch(() => [system.baseLayer, system.screenOn], ([layer, on]) => {
   if ((layer === 'lock' || !on) && control.oneHanded) {
-    control.oneHanded = false
+    control.exitOneHanded()
   }
 })
-onBeforeUnmount(() => syncPrivacyTicker(false))
+watch(() => control.oneHanded, (active) => {
+  if (active) {
+    syncStageSize()
+    oneHandedControlsVisible.value = true
+    scheduleOneHandedHide()
+  } else {
+    clearOneHandedHideTimer()
+    oneHandedControlsVisible.value = false
+    control.oneHandedEditing = false
+    resizeCleanup?.()
+  }
+})
+watch(() => control.oneHandedEditing, (editing) => {
+  if (editing) {
+    oneHandedControlsVisible.value = true
+    clearOneHandedHideTimer()
+  } else if (control.oneHanded) {
+    scheduleOneHandedHide()
+  }
+})
+onBeforeUnmount(() => {
+  syncPrivacyTicker(false)
+  clearOneHandedHideTimer()
+  resizeCleanup?.()
+  if (stageObs) {
+    stageObs.disconnect()
+    stageObs = null
+  }
+})
 
 /** 亮度滤镜：控制中心亮度滑块真实压暗屏幕（打开叠层时不遮罩控制中心/通知中心自身） */
 const dimOpacity = computed(() => system.anyOverlayOpen() ? 0 : (1 - control.brightness) * 0.72)
@@ -305,17 +496,56 @@ useSwipeGesture(sideEdgeRef, {
 </script>
 
 <template>
-  <div class="screen-stage" :class="{ 'is-one-handed': control.oneHanded }">
+  <div ref="stageEl" class="screen-stage" :class="{ 'is-one-handed': control.oneHanded }">
     <div
       v-if="control.oneHanded"
       class="onehanded-backdrop"
-      :style="{ backgroundImage: `url(${activeWallpaper})` }"
-      @click="control.oneHanded = false"
+      :class="{ 'is-black': control.oneHandedBackdrop === 'black' }"
+      :style="control.oneHandedBackdrop === 'black' ? undefined : { backgroundImage: `url(${activeWallpaper})` }"
+      @click="onOneHandedBackdropClick"
     ></div>
+
+    <!-- 单手模式空白区域控制按钮（5秒自动隐藏，点空白切换显隐） -->
+    <Transition name="oh-bar">
+      <div
+        v-if="control.oneHanded && oneHandedControlsVisible"
+        class="onehanded-controls"
+        data-testid="onehanded-controls"
+        @click.stop
+      >
+        <button
+          type="button"
+          class="oh-btn"
+          data-testid="onehanded-pos-btn"
+          @click="onOneHandedPosClick"
+        >
+          <span>{{ oneHandedPositionLabel }}</span>
+        </button>
+        <button
+          type="button"
+          class="oh-btn"
+          :class="{ 'is-active': control.oneHandedEditing }"
+          data-testid="onehanded-resize-btn"
+          @click="onOneHandedEditClick"
+        >
+          <span>{{ control.oneHandedEditing ? '完成' : '尺寸调节' }}</span>
+        </button>
+        <button
+          type="button"
+          class="oh-btn"
+          data-testid="onehanded-full-btn"
+          @click="onOneHandedFullClick"
+        >
+          <span>全屏</span>
+        </button>
+      </div>
+    </Transition>
+
     <div
       ref="rootEl"
       class="screen-view"
       :class="{ 'is-screen-off': !system.screenOn, 'is-one-handed': control.oneHanded }"
+      :style="oneHandedViewStyle"
     >
     <!-- 桌面/锁屏统一壁纸（notificationscreen.tsx 同款，本地化） -->
     <div
@@ -398,6 +628,26 @@ useSwipeGesture(sideEdgeRef, {
     <HomeIndicator v-if="system.navigationMode === 'gesture'" :dark="navDark" />
     <ThreeButtonNav v-else :dark="navDark" />
   </div>
+
+    <!-- 单手模式尺寸调节框 + 复用控制中心编辑态拖动 Bar UI -->
+    <div
+      v-if="control.oneHanded && control.oneHandedEditing"
+      class="onehanded-edit-frame"
+      data-testid="onehanded-edit-frame"
+      :style="oneHandedEditFrameStyle"
+      @click.stop
+    >
+      <button
+        type="button"
+        class="onehanded-resize-handle"
+        :class="`pos-${control.oneHandedPosition}`"
+        data-testid="onehanded-resize-handle"
+        aria-label="等比例缩放调节单手窗口尺寸"
+        @pointerdown.prevent.stop="onOneHandedResizeDown"
+      >
+        <ResizeHandleIcon />
+      </button>
+    </div>
   </div>
 </template>
 
@@ -418,6 +668,97 @@ useSwipeGesture(sideEdgeRef, {
   background-position: center;
   filter: blur(28px) brightness(0.42) saturate(1.1);
   transform: scale(1.06);
+  transition: background 0.25s ease, filter 0.25s ease;
+}
+
+.onehanded-backdrop.is-black {
+  background: #000;
+  filter: none;
+  transform: none;
+}
+
+.onehanded-controls {
+  position: absolute;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 0.5px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.oh-btn {
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.94);
+  font: 500 12px/1 var(--font-stack);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.15s ease;
+}
+
+.oh-btn:active {
+  transform: scale(0.95);
+}
+
+.oh-btn.is-active {
+  background: #fff;
+  color: #16181f;
+}
+
+.oh-bar-enter-active,
+.oh-bar-leave-active {
+  transition: opacity 0.24s ease, transform 0.24s ease;
+}
+
+.oh-bar-enter-from,
+.oh-bar-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -6px);
+}
+
+.onehanded-edit-frame {
+  position: absolute;
+  z-index: 45;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.04);
+  box-sizing: border-box;
+  touch-action: none;
+}
+
+.onehanded-resize-handle {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: nwse-resize;
+  touch-action: none;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.35));
+}
+
+.onehanded-resize-handle.pos-right {
+  top: -5px;
+  left: -5px;
+  transform: rotate(180deg);
+}
+
+.onehanded-resize-handle.pos-left,
+.onehanded-resize-handle.pos-center {
+  top: -5px;
+  right: -5px;
+  cursor: nesw-resize;
+  transform: rotate(-90deg);
 }
 
 .screen-view {
@@ -433,14 +774,11 @@ useSwipeGesture(sideEdgeRef, {
      与 border-radius 同值，视觉不变。 */
   clip-path: inset(0 round var(--screen-radius));
   background: #000;
-  transform-origin: right bottom;
+  transform-origin: top left;
   transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), border-radius 0.34s ease, clip-path 0.34s ease;
 }
 
 .screen-view.is-one-handed {
-  transform: translate3d(-8px, -10px, 0) scale(0.72);
-  border-radius: calc(var(--screen-radius) * 0.88);
-  clip-path: inset(0 round calc(var(--screen-radius) * 0.88));
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.16);
 }
 

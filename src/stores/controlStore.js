@@ -261,6 +261,12 @@ export const useControlStore = defineStore('control', {
     jbl: false,
     vpn: false,
     oneHanded: false,
+    oneHandedPosition: 'right',
+    oneHandedScale: 0.72,
+    oneHandedBackdrop: 'blur',
+    oneHandedEdgeSnap: false,
+    oneHandedRatio: 'wide',
+    oneHandedEditing: false,
     dnd: false,
     mediaPlaying: false,
     mediaActive: false,
@@ -419,6 +425,20 @@ export const useControlStore = defineStore('control', {
     },
     setShowPrivacyIndicators(v) { this.showPrivacyIndicators = !!v },
     setShowDualSim(v) { this.showDualSim = !!v },
+    cycleOneHandedPosition() {
+      const order = ['left', 'center', 'right']
+      const idx = order.indexOf(this.oneHandedPosition)
+      this.oneHandedPosition = order[(idx + 1) % order.length]
+    },
+    setOneHandedScale(v) {
+      const n = Number(v)
+      if (!Number.isFinite(n)) return
+      this.oneHandedScale = Math.min(0.86, Math.max(0.52, Math.round(n * 1000) / 1000))
+    },
+    exitOneHanded() {
+      this.oneHanded = false
+      this.oneHandedEditing = false
+    },
     setBrightness(v) { this.brightness = Math.min(1, Math.max(0, v)) },
     setVolume(v) {
       this.volume = Math.min(1, Math.max(0, v))
