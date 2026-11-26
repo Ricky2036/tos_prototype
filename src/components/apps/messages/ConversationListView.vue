@@ -524,8 +524,8 @@ function dismissCloud() {
   right: 0;
   height: 100%;
   display: flex;
-  z-index: 2;
-  /* 未滑开时按钮被行盖住，禁止误点；滑开后由 .opened 打开命中 */
+  z-index: 1;
+  /* 未滑开时按钮被行盖住（行 z-index 更高），同时禁止误点；滑开后由 .opened 打开命中 */
   pointer-events: none;
 }
 .row-wrap.opened .row-actions { pointer-events: auto; }
@@ -542,7 +542,7 @@ function dismissCloud() {
 .row-action.del { background: #e7433b; }
 .row {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 14px;
