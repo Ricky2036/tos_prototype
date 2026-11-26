@@ -504,7 +504,7 @@ useSwipeGesture(sideEdgeRef, {
       v-if="control.oneHanded"
       class="onehanded-backdrop"
       :class="{ 'is-black': control.oneHandedBackdrop === 'black' }"
-      :style="control.oneHandedBackdrop === 'black' ? undefined : { backgroundImage: `url(${activeWallpaper})` }"
+      :style="{ backgroundImage: `url(${activeWallpaper})` }"
       @click="onOneHandedBackdropClick"
     ></div>
 
@@ -725,13 +725,20 @@ useSwipeGesture(sideEdgeRef, {
   background-position: center;
   filter: blur(28px) brightness(0.42) saturate(1.1);
   transform: scale(1.06);
-  transition: background 0.25s ease, filter 0.25s ease;
 }
 
-.onehanded-backdrop.is-black {
+.onehanded-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
   background: #000;
-  filter: none;
-  transform: none;
+  opacity: 0;
+  transition: opacity 0.24s ease;
+  pointer-events: none;
+}
+
+.onehanded-backdrop.is-black::after {
+  opacity: 1;
 }
 
 .onehanded-controls {
