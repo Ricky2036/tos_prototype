@@ -25,7 +25,7 @@ import FlashlightPanel from '../system/FlashlightPanel.vue'
 import SideVolumeOverlay from '../system/SideVolumeOverlay.vue'
 import PowerMenu from '../system/PowerMenu.vue'
 import ShareSheet from '../system/ShareSheet.vue'
-import ResizeHandleIcon from '../ui/ResizeHandleIcon.vue'
+import GlassCircleButton from '../ui/GlassCircleButton.vue'
 import { DARK_BG_APPS } from '../../config/apps'
 import { registerDriver } from '../../composables/driverRegistry'
 import { runBackHandler } from '../../composables/backRegistry'
@@ -162,6 +162,45 @@ const oneHandedViewStyle = computed(() => {
     transition: oneHandedResizing.value
       ? 'none'
       : 'transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), border-radius 0.34s ease, clip-path 0.34s ease'
+  }
+})
+
+const oneHandedControlsStyle = computed(() => {
+  const L = oneHandedLayout.value
+  if (!L) return undefined
+  const btnSize = 40
+  const leftGap = L.left
+  const rightGap = L.sw - (L.left + L.visW)
+  const centerY = L.top + L.visH / 2
+  if (control.oneHandedPosition === 'right' && leftGap >= btnSize + 8) {
+    return {
+      left: `${leftGap / 2}px`,
+      top: `${centerY}px`,
+      transform: 'translate(-50%, -50%)',
+      flexDirection: 'column'
+    }
+  }
+  if (control.oneHandedPosition === 'left' && rightGap >= btnSize + 8) {
+    return {
+      left: `${L.left + L.visW + rightGap / 2}px`,
+      top: `${centerY}px`,
+      transform: 'translate(-50%, -50%)',
+      flexDirection: 'column'
+    }
+  }
+  if (leftGap >= btnSize + 8) {
+    return {
+      left: `${leftGap / 2}px`,
+      top: `${centerY}px`,
+      transform: 'translate(-50%, -50%)',
+      flexDirection: 'column'
+    }
+  }
+  return {
+    left: `${L.sw / 2}px`,
+    top: `${Math.max(56, L.top - 52)}px`,
+    transform: 'translate(-50%, 0)',
+    flexDirection: 'row'
   }
 })
 
@@ -505,39 +544,49 @@ useSwipeGesture(sideEdgeRef, {
       @click="onOneHandedBackdropClick"
     ></div>
 
-    <!-- 单手模式空白区域控制按钮（5秒自动隐藏，点空白切换显隐） -->
+    <!-- 单手模式空白区域控制按钮（竖排单个圆形玻璃按钮，无整体背板，5秒自动隐藏） -->
     <Transition name="oh-bar">
       <div
         v-if="control.oneHanded && oneHandedControlsVisible"
         class="onehanded-controls"
         data-testid="onehanded-controls"
+        :style="oneHandedControlsStyle"
         @click.stop
       >
-        <button
-          type="button"
-          class="oh-btn"
+        <GlassCircleButton
+          class="oh-circle-btn"
+          :size="40"
+          :label="`切换窗口位置（当前：${oneHandedPositionLabel}）`"
           data-testid="onehanded-pos-btn"
           @click="onOneHandedPosClick"
         >
-          <span>{{ oneHandedPositionLabel }}</span>
-        </button>
-        <button
-          type="button"
-          class="oh-btn"
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/>
+          </svg>
+        </GlassCircleButton>
+        <GlassCircleButton
+          class="oh-circle-btn"
           :class="{ 'is-active': control.oneHandedEditing }"
+          :size="40"
+          :label="control.oneHandedEditing ? '完成尺寸调节' : '尺寸调节'"
           data-testid="onehanded-resize-btn"
           @click="onOneHandedEditClick"
         >
-          <span>{{ control.oneHandedEditing ? '完成' : '尺寸调节' }}</span>
-        </button>
-        <button
-          type="button"
-          class="oh-btn"
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>
+          </svg>
+        </GlassCircleButton>
+        <GlassCircleButton
+          class="oh-circle-btn"
+          :size="40"
+          label="恢复全屏"
           data-testid="onehanded-full-btn"
           @click="onOneHandedFullClick"
         >
-          <span>全屏</span>
-        </button>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+          </svg>
+        </GlassCircleButton>
       </div>
     </Transition>
 
@@ -629,7 +678,7 @@ useSwipeGesture(sideEdgeRef, {
     <ThreeButtonNav v-else :dark="navDark" />
   </div>
 
-    <!-- 单手模式尺寸调节框 + 复用控制中心编辑态拖动 Bar UI -->
+    <!-- 单手模式尺寸调节框 + 贴合圆角的弧形拖动 Bar -->
     <div
       v-if="control.oneHanded && control.oneHandedEditing"
       class="onehanded-edit-frame"
@@ -645,7 +694,14 @@ useSwipeGesture(sideEdgeRef, {
         aria-label="等比例缩放调节单手窗口尺寸"
         @pointerdown.prevent.stop="onOneHandedResizeDown"
       >
-        <ResizeHandleIcon />
+        <svg width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M4.5 29.5A34 34 0 0 1 29.5 4.5"
+            stroke="rgba(255, 255, 255, 0.55)"
+            stroke-width="4.5"
+            stroke-linecap="round"
+          />
+        </svg>
       </button>
     </div>
   </div>
@@ -679,60 +735,32 @@ useSwipeGesture(sideEdgeRef, {
 
 .onehanded-controls {
   position: absolute;
-  top: 56px;
-  left: 50%;
-  transform: translateX(-50%);
   z-index: 40;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 7px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 0.5px solid rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  gap: 14px;
 }
 
-.oh-btn {
-  height: 30px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.94);
-  font: 500 12px/1 var(--font-stack);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease, transform 0.15s ease;
-}
-
-.oh-btn:active {
-  transform: scale(0.95);
-}
-
-.oh-btn.is-active {
-  background: #fff;
-  color: #16181f;
+.oh-circle-btn.is-active {
+  background: rgba(255, 255, 255, 0.88) !important;
+  color: #16181f !important;
+  border-color: rgba(255, 255, 255, 0.95) !important;
 }
 
 .oh-bar-enter-active,
 .oh-bar-leave-active {
-  transition: opacity 0.24s ease, transform 0.24s ease;
+  transition: opacity 0.24s ease;
 }
 
 .oh-bar-enter-from,
 .oh-bar-leave-to {
   opacity: 0;
-  transform: translate(-50%, -6px);
 }
 
 .onehanded-edit-frame {
   position: absolute;
   z-index: 45;
-  border: 1.5px solid rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.04);
+  background: transparent;
   box-sizing: border-box;
   touch-action: none;
 }
@@ -747,18 +775,21 @@ useSwipeGesture(sideEdgeRef, {
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.35));
 }
 
+.onehanded-resize-handle svg {
+  display: block;
+}
+
 .onehanded-resize-handle.pos-right {
-  top: -5px;
-  left: -5px;
-  transform: rotate(180deg);
+  top: -7px;
+  left: -7px;
 }
 
 .onehanded-resize-handle.pos-left,
 .onehanded-resize-handle.pos-center {
-  top: -5px;
-  right: -5px;
+  top: -7px;
+  right: -7px;
   cursor: nesw-resize;
-  transform: rotate(-90deg);
+  transform: scaleX(-1);
 }
 
 .screen-view {
@@ -779,7 +810,7 @@ useSwipeGesture(sideEdgeRef, {
 }
 
 .screen-view.is-one-handed {
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.16);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.42);
 }
 
 .home-layer {
