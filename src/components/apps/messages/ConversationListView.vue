@@ -302,12 +302,13 @@ function dismissCloud() {
             <div class="row-main">
               <div class="row-top">
                 <span class="row-name">{{ card.name }}</span>
+                <span class="row-time">{{ card.time }}</span>
+                <!-- 真机：置顶标记在日期右侧 -->
                 <span v-if="card.pinned" class="pin-mark" data-msg-pin-mark>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                    <path d="M9.2 3.6h5.6l-.6 5 3 2.3v1.3h-5v8.2h-1.4v-8.2h-5V10.9l3-2.3z" fill="#F5A623" />
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                    <path d="M9.2 3.4h5.6l-.6 5.2 3 2.3v1.3h-5v8.4h-1.4v-8.4h-5V10.9l3-2.3z" fill="#F5A623" />
                   </svg>
                 </span>
-                <span class="row-time">{{ card.time }}</span>
               </div>
               <div v-if="card.snippet" class="row-snippet">{{ card.snippet }}</div>
             </div>
@@ -547,7 +548,7 @@ function dismissCloud() {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.pin-mark { display: inline-flex; align-self: center; margin-top: 1px; }
+.pin-mark { display: inline-flex; align-self: center; margin-left: 1px; }
 .row-time {
   flex: none;
   font-size: 13px;
