@@ -4,6 +4,7 @@ import { useMessagesStore } from '../../../stores/messagesStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import { msgText } from './msgData'
 import MsgTopBar from './components/MsgTopBar.vue'
+import MsgSimIcon from './components/MsgSimIcon.vue'
 
 /**
  * 新建短信（真机 ConversationActivity 空会话态）
@@ -82,13 +83,7 @@ function sendNow() {
           @keyup.enter="sendNow"
         />
         <button class="sim-btn" type="button" data-msg-sim aria-label="SIM">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E1E20" stroke-width="1.9" stroke-linejoin="round">
-            <path d="M6.6 3.6h7.6l4.4 4.4v12.2c0 .9-.7 1.6-1.6 1.6H6.6c-.9 0-1.6-.7-1.6-1.6V5.2c0-.9.7-1.6 1.6-1.6z" />
-            <rect x="8.5" y="9.7" width="3.2" height="3.2" rx="0.7" />
-            <rect x="12.3" y="9.7" width="3.2" height="3.2" rx="0.7" />
-            <rect x="8.5" y="13.5" width="3.2" height="3.2" rx="0.7" />
-            <rect x="12.3" y="13.5" width="3.2" height="3.2" rx="0.7" />
-          </svg>
+          <MsgSimIcon :size="22" />
         </button>
       </div>
       <div class="send-slot">

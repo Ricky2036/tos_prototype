@@ -70,7 +70,7 @@ defineExpose({ focus })
             <span>{{ t('categoryImage') }}</span>
           </button>
           <button class="cat-tile" type="button" data-msg-cat="video">
-            <LIcon name="video" :size="24" />
+            <LIcon name="videoCamera" :size="24" :stroke-width="1.7" />
             <span>{{ t('categoryVideo') }}</span>
           </button>
         </div>

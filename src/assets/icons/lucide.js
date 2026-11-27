@@ -124,6 +124,9 @@ import qrCode from 'lucide-static/icons/qr-code.svg?raw'
 import palette from 'lucide-static/icons/palette.svg?raw'
 import image from 'lucide-static/icons/image.svg?raw'
 import images from 'lucide-static/icons/images.svg?raw'
+/* lucide 原生描边摄像机：搜索页「类别·视频」等卡片位使用；
+   项目自造的实心 `video`（28×28 特殊 viewBox）是控制中心录屏按钮专用，两者别混用 */
+import videoCamera from 'lucide-static/icons/video.svg?raw'
 import fileText from 'lucide-static/icons/file-text.svg?raw'
 import folder from 'lucide-static/icons/folder.svg?raw'
 import folderPlus from 'lucide-static/icons/folder-plus.svg?raw'
@@ -604,7 +607,7 @@ export const LUCIDE = {
   /* 导航与列表 */
   chevronRight, chevronLeft, chevronDown, chevronsRight, chevronsLeft, arrowLeft, arrowUp, arrowDown, x, search, filter, list, layoutTemplate, grid2x2, moreHorizontal, moreVertical, pencilLine, trash2,
   /* 内容与文件 */
-  download, upload, share, square, micVocal, scanLine, qrCode, palette, image, images, fileText, folder, folderPlus, save, copy, externalLink, send, rotateCcw, star, eye, maximize, minimize, scanFace, rotate3d, layers, layers2, box, blocks,
+  download, upload, share, square, micVocal, scanLine, qrCode, palette, image, images, videoCamera, fileText, folder, folderPlus, save, copy, externalLink, send, rotateCcw, star, eye, maximize, minimize, scanFace, rotate3d, layers, layers2, box, blocks,
   /* 安全与连接 */
   shield, unlock, lockOpen, key, fingerprint, link, cloud, cloudOff, globe, locate,
   /* 设备形态与账户 */

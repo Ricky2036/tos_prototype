@@ -5,6 +5,7 @@ import { useI18nStore } from '../../../../stores/i18nStore'
 import { msgText } from '../msgData'
 import MsgTopBar from '../components/MsgTopBar.vue'
 import MsgSwitch from '../components/MsgSwitch.vue'
+import MsgSimIcon from '../components/MsgSimIcon.vue'
 import MsgPopupMenu from '../components/MsgPopupMenu.vue'
 
 /**
@@ -98,12 +99,7 @@ function openMenu(e) {
       <div class="group-title">{{ t('simCardSettings') }}</div>
       <div class="card">
         <div class="row sim-row" data-msg-xm-sim>
-          <span class="sim-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1E1E20" stroke-width="1.5" stroke-linejoin="round">
-              <path d="M6.2 3.4h7.6l4.2 4.2v13c0 .5-.4.9-.9.9H6.2c-.5 0-.9-.4-.9-.9V4.3c0-.5.4-.9.9-.9z" />
-              <rect x="8.4" y="10" width="6.6" height="5.4" rx="1.1" />
-            </svg>
-          </span>
+          <span class="sim-icon"><MsgSimIcon :size="26" /></span>
           <div class="texts">
             <div class="title">{{ t('simSmsSub') }}</div>
             <div class="value">+8613200007890</div>
@@ -188,7 +184,10 @@ function openMenu(e) {
   min-height: 60px;
   box-sizing: border-box;
 }
-.title { font-size: 16px; line-height: 22px; color: #000; }
+.title { flex: 1; min-width: 0; font-size: 16px; line-height: 22px; color: #000; }
+/* 开关永远贴卡片右缘（不受标题长度影响） */
+.row > .msg-switch,
+.row > :deep(.msg-switch) { margin-left: auto; flex: none; }
 .sim-row .texts { flex: 1; min-width: 0; }
 .value { font-size: 13px; line-height: 18px; color: #8a8a8c; margin-top: 2px; }
 .verified { font-size: 14px; color: #a0a0a2; }

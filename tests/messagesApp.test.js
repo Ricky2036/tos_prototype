@@ -267,6 +267,35 @@ test('左滑删除图标与通知中心底部清空按钮同一份路径', () =>
   assert.ok(!list.includes('GLYPHS.trash'), '不应再回退到实心垃圾桶')
 })
 
+test('单选弹窗走标准底部弹层，不用居中对话框', () => {
+  const src = strip(read(`${DIR}/SettingsView.vue`))
+  assert.match(src, /SheetOptionPicker/, '必须复用 ui/SheetOptionPicker')
+  assert.ok(!src.includes('MsgDialog'), '设置页不再用居中 MsgDialog')
+  assert.match(src, /show-bottom-cancel/, '底部取消按钮')
+})
+
+test('SIM 卡图标四处同源（MsgSimIcon）', () => {
+  const icon = strip(read(`${DIR}/components/MsgSimIcon.vue`))
+  assert.match(icon, /M6\.6 3\.6h7\.6l4\.4 4\.4/, '右上折角外框')
+  assert.equal((icon.match(/<rect/g) || []).length, 4, '2×2 四格芯片')
+  for (const f of ['ConversationView.vue', 'ComposeView.vue', 'settings/SimSmsView.vue', 'settings/XMessageView.vue']) {
+    assert.ok(strip(read(`${DIR}/${f}`)).includes('MsgSimIcon'), `${f} 未使用统一图标`)
+  }
+})
+
+test('XMessage 页开关贴卡片右缘', () => {
+  const src = strip(read(`${DIR}/settings/XMessageView.vue`))
+  assert.match(src, /margin-left: auto/, '开关靠右')
+})
+
+test('搜索页类别图标取自系统图标库（image / videoCamera）', () => {
+  const src = strip(read(`${DIR}/SearchView.vue`))
+  assert.match(src, /LIcon name="image"/)
+  assert.match(src, /LIcon name="videoCamera"/)
+  const lucide = strip(read('src/assets/icons/lucide.js'))
+  assert.match(lucide, /videoCamera/, '共享图标库必须有这个键')
+})
+
 test('开关几何 43.5 × 24.1 与真机实测一致', () => {
   const src = strip(read(`${DIR}/components/MsgSwitch.vue`))
   assert.match(src, /width: 43\.5px/)

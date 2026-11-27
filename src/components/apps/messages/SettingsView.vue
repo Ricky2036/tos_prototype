@@ -5,7 +5,7 @@ import { useI18nStore } from '../../../stores/i18nStore'
 import { SETTINGS_GROUPS, msgText } from './msgData'
 import MsgTopBar from './components/MsgTopBar.vue'
 import MsgSwitch from './components/MsgSwitch.vue'
-import MsgDialog from './components/MsgDialog.vue'
+import SheetOptionPicker from '../../ui/SheetOptionPicker.vue'
 
 /**
  * 短信设置（真机 ApplicationSettingsActivity）
@@ -22,9 +22,9 @@ const dbDialog = ref(false)
 const rows = computed(() => SETTINGS_GROUPS)
 
 const dbOptions = computed(() => [
-  { id: 'wlan', label: t.value('dbWlan') },
-  { id: 'wlanMobile', label: t.value('dbWlanMobile') },
-  { id: 'off', label: t.value('dbOff') }
+  { value: 'wlan', label: t.value('dbWlan') },
+  { value: 'wlanMobile', label: t.value('dbWlanMobile') },
+  { value: 'off', label: t.value('dbOff') }
 ])
 
 function valueOf(row) {
@@ -99,28 +99,17 @@ const dbValue = computed(() => {
       <div class="settings-tail" />
     </div>
 
-    <MsgDialog
-      v-if="dbDialog"
+    <!-- 单选弹层走项目标准件（底部弹出 + 顶部标题 + 关闭胶囊），不用居中对话框 -->
+    <SheetOptionPicker
+      :visible="dbDialog"
       :title="t('dbUpdateTitle')"
-      :action="t('cancel')"
-      action-tone="ghost"
-      @action="dbDialog = false"
+      :options="dbOptions"
+      :model-value="store.settings.dbUpdatePref"
+      :cancel-text="t('cancel')"
+      show-bottom-cancel
+      @update:model-value="pickDb"
       @close="dbDialog = false"
-    >
-      <div class="option-list">
-        <button
-          v-for="opt in dbOptions"
-          :key="opt.id"
-          class="option-row"
-          type="button"
-          :data-msg-db-option="opt.id"
-          @click="pickDb(opt.id)"
-        >
-          <span class="option-label">{{ opt.label }}</span>
-          <span class="radio" :class="{ on: store.settings.dbUpdatePref === opt.id }" />
-        </button>
-      </div>
-    </MsgDialog>
+    />
   </div>
 </template>
 
@@ -201,33 +190,4 @@ const dbValue = computed(() => {
 }
 .chev { flex: none; }
 .settings-tail { height: 24px; }
-.option-list { display: flex; flex-direction: column; padding: 0 4px; }
-.option-row {
-  display: flex;
-  align-items: center;
-  height: 47px;
-  border: none;
-  background: transparent;
-  padding: 0 8px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.option-label {
-  flex: 1;
-  text-align: left;
-  font-size: 17px;
-  color: #1e1e20;
-}
-.radio {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 1.6px solid #d4d4d6;
-  box-sizing: border-box;
-  position: relative;
-}
-.radio.on {
-  border-color: #3375f6;
-  border-width: 5.5px;
-}
 </style>

@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18nStore } from '../../../../stores/i18nStore'
 import { msgText } from '../msgData'
 import MsgTopBar from '../components/MsgTopBar.vue'
+import MsgSimIcon from '../components/MsgSimIcon.vue'
 
 /** SIM 卡短信（真机 SimCardSmsActivity）：一张卡片 + SIM 图标 */
 const i18n = useI18nStore()
@@ -16,12 +17,7 @@ const emit = defineEmits(['back'])
     <div class="sub-scroll scrollable">
       <div class="card">
         <div class="row" data-msg-sim-sms>
-          <span class="sim-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1E1E20" stroke-width="1.5" stroke-linejoin="round">
-              <path d="M6.2 3.4h7.6l4.2 4.2v13c0 .5-.4.9-.9.9H6.2c-.5 0-.9-.4-.9-.9V4.3c0-.5.4-.9.9-.9z" />
-              <rect x="8.4" y="10" width="6.6" height="5.4" rx="1.1" />
-            </svg>
-          </span>
+          <span class="sim-icon"><MsgSimIcon :size="26" /></span>
           <div class="texts">
             <div class="title">{{ t('simSmsSub') }}</div>
             <div class="value">+8613200007890</div>
