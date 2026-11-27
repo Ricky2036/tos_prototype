@@ -10,6 +10,8 @@
  *   · 阔直板更矮，音乐播放器会顶进时钟裁剪区被切掉 ⇒ 先把时钟往上顶，播放器完整可见。
  *   · 时钟挤压死区曾用「当前钟高」推导 ⇒ HIT ← 钟高 ← 挤压 ← HIT 反馈环，滚到底时
  *     时钟逐帧来回跳（闪动）。现在死区用静止高度，滚动全程单调压缩。
+ *   · 上滑时卡片被列表上边界裁切，切口曾是直角横线 ⇒ 现在用 path() 在卡片左右边缘
+ *     （锁屏 14px/22px 圆角；通知中心 14px/24px 圆角）把切口做成卡片自身的圆角。
  *
  * 用法：node scripts/verify-lockscreen-notif-adaptive.mjs [port]   （默认 7777）
  */
@@ -75,7 +77,12 @@ function readLayout() {
       }
     })
     const clip = document.querySelector('.ls-clip')
-    const clipTop = clip ? parseFloat(getComputedStyle(clip).clipPath.match(/inset\(([-\d.]+)px/)?.[1] ?? 'NaN') : NaN
+    /* 切口现在用 path()（上边界圆角），兼容旧的 inset() 解析：
+       path 的起点是 (0, 切口线 + 圆角半径)，减回半径即切口线。 */
+    const clipPath = clip ? getComputedStyle(clip).clipPath : ''
+    const insetTop = clipPath.match(/inset\(([-\d.]+)px/)?.[1]
+    const pathStart = clipPath.match(/M\s*0\s+([-\d.]+)/)?.[1]
+    const clipTop = insetTop != null ? parseFloat(insetTop) : pathStart != null ? parseFloat(pathStart) - 22 : NaN
     const clock = document.querySelector('.ls-clock')
     const player = document.querySelector('.ls-player-in-lock')
     return {
@@ -86,6 +93,27 @@ function readLayout() {
       player: player ? local(player) : null
     }
   })
+}
+
+/* 取屏幕截图的像素亮度（截图是 deviceScaleFactor=2，坐标需 ×2）——
+   用来验证「上滑裁切是圆角还是直角」：切口角落若被圆角削掉应回落到壁纸/背景亮度。 */
+async function sampleScreenPixels(points) {
+  const buf = await page.locator('.screen-view').first().screenshot()
+  const b64 = buf.toString('base64')
+  return page.evaluate(async ({ b64, points }) => {
+    const img = new Image()
+    img.src = 'data:image/png;base64,' + b64
+    await img.decode()
+    const canvas = document.createElement('canvas')
+    canvas.width = img.width
+    canvas.height = img.height
+    const c = canvas.getContext('2d')
+    c.drawImage(img, 0, 0)
+    return points.map(([x, y]) => {
+      const d = c.getImageData(Math.round(x * 2), Math.round(y * 2), 1, 1).data
+      return Math.round(0.299 * d[0] + 0.587 * d[1] + 0.114 * d[2])
+    })
+  }, { b64, points })
 }
 
 /* ① 直板 + 阔直板：卡片高度随内容走 */
@@ -121,6 +149,25 @@ await page.waitForTimeout(600)
 const scrolled = await readLayout()
 const gaps = scrolled.cards.slice(1).map((c, i) => +(c.top - scrolled.cards[i].bottom).toFixed(1))
 check('展开态相邻卡片间距 ≈ 8px', gaps.length > 0 && gaps.every((g) => Math.abs(g - 8) <= 2.5), gaps.join('/'))
+
+/* ④b 上滑裁切：切口必须是沿卡片圆角的圆角，而不是一条直角横线。
+   像素判定：切口线上「卡片左缘内侧 6px」落在圆角缺口里 → 应回落到壁纸亮度；
+   同一行的卡片中部应仍是卡片亮度。直角裁切时角落会是卡片亮度（旧实现即失败）。 */
+const cutGeo = await page.evaluate(() => {
+  const clip = document.querySelector('.ls-clip')
+  const m = getComputedStyle(clip).clipPath.match(/M\s*0\s+([-\d.]+)/)
+  return { clipLine: m ? parseFloat(m[1]) - 22 : NaN, clipPath: getComputedStyle(clip).clipPath }
+})
+const [lsWall, lsCorner, lsCard] = await sampleScreenPixels([
+  [6, cutGeo.clipLine + 3],
+  [20, cutGeo.clipLine + 3],
+  [100, cutGeo.clipLine + 3]
+])
+check(
+  '锁屏上滑切口为圆角（不是直角横切）',
+  cutGeo.clipPath.startsWith('path(') && Math.abs(lsCorner - lsWall) <= 10 && lsCard - lsCorner >= 40,
+  `wall ${lsWall} · corner ${lsCorner} · card ${lsCard}`
+)
 
 /* ⑤ 音乐播放器：阔直板下把时钟往上顶，播放器完整落在裁剪区下方 */
 await page.evaluate(() => { const c = document.querySelector('.ls-clip'); if (c) c.scrollTop = 0 })
@@ -209,6 +256,42 @@ const ncOne = ncCards.filter((c) => c.lines <= 1).map((c) => c.height)
 const ncTwo = ncCards.filter((c) => c.lines >= 2).map((c) => c.height)
 const ncGap = (ncOne.length && ncTwo.length) ? Math.min(...ncTwo) - Math.max(...ncOne) : 0
 check('通知中心卡片高度随行数变化 ≥ 12px', ncCards.length > 3 && ncGap >= 12, `1行 ${ncOne.join('/')} · 2行 ${ncTwo.join('/')} · Δ${ncGap.toFixed(1)}`)
+
+/* ⑨ 通知中心上滑裁切同样是圆角：找一档「顶部确实切在卡片腰部」的滚动位置再验像素。
+   判定同锁屏：切口角落回落到列表背景，同一行卡片中部仍是卡片亮度。 */
+const ncCut = await page.evaluate(() => {
+  const screen = document.querySelector('.screen-view')
+  const sr = screen.getBoundingClientRect()
+  const sc = sr.width / screen.offsetWidth
+  const list = document.querySelector('.nc-list')
+  const listTop = (list.getBoundingClientRect().top - sr.top) / sc
+  const listLeft = (list.getBoundingClientRect().left - sr.left) / sc
+  const cutPoint = (x, y) => {
+    const wrappers = [...document.querySelectorAll('.nc-item-wrapper')]
+    return wrappers.some((w) => {
+      const r = w.getBoundingClientRect()
+      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom
+    })
+  }
+  for (const top of [296, 306, 316, 326, 336, 346]) {
+    list.scrollTop = top
+    if (cutPoint(sr.left + (listLeft + 100) * sc, sr.top + (listTop + 3) * sc)) {
+      return { top, listTop, listLeft, clipPath: getComputedStyle(list).clipPath }
+    }
+  }
+  return { top: list.scrollTop, listTop, listLeft, clipPath: getComputedStyle(list).clipPath }
+})
+await page.waitForTimeout(400)
+const [ncWall, ncCorner, ncCard] = await sampleScreenPixels([
+  [ncCut.listLeft + 6, ncCut.listTop + 3],
+  [ncCut.listLeft + 20, ncCut.listTop + 3],
+  [ncCut.listLeft + 100, ncCut.listTop + 3]
+])
+check(
+  '通知中心上滑切口为圆角（不是直角横切）',
+  ncCut.clipPath.startsWith('path(') && Math.abs(ncCorner - ncWall) <= 10 && ncCard - ncCorner >= 15,
+  `wall ${ncWall} · corner ${ncCorner} · card ${ncCard} · scrollTop ${ncCut.top}`
+)
 
 check('控制台无报错', consoleErrors.length === 0, consoleErrors.slice(0, 2).join(' | '))
 

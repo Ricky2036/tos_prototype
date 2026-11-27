@@ -22,6 +22,8 @@ import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const lockScreenPath = path.resolve(__dirname, '../src/components/system/LockScreen.vue')
 const lockScreen = fs.readFileSync(lockScreenPath, 'utf8')
+const notificationCenterPath = path.resolve(__dirname, '../src/components/system/NotificationCenter.vue')
+const notificationCenter = fs.readFileSync(notificationCenterPath, 'utf8')
 
 test('lock screen notification cards take their height from content', () => {
   assert.match(lockScreen, /\.ls-card-wrapper\s*\{[^}]*height:\s*auto;/s, 'ls-card-wrapper must not pin a fixed height')
@@ -62,7 +64,9 @@ test('top widgets squeeze the clock up before they get clipped', () => {
   assert.match(lockScreen, /const playerClockSqueeze = computed/, 'media player needs a clock squeeze term')
   assert.match(lockScreen, /playerClockSqueeze[\s\S]*?CLOCK_CLIP_BOTTOM_LIMIT[\s\S]*?PLAYER_START_Y/, 'player squeeze must be derived from the clip top and the player anchor')
   assert.match(lockScreen, /!control\.mediaActive\) return 0/, 'player squeeze only applies while the player is shown')
-  assert.match(lockScreen, /clipPath: `inset\(\$\{clipTop\.value - CLIP_TOP_BLEED\}px/, 'clipStyle must reuse CLIP_TOP_BLEED so squeeze and clipping stay in sync')
+  assert.match(lockScreen, /const CLIP_SIDE_INSET = 14/, 'the cut window must align to the card side inset')
+  assert.match(lockScreen, /const CLIP_CORNER_RADIUS = 22/, 'the cut corners must match the card corner radius')
+  assert.match(lockScreen, /path\('\$\{outline\}'\)/, 'clipStyle must clip with a rounded path outline instead of a straight inset')
 })
 
 test('clock squeeze dead-zone never depends on the current clock height (no scroll flicker)', () => {
@@ -74,4 +78,19 @@ test('clock squeeze dead-zone never depends on the current clock height (no scro
   assert.match(lockScreen, /const staticClockSqueeze = computed/, 'static (non-scroll) squeeze must be a named value')
   assert.match(lockScreen, /CLOCK_INITIAL_HEIGHT = computed\(\(\) => CLOCK_MAX_HEIGHT - staticClockSqueeze\.value\)/, 'static squeeze must define the resting clock height')
   assert.match(lockScreen, /HIT_DISTANCE = computed\([\s\S]{0,240}?CLOCK_INITIAL_HEIGHT\.value/, 'the scroll dead-zone must use the resting clock height')
+})
+
+test('upward scroll cuts cards with rounded corners on both lock screen and notification center', () => {
+  /* 锁屏：path 轮廓在卡片左右边缘（14px）处各画一个 22px 圆角 */
+  assert.match(lockScreen, /A\$\{r\} \$\{r\} 0 0 1/, 'lock screen clip outline must draw corner arcs')
+  assert.match(lockScreen, /const CLIP_SIDE_INSET = 14/, 'lock screen corner arcs must sit at the card side inset')
+  assert.match(lockScreen, /const CLIP_CORNER_RADIUS = 22/, 'lock screen corner arcs must use the card radius')
+  assert.doesNotMatch(lockScreen, /clipPath:\s*\S?inset\(/, 'must not clip with a rounded inset — it also clips the sides and truncates horizontal swipes early')
+
+  /* 通知中心：列表上边界同样按卡片几何（14px 内缩 / 24px 圆角）做圆角裁切 */
+  assert.match(notificationCenter, /const NC_CLIP_SIDE_INSET = 14/, 'notification center cut window must align to its card side inset')
+  assert.match(notificationCenter, /const NC_CLIP_CORNER_RADIUS = 24/, 'notification center corner arcs must use the nc-card radius')
+  assert.match(notificationCenter, /const listClipStyle = computed/, 'notification center must own a list clip style')
+  assert.match(notificationCenter, /:style="listClipStyle"/, 'the clip style must be applied to the nc-list scroller')
+  assert.match(notificationCenter, /path\('\$\{outline\}'\)/, 'notification center must clip with a rounded path outline')
 })

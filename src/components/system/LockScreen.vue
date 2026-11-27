@@ -209,6 +209,12 @@ const glassUid = `ls-clock-${++glassUidSeq}`
 const LOCK_STACK_MAX_VISUAL_OFFSET = 36
 /* clipStyle 把裁剪区上边界再向上放宽 12px，播放器挤压计算要与之同源 */
 const CLIP_TOP_BLEED = 12
+/* 裁剪区左右各内缩 14px、顶部圆角 22px —— 与通知卡自身几何严格对齐
+   （.ls-card-wrapper left/right: 14px；.ls-card-front border-radius: 22px）。
+   这样卡片上滑到上边界被裁切时，切口沿卡片自身的圆角走，不再是直角硬切；
+   同时「左内缩 == 卡片左偏移 && 裁剪圆角 == 卡片圆角」保证完全可见的卡片不会被提前切角。 */
+const CLIP_SIDE_INSET = 14
+const CLIP_CORNER_RADIUS = 22
 /* 普通通知卡片：高度不再写死 90，而是由内容（标题 + 描述行数）自适应。
    阔直板下屏宽 426（直板 360），描述文案往往 1 行就放得下；继续用固定 90 会让卡片
    下半截空出一大块。CSS 用 auto 高度渲染，这里量出真实高度供堆叠/滚动几何使用。 */
@@ -1462,9 +1468,21 @@ const transitionStyle = computed(() =>
     : 'none'
 )
 const clipStyle = computed(() => {
+  /* 上滑裁切：直角切口 → 沿卡片自身圆角走。
+     卡片左右各内缩 14px、圆角 22px（.ls-card-wrapper / .ls-card-front），
+     所以裁切前沿在 x=14..36 与 x=W-36..W-14 两处各做一个 22px 圆角，
+     卡片滑过上边界时切口正好是它自己的圆角，而不是一条直角横线。
+     用 path() 而不是 inset(... round ...)：inset 的圆角会把左右也一并内缩，
+     横滑卡片会被提前 14px 截断；path() 只削上边界两侧，横滑仍保持整屏贯通。 */
+  const top = clipTop.value - CLIP_TOP_BLEED
+  const r = CLIP_CORNER_RADIUS
+  const e = CLIP_SIDE_INSET
+  const w = Math.max(1, screenWidth.value || 360)
+  const outline = `M0 ${top + r} L${e} ${top + r} A${r} ${r} 0 0 1 ${e + r} ${top} L${w - e - r} ${top} A${r} ${r} 0 0 1 ${w - e} ${top + r} L${w} ${top + r} L${w} 10000 L0 10000 Z`
+  const rounded = `path('${outline}')`
   return {
-    clipPath: `inset(${clipTop.value - CLIP_TOP_BLEED}px -50px -100px -50px)`,
-    WebkitClipPath: `inset(${clipTop.value - CLIP_TOP_BLEED}px -50px -100px -50px)`,
+    clipPath: rounded,
+    WebkitClipPath: rounded,
     transition: isStateTransitioning.value ? 'clip-path 0.28s cubic-bezier(0.1, 0.9, 0.2, 1)' : 'none',
     pointerEvents: 'none'
   }
