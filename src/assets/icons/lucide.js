@@ -124,8 +124,6 @@ import qrCode from 'lucide-static/icons/qr-code.svg?raw'
 import palette from 'lucide-static/icons/palette.svg?raw'
 import image from 'lucide-static/icons/image.svg?raw'
 import images from 'lucide-static/icons/images.svg?raw'
-/* 短信搜索页「类别·视频」用的摄像机轮廓（与项目录屏用的实心 video 区分开） */
-import videoCamera from 'lucide-static/icons/video.svg?raw'
 import fileText from 'lucide-static/icons/file-text.svg?raw'
 import folder from 'lucide-static/icons/folder.svg?raw'
 import folderPlus from 'lucide-static/icons/folder-plus.svg?raw'
@@ -606,7 +604,7 @@ export const LUCIDE = {
   /* 导航与列表 */
   chevronRight, chevronLeft, chevronDown, chevronsRight, chevronsLeft, arrowLeft, arrowUp, arrowDown, x, search, filter, list, layoutTemplate, grid2x2, moreHorizontal, moreVertical, pencilLine, trash2,
   /* 内容与文件 */
-  download, upload, share, square, micVocal, scanLine, qrCode, palette, image, images, videoCamera, fileText, folder, folderPlus, save, copy, externalLink, send, rotateCcw, star, eye, maximize, minimize, scanFace, rotate3d, layers, layers2, box, blocks,
+  download, upload, share, square, micVocal, scanLine, qrCode, palette, image, images, fileText, folder, folderPlus, save, copy, externalLink, send, rotateCcw, star, eye, maximize, minimize, scanFace, rotate3d, layers, layers2, box, blocks,
   /* 安全与连接 */
   shield, unlock, lockOpen, key, fingerprint, link, cloud, cloudOff, globe, locate,
   /* 设备形态与账户 */

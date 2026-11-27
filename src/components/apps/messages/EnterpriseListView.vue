@@ -126,17 +126,22 @@ function onSelect() {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-/* 与主列表同一条分割线 */
-.ent-row::after {
-  content: '';
-  position: absolute;
-  left: 76px;
-  right: 24px;
-  bottom: 0;
-  height: 1px;
-  background: #eaebec;
+/* 与主列表同一条分割线（同样画成背景图，避免 1px 半像素断裂） */
+.ent-row {
+  background-color: #f0f1f2;
+  background-image: linear-gradient(
+    to right,
+    #f0f1f2 0,
+    #f0f1f2 76px,
+    #e6e7e8 76px,
+    #e6e7e8 336px,
+    #f0f1f2 336px,
+    #f0f1f2 100%
+  );
+  background-size: 100% 1px;
+  background-position: left bottom;
+  background-repeat: no-repeat;
 }
-.ent-row:last-child::after { display: none; }
 .ent-row:active { background: #e9eaec; }
 .ent-main { flex: 1; min-width: 0; }
 .ent-top { display: flex; align-items: center; gap: 5px; }

@@ -494,9 +494,12 @@ function dismissCloud() {
   height: 100%;
   display: flex;
   z-index: 1;
+  /* 未滑开时彻底不可见：行若有亚像素露底，会看到置顶白块/删除红块，
+     在浅背景上就是一条"粉色分割线"（Ricky 截图里的两段就是这么来的）。 */
+  visibility: hidden;
   pointer-events: none;
 }
-.row-wrap.opened .row-actions { pointer-events: auto; }
+.row-wrap.opened .row-actions { visibility: visible; pointer-events: auto; }
 .row-action {
   width: 71px;
   height: 100%;
@@ -517,23 +520,27 @@ function dismissCloud() {
   padding: 8.5px 21.5px 8.5px 22px;
   min-height: 62px;
   box-sizing: border-box;
-  background: #f0f1f2;
+  /* 真机分割线：1px #EAEBEC，从头像右侧 76 起、到内容右缘 336 止。
+     ⚠️ 画成背景图而不是独立的 1px 元素 —— 后者会落在半像素上，
+     被抗锯齿切成两段、并带出 RGB 彩边（Ricky 截图里看到的"两段"就是这个）。 */
+  background-color: #f0f1f2;
+  background-image: linear-gradient(
+    to right,
+    #f0f1f2 0,
+    #f0f1f2 76px,
+    #e6e7e8 76px,
+    #e6e7e8 336px,
+    #f0f1f2 336px,
+    #f0f1f2 100%
+  );
+  background-size: 100% 1px;
+  background-position: left bottom;
+  background-repeat: no-repeat;
   transition: transform 0.22s cubic-bezier(0.32, 0.72, 0, 1);
   touch-action: pan-y;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
-/* 真机分割线：从头像右侧 76 到内容右缘 336，1px #EAEBEC（比背景只深 6，极轻） */
-.row::after {
-  content: '';
-  position: absolute;
-  left: 76px;
-  right: 24px;
-  bottom: 0;
-  height: 1px;
-  background: #eaebec;
-}
-.row-wrap:last-child .row::after { display: none; }
 .row.enterprise { min-height: 59.9px; }
 .row.selected .row-main { opacity: 0.55; }
 .row-main { flex: 1; min-width: 0; }

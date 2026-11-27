@@ -66,11 +66,11 @@ defineExpose({ focus })
         <div class="section-label cat">{{ t('searchCategory') }}</div>
         <div class="cat-row">
           <button class="cat-tile" type="button" data-msg-cat="image">
-            <LIcon name="image" :size="20" :stroke-width="1.7" />
+            <LIcon name="image" :size="24" :stroke-width="1.7" />
             <span>{{ t('categoryImage') }}</span>
           </button>
           <button class="cat-tile" type="button" data-msg-cat="video">
-            <LIcon name="videoCamera" :size="20" :stroke-width="1.7" />
+            <LIcon name="video" :size="24" />
             <span>{{ t('categoryVideo') }}</span>
           </button>
         </div>
@@ -153,24 +153,25 @@ defineExpose({ focus })
   word-break: break-all;
 }
 .sender-number .hit { color: #3375f6; }
+/* 真机量测：卡片 106.7 × 80、间距 14.4、左边距 21.8、底色 #EAEBEC */
 .cat-row {
   display: flex;
-  gap: 13px;
-  padding: 12px 26px 0;
+  gap: 14.4px;
+  padding: 13px 21.8px 0;
 }
 .cat-tile {
-  width: 75px;
-  height: 75px;
+  width: 106.7px;
+  height: 80px;
   border: none;
   border-radius: 16px;
-  background: #e7e8ea;
+  background: #eaebec;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  font-size: 11.5px;
-  line-height: 14px;
+  gap: 7px;
+  font-size: 12px;
+  line-height: 15px;
   color: #1e1e20;
   cursor: pointer;
 }
