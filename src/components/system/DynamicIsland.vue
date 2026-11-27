@@ -1323,8 +1323,7 @@ function handleClosePrayer(e) {
   transform: translateX(-50%);
   z-index: 97;
   user-select: none;
-  width: calc(var(--screen-w, 360px) - 20px);
-  max-width: 358px;
+  width: calc(100% - 24px);
   pointer-events: none;
   display: flex;
   flex-direction: column;
@@ -1947,7 +1946,6 @@ function handleClosePrayer(e) {
 .island-card.is-expanded.is-os16-base-76,
 .island-card.is-expanded.is-os16-base-74,
 .island-card.is-expanded.is-os16-base-72 {
-  width: 336px;
   border-radius: 28px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
   background: #000000;
@@ -1987,7 +1985,6 @@ function handleClosePrayer(e) {
 
 /* OS16 副卡片容器与自适应高度 */
 .island-secondary-card.is-os16-card {
-  width: 336px;
   border-radius: 28px;
   background: transparent;
 }
