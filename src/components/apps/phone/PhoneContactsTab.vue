@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { usePhoneStore } from '../../../stores/phoneStore'
+import TrashIcon from '../../ui/TrashIcon.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['openAddContact', 'openMergeDuplicates', 'scroll', 'openContactDetail'])
@@ -126,9 +127,7 @@ function handleDeleteContact(e, contact) {
               </svg>
             </button>
             <button class="swipe-btn btn-del" title="删除" @click="handleDeleteContact($event, c)">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2">
-                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-              </svg>
+              <TrashIcon :size="18" color="#FFFFFF" :stroke-width="2.2" />
             </button>
           </div>
 

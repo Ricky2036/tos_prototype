@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { usePhoneStore } from '../../../stores/phoneStore'
+import TrashIcon from '../../ui/TrashIcon.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['scroll', 'openFlashCall', 'openDetail', 'openAddContact'])
@@ -345,9 +346,7 @@ function handleQuickCall(e, recent) {
               <span class="swipe-label">呼叫</span>
             </button>
             <button class="swipe-btn btn-delete" title="删除" @click.stop="handleDeleteRecent($event, r.id)">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2">
-                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-              </svg>
+              <TrashIcon :size="18" color="#FFFFFF" :stroke-width="2.2" />
               <span class="swipe-label">删除</span>
             </button>
           </div>

@@ -7,6 +7,7 @@ import GlassNavBar from '../../../ui/GlassNavBar.vue'
 import SheetOptionPicker from '../../../ui/SheetOptionPicker.vue'
 import SheetModal from '../../../ui/SheetModal.vue'
 import '../../../../styles/layer-transitions.css'
+import TrashIcon from '../../../ui/TrashIcon.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['back'])
@@ -264,9 +265,7 @@ defineExpose({
             >
               <div class="row-label">{{ num }}</div>
               <button class="delete-btn" title="移除黑名单" @click="phoneStore.removeBlackListNumber(num)">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" stroke-width="2">
-                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                </svg>
+                <TrashIcon :size="18" color="#FF3B30" :stroke-width="2" />
               </button>
             </div>
           </div>

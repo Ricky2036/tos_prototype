@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { usePhoneStore } from '../../../stores/phoneStore'
+import TrashIcon from '../../ui/TrashIcon.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['close', 'openAddContact', 'openFlashCall'])
@@ -236,9 +237,7 @@ const isBlacklisted = computed(() => {
 
         <div class="menu-action-row no-sep" @click="handleDeleteRecord">
           <span class="menu-text text-danger">删除此条通话记录</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" stroke-width="2">
-            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-          </svg>
+          <TrashIcon :size="16" color="#FF3B30" :stroke-width="2" />
         </div>
       </div>
     </div>

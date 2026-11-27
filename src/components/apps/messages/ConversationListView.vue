@@ -6,7 +6,7 @@ import { useLargeTitle } from '../../../composables/useLargeTitle'
 import LargeTitleHeader from '../../ui/LargeTitleHeader.vue'
 import { msgText } from './msgData'
 import MsgAvatar from './components/MsgAvatar.vue'
-import MsgTrashIcon from './components/MsgTrashIcon.vue'
+import TrashIcon from '../../ui/TrashIcon.vue'
 import MsgPopupMenu from './components/MsgPopupMenu.vue'
 
 /**
@@ -279,7 +279,7 @@ function dismissCloud() {
             </button>
             <button class="row-action del" type="button" :data-msg-delete-row="card.id" @click.stop="deleteRow(card)">
               <!-- 与通知中心底部「清空全部」圆钮同一份垃圾桶 -->
-              <MsgTrashIcon :size="21" color="#FFFFFF" />
+              <TrashIcon :size="21" color="#FFFFFF" />
             </button>
           </div>
           <div
@@ -336,7 +336,7 @@ function dismissCloud() {
     <!-- 多选删除栏 -->
     <div v-if="selectMode" class="select-bar">
       <button class="select-del" type="button" data-msg-delete-selected @click="deleteSelected">
-        <MsgTrashIcon :size="22" color="#1E1E20" />
+        <TrashIcon :size="22" color="#1E1E20" />
         <span>{{ t('delete') }}</span>
       </button>
     </div>
