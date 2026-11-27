@@ -11,10 +11,13 @@ import { fileURLToPath } from 'node:url'
  * 卡片高度如果继续写死 90px，文字只占卡片上半截，下半截空出一大块。
  * 现在卡片高度由内容撑开（实测 1 行 68、2 行 85），实测值再回喂给堆叠/滚动几何。
  *
- * 这些断言钉住三条契约：
+ * 这些断言钉住六条契约：
  *   1. 卡片包装器不再是固定高度，通知卡片走 auto；
  *   2. 表层卡片默认在文档流内（内容撑高），只有活动卡片仍铺满固定高度；
- *   3. 高度实测入口存在并被挂到布局计算上，而不是写死常量。
+ *   3. 高度实测入口存在并被挂到布局计算上，而不是写死常量；
+ *   4. 通知组按「底边」锚定（卡片变矮时整组下移，直板/阔直板同一节奏）；
+ *   5. 播放器这类顶部组件会先把时钟往上顶，避免被裁剪区切掉；
+ *   6. 时钟挤压死区不得依赖当前钟高（否则 HIT ← 钟高 ← 挤压 形成反馈环 → 滚动闪动）。
  */
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const lockScreenPath = path.resolve(__dirname, '../src/components/system/LockScreen.vue')
@@ -43,4 +46,32 @@ test('measured notification heights feed the stack and scroll geometry', () => {
   assert.match(lockScreen, /data-notif-id=/, 'notification wrappers must be addressable for measurement')
   assert.match(lockScreen, /new ResizeObserver\(\(\) => \{[^}]*syncNotifCardHeights\(\)/s, 'the screen ResizeObserver must re-measure when the form factor morphs')
   assert.match(lockScreen, /document\.fonts\?\.ready/, 'font swaps must trigger a re-measure')
+})
+
+test('notification group is anchored by its bottom edge so slab and wide share one rhythm', () => {
+  assert.match(lockScreen, /function getLockFrontCardHeight\(\)/, 'LockScreen must resolve the front card height for anchoring')
+  assert.match(
+    lockScreen,
+    /const BASE_Y = computed\([\s\S]*?LOCK_STACK_BOTTOM_INSET[\s\S]*?LOCK_STACK_BOTTOM_CLEARANCE[\s\S]*?getLockFrontCardHeight\(\)/,
+    'BASE_Y must sit above the safe inset plus clearance, offset by the measured front card height'
+  )
+  assert.match(lockScreen, /const LOCK_STACK_BOTTOM_CLEARANCE = 24/, 'bottom clearance must keep the legacy 24px rhythm')
+})
+
+test('top widgets squeeze the clock up before they get clipped', () => {
+  assert.match(lockScreen, /const playerClockSqueeze = computed/, 'media player needs a clock squeeze term')
+  assert.match(lockScreen, /playerClockSqueeze[\s\S]*?CLOCK_CLIP_BOTTOM_LIMIT[\s\S]*?PLAYER_START_Y/, 'player squeeze must be derived from the clip top and the player anchor')
+  assert.match(lockScreen, /!control\.mediaActive\) return 0/, 'player squeeze only applies while the player is shown')
+  assert.match(lockScreen, /clipPath: `inset\(\$\{clipTop\.value - CLIP_TOP_BLEED\}px/, 'clipStyle must reuse CLIP_TOP_BLEED so squeeze and clipping stay in sync')
+})
+
+test('clock squeeze dead-zone never depends on the current clock height (no scroll flicker)', () => {
+  assert.doesNotMatch(
+    lockScreen,
+    /\(CLOCK_TOP \+ clockHeight\.value\)/,
+    'the scroll dead-zone must not read the live clock height — that closes a feedback loop and makes the clock flicker while scrolling'
+  )
+  assert.match(lockScreen, /const staticClockSqueeze = computed/, 'static (non-scroll) squeeze must be a named value')
+  assert.match(lockScreen, /CLOCK_INITIAL_HEIGHT = computed\(\(\) => CLOCK_MAX_HEIGHT - staticClockSqueeze\.value\)/, 'static squeeze must define the resting clock height')
+  assert.match(lockScreen, /HIT_DISTANCE = computed\([\s\S]{0,240}?CLOCK_INITIAL_HEIGHT\.value/, 'the scroll dead-zone must use the resting clock height')
 })

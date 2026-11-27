@@ -132,7 +132,15 @@ onBeforeUnmount(() => {
   if (bounceResetTimer) clearTimeout(bounceResetTimer)
 })
 
-const BASE_Y = computed(() => screenHeight.value - 224)
+/* 底部安全区：通知组底边须留在快捷按钮（手电筒 / 相机）上方 */
+const LOCK_STACK_BOTTOM_INSET = 110
+/* 旧设计（通知卡固定 90px）时前排卡片底边在安全 inset 之上 24px。
+   卡片高度改为内容自适应的 68/85 后，通知组改成「底边对齐」：
+   卡片变矮时整组下移，底部不再多露出一块空白（直板 / 阔直板同一套逻辑）。 */
+const LOCK_STACK_BOTTOM_CLEARANCE = 24
+const BASE_Y = computed(
+  () => screenHeight.value - LOCK_STACK_BOTTOM_INSET - LOCK_STACK_BOTTOM_CLEARANCE - getLockFrontCardHeight()
+)
 const PLAYER_HEIGHT = 164
 const NOTIF_SPACING = 98
 const PLAYER_NOTIF_GAP = 8
@@ -198,8 +206,9 @@ const CLOCK_SVG_H = 305
    重复的 clipPath id 会让第二个实例拿到第一个的字形。 */
 let glassUidSeq = 0
 const glassUid = `ls-clock-${++glassUidSeq}`
-const LOCK_STACK_BOTTOM_INSET = 110
 const LOCK_STACK_MAX_VISUAL_OFFSET = 36
+/* clipStyle 把裁剪区上边界再向上放宽 12px，播放器挤压计算要与之同源 */
+const CLIP_TOP_BLEED = 12
 /* 普通通知卡片：高度不再写死 90，而是由内容（标题 + 描述行数）自适应。
    阔直板下屏宽 426（直板 360），描述文案往往 1 行就放得下；继续用固定 90 会让卡片
    下半截空出一大块。CSS 用 auto 高度渲染，这里量出真实高度供堆叠/滚动几何使用。 */
@@ -248,6 +257,14 @@ function syncNotifCardHeights() {
     if (!(id in prev) || Math.abs(prev[id] - h) > 0.5) changed = true
   }
   if (changed) notifCardHeights.value = next
+}
+
+/* 通知组的底边锚点：取第一条普通通知的实测高度（未就绪 / 无通知时用 90 旧基准）。
+   卡片变矮时基准线不动、整组下移 —— 底边间距恒定，直板与阔直板同一套节奏。 */
+function getLockFrontCardHeight() {
+  const first = lockNotifs.value[0]
+  if (!first) return LOCK_CARD_HEIGHT
+  return notifCardHeights.value[first.id] ?? LOCK_CARD_HEIGHT
 }
 
 function getOs16CardClass(tpl) {
@@ -332,10 +349,30 @@ const activityClockSqueeze = computed(() => {
   return Math.min(CLOCK_MAX_HEIGHT - CLOCK_MIN_HEIGHT, Math.max(0, overflow))
 })
 
+/* 音乐播放器同样属于「顶部组件」：阔直板屏幕更矮，播放器会顶到时钟裁剪区里被切掉。
+   此时先把时钟往上顶（压缩），让播放器完整落在裁剪区下方 —— 与直板的观感一致。 */
+const CLOCK_CLIP_BOTTOM_LIMIT = CLOCK_TOP + CLOCK_MAX_HEIGHT + SAFE_GAP - CLIP_TOP_BLEED
+const PLAYER_TOP_SAFETY_GAP = 4
+const playerClockSqueeze = computed(() => {
+  if (isCollapsed.value || !control.mediaActive) return 0
+  const need = CLOCK_CLIP_BOTTOM_LIMIT + PLAYER_TOP_SAFETY_GAP - PLAYER_START_Y.value
+  return Math.min(CLOCK_MAX_HEIGHT - CLOCK_MIN_HEIGHT, Math.max(0, need))
+})
+
+/* 静态挤压（不随滚动变化）：活动卡片 + 播放器占位决定时钟的初始高度。
+   ⚠️ HIT_DISTANCE 必须基于这个「静止高度」而不是当前 clockHeight：
+   否则 HIT ← clockHeight ← squeeze ← HIT 形成反馈环，阔直板滚到底部时
+   时钟会在两个值之间逐帧来回跳（用户看到的「闪动」）。 */
+const staticClockSqueeze = computed(() =>
+  Math.min(CLOCK_MAX_HEIGHT - CLOCK_MIN_HEIGHT, activityClockSqueeze.value + playerClockSqueeze.value)
+)
+
 // 滚动条手势上滑挤压量
 const scrollSqueeze = computed(() => Math.max(0, scrollY.value > 0 ? scrollY.value - HIT_DISTANCE.value : 0))
 // 综合挤压量
-const totalSqueeze = computed(() => Math.min(CLOCK_MAX_HEIGHT - CLOCK_MIN_HEIGHT, activityClockSqueeze.value + scrollSqueeze.value))
+const totalSqueeze = computed(() =>
+  Math.min(CLOCK_MAX_HEIGHT - CLOCK_MIN_HEIGHT, staticClockSqueeze.value + scrollSqueeze.value)
+)
 const clockHeight = computed(() => CLOCK_MAX_HEIGHT - totalSqueeze.value)
 const clockProgress = computed(() => {
   const span = CLOCK_MAX_HEIGHT - CLOCK_MIN_HEIGHT
@@ -382,8 +419,10 @@ const TOP_WIDGET_START_Y = computed(() => {
     ? maxCardsBottomY.value - totalActivitiesHeight.value
     : maxCardsBottomY.value
 })
-const CLOCK_INITIAL_HEIGHT = computed(() => CLOCK_MAX_HEIGHT - activityClockSqueeze.value)
-const HIT_DISTANCE = computed(() => Math.max(0, TOP_WIDGET_START_Y.value - (CLOCK_TOP + clockHeight.value) - SAFE_GAP))
+const CLOCK_INITIAL_HEIGHT = computed(() => CLOCK_MAX_HEIGHT - staticClockSqueeze.value)
+const HIT_DISTANCE = computed(() =>
+  Math.max(0, TOP_WIDGET_START_Y.value - (CLOCK_TOP + CLOCK_INITIAL_HEIGHT.value) - SAFE_GAP)
+)
 const EXPAND_SCROLL_Y = computed(() => clockHeight.value - CLOCK_MIN_HEIGHT)
 
 /* 锁屏队列最多容纳 6 项；空间不足的灵动岛活动优先进入队列。 */
@@ -1424,8 +1463,8 @@ const transitionStyle = computed(() =>
 )
 const clipStyle = computed(() => {
   return {
-    clipPath: `inset(${clipTop.value - 12}px -50px -100px -50px)`,
-    WebkitClipPath: `inset(${clipTop.value - 12}px -50px -100px -50px)`,
+    clipPath: `inset(${clipTop.value - CLIP_TOP_BLEED}px -50px -100px -50px)`,
+    WebkitClipPath: `inset(${clipTop.value - CLIP_TOP_BLEED}px -50px -100px -50px)`,
     transition: isStateTransitioning.value ? 'clip-path 0.28s cubic-bezier(0.1, 0.9, 0.2, 1)' : 'none',
     pointerEvents: 'none'
   }

@@ -397,7 +397,14 @@ test('LockScreen reduces bottom stack leak to half, supports swipe down to colla
   const lsPath = path.resolve(__dirname, '../src/components/system/LockScreen.vue')
   const lsContent = fs.readFileSync(lsPath, 'utf8')
 
-  assert.match(lsContent, /BASE_Y\s*=\s*computed\(\(\)\s*=>\s*screenHeight\.value\s*-\s*224\)/, 'LockScreen BASE_Y must shift down to reduce bottom blank space by 60%')
+  /* 通知组改为「底边对齐」：安全 inset 110 + 24px 底边留白 + 前排卡片实测高度。
+     固定 90px 卡片时等价于旧的 screenHeight - 224（底部空白仍压掉 60%），
+     卡片随内容变矮时整组下移，直板 / 阔直板同一套节奏。 */
+  assert.match(
+    lsContent,
+    /const BASE_Y = computed\(\s*\(\) => screenHeight\.value - LOCK_STACK_BOTTOM_INSET - LOCK_STACK_BOTTOM_CLEARANCE - getLockFrontCardHeight\(\)\s*\)/,
+    'LockScreen BASE_Y must anchor the notification group by its bottom edge (inset + clearance + measured front card height)'
+  )
   assert.match(lsContent, /LOCK_STACK_BOTTOM_INSET\s*=\s*110/, 'LockScreen bottom threshold inset must adjust to 110')
   assert.match(lsContent, /visualOffsetScale:\s*0\.2/, 'LockScreen must pass visualOffsetScale: 0.2 to cut leak to half')
   assert.match(lsContent, /collapseNotifications\(\)/, 'LockScreen must define collapseNotifications')
