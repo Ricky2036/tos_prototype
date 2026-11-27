@@ -9,6 +9,7 @@ import { msgText } from './msgData'
 import MsgTopBar from './components/MsgTopBar.vue'
 import MsgPopupMenu from './components/MsgPopupMenu.vue'
 import MsgDialog from './components/MsgDialog.vue'
+import PlusIcon from '../../ui/PlusIcon.vue'
 
 /**
  * 对话页（真机 ConversationActivity）
@@ -303,9 +304,7 @@ function detailFields(msg) {
     <div v-else class="compose-bar">
       <div class="compose-pill" :class="{ focused: draft.length > 0 }">
         <button class="attach-btn" type="button" data-msg-attach>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1E1E20" stroke-width="1.7" stroke-linecap="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
+          <PlusIcon :size="24" color="#1E1E20" :stroke-width="1.7" />
         </button>
         <input
           class="compose-input"

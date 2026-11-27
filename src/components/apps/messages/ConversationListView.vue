@@ -8,6 +8,7 @@ import { msgText } from './msgData'
 import MsgAvatar from './components/MsgAvatar.vue'
 import TrashIcon from '../../ui/TrashIcon.vue'
 import MsgPopupMenu from './components/MsgPopupMenu.vue'
+import PlusIcon from '../../ui/PlusIcon.vue'
 
 /**
  * 会话列表（真机 ConversationListActivity）
@@ -328,9 +329,7 @@ function dismissCloud() {
 
     <!-- 新建会话 -->
     <button v-if="!selectMode" class="fab" type="button" data-msg-fab @click="emit('compose')">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1E1E20" stroke-width="2" stroke-linecap="round">
-        <path d="M12 5v14M5 12h14" />
-      </svg>
+      <PlusIcon :size="26" color="#1E1E20" :stroke-width="2" />
     </button>
 
     <!-- 多选删除栏 -->

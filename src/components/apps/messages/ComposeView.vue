@@ -5,6 +5,7 @@ import { useI18nStore } from '../../../stores/i18nStore'
 import { msgText } from './msgData'
 import MsgTopBar from './components/MsgTopBar.vue'
 import MsgSimIcon from './components/MsgSimIcon.vue'
+import PlusIcon from '../../ui/PlusIcon.vue'
 
 /**
  * 新建短信（真机 ConversationActivity 空会话态）
@@ -68,9 +69,7 @@ function sendNow() {
     <div class="compose-bar">
       <div class="compose-pill" :class="{ focused: draft.length > 0 }">
         <button class="attach-btn" type="button" data-msg-attach>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1E1E20" stroke-width="1.7" stroke-linecap="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
+          <PlusIcon :size="24" color="#1E1E20" :stroke-width="1.7" />
         </button>
         <input
           ref="inputEl"

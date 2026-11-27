@@ -2,6 +2,7 @@
 import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref, computed, onBeforeUnmount } from 'vue'
 import { useAccountStore } from '../../../stores/accountStore'
+import CloseIcon from '../../ui/CloseIcon.vue'
 
 const emit = defineEmits(['back'])
 const account = useAccountStore()
@@ -306,9 +307,7 @@ onBeforeUnmount(() => {
           <!-- 弹窗顶栏 -->
           <div class="sheet-header">
             <button class="sheet-close-btn" @click="activeModal = null">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6l12 12" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round"/>
-              </svg>
+              <CloseIcon :size="20" color="#1C1C1E" :stroke-width="2.2" />
             </button>
             <div class="sheet-title">找回密码</div>
             <div class="sheet-placeholder"></div>
@@ -511,9 +510,7 @@ onBeforeUnmount(() => {
         <div class="security-bottom-sheet">
           <div class="sheet-header">
             <button class="sheet-close-btn" @click="activeModal = null">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6l12 12" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round"/>
-              </svg>
+              <CloseIcon :size="20" color="#1C1C1E" :stroke-width="2.2" />
             </button>
             <div class="sheet-title">修改密码</div>
             <div class="sheet-placeholder"></div>
@@ -567,9 +564,7 @@ onBeforeUnmount(() => {
         <div class="security-bottom-sheet">
           <div class="sheet-header">
             <button class="sheet-close-btn" @click="activeModal = null">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6l12 12" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round"/>
-              </svg>
+              <CloseIcon :size="20" color="#1C1C1E" :stroke-width="2.2" />
             </button>
             <div class="sheet-title">电话号码</div>
             <div class="sheet-placeholder"></div>
@@ -594,9 +589,7 @@ onBeforeUnmount(() => {
         <div class="security-bottom-sheet">
           <div class="sheet-header">
             <button class="sheet-close-btn" @click="activeModal = null">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6l12 12" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round"/>
-              </svg>
+              <CloseIcon :size="20" color="#1C1C1E" :stroke-width="2.2" />
             </button>
             <div class="sheet-title">电子邮箱</div>
             <div class="sheet-placeholder"></div>
@@ -621,9 +614,7 @@ onBeforeUnmount(() => {
         <div class="security-bottom-sheet">
           <div class="sheet-header">
             <button class="sheet-close-btn" @click="activeModal = null">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6l12 12" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round"/>
-              </svg>
+              <CloseIcon :size="20" color="#1C1C1E" :stroke-width="2.2" />
             </button>
             <div class="sheet-title">紧急联系人</div>
             <div class="sheet-placeholder"></div>
@@ -647,9 +638,7 @@ onBeforeUnmount(() => {
         <div class="security-bottom-sheet">
           <div class="sheet-header">
             <button class="sheet-close-btn" @click="activeModal = null">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6l12 12" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round"/>
-              </svg>
+              <CloseIcon :size="20" color="#1C1C1E" :stroke-width="2.2" />
             </button>
             <div class="sheet-title">绑定三方</div>
             <div class="sheet-placeholder"></div>
@@ -674,9 +663,7 @@ onBeforeUnmount(() => {
         <div class="security-bottom-sheet">
           <div class="sheet-header">
             <button class="sheet-close-btn" @click="activeModal = null">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6l12 12" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round"/>
-              </svg>
+              <CloseIcon :size="20" color="#1C1C1E" :stroke-width="2.2" />
             </button>
             <div class="sheet-title">账号日志</div>
             <div class="sheet-placeholder"></div>
@@ -702,9 +689,7 @@ onBeforeUnmount(() => {
         <div class="security-bottom-sheet">
           <div class="sheet-header">
             <button class="sheet-close-btn" @click="activeModal = null">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6l12 12" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round"/>
-              </svg>
+              <CloseIcon :size="20" color="#1C1C1E" :stroke-width="2.2" />
             </button>
             <div class="sheet-title">账号注销须知</div>
             <div class="sheet-placeholder"></div>

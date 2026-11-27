@@ -24,6 +24,7 @@ import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import { GLYPHS } from '../../assets/icons/glyphs'
 import IslandCloseModal from '../ui/IslandCloseModal.vue'
 import GlassCircleButton from '../ui/GlassCircleButton.vue'
+import TrashIcon from '../ui/TrashIcon.vue'
 
 /**
  * 通知中心（移植自 notificationcenter.tsx）：
@@ -716,13 +717,7 @@ watch(expandedId, async () => {
                 @click.stop="onRequestDeleteActivity(act)"
                 :title="i18n.t('delete')"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 6h18"/>
-                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                  <line x1="10" y1="11" x2="10" y2="17"/>
-                  <line x1="14" y1="11" x2="14" y2="17"/>
-                </svg>
+                <TrashIcon :size="20" :stroke-width="1.8" />
               </button>
             </div>
 
@@ -901,13 +896,7 @@ watch(expandedId, async () => {
               @click.stop="onRequestDeleteActivity(mediaActivity)"
               :title="i18n.t('delete')"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 6h18"/>
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                <line x1="10" y1="11" x2="10" y2="17"/>
-                <line x1="14" y1="11" x2="14" y2="17"/>
-              </svg>
+              <TrashIcon :size="20" :stroke-width="1.8" />
             </button>
           </div>
           <MusicPlayerCard
@@ -951,13 +940,7 @@ watch(expandedId, async () => {
                 @click.stop="onDeleteCard(n.id)"
                 :title="i18n.t('delete')"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 6h18"/>
-                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                  <line x1="10" y1="11" x2="10" y2="17"/>
-                  <line x1="14" y1="11" x2="14" y2="17"/>
-                </svg>
+                <TrashIcon :size="20" :stroke-width="1.8" />
               </button>
             </div>
 
@@ -999,7 +982,7 @@ watch(expandedId, async () => {
         :label="i18n.t('clearAllNotifs')"
         @click.stop="handleClearAll"
       >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        <TrashIcon :size="22" :stroke-width="1.8" />
       </GlassCircleButton>
     </div>
 

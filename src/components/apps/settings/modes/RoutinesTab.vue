@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useModesAndRoutinesStore } from '../../../../stores/modesAndRoutinesStore.js'
 import { getIconPath } from './modeIcons.js'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
+import PlusIcon from '../../../ui/PlusIcon.vue'
 
 const store = useModesAndRoutinesStore()
 
@@ -48,9 +49,7 @@ function handleToggle(routine, e) {
       <div class="empty-title">没有日常程序</div>
       <div class="empty-desc">创建日常程序可让您的生活更加方便。</div>
       <button class="create-empty-btn" @click="emit('create-routine')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
+        <PlusIcon :size="18" color="currentColor" :stroke-width="2.2" />
         <span>创建日常程序</span>
       </button>
     </div>

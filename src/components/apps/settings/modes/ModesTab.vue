@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useModesAndRoutinesStore } from '../../../../stores/modesAndRoutinesStore.js'
 import { getIconPath } from './modeIcons.js'
+import PlusIcon from '../../../ui/PlusIcon.vue'
 
 const store = useModesAndRoutinesStore()
 
@@ -113,9 +114,7 @@ function handleAddModeClick() {
       <!-- 添加模式按钮卡片 -->
       <div class="mode-card add-mode-card" @click="handleAddModeClick">
         <div class="mode-icon-badge add-mode-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 5v14M5 12h14"/>
-          </svg>
+          <PlusIcon :size="22" color="currentColor" :stroke-width="2.2" />
         </div>
         <div class="mode-info">
           <div class="mode-title add-mode-title">添加模式</div>

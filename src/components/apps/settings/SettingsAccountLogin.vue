@@ -3,6 +3,7 @@ import { ref, computed, onBeforeUnmount } from 'vue'
 import { useAccountStore } from '../../../stores/accountStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import infinixNotificationIcon from '../../../assets/icons/notification-apps/infinix.png'
+import CloseIcon from '../../ui/CloseIcon.vue'
 
 const emit = defineEmits(['back', 'login-success'])
 const account = useAccountStore()
@@ -257,9 +258,7 @@ onBeforeUnmount(() => {
         <div class="login-bottom-sheet">
           <div class="sheet-header">
             <button class="sheet-close-btn" @click="activeModal = null">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6l12 12" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round"/>
-              </svg>
+              <CloseIcon :size="20" color="#1C1C1E" :stroke-width="2.2" />
             </button>
             <div class="sheet-title">{{ isZh ? '验证码登录' : 'Verification Code Login' }}</div>
             <div class="sheet-placeholder"></div>
@@ -321,9 +320,7 @@ onBeforeUnmount(() => {
         <div class="login-bottom-sheet">
           <div class="sheet-header">
             <button class="sheet-close-btn" @click="activeModal = null">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6l12 12" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round"/>
-              </svg>
+              <CloseIcon :size="20" color="#1C1C1E" :stroke-width="2.2" />
             </button>
             <div class="sheet-title">{{ isZh ? '账号密码登录' : 'Password Login' }}</div>
             <div class="sheet-placeholder"></div>
@@ -373,9 +370,7 @@ onBeforeUnmount(() => {
         <div class="login-bottom-sheet">
           <div class="sheet-header">
             <button class="sheet-close-btn" @click="activeModal = null">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6l12 12" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round"/>
-              </svg>
+              <CloseIcon :size="20" color="#1C1C1E" :stroke-width="2.2" />
             </button>
             <div class="sheet-title">{{ isZh ? '注册 Infinix ID' : 'Register Infinix ID' }}</div>
             <div class="sheet-placeholder"></div>
@@ -401,9 +396,7 @@ onBeforeUnmount(() => {
         <div class="login-bottom-sheet">
           <div class="sheet-header">
             <button class="sheet-close-btn" @click="activeModal = null">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6l12 12" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round"/>
-              </svg>
+              <CloseIcon :size="20" color="#1C1C1E" :stroke-width="2.2" />
             </button>
             <div class="sheet-title">{{ isZh ? '扫码登录' : 'QR Scan Login' }}</div>
             <div class="sheet-placeholder"></div>
@@ -439,9 +432,7 @@ onBeforeUnmount(() => {
         <div class="login-bottom-sheet">
           <div class="sheet-header">
             <button class="sheet-close-btn" @click="activeModal = null">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6l12 12" stroke="#1C1C1E" stroke-width="2.2" stroke-linecap="round"/>
-              </svg>
+              <CloseIcon :size="20" color="#1C1C1E" :stroke-width="2.2" />
             </button>
             <div class="sheet-title">{{ isZh ? '帮助与支持' : 'Help & Support' }}</div>
             <div class="sheet-placeholder"></div>

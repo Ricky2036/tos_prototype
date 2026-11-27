@@ -38,6 +38,7 @@ import {
 } from '../../utils/switcherMotion'
 /* 第十四轮·需求①：交接保持窗口的时长必须与 hero 开场动画同源（只读引用，不改该文件）。 */
 import { HERO_OPEN_DURATION } from '../../utils/heroGeometry'
+import TrashIcon from '../ui/TrashIcon.vue'
 
 /**
  * 最近任务切换器（App Switcher / Recent）—— 固定层级堆叠（不是 Coverflow）。
@@ -2765,7 +2766,7 @@ onBeforeUnmount(() => {
         @click.stop="clearAll"
       >
         <!-- 与通知中心同一份 trash-2 图标（桶身 + 桶盖 + 两根竖线），勿改成单路径版 -->
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        <TrashIcon :size="22" :stroke-width="1.8" />
       </GlassCircleButton>
     </div>
   </div>

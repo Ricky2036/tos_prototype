@@ -259,8 +259,18 @@ test('删除图标全仓同源 ui/TrashIcon，且必须带桶内两条竖线', (
   assert.ok(icon.includes('M19 6v14c0 1-1 2-2 2H7'), '缺桶身')
   assert.equal((icon.match(/<line/g) || []).length, 2, '桶内必须有两条竖线（历史残次品就少这两条）')
 
-  const nc = strip(read('src/components/system/NotificationCenter.vue'))
-  assert.ok(nc.includes('M19 6v14c0 1-1 2-2 2H7'), '通知中心路径变了，需同步 TrashIcon')
+  // system 层（通知中心 / 锁屏 / 灵动岛 / 最近任务）已全部复用 TrashIcon，
+  // 源码里不应再有内联的那份 path
+  for (const f of [
+    'src/components/system/NotificationCenter.vue',
+    'src/components/system/LockScreen.vue',
+    'src/components/system/DynamicIsland.vue',
+    'src/components/system/AppSwitcher.vue'
+  ]) {
+    const src = strip(read(f))
+    assert.ok(src.includes('<TrashIcon'), `${f} 应复用 TrashIcon`)
+    assert.ok(!src.includes('M3 6h18M19 6v14'), `${f} 仍有内联垃圾桶`)
+  }
 
   const list = strip(read(`${DIR}/ConversationListView.vue`))
   assert.equal((list.match(/<TrashIcon/g) || []).length, 2, '短信左滑 + 多选栏各一处')
