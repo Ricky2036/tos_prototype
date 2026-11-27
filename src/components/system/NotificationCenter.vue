@@ -615,12 +615,36 @@ watch(() => overlay.value.status, async (status) => {
   }
 })
 
+/* 列表上滑时卡片在顶部被裁切：把直角切口改成沿卡片自身圆角走的圆角切口。
+   卡片左右各内缩 14px、圆角 24px（.nc-card），所以裁切前沿在 x=14..38 与
+   x=W-38..W-14 两处各做一个 24px 圆角。
+   用 path() 而不是 inset(... round ...)：inset 会把左右一起内缩，横滑卡片会被提前裁断。 */
+const NC_CLIP_SIDE_INSET = 14
+const NC_CLIP_CORNER_RADIUS = 24
+const listWidth = ref(0)
+let listResizeObserver = null
+const listClipStyle = computed(() => {
+  const w = Math.max(1, listWidth.value || 360)
+  const r = NC_CLIP_CORNER_RADIUS
+  const e = NC_CLIP_SIDE_INSET
+  const outline = `M0 0 L${e} 0 L${e} ${r} A${r} ${r} 0 0 1 ${e + r} 0 L${w - e - r} 0 A${r} ${r} 0 0 1 ${w - e} ${r} L${w - e} 0 L${w} 0 L${w} 10000 L0 10000 Z`
+  const clip = `path('${outline}')`
+  return { clipPath: clip, WebkitClipPath: clip }
+})
+
 let mountTimer = null
 onMounted(() => {
   mountTimer = setTimeout(() => {
     updateStacking()
     mountTimer = null
   }, 100)
+  if (typeof ResizeObserver !== 'undefined' && listRef.value) {
+    listResizeObserver = new ResizeObserver(() => {
+      listWidth.value = listRef.value?.clientWidth || 0
+    })
+    listResizeObserver.observe(listRef.value)
+    listWidth.value = listRef.value.clientWidth
+  }
 })
 
 onBeforeUnmount(() => {
@@ -628,6 +652,7 @@ onBeforeUnmount(() => {
   clearTimeout(mountTimer)
   clearTimer = null
   mountTimer = null
+  if (listResizeObserver) { listResizeObserver.disconnect(); listResizeObserver = null }
   if (rafId != null) { cancelAnimationFrame(rafId); rafId = null }
 })
 
@@ -696,7 +721,7 @@ watch(expandedId, async () => {
       </div>
 
       <!-- 贯通式列表 -->
-      <div ref="listRef" class="nc-list scrollable" @scroll.passive="onScroll">
+      <div ref="listRef" class="nc-list scrollable" :style="listClipStyle" @scroll.passive="onScroll">
         <!-- 灵动岛活动卡片队列：同步所有活跃灵动岛（不设数量上限，有几个显示几个） -->
         <template v-for="act in activeActivities" :key="act.id">
           <div class="nc-swipe-card-wrapper nc-stack-item nc-activity-wrapper" :data-id="act.id">

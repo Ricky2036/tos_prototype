@@ -225,6 +225,15 @@ const SUITES = [
     ]
   },
   {
+    id: 'lockscreen-notif',
+    script: 'verify-lockscreen-notif-adaptive.mjs',
+    covers: [
+      'src/components/system/LockScreen.vue',
+      'src/components/system/NotificationCenter.vue',
+      'tests/lockScreenCardAdaptive.test.js'
+    ]
+  },
+  {
     id: 'modes-and-routines',
     script: 'verify-modes-and-routines.mjs',
     // 2026-11-12：全量串行跑到它时 locator.click 超时；单独跑通过。

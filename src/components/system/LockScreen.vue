@@ -108,12 +108,18 @@ function updateScreenHeight() {
 let resizeObserver = null
 onMounted(() => {
   updateScreenHeight()
+  /* 首帧量一次卡片真实高度：此刻 DOM 已布局，写回响应式状态会在本次 paint 前的
+     microtask 里完成重算，用户看不到位置跳变。 */
+  syncNotifCardHeights()
   if (typeof ResizeObserver !== 'undefined' && rootRef.value) {
     resizeObserver = new ResizeObserver(() => {
       updateScreenHeight()
+      syncNotifCardHeights()
     })
     resizeObserver.observe(rootRef.value)
   }
+  // 字体替换/加载会改变描述行数
+  document.fonts?.ready?.then(() => syncNotifCardHeights()).catch(() => {})
   window.addEventListener('resize', updateScreenHeight)
 })
 
@@ -126,7 +132,15 @@ onBeforeUnmount(() => {
   if (bounceResetTimer) clearTimeout(bounceResetTimer)
 })
 
-const BASE_Y = computed(() => screenHeight.value - 224)
+/* 底部安全区：通知组底边须留在快捷按钮（手电筒 / 相机）上方 */
+const LOCK_STACK_BOTTOM_INSET = 110
+/* 旧设计（通知卡固定 90px）时前排卡片底边在安全 inset 之上 24px。
+   卡片高度改为内容自适应的 68/85 后，通知组改成「底边对齐」：
+   卡片变矮时整组下移，底部不再多露出一块空白（直板 / 阔直板同一套逻辑）。 */
+const LOCK_STACK_BOTTOM_CLEARANCE = 24
+const BASE_Y = computed(
+  () => screenHeight.value - LOCK_STACK_BOTTOM_INSET - LOCK_STACK_BOTTOM_CLEARANCE - getLockFrontCardHeight()
+)
 const PLAYER_HEIGHT = 164
 const NOTIF_SPACING = 98
 const PLAYER_NOTIF_GAP = 8
@@ -192,9 +206,20 @@ const CLOCK_SVG_H = 305
    重复的 clipPath id 会让第二个实例拿到第一个的字形。 */
 let glassUidSeq = 0
 const glassUid = `ls-clock-${++glassUidSeq}`
-const LOCK_STACK_BOTTOM_INSET = 110
 const LOCK_STACK_MAX_VISUAL_OFFSET = 36
+/* clipStyle 把裁剪区上边界再向上放宽 12px，播放器挤压计算要与之同源 */
+const CLIP_TOP_BLEED = 12
+/* 裁剪区左右各内缩 14px、顶部圆角 22px —— 与通知卡自身几何严格对齐
+   （.ls-card-wrapper left/right: 14px；.ls-card-front border-radius: 22px）。
+   这样卡片上滑到上边界被裁切时，切口沿卡片自身的圆角走，不再是直角硬切；
+   同时「左内缩 == 卡片左偏移 && 裁剪圆角 == 卡片圆角」保证完全可见的卡片不会被提前切角。 */
+const CLIP_SIDE_INSET = 14
+const CLIP_CORNER_RADIUS = 22
+/* 普通通知卡片：高度不再写死 90，而是由内容（标题 + 描述行数）自适应。
+   阔直板下屏宽 426（直板 360），描述文案往往 1 行就放得下；继续用固定 90 会让卡片
+   下半截空出一大块。CSS 用 auto 高度渲染，这里量出真实高度供堆叠/滚动几何使用。 */
 const LOCK_CARD_HEIGHT = 90
+const notifCardHeights = ref({})
 const LOCK_CARD_BASE_ALPHA = 0.85
 const LOCK_STACK_FRONT_ALPHA = 0.95
 const LOCK_STACK_BACK_ALPHA = 0.80
@@ -214,6 +239,38 @@ function getActivityHeight(act) {
     return 76
   }
   return ACTIVITY_CARD_HEIGHT
+}
+
+/* 实测普通通知卡片的真实高度（内容自适应后的 offsetHeight），喂回堆叠几何。
+   - 阔直板 / 直板、语言切换、字体加载都会改变描述行数 → 高度必须跟着变；
+   - 只在数值真正变化时替换对象，避免每帧产生无意义的重算。 */
+function syncNotifCardHeights() {
+  const root = rootRef.value
+  if (!root) return
+  const els = root.querySelectorAll('.ls-card-wrapper[data-notif-id]')
+  const prev = notifCardHeights.value
+  if (!els.length) {
+    if (Object.keys(prev).length) notifCardHeights.value = {}
+    return
+  }
+  const next = {}
+  let changed = Object.keys(prev).length !== els.length
+  for (const el of els) {
+    const id = el.dataset.notifId
+    const h = el.offsetHeight
+    if (!h) continue
+    next[id] = h
+    if (!(id in prev) || Math.abs(prev[id] - h) > 0.5) changed = true
+  }
+  if (changed) notifCardHeights.value = next
+}
+
+/* 通知组的底边锚点：取第一条普通通知的实测高度（未就绪 / 无通知时用 90 旧基准）。
+   卡片变矮时基准线不动、整组下移 —— 底边间距恒定，直板与阔直板同一套节奏。 */
+function getLockFrontCardHeight() {
+  const first = lockNotifs.value[0]
+  if (!first) return LOCK_CARD_HEIGHT
+  return notifCardHeights.value[first.id] ?? LOCK_CARD_HEIGHT
 }
 
 function getOs16CardClass(tpl) {
@@ -298,10 +355,30 @@ const activityClockSqueeze = computed(() => {
   return Math.min(CLOCK_MAX_HEIGHT - CLOCK_MIN_HEIGHT, Math.max(0, overflow))
 })
 
+/* 音乐播放器同样属于「顶部组件」：阔直板屏幕更矮，播放器会顶到时钟裁剪区里被切掉。
+   此时先把时钟往上顶（压缩），让播放器完整落在裁剪区下方 —— 与直板的观感一致。 */
+const CLOCK_CLIP_BOTTOM_LIMIT = CLOCK_TOP + CLOCK_MAX_HEIGHT + SAFE_GAP - CLIP_TOP_BLEED
+const PLAYER_TOP_SAFETY_GAP = 4
+const playerClockSqueeze = computed(() => {
+  if (isCollapsed.value || !control.mediaActive) return 0
+  const need = CLOCK_CLIP_BOTTOM_LIMIT + PLAYER_TOP_SAFETY_GAP - PLAYER_START_Y.value
+  return Math.min(CLOCK_MAX_HEIGHT - CLOCK_MIN_HEIGHT, Math.max(0, need))
+})
+
+/* 静态挤压（不随滚动变化）：活动卡片 + 播放器占位决定时钟的初始高度。
+   ⚠️ HIT_DISTANCE 必须基于这个「静止高度」而不是当前 clockHeight：
+   否则 HIT ← clockHeight ← squeeze ← HIT 形成反馈环，阔直板滚到底部时
+   时钟会在两个值之间逐帧来回跳（用户看到的「闪动」）。 */
+const staticClockSqueeze = computed(() =>
+  Math.min(CLOCK_MAX_HEIGHT - CLOCK_MIN_HEIGHT, activityClockSqueeze.value + playerClockSqueeze.value)
+)
+
 // 滚动条手势上滑挤压量
 const scrollSqueeze = computed(() => Math.max(0, scrollY.value > 0 ? scrollY.value - HIT_DISTANCE.value : 0))
 // 综合挤压量
-const totalSqueeze = computed(() => Math.min(CLOCK_MAX_HEIGHT - CLOCK_MIN_HEIGHT, activityClockSqueeze.value + scrollSqueeze.value))
+const totalSqueeze = computed(() =>
+  Math.min(CLOCK_MAX_HEIGHT - CLOCK_MIN_HEIGHT, staticClockSqueeze.value + scrollSqueeze.value)
+)
 const clockHeight = computed(() => CLOCK_MAX_HEIGHT - totalSqueeze.value)
 const clockProgress = computed(() => {
   const span = CLOCK_MAX_HEIGHT - CLOCK_MIN_HEIGHT
@@ -348,8 +425,10 @@ const TOP_WIDGET_START_Y = computed(() => {
     ? maxCardsBottomY.value - totalActivitiesHeight.value
     : maxCardsBottomY.value
 })
-const CLOCK_INITIAL_HEIGHT = computed(() => CLOCK_MAX_HEIGHT - activityClockSqueeze.value)
-const HIT_DISTANCE = computed(() => Math.max(0, TOP_WIDGET_START_Y.value - (CLOCK_TOP + clockHeight.value) - SAFE_GAP))
+const CLOCK_INITIAL_HEIGHT = computed(() => CLOCK_MAX_HEIGHT - staticClockSqueeze.value)
+const HIT_DISTANCE = computed(() =>
+  Math.max(0, TOP_WIDGET_START_Y.value - (CLOCK_TOP + CLOCK_INITIAL_HEIGHT.value) - SAFE_GAP)
+)
 const EXPAND_SCROLL_Y = computed(() => clockHeight.value - CLOCK_MIN_HEIGHT)
 
 /* 锁屏队列最多容纳 6 项；空间不足的灵动岛活动优先进入队列。 */
@@ -367,9 +446,23 @@ const lockItems = computed(() => {
 /* 「N 条通知」的 N 与量词语序各语言不同，交给 i18n 拼 */
 const notifCountLabel = computed(() => i18n.t('notifCount')(lockItems.value.length))
 
+/* 文案/语言/通知集合变化 → 描述行数变化 → 重新量卡片高度。
+   flush: 'post' 保证量的是本次 DOM 更新后的真实高度。 */
+watch(
+  () => [
+    lockItems.value.length,
+    lockNotifs.value.map(n => `${n.id}|${n.appId}|${n.title || ''}|${n.body || ''}`).join('~'),
+    i18n.locale
+  ],
+  () => syncNotifCardHeights(),
+  { flush: 'post' }
+)
+
 function getLockItemHeight(item) {
   if (!item) return LOCK_CARD_HEIGHT
-  return item.isActivity ? getActivityHeight(item.activity) : LOCK_CARD_HEIGHT
+  if (item.isActivity) return getActivityHeight(item.activity)
+  // 普通通知：实测高度未就绪时退回设计基准 90，量到后立即使用真实值
+  return notifCardHeights.value[item.id] ?? LOCK_CARD_HEIGHT
 }
 
 function getLockItemGap(item, nextItem) {
@@ -1375,9 +1468,21 @@ const transitionStyle = computed(() =>
     : 'none'
 )
 const clipStyle = computed(() => {
+  /* 上滑裁切：直角切口 → 沿卡片自身圆角走。
+     卡片左右各内缩 14px、圆角 22px（.ls-card-wrapper / .ls-card-front），
+     所以裁切前沿在 x=14..36 与 x=W-36..W-14 两处各做一个 22px 圆角，
+     卡片滑过上边界时切口正好是它自己的圆角，而不是一条直角横线。
+     用 path() 而不是 inset(... round ...)：inset 的圆角会把左右也一并内缩，
+     横滑卡片会被提前 14px 截断；path() 只削上边界两侧，横滑仍保持整屏贯通。 */
+  const top = clipTop.value - CLIP_TOP_BLEED
+  const r = CLIP_CORNER_RADIUS
+  const e = CLIP_SIDE_INSET
+  const w = Math.max(1, screenWidth.value || 360)
+  const outline = `M0 ${top + r} L${e} ${top + r} A${r} ${r} 0 0 1 ${e + r} ${top} L${w - e - r} ${top} A${r} ${r} 0 0 1 ${w - e} ${top + r} L${w} ${top + r} L${w} 10000 L0 10000 Z`
+  const rounded = `path('${outline}')`
   return {
-    clipPath: `inset(${clipTop.value - 12}px -50px -100px -50px)`,
-    WebkitClipPath: `inset(${clipTop.value - 12}px -50px -100px -50px)`,
+    clipPath: rounded,
+    WebkitClipPath: rounded,
     transition: isStateTransitioning.value ? 'clip-path 0.28s cubic-bezier(0.1, 0.9, 0.2, 1)' : 'none',
     pointerEvents: 'none'
   }
@@ -1515,10 +1620,8 @@ function notifStyle(i) {
     }
   }
   const item = lockItems.value[i]
-  const cardH = item?.isActivity ? getActivityHeight(item.activity) : LOCK_CARD_HEIGHT
-  return {
+  const style = {
     transform: `translate3d(0, ${itemLayout.yPos}px, 0) scale(${itemLayout.scale})`,
-    height: `${cardH}px`,
     opacity: itemLayout.opacity,
     visibility: itemLayout.opacity === 0 ? 'hidden' : 'visible',
     zIndex: 100 - i,
@@ -1526,6 +1629,10 @@ function notifStyle(i) {
     pointerEvents: itemLayout.interactive ? 'auto' : 'none',
     '--ls-card-bg-alpha': itemLayout.backgroundAlpha.toFixed(3)
   }
+  /* 普通通知卡片不给固定高度：交给内容撑开（CSS auto），与 getLockItemHeight 的实测值一致；
+     灵动岛活动卡片仍是按模板锁定的固定高度。 */
+  if (item?.isActivity) style.height = `${getActivityHeight(item.activity)}px`
+  return style
 }
 </script>
 
@@ -1815,6 +1922,7 @@ function notifStyle(i) {
             'is-activity': item.isActivity,
             'is-os16-template': item.isActivity && item.activity.type === 'os16_template'
           }"
+          :data-notif-id="item.isActivity ? undefined : item.id"
           :style="notifStyle(i)"
         >
           <!-- 底层滑动操作按钮 -->
@@ -2294,12 +2402,14 @@ function notifStyle(i) {
 }
 
 /* ---- 通知 / 录音卡片包装器与滑动层 ---- */
+/* 普通通知高度 auto（内容自适应：1 行实测 68、2 行实测 85，直板/阔直板/语言切换都会变）；
+   灵动岛活动卡片仍由行内 style 给固定高度。 */
 .ls-card-wrapper {
   position: absolute;
   top: 0;
   left: 14px;
   right: 14px;
-  height: 90px;
+  height: auto;
   border-radius: 22px;
   overflow: visible;
   will-change: transform, opacity;
@@ -2377,10 +2487,10 @@ function notifStyle(i) {
   color: #ff3b30;
 }
 
-/* 表层滑块卡片 */
+/* 表层滑块卡片：普通通知用文档流高度（内容撑开），活动卡片仍铺满固定高度的包装器 */
 .ls-card-front {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  width: 100%;
   background: rgba(255, 255, 255, var(--ls-card-bg-alpha, 0.85));
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
@@ -2408,6 +2518,12 @@ function notifStyle(i) {
 }
 .ls-card-front:active {
   background: rgba(255, 255, 255, 0.82);
+}
+
+.ls-card-wrapper.is-activity .ls-card-front,
+.ls-card-wrapper.ls-activity-standalone .ls-card-front {
+  position: absolute;
+  inset: 0;
 }
 
 /* 灵动岛活动卡片深色样式（与灵动岛/通知中心保持一致） */
