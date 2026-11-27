@@ -12,6 +12,7 @@ import PrivacyPanel from '../privacy/PrivacyPanel.vue'
 import { usePrivacyStore } from '../../stores/privacyStore'
 import HomeIndicator from './HomeIndicator.vue'
 import ThreeButtonNav from './ThreeButtonNav.vue'
+import EdgeBackGesture from './EdgeBackGesture.vue'
 import DynamicIsland from '../system/DynamicIsland.vue'
 import LockScreen from '../system/LockScreen.vue'
 import HomeScreen from '../system/HomeScreen.vue'
@@ -450,52 +451,28 @@ registerDriver('appLibrary', libDriver)
 useSwipeGesture(ncStripRef, ncDriver.gesture)
 useSwipeGesture(ccStripRef, ccDriver.gesture)
 
-/* ================= 全局侧滑返回（左缘右滑） ================= */
-
-const sideEdgeRef = ref(null)
-const SIDE_SPAN = 240
-
-const { value: sideVal, animateTo: sideAnimate, snapTo: sideSnap } = useSpring(0, 'ios-snappy')
-// 侧滑与底部上滑共用同一进度通道：AppWindow 缩放预览无需关心来源
-watch(sideVal, (v) => system.setHomeGestureProgress(v))
-
-useSwipeGesture(sideEdgeRef, {
-  axis: 'x',
-  direction: 1, // 右滑
-  span: SIDE_SPAN,
-  threshold: 6,
-  canStart: () => Boolean(privacy.settingsPage) || system.baseLayer === 'app' || system.anyOverlayOpen(),
-  onStart() {
-    sideSnap(system.homeGestureProgress)
-  },
-  onProgress(p) {
-    sideSnap(p)
-  },
-  onRelease(p, velocity) {
-    const trigger = p > 0.22 || velocity > 0.45
-    if (trigger) {
-      // 叠层打开 → 右滑直接收起叠层
-      if (system.anyOverlayOpen()) {
-        system.setHomeGestureProgress(0)
-        sideSnap(0)
-        for (const key of ['appLibrary', 'notificationCenter', 'controlCenter']) {
-          if (system.overlays[key].status !== 'closed') system.requestCloseOverlay(key)
-        }
-        return 1
-      }
-      // 应用内消费（如关闭信息对话页）：进度弹回，不回桌面
-      if (runBackHandler()) {
-        sideAnimate(0, { initialVelocity: velocity })
-        return 0
-      }
-      // 保留当前进度，供 AppWindow 将预览帧作为关闭动画起点。
-      system.goHome()
-      return 1
-    }
-    sideAnimate(0, { initialVelocity: velocity })
-    return 0
-  }
+const backOverlays = computed(() => ['appLibrary', 'notificationCenter', 'controlCenter']
+  .filter(key => system.overlays[key].status !== 'closed'))
+const edgeBackTarget = computed(() => {
+  const systemModalOpen = control.volumePanelOpen || control.flashlightPanelOpen ||
+    control.powerMenuOpen || control.sideVolumeMode !== 'hidden' || privacy.page === 'detail'
+  if (!system.screenOn || system.navigationMode !== 'gesture' || system.baseLayer === 'lock' ||
+      systemModalOpen || control.oneHandedEditing || system.appSwitcherOpen || system.switcherProgress > 0 ||
+      system.homeGestureProgress > 0) return null
+  if (backOverlays.value.length) return `overlay:${backOverlays.value.join(',')}`
+  if (privacy.settingsPage) return `privacy:${privacy.settingsPage}`
+  if (system.baseLayer === 'app') return `app:${system.activeAppId}:${shareStore.isOpen}`
+  return null
 })
+
+function onEdgeBack(target) {
+  if (edgeBackTarget.value !== target) return
+  if (backOverlays.value.length) {
+    for (const key of backOverlays.value) system.requestCloseOverlay(key)
+  } else if (!runBackHandler() && system.baseLayer === 'app') {
+    system.goHome()
+  }
+}
 </script>
 
 <template>
@@ -661,8 +638,12 @@ useSwipeGesture(sideEdgeRef, {
       @click="ccDriver.toggle"
     ></div>
 
-    <!-- 左侧边缘手势热区：应用内右滑返回（上级页或桌面） -->
-    <div ref="sideEdgeRef" class="side-edge"></div>
+    <EdgeBackGesture
+      :surface="rootEl"
+      :target="edgeBackTarget"
+      :show-bubble="backOverlays.length === 0"
+      @back="onEdgeBack"
+    />
 
     <!-- 亮度滤镜（永远最上，不拦截事件） -->
     <div class="brightness-filter" :style="{ opacity: dimOpacity }"></div>
@@ -934,17 +915,6 @@ useSwipeGesture(sideEdgeRef, {
    ⚠️ 任何应用都可以用这个钩子（不是相册专用）；只在属性真的存在时生效。
    ⚠️ 属性必须用 `|| null` 绑定 —— `false` 会让属性以 "false" 存在，`:has()` 会命中。 */
 .screen-view:has([data-immersive-chrome]) .status-bar { opacity: 0; }
-
-/* 左侧边缘返回热区：窄条全高，不遮挡内容交互 */
-.side-edge {
-  position: absolute;
-  left: 0;
-  top: 64px;
-  bottom: 80px;
-  width: 22px;
-  z-index: var(--z-side-edge);
-  touch-action: none;
-}
 
 .brightness-filter {
   position: absolute;
