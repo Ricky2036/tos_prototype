@@ -220,8 +220,23 @@ test('列表页接入通用大标题件，不再自绘折叠量', () => {
   assert.match(src, /const \{ progress: titleProgress, onScroll: onTitleScroll \} = useLargeTitle\(\)/, '必须解构出 ref')
   assert.match(src, /<LargeTitleHeader/, '必须用通用件渲染大标题')
   assert.ok(!/headHeight|collapse\.value/.test(src), '不许再自算折叠高度')
-  assert.ok(!src.includes('row::after'), '真机列表没有分割线，不许再加')
+  // 真机分割线：从头像右侧 76 到内容右缘 336、1px #EAEBEC（比背景只深 6）
+  assert.match(src, /row::after/, '必须有真机同款细分割线')
+  assert.match(src, /#eaebec/i, '分割线颜色按真机取样')
+  assert.match(src, /left: 76px/, '分割线左起头像右侧')
+  assert.match(src, /right: 24px/, '分割线右端 336')
   assert.match(src, /F5A623/, '置顶黄色图钉')
+})
+
+test('通知信息列表与首页同一套行结构（分割线 / 行高 / 字号）', () => {
+  const ent = strip(read(`${DIR}/EnterpriseListView.vue`))
+  assert.match(ent, /ent-row::after/, '通知信息也要分割线')
+  assert.match(ent, /#eaebec/i, '颜色同首页')
+  assert.match(ent, /left: 76px/)
+  assert.match(ent, /right: 24px/)
+  assert.match(ent, /min-height: 62px/, '行高同首页')
+  assert.match(ent, /font-size: 17px/, '标题字号同首页')
+  assert.match(ent, /gap: 5px/, '名称与时间间距同首页')
 })
 
 test('对话页气泡配色与输入栏尺寸照真机标定', () => {

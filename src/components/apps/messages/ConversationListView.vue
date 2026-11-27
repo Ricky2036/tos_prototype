@@ -523,6 +523,17 @@ function dismissCloud() {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
+/* 真机分割线：从头像右侧 76 到内容右缘 336，1px #EAEBEC（比背景只深 6，极轻） */
+.row::after {
+  content: '';
+  position: absolute;
+  left: 76px;
+  right: 24px;
+  bottom: 0;
+  height: 1px;
+  background: #eaebec;
+}
+.row-wrap:last-child .row::after { display: none; }
 .row.enterprise { min-height: 59.9px; }
 .row.selected .row-main { opacity: 0.55; }
 .row-main { flex: 1; min-width: 0; }

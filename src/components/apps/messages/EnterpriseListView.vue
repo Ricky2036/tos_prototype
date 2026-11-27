@@ -126,9 +126,20 @@ function onSelect() {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
+/* 与主列表同一条分割线 */
+.ent-row::after {
+  content: '';
+  position: absolute;
+  left: 76px;
+  right: 24px;
+  bottom: 0;
+  height: 1px;
+  background: #eaebec;
+}
+.ent-row:last-child::after { display: none; }
 .ent-row:active { background: #e9eaec; }
 .ent-main { flex: 1; min-width: 0; }
-.ent-top { display: flex; align-items: center; gap: 6px; }
+.ent-top { display: flex; align-items: center; gap: 5px; }
 .ent-name {
   font-size: 17px;
   line-height: 22px;

@@ -316,9 +316,11 @@ function detailFields(msg) {
         />
         <button class="sim-btn" type="button" data-msg-sim aria-label="SIM">
           <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#1E1E20" stroke-width="1.6" stroke-linejoin="round">
-            <path d="M9.6 3.8h7.8c1 0 1.8.8 1.8 1.8v12.8c0 1-.8 1.8-1.8 1.8H6.6c-1 0-1.8-.8-1.8-1.8V8.2l4.8-4.4z" />
-            <rect x="8.4" y="10.6" width="7.2" height="6.2" rx="1" />
-            <path d="M8.4 13.7h7.2M12 10.6v6.2" stroke-width="1.1" />
+            <path d="M6.6 3.6h7.6l4.4 4.4v12.2c0 .9-.7 1.6-1.6 1.6H6.6c-.9 0-1.6-.7-1.6-1.6V5.2c0-.9.7-1.6 1.6-1.6z" />
+            <rect x="8.5" y="9.7" width="3.2" height="3.2" rx="0.7" />
+            <rect x="12.3" y="9.7" width="3.2" height="3.2" rx="0.7" />
+            <rect x="8.5" y="13.5" width="3.2" height="3.2" rx="0.7" />
+            <rect x="12.3" y="13.5" width="3.2" height="3.2" rx="0.7" />
           </svg>
         </button>
       </div>
