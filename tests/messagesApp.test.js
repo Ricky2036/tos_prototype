@@ -220,7 +220,7 @@ test('列表页接入通用大标题件，不再自绘折叠量', () => {
   assert.match(src, /const \{ progress: titleProgress, onScroll: onTitleScroll \} = useLargeTitle\(\)/, '必须解构出 ref')
   assert.match(src, /<LargeTitleHeader/, '必须用通用件渲染大标题')
   assert.ok(!/headHeight|collapse\.value/.test(src), '不许再自算折叠高度')
-  assert.match(src, /row::after/, '分割线')
+  assert.ok(!src.includes('row::after'), '真机列表没有分割线，不许再加')
   assert.match(src, /F5A623/, '置顶黄色图钉')
 })
 

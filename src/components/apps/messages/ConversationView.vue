@@ -212,8 +212,9 @@ function detailFields(msg) {
         </div>
       </template>
       <template #right>
-        <div class="action-pill">
-          <button v-if="showCall" class="pill-btn" type="button" data-msg-call>
+        <!-- 有号码（普通会话）：电话 + ⋮ 的 100 宽胶囊；通知信息（无电话）：单颗 44 圆钮 -->
+        <div v-if="showCall" class="action-pill">
+          <button class="pill-btn" type="button" data-msg-call>
             <!-- 项目已有描边听筒（lucide phone），与真机同款细线 -->
             <LIcon name="phone" :size="21" :stroke-width="1.35" />
           </button>
@@ -225,6 +226,13 @@ function detailFields(msg) {
             </svg>
           </button>
         </div>
+        <button v-else class="solo-more" type="button" data-msg-chat-overflow @click="openMenu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#1E1E20">
+            <circle cx="12" cy="4" r="2.1" />
+            <circle cx="12" cy="12" r="2.1" />
+            <circle cx="12" cy="20" r="2.1" />
+          </svg>
+        </button>
       </template>
     </MsgTopBar>
 
@@ -397,7 +405,7 @@ function detailFields(msg) {
   width: 100px;
   height: 44px;
   border-radius: 22px;
-  background: #fdfdfd;
+  background: #f7f7f8;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
@@ -419,6 +427,21 @@ function detailFields(msg) {
   border-radius: 50%;
   -webkit-tap-highlight-color: transparent;
 }
+.solo-more {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: #f7f7f8;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 10px rgba(0, 0, 0, 0.045);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #3a3a3c;
+  -webkit-tap-highlight-color: transparent;
+}
+.solo-more:active { transform: scale(0.9); }
 .pill-btn { color: #3a3a3c; }
 .pill-btn:active { background: rgba(0, 0, 0, 0.04); }
 

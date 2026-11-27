@@ -369,7 +369,7 @@ function dismissCloud() {
   width: 100px;
   height: 44px;
   border-radius: 22px;
-  background: #fdfdfd;
+  background: #f7f7f8;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
@@ -523,17 +523,6 @@ function dismissCloud() {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
-/* 分割线：头像右侧起、右内边距止（与设置列表一致） */
-.row::after {
-  content: '';
-  position: absolute;
-  left: 76px;
-  right: 16px;
-  bottom: 0;
-  height: 1px;
-  background: rgba(60, 60, 67, 0.055);
-}
-.row-wrap:last-child .row::after { display: none; }
 .row.enterprise { min-height: 59.9px; }
 .row.selected .row-main { opacity: 0.55; }
 .row-main { flex: 1; min-width: 0; }

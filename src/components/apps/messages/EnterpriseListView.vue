@@ -126,17 +126,6 @@ function onSelect() {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-/* 分割线与主列表同款：头像右侧起、右内边距止 */
-.ent-row::after {
-  content: '';
-  position: absolute;
-  left: 76px;
-  right: 16px;
-  bottom: 0;
-  height: 1px;
-  background: rgba(60, 60, 67, 0.055);
-}
-.ent-row:last-child::after { display: none; }
 .ent-row:active { background: #e9eaec; }
 .ent-main { flex: 1; min-width: 0; }
 .ent-top { display: flex; align-items: center; gap: 6px; }
