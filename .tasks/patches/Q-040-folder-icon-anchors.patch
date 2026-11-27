@@ -1,0 +1,269 @@
+diff --git a/src/components/home/HomeFolderOverlay.vue b/src/components/home/HomeFolderOverlay.vue
+--- a/src/components/home/HomeFolderOverlay.vue
++++ b/src/components/home/HomeFolderOverlay.vue
+@@ -6,7 +6,8 @@
+ 
+ const props = defineProps({
+   folder: { type: Object, required: true },
+-  origin: { type: Object, default: null }
++  origin: { type: Object, default: null },
++  appActive: Boolean
+ })
+ const emit = defineEmits(['close', 'rename', 'app-pointerdown', 'launch-app', 'transition-finished'])
+ 
+@@ -18,15 +19,12 @@
+ const iconMotions = new Map()
+ const panelMotion = reactive({ dx: 0, dy: 0, sx: 0.2, sy: 0.2, startRadius: '100px / 100px' })
+ let closeTimer = null
++let closeRequested = false
+ 
+ const setIconRef = (id, el) => {
+   if (el) iconRefs.set(id, el)
+   else iconRefs.delete(id)
+ }
+-
+-const rectTransform = (from, to) => (!from || !to?.width || !to?.height)
+-  ? { x: 0, y: 0, sx: 0.2, sy: 0.2 }
+-  : { x: from.left - to.left, y: from.top - to.top, sx: from.width / to.width, sy: from.height / to.height }
+ 
+ function getShellFallback() {
+   const screen = panelRef.value?.closest('.screen-view') || document.querySelector('.screen-view')
+@@ -56,8 +54,8 @@
+     const totScale = 1 + (targetScale - 1) * p
+     const csx = px > 0.001 ? (totScale / px) : 1
+     const csy = py > 0.001 ? (totScale / py) : 1
+-    const stepX = cx * p
+-    const stepY = cy * p
++    const stepX = cx * p * sx / px
++    const stepY = cy * p * sy / py
+     const opacity = hasMini ? 1 : (isClosing ? Math.max(0, 1 - p * 1.5) : Math.min(1, (1 - p) * 1.5))
+     keyframes.push({
+       transform: `translate3d(${stepX}px, ${stepY}px, 0) scale(${csx}, ${csy})`,
+@@ -100,35 +98,27 @@
+   iconMotions.clear()
+   for (const [appId, iconEl] of iconRefs) {
+     if (!iconEl) continue
+-    const _t = rectTransform(props.origin?.iconRects?.[appId] || fallback, iconEl.getBoundingClientRect())
+     const tileEl = iconEl.querySelector('.app-icon-anchor') || iconEl
+     const tileRect = screen ? rectRelativeToScreen(tileEl, screen) : tileEl.getBoundingClientRect()
+     const iconElRect = screen ? rectRelativeToScreen(iconEl, screen) : iconEl.getBoundingClientRect()
+-    const targetTileSize = isLarge ? 35 : 12
+-    const targetScale = targetTileSize / 60
+-    const iconShellRelative = props.origin?.iconShellRelatives?.[appId]
+-    const hasMini = Boolean(iconShellRelative)
+-
+-    let cx = 0
+-    let cy = 0
+-
+-    if (iconShellRelative) {
+-      const origTargetX = from.left + iconShellRelative.rx * from.width
+-      const origTargetY = from.top + iconShellRelative.ry * from.height
+-      cx = origTargetX - tileRect.left
+-      cy = origTargetY - tileRect.top
+-    } else {
+-      const targetCenterX = from.left + from.width / 2
+-      const targetCenterY = from.top + from.height / 2
+-      const tileCenterX = tileRect.left + tileRect.width / 2
+-      const tileCenterY = tileRect.top + tileRect.height / 2
+-      cx = targetCenterX - tileCenterX
+-      cy = targetCenterY - tileCenterY
++    const preview = desktopFolder?.querySelector(`[data-folder-app="${CSS.escape(appId)}"] .app-icon-anchor`)
++    const liveMini = rectRelativeToScreen(preview, screen)
++    if (liveMini && preview) {
++      const style = getComputedStyle(preview)
++      liveMini.width = parseFloat(style.width) || liveMini.width
++      liveMini.height = parseFloat(style.height) || liveMini.height
+     }
+-
+-    const originX = Math.round(tileRect.left - iconElRect.left + tileRect.width / 2)
+-    const originY = Math.round(tileRect.top - iconElRect.top + tileRect.height / 2)
+-    iconEl.style.transformOrigin = `${originX}px ${originY}px`
++    const mini = liveMini?.width && liveMini?.height ? liveMini : props.origin?.iconRects?.[appId]
++    const hasMini = Boolean(mini?.width && mini?.height)
++    const target = hasMini ? mini : from
++    const tileCenterX = tileRect.left + tileRect.width / 2
++    const tileCenterY = tileRect.top + tileRect.height / 2
++
++    // Resolve the thumbnail center in the panel's local space before its scale is applied.
++    const cx = (target.left + target.width / 2 - from.left) / sx - (tileCenterX - to.left)
++    const cy = (target.top + target.height / 2 - from.top) / sy - (tileCenterY - to.top)
++    const targetScale = hasMini ? mini.width / tileRect.width : 0.2
++    iconEl.style.transformOrigin = `${tileCenterX - iconElRect.left}px ${tileCenterY - iconElRect.top}px`
+ 
+     iconMotions.set(appId, {
+       cx,
+@@ -213,6 +203,7 @@
+     phase.value = 'open'
+     if (backdropRef.value) backdropRef.value.style.opacity = '1'
+     emit('transition-finished', 'open')
++    if (closeRequested) close()
+   }
+ 
+   if (openAnim) {
+@@ -223,7 +214,11 @@
+ }
+ 
+ function close() {
+-  if (phase.value === 'closing' || phase.value === 'launching') return
++  if (phase.value === 'measuring' || phase.value === 'opening') {
++    closeRequested = true
++    return
++  }
++  if (phase.value !== 'open') return
+   prepareMotion()
+   phase.value = 'closing'
+   clearTimeout(closeTimer)
+@@ -308,13 +303,7 @@
+ }
+ 
+ function launch(appId, anchor) {
+-  if (phase.value !== 'open') return
+-  phase.value = 'launching'
+-  backdropRef.value?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' })
+-  panelRef.value?.animate([
+-    { transform: 'scale(1)', opacity: 1 },
+-    { transform: 'scale(0.96)', opacity: 0.2 }
+-  ], { duration: 160, fill: 'forwards' })
++  if (phase.value !== 'open' || props.appActive) return
+   emit('launch-app', appId, anchor)
+ }
+ 
+@@ -332,7 +321,7 @@
+ </script>
+ 
+ <template>
+-  <div class="folder-overlay" :class="`phase-${phase}`" @pointerdown.stop @click="onOverlayClick">
++  <div class="folder-overlay" :class="`phase-${phase}`" :data-open-folder-id="folder.id" :inert="appActive" @pointerdown.stop @click="onOverlayClick">
+     <div ref="backdropRef" class="folder-backdrop"></div>
+     <div ref="panelRef" class="folder-panel">
+       <input
+@@ -426,6 +415,7 @@
+   will-change: transform, opacity;
+ }
+ .folder-panel-app :deep(.app-icon) {
++  animation: none;
+   aspect-ratio: 1 !important;
+ }
+ .folder-panel-app :deep(.icon-tile),
+@@ -438,9 +428,6 @@
+ }
+ .phase-measuring {
+   visibility: hidden;
+-}
+-.phase-launching {
+-  pointer-events: none;
+ }
+ @media (prefers-reduced-motion: reduce) {
+   .folder-overlay,
+diff --git a/src/components/system/HomeScreen.vue b/src/components/system/HomeScreen.vue
+--- a/src/components/system/HomeScreen.vue
++++ b/src/components/system/HomeScreen.vue
+@@ -979,7 +979,7 @@
+   const iconRects = {}
+   const appNodes = el?.querySelectorAll?.('[data-folder-app]') || rootRef.value?.querySelectorAll?.(`[data-home-item="folder:${folderId}"] [data-folder-app]`)
+   appNodes?.forEach?.((node) => {
+-    const r = toLocalRect(node)
++    const r = toLocalRect(node.querySelector('.app-icon-anchor'))
+     if (r) iconRects[node.dataset.folderApp] = r
+   })
+   folderOrigin.value = {
+@@ -1001,8 +1001,9 @@
+     width: anchor.getBoundingClientRect().width,
+     height: anchor.getBoundingClientRect().height
+   }
+-  setLaunchRect(appId,launchRect)
+-  openFolderId.value = null
++  const expandedFolderId = anchor.closest('[data-open-folder-id]')?.dataset.openFolderId
++  const folderId = expandedFolderId || anchor.closest('[data-home-item^="folder:"]')?.dataset.homeItem.slice(7)
++  setLaunchRect(appId, { ...launchRect, folderId, fromExpandedFolder: Boolean(expandedFolderId) })
+   system.openApp(appId)
+ }
+ function onFolderAppPointerDown(event, appId) {
+@@ -1197,7 +1198,7 @@
+     </form>
+     <DockBar v-if="!home.editing" :profile="home.profile" :dragging-id="dragging?.id" :dock-target-index="dockTargetIndex" :removing-ids="removingIds" :suppress-click-id="suppressedClickId" @item-pointerdown="onDockPointerDown"
+       @toggle-select="home.toggleSelected" @request-remove="requestRemove" />
+-    <HomeFolderOverlay v-if="openFolderId && home.folders[openFolderId]" :folder="home.folders[openFolderId]" :origin="folderOrigin"
++    <HomeFolderOverlay v-if="openFolderId && home.folders[openFolderId]" :folder="home.folders[openFolderId]" :origin="folderOrigin" :app-active="Boolean(system.activeAppId)"
+       @close="openFolderId=null" @rename="home.renameFolder(openFolderId,$event)" @app-pointerdown="onFolderAppPointerDown" @launch-app="launchFolderApp" />
+     <Transition name="editor-panel" mode="out-in">
+       <div v-if="home.editing && !hasSelection" key="tools" class="edit-dashboard home-editor">
+diff --git a/src/components/system/AppWindow.vue b/src/components/system/AppWindow.vue
+--- a/src/components/system/AppWindow.vue
++++ b/src/components/system/AppWindow.vue
+@@ -216,7 +216,7 @@
+   return { clipPath, opacity: 1 - current.iconOpacity }
+ })
+ 
+-const nativeIconSize = computed(() => launchAnchor.value?.width || 60)
++const nativeIconSize = ref(60)
+ const iconWrapperStyle = computed(() => {
+   const current = frame.value
+   if (widgetAnchor.value || !current || current.iconOpacity <= 0) return { opacity: 0, pointerEvents: 'none' }
+@@ -240,7 +240,15 @@
+   const reducedMotion = reduceWidgetMotion()
+   if (widget && !reducedMotion) showWidgetMirror(widget)
+   if (!widget && launchAnchor.value?.widgetId) home.hideIcon(props.appId)
+-  let anchor = widget?.rect || getAnchorRect(props.appId, screen)
++  const folderId = launchAnchor.value?.folderId
++  const thumbnail = folderId && screen?.querySelector(
++    `[data-page="${home.currentPage}"] [data-home-item="folder:${CSS.escape(folderId)}"] [data-folder-app="${CSS.escape(props.appId)}"] .app-icon-anchor`
++  )
++  const expandedIcon = folderId && launchAnchor.value?.fromExpandedFolder && screen?.querySelector(
++    `[data-open-folder-id="${CSS.escape(folderId)}"] [data-folder-app="${CSS.escape(props.appId)}"] .app-icon-anchor`
++  )
++  let anchor = widget?.rect || screenLocalBounds(expandedIcon, screen)
++    || screenLocalBounds(thumbnail, screen) || getAnchorRect(props.appId, screen)
+   if (!anchor || !anchor.width) {
+     anchor = launchAnchor.value
+   }
+@@ -255,6 +263,7 @@
+   const startRect = swipeFrame?.rect || frame.value?.windowRect || viewport
+   const startRadius = swipeFrame?.radius ?? frame.value?.radius
+   swipeFrame = null
++  nativeIconSize.value = anchor.width
+   hero.beginClose({
+     viewportRect: viewport,
+     anchorRect: anchor,
+@@ -286,6 +295,7 @@
+   }
+ 
+   launchAnchor.value = launchRect
++  nativeIconSize.value = launchRect.width
+   const widget = prepareWidgetMirror(screen, launchRect.widgetId)
+   const reducedMotion = reduceWidgetMotion()
+   widgetAnchor.value = widget
+diff --git a/tests/homeDesktopComponents.test.js b/tests/homeDesktopComponents.test.js
+--- a/tests/homeDesktopComponents.test.js
++++ b/tests/homeDesktopComponents.test.js
+@@ -206,10 +206,10 @@
+   assert.match(folder, /data-folder-shell/)
+   assert.match(folder, /:data-folder-app="appId"/)
+   assert.match(home, /function launchFolderApp/)
+-  assert.match(home, /setLaunchRect\(appId,launchRect\)/)
++  assert.match(home, /setLaunchRect\(appId, \{ \.\.\.launchRect, folderId, fromExpandedFolder:/)
+   assert.match(overlay, /phase\.value = 'opening'/)
+   assert.match(overlay, /phase\.value = 'closing'/)
+-  assert.match(overlay, /rectTransform\(props\.origin\?\.iconRects\?\.\[appId\]/)
++  assert.match(overlay, /const mini = liveMini\?\.width && liveMini\?\.height \? liveMini : props\.origin\?\.iconRects\?\.\[appId\]/)
+   assert.match(overlay, /@click\.stop="launch\(appId,\$event\.currentTarget\.querySelector/)
+ })
+ 
+@@ -305,7 +305,7 @@
+   assert.match(source, /\[\.\.\.basePages, \[\]\]/)
+ })
+ 
+-test('folder app launch computes unscaled anchor, resets openFolderId, and provides seamless dissolution animation', async () => {
++test('folder app launch computes an unscaled anchor and preserves the expanded folder', async () => {
+   const [home, anchors, store] = await Promise.all([
+     read('../src/components/system/HomeScreen.vue'),
+     read('../src/utils/appIconAnchors.js'),
+@@ -313,7 +313,7 @@
+   ])
+ 
+   assert.match(home, /rectRelativeToScreen\(anchor,\s*screen\)/)
+-  assert.match(home, /openFolderId\.value\s*=\s*null/)
++  assert.doesNotMatch(home.slice(home.indexOf("function launchFolderApp"), home.indexOf("function onFolderAppPointerDown")), /openFolderId\.value\s*=/)
+   assert.match(home, /finishFolderApp/)
+   assert.match(home, /animateFolderDissolve/)
+   assert.match(home, /shellClone\.animate/)
