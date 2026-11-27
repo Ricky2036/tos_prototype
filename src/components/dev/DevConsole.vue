@@ -2,6 +2,7 @@
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useControlStore, LAYOUT_PRESETS } from '../../stores/controlStore'
 import { useSystemStore } from '../../stores/systemStore'
+import { useAiCompanionStore } from '../../stores/aiCompanionStore'
 import { usePrayerStore } from '../../stores/prayerStore'
 import { useClockStore } from '../../stores/clockStore'
 import { useI18nStore } from '../../stores/i18nStore'
@@ -62,6 +63,18 @@ const emit = defineEmits([
 
 const control = useControlStore()
 const system = useSystemStore()
+const aiCompanion = useAiCompanionStore()
+
+function triggerAiCompanion() {
+  if (!system.screenOn || system.baseLayer === 'lock') return
+  aiCompanion.toggleBySideKey()
+}
+function switchAiScene(appId) {
+  if (!system.screenOn) return
+  if (system.baseLayer === 'lock') system.baseLayer = 'home'
+  system.openApp(appId)
+  aiCompanion.resetSession()
+}
 const prayerStore = usePrayerStore()
 const clockStore = useClockStore()
 const recorderStore = useRecorderStore()
@@ -680,6 +693,7 @@ function onToggleFineTune(enabled) {
           <option value="island">灵动岛</option>
           <option value="muslim">礼拜模式</option>
           <option value="control">控制中心</option>
+          <option value="aiCompanion">AI 伴随</option>
           <option value="privacy">敏感权限提示</option>
           <option value="backscreen">可触控背屏</option>
           <option value="flashlight">手电筒</option>
@@ -850,6 +864,123 @@ function onToggleFineTune(enabled) {
             <button class="pc-btn pc-btn-secondary flashlight-reset-btn" type="button" data-testid="flashlight-reset" @click="control.resetFlashlight()">恢复初始状态</button>
           </div>
 
+          <!-- 模块：AI 伴随 -->
+          <div v-else-if="selectedModule === 'aiCompanion'" key="aiCompanion" class="pc-module-section-group is-ai-companion" data-testid="ai-companion-console">
+            <div class="pc-section">
+              <div class="pc-card-header" style="margin-bottom: 0;">
+                <span class="pc-card-title">AI 伴随</span>
+                <label class="pc-switch-wrap">
+                  <span>{{ aiCompanion.isOpen ? '开启' : '关闭' }}</span>
+                  <input
+                    type="checkbox"
+                    data-testid="dev-ai-companion-switch"
+                    :disabled="!system.screenOn || system.baseLayer !== 'app' || (system.activeAppId !== 'whatsapp' && system.activeAppId !== 'chrome')"
+                    :checked="aiCompanion.isOpen"
+                    @change="$event.target.checked ? aiCompanion.openCompact() : aiCompanion.close()"
+                  />
+                  <div class="pc-switch"></div>
+                </label>
+              </div>
+            </div>
+
+            <div class="pc-divider-dashed"></div>
+
+            <div class="pc-section">
+              <div class="pc-card-header">
+                <span class="pc-card-title">伴随模型</span>
+              </div>
+              <div class="pc-seg">
+                <div
+                  class="pc-seg-thumb"
+                  :style="{ transform: aiCompanion.assistantModel === 'floa' ? 'translateX(0)' : 'translateX(100%)' }"
+                ></div>
+                <button
+                  type="button"
+                  class="pc-seg-btn"
+                  :class="{ on: aiCompanion.assistantModel === 'floa' }"
+                  @click="aiCompanion.setModel('floa')"
+                >
+                  Fola
+                </button>
+                <button
+                  type="button"
+                  class="pc-seg-btn"
+                  :class="{ on: aiCompanion.assistantModel === 'gemini' }"
+                  @click="aiCompanion.setModel('gemini')"
+                >
+                  Gemini
+                </button>
+              </div>
+            </div>
+
+            <div class="pc-divider-dashed"></div>
+
+            <div class="pc-section">
+              <div class="pc-card-header">
+                <span class="pc-card-title">样式切换</span>
+              </div>
+              <div class="pc-seg">
+                <div
+                  class="pc-seg-thumb"
+                  :style="{ transform: aiCompanion.layoutStyle === 'original' ? 'translateX(0)' : 'translateX(100%)' }"
+                ></div>
+                <button
+                  type="button"
+                  class="pc-seg-btn"
+                  data-testid="dev-ai-style-original"
+                  :class="{ on: aiCompanion.layoutStyle === 'original' }"
+                  @click="aiCompanion.setLayoutStyle('original')"
+                >
+                  原版样式
+                </button>
+                <button
+                  type="button"
+                  class="pc-seg-btn"
+                  data-testid="dev-ai-style-narrow"
+                  :class="{ on: aiCompanion.layoutStyle === 'narrow' }"
+                  @click="aiCompanion.setLayoutStyle('narrow')"
+                >
+                  窄版样式
+                </button>
+              </div>
+            </div>
+
+            <div class="pc-divider-dashed"></div>
+
+            <div class="pc-section">
+              <div class="pc-card-header">
+                <span class="pc-card-title">场景切换</span>
+              </div>
+              <div class="pc-seg">
+                <div
+                  class="pc-seg-thumb"
+                  :style="{
+                    opacity: system.baseLayer === 'app' && (system.activeAppId === 'whatsapp' || system.activeAppId === 'chrome') ? 1 : 0,
+                    transform: system.activeAppId === 'chrome' ? 'translateX(100%)' : 'translateX(0)'
+                  }"
+                ></div>
+                <button
+                  type="button"
+                  class="pc-seg-btn"
+                  data-testid="dev-ai-scene-whatsapp"
+                  :class="{ on: system.baseLayer === 'app' && system.activeAppId === 'whatsapp' }"
+                  @click="switchAiScene('whatsapp')"
+                >
+                  WhatsApp
+                </button>
+                <button
+                  type="button"
+                  class="pc-seg-btn"
+                  data-testid="dev-ai-scene-chrome"
+                  :class="{ on: system.baseLayer === 'app' && system.activeAppId === 'chrome' }"
+                  @click="switchAiScene('chrome')"
+                >
+                  浏览器
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- 模块：单手模式 -->
           <div v-else-if="selectedModule === 'onehanded'" key="onehanded" class="pc-module-section-group is-onehanded" data-testid="onehanded-console">
             <div class="pc-section">
@@ -913,6 +1044,68 @@ function onToggleFineTune(enabled) {
                   />
                   <div class="pc-switch"></div>
                 </label>
+              </div>
+            </div>
+
+            <div class="pc-divider-dashed"></div>
+
+            <div class="pc-section">
+              <div class="pc-card-header" style="margin-bottom: 10px;">
+                <span class="pc-card-title">手势激活</span>
+                <label class="pc-switch-wrap">
+                  <input
+                    type="checkbox"
+                    data-testid="onehanded-gesture-switch"
+                    :checked="control.oneHandedGestureEnabled"
+                    @change="control.setOneHandedGestureEnabled($event.target.checked)"
+                  />
+                  <div class="pc-switch"></div>
+                </label>
+              </div>
+              <div
+                class="pc-seg"
+                :style="{
+                  opacity: control.oneHandedGestureEnabled ? 1 : 0.45,
+                  pointerEvents: control.oneHandedGestureEnabled ? 'auto' : 'none'
+                }"
+              >
+                <div
+                  class="pc-seg-thumb-3"
+                  :style="{
+                    transform: control.oneHandedGestureMode === 'both'
+                      ? 'translateX(0)'
+                      : control.oneHandedGestureMode === 'bottom'
+                        ? 'translateX(100%)'
+                        : 'translateX(200%)'
+                  }"
+                ></div>
+                <button
+                  type="button"
+                  class="pc-seg-btn"
+                  data-testid="onehanded-gesture-both"
+                  :class="{ on: control.oneHandedGestureMode === 'both' }"
+                  @click="control.setOneHandedGestureMode('both')"
+                >
+                  全部
+                </button>
+                <button
+                  type="button"
+                  class="pc-seg-btn"
+                  data-testid="onehanded-gesture-bottom"
+                  :class="{ on: control.oneHandedGestureMode === 'bottom' }"
+                  @click="control.setOneHandedGestureMode('bottom')"
+                >
+                  底角
+                </button>
+                <button
+                  type="button"
+                  class="pc-seg-btn"
+                  data-testid="onehanded-gesture-top"
+                  :class="{ on: control.oneHandedGestureMode === 'top' }"
+                  @click="control.setOneHandedGestureMode('top')"
+                >
+                  顶角长按
+                </button>
               </div>
             </div>
           </div>
@@ -1378,6 +1571,7 @@ function onToggleFineTune(enabled) {
                   <option value="island">灵动岛</option>
                   <option value="muslim">礼拜模式</option>
                   <option value="control">控制中心</option>
+                  <option value="aiCompanion">AI 伴随</option>
                   <option value="privacy">敏感权限提示</option>
                   <option value="backscreen">可触控背屏</option>
                   <option value="flashlight">手电筒</option>
@@ -1548,7 +1742,124 @@ function onToggleFineTune(enabled) {
                     <button class="pc-btn pc-btn-secondary flashlight-reset-btn" type="button" data-testid="flashlight-reset" @click="control.resetFlashlight()">恢复初始状态</button>
                   </div>
 
-                  <!-- 模块：单手模式 -->
+                  <!-- 模块：AI 伴随 -->
+          <div v-else-if="selectedModule === 'aiCompanion'" key="aiCompanion" class="pc-module-section-group is-ai-companion" data-testid="ai-companion-console">
+            <div class="pc-section">
+              <div class="pc-card-header" style="margin-bottom: 0;">
+                <span class="pc-card-title">AI 伴随</span>
+                <label class="pc-switch-wrap">
+                  <span>{{ aiCompanion.isOpen ? '开启' : '关闭' }}</span>
+                  <input
+                    type="checkbox"
+                    data-testid="dev-ai-companion-switch"
+                    :disabled="!system.screenOn || system.baseLayer !== 'app' || (system.activeAppId !== 'whatsapp' && system.activeAppId !== 'chrome')"
+                    :checked="aiCompanion.isOpen"
+                    @change="$event.target.checked ? aiCompanion.openCompact() : aiCompanion.close()"
+                  />
+                  <div class="pc-switch"></div>
+                </label>
+              </div>
+            </div>
+
+            <div class="pc-divider-dashed"></div>
+
+            <div class="pc-section">
+              <div class="pc-card-header">
+                <span class="pc-card-title">伴随模型</span>
+              </div>
+              <div class="pc-seg">
+                <div
+                  class="pc-seg-thumb"
+                  :style="{ transform: aiCompanion.assistantModel === 'floa' ? 'translateX(0)' : 'translateX(100%)' }"
+                ></div>
+                <button
+                  type="button"
+                  class="pc-seg-btn"
+                  :class="{ on: aiCompanion.assistantModel === 'floa' }"
+                  @click="aiCompanion.setModel('floa')"
+                >
+                  Fola
+                </button>
+                <button
+                  type="button"
+                  class="pc-seg-btn"
+                  :class="{ on: aiCompanion.assistantModel === 'gemini' }"
+                  @click="aiCompanion.setModel('gemini')"
+                >
+                  Gemini
+                </button>
+              </div>
+            </div>
+
+            <div class="pc-divider-dashed"></div>
+
+            <div class="pc-section">
+              <div class="pc-card-header">
+                <span class="pc-card-title">样式切换</span>
+              </div>
+              <div class="pc-seg">
+                <div
+                  class="pc-seg-thumb"
+                  :style="{ transform: aiCompanion.layoutStyle === 'original' ? 'translateX(0)' : 'translateX(100%)' }"
+                ></div>
+                <button
+                  type="button"
+                  class="pc-seg-btn"
+                  data-testid="dev-ai-style-original"
+                  :class="{ on: aiCompanion.layoutStyle === 'original' }"
+                  @click="aiCompanion.setLayoutStyle('original')"
+                >
+                  原版样式
+                </button>
+                <button
+                  type="button"
+                  class="pc-seg-btn"
+                  data-testid="dev-ai-style-narrow"
+                  :class="{ on: aiCompanion.layoutStyle === 'narrow' }"
+                  @click="aiCompanion.setLayoutStyle('narrow')"
+                >
+                  窄版样式
+                </button>
+              </div>
+            </div>
+
+            <div class="pc-divider-dashed"></div>
+
+            <div class="pc-section">
+              <div class="pc-card-header">
+                <span class="pc-card-title">场景切换</span>
+              </div>
+              <div class="pc-seg">
+                <div
+                  class="pc-seg-thumb"
+                  :style="{
+                    opacity: system.baseLayer === 'app' && (system.activeAppId === 'whatsapp' || system.activeAppId === 'chrome') ? 1 : 0,
+                    transform: system.activeAppId === 'chrome' ? 'translateX(100%)' : 'translateX(0)'
+                  }"
+                ></div>
+                <button
+                  type="button"
+                  class="pc-seg-btn"
+                  data-testid="dev-ai-scene-whatsapp"
+                  :class="{ on: system.baseLayer === 'app' && system.activeAppId === 'whatsapp' }"
+                  @click="switchAiScene('whatsapp')"
+                >
+                  WhatsApp
+                </button>
+                <button
+                  type="button"
+                  class="pc-seg-btn"
+                  data-testid="dev-ai-scene-chrome"
+                  :class="{ on: system.baseLayer === 'app' && system.activeAppId === 'chrome' }"
+                  @click="switchAiScene('chrome')"
+                >
+                  浏览器
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 模块：单手模式 -->
                   <div v-else-if="selectedModule === 'onehanded'" key="onehanded" class="pc-module-section-group is-onehanded" data-testid="onehanded-console">
                     <div class="pc-section">
                       <div class="pc-card-header" style="margin-bottom: 0;">
@@ -1607,6 +1918,64 @@ function onToggleFineTune(enabled) {
                           />
                           <div class="pc-switch"></div>
                         </label>
+                      </div>
+                    </div>
+
+                    <div class="pc-divider-dashed"></div>
+
+                    <div class="pc-section">
+                      <div class="pc-card-header" style="margin-bottom: 10px;">
+                        <span class="pc-card-title">手势激活</span>
+                        <label class="pc-switch-wrap">
+                          <input
+                            type="checkbox"
+                            :checked="control.oneHandedGestureEnabled"
+                            @change="control.setOneHandedGestureEnabled($event.target.checked)"
+                          />
+                          <div class="pc-switch"></div>
+                        </label>
+                      </div>
+                      <div
+                        class="pc-seg"
+                        :style="{
+                          opacity: control.oneHandedGestureEnabled ? 1 : 0.45,
+                          pointerEvents: control.oneHandedGestureEnabled ? 'auto' : 'none'
+                        }"
+                      >
+                        <div
+                          class="pc-seg-thumb-3"
+                          :style="{
+                            transform: control.oneHandedGestureMode === 'both'
+                              ? 'translateX(0)'
+                              : control.oneHandedGestureMode === 'bottom'
+                                ? 'translateX(100%)'
+                                : 'translateX(200%)'
+                          }"
+                        ></div>
+                        <button
+                          type="button"
+                          class="pc-seg-btn"
+                          :class="{ on: control.oneHandedGestureMode === 'both' }"
+                          @click="control.setOneHandedGestureMode('both')"
+                        >
+                          全部
+                        </button>
+                        <button
+                          type="button"
+                          class="pc-seg-btn"
+                          :class="{ on: control.oneHandedGestureMode === 'bottom' }"
+                          @click="control.setOneHandedGestureMode('bottom')"
+                        >
+                          底角
+                        </button>
+                        <button
+                          type="button"
+                          class="pc-seg-btn"
+                          :class="{ on: control.oneHandedGestureMode === 'top' }"
+                          @click="control.setOneHandedGestureMode('top')"
+                        >
+                          顶角长按
+                        </button>
                       </div>
                     </div>
                   </div>

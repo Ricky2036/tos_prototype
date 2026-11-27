@@ -238,9 +238,9 @@ function onTap() {
 .home-indicator {
   position: absolute;
   bottom: 0;
-  left: 0;
-  right: 0;
-  /* 热区高于视觉条：向上透明延伸，提升可触发性 */
+  left: 76px;
+  right: 76px;
+  /* 热区高于视觉条：向上透明延伸，同时避开左右底角单手模式手势热区 */
   height: var(--home-indicator-zone);
   display: flex;
   align-items: flex-end;

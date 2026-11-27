@@ -25,12 +25,15 @@ import FlashlightPanel from '../system/FlashlightPanel.vue'
 import SideVolumeOverlay from '../system/SideVolumeOverlay.vue'
 import PowerMenu from '../system/PowerMenu.vue'
 import ShareSheet from '../system/ShareSheet.vue'
+import AiCompanionPanel from '../system/AiCompanionPanel.vue'
+import AiScreenGlow from '../system/AiScreenGlow.vue'
 import { DARK_BG_APPS } from '../../config/apps'
 import { registerDriver } from '../../composables/driverRegistry'
 import { runBackHandler } from '../../composables/backRegistry'
 import wallpaper from '../../assets/img/wallpaper-lock.jpg'
 import { useWallpaperStore } from '../../stores/wallpaperStore'
 import { useShareStore } from '../../stores/shareStore'
+import { useAiCompanionStore } from '../../stores/aiCompanionStore'
 
 /**
  * 屏幕容器（OS 合成器）：
@@ -50,6 +53,13 @@ const control = useControlStore()
 const system = useSystemStore()
 const wallpaperStore = useWallpaperStore()
 const shareStore = useShareStore()
+const aiCompanion = useAiCompanionStore()
+watch(() => system.baseLayer, (layer) => {
+  if (layer === 'lock' || layer === 'home') aiCompanion.close()
+})
+watch(() => system.activeAppId, () => {
+  aiCompanion.resetSession()
+})
 const activeWallpaper = computed(() => (wideMode.value ? wallpaperStore.lockWallpaper : wallpaperStore.homeWallpaper) || wallpaperStore.active || wallpaper)
 const heroVisual = ref(null)
 
@@ -96,8 +106,12 @@ const oneHandedPositionLabel = computed(() => {
   return control.oneHandedPosition === 'left' ? '左下角' : '右下角'
 })
 
-const oneHandedLayout = computed(() => {
-  if (!control.oneHanded) return null
+const ohGestureCorner = ref(null)
+const ohGestureProgress = ref(0)
+const ohGestureArmed = ref(null)
+const ohTopShieldActive = ref(false)
+
+function computeOneHandedLayout(position) {
   const sw = stageSize.value.width || (wideMode.value ? 426.6666667 : 360)
   const sh = stageSize.value.height || (wideMode.value ? 733.3333333 : 788)
   const useSlabRatio = wideMode.value && control.oneHandedRatio === 'slab'
@@ -112,12 +126,37 @@ const oneHandedLayout = computed(() => {
   const visW = vw * s
   const visH = vh * s
   const top = Math.max(0, sh - visH - edgeY)
-  const isLeft = control.oneHandedPosition === 'left'
+  const isLeft = position === 'left'
   const left = isLeft ? edgeX : sw - visW - edgeX
   return { sw, sh, vw, vh, fitScale, s, visW, visH, left, top, isLeft }
+}
+
+const oneHandedLayout = computed(() => {
+  if (!control.oneHanded) return null
+  return computeOneHandedLayout(control.oneHandedPosition)
 })
 
 const oneHandedViewStyle = computed(() => {
+  if (!control.oneHanded && ohGestureCorner.value && ohGestureProgress.value > 0) {
+    const L = computeOneHandedLayout(ohGestureCorner.value)
+    const p = ohGestureProgress.value
+    const curX = L.left * p
+    const curY = L.top * p
+    const curScale = 1 + (L.s - 1) * p
+    const radius = control.oneHandedEdgeSnap
+      ? 'var(--screen-radius)'
+      : 'calc(var(--screen-radius) * 0.88)'
+    return {
+      width: `${L.vw}px`,
+      height: `${L.vh}px`,
+      right: 'auto',
+      bottom: 'auto',
+      transform: `translate3d(${curX}px, ${curY}px, 0) scale(${curScale})`,
+      borderRadius: radius,
+      clipPath: `inset(0 round ${radius})`,
+      transition: 'none'
+    }
+  }
   const L = oneHandedLayout.value
   if (!L) return undefined
   const radius = control.oneHandedEdgeSnap
@@ -221,6 +260,187 @@ function onOneHandedResizeDown(e) {
   window.addEventListener('pointercancel', onUp)
 }
 
+let ohGestureCleanup = null
+function onStagePointerDownCapture(e) {
+  if (e.button !== undefined && e.button !== 0) return
+  if (!control.oneHandedGestureEnabled) return
+  if (!system.screenOn || control.oneHanded || system.baseLayer === 'lock' || system.anyOverlayOpen()) return
+  if (!stageEl.value) return
+  if (e.target instanceof Element && e.target.closest('.dev-console, .pc-drawer, .pc-modal')) return
+
+  const mode = control.oneHandedGestureMode || 'both'
+  const allowBottom = mode === 'both' || mode === 'bottom'
+  const allowTop = mode === 'both' || mode === 'top'
+  if (!allowBottom && !allowTop) return
+
+  const stageRect = stageEl.value.getBoundingClientRect()
+  const sw = stageSize.value.width || (wideMode.value ? 426.6666667 : 360)
+  const sh = stageSize.value.height || (wideMode.value ? 733.3333333 : 788)
+  const outerScale = sw > 0 ? stageRect.width / sw : 1
+  const relX = (e.clientX - stageRect.left) / outerScale
+  const relY = (e.clientY - stageRect.top) / outerScale
+  const outerMargin = 56
+  const topCornerSize = 48
+
+  const inBottomZone = allowBottom
+    && relY >= sh - 76
+    && relY <= sh + outerMargin
+    && ((relX >= -outerMargin && relX <= 76) || (relX >= sw - 76 && relX <= sw + outerMargin))
+  const inTopZone = !inBottomZone
+    && allowTop
+    && relY >= -outerMargin
+    && relY <= topCornerSize
+    && ((relX >= -outerMargin && relX <= topCornerSize) || (relX >= sw - topCornerSize && relX <= sw + outerMargin))
+  if (!inBottomZone && !inTopZone) return
+
+  ohGestureCleanup?.()
+
+  const scheme = inBottomZone ? 'bottom' : 'top'
+  const startSide = relX <= sw / 2 ? 'left' : 'right'
+  // 底部手势落在同侧底角；顶部手势向屏幕对侧内部滑动，窗口落在对侧底角
+  const targetSide = scheme === 'bottom' ? startSide : (startSide === 'left' ? 'right' : 'left')
+  const startX = e.clientX
+  const startY = e.clientY
+  const downAt = performance.now()
+  const pointerId = e.pointerId
+
+  let armed = scheme === 'bottom'
+  let tracking = false
+  let cancelled = false
+  let lastDiag = 0
+  let lastTime = performance.now()
+  let velocity = 0
+  let holdTimer = null
+
+  if (scheme === 'top') {
+    holdTimer = setTimeout(() => {
+      holdTimer = null
+      if (cancelled) return
+      armed = true
+      ohGestureArmed.value = startSide
+      ohTopShieldActive.value = true
+      control.oneHandedGestureActive = true
+      if (system.overlays.notificationCenter.status !== 'closed') system.settleOverlay('notificationCenter', false)
+      if (system.overlays.controlCenter.status !== 'closed') system.settleOverlay('controlCenter', false)
+    }, 200)
+  }
+
+  const suppressNextClick = () => {
+    const stopClick = (ev) => {
+      ev.stopPropagation()
+      ev.preventDefault()
+      window.removeEventListener('click', stopClick, true)
+    }
+    window.addEventListener('click', stopClick, true)
+    setTimeout(() => window.removeEventListener('click', stopClick, true), 120)
+  }
+
+  const cleanup = () => {
+    if (holdTimer) {
+      clearTimeout(holdTimer)
+      holdTimer = null
+    }
+    window.removeEventListener('pointermove', onMove, true)
+    window.removeEventListener('pointerup', onUp, true)
+    window.removeEventListener('pointercancel', onCancel, true)
+    if (ohGestureCleanup === cleanup) ohGestureCleanup = null
+  }
+
+  const onCancel = (ev) => {
+    if (ev.pointerId !== pointerId) return
+    // 顶部圆角长按激活后忽略合成的 (0,0) pointercancel，交由真实 pointerup 结算
+    if (scheme === 'top' && armed) return
+    onUp(ev)
+  }
+
+  const onMove = (ev) => {
+    if (ev.pointerId !== pointerId || cancelled) return
+    const dx = (ev.clientX - startX) / outerScale
+    const dy = (ev.clientY - startY) / outerScale
+    const dist = Math.hypot(dx, dy)
+
+    if (!armed) {
+      if (scheme === 'top' && performance.now() - downAt >= 200) {
+        if (holdTimer) {
+          clearTimeout(holdTimer)
+          holdTimer = null
+        }
+        armed = true
+        ohGestureArmed.value = startSide
+        ohTopShieldActive.value = true
+        control.oneHandedGestureActive = true
+        if (system.overlays.notificationCenter.status !== 'closed') system.settleOverlay('notificationCenter', false)
+        if (system.overlays.controlCenter.status !== 'closed') system.settleOverlay('controlCenter', false)
+      } else {
+        if (dist > 12) {
+          cancelled = true
+          cleanup()
+        }
+        return
+      }
+    }
+
+    const inwardX = startSide === 'left' ? dx : -dx
+    const inwardY = scheme === 'bottom' ? -dy : dy
+
+    if (!tracking) {
+      if (dist < 10) return
+      const validDirection = scheme === 'bottom'
+        ? (inwardX > 8 && inwardY > 8)
+        : (inwardX > 5 && inwardY > 5)
+      if (!validDirection) {
+        cancelled = true
+        ohGestureArmed.value = null
+        if (scheme !== 'top') cleanup()
+        return
+      }
+      tracking = true
+      ohGestureCorner.value = targetSide
+      control.oneHandedGestureActive = true
+    }
+
+    ev.stopPropagation()
+    ev.preventDefault?.()
+    const diag = Math.max(0, (inwardX + inwardY) * 0.707)
+    const now = performance.now()
+    const dt = Math.max(1, now - lastTime)
+    velocity = (diag - lastDiag) / dt
+    lastDiag = diag
+    lastTime = now
+    ohGestureProgress.value = Math.min(1, Math.max(0, (diag - 8) / 145))
+  }
+
+  const onUp = (ev) => {
+    if (ev.pointerId !== pointerId) return
+    const wasTracking = tracking
+    const wasTopArmed = scheme === 'top' && armed
+    const finalProgress = ohGestureProgress.value
+    const shouldActivate = wasTracking && (finalProgress >= 0.3 || (finalProgress >= 0.16 && velocity > 0.45))
+
+    cleanup()
+    ohGestureArmed.value = null
+    ohGestureProgress.value = 0
+    ohGestureCorner.value = null
+    control.oneHandedGestureActive = false
+
+    if (wasTracking || wasTopArmed) {
+      ev.stopPropagation()
+      suppressNextClick()
+      setTimeout(() => { ohTopShieldActive.value = false }, 0)
+    } else {
+      ohTopShieldActive.value = false
+    }
+    if (shouldActivate) {
+      control.activateOneHanded(targetSide)
+    }
+  }
+
+  ohGestureCleanup = cleanup
+  window.addEventListener('pointermove', onMove, true)
+  window.addEventListener('pointerup', onUp, true)
+  window.addEventListener('pointercancel', onCancel, true)
+}
+
 onMounted(() => {
   screenRef.el = rootEl.value
   syncStageSize()
@@ -230,6 +450,7 @@ onMounted(() => {
   }
   privacy.tick()
   syncPrivacyTicker(privacy.needsTick)
+  window.addEventListener('pointerdown', onStagePointerDownCapture, true)
 })
 watch(() => privacy.needsTick, (shouldRun) => {
   syncPrivacyTicker(shouldRun)
@@ -257,6 +478,8 @@ watch(() => control.oneHandedEditing, (editing) => {
 onBeforeUnmount(() => {
   syncPrivacyTicker(false)
   resizeCleanup?.()
+  ohGestureCleanup?.()
+  window.removeEventListener('pointerdown', onStagePointerDownCapture, true)
   if (stageObs) {
     stageObs.disconnect()
     stageObs = null
@@ -369,12 +592,25 @@ function useOverlayDriver(name, { axis = 'y', direction = 1, span = GESTURE_SPAN
       }
       return true
     },
-    onStart: () => snapTo(system.overlays[name].progress),
+    onStart: () => {
+      if (ohTopShieldActive.value || ohGestureCorner.value) return
+      snapTo(system.overlays[name].progress)
+    },
     onProgress: (p) => {
+      if (ohTopShieldActive.value || ohGestureCorner.value) {
+        if (system.overlays[name].status !== 'closed') system.settleOverlay(name, false)
+        snapTo(0)
+        return
+      }
       system.setOverlayProgress(name, p)
       snapTo(p)
     },
     onRelease: (p, velocity) => {
+      if (ohTopShieldActive.value || ohGestureCorner.value) {
+        system.settleOverlay(name, false)
+        snapTo(0)
+        return 0
+      }
       lastDragEnd = Date.now()
       const open = p > 0.3 || velocity > 0.45
       system.beginSettle(name, p)
@@ -499,13 +735,28 @@ useSwipeGesture(sideEdgeRef, {
 </script>
 
 <template>
-  <div ref="stageEl" class="screen-stage" :class="{ 'is-one-handed': control.oneHanded }">
+  <div
+    ref="stageEl"
+    class="screen-stage"
+    :class="{ 'is-one-handed': control.oneHanded, 'is-one-handed-dragging': !control.oneHanded && ohGestureProgress > 0 }"
+  >
     <div
-      v-if="control.oneHanded"
+      v-show="control.oneHanded || ohGestureProgress > 0"
       class="onehanded-backdrop"
       :class="{ 'is-black': control.oneHandedBackdrop === 'black' }"
-      :style="{ backgroundImage: `url(${activeWallpaper})` }"
+      :style="{
+        backgroundImage: `url(${activeWallpaper})`,
+        opacity: control.oneHanded ? 1 : ohGestureProgress,
+        transition: !control.oneHanded && ohGestureProgress > 0 ? 'none' : undefined
+      }"
       @click="onOneHandedBackdropClick"
+    ></div>
+
+    <div
+      v-if="ohGestureArmed"
+      class="oh-corner-hold-indicator"
+      :class="ohGestureArmed === 'left' ? 'is-left' : 'is-right'"
+      data-testid="oh-corner-hold-indicator"
     ></div>
 
     <!-- 单手模式空白区域控制按钮（竖排单个圆形玻璃按钮，无整体背板，5秒自动隐藏） -->
@@ -646,6 +897,8 @@ useSwipeGesture(sideEdgeRef, {
     <SideVolumeOverlay />
     <PowerMenu />
     <ShareSheet />
+    <AiScreenGlow :active="system.screenOn && system.baseLayer === 'app' && (system.activeAppId === 'whatsapp' || system.activeAppId === 'chrome') && aiCompanion.scanning" />
+    <AiCompanionPanel v-if="system.screenOn && system.baseLayer === 'app' && (system.activeAppId === 'whatsapp' || system.activeAppId === 'chrome')" />
 
     <!-- 顶部边缘手势热区：左/中 = 通知中心，右 1/4 = 控制中心 (当叠层打开时禁用热区避免遮挡头部按钮) -->
     <div
@@ -839,8 +1092,42 @@ useSwipeGesture(sideEdgeRef, {
   transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), border-radius 0.34s ease, clip-path 0.34s ease;
 }
 
-.screen-view.is-one-handed {
+.screen-view.is-one-handed,
+.screen-stage.is-one-handed-dragging .screen-view {
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.42);
+}
+
+.oh-corner-hold-indicator {
+  position: absolute;
+  top: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.34);
+  border: 1.5px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  z-index: 95;
+  animation: oh-hold-pulse 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.oh-corner-hold-indicator.is-left {
+  left: 12px;
+}
+
+.oh-corner-hold-indicator.is-right {
+  right: 12px;
+}
+
+@keyframes oh-hold-pulse {
+  from {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .home-layer {
