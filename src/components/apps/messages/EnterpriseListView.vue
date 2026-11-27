@@ -117,20 +117,32 @@ function onSelect() {
   padding-top: 10.7px;
 }
 .ent-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 10.9px 21.5px 10.9px 22px;
-  min-height: 65.9px;
+  padding: 8.5px 21.5px 8.5px 22px;
+  min-height: 62px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
+/* 分割线与主列表同款：头像右侧起、右内边距止 */
+.ent-row::after {
+  content: '';
+  position: absolute;
+  left: 76px;
+  right: 16px;
+  bottom: 0;
+  height: 1px;
+  background: rgba(60, 60, 67, 0.12);
+}
+.ent-row:last-child::after { display: none; }
 .ent-row:active { background: #e9eaec; }
 .ent-main { flex: 1; min-width: 0; }
 .ent-top { display: flex; align-items: center; gap: 6px; }
 .ent-name {
-  font-size: 20px;
-  line-height: 21.8px;
+  font-size: 17px;
+  line-height: 22px;
   font-weight: 500;
   color: #000;
   white-space: nowrap;
@@ -148,7 +160,7 @@ function onSelect() {
 .ent-snippet {
   margin-top: 1px;
   font-size: 13px;
-  line-height: 14.9px;
+  line-height: 17px;
   color: #545454;
   display: -webkit-box;
   -webkit-line-clamp: 2;

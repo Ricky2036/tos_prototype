@@ -23,7 +23,7 @@ test('会话列表顺序与真机一致：通知信息置顶，其后按时间�
   assert.equal(CONVERSATIONS.length, 8)
   assert.deepEqual(
     CONVERSATIONS.map(c => c.id),
-    ['notice', 'laiguangzheng', 'chenhongyang', 'n13700003456', 'n13600004567', 'walter', 'n13300006789', 'fuka']
+    ['notice', 'conv-su', 'conv-chen', 'n13700003456', 'n13600004567', 'conv-zhou', 'n13300006789', 'conv-sub']
   )
   assert.equal(CONVERSATIONS[0].kind, 'enterprise')
   assert.equal(CONVERSATIONS[0].unread, 99, '真机显示 99+，阈值 >=99')
@@ -43,17 +43,17 @@ test('每个普通会话都有消息，且不会出现空线程', () => {
 })
 
 test('摘要与搜索结果是真机原样，不做二次拼装', () => {
-  const lai = CONVERSATIONS.find(c => c.id === 'laiguangzheng')
+  const lai = CONVERSATIONS.find(c => c.id === 'conv-su')
   assert.equal(lai.time, '11/13')
-  assert.ok(lai.snippet.startsWith('你好，我是周老四的姐夫赖光政'))
-  assert.ok(lai.snippet.endsWith('...'), '真机列表摘要在两行处截断并带省略号')
-  const fuka = CONVERSATIONS.find(c => c.id === 'fuka')
+  assert.ok(lai.snippet.startsWith('合同附件我已经发到邮箱了'))
+  assert.ok(lai.snippet.endsWith('...'), '列表摘要在两行处截断并带省略号')
+  const fuka = CONVERSATIONS.find(c => c.id === 'conv-sub')
   assert.equal(fuka.time, '3/17')
 })
 
 test('己方消息带"已发送"状态，对方消息没有', () => {
-  const mine = THREADS.walter.filter(m => m.from === 'me')
-  const theirs = THREADS.fuka.filter(m => m.from === 'them')
+  const mine = THREADS['conv-zhou'].filter(m => m.from === 'me')
+  const theirs = THREADS['conv-sub'].filter(m => m.from === 'them')
   assert.equal(mine.length, 2)
   for (const m of mine) assert.equal(m.status, 'sent')
   for (const m of theirs) assert.equal(m.status, undefined)
@@ -65,7 +65,7 @@ test('通知信息 9 条，认证号带 verified 标记', () => {
   assert.equal(ENTERPRISE_THREADS.length, 9)
   const ids = ENTERPRISE_THREADS.map(t => t.number)
   assert.equal(ids[0], '10690000001')
-  assert.equal(ids[3], '10000')
+  assert.equal(ids[3], '10690000004')
   const abchina = ENTERPRISE_THREADS[0]
   assert.equal(abchina.verified, true)
   assert.equal(abchina.unread, 2)
@@ -97,6 +97,24 @@ test('设置页分组与真机一致，开关默认值逐条对得上', () => {
   assert.equal(d.dbUpdatePref, 'wlan')
 })
 
+test('演示数据全部虚构：不含真实机构、人名、域名与真实号段', () => {
+  const raw = read(`${DIR}/msgData.js`)
+  const banned = [
+    '中国农业银行', '招商银行', '中信银行', '中国电信', '抖音', '淘宝', '谷歌',
+    'OPPO', '小天才', 'Gboard', 'zxcard', 'cmbt', 'abchina', '丰顺', '陈敬展',
+    '赖光政', '陈弘洋', '陈静丽', '周老四', 'Walter', '阿里巴巴', '钉钉', '窗帘'
+  ]
+  for (const w of banned) assert.ok(!raw.includes(w), `演示数据里出现了真实信息：${w}`)
+  // 手机号必须落在编造号段（1xx 0000 xxxx）
+  const phones = raw.match(/1[3-9]\d{9}/g) || []
+  assert.ok(phones.length >= 8, `手机号数量异常：${phones.length}`)
+  for (const ph of phones) assert.match(ph, /^1\d{2}0000\d{4}$/, `号码 ${ph} 不在编造号段`)
+  // 正文里的域名只允许 example.com 占位
+  const domains = (raw.match(/[a-z0-9-]+\.(com|cn|net)(\/[^\s'")]*)?/gi) || [])
+    .filter(d => !d.startsWith('example.com'))
+  assert.deepEqual(domains, [], `正文里仍有真实域名：${domains.join(',')}`)
+})
+
 /* ==================== 词条 ==================== */
 
 test('中英文词条键集合一致，且插值占位可替换', () => {
@@ -114,17 +132,17 @@ test('打开会话清未读；未读总数随之下降', () => {
   const s = fresh()
   const before = s.totalUnread
   assert.ok(before > 0)
-  s.openConversation('laiguangzheng')
-  assert.equal(s.byId('laiguangzheng').unread, 0)
+  s.openConversation('conv-su')
+  assert.equal(s.byId('conv-su').unread, 0)
   assert.equal(s.totalUnread, before - 1)
 })
 
 test('发送消息追加到线程尾部，空内容被拒绝', () => {
   const s = fresh()
-  const before = s.messagesOf('walter').length
-  assert.equal(s.sendMessage('walter', '   ', '今天 10:00'), false)
-  assert.equal(s.sendMessage('walter', '收到', '今天 10:00'), true)
-  const list = s.messagesOf('walter')
+  const before = s.messagesOf('conv-zhou').length
+  assert.equal(s.sendMessage('conv-zhou', '   ', '今天 10:00'), false)
+  assert.equal(s.sendMessage('conv-zhou', '收到', '今天 10:00'), true)
+  const list = s.messagesOf('conv-zhou')
   assert.equal(list.length, before + 1)
   assert.equal(list[list.length - 1].text, '收到')
   assert.equal(list[list.length - 1].from, 'me')
@@ -132,10 +150,10 @@ test('发送消息追加到线程尾部，空内容被拒绝', () => {
 
 test('删除会话后从列表消失，但原始数据不被改写', () => {
   const s = fresh()
-  s.deleteConversations(['fuka'])
-  assert.equal(s.byId('fuka'), null)
+  s.deleteConversations(['conv-sub'])
+  assert.equal(s.byId('conv-sub'), null)
   assert.equal(s.list.length, CONVERSATIONS.length - 1)
-  assert.ok(CONVERSATIONS.some(c => c.id === 'fuka'), '源数据必须保持不可变')
+  assert.ok(CONVERSATIONS.some(c => c.id === 'conv-sub'), '源数据必须保持不可变')
 })
 
 test('置顶排在通知信息下方（通知信息永远占第一行），再点取消', () => {
@@ -158,8 +176,8 @@ test('清除未读把普通会话与通知信息一起归零', () => {
 
 test('打开通知信息里的某条会清掉它的未读', () => {
   const s = fresh()
-  s.openEnterprise('e-abchina')
-  assert.equal(s.enterpriseById('e-abchina').unread, 0)
+  s.openEnterprise('e-1')
+  assert.equal(s.enterpriseById('e-1').unread, 0)
 })
 
 test('设置项写入即时生效并可被 resetAll 复位', () => {
@@ -176,9 +194,9 @@ test('设置项写入即时生效并可被 resetAll 复位', () => {
 
 test('草稿按会话隔离保存', () => {
   const s = fresh()
-  s.setDraft('walter', '半句')
-  assert.equal(s.draftOf('walter'), '半句')
-  assert.equal(s.draftOf('fuka'), '')
+  s.setDraft('conv-zhou', '半句')
+  assert.equal(s.draftOf('conv-zhou'), '半句')
+  assert.equal(s.draftOf('conv-sub'), '')
 })
 
 /* ==================== 源码契约（几何 / 颜色 / 结构） ==================== */

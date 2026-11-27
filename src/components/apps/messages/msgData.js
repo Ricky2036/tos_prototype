@@ -61,7 +61,7 @@ export const MSG_TEXT = {
     moreSmsc: '短信中心号码',
     moreSimSms: 'SIM卡短信',
     moreCellBroadcast: '无线警报',
-    simSmsSub: '中国电信',
+    simSmsSub: '云海通信',
     cloudSync: '同步到 Infinix Cloud',
     xmessage: 'XMessage 服务',
     xmessageOn: '已开启',
@@ -137,7 +137,7 @@ export const MSG_TEXT = {
     moreSmsc: 'Message centre number',
     moreSimSms: 'Messages on SIM',
     moreCellBroadcast: 'Wireless alerts',
-    simSmsSub: 'China Telecom',
+    simSmsSub: 'Yunhai Telecom',
     cloudSync: 'Sync to Infinix Cloud',
     xmessage: 'XMessage service',
     xmessageOn: 'On',
@@ -164,7 +164,7 @@ export const MSG_TEXT = {
   }
 }
 
-/** 列表页会话（顺序、摘要、时间戳与真机一致；snippet 按两行截断原样保存） */
+/** 列表页会话（结构与真机一致；姓名、号码、摘要全部虚构，不含任何真实往来内容） */
 export const CONVERSATIONS = [
   {
     id: 'notice',
@@ -176,26 +176,26 @@ export const CONVERSATIONS = [
     avatarIcon: 'bell'
   },
   {
-    id: 'laiguangzheng',
-    name: '赖光政~借款人',
+    id: 'conv-su',
+    name: '苏明远',
     number: '13800001234',
     time: '11/13',
     unread: 1,
-    snippet: '你好，我是周老四的姐夫赖光政，你姐陈静丽昨天把你的农行卡发给我了，请你再发一次给我...'
+    snippet: '合同附件我已经发到邮箱了，你帮我看下第 3 条的付款节点写得对不对，明天上午要用...'
   },
   {
-    id: 'chenhongyang',
-    name: '陈弘洋',
+    id: 'conv-chen',
+    name: '陈曦',
     number: '13900002345',
     time: '7/28',
-    snippet: '【小天才】你的孩子正尝试110报警，请及时确认孩子当前状况。为了方便警方及时联系孩子，…'
+    snippet: '【青禾守护】孩子的手表尝试拨打紧急号码，请及时确认孩子当前状况。为方便联系孩子…'
   },
   {
     id: 'n13700003456',
     name: '13700003456',
     number: '13700003456',
     time: '7/6',
-    snippet: '最下面这层',
+    snippet: 'B2 东侧门禁已恢复，刷卡正常。',
     avatarIcon: 'person'
   },
   {
@@ -203,15 +203,15 @@ export const CONVERSATIONS = [
     name: '13600004567',
     number: '13600004567',
     time: '5/18',
-    snippet: 'SF0000000000001',
+    snippet: 'YT0000000000001',
     avatarIcon: 'person'
   },
   {
-    id: 'walter',
-    name: 'Walter',
+    id: 'conv-zhou',
+    name: '周珩',
     number: '13500005678',
     time: '4/26',
-    snippet: '现在不方便接听，有什么事吗？'
+    snippet: '会议改到三点，会议室换到 12 楼 A 厅。'
   },
   {
     id: 'n13300006789',
@@ -222,60 +222,60 @@ export const CONVERSATIONS = [
     avatarIcon: 'person'
   },
   {
-    id: 'fuka',
+    id: 'conv-sub',
     name: '副卡',
     number: '13200007890',
     time: '3/17',
-    snippet: '欢迎使用 Gboard 剪贴板，您复制的所有文本都会保存到这里。'
+    snippet: '您有一件快递已放至一楼前台，取件码 6688。'
   }
 ]
 
-/** 会话消息。from: 'them' | 'me'；status 仅己方消息有 */
+/** 会话消息。from: 'them' | 'me'；status 仅己方消息有。正文全部虚构。 */
 export const THREADS = {
-  laiguangzheng: [
+  'conv-su': [
     {
       from: 'them',
-      text: '你好，我是周老四的姐夫赖光政，你姐陈静丽昨天把你的农行卡发给我了，请你再发一次给我确认一下，我二点后到柜台办理，给我们帮了大忙，谢谢你了噢',
+      text: '合同附件我已经发到邮箱了，你帮我看下第 3 条的付款节点写得对不对。如果按季度付，首款要到下个月中才能走流程，我这边财务要提前报备。确认没问题我明天上午就盖章寄出去，麻烦今天给我个回话。',
       time: '11/13 13:15'
     }
   ],
-  chenhongyang: [
+  'conv-chen': [
     { from: 'them', text: '❤️', time: '2025/9/5 19:08', emoji: true },
     { from: 'them', text: '❤️', time: '2025/9/5 19:08', emoji: true },
     {
       from: 'them',
-      text: '【小天才】你的孩子正尝试110报警，请及时确认孩子当前状况。为了方便警方及时联系孩子，已将拒接陌生人来电功能关闭，如需继续使用请手动开启。',
+      text: '【青禾守护】孩子的手表尝试拨打紧急号码，请及时确认孩子当前状况。为方便联系孩子，已将拒接陌生人来电功能关闭，如需继续使用请手动开启。',
       time: '2025/9/5 19:08'
     },
     {
       from: 'them',
-      text: '【小天才】你的孩子正尝试120呼救，请及时确认孩子当前状况。为了方便医护人员及时联系孩子，已将拒接陌生人来电功能关闭，如需继续使用请手动开启。',
+      text: '【青禾守护】孩子的手表尝试拨打急救号码，请及时确认孩子当前状况。为方便医护人员联系孩子，已将拒接陌生人来电功能关闭，如需继续使用请手动开启。',
       time: '2025/9/5 19:12'
     },
     {
       from: 'them',
-      text: '【小天才】你的孩子正尝试119呼救，请及时确认孩子当前状况。为了方便警方及时联系孩子，已将拒接陌生人来电功能关闭，如需继续使用请手动开启。',
+      text: '【青禾守护】孩子的手表尝试拨打火警号码，请及时确认孩子当前状况。为方便救援人员联系孩子，已将拒接陌生人来电功能关闭，如需继续使用请手动开启。',
       time: '1/19 18:02'
     },
     {
       from: 'them',
-      text: '【小天才】你的孩子正尝试110报警，请及时确认孩子当前状况。为了方便警方及时联系孩子，已将拒接陌生人来电功能关闭，如需继续使用请手动开启。',
+      text: '【青禾守护】孩子的手表已进入学校安全区域，本次提醒不需要回复。',
       time: '7/28 13:22'
     }
   ],
-  n13700003456: [{ from: 'them', text: '最下面这层', time: '7/6 17:59' }],
-  n13600004567: [{ from: 'them', text: 'SF0000000000001', time: '5/18 10:01' }],
-  walter: [
-    { from: 'me', text: '会议中，晚点给您回电话', time: '2024/4/20 19:05', status: 'sent' },
-    { from: 'me', text: '现在不方便接听，有什么事吗？', time: '4/26 15:04', status: 'sent' }
+  n13700003456: [{ from: 'them', text: 'B2 东侧门禁已恢复，刷卡正常。', time: '7/6 17:59' }],
+  n13600004567: [{ from: 'them', text: 'YT0000000000001', time: '5/18 10:01' }],
+  'conv-zhou': [
+    { from: 'me', text: '评审材料我下午发你，先按这版走', time: '2024/4/20 19:05', status: 'sent' },
+    { from: 'me', text: '会议改到三点，会议室换到 12 楼 A 厅。', time: '4/26 15:04', status: 'sent' }
   ],
   n13300006789: [{ from: 'them', text: '马上到！', time: '3/22 12:58' }],
-  fuka: [
-    { from: 'me', text: 'Good afternoon!', time: '2024/6/25 15:03', status: 'sent' },
+  'conv-sub': [
+    { from: 'me', text: '好的，我十分钟后到。', time: '2024/6/25 15:03', status: 'sent' },
     { from: 'me', text: '1', time: '2024/6/25 15:05', status: 'sent' },
     {
       from: 'them',
-      text: '欢迎使用 Gboard 剪贴板，您复制的所有文本都会保存到这里。',
+      text: '您有一件快递已放至一楼前台，取件码 6688，请当日领取。',
       time: '3/17 14:14'
     }
   ]
@@ -283,149 +283,150 @@ export const THREADS = {
 
 /**
  * 「通知信息」企业聚合列表（服务号 / 通知类短信）。
+ * 机构名、文案、域名全部虚构（example.com 占位），只保留真机的信息结构与视觉密度。
  * verified=true 表示号码右侧带绿色认证盾牌。
  */
 export const ENTERPRISE_THREADS = [
   {
-    id: 'e-abchina',
+    id: 'e-1',
     number: '10690000001',
     verified: true,
     time: '10:08',
     unread: 2,
-    snippet: '【中国农业银行】您的风险评估已过期！点（go.example.com/k/rPA）完成风险评估，可…',
+    snippet: '【云川银行】您的积分将于本月底清零！点（go.example.com/k/rPA）兑换立减金，可…',
     messages: [
       {
-        text: '【中国农业银行】出境就用农行信用卡！12月底前登录农行掌银APP( go.example.com/k/Adh )报名后，持农行Visa/万事达/银联信用卡境外消费享线下笔笔返3%、商户返10%，还享首笔返！奖池有限，如有疑问详询4006660000。拒收请回复R',
+        text: '【云川银行】积分换好礼！12 月底前登录云川生活 App（ go.example.com/k/Adh ）报名，信用卡消费满 300 元可兑换 30 元立减金，活动名额有限，如有疑问详询 4006660000。拒收请回复R',
         time: '11/5 13:45',
         links: ['go.example.com/k/Adh', '4006660000']
       },
       {
-        text: '【中国农业银行】首绑微信、支付宝各享16元优惠。戳(go.example.com/k/KwQ)参与。详询4006660000。拒收请回复R',
+        text: '【云川银行】首绑支付立减 16 元，戳(go.example.com/k/KwQ)参与。详询4006660000。拒收请回复R',
         time: '11/5 18:27',
         links: ['go.example.com/k/KwQ', '4006660000']
       },
       {
-        text: '【中国农业银行】邀您办理我行万事达全球支付卡(境内外一卡通行、年底前境外消费享1%无上限返现)或Visa全球支付卡(有效期内免年费)，点击 go.example.com/k/PNX 申请。申请结果以审批为准，详见官网或询4006660000。拒收请回复R',
+        text: '【云川银行】邀您办理云川全球支付卡（境外消费 1% 返现、有效期内免年费），点击 go.example.com/k/PNX 申请。申请结果以审批为准，详见官网或询4006660000。拒收请回复R',
         time: '11/12 14:37',
         links: ['go.example.com/k/PNX', '4006660000']
       },
       {
-        text: '【中国农业银行】您的风险评估已过期！点（go.example.com/k/rPA）完成风险评估，可参与抽奖！详询95000000。拒收请回复R',
+        text: '【云川银行】您的积分将于本月底清零！点（go.example.com/k/rPA）兑换立减金，可参与抽奖！详询95000000。拒收请回复R',
         time: '今天 10:08',
         links: ['go.example.com/k/rPA', '95000000']
       }
     ]
   },
   {
-    id: 'e-oppo',
+    id: 'e-2',
     number: '10690000002',
     verified: true,
     time: '昨天',
     unread: 1,
-    snippet: '【OPPO】您于2026-11-25 21:01:50在OPPO官方授权寄修中心（深圳）的服务受理单CNSR…',
+    snippet: '【北辰电子】您于 2026-11-25 21:01:50 在北辰授权维修中心（深圳）的工单 WX202…',
     messages: [
       {
-        text: '【OPPO】您于2026-11-25 21:01:50在OPPO官方授权寄修中心（深圳）的服务受理单CNSR202611250001已受理，可在OPPO官网或服务APP查询进度。',
+        text: '【北辰电子】您于 2026-11-25 21:01:50 在北辰授权维修中心（深圳）的工单 WX202611250001 已受理，可在北辰服务 App 查询进度。',
         time: '昨天 21:03'
       }
     ]
   },
   {
-    id: 'e-ct',
-    number: '中国电信',
+    id: 'e-3',
+    number: '10690000003',
     verified: false,
     time: '昨天',
     unread: 2,
-    snippet: '【中国电信】#积分兑换温馨提醒# 尊敬的电信用户，您名下的电信积分已达5000多分，现在可…',
+    snippet: '【云海通信】#积分兑换提醒# 尊敬的云海用户，您名下的积分已达 5000 多分，现在可…',
     messages: [
       {
-        text: '【中国电信】#积分兑换温馨提醒# 尊敬的电信用户，您名下的电信积分已达5000多分，现在可登录中国电信APP兑换话费、流量或实物礼品，积分将于年底清零，请及时兑换。',
+        text: '【云海通信】#积分兑换提醒# 尊敬的云海用户，您名下的积分已达 5000 多分，现在可登录云海通信 App 兑换话费、流量或实物礼品，积分将于年底清零，请及时兑换。',
         time: '昨天 18:40'
       }
     ]
   },
   {
-    id: 'e-10000',
-    number: '10000',
+    id: 'e-4',
+    number: '10690000004',
     verified: true,
     time: '昨天',
     unread: 4,
-    snippet: '【深圳市应急管理局、市消防救援局、市气象局】提醒您：近期冷空气活跃，气温起伏大，…',
+    snippet: '【市政应急提醒】提醒您：近期冷空气活跃，气温起伏大，请注意防寒保暖，规范使用…',
     messages: [
       {
-        text: '【深圳市应急管理局、市消防救援局、市气象局】提醒您：近期冷空气活跃，气温起伏大，请注意防寒保暖，规范使用取暖设备，谨防一氧化碳中毒。',
+        text: '【市政应急提醒】提醒您：近期冷空气活跃，气温起伏大，请注意防寒保暖，规范使用取暖设备，谨防一氧化碳中毒。',
         time: '昨天 16:20'
       }
     ]
   },
   {
-    id: 'e-cmb',
-    number: '10690000003',
+    id: 'e-5',
+    number: '10690000005',
     verified: false,
     time: '昨天',
     unread: 22,
-    snippet: '【招商银行】诚邀您体验e招贷业务，您的e招贷额度已更新，点击 example.com/a/1 立即测…',
+    snippet: '【远山银行】诚邀您体验"随心贷"业务，您的额度已更新，点击 example.com/a/1 立即测额…',
     messages: [
       {
-        text: '【招商银行】诚邀您体验e招贷业务，您的e招贷额度已更新，点击 example.com/a/1 立即测额。拒收请回复R',
+        text: '【远山银行】诚邀您体验"随心贷"业务，您的额度已更新，点击 example.com/a/1 立即测额。拒收请回复R',
         time: '昨天 15:02',
         links: ['example.com/a/1']
       }
     ]
   },
   {
-    id: 'e-douyin',
-    number: '10690000004',
+    id: 'e-6',
+    number: '10690000006',
     verified: false,
     time: '昨天',
     unread: 1,
-    snippet: '【抖音钱包放心借】已为您降低借款年利率至9.00%，有效期至12月03日，快来「抖音-我-钱…',
+    snippet: '【星野钱包】已为您调整借款年化利率至 9.00%，有效期至 12 月 03 日，快来「星野-我-钱…',
     messages: [
       {
-        text: '【抖音钱包放心借】已为您降低借款年利率至9.00%，有效期至12月03日，快来「抖音-我-钱包」查看。',
+        text: '【星野钱包】已为您调整借款年化利率至 9.00%，有效期至 12 月 03 日，快来「星野-我-钱包」查看。',
         time: '昨天 12:31'
       }
     ]
   },
   {
-    id: 'e-citic',
-    number: '10690000005',
+    id: 'e-7',
+    number: '10690000007',
     verified: false,
     time: '昨天',
     unread: 16,
-    snippet: '【中信银行信用卡】尊敬的陈敬展，您有卡片可升级为白金卡！畅享高端权益。戳 zxcard.cn/...',
+    snippet: '【澄海银行信用卡】尊敬的林先生，您有卡片可升级为白金卡！畅享高端权益。戳 example…',
     messages: [
       {
-        text: '【中信银行信用卡】尊敬的陈敬展，您有卡片可升级为白金卡！畅享高端权益。戳 example.com/p 了解详情。拒收请回复R',
+        text: '【澄海银行信用卡】尊敬的林先生，您有卡片可升级为白金卡！畅享高端权益。戳 example.com/p 了解详情。拒收请回复R',
         time: '昨天 10:15',
         links: ['example.com/p']
       }
     ]
   },
   {
-    id: 'e-google',
-    number: '10690000006',
+    id: 'e-8',
+    number: '10690000008',
     verified: false,
     time: '11/24',
     unread: 1,
-    snippet: '【谷歌信息技术】G-745906 是您的 Google 验证码。请勿与任何人分享此码。',
+    snippet: '【青柠科技】G-745906 是您的登录验证码。请勿与任何人分享此码。',
     messages: [
       {
-        text: '【谷歌信息技术】G-745906 是您的 Google 验证码。请勿与任何人分享此码。',
+        text: '【青柠科技】G-745906 是您的登录验证码。请勿与任何人分享此码。',
         time: '11/24 20:41'
       }
     ]
   },
   {
-    id: 'e-taobao',
-    number: '10690000007',
+    id: 'e-9',
+    number: '10690000009',
     verified: false,
     time: '11/24',
     unread: 1,
-    snippet: '【淘宝闪购】你在丰顺Thumbnail（光前店）的订单超时权益已赔付2元可叠加红包，请至淘宝app-闪购…',
+    snippet: '【闪电优选】您在城南工坊（科技园店）的订单超时赔付已到账，可叠加红包使用，请至…',
     messages: [
       {
-        text: '【淘宝闪购】你在丰顺Thumbnail（光前店）的订单超时权益已赔付2元可叠加红包，请至淘宝app-闪购-我的-权益中心查看。',
+        text: '【闪电优选】您在城南工坊（科技园店）的订单超时赔付已到账，可叠加红包使用，请至闪电优选 App-我的-权益中心查看。',
         time: '11/24 11:07'
       }
     ]
@@ -491,18 +492,18 @@ export const SETTINGS_GROUPS = [
   }
 ]
 
-/** 联系人选择器演示数据（真机 A 组片段，逐字照抄） */
+/** 联系人选择器演示数据（A 组 10 行；姓名与号码全部虚构） */
 export const CONTACTS = [
-  { id: 'c1', section: 'A', name: '阿里巴巴钉钉客服', line: '手机 057100000001' },
-  { id: 'c2', section: 'A', name: '艾尚美窗帘~老板娘', line: '手机 13800009001' },
-  { id: 'c3', section: 'A', name: '爱尚美窗帘', line: '手机 13800009002' },
-  { id: 'c4', section: 'A', name: '安装垃圾处理器', line: '手机 13800009003' },
-  { id: 'c5', section: 'A', name: '敖俊平', line: '手机 13800009004' },
-  { id: 'c6', section: 'A', name: 'A姐', line: '手机 13800009005' },
-  { id: 'c7', section: 'A', name: 'A老婆', line: '手机 13800009006' },
-  { id: 'c8', section: 'A', name: 'Abhishek Nayak', line: '手机 +919900000001' },
-  { id: 'c9', section: 'A', name: 'Acropolis', line: '其他 12' },
-  { id: 'c10', section: 'A', name: '阿里巴巴集团', line: '手机 95000003' }
+  { id: 'c1', section: 'A', name: '安然', line: '手机 13800009001' },
+  { id: 'c2', section: 'A', name: '艾米', line: '手机 13800009002' },
+  { id: 'c3', section: 'A', name: '敖然', line: '手机 13800009003' },
+  { id: 'c4', section: 'A', name: '安欣', line: '手机 13800009004' },
+  { id: 'c5', section: 'A', name: '艾青', line: '手机 13800009005' },
+  { id: 'c6', section: 'A', name: '阿哲', line: '手机 13800009006' },
+  { id: 'c7', section: 'A', name: '敖林', line: '手机 13800009007' },
+  { id: 'c8', section: 'A', name: '安琪', line: '手机 13800009008' },
+  { id: 'c9', section: 'A', name: '艾文', line: '其他 12' },
+  { id: 'c10', section: 'A', name: '安和', line: '手机 13800009009' }
 ]
 
 /** 搜索结果里的发件人候选（真机横向列表，号码被 1069 命中时高亮） */
@@ -512,8 +513,8 @@ export const SEARCH_SENDERS = [
   '10690000006',
   '10690000009',
   '10690000002',
-  '10001',
-  '10000'
+  '10690000005',
+  '10690000007'
 ]
 
 export const SEARCH_HIGHLIGHT = '1069'
