@@ -91,6 +91,12 @@ watch(() => system.baseLayer, (layer, previous) => {
     unlockTimer = setTimeout(() => { justUnlocked.value = false }, 1100)
   }
 })
+watch(() => control.oneHandedGestureActive || control.oneHanded, (active) => {
+  if (active) {
+    clearTimers()
+    if (pointer) cleanup(false)
+  }
+})
 
 let pressTimer = null
 let edgeTimer = null
@@ -322,7 +328,7 @@ function createDragGhost(source,id,x,y) {
   })
 }
 function enterEditingFromEmptyPress() {
-  if (pointer?.mode !== 'page') return
+  if (pointer?.mode !== 'page' || control.oneHandedGestureActive || control.oneHanded) return
   const active = pointer
   clearTimers()
   try { active.captureEl?.releasePointerCapture?.(active.id) } catch {}
@@ -630,9 +636,19 @@ function onPointerMove(event) {
   const dx = event.clientX - pointer.startX, dy = event.clientY - pointer.startY
   if (pointer.mode === 'folder-resize') { event.preventDefault(); updateFolderResize(event.clientX,event.clientY); return }
 
-  // 桌面任意位置上滑唤起应用抽屉（非编辑态下，从空白桌面、应用图标、文件夹或 Dock 上滑）
+  // 仅在搜索条宽度及底部以上（红框区域内部）上滑才唤起应用抽屉，框外（底角及搜索条下方）不响应
   if (!home.editing && ['page', 'item-press', 'folder-press'].includes(pointer.mode)) {
-    if (dy < 0 && Math.abs(dy) > Math.abs(dx)) {
+    const searchEl = rootRef.value?.querySelector('.wide-google-search')
+    const rootRect = rootRef.value?.getBoundingClientRect()
+    const inDrawerZone = searchEl
+      ? (() => {
+          const sr = searchEl.getBoundingClientRect()
+          return pointer.startX >= sr.left && pointer.startX <= sr.right && pointer.startY <= sr.bottom
+        })()
+      : rootRect
+        ? (pointer.startX >= rootRect.left + 32 && pointer.startX <= rootRect.right - 32 && pointer.startY <= rootRect.bottom - 34)
+        : false
+    if (inDrawerZone && dy < 0 && Math.abs(dy) > Math.abs(dx)) {
       if (Math.hypot(dx, dy) > 5) {
         clearTimeout(pressTimer)
         pressTimer = null
@@ -1189,7 +1205,7 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
     </div>
     <div class="indicator-wrap" :style="indicatorStyle"><PageIndicator :wide="home.profile.wide" @go="home.setPage($event)" :count="hasSelection ? thumbnailPages.length : displayPages.length" :current="home.currentPage" :show-pages="home.editing || showPageDots" @search="emit('open-library')" /></div>
     <form v-if="home.profile.wide && !home.editing" class="wide-google-search" role="search"
-      aria-label="Google 搜索条" action="https://www.google.com/search" target="_blank" rel="noopener" @pointerdown.stop>
+      aria-label="Google 搜索条" action="https://www.google.com/search" target="_blank" rel="noopener">
       <button type="submit" aria-label="Google 搜索"><img :src="wideAsset('search-google')" alt=""></button>
       <input type="search" name="q" aria-label="搜索 Google" autocomplete="off" required>
       <img class="wide-mic" :src="wideAsset('search-mic')" alt="" aria-hidden="true">

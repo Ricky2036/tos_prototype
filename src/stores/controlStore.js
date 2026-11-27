@@ -267,6 +267,9 @@ export const useControlStore = defineStore('control', {
     oneHandedEdgeSnap: false,
     oneHandedRatio: 'wide',
     oneHandedEditing: false,
+    oneHandedGestureEnabled: true,
+    oneHandedGestureMode: 'both',
+    oneHandedGestureActive: false,
     dnd: false,
     mediaPlaying: false,
     mediaActive: false,
@@ -433,9 +436,26 @@ export const useControlStore = defineStore('control', {
       if (!Number.isFinite(n)) return
       this.oneHandedScale = Math.min(0.95, Math.max(0.52, Math.round(n * 1000) / 1000))
     },
+    setOneHandedGestureEnabled(enabled) {
+      this.oneHandedGestureEnabled = Boolean(enabled)
+    },
+    setOneHandedGestureMode(mode) {
+      if (mode === 'both' || mode === 'bottom' || mode === 'top') {
+        this.oneHandedGestureMode = mode
+      }
+    },
+    activateOneHanded(position) {
+      if (position === 'left' || position === 'right') {
+        this.oneHandedPosition = position
+      }
+      this.oneHanded = true
+      this.oneHandedEditing = false
+      this.oneHandedGestureActive = false
+    },
     exitOneHanded() {
       this.oneHanded = false
       this.oneHandedEditing = false
+      this.oneHandedGestureActive = false
     },
     setBrightness(v) { this.brightness = Math.min(1, Math.max(0, v)) },
     setVolume(v) {

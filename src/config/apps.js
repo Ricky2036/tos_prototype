@@ -228,7 +228,7 @@ export const APP_CATALOG = [
     initial: 'W',
     pinyin: 'whatsapp',
     page: 1,
-    depth: 'placeholder',
+    depth: 'core',
     heroBackground: 'linear-gradient(180deg,#25D366 0%,#128C7E 100%)',
     icon: '/icons/whatsapp.png'
   },

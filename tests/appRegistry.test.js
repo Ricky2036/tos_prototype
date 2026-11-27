@@ -25,13 +25,15 @@ const DEEP_APP_IDS = [
   'aimate',
   'calendar',
   'camera',
+  'chrome',
   'clock',
   'messages',
   'oneleap',
   'phone',
   'photos',
   'settings',
-  'voicememos'
+  'voicememos',
+  'whatsapp'
 ]
 
 function browserAvailable() {
@@ -152,7 +154,7 @@ test('运行时：glob 汇总 10 个深层应用、pointerdown 触发预载、Ap
     }
   })
   assert.deepEqual(regCheck.ids, [...DEEP_APP_IDS].sort())
-  assert.equal(regCheck.compCount, 10)
+  assert.equal(regCheck.compCount, DEEP_APP_IDS.length)
   assert.equal(regCheck.fallbackMatches, true)
   assert.equal(regCheck.preloadedBefore, false)
 

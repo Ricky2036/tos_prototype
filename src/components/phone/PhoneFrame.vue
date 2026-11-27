@@ -2,9 +2,11 @@
 import { computed, onBeforeUnmount } from 'vue'
 import { useControlStore } from '../../stores/controlStore'
 import { useSystemStore } from '../../stores/systemStore'
+import { useAiCompanionStore } from '../../stores/aiCompanionStore'
 
 const control = useControlStore()
 const system = useSystemStore()
+const aiCompanion = useAiCompanionStore()
 const props = defineProps({ face: { type: String, default: 'front' }, productLine: { type: String, default: 'itel' } })
 const rearBrand = computed(() => ({ itel: 'itel', camon: 'CAMON', pova: 'POVA', spark: 'SPARK', note: 'NOTE', gt: 'GT', hot: 'HOT', smart: 'SMART' }[props.productLine] || 'itel'))
 
@@ -196,6 +198,20 @@ const handlePowerClick = () => {
   system.togglePower()
 }
 
+/* ================= 左侧动作键（AI 侧键）：双击进入/收起 AI 伴随 ================= */
+let actionLastTapAt = 0
+function handleActionClick() {
+  if (!system.screenOn || system.baseLayer !== 'app') return
+  if (system.activeAppId !== 'whatsapp' && system.activeAppId !== 'chrome') return
+  const now = performance.now()
+  if (now - actionLastTapAt < 420) {
+    actionLastTapAt = 0
+    aiCompanion.toggleBySideKey()
+  } else {
+    actionLastTapAt = now
+  }
+}
+
 onBeforeUnmount(() => {
   detachHoldListeners()
   stopPowerHold()
@@ -221,8 +237,15 @@ onBeforeUnmount(() => {
     <div class="antenna-band antenna-bl"></div>
     <div class="antenna-band antenna-br"></div>
 
-    <!-- 左侧按键：动作键、音量+、音量-（音量两键是交互控件，见 script 区注释） -->
-    <div class="side-btn action-btn"></div>
+    <!-- 左侧按键：动作键（双击 AI 伴随）、音量+、音量- -->
+    <button
+      type="button"
+      class="side-btn action-btn"
+      data-testid="ai-action-btn"
+      aria-label="双击 AI 侧键"
+      title="双击进入或收起 AI 伴随"
+      @click="handleActionClick"
+    ></button>
     <button
       type="button"
       class="side-btn volume-up"
@@ -528,6 +551,27 @@ onBeforeUnmount(() => {
 .action-btn {
   top: 124px;
   height: 28px;
+  pointer-events: auto;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  padding: 0;
+  transition: transform 0.08s ease, filter 0.08s ease;
+}
+.action-btn:hover {
+  filter: brightness(1.35);
+}
+.action-btn:active {
+  transform: translateX(1px);
+}
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  bottom: -6px;
+  left: -16px;
+  right: -12px;
 }
 
 .volume-up {
