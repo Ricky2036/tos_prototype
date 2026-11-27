@@ -108,12 +108,18 @@ function updateScreenHeight() {
 let resizeObserver = null
 onMounted(() => {
   updateScreenHeight()
+  /* 首帧量一次卡片真实高度：此刻 DOM 已布局，写回响应式状态会在本次 paint 前的
+     microtask 里完成重算，用户看不到位置跳变。 */
+  syncNotifCardHeights()
   if (typeof ResizeObserver !== 'undefined' && rootRef.value) {
     resizeObserver = new ResizeObserver(() => {
       updateScreenHeight()
+      syncNotifCardHeights()
     })
     resizeObserver.observe(rootRef.value)
   }
+  // 字体替换/加载会改变描述行数
+  document.fonts?.ready?.then(() => syncNotifCardHeights()).catch(() => {})
   window.addEventListener('resize', updateScreenHeight)
 })
 
@@ -194,7 +200,11 @@ let glassUidSeq = 0
 const glassUid = `ls-clock-${++glassUidSeq}`
 const LOCK_STACK_BOTTOM_INSET = 110
 const LOCK_STACK_MAX_VISUAL_OFFSET = 36
+/* 普通通知卡片：高度不再写死 90，而是由内容（标题 + 描述行数）自适应。
+   阔直板下屏宽 426（直板 360），描述文案往往 1 行就放得下；继续用固定 90 会让卡片
+   下半截空出一大块。CSS 用 auto 高度渲染，这里量出真实高度供堆叠/滚动几何使用。 */
 const LOCK_CARD_HEIGHT = 90
+const notifCardHeights = ref({})
 const LOCK_CARD_BASE_ALPHA = 0.85
 const LOCK_STACK_FRONT_ALPHA = 0.95
 const LOCK_STACK_BACK_ALPHA = 0.80
@@ -214,6 +224,30 @@ function getActivityHeight(act) {
     return 76
   }
   return ACTIVITY_CARD_HEIGHT
+}
+
+/* 实测普通通知卡片的真实高度（内容自适应后的 offsetHeight），喂回堆叠几何。
+   - 阔直板 / 直板、语言切换、字体加载都会改变描述行数 → 高度必须跟着变；
+   - 只在数值真正变化时替换对象，避免每帧产生无意义的重算。 */
+function syncNotifCardHeights() {
+  const root = rootRef.value
+  if (!root) return
+  const els = root.querySelectorAll('.ls-card-wrapper[data-notif-id]')
+  const prev = notifCardHeights.value
+  if (!els.length) {
+    if (Object.keys(prev).length) notifCardHeights.value = {}
+    return
+  }
+  const next = {}
+  let changed = Object.keys(prev).length !== els.length
+  for (const el of els) {
+    const id = el.dataset.notifId
+    const h = el.offsetHeight
+    if (!h) continue
+    next[id] = h
+    if (!(id in prev) || Math.abs(prev[id] - h) > 0.5) changed = true
+  }
+  if (changed) notifCardHeights.value = next
 }
 
 function getOs16CardClass(tpl) {
@@ -367,9 +401,23 @@ const lockItems = computed(() => {
 /* 「N 条通知」的 N 与量词语序各语言不同，交给 i18n 拼 */
 const notifCountLabel = computed(() => i18n.t('notifCount')(lockItems.value.length))
 
+/* 文案/语言/通知集合变化 → 描述行数变化 → 重新量卡片高度。
+   flush: 'post' 保证量的是本次 DOM 更新后的真实高度。 */
+watch(
+  () => [
+    lockItems.value.length,
+    lockNotifs.value.map(n => `${n.id}|${n.appId}|${n.title || ''}|${n.body || ''}`).join('~'),
+    i18n.locale
+  ],
+  () => syncNotifCardHeights(),
+  { flush: 'post' }
+)
+
 function getLockItemHeight(item) {
   if (!item) return LOCK_CARD_HEIGHT
-  return item.isActivity ? getActivityHeight(item.activity) : LOCK_CARD_HEIGHT
+  if (item.isActivity) return getActivityHeight(item.activity)
+  // 普通通知：实测高度未就绪时退回设计基准 90，量到后立即使用真实值
+  return notifCardHeights.value[item.id] ?? LOCK_CARD_HEIGHT
 }
 
 function getLockItemGap(item, nextItem) {
@@ -1515,10 +1563,8 @@ function notifStyle(i) {
     }
   }
   const item = lockItems.value[i]
-  const cardH = item?.isActivity ? getActivityHeight(item.activity) : LOCK_CARD_HEIGHT
-  return {
+  const style = {
     transform: `translate3d(0, ${itemLayout.yPos}px, 0) scale(${itemLayout.scale})`,
-    height: `${cardH}px`,
     opacity: itemLayout.opacity,
     visibility: itemLayout.opacity === 0 ? 'hidden' : 'visible',
     zIndex: 100 - i,
@@ -1526,6 +1572,10 @@ function notifStyle(i) {
     pointerEvents: itemLayout.interactive ? 'auto' : 'none',
     '--ls-card-bg-alpha': itemLayout.backgroundAlpha.toFixed(3)
   }
+  /* 普通通知卡片不给固定高度：交给内容撑开（CSS auto），与 getLockItemHeight 的实测值一致；
+     灵动岛活动卡片仍是按模板锁定的固定高度。 */
+  if (item?.isActivity) style.height = `${getActivityHeight(item.activity)}px`
+  return style
 }
 </script>
 
@@ -1815,6 +1865,7 @@ function notifStyle(i) {
             'is-activity': item.isActivity,
             'is-os16-template': item.isActivity && item.activity.type === 'os16_template'
           }"
+          :data-notif-id="item.isActivity ? undefined : item.id"
           :style="notifStyle(i)"
         >
           <!-- 底层滑动操作按钮 -->
@@ -2294,12 +2345,14 @@ function notifStyle(i) {
 }
 
 /* ---- 通知 / 录音卡片包装器与滑动层 ---- */
+/* 普通通知高度 auto（内容自适应：1 行实测 68、2 行实测 85，直板/阔直板/语言切换都会变）；
+   灵动岛活动卡片仍由行内 style 给固定高度。 */
 .ls-card-wrapper {
   position: absolute;
   top: 0;
   left: 14px;
   right: 14px;
-  height: 90px;
+  height: auto;
   border-radius: 22px;
   overflow: visible;
   will-change: transform, opacity;
@@ -2377,10 +2430,10 @@ function notifStyle(i) {
   color: #ff3b30;
 }
 
-/* 表层滑块卡片 */
+/* 表层滑块卡片：普通通知用文档流高度（内容撑开），活动卡片仍铺满固定高度的包装器 */
 .ls-card-front {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  width: 100%;
   background: rgba(255, 255, 255, var(--ls-card-bg-alpha, 0.85));
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
@@ -2408,6 +2461,12 @@ function notifStyle(i) {
 }
 .ls-card-front:active {
   background: rgba(255, 255, 255, 0.82);
+}
+
+.ls-card-wrapper.is-activity .ls-card-front,
+.ls-card-wrapper.ls-activity-standalone .ls-card-front {
+  position: absolute;
+  inset: 0;
 }
 
 /* 灵动岛活动卡片深色样式（与灵动岛/通知中心保持一致） */
