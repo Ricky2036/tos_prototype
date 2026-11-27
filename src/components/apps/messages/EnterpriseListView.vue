@@ -134,7 +134,7 @@ function onSelect() {
   right: 16px;
   bottom: 0;
   height: 1px;
-  background: rgba(60, 60, 67, 0.12);
+  background: rgba(60, 60, 67, 0.055);
 }
 .ent-row:last-child::after { display: none; }
 .ent-row:active { background: #e9eaec; }

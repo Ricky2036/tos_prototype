@@ -2,11 +2,11 @@
 import { computed, ref } from 'vue'
 import { useMessagesStore } from '../../../stores/messagesStore'
 import { useI18nStore } from '../../../stores/i18nStore'
-import { GLYPHS } from '../../../assets/icons/glyphs'
 import { useLargeTitle } from '../../../composables/useLargeTitle'
 import LargeTitleHeader from '../../ui/LargeTitleHeader.vue'
 import { msgText } from './msgData'
 import MsgAvatar from './components/MsgAvatar.vue'
+import MsgTrashIcon from './components/MsgTrashIcon.vue'
 import MsgPopupMenu from './components/MsgPopupMenu.vue'
 
 /**
@@ -278,8 +278,8 @@ function dismissCloud() {
               </svg>
             </button>
             <button class="row-action del" type="button" :data-msg-delete-row="card.id" @click.stop="deleteRow(card)">
-              <!-- 全仓统一删除图标（通知卡片滑动删除同款） -->
-              <svg width="20" height="20" viewBox="0 0 24 24"><path :d="GLYPHS.trash" fill="#fff" /></svg>
+              <!-- 与通知中心底部「清空全部」圆钮同一份垃圾桶 -->
+              <MsgTrashIcon :size="21" color="#FFFFFF" />
             </button>
           </div>
           <div
@@ -336,7 +336,7 @@ function dismissCloud() {
     <!-- 多选删除栏 -->
     <div v-if="selectMode" class="select-bar">
       <button class="select-del" type="button" data-msg-delete-selected @click="deleteSelected">
-        <svg width="22" height="22" viewBox="0 0 24 24"><path :d="GLYPHS.trash" fill="#1E1E20" /></svg>
+        <MsgTrashIcon :size="22" color="#1E1E20" />
         <span>{{ t('delete') }}</span>
       </button>
     </div>
@@ -374,7 +374,8 @@ function dismissCloud() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 6px;
+  /* 真机胶囊内：左 3.9 · 钮 44.1 · 间距 4.5 · 钮 44.1 · 右 3.6 */
+  padding: 0 3.6px 0 3.9px;
   box-sizing: border-box;
 }
 .pill-btn {
@@ -530,7 +531,7 @@ function dismissCloud() {
   right: 16px;
   bottom: 0;
   height: 1px;
-  background: rgba(60, 60, 67, 0.12);
+  background: rgba(60, 60, 67, 0.055);
 }
 .row-wrap:last-child .row::after { display: none; }
 .row.enterprise { min-height: 59.9px; }

@@ -2,7 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useMessagesStore } from '../../../stores/messagesStore'
 import { useI18nStore } from '../../../stores/i18nStore'
-import { GLYPHS } from '../../../assets/icons/glyphs'
+import LIcon from '../../ui/LIcon.vue'
 import { msgText } from './msgData'
 import MsgTopBar from './components/MsgTopBar.vue'
 import MsgPopupMenu from './components/MsgPopupMenu.vue'
@@ -214,14 +214,14 @@ function detailFields(msg) {
       <template #right>
         <div class="action-pill">
           <button v-if="showCall" class="pill-btn" type="button" data-msg-call>
-            <!-- 项目已有拨号图标（GLYPHS.phone） -->
-            <svg width="21" height="21" viewBox="0 0 24 24"><path :d="GLYPHS.phone" fill="#1E1E20" /></svg>
+            <!-- 项目已有描边听筒（lucide phone），与真机同款细线 -->
+            <LIcon name="phone" :size="21" :stroke-width="1.35" />
           </button>
           <button class="pill-btn" type="button" data-msg-chat-overflow @click="openMenu">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="#1E1E20">
-              <circle cx="12" cy="5" r="1.7" />
-              <circle cx="12" cy="12" r="1.7" />
-              <circle cx="12" cy="19" r="1.7" />
+              <circle cx="12" cy="4" r="2.1" />
+              <circle cx="12" cy="12" r="2.1" />
+              <circle cx="12" cy="20" r="2.1" />
             </svg>
           </button>
         </div>
@@ -401,6 +401,11 @@ function detailFields(msg) {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
+  /* 真机胶囊内：左 3.9 · 电话 44.1 · 间距 8 · ⋮ 44.1 · 右 0（⋮ 钮贴胶囊右缘） */
+  justify-content: flex-start;
+  gap: 8px;
+  padding-left: 3.9px;
+  box-sizing: border-box;
 }
 .pill-btn {
   width: 44px;
@@ -414,6 +419,7 @@ function detailFields(msg) {
   border-radius: 50%;
   -webkit-tap-highlight-color: transparent;
 }
+.pill-btn { color: #3a3a3c; }
 .pill-btn:active { background: rgba(0, 0, 0, 0.04); }
 
 .select-head {

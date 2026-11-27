@@ -236,6 +236,20 @@ test('对话页气泡配色与输入栏尺寸照真机标定', () => {
   assert.match(src, /159/, '字数上限 159')
 })
 
+test('左滑删除图标与通知中心底部清空按钮同一份路径', () => {
+  const icon = strip(read(`${DIR}/components/MsgTrashIcon.vue`))
+  const nc = strip(read('src/components/system/NotificationCenter.vue'))
+  // 通知中心那颗圆钮里的垃圾桶路径（去掉空白后逐段比对）
+  const sig = 'M19 6v14c0 1-1 2-2 2H7'
+  assert.ok(icon.includes(sig), '删除图标缺通知中心同款路径')
+  assert.ok(nc.includes(sig), '通知中心的路径变了，需同步 MsgTrashIcon')
+  assert.ok(icon.includes('M3 6h18'), '缺桶盖横线')
+  // 列表两处删除入口必须都用这个组件，不许再出现第二种垃圾桶
+  const list = strip(read(`${DIR}/ConversationListView.vue`))
+  assert.equal((list.match(/<MsgTrashIcon/g) || []).length, 2, '左滑 + 多选栏各一处')
+  assert.ok(!list.includes('GLYPHS.trash'), '不应再回退到实心垃圾桶')
+})
+
 test('开关几何 43.5 × 24.1 与真机实测一致', () => {
   const src = strip(read(`${DIR}/components/MsgSwitch.vue`))
   assert.match(src, /width: 43\.5px/)
