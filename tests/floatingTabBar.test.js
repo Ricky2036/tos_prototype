@@ -41,7 +41,7 @@ test('ClockApp delegates bottom navigation to global FloatingTabBar component', 
   assert.ok(content.includes("import FloatingTabBar from '../../ui/FloatingTabBar.vue'"), 'ClockApp must import FloatingTabBar')
   assert.ok(content.includes('<FloatingTabBar'), 'ClockApp template must render FloatingTabBar')
   assert.ok(content.includes('v-model="activeTab"'), 'Must bind activeTab with v-model')
-  assert.ok(content.includes('height="62px"'), 'Height must be pixel-aligned to 62px')
+  assert.ok(content.includes('height="60px"'), 'Height must follow the shared 60px tab-bar norm (real-device 59.6)')
   assert.ok(content.includes('bottom="22px"'), 'Bottom margin must be pixel-aligned to 22px')
 })
 
@@ -64,15 +64,15 @@ test('AlarmTab and WorldClockTab implement list scroll mask fade-out gradient an
   assert.ok(worldClockContent.includes('padding: 10px 16px 110px'), 'WorldClockTab must include 110px bottom clearance')
 })
 
-test('TimerTab and StopwatchTab avoid footer collision with the 62px floating tab bar', () => {
+test('TimerTab and StopwatchTab avoid footer collision with the 60px floating tab bar', () => {
   const timerPath = path.resolve(__dirname, '../src/components/apps/clock/tabs/TimerTab.vue')
   const stopwatchPath = path.resolve(__dirname, '../src/components/apps/clock/tabs/StopwatchTab.vue')
 
   const timerContent = fs.readFileSync(timerPath, 'utf8')
   const stopwatchContent = fs.readFileSync(stopwatchPath, 'utf8')
 
-  assert.ok(timerContent.includes('margin-bottom: calc(22px + 62px + 12px)'), 'Timer control footer must clear 62px tab bar with 12px gap')
-  assert.ok(stopwatchContent.includes('margin-bottom: calc(22px + 62px + 12px)'), 'Stopwatch control footer must clear 62px tab bar with 12px gap')
+  assert.ok(timerContent.includes('margin-bottom: calc(22px + 60px + 12px)'), 'Timer control footer must clear 60px tab bar with 12px gap')
+  assert.ok(stopwatchContent.includes('margin-bottom: calc(22px + 60px + 12px)'), 'Stopwatch control footer must clear 60px tab bar with 12px gap')
 })
 
 test('ClockApp conditionally renders 5-Tab when muslimAlarmEnabled is true and 4-Tab when false', () => {

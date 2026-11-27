@@ -120,7 +120,7 @@ useBackHandler(() => {
       v-if="!subpage && !clock.isEditingAlarm"
       v-model="activeTab"
       :tabs="tabs"
-      height="62px"
+      height="60px"
       bottom="22px"
       accent-color="#ff9500"
     />

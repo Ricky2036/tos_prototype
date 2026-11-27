@@ -375,7 +375,7 @@ const displayCountdownText = computed(() => {
 .timer-control-footer {
   height: 96px;
   padding: 0 36px 10px;
-  margin-bottom: calc(22px + 62px + 12px);
+  margin-bottom: calc(22px + 60px + 12px);
   display: flex;
   align-items: center;
   justify-content: space-between;

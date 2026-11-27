@@ -211,11 +211,12 @@ watch(() => store.notice, (v) => { if (v) scheduleNoticeClear() })
         <div class="pv-pad" />
       </div>
 
-      <!-- 底部悬浮栏 + 搜索圆钮 -->
+      <!-- 底部悬浮双体栏：胶囊走标准控件，右侧搜索钮挂 `#action` 槽
+           （与电话应用同一套停靠布局 —— 左右 18 基线、间隙 18，两个玻璃体同源同材质） -->
       <FloatingTabBar
         :model-value="store.albumTab"
         :tabs="tabs"
-        height="62px"
+        height="60px"
         bottom="22px"
         accent-color="#007AFF"
         :dark="false"
@@ -224,12 +225,14 @@ watch(() => store.notice, (v) => { if (v) scheduleNoticeClear() })
         @change="onTab"
       >
         <template #icon="{ tab, active }">
-          <span class="pv-tab-icon" :class="{ on: active }"><LIcon :name="tab.lucide" :size="21" /></span>
+          <span class="pv-tab-icon" :class="{ on: active }"><LIcon :name="tab.lucide" :size="22" /></span>
+        </template>
+        <template #action>
+          <button class="pv-search" data-photos-search :title="ph('search')" @click="onSearch">
+            <LIcon name="search" :size="21" />
+          </button>
         </template>
       </FloatingTabBar>
-      <button class="pv-search" data-photos-search :title="ph('search')" @click="onSearch">
-        <LIcon name="search" :size="21" />
-      </button>
     </div>
 
     <!-- ============ 全屏查看 ============ -->
@@ -325,11 +328,11 @@ watch(() => store.notice, (v) => { if (v) scheduleNoticeClear() })
 .pv-page { position: absolute; inset: 0; }
 
 /* 滚动容器：底部渐隐遮罩挂在**自身盒子**上，锚点与底栏几何同源
-   （bottom 22px + 高 62px ⇒ 底栏占 100%-84px ~ 100%-22px） */
+   （bottom 22px + 高 60px ⇒ 底栏占 100%-82px ~ 100%-22px） */
 .pv-scroll {
   height: 100%;
   overflow-y: auto;
-  --tabbar-fade: linear-gradient(to bottom, black 0%, black calc(100% - 92px),
+  --tabbar-fade: linear-gradient(to bottom, black 0%, black calc(100% - 90px),
     rgba(0, 0, 0, 0.45) calc(100% - 55px), transparent calc(100% - 22px));
   -webkit-mask-image: var(--tabbar-fade);
   mask-image: var(--tabbar-fade);
@@ -428,36 +431,39 @@ watch(() => store.notice, (v) => { if (v) scheduleNoticeClear() })
   color: var(--label-secondary, #8e8e93);
 }
 
-/* ---- 底部栏：给右侧搜索圆钮让位 ----
-   ⚠️ FloatingTabBar 自身是 `left:50% + translateX(-50%) + width: calc(100% - 44px)`，
-   这里整体左移并把宽度缩掉「右 22px + 圆钮 62px + 间隙 10px」。 */
+/* ---- 底部双体栏：胶囊与搜索圆钮同属一个停靠容器 ----
+   ⚠️ 挂上 `#action` 槽后控件自带 `.floating-dock-container`（左右 20 + space-between）。
+   宽度按 3 个 Tab 反解：360 − 20×2 − 60 − 16 = 244（真机实测 243.5 / 圆钮 59.6 / 间隙 16.4）。
+   ⛔ 别改回 `left: 22px + transform:none` 那套硬摆 —— 那样两个玻璃体的基线各算各的。 */
 .photos-app :deep(.floating-tab-bar) {
-  left: 22px;
-  transform: none;
-  width: calc(100% - 22px - 22px - 62px - 10px);
+  width: 244px;
   max-width: none;
+  /* 投影与右侧圆钮同一套：轻量单层，别用控件默认的双层重影（浅色照片上会发脏） */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 .pv-tab-icon { display: flex; color: #8e8e93; }
 .pv-tab-icon.on { color: #007aff; }
 
 .pv-search {
-  position: absolute;
-  right: 22px;
-  bottom: 22px;
-  width: 62px;
-  height: 62px;
+  width: 60px;
+  height: 60px;
+  padding: 0;
   border: 0.5px solid rgba(0, 0, 0, 0.08);
   border-radius: 9999px;
   background: rgba(245, 245, 247, 0.88);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   color: #1c1c1e;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 25;
+  transition: transform 0.14s ease, background-color 0.18s ease;
+}
+.pv-search:active {
+  transform: scale(0.92);
+  background-color: #f2f3f5;
 }
 
 /* ---- 全屏查看 ---- */

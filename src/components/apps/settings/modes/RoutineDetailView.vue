@@ -5,6 +5,7 @@ import { getIconPath } from './modeIcons.js'
 import GlassNavBar from '../../../ui/GlassNavBar.vue'
 import RoutineConditionPicker from './RoutineConditionPicker.vue'
 import RoutineActionPicker from './RoutineActionPicker.vue'
+import PlusIcon from '../../../ui/PlusIcon.vue'
 
 const props = defineProps({
   routineData: {
@@ -165,9 +166,7 @@ function handleShare() {
             @click="showConditionPicker = true"
           >
             <div class="add-trigger-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
-                <path d="M12 5v14M5 12h14"/>
-              </svg>
+              <PlusIcon :size="18" color="currentColor" :stroke-width="2.4" />
             </div>
             <span class="add-trigger-text">添加此日常程序的触发条件</span>
           </div>
@@ -201,9 +200,7 @@ function handleShare() {
             @click="showActionPicker = true"
           >
             <div class="add-trigger-icon add-action-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
-                <path d="M12 5v14M5 12h14"/>
-              </svg>
+              <PlusIcon :size="18" color="currentColor" :stroke-width="2.4" />
             </div>
             <span class="add-trigger-text">添加此日常程序的操作</span>
           </div>

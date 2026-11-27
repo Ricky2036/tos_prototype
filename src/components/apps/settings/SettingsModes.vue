@@ -10,6 +10,7 @@ import ModePresetWizard from './modes/ModePresetWizard.vue'
 import RoutineDetailView from './modes/RoutineDetailView.vue'
 import AddCustomModeModal from './modes/AddCustomModeModal.vue'
 import HistoryModal from './modes/HistoryModal.vue'
+import PlusIcon from '../../ui/PlusIcon.vue'
 
 const emit = defineEmits(['back'])
 
@@ -196,9 +197,7 @@ function handleSearchResultClick(item) {
               title="添加日常程序"
               @click="createNewRoutine"
             >
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 5v14M5 12h14"/>
-              </svg>
+              <PlusIcon :size="21" color="currentColor" :stroke-width="2.2" />
             </button>
 
             <!-- 搜索按钮 -->

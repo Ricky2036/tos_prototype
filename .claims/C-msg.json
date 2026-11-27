@@ -1,0 +1,14 @@
+{
+  "cluster": "C-msg",
+  "owner": "workbuddy",
+  "since": "2026-11-26",
+  "note": "MSG-01「短信」应用按真机（Infinix X6878 / com.transsion.smartmessage 17.0.0.078）整模块复刻：会话列表、对话页、通知信息（企业聚合）、搜索、新建短信与联系人选择、设置及其子页",
+  "files": [
+    "src/components/apps/messages/**",
+    "src/stores/messagesStore.js",
+    "tests/messagesApp.test.js",
+    "scripts/verify-messages-flow.mjs",
+    "scripts/run-e2e.mjs",
+    "spec/captures/MSG-01-messages.md"
+  ]
+}

@@ -234,6 +234,15 @@ const SUITES = [
     ]
   },
   {
+    id: 'messages',
+    script: 'verify-messages-flow.mjs',
+    covers: [
+      'src/components/apps/messages/',
+      'src/stores/messagesStore.js',
+      'tests/messagesApp.test.js'
+    ]
+  },
+  {
     id: 'modes-and-routines',
     script: 'verify-modes-and-routines.mjs',
     // 2026-11-12：全量串行跑到它时 locator.click 超时；单独跑通过。

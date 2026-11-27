@@ -1,395 +1,236 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
-import AppNavBar from '../../ui/AppNavBar.vue'
-import { GLYPHS } from '../../../assets/icons/glyphs'
-import { useNotificationsStore } from '../../../stores/notificationsStore'
+import { computed, onBeforeUnmount, ref } from 'vue'
+import { useMessagesStore } from '../../../stores/messagesStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import { useBackHandler } from '../../../composables/backRegistry'
+import { msgText } from './msgData'
+import ConversationListView from './ConversationListView.vue'
+import ConversationView from './ConversationView.vue'
+import EnterpriseListView from './EnterpriseListView.vue'
+import SearchView from './SearchView.vue'
+import ComposeView from './ComposeView.vue'
+import ContactPickerView from './ContactPickerView.vue'
+import SettingsView from './SettingsView.vue'
+import MoreSettingsView from './settings/MoreSettingsView.vue'
+import AboutView from './settings/AboutView.vue'
+import SimSmsView from './settings/SimSmsView.vue'
+import XMessageView from './settings/XMessageView.vue'
+import SpamBlockView from './SpamBlockView.vue'
 
 /**
- * 信息：会话列表 → 对话页（气泡流 + 输入栏发送 + 预置回复脚本）。
+ * 「短信」应用外壳（MSG-01）
+ *
+ * 页面栈：list → chat / ent-list → ent-chat / search / compose / picker /
+ *          settings → more / about / simSms / xmessage
+ * 转场：真机为整页横滑（进入从右入、返回从左回），沿用项目既有 0.32s 曲线。
  */
-const props = defineProps({ app: Object })
-const notifications = useNotificationsStore()
+defineProps({ app: Object })
+const store = useMessagesStore()
 const i18n = useI18nStore()
+const t = computed(() => msgText(i18n.locale))
 
-/* 会话数据改从 i18n 取：联系人名、聊天正文、预置回复都是演示内容，
-   之前写死在组件里，切英文后整屏还是中文。结构化后每次挂载深拷贝一份，
-   避免发送的消息/已读状态残留到下一次打开。 */
-const CHAT_SOURCE = computed(() => structuredClone(i18n.demoChat || {}))
-
-/* i18n.demoChat 是对象（按 id 索引），这里补上组件需要的 id 与主题色，
-   并摊平成数组；颜色属于视觉常量，不需要翻译 */
-const CONTACT_META = {
-  chenjing: { color: '#5AC8FA', time: '23:44', unread: 1 },
-  team:     { color: '#34C759', time: '23:29', unread: 2 },
-  wanggong: { color: '#FF9500', time: '22:10', unread: 0 },
-  mom:      { color: '#FF2D55', time: '20:03', unread: 0 }
-}
-
-/* computed 而非一次性常量：一方面切语言要即时重取，
-   另一方面每次求值时重新深拷贝，避免已读状态/新发消息残留到下次打开 */
-const CONTACTS = computed(() => Object.entries(CHAT_SOURCE.value).map(([id, c]) => ({
-    id,
-    name: c.name,
-    messages: c.messages,
-    replies: c.replies,
-    preview: c.messages[c.messages.length - 1]?.text || '',
-    ...(CONTACT_META[id] || { color: '#8E8E93', time: '', unread: 0 })
-  }))
-)
-
-
-const stack = ref(['list'])
-const activeId = ref(null)
+const stack = ref([{ name: 'list' }])
+const direction = ref('forward')
 const view = computed(() => stack.value[stack.value.length - 1])
-const activeContact = computed(() => CONTACTS.value.find((c) => c.id === activeId.value))
+const toast = ref('')
+let toastTimer = null
 
-function openChat(c) {
-  activeId.value = c.id
-  c.unread = 0
-  // 清除该应用角标
-  notifications.list = notifications.list.filter((n) => n.appId !== 'messages')
-  stack.value.push('chat')
+function showToast(text) {
+  toast.value = text
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toast.value = '' }, 2000)
 }
-function pop() { if (stack.value.length > 1) stack.value.pop() }
 
-/* 全局侧滑返回：对话页 → 会话列表（消费），列表页 → 交还系统回桌面 */
+function push(name, params = {}) {
+  direction.value = 'forward'
+  stack.value.push({ name, ...params })
+}
+
+function pop() {
+  if (stack.value.length < 2) return false
+  direction.value = 'back'
+  stack.value.pop()
+  return true
+}
+
+function reset(name = 'list', params = {}) {
+  direction.value = 'back'
+  stack.value = [{ name, ...params }]
+}
+
+/* 返回：交给全局侧滑/返回键（应用内逐级，最外层交还系统） */
 useBackHandler(() => {
-  if (stack.value.length > 1) { pop(); return true }
+  if (stack.value.length > 1) {
+    pop()
+    return true
+  }
   return false
 })
 
-/* 对话页：发送 + 预置回复 */
-const draft = ref('')
-const chatBodyRef = ref(null)
-
-async function scrollToBottom() {
-  await nextTick()
-  const el = chatBodyRef.value
-  if (el) el.scrollTop = el.scrollHeight
-}
-
-/* 两条待清理的定时器：预置回复(1.1s) 与 进对话后的滚动(60ms)。
-   在这两个窗口内滑走关闭应用，回调仍会往已卸载组件的消息数组里塞内容 */
-let replyTimer = null
-let scrollTimer = null
-
-function send() {
-  const text = draft.value.trim()
-  if (!text || !activeContact.value) return
-  const c = activeContact.value
-  c.messages.push({ from: 'me', text, time: now() })
-  draft.value = ''
-  scrollToBottom()
-  // 预置回复脚本
-  clearTimeout(replyTimer)
-  replyTimer = setTimeout(() => {
-    const reply = c.replies[Math.floor(Math.random() * c.replies.length)]
-    c.messages.push({ from: 'them', text: reply, time: now() })
-    scrollToBottom()
-    replyTimer = null
-  }, 1100)
-}
-
-function now() {
-  const d = new Date()
-  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
-}
-
-function openChatAndScroll(c) {
-  openChat(c)
-  clearTimeout(scrollTimer)
-  scrollTimer = setTimeout(() => { scrollToBottom(); scrollTimer = null }, 60)
-}
-
 onBeforeUnmount(() => {
-  clearTimeout(replyTimer)
-  clearTimeout(scrollTimer)
-  replyTimer = null
-  scrollTimer = null
+  if (toastTimer) clearTimeout(toastTimer)
 })
 
-/** 连续同侧气泡的圆角处理（iOS：同侧相邻气泡贴合角 4px） */
-function bubbleClass(m, i, msgs) {
-  const prev = msgs[i - 1]
-  const next = msgs[i + 1]
-  const samePrev = prev && prev.from === m.from
-  const sameNext = next && next.from === m.from
-  return {
-    bubble: true,
-    me: m.from === 'me',
-    them: m.from === 'them',
-    'has-prev': samePrev,
-    'has-next': sameNext
+/* ---------- 列表页事件 ---------- */
+function openChat(id) {
+  store.openConversation(id)
+  push('chat', { conversationId: id, enterprise: false })
+}
+
+function openEnterpriseChat(id) {
+  store.openEnterprise(id)
+  push('ent-chat', { conversationId: id, enterprise: true })
+}
+
+function openSettings() {
+  push('settings')
+}
+
+function openCompose() {
+  push('compose', { recipient: null })
+}
+
+function onComposeSend(text) {
+  // 新建会话的落地页未采集（真机会新建线程），原型只反馈发送成功
+  showToast(t.value('sent'))
+  reset('list')
+}
+
+function onPickerConfirm(list) {
+  const picked = list[0] || null
+  const idx = stack.value.map(s => s.name).lastIndexOf('compose')
+  if (idx >= 0) {
+    const next = stack.value.slice(0, idx + 1)
+    next[idx] = { ...next[idx], recipient: picked }
+    direction.value = 'back'
+    stack.value = next
+  } else {
+    reset('list')
   }
 }
+
+const EXTERNAL_TEXT = {
+  cloud: 'Infinix Cloud 由系统云服务提供',
+  smart: '智能识别由系统服务提供',
+  smsc: '短信中心号码由系统提供',
+  cellBroadcast: '无线紧急警报由系统应用提供',
+  privacy: '隐私政策将在浏览器打开',
+  agreement: '用户协议将在浏览器打开'
+}
+
+function onExternal(id) {
+  showToast(EXTERNAL_TEXT[id] || t.value('disclaimer'))
+}
+
+// 层级转场走全仓规范（styles/layer-transitions.css，与设置页同一套 0.22s / 0.14s）
+const transitionName = computed(() => (direction.value === 'back' ? 'slide-back' : 'slide'))
 </script>
 
 <template>
-  <div class="messages-app">
-    <Transition :name="view === 'list' ? 'slide-back' : 'slide'" mode="out-in">
-      <!-- ============ 会话列表 ============ -->
-      <div v-if="view === 'list'" key="list" class="msg-page scrollable">
-        <div class="list-header">
-          <div class="large-title">{{ i18n.t('messages') }}</div>
-          <button class="edit-btn">{{ i18n.t('edit') }}</button>
-        </div>
-        <div class="conversation-list">
-          <div
-            v-for="c in CONTACTS"
-            :key="c.id"
-            class="conversation-cell"
-            @click="openChatAndScroll(c)"
-          >
-            <div class="cc-avatar" :style="{ background: c.color }">{{ c.name.slice(0, 1) }}</div>
-            <div class="cc-main">
-              <div class="cc-top">
-                <span class="cc-name">{{ c.name }}</span>
-                <span class="cc-time">{{ c.time }}</span>
-              </div>
-              <div class="cc-preview">{{ c.preview }}</div>
-            </div>
-            <span v-if="c.unread" class="cc-badge">{{ c.unread }}</span>
-            <svg class="cc-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </div>
-        </div>
-      </div>
+  <div class="msg-app-root messages-app">
+    <Transition :name="transitionName" mode="out-in">
+      <ConversationListView
+        v-if="view.name === 'list'"
+        key="list"
+        @open="openChat"
+        @open-enterprise="push('ent-list')"
+        @search="push('search')"
+        @settings="openSettings"
+        @compose="openCompose"
+        @spam="push('spam')"
+      />
+      <ConversationView
+        v-else-if="view.name === 'chat'"
+        :key="`chat-${view.conversationId}`"
+        :conversation-id="view.conversationId"
+        @back="pop"
+      />
+      <EnterpriseListView
+        v-else-if="view.name === 'ent-list'"
+        key="ent-list"
+        @back="pop"
+        @open="openEnterpriseChat"
+      />
+      <ConversationView
+        v-else-if="view.name === 'ent-chat'"
+        :key="`ent-${view.conversationId}`"
+        :conversation-id="view.conversationId"
+        enterprise
+        @back="pop"
+      />
+      <SearchView v-else-if="view.name === 'search'" key="search" @back="reset('list')" />
+      <ComposeView
+        v-else-if="view.name === 'compose'"
+        key="compose"
+        :recipient="view.recipient"
+        @back="pop"
+        @pick="push('picker')"
+        @send="onComposeSend"
+      />
+      <ContactPickerView
+        v-else-if="view.name === 'picker'"
+        key="picker"
+        @close="pop"
+        @confirm="onPickerConfirm"
+      />
+      <SettingsView
+        v-else-if="view.name === 'settings'"
+        key="settings"
+        @back="pop"
+        @open="(route) => push(route)"
+        @external="onExternal"
+      />
+      <MoreSettingsView
+        v-else-if="view.name === 'more'"
+        key="more"
+        @back="pop"
+        @open="(route) => push(route)"
+        @external="onExternal"
+      />
+      <AboutView v-else-if="view.name === 'about'" key="about" @back="pop" />
+      <SimSmsView v-else-if="view.name === 'simSms'" key="simSms" @back="pop" />
+      <XMessageView
+        v-else-if="view.name === 'xmessage'"
+        key="xmessage"
+        @back="pop"
+        @external="onExternal"
+      />
+      <SpamBlockView v-else-if="view.name === 'spam'" key="spam" @back="pop" />
+    </Transition>
 
-      <!-- ============ 对话页 ============ -->
-      <div v-else key="chat" class="msg-page chat-page">
-        <AppNavBar :title="activeContact?.name" :back-label="i18n.t('messages')" @back="pop">
-          <template #right>
-            <div class="chat-avatar" :style="{ background: activeContact?.color }">
-              {{ activeContact?.name.slice(0, 1) }}
-            </div>
-          </template>
-        </AppNavBar>
-
-        <div ref="chatBodyRef" class="chat-body scrollable">
-          <div class="chat-time-sep">{{ i18n.t('today') }} {{ activeContact?.time }}</div>
-          <div
-            v-for="(m, i) in activeContact?.messages"
-            :key="i"
-            class="bubble-row"
-            :class="m.from"
-          >
-            <div :class="bubbleClass(m, i, activeContact.messages)">{{ m.text }}</div>
-          </div>
-        </div>
-
-        <div class="chat-input-bar">
-          <button class="ci-plus">
-            <svg width="20" height="20" viewBox="0 0 24 24"><path :d="GLYPHS.plus" fill="#8E8E93" /></svg>
-          </button>
-          <div class="ci-field">
-            <input
-              v-model="draft"
-              :placeholder="i18n.t('imessagePlaceholder')"
-              @keyup.enter="send"
-            />
-          </div>
-          <button class="ci-send" :class="{ ready: draft.trim() }" @click="send">
-            <svg width="16" height="16" viewBox="0 0 24 24">
-              <path d="M12 4l7 7-1.4 1.4L13 7.8V20h-2V7.8l-4.6 4.6L5 11l7-7z" fill="#fff" />
-            </svg>
-          </button>
-        </div>
-      </div>
+    <Transition name="toast-fade">
+      <div v-if="toast" class="feedback-toast">{{ toast }}</div>
     </Transition>
   </div>
 </template>
 
 <style scoped>
-.messages-app {
+.msg-app-root {
+  position: relative;
   height: 100%;
-  background: #fff;
+  background: #f0f1f2;
   overflow: hidden;
+  color: #000;
+  font-family: var(--font-stack, -apple-system, 'PingFang SC', 'Noto Sans SC', sans-serif);
 }
-.msg-page {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.slide-enter-active, .slide-leave-active,
-.slide-back-enter-active, .slide-back-leave-active {
-  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.32s ease;
-}
-.slide-enter-from { transform: translateX(100%); }
-.slide-leave-to { transform: translateX(-28%); opacity: 0.7; }
-.slide-back-enter-from { transform: translateX(-28%); opacity: 0.7; }
-.slide-back-leave-to { transform: translateX(100%); }
-
-/* 列表 */
-.list-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding: calc(var(--safe-top) + 18px) 20px 10px;
-  flex: none;
-}
-.large-title { font: var(--text-large-title); color: var(--label); }
-.edit-btn { color: var(--ios-blue); font: var(--text-body); }
-
-.conversation-list { flex: 1; }
-.conversation-cell {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 10px 16px 10px 14px;
-  cursor: pointer;
-}
-.conversation-cell:active { background: #F2F2F7; }
-.cc-avatar {
-  flex: none;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
+.feedback-toast {
+  position: absolute;
+  bottom: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 30, 32, 0.92);
   color: #fff;
-  font: 500 19px/1 var(--font-stack);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.cc-main {
-  flex: 1;
-  min-width: 0;
-  border-bottom: 0.5px solid rgba(60, 60, 67, 0.12);
-  padding-bottom: 10px;
-}
-.conversation-cell:last-child .cc-main { border-bottom: none; }
-.cc-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-.cc-name { font: var(--text-headline); color: var(--label); }
-.cc-time { font: var(--text-footnote); color: var(--label-secondary); }
-.cc-preview {
-  font: var(--text-subhead);
-  color: var(--label-secondary);
+  padding: 10px 20px;
+  border-radius: 22px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  z-index: 100;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-top: 2px;
+  pointer-events: none;
 }
-.cc-badge {
-  flex: none;
-  min-width: 20px;
-  height: 20px;
-  border-radius: 10px;
-  background: var(--ios-red);
-  color: #fff;
-  font: 600 12px/20px var(--font-stack);
-  text-align: center;
-  padding: 0 5px;
-}
-.cc-chevron { flex: none; }
-
-/* 对话页 */
-.chat-page { background: #fff; }
-.chat-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  color: #fff;
-  font: 500 13px/1 var(--font-stack);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.chat-body {
-  flex: 1;
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.chat-time-sep {
-  text-align: center;
-  font: var(--text-caption);
-  color: var(--label-secondary);
-  margin: 8px 0 12px;
-}
-.bubble-row { display: flex; }
-.bubble-row.me { justify-content: flex-end; }
-.bubble {
-  max-width: 72%;
-  padding: 8px 13px;
-  border-radius: 18px;
-  font: var(--text-body);
-  line-height: 1.38;
-  animation: bubble-in 0.24s cubic-bezier(0.3, 0.9, 0.35, 1.1);
-}
-@keyframes bubble-in {
-  from { opacity: 0; transform: scale(0.85) translateY(6px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-.bubble.me {
-  background: var(--ios-blue);
-  color: #fff;
-}
-.bubble.them {
-  background: var(--bg-bubble-in);
-  color: var(--label);
-}
-.bubble.me.has-prev { border-top-right-radius: 4px; }
-.bubble.me.has-next { border-bottom-right-radius: 4px; }
-.bubble.them.has-prev { border-top-left-radius: 4px; }
-.bubble.them.has-next { border-bottom-left-radius: 4px; }
-
-/* 输入栏 */
-.chat-input-bar {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px calc(var(--safe-bottom) + 6px);
-  background: rgba(248, 248, 250, 0.9);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 0.5px solid rgba(60, 60, 67, 0.14);
-}
-.ci-plus {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #E9E9EB;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-}
-.ci-field {
-  flex: 1;
-  height: 34px;
-  border: 1px solid #D1D1D6;
-  border-radius: 17px;
-  padding: 0 13px;
-  display: flex;
-  align-items: center;
-  background: #fff;
-}
-.ci-field input {
-  width: 100%;
-  font: var(--text-body);
-  color: var(--label);
-}
-.ci-field input::placeholder { color: var(--label-tertiary); }
-.ci-send {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #C7C7CC;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  transition: background 0.18s ease, transform 0.12s ease;
-}
-.ci-send.ready { background: var(--ios-blue); }
-.ci-send.ready:active { transform: scale(0.88); }
+.toast-fade-enter-active,
+.toast-fade-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.toast-fade-enter-from,
+.toast-fade-leave-to { opacity: 0; transform: translate(-50%, 8px); }
 </style>

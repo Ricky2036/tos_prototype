@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { usePhoneStore } from '../../../stores/phoneStore'
+import TrashIcon from '../../ui/TrashIcon.vue'
+import PhoneIcon from '../../ui/PhoneIcon.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['scroll', 'openFlashCall', 'openDetail', 'openAddContact'])
@@ -339,15 +341,11 @@ function handleQuickCall(e, recent) {
         <div class="swipe-actions-bg" :class="{ 'is-active': (swipeOffsets[r.id] || 0) < -2 }">
           <div class="swipe-actions-inner" :style="getActionsStyle(r.id)">
             <button class="swipe-btn btn-call" title="呼叫" @click.stop="handleQuickCall($event, r)">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="#FFFFFF">
-                <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-2.2 2.2a15.047 15.047 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.01A11.36 11.36 0 018.57 3.9c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.52c0-.55-.45-1-.99-1z" />
-              </svg>
+              <PhoneIcon :size="18" color="#FFFFFF" />
               <span class="swipe-label">呼叫</span>
             </button>
             <button class="swipe-btn btn-delete" title="删除" @click.stop="handleDeleteRecent($event, r.id)">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2">
-                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-              </svg>
+              <TrashIcon :size="18" color="#FFFFFF" :stroke-width="2.2" />
               <span class="swipe-label">删除</span>
             </button>
           </div>

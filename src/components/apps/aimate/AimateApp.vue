@@ -559,7 +559,7 @@ const canUseFan = computed(() => !!dev.value && dev.value.online && !dev.value.c
       <FloatingTabBar
         :model-value="mate.tab"
         :tabs="tabs"
-        height="62px"
+        height="60px"
         bottom="22px"
         accent-color="#7B5CFF"
         :dark="false"
@@ -1344,12 +1344,12 @@ const canUseFan = computed(() => !!dev.value && dev.value.online && !dev.value.c
 .home-statusbar { height: calc(var(--safe-top, 44px) + 10px); flex: none; }
 /* 底部渐隐遮罩（规格对齐时钟页 `.alarm-list`）：挂在**滚动容器自身的盒子**上 ⇒ 不随内容滚动，
    于是卡片滚过底栏那一段时不透明度递减、而不是被硬生生截断。
-   三段锚点与底栏几何同源：bottom 22px + 高 62px ⇒ 底栏占 100%-84px ~ 100%-22px，
-   故遮罩自 100%-92px 起淡、到 100%-22px（= 底栏下沿）全透明。
+   三段锚点与底栏几何同源：bottom 22px + 高 60px ⇒ 底栏占 100%-82px ~ 100%-22px，
+   故遮罩自 100%-90px 起淡、到 100%-22px（= 底栏下沿）全透明。
    ⚠️ 改底栏的 height / bottom 时这三个百分位要同步改（e2e 有「遮罩与底栏自洽」守卫）。 */
-.home-page { --tabbar-fade: linear-gradient(to bottom, black 0%, black calc(100% - 92px), rgba(0, 0, 0, 0.45) calc(100% - 55px), transparent calc(100% - 22px)); }
+.home-page { --tabbar-fade: linear-gradient(to bottom, black 0%, black calc(100% - 90px), rgba(0, 0, 0, 0.45) calc(100% - 55px), transparent calc(100% - 22px)); }
 .home-scroll { flex: 1; overflow-y: auto; padding: 4px 16px 0; -webkit-mask-image: var(--tabbar-fade); mask-image: var(--tabbar-fade); }
-/* 底部留白取时钟页 `.alarm-list` 的 110px：让最后一张卡滚到底时完全落在遮罩起淡点（92px）之上 */
+/* 底部留白取时钟页 `.alarm-list` 的 110px：让最后一张卡滚到底时完全落在遮罩起淡点（90px）之上 */
 .home-pad { height: 110px; }
 .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 16px 0 10px; }
 .sh-title { font-size: 17px; font-weight: 700; color: #111; margin: 0; }
