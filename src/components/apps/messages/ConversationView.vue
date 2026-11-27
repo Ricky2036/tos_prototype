@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useMessagesStore } from '../../../stores/messagesStore'
 import { useI18nStore } from '../../../stores/i18nStore'
+import { GLYPHS } from '../../../assets/icons/glyphs'
 import { msgText } from './msgData'
 import MsgTopBar from './components/MsgTopBar.vue'
 import MsgPopupMenu from './components/MsgPopupMenu.vue'
@@ -188,9 +189,9 @@ function sendNow() {
 function detailFields(msg) {
   return [
     { label: t.value('fieldType'), value: t.value('typeSms') },
-    { label: t.value('fieldSender'), value: msg.from === 'me' ? '+8618138848993' : (props.enterprise ? card.value.number : card.value.number) },
+    { label: t.value('fieldSender'), value: msg.from === 'me' ? '+8613200007890' : (props.enterprise ? card.value.number : card.value.number) },
     { label: t.value('fieldSentTime'), value: msg.time },
-    { label: t.value('fieldRecipient'), value: msg.from === 'me' ? `+86${(card.value.number || '').replace(/^\+?86/, '')}` : '+8618138848993' },
+    { label: t.value('fieldRecipient'), value: msg.from === 'me' ? `+86${(card.value.number || '').replace(/^\+?86/, '')}` : '+8613200007890' },
     { label: t.value('fieldSim'), value: '' }
   ]
 }
@@ -213,9 +214,8 @@ function detailFields(msg) {
       <template #right>
         <div class="action-pill">
           <button v-if="showCall" class="pill-btn" type="button" data-msg-call>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E1E20" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6.3 3.8h2.9l1.3 3.5-2 1.3a10.4 10.4 0 005 5l1.3-2 3.5 1.3v2.9c0 1.2-1 2.2-2.2 2.2A15.4 15.4 0 014.1 6c0-1.2 1-2.2 2.2-2.2z" />
-            </svg>
+            <!-- 项目已有拨号图标（GLYPHS.phone） -->
+            <svg width="21" height="21" viewBox="0 0 24 24"><path :d="GLYPHS.phone" fill="#1E1E20" /></svg>
           </button>
           <button class="pill-btn" type="button" data-msg-chat-overflow @click="openMenu">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="#1E1E20">
@@ -307,9 +307,10 @@ function detailFields(msg) {
           @keyup.enter="sendNow"
         />
         <button class="sim-btn" type="button" data-msg-sim aria-label="SIM">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E1E20" stroke-width="1.6" stroke-linejoin="round">
-            <path d="M6.2 3.6h7.4l4.2 4.2v12.6c0 .6-.5 1-1 1H6.2c-.6 0-1-.4-1-1V4.6c0-.6.4-1 1-1z" />
-            <rect x="8.4" y="10" width="6.4" height="5.4" rx="1.1" />
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#1E1E20" stroke-width="1.6" stroke-linejoin="round">
+            <path d="M9.6 3.8h7.8c1 0 1.8.8 1.8 1.8v12.8c0 1-.8 1.8-1.8 1.8H6.6c-1 0-1.8-.8-1.8-1.8V8.2l4.8-4.4z" />
+            <rect x="8.4" y="10.6" width="7.2" height="6.2" rx="1" />
+            <path d="M8.4 13.7h7.2M12 10.6v6.2" stroke-width="1.1" />
           </svg>
         </button>
       </div>
@@ -461,7 +462,7 @@ function detailFields(msg) {
   padding: 0 22px;
   box-sizing: border-box;
 }
-.flow-pad { height: 8px; }
+.flow-pad { height: 18px; }
 .flow-tail { height: 12px; }
 .msg-block {
   position: relative;
@@ -474,7 +475,7 @@ function detailFields(msg) {
 .bubble {
   max-width: 290px;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: 16px;
   box-sizing: border-box;
   font-size: 16px;
   line-height: 19.7px;

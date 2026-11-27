@@ -82,9 +82,10 @@ function sendNow() {
           @keyup.enter="sendNow"
         />
         <button class="sim-btn" type="button" data-msg-sim aria-label="SIM">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E1E20" stroke-width="1.6" stroke-linejoin="round">
-            <path d="M6.2 3.6h7.4l4.2 4.2v12.6c0 .6-.5 1-1 1H6.2c-.6 0-1-.4-1-1V4.6c0-.6.4-1 1-1z" />
-            <rect x="8.4" y="10" width="6.4" height="5.4" rx="1.1" />
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#1E1E20" stroke-width="1.6" stroke-linejoin="round">
+            <path d="M9.6 3.8h7.8c1 0 1.8.8 1.8 1.8v12.8c0 1-.8 1.8-1.8 1.8H6.6c-1 0-1.8-.8-1.8-1.8V8.2l4.8-4.4z" />
+            <rect x="8.4" y="10.6" width="7.2" height="6.2" rx="1" />
+            <path d="M8.4 13.7h7.2M12 10.6v6.2" stroke-width="1.1" />
           </svg>
         </button>
       </div>

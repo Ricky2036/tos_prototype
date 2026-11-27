@@ -22,8 +22,8 @@ const NO_DYNAMIC_EVAL = (src) => !/\beval\s*\(|\bnew Function\s*\(/.test(src)
 test('会话列表顺序与真机一致：通知信息置顶，其后按时间倒序', () => {
   assert.equal(CONVERSATIONS.length, 8)
   assert.deepEqual(
-    CONVERSATIONS.map(c => c.name),
-    ['通知信息', '赖光政~借款人', '陈弘洋', '17896447783', '13076902075', 'Walter', '17386937368', '副卡']
+    CONVERSATIONS.map(c => c.id),
+    ['notice', 'laiguangzheng', 'chenhongyang', 'n13700003456', 'n13600004567', 'walter', 'n13300006789', 'fuka']
   )
   assert.equal(CONVERSATIONS[0].kind, 'enterprise')
   assert.equal(CONVERSATIONS[0].unread, 99, '真机显示 99+，阈值 >=99')
@@ -64,7 +64,7 @@ test('己方消息带"已发送"状态，对方消息没有', () => {
 test('通知信息 9 条，认证号带 verified 标记', () => {
   assert.equal(ENTERPRISE_THREADS.length, 9)
   const ids = ENTERPRISE_THREADS.map(t => t.number)
-  assert.equal(ids[0], '10690955998')
+  assert.equal(ids[0], '10690000001')
   assert.equal(ids[3], '10000')
   const abchina = ENTERPRISE_THREADS[0]
   assert.equal(abchina.verified, true)
@@ -138,12 +138,13 @@ test('删除会话后从列表消失，但原始数据不被改写', () => {
   assert.ok(CONVERSATIONS.some(c => c.id === 'fuka'), '源数据必须保持不可变')
 })
 
-test('置顶排到最前，再点取消', () => {
+test('置顶排在通知信息下方（通知信息永远占第一行），再点取消', () => {
   const s = fresh()
   const last = s.list[s.list.length - 1].id
   s.togglePin(last)
-  assert.equal(s.list[0].id, last)
-  assert.equal(s.list[0].pinned, true)
+  assert.equal(s.list[0].id, 'notice', '通知信息不被置顶项挤下去')
+  assert.equal(s.list[1].id, last)
+  assert.equal(s.list[1].pinned, true)
   s.togglePin(last)
   assert.equal(s.isPinned(last), false)
 })
@@ -184,15 +185,25 @@ test('草稿按会话隔离保存', () => {
 
 test('列表页的关键几何常量与真机一致（物理 ÷ 3.3556）', () => {
   const src = strip(read(`${DIR}/ConversationListView.vue`))
-  assert.match(src, /174px/, '头部内容高 174（不含状态栏）')
-  assert.match(src, /206\.2px|174px/, '头部折叠高度基准')
-  assert.match(src, /min-height: 65\.9px/, '单行摘要行高 65.9')
+  assert.match(src, /<LargeTitleHeader/, '大标题走通用件')
+  assert.match(src, /margin: 4px 22px 10px/, '云卡在列表流里（随滚动）')
+  assert.match(src, /min-height: 62px/, '单行摘要行高 62（名 17px 后收紧，真机 65.9 是按 20px 名算的）')
   assert.match(src, /width: 40px|:size="40"|size = 40/, '头像 40')
-  assert.match(src, /font-size: 20px/, '会话名 20px')
-  assert.match(src, /left: 22px/, '列表左内边距 22')
+  assert.match(src, /font-size: 17px/, '会话名 17px（与设置列表同级）')
+  assert.match(src, /8.5px 21\.5px 8\.5px 22px/, '行内边距：左 22 / 右 21.5 / 上 8.5')
   assert.match(src, /right: 16px/, '胶囊距右 16')
   assert.match(src, /width: 100px/, '搜索/更多胶囊宽 100')
   assert.match(src, /width: 60px/, 'FAB 60')
+})
+
+test('列表页接入通用大标题件，不再自绘折叠量', () => {
+  const src = strip(read(`${DIR}/ConversationListView.vue`))
+  assert.match(src, /useLargeTitle\(\)/, '必须用通用件的折叠契约')
+  assert.match(src, /const \{ progress: titleProgress, onScroll: onTitleScroll \} = useLargeTitle\(\)/, '必须解构出 ref')
+  assert.match(src, /<LargeTitleHeader/, '必须用通用件渲染大标题')
+  assert.ok(!/headHeight|collapse\.value/.test(src), '不许再自算折叠高度')
+  assert.match(src, /row::after/, '分割线')
+  assert.match(src, /F5A623/, '置顶黄色图钉')
 })
 
 test('对话页气泡配色与输入栏尺寸照真机标定', () => {
@@ -201,6 +212,7 @@ test('对话页气泡配色与输入栏尺寸照真机标定', () => {
   assert.match(src, /#e7e8e9/i, '对方气泡 #E7E8E9')
   assert.match(src, /#3375f6/i, '品牌蓝 #3375F6')
   assert.match(src, /max-width: 290px/, '气泡最大宽 290')
+  assert.match(src, /border-radius: 16px/, '气泡圆角 16')
   assert.match(src, /padding: 10px 12px/, '气泡内边距 10 / 12')
   assert.match(src, /height: 69\.4px/, '输入栏高 69.4')
   assert.match(src, /159/, '字数上限 159')

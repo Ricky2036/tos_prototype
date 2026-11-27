@@ -73,7 +73,9 @@ export const useMessagesStore = defineStore('messages', () => {
       unread: c.id in readState.value ? readState.value[c.id] : c.unread,
       pinned: pinned.value.has(c.id)
     }))
+    // 置顶会话排在「通知信息」下方（真机里通知信息永远占第一行，置顶不越过它）
     .sort((a, b) => {
+      if (a.id === 'notice' || b.id === 'notice') return a.id === 'notice' ? -1 : 1
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
       return 0
     }))

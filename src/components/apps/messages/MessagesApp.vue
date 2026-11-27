@@ -15,6 +15,7 @@ import MoreSettingsView from './settings/MoreSettingsView.vue'
 import AboutView from './settings/AboutView.vue'
 import SimSmsView from './settings/SimSmsView.vue'
 import XMessageView from './settings/XMessageView.vue'
+import SpamBlockView from './SpamBlockView.vue'
 
 /**
  * 「短信」应用外壳（MSG-01）
@@ -121,7 +122,8 @@ function onExternal(id) {
   showToast(EXTERNAL_TEXT[id] || t.value('disclaimer'))
 }
 
-const transitionName = computed(() => (direction.value === 'back' ? 'msg-back' : 'msg-fwd'))
+// 层级转场走全仓规范（styles/layer-transitions.css，与设置页同一套 0.22s / 0.14s）
+const transitionName = computed(() => (direction.value === 'back' ? 'slide-back' : 'slide'))
 </script>
 
 <template>
@@ -135,7 +137,7 @@ const transitionName = computed(() => (direction.value === 'back' ? 'msg-back' :
         @search="push('search')"
         @settings="openSettings"
         @compose="openCompose"
-        @spam="onExternal('spam')"
+        @spam="push('spam')"
       />
       <ConversationView
         v-else-if="view.name === 'chat'"
@@ -193,6 +195,7 @@ const transitionName = computed(() => (direction.value === 'back' ? 'msg-back' :
         @back="pop"
         @external="onExternal"
       />
+      <SpamBlockView v-else-if="view.name === 'spam'" key="spam" @back="pop" />
     </Transition>
 
     <Transition name="toast-fade">
@@ -210,17 +213,6 @@ const transitionName = computed(() => (direction.value === 'back' ? 'msg-back' :
   color: #000;
   font-family: var(--font-stack, -apple-system, 'PingFang SC', 'Noto Sans SC', sans-serif);
 }
-.msg-fwd-enter-active,
-.msg-fwd-leave-active,
-.msg-back-enter-active,
-.msg-back-leave-active {
-  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.32s ease;
-}
-.msg-fwd-enter-from { transform: translateX(100%); }
-.msg-fwd-leave-to { transform: translateX(-24%); opacity: 0.6; }
-.msg-back-enter-from { transform: translateX(-24%); opacity: 0.6; }
-.msg-back-leave-to { transform: translateX(100%); }
-
 .feedback-toast {
   position: absolute;
   bottom: 72px;

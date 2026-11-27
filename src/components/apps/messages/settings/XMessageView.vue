@@ -106,7 +106,7 @@ function openMenu(e) {
           </span>
           <div class="texts">
             <div class="title">{{ t('simSmsSub') }}</div>
-            <div class="value">+8618138848993</div>
+            <div class="value">+8613200007890</div>
           </div>
           <span class="verified">{{ t('verified') }}</span>
         </div>

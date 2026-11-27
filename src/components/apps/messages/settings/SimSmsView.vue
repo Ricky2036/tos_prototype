@@ -24,7 +24,7 @@ const emit = defineEmits(['back'])
           </span>
           <div class="texts">
             <div class="title">{{ t('simSmsSub') }}</div>
-            <div class="value">+8618138848993</div>
+            <div class="value">+8613200007890</div>
           </div>
           <svg width="9" height="16" viewBox="0 0 9 16" fill="none"><path d="M1.4 1.6L7.4 8l-6 6.4" stroke="#C3C3C5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </div>

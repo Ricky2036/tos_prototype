@@ -178,7 +178,7 @@ export const CONVERSATIONS = [
   {
     id: 'laiguangzheng',
     name: '赖光政~借款人',
-    number: '15309272296',
+    number: '13800001234',
     time: '11/13',
     unread: 1,
     snippet: '你好，我是周老四的姐夫赖光政，你姐陈静丽昨天把你的农行卡发给我了，请你再发一次给我...'
@@ -186,37 +186,37 @@ export const CONVERSATIONS = [
   {
     id: 'chenhongyang',
     name: '陈弘洋',
-    number: '18138849076',
+    number: '13900002345',
     time: '7/28',
     snippet: '【小天才】你的孩子正尝试110报警，请及时确认孩子当前状况。为了方便警方及时联系孩子，…'
   },
   {
-    id: 'n17896447783',
-    name: '17896447783',
-    number: '17896447783',
+    id: 'n13700003456',
+    name: '13700003456',
+    number: '13700003456',
     time: '7/6',
     snippet: '最下面这层',
     avatarIcon: 'person'
   },
   {
-    id: 'n13076902075',
-    name: '13076902075',
-    number: '13076902075',
+    id: 'n13600004567',
+    name: '13600004567',
+    number: '13600004567',
     time: '5/18',
-    snippet: 'SF1575186809671',
+    snippet: 'SF0000000000001',
     avatarIcon: 'person'
   },
   {
     id: 'walter',
     name: 'Walter',
-    number: '13751160830',
+    number: '13500005678',
     time: '4/26',
     snippet: '现在不方便接听，有什么事吗？'
   },
   {
-    id: 'n17386937368',
-    name: '17386937368',
-    number: '17386937368',
+    id: 'n13300006789',
+    name: '13300006789',
+    number: '13300006789',
     time: '3/22',
     snippet: '马上到！',
     avatarIcon: 'person'
@@ -224,7 +224,7 @@ export const CONVERSATIONS = [
   {
     id: 'fuka',
     name: '副卡',
-    number: '18138843409',
+    number: '13200007890',
     time: '3/17',
     snippet: '欢迎使用 Gboard 剪贴板，您复制的所有文本都会保存到这里。'
   }
@@ -263,13 +263,13 @@ export const THREADS = {
       time: '7/28 13:22'
     }
   ],
-  n17896447783: [{ from: 'them', text: '最下面这层', time: '7/6 17:59' }],
-  n13076902075: [{ from: 'them', text: 'SF1575186809671', time: '5/18 10:01' }],
+  n13700003456: [{ from: 'them', text: '最下面这层', time: '7/6 17:59' }],
+  n13600004567: [{ from: 'them', text: 'SF0000000000001', time: '5/18 10:01' }],
   walter: [
     { from: 'me', text: '会议中，晚点给您回电话', time: '2024/4/20 19:05', status: 'sent' },
     { from: 'me', text: '现在不方便接听，有什么事吗？', time: '4/26 15:04', status: 'sent' }
   ],
-  n17386937368: [{ from: 'them', text: '马上到！', time: '3/22 12:58' }],
+  n13300006789: [{ from: 'them', text: '马上到！', time: '3/22 12:58' }],
   fuka: [
     { from: 'me', text: 'Good afternoon!', time: '2024/6/25 15:03', status: 'sent' },
     { from: 'me', text: '1', time: '2024/6/25 15:05', status: 'sent' },
@@ -288,37 +288,37 @@ export const THREADS = {
 export const ENTERPRISE_THREADS = [
   {
     id: 'e-abchina',
-    number: '10690955998',
+    number: '10690000001',
     verified: true,
     time: '10:08',
     unread: 2,
-    snippet: '【中国农业银行】您的风险评估已过期！点（go.abchina.com/k/rPA）完成风险评估，可…',
+    snippet: '【中国农业银行】您的风险评估已过期！点（go.example.com/k/rPA）完成风险评估，可…',
     messages: [
       {
-        text: '【中国农业银行】出境就用农行信用卡！12月底前登录农行掌银APP( go.abchina.com/k/Adh )报名后，持农行Visa/万事达/银联信用卡境外消费享线下笔笔返3%、商户返10%，还享首笔返！奖池有限，如有疑问详询4006695599。拒收请回复R',
+        text: '【中国农业银行】出境就用农行信用卡！12月底前登录农行掌银APP( go.example.com/k/Adh )报名后，持农行Visa/万事达/银联信用卡境外消费享线下笔笔返3%、商户返10%，还享首笔返！奖池有限，如有疑问详询4006660000。拒收请回复R',
         time: '11/5 13:45',
-        links: ['go.abchina.com/k/Adh', '4006695599']
+        links: ['go.example.com/k/Adh', '4006660000']
       },
       {
-        text: '【中国农业银行】首绑微信、支付宝各享16元优惠。戳(go.abchina.com/k/KwQ)参与。详询4006695599。拒收请回复R',
+        text: '【中国农业银行】首绑微信、支付宝各享16元优惠。戳(go.example.com/k/KwQ)参与。详询4006660000。拒收请回复R',
         time: '11/5 18:27',
-        links: ['go.abchina.com/k/KwQ', '4006695599']
+        links: ['go.example.com/k/KwQ', '4006660000']
       },
       {
-        text: '【中国农业银行】邀您办理我行万事达全球支付卡(境内外一卡通行、年底前境外消费享1%无上限返现)或Visa全球支付卡(有效期内免年费)，点击 go.abchina.com/k/PNX 申请。申请结果以审批为准，详见官网或询4006695599。拒收请回复R',
+        text: '【中国农业银行】邀您办理我行万事达全球支付卡(境内外一卡通行、年底前境外消费享1%无上限返现)或Visa全球支付卡(有效期内免年费)，点击 go.example.com/k/PNX 申请。申请结果以审批为准，详见官网或询4006660000。拒收请回复R',
         time: '11/12 14:37',
-        links: ['go.abchina.com/k/PNX', '4006695599']
+        links: ['go.example.com/k/PNX', '4006660000']
       },
       {
-        text: '【中国农业银行】您的风险评估已过期！点（go.abchina.com/k/rPA）完成风险评估，可参与抽奖！详询95599。拒收请回复R',
+        text: '【中国农业银行】您的风险评估已过期！点（go.example.com/k/rPA）完成风险评估，可参与抽奖！详询95000000。拒收请回复R',
         time: '今天 10:08',
-        links: ['go.abchina.com/k/rPA', '95599']
+        links: ['go.example.com/k/rPA', '95000000']
       }
     ]
   },
   {
     id: 'e-oppo',
-    number: '1068093290020',
+    number: '10690000002',
     verified: true,
     time: '昨天',
     unread: 1,
@@ -360,22 +360,22 @@ export const ENTERPRISE_THREADS = [
   },
   {
     id: 'e-cmb',
-    number: '1068039095555',
+    number: '10690000003',
     verified: false,
     time: '昨天',
     unread: 22,
-    snippet: '【招商银行】诚邀您体验e招贷业务，您的e招贷额度已更新，点击 cmbt.cn/a/hpt?a=1 立即测…',
+    snippet: '【招商银行】诚邀您体验e招贷业务，您的e招贷额度已更新，点击 example.com/a/1 立即测…',
     messages: [
       {
-        text: '【招商银行】诚邀您体验e招贷业务，您的e招贷额度已更新，点击 cmbt.cn/a/hpt?a=1 立即测额。拒收请回复R',
+        text: '【招商银行】诚邀您体验e招贷业务，您的e招贷额度已更新，点击 example.com/a/1 立即测额。拒收请回复R',
         time: '昨天 15:02',
-        links: ['cmbt.cn/a/hpt?a=1']
+        links: ['example.com/a/1']
       }
     ]
   },
   {
     id: 'e-douyin',
-    number: '10683146465582',
+    number: '10690000004',
     verified: false,
     time: '昨天',
     unread: 1,
@@ -389,22 +389,22 @@ export const ENTERPRISE_THREADS = [
   },
   {
     id: 'e-citic',
-    number: '10691386695558',
+    number: '10690000005',
     verified: false,
     time: '昨天',
     unread: 16,
     snippet: '【中信银行信用卡】尊敬的陈敬展，您有卡片可升级为白金卡！畅享高端权益。戳 zxcard.cn/...',
     messages: [
       {
-        text: '【中信银行信用卡】尊敬的陈敬展，您有卡片可升级为白金卡！畅享高端权益。戳 zxcard.cn/p 了解详情。拒收请回复R',
+        text: '【中信银行信用卡】尊敬的陈敬展，您有卡片可升级为白金卡！畅享高端权益。戳 example.com/p 了解详情。拒收请回复R',
         time: '昨天 10:15',
-        links: ['zxcard.cn/p']
+        links: ['example.com/p']
       }
     ]
   },
   {
     id: 'e-google',
-    number: '106936541879039',
+    number: '10690000006',
     verified: false,
     time: '11/24',
     unread: 1,
@@ -418,7 +418,7 @@ export const ENTERPRISE_THREADS = [
   },
   {
     id: 'e-taobao',
-    number: '106884549999168671',
+    number: '10690000007',
     verified: false,
     time: '11/24',
     unread: 1,
@@ -493,25 +493,25 @@ export const SETTINGS_GROUPS = [
 
 /** 联系人选择器演示数据（真机 A 组片段，逐字照抄） */
 export const CONTACTS = [
-  { id: 'c1', section: 'A', name: '阿里巴巴钉钉客服', line: '手机 057128834033' },
-  { id: 'c2', section: 'A', name: '艾尚美窗帘~老板娘', line: '手机 18806644957' },
-  { id: 'c3', section: 'A', name: '爱尚美窗帘', line: '手机 13622340045' },
-  { id: 'c4', section: 'A', name: '安装垃圾处理器', line: '手机 13502831744' },
-  { id: 'c5', section: 'A', name: '敖俊平', line: '手机 13922203849' },
-  { id: 'c6', section: 'A', name: 'A姐', line: '手机 13992407316' },
-  { id: 'c7', section: 'A', name: 'A老婆', line: '手机 18138840976' },
-  { id: 'c8', section: 'A', name: 'Abhishek Nayak', line: '手机 +919987948451' },
+  { id: 'c1', section: 'A', name: '阿里巴巴钉钉客服', line: '手机 057100000001' },
+  { id: 'c2', section: 'A', name: '艾尚美窗帘~老板娘', line: '手机 13800009001' },
+  { id: 'c3', section: 'A', name: '爱尚美窗帘', line: '手机 13800009002' },
+  { id: 'c4', section: 'A', name: '安装垃圾处理器', line: '手机 13800009003' },
+  { id: 'c5', section: 'A', name: '敖俊平', line: '手机 13800009004' },
+  { id: 'c6', section: 'A', name: 'A姐', line: '手机 13800009005' },
+  { id: 'c7', section: 'A', name: 'A老婆', line: '手机 13800009006' },
+  { id: 'c8', section: 'A', name: 'Abhishek Nayak', line: '手机 +919900000001' },
   { id: 'c9', section: 'A', name: 'Acropolis', line: '其他 12' },
-  { id: 'c10', section: 'A', name: '阿里巴巴集团', line: '手机 95188' }
+  { id: 'c10', section: 'A', name: '阿里巴巴集团', line: '手机 95000003' }
 ]
 
 /** 搜索结果里的发件人候选（真机横向列表，号码被 1069 命中时高亮） */
 export const SEARCH_SENDERS = [
-  '10690955998',
-  '1069138669558',
-  '106936541879039',
-  '106931999221748',
-  '1068093290020',
+  '10690000001',
+  '10690000008',
+  '10690000006',
+  '10690000009',
+  '10690000002',
   '10001',
   '10000'
 ]

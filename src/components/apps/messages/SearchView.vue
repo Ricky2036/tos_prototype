@@ -3,6 +3,7 @@ import { computed, nextTick, ref } from 'vue'
 import { useI18nStore } from '../../../stores/i18nStore'
 import { msgText, SEARCH_SENDERS } from './msgData'
 import MsgAvatar from './components/MsgAvatar.vue'
+import LIcon from '../../ui/LIcon.vue'
 
 /**
  * 搜索页（真机 SearchActivity）
@@ -65,18 +66,11 @@ defineExpose({ focus })
         <div class="section-label cat">{{ t('searchCategory') }}</div>
         <div class="cat-row">
           <button class="cat-tile" type="button" data-msg-cat="image">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1E1E20" stroke-width="1.7" stroke-linejoin="round">
-              <rect x="3" y="4.5" width="18" height="15" rx="2.5" />
-              <circle cx="8.4" cy="9.6" r="1.5" />
-              <path d="M4 17l4.6-4.6 3.2 3.2 2.6-2.4L20 18.4" />
-            </svg>
+            <LIcon name="image" :size="20" :stroke-width="1.7" />
             <span>{{ t('categoryImage') }}</span>
           </button>
           <button class="cat-tile" type="button" data-msg-cat="video">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1E1E20" stroke-width="1.7" stroke-linejoin="round">
-              <rect x="2.6" y="6" width="12.4" height="12" rx="2.6" />
-              <path d="M15 10.4l5-2.6v8.4l-5-2.6z" />
-            </svg>
+            <LIcon name="videoCamera" :size="20" :stroke-width="1.7" />
             <span>{{ t('categoryVideo') }}</span>
           </button>
         </div>
@@ -165,17 +159,18 @@ defineExpose({ focus })
   padding: 12px 26px 0;
 }
 .cat-tile {
-  width: 80px;
-  height: 80px;
+  width: 75px;
+  height: 75px;
   border: none;
-  border-radius: 14px;
+  border-radius: 16px;
   background: #e7e8ea;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 5px;
+  font-size: 11.5px;
+  line-height: 14px;
   color: #1e1e20;
   cursor: pointer;
 }
