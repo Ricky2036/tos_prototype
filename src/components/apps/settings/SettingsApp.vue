@@ -55,6 +55,7 @@ import accountAvatar from '../../../assets/img/account-avatar.jpg'
 import { clamp } from '../../../utils/math'
 import LargeTitleHeader from '../../ui/LargeTitleHeader.vue'
 import { useLargeTitle } from '../../../composables/useLargeTitle'
+import ChevronRight from '../../ui/ChevronRight.vue'
 
 /**
  * 设置：8组规范卡片 + 底部悬浮搜索控件 + 二级页完整导航。
@@ -389,9 +390,7 @@ function handleSearchNavigate(item) {
                 <div class="account-name">{{ accountStore.isLoggedIn ? accountStore.username : '登录 Infinix ID' }}</div>
                 <div class="account-sub">使用云服务、查找等</div>
               </div>
-              <svg class="lc-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
+              <ChevronRight class="lc-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
             </div>
 
             <!-- ================= 卡片 2: 手机型号卡 (Infinix NOTE 60 Pro / 兼容 Infinix GT 50 Pro) ================= -->

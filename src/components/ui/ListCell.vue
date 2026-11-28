@@ -1,5 +1,6 @@
 <script setup>
 import { GLYPHS } from '../../assets/icons/glyphs'
+import ChevronRight from '../ui/ChevronRight.vue'
 
 /**
  * iOS 分组列表单元格（设置/信息/电话通用）。
@@ -48,9 +49,7 @@ const emit = defineEmits(['click'])
           <slot name="value">
             <span v-if="value" class="lc-value">{{ value }}</span>
           </slot>
-          <svg v-if="chevron" class="lc-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <ChevronRight v-if="chevron" class="lc-chevron" :size="18" color="currentColor" :stroke-width="2.13" />
         </slot>
       </div>
     </div>

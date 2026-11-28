@@ -1,6 +1,7 @@
 <script setup>
 import { useClockStore } from '../../../../stores/clockStore'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const emit = defineEmits(['back'])
 const clock = useClockStore()
@@ -23,9 +24,7 @@ const clock = useClockStore()
       <div class="settings-card card-padded">
         <div class="setting-item-column">
           <span class="setting-hint">双时钟设置，请前往设置 > 系统 > 日期与时间进行设置</span>
-          <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-            <path d="M1 1L6 6L1 11" stroke="#666" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <ChevronRight :size="20" color="#666" :stroke-width="2.16" />
         </div>
       </div>
 
@@ -36,9 +35,7 @@ const clock = useClockStore()
           <span class="setting-label">国家/地区公共假期</span>
           <div class="setting-value-row">
             <span class="setting-value">{{ clock.settings.holidayRegion }}</span>
-            <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path d="M1 1L6 6L1 11" stroke="#666" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronRight :size="20" color="#666" :stroke-width="2.16" />
           </div>
         </div>
       </div>

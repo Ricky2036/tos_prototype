@@ -12,6 +12,7 @@ import TimePickerSheet from '../../ui/TimePickerSheet.vue'
 import ListCell from '../../ui/ListCell.vue'
 import ActionModal from '../../ui/ActionModal.vue'
 import { GLYPHS } from '../../../assets/icons/glyphs'
+import ChevronRight from '../../ui/ChevronRight.vue'
 
 const emit = defineEmits(['back-to-dnd', 'back'])
 const prayerStore = usePrayerStore()
@@ -508,9 +509,7 @@ function saveEdit() {
                 </div>
                 <div class="lc-right">
                   <span class="ms-time-val ai-auto-answer-status">{{ aiAutoAnswerStatusText }}</span>
-                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                    <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
+                  <ChevronRight class="cell-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
                 </div>
               </div>
             </div>
@@ -532,9 +531,7 @@ function saveEdit() {
                 <span class="lc-title">{{ i18n.t('startTime') }}</span>
                 <div class="lc-right">
                   <span class="ms-time-val">{{ editForm.startTime }}</span>
-                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                    <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
+                  <ChevronRight class="cell-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
                 </div>
               </div>
             </div>
@@ -543,9 +540,7 @@ function saveEdit() {
                 <span class="lc-title">{{ i18n.t('endTime') }}</span>
                 <div class="lc-right">
                   <span class="ms-time-val">{{ editForm.endTime }}</span>
-                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                    <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
+                  <ChevronRight class="cell-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
                 </div>
               </div>
             </div>
@@ -560,9 +555,7 @@ function saveEdit() {
                     </div>
                   </div>
                   <span v-else class="ms-time-val repeat-summary-val">{{ formatRepeatDaysSummary(editForm.repeatDays) }}</span>
-                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                    <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
+                  <ChevronRight class="cell-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
                 </div>
               </div>
             </div>
@@ -653,9 +646,7 @@ function saveEdit() {
                 <span class="lc-title">{{ tr('aiSelectVoice', '选择声音', 'Select Voice', 'ভয়েস নির্বাচন করুন') }}</span>
                 <div class="lc-right">
                   <span class="ms-time-val">{{ aiVoiceMale ? tr('voiceMale', '男', 'Male', 'পুরুষ') : tr('voiceFemale', '女', 'Female', 'মহিলা') }}</span>
-                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                    <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
+                  <ChevronRight class="cell-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
                 </div>
               </div>
             </div>
@@ -668,9 +659,7 @@ function saveEdit() {
               <div class="lc-main">
                 <span class="lc-title">{{ tr('aiCustomSettings', '自定义设置', 'Custom Settings', 'কাস্টম সেটিংস') }}</span>
                 <div class="lc-right">
-                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                    <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
+                  <ChevronRight class="cell-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
                 </div>
               </div>
             </div>
@@ -687,9 +676,7 @@ function saveEdit() {
                 </div>
                 <div class="lc-right">
                   <span class="ms-time-val">{{ tr('aiAfter5s', '响铃5 s后', 'After 5 s', '৫ সেকেন্ড পর') }}</span>
-                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                    <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
+                  <ChevronRight class="cell-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
                 </div>
               </div>
             </div>
@@ -722,9 +709,7 @@ function saveEdit() {
                 </div>
                 <div class="lc-right">
                   <span class="ms-time-val">{{ tr('off', '关闭', 'Off', 'বন্ধ') }}</span>
-                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                    <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
+                  <ChevronRight class="cell-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
                 </div>
               </div>
             </div>
@@ -753,9 +738,7 @@ function saveEdit() {
               <div class="lc-main">
                 <span class="lc-title">{{ tr('privacyPolicy', '隐私政策', 'Privacy Policy', 'গোপনীয়তা নীতি') }}</span>
                 <div class="lc-right">
-                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                    <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
+                  <ChevronRight class="cell-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
                 </div>
               </div>
             </div>
@@ -763,9 +746,7 @@ function saveEdit() {
               <div class="lc-main no-sep">
                 <span class="lc-title">{{ tr('userAgreement', '用户协议', 'User Agreement', 'ব্যবহারকারীর চুক্তি') }}</span>
                 <div class="lc-right">
-                  <svg class="cell-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                    <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
+                  <ChevronRight class="cell-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
                 </div>
               </div>
             </div>

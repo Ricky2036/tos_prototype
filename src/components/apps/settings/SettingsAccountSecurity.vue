@@ -3,6 +3,7 @@ import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref, computed, onBeforeUnmount } from 'vue'
 import { useAccountStore } from '../../../stores/accountStore'
 import CloseIcon from '../../ui/CloseIcon.vue'
+import ChevronRight from '../../ui/ChevronRight.vue'
 
 const emit = defineEmits(['back'])
 const account = useAccountStore()
@@ -195,9 +196,7 @@ onBeforeUnmount(() => {
             <div class="cell-title">电话号码</div>
             <div class="cell-sub">电话号码可用于登录账号、重置密码和身份验证。</div>
           </div>
-          <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <ChevronRight class="chevron-icon" :size="18" color="#C5C5C7" :stroke-width="2.13" />
         </div>
 
         <div class="cell-divider"></div>
@@ -208,9 +207,7 @@ onBeforeUnmount(() => {
             <div class="cell-title">电子邮箱</div>
             <div class="cell-sub">电子邮箱可用于登录账号、重置密码和身份验证。</div>
           </div>
-          <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <ChevronRight class="chevron-icon" :size="18" color="#C5C5C7" :stroke-width="2.13" />
         </div>
 
         <div class="cell-divider"></div>
@@ -220,9 +217,7 @@ onBeforeUnmount(() => {
           <div class="cell-content">
             <div class="cell-title">紧急联系人</div>
           </div>
-          <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <ChevronRight class="chevron-icon" :size="18" color="#C5C5C7" :stroke-width="2.13" />
         </div>
       </div>
 
@@ -246,9 +241,7 @@ onBeforeUnmount(() => {
             <div class="cell-title">绑定三方</div>
             <div class="cell-sub">三方账号可用于登录账号。</div>
           </div>
-          <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <ChevronRight class="chevron-icon" :size="18" color="#C5C5C7" :stroke-width="2.13" />
         </div>
 
         <div class="cell-divider"></div>
@@ -258,9 +251,7 @@ onBeforeUnmount(() => {
           <div class="cell-content">
             <div class="cell-title">修改密码</div>
           </div>
-          <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <ChevronRight class="chevron-icon" :size="18" color="#C5C5C7" :stroke-width="2.13" />
         </div>
 
         <div class="cell-divider"></div>
@@ -270,9 +261,7 @@ onBeforeUnmount(() => {
           <div class="cell-content">
             <div class="cell-title">账号日志</div>
           </div>
-          <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <ChevronRight class="chevron-icon" :size="18" color="#C5C5C7" :stroke-width="2.13" />
         </div>
       </div>
 
@@ -282,9 +271,7 @@ onBeforeUnmount(() => {
           <div class="cell-content">
             <div class="cell-title">账号注销</div>
           </div>
-          <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <ChevronRight class="chevron-icon" :size="18" color="#C5C5C7" :stroke-width="2.13" />
         </div>
       </div>
 

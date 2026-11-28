@@ -15,6 +15,7 @@ import TmAppUsage from './TmAppUsage.vue'
 import TmPlans from './TmPlans.vue'
 import { TM_FOOTNOTE, TM_GROUPS, TM_TODAY, TM_WEEK, tmAppUsage, tmFormatValue } from './trafficData.js'
 import './traffic.css'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 /**
  * 流量管理（SIM 卡与网络设置 → 流量管理）
@@ -131,9 +132,7 @@ function openRow(key) {
             <div class="tm-plan-divider"></div>
             <button type="button" class="tm-plan-all" data-testid="tm-all-plans" @click="open('plans')">
               全部套餐
-              <svg width="7" height="11" viewBox="0 0 7 12" fill="none">
-                <path d="M1.5 1.5L5.5 6L1.5 10.5" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
+              <ChevronRight :size="15" color="#FFFFFF" :stroke-width="2.56" />
             </button>
           </div>
 
@@ -183,9 +182,7 @@ function openRow(key) {
                   <span v-if="restCount" class="tm-icon-more">+{{ restCount }}</span>
                 </div>
               </div>
-              <svg class="tm-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
+              <ChevronRight class="tm-chevron" :size="18" color="currentColor" :stroke-width="2.13" />
             </div>
           </div>
 
@@ -202,9 +199,7 @@ function openRow(key) {
                 <div class="tm-row-text">
                   <div class="tm-row-title">{{ row.title }}</div>
                 </div>
-                <svg class="tm-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                  <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
+                <ChevronRight class="tm-chevron" :size="18" color="currentColor" :stroke-width="2.13" />
               </div>
             </div>
           </template>

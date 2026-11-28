@@ -27,6 +27,7 @@ import { useNotificationSettingsStore } from '../../../stores/notificationSettin
 import { formatRelativeTime } from '../../../utils/timeFormat'
 import { CLOCK_ICONS } from '../../apps/clock/clockIcons'
 import { GLYPHS } from '../../../assets/icons/glyphs'
+import ChevronRight from '../../ui/ChevronRight.vue'
 
 const i18n = useI18nStore()
 const notificationsStore = useNotificationsStore()
@@ -356,9 +357,7 @@ const emit = defineEmits(['back-to-settings'])
             </div>
             <span class="pm-label">
               {{ i18n.t('nsHomeBadge') }}
-              <svg width="6" height="10" viewBox="0 0 7 12" fill="none">
-                <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
+              <ChevronRight :size="15" color="#C5C5C7" :stroke-width="2.19" />
             </span>
           </div>
         </div>

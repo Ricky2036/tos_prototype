@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useClockStore } from '../../../../stores/clockStore'
 import { useBackHandler } from '../../../../composables/backRegistry'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const emit = defineEmits(['back'])
 const clock = useClockStore()
@@ -142,9 +143,7 @@ useBackHandler(() => {
             <span class="setting-label">计算方法</span>
             <span class="setting-sublabel">{{ clock.settings.calcMethod }}</span>
           </div>
-          <svg class="setting-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <ChevronRight class="setting-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
         </div>
 
         <div class="divider"></div>
@@ -155,9 +154,7 @@ useBackHandler(() => {
             <span class="setting-label">哺礼时间法</span>
             <span class="setting-sublabel">{{ clock.settings.prayerTimeMethod }}</span>
           </div>
-          <svg class="setting-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <ChevronRight class="setting-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
         </div>
 
         <div class="divider"></div>
@@ -168,9 +165,7 @@ useBackHandler(() => {
             <span class="setting-label">调整斋月日期</span>
             <span class="setting-sublabel">{{ clock.settings.ramadanAdjustDays }} 天</span>
           </div>
-          <svg class="setting-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <ChevronRight class="setting-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
         </div>
 
         <div class="divider"></div>
@@ -181,9 +176,7 @@ useBackHandler(() => {
             <span class="setting-label">铃声</span>
             <span class="setting-sublabel">{{ clock.settings.ringtone }}</span>
           </div>
-          <svg class="setting-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <ChevronRight class="setting-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
         </div>
       </div>
     </div>

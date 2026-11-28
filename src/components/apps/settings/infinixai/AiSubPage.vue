@@ -82,12 +82,7 @@ function handleToggle(row, value) {
           </template>
           <template v-else-if="row.dot" #right>
             <span class="row-dot"></span>
-            <svg class="lc-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path
-                d="M1.25 1.25L5.75 6L1.25 10.75"
-                stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
-              />
-            </svg>
+            <ChevronRight class="lc-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
           </template>
         </ListCell>
       </div>

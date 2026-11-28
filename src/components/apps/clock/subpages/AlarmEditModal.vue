@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { formatDaysRepeat } from '../../../../stores/clockStore'
 import TimeWheel from '../../../ui/TimeWheel.vue'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const props = defineProps({
   visible: {
@@ -192,9 +193,7 @@ function handleClose() {
             <span class="row-label">重复</span>
             <div class="row-right">
               <span class="row-value">{{ formRepeatLabel }}</span>
-              <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                <path d="M1 1L6 6L1 11" stroke="#8E8E93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="20" color="#8E8E93" :stroke-width="2.16" />
             </div>
           </div>
 
@@ -226,9 +225,7 @@ function handleClose() {
               <span class="row-sub-desc">{{ formRingtone }}</span>
             </div>
             <div class="row-right">
-              <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                <path d="M1 1L6 6L1 11" stroke="#8E8E93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="20" color="#8E8E93" :stroke-width="2.16" />
             </div>
           </div>
 
@@ -244,9 +241,7 @@ function handleClose() {
                 class="label-input"
                 maxlength="16"
               />
-              <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                <path d="M1 1L6 6L1 11" stroke="#8E8E93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="20" color="#8E8E93" :stroke-width="2.16" />
             </div>
           </div>
 
@@ -257,9 +252,7 @@ function handleClose() {
             <span class="row-label">稍后提醒</span>
             <div class="row-right">
               <span class="row-value">{{ formSnooze }}</span>
-              <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                <path d="M1 1L6 6L1 11" stroke="#8E8E93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="20" color="#8E8E93" :stroke-width="2.16" />
             </div>
           </div>
 
@@ -270,9 +263,7 @@ function handleClose() {
             <span class="row-label">响铃时振动</span>
             <div class="row-right">
               <span class="row-value">{{ formVibration }}</span>
-              <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-                <path d="M1 1L6 6L1 11" stroke="#8E8E93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="20" color="#8E8E93" :stroke-width="2.16" />
             </div>
           </div>
         </div>
@@ -285,9 +276,7 @@ function handleClose() {
           </div>
           <div class="row-right">
             <span class="row-value">{{ formFolax }}</span>
-            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path d="M1 1L6 6L1 11" stroke="#8E8E93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronRight class="chevron-icon" :size="20" color="#8E8E93" :stroke-width="2.16" />
           </div>
         </div>
 

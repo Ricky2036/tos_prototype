@@ -4,6 +4,7 @@ import TmSwitch from './TmSwitch.vue'
 import { useTrafficStore } from '../../../../stores/trafficStore.js'
 import { TM_SAVE_MODE } from './trafficData.js'
 import './traffic.css'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 /**
  * 省流量模式（三级页）
@@ -40,9 +41,7 @@ const traffic = useTrafficStore()
         <div class="tm-row-text">
           <div class="tm-row-title">{{ TM_SAVE_MODE.unrestrictedTitle }}</div>
         </div>
-        <svg class="tm-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-          <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <ChevronRight class="tm-chevron" :size="18" color="currentColor" :stroke-width="2.13" />
       </div>
       </div>
 

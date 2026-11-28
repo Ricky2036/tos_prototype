@@ -4,6 +4,7 @@ import ListCell from './ListCell.vue'
 import RegisteredAppIcon from './RegisteredAppIcon.vue'
 import SearchEmptyState from './SearchEmptyState.vue'
 import { getRegisteredApps } from '../../composables/useRegisteredApps.js'
+import ChevronRight from '../ui/ChevronRight.vue'
 
 /**
  * 【全仓标准控件】注册应用列表。
@@ -53,9 +54,7 @@ watch(() => visible.value.length, n => emit('results', n), { immediate: true })
       <template #right>
         <slot name="right" :app="app">
           <span v-if="valueFor(app)" class="lc-value">{{ valueFor(app) }}</span>
-          <svg v-if="chevron" class="lc-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <ChevronRight v-if="chevron" class="lc-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
         </slot>
       </template>
     </ListCell>

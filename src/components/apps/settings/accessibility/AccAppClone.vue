@@ -10,6 +10,7 @@ import fbIcon from '../../../../assets/icons/accessibility/apps/facebook.png'
 import igIcon from '../../../../assets/icons/accessibility/apps/instagram.png'
 import tgIcon from '../../../../assets/icons/accessibility/apps/telegram.png'
 import wxIcon from '../../../../assets/icons/accessibility/apps/wechat.png'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 /**
  * 应用双开（真机 com.transsion.dualapp MainActivity）
@@ -85,9 +86,7 @@ const pending = ref('')
       <div class="acc-card">
         <div class="clone-row is-link" data-testid="clone-more-apps" @click="pending = '体验更多应用'">
           <span class="clone-name">体验更多应用</span>
-          <svg class="clone-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none">
-            <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <ChevronRight class="clone-chevron" :size="18" color="#C5C5C7" :stroke-width="2.13" />
         </div>
       </div>
 

@@ -3,6 +3,7 @@ import GlassNavBar from '../../ui/GlassNavBar.vue'
 import { ref } from 'vue'
 import { useAccountStore } from '../../../stores/accountStore'
 import walletIcon from '../../../assets/icons/wallet-entry-icon.png'
+import ChevronRight from '../../ui/ChevronRight.vue'
 
 const emit = defineEmits(['back', 'open-wallet', 'open-security', 'open-login', 'open-cloud', 'open-backup'])
 const account = useAccountStore()
@@ -142,9 +143,7 @@ function handleRelogin() {
               <div class="cell-title">云备份</div>
               <div class="cell-sub">设备数据备份、恢复与自动备份</div>
             </div>
-            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronRight class="chevron-icon" :size="18" color="#C5C5C7" :stroke-width="2.13" />
           </div>
         </div>
         <!-- 个人信息 -->
@@ -157,9 +156,7 @@ function handleRelogin() {
           </div>
           <div class="cell-main">
             <div class="cell-title">个人信息</div>
-            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronRight class="chevron-icon" :size="18" color="#C5C5C7" :stroke-width="2.13" />
           </div>
         </div>
 
@@ -176,9 +173,7 @@ function handleRelogin() {
               <div class="cell-title">账号安全</div>
               <div class="cell-sub">信息安全、密码管理</div>
             </div>
-            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronRight class="chevron-icon" :size="18" color="#C5C5C7" :stroke-width="2.13" />
           </div>
         </div>
 
@@ -193,9 +188,7 @@ function handleRelogin() {
           </div>
           <div class="cell-main">
             <div class="cell-title">隐私与协议</div>
-            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronRight class="chevron-icon" :size="18" color="#C5C5C7" :stroke-width="2.13" />
           </div>
         </div>
 
@@ -210,9 +203,7 @@ function handleRelogin() {
           </div>
           <div class="cell-main">
             <div class="cell-title">帮助中心</div>
-            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronRight class="chevron-icon" :size="18" color="#C5C5C7" :stroke-width="2.13" />
           </div>
         </div>
 
@@ -230,9 +221,7 @@ function handleRelogin() {
               <div class="cell-title">版本</div>
               <div class="cell-sub">{{ account.version }}</div>
             </div>
-            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronRight class="chevron-icon" :size="18" color="#C5C5C7" :stroke-width="2.13" />
           </div>
         </div>
       </div>
@@ -248,9 +237,7 @@ function handleRelogin() {
               <div class="cell-title">钱包</div>
               <div class="cell-sub">发现专属优惠福利</div>
             </div>
-            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronRight class="chevron-icon" :size="18" color="#C5C5C7" :stroke-width="2.13" />
           </div>
         </div>
       </div>
@@ -274,9 +261,7 @@ function handleRelogin() {
               <div class="cell-title">{{ dev.name }}</div>
               <div v-if="dev.subtitle" class="cell-sub-accent">{{ dev.subtitle }}</div>
             </div>
-            <svg class="chevron-icon" width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronRight class="chevron-icon" :size="18" color="#C5C5C7" :stroke-width="2.13" />
           </div>
         </div>
       </div>

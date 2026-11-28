@@ -17,6 +17,7 @@ import TimePickerSheet from '../../ui/TimePickerSheet.vue'
 import DndSchedulePage from './dnd/DndSchedulePage.vue'
 import DndAppsPage from './dnd/DndAppsPage.vue'
 import DndRepeatSheet from './dnd/DndRepeatSheet.vue'
+import ChevronRight from '../../ui/ChevronRight.vue'
 
 
 /**
@@ -128,9 +129,7 @@ function onRepeatConfirm(days) {
             <span class="dc-title">{{ i18n.t('dndScheduled') }}</span>
             <div class="dc-right">
               <span class="dc-val">{{ scheduleLabel }}</span>
-              <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-                <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
+              <ChevronRight :size="18" color="#C5C5C7" :stroke-width="2.13" />
             </div>
           </div>
         </div>
@@ -144,9 +143,7 @@ function onRepeatConfirm(days) {
               <span class="dc-sub">{{ callsSubtitle }}</span>
             </div>
             <div class="dc-right">
-              <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-                <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
+              <ChevronRight :size="18" color="#C5C5C7" :stroke-width="2.13" />
             </div>
           </div>
 
@@ -156,9 +153,7 @@ function onRepeatConfirm(days) {
               <span class="dc-sub">{{ appsSubtitle }}</span>
             </div>
             <div class="dc-right">
-              <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-                <path d="M1.25 1.25L5.75 6L1.25 10.75" stroke="#C5C5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
+              <ChevronRight :size="18" color="#C5C5C7" :stroke-width="2.13" />
             </div>
           </div>
 
