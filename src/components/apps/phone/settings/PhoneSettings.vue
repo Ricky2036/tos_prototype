@@ -19,6 +19,7 @@ import PhoneCarrierFeatures from './PhoneCarrierFeatures.vue'
 import PhoneAbout from './PhoneAbout.vue'
 import SettingsSim from '../../settings/SettingsSim.vue'
 import SettingsSound from '../../settings/SettingsSound.vue'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const props = defineProps({
   initialTarget: {
@@ -81,9 +82,7 @@ defineExpose({
           <div class="settings-group">
             <div class="setting-item-row" @click="openSubView('autoRecord')">
               <span class="item-title">自动通话录音</span>
-              <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
 
             <div class="setting-item-row with-subtitle" @click="openSubView('noiseReduction')">
@@ -91,9 +90,7 @@ defineExpose({
                 <span class="item-title">全场景降噪</span>
                 <span class="item-subtitle">智能降低语音场景中的噪声。</span>
               </div>
-              <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
 
             <div class="setting-item-row" @click="openSubView('aiAssistant')">
@@ -101,16 +98,12 @@ defineExpose({
                 <span class="item-title">AI 通话助手</span>
                 <span class="red-badge-dot"></span>
               </div>
-              <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
 
             <div class="setting-item-row no-sep" @click="openSubView('flashCall')">
               <span class="item-title">Flash Call</span>
-              <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
           </div>
 
@@ -118,39 +111,29 @@ defineExpose({
           <div class="settings-group">
             <div class="setting-item-row" @click="openSubView('block')">
               <span class="item-title">骚扰拦截</span>
-              <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
 
             <div class="setting-item-row" @click="openSubView('unknownId')">
               <span class="item-title">陌生号码识别</span>
-              <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
 
             <div class="setting-item-row" data-action="open-system-sim" @click="openSubView('sim')">
               <span class="item-title">SIM 卡与网络设置</span>
-              <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
 
             <div class="setting-item-row" data-action="open-system-sound" @click="openSubView('sound')">
               <span class="item-title">声音与振动</span>
-              <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
 
             <div class="setting-item-row" @click="showVoiceBroadcastModal = true">
               <span class="item-title">来电语音播报</span>
               <div class="right-summary">
                 <span class="summary-text">{{ voiceBroadcastText }}</span>
-                <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                  <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <ChevronRight class="chevron-icon" :size="16" color="#C7C7CC" :stroke-width="2" />
               </div>
             </div>
 
@@ -158,17 +141,13 @@ defineExpose({
               <span class="item-title">来电显示</span>
               <div class="right-summary">
                 <span class="summary-text">{{ phoneStore.callDisplayMode === 'banner' ? '弹窗显示' : '全屏显示' }}</span>
-                <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                  <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <ChevronRight class="chevron-icon" :size="16" color="#C7C7CC" :stroke-width="2" />
               </div>
             </div>
 
             <div class="setting-item-row no-sep" @click="openSubView('videoShow')">
               <span class="item-title">我的视频秀</span>
-              <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
           </div>
 
@@ -176,23 +155,17 @@ defineExpose({
           <div class="settings-group">
             <div class="setting-item-row" @click="openSubView('advanced')">
               <span class="item-title">高级设置</span>
-              <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
 
             <div class="setting-item-row" @click="openSubView('carrier')">
               <span class="item-title">运营商功能</span>
-              <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
 
             <div class="setting-item-row no-sep" @click="openSubView('about')">
               <span class="item-title">关于</span>
-              <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight class="chevron-icon" :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
           </div>
         </div>

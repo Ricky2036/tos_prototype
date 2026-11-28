@@ -8,6 +8,7 @@ import SheetOptionPicker from '../../../ui/SheetOptionPicker.vue'
 import SheetModal from '../../../ui/SheetModal.vue'
 import '../../../../styles/layer-transitions.css'
 import TrashIcon from '../../../ui/TrashIcon.vue'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['back'])
@@ -142,9 +143,7 @@ defineExpose({
                     <span v-if="phoneStore.settings.designatedNumbers.length > 0" class="badge-count">
                       {{ phoneStore.settings.designatedNumbers.length }}
                     </span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                      <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+                    <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
                   </div>
                 </div>
 

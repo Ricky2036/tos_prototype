@@ -5,6 +5,7 @@ import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 import GlassNavBar from '../../../ui/GlassNavBar.vue'
 import SheetOptionPicker from '../../../ui/SheetOptionPicker.vue'
 import unknownHeroImg from '../../../../assets/img/phone_settings/unknown_id_hero.png'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['back'])
@@ -99,17 +100,13 @@ defineExpose({
           <div class="row-label">自动更新数据</div>
           <div class="right-summary">
             <span class="summary-text">{{ autoUpdateText }}</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-              <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
           </div>
         </div>
 
         <div class="settings-row chevron-item no-sep" @click="handleUpdateNow">
           <div class="row-label">立即更新</div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-            <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
         </div>
       </div>
     </div>

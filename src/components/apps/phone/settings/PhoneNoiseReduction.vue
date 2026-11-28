@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { usePhoneStore } from '../../../../stores/phoneStore'
 import GlassNavBar from '../../../ui/GlassNavBar.vue'
 import SheetOptionPicker from '../../../ui/SheetOptionPicker.vue'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['back'])
@@ -64,9 +65,7 @@ defineExpose({
           <div class="row-label">系统通话</div>
           <div class="right-summary">
             <span class="summary-text">{{ phoneStore.settings.noiseReductionSystem }}</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-              <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
           </div>
         </div>
 
@@ -74,9 +73,7 @@ defineExpose({
           <div class="row-label">网络通话</div>
           <div class="right-summary">
             <span class="summary-text">{{ phoneStore.settings.noiseReductionVoip }}</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-              <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
           </div>
         </div>
       </div>

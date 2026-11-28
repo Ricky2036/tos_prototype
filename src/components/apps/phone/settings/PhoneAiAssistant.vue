@@ -10,6 +10,7 @@ import '../../../../styles/layer-transitions.css'
 
 import aiHeroImg from '../../../../assets/img/phone_settings/ai_assistant_hero.png'
 import aiTransHeroImg from '../../../../assets/img/phone_settings/ai_translation_hero.png'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['back'])
@@ -77,9 +78,7 @@ const updateOptions = ['仅 WLAN', '移动网络和 WLAN']
           <div class="settings-card">
             <div class="settings-row chevron-item" @click="openSubView('summary')">
               <div class="row-label">通话摘要</div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
 
             <div class="settings-row chevron-item no-sep" @click="openSubView('translation')">
@@ -87,9 +86,7 @@ const updateOptions = ['仅 WLAN', '移动网络和 WLAN']
                 <span class="row-label">AI 通话翻译</span>
                 <span class="red-dot"></span>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
           </div>
         </div>
@@ -119,9 +116,7 @@ const updateOptions = ['仅 WLAN', '移动网络和 WLAN']
               <div class="row-label">我的语言</div>
               <div class="right-summary">
                 <span class="summary-text">{{ phoneStore.settings.aiMyLanguage }}</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                  <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
               </div>
             </div>
           </div>
@@ -129,16 +124,12 @@ const updateOptions = ['仅 WLAN', '移动网络和 WLAN']
           <div class="settings-card">
             <div class="settings-row chevron-item" @click="modalType = 'privacy'">
               <div class="row-label">隐私政策</div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
 
             <div class="settings-row chevron-item no-sep" @click="modalType = 'terms'">
               <div class="row-label">用户协议</div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
           </div>
         </div>
@@ -174,9 +165,7 @@ const updateOptions = ['仅 WLAN', '移动网络和 WLAN']
                 <div class="row-label">我的语言</div>
                 <div class="right-summary">
                   <span class="summary-text">{{ phoneStore.settings.aiMyLanguage }}</span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                    <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
+                  <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
                 </div>
               </div>
 
@@ -184,9 +173,7 @@ const updateOptions = ['仅 WLAN', '移动网络和 WLAN']
                 <div class="row-label">我的语音</div>
                 <div class="right-summary">
                   <span class="summary-text">{{ phoneStore.settings.aiMyVoice }}</span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                    <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
+                  <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
                 </div>
               </div>
 
@@ -206,9 +193,7 @@ const updateOptions = ['仅 WLAN', '移动网络和 WLAN']
                 <div class="row-label">对方的语言</div>
                 <div class="right-summary">
                   <span class="summary-text">{{ phoneStore.settings.aiTargetLanguage }}</span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                    <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
+                  <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
                 </div>
               </div>
 
@@ -216,9 +201,7 @@ const updateOptions = ['仅 WLAN', '移动网络和 WLAN']
                 <div class="row-label">对方的语音</div>
                 <div class="right-summary">
                   <span class="summary-text">{{ phoneStore.settings.aiTargetVoice }}</span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                    <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
+                  <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
                 </div>
               </div>
             </div>
@@ -229,9 +212,7 @@ const updateOptions = ['仅 WLAN', '移动网络和 WLAN']
                 <div class="row-label">自动更新数据</div>
                 <div class="right-summary">
                   <span class="summary-text">{{ phoneStore.settings.aiAutoUpdate }}</span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                    <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
+                  <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
                 </div>
               </div>
             </div>

@@ -8,6 +8,7 @@ import SheetOptionPicker from '../../../ui/SheetOptionPicker.vue'
 import SheetModal from '../../../ui/SheetModal.vue'
 import '../../../../styles/layer-transitions.css'
 import TrashIcon from '../../../ui/TrashIcon.vue'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['back'])
@@ -194,9 +195,7 @@ defineExpose({
               </div>
               <div class="right-summary">
                 <span class="badge-count">0</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                  <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
               </div>
             </div>
           </div>
@@ -211,9 +210,7 @@ defineExpose({
               </div>
               <div class="right-summary">
                 <span class="badge-count">{{ phoneStore.settings.blackList.length }}</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                  <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
               </div>
             </div>
 
@@ -224,9 +221,7 @@ defineExpose({
               </div>
               <div class="right-summary">
                 <span class="badge-count">0</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                  <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
               </div>
             </div>
           </div>
@@ -239,9 +234,7 @@ defineExpose({
                 <div class="row-label">拦截通知设置</div>
                 <div class="row-sub">{{ phoneStore.settings.blockNotify }}</div>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
           </div>
         </div>

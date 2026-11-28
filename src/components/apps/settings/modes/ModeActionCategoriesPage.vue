@@ -4,6 +4,7 @@ import GlassNavBar from '../../../ui/GlassNavBar.vue'
 import { ACTION_CATEGORIES } from './actionsCatalogData.js'
 import ModeActionListPage from './ModeActionListPage.vue'
 import SheetOptionPicker from './SheetOptionPicker.vue'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const emit = defineEmits(['back', 'add-action'])
 
@@ -108,9 +109,7 @@ function handleConfirmSearchOption(val) {
               <div class="search-item-title">{{ res.title }}</div>
               <div class="search-item-cat">{{ res.categoryName }}</div>
             </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m9 18 6-6-6-6"/>
-            </svg>
+            <ChevronRight :size="18" color="#A1A1AA" :stroke-width="2.2" />
           </div>
         </div>
 
@@ -139,9 +138,7 @@ function handleConfirmSearchOption(val) {
               </div>
 
               <div class="cat-chevron">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="m9 18 6-6-6-6"/>
-                </svg>
+                <ChevronRight :size="18" color="#A1A1AA" :stroke-width="2.2" />
               </div>
             </div>
           </div>

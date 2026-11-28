@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useBackHandler } from '../../composables/backRegistry'
 import { useShareStore, SHARE_APPS } from '../../stores/shareStore'
+import ChevronRight from '../ui/ChevronRight.vue'
 
 const store = useShareStore()
 
@@ -144,9 +145,7 @@ const activeMenuApp = computed(() => {
               @click="store.togglePrivacy"
             >
               <span>{{ store.privacyProtected ? '隐私保护已开启' : '隐私保护已关闭' }}</span>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
+              <ChevronRight :size="11" color="currentColor" :stroke-width="2.4" />
             </button>
           </div>
 
@@ -216,9 +215,7 @@ const activeMenuApp = computed(() => {
               <div class="share-transfer-desc">即刻碰一碰 iPhone、Infinix 等可免流量互传。</div>
             </div>
             <div class="share-transfer-arrow">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
+              <ChevronRight :size="15" color="#C7C7CC" :stroke-width="2.2" />
             </div>
           </div>
 

@@ -11,6 +11,7 @@ import '../../../../styles/layer-transitions.css'
 import flipMuteHeroImg from '../../../../assets/img/phone_settings/flip_mute_hero.png'
 import raiseToAnswerHeroImg from '../../../../assets/img/phone_settings/raise_to_answer_hero.png'
 import gestureAnswerHeroImg from '../../../../assets/img/phone_settings/gesture_answer_hero.png'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const props = defineProps({
   initialView: {
@@ -125,16 +126,12 @@ defineExpose({
 
             <div class="settings-row chevron-item" @click="openSubView('speedDial')">
               <div class="row-label">快速拨号</div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
 
             <div class="settings-row chevron-item no-sep" @click="openSubView('accessibility')">
               <div class="row-label">无障碍功能</div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
           </div>
 
@@ -145,9 +142,7 @@ defineExpose({
               <div class="row-label">翻转静音</div>
               <div class="right-summary">
                 <span class="summary-text">{{ phoneStore.settings.flipToMute ? '开启' : '关闭' }}</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                  <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
               </div>
             </div>
 
@@ -155,9 +150,7 @@ defineExpose({
               <div class="row-label">拿起接听</div>
               <div class="right-summary">
                 <span class="summary-text">{{ phoneStore.settings.pickupToAnswer ? '开启' : '关闭' }}</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                  <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
               </div>
             </div>
 
@@ -165,9 +158,7 @@ defineExpose({
               <div class="row-label">手势接听</div>
               <div class="right-summary">
                 <span class="summary-text">{{ phoneStore.settings.gestureAnswer ? '开启' : '关闭' }}</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                  <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
               </div>
             </div>
           </div>
@@ -237,9 +228,7 @@ defineExpose({
                 <div class="row-label">TTY 模式</div>
                 <div class="row-sub">{{ phoneStore.settings.ttyMode }}</div>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
 
             <div class="settings-row item-switch with-sub no-sep">

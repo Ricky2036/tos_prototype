@@ -6,6 +6,7 @@ import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 import GlassNavBar from '../../../ui/GlassNavBar.vue'
 import SheetOptionPicker from '../../../ui/SheetOptionPicker.vue'
 import '../../../../styles/layer-transitions.css'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['back'])
@@ -56,9 +57,7 @@ defineExpose({
                 <span class="sim-badge">SIM 1</span>
                 <span class="row-label">中国电信</span>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
           </div>
 
@@ -70,9 +69,7 @@ defineExpose({
                 <div class="row-label">选择通话账号</div>
                 <div class="row-sub">{{ phoneStore.settings.carrierAccount }}</div>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
           </div>
         </div>
@@ -105,23 +102,17 @@ defineExpose({
 
             <div class="settings-row chevron-item">
               <div class="row-label">呼叫转移</div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
 
             <div class="settings-row chevron-item">
               <div class="row-label">呼叫限制</div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
 
             <div class="settings-row chevron-item no-sep">
               <div class="row-label">固定拨号 (FDN)</div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
             </div>
           </div>
         </div>

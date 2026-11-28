@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useModesAndRoutinesStore } from '../../../../stores/modesAndRoutinesStore.js'
 import { getIconPath, CUSTOM_ICON_GRID } from './modeIcons.js'
 import GlassNavBar from '../../../ui/GlassNavBar.vue'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const emit = defineEmits(['close', 'created', 'show-toast'])
 
@@ -92,9 +93,7 @@ function handleCreateCustom() {
             <div class="restore-sub">预设模式</div>
           </div>
           <div class="chevron-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m9 18 6-6-6-6"/>
-            </svg>
+            <ChevronRight :size="18" color="currentColor" :stroke-width="2.2" />
           </div>
         </div>
 
@@ -110,9 +109,7 @@ function handleCreateCustom() {
             <div class="restore-sub">创建全新的个性化模式</div>
           </div>
           <div class="chevron-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m9 18 6-6-6-6"/>
-            </svg>
+            <ChevronRight :size="18" color="currentColor" :stroke-width="2.2" />
           </div>
         </div>
       </div>

@@ -8,6 +8,7 @@ import ModeStayFocusedPage from './ModeStayFocusedPage.vue'
 import ModeOtherActionsPage from './ModeOtherActionsPage.vue'
 import ModeDurationModal from './ModeDurationModal.vue'
 import ModeDeleteConfirmModal from './ModeDeleteConfirmModal.vue'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const props = defineProps({
   modeId: {
@@ -184,9 +185,7 @@ function handleConfirmDelete() {
                 <div class="cell-sub">{{ currentMode.duration || '直至您将其关闭' }}</div>
               </div>
               <div class="cell-chevron">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="m9 18 6-6-6-6"/>
-                </svg>
+                <ChevronRight :size="18" color="currentColor" :stroke-width="2.2" />
               </div>
             </div>
           </div>
@@ -210,9 +209,7 @@ function handleConfirmDelete() {
                 </template>
               </div>
               <div class="cell-chevron">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="m9 18 6-6-6-6"/>
-                </svg>
+                <ChevronRight :size="18" color="currentColor" :stroke-width="2.2" />
               </div>
             </div>
           </div>
@@ -236,9 +233,7 @@ function handleConfirmDelete() {
                 </div>
               </div>
               <div class="cell-chevron">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="m9 18 6-6-6-6"/>
-                </svg>
+                <ChevronRight :size="18" color="currentColor" :stroke-width="2.2" />
               </div>
             </div>
           </div>
@@ -290,9 +285,7 @@ function handleConfirmDelete() {
                 </div>
               </div>
               <div class="cell-chevron">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="m9 18 6-6-6-6"/>
-                </svg>
+                <ChevronRight :size="18" color="currentColor" :stroke-width="2.2" />
               </div>
             </div>
           </div>

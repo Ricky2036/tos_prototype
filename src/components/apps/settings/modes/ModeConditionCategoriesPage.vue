@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import GlassNavBar from '../../../ui/GlassNavBar.vue'
 import SheetOptionPicker from './SheetOptionPicker.vue'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const emit = defineEmits(['back', 'select'])
 
@@ -120,9 +121,7 @@ function handleConfirmOption(val) {
           >
             <div class="condition-item-name">{{ item.title }}</div>
             <div class="condition-item-arrow">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m9 18 6-6-6-6"/>
-              </svg>
+              <ChevronRight :size="18" color="#A1A1AA" :stroke-width="2.2" />
             </div>
           </div>
         </div>

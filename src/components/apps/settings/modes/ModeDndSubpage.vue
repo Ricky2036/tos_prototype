@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import GlassNavBar from '../../../ui/GlassNavBar.vue'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const props = defineProps({
   initialData: {
@@ -59,9 +60,7 @@ function handleDone() {
             <div class="row-main-title">来电和信息</div>
             <div class="row-sub-blue">{{ callsOption }}</div>
           </div>
-          <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m9 18 6-6-6-6"/>
-          </svg>
+          <ChevronRight class="chevron-icon" :size="16" color="currentColor" :stroke-width="2.2" />
         </div>
 
         <div class="card-action-row" @click="cycleApps">
@@ -69,9 +68,7 @@ function handleDone() {
             <div class="row-main-title">应用程序通知</div>
             <div class="row-sub-blue">{{ appsOption }}</div>
           </div>
-          <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m9 18 6-6-6-6"/>
-          </svg>
+          <ChevronRight class="chevron-icon" :size="16" color="currentColor" :stroke-width="2.2" />
         </div>
       </div>
     </div>

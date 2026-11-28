@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { usePhoneStore } from '../../../stores/phoneStore'
 import TrashIcon from '../../ui/TrashIcon.vue'
 import PhoneIcon from '../../ui/PhoneIcon.vue'
+import ChevronRight from '../../ui/ChevronRight.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['close', 'openAddContact', 'openFlashCall'])
@@ -213,25 +214,19 @@ const isBlacklisted = computed(() => {
       <div class="detail-card">
         <div class="menu-action-row" @click="handleSaveToContacts">
           <span class="menu-text">存入联系人</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-            <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
         </div>
 
         <div class="menu-action-row" @click="handleCopyNumber">
           <span class="menu-text">复制号码</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-            <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
         </div>
 
         <div class="menu-action-row" @click="handleToggleBlacklist">
           <span class="menu-text" :class="{ 'text-danger': !isBlacklisted }">
             {{ isBlacklisted ? '移出黑名单' : '加入黑名单' }}
           </span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-            <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
         </div>
 
         <div class="menu-action-row no-sep" @click="handleDeleteRecord">

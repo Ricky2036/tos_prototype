@@ -5,6 +5,7 @@ import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
 import GlassNavBar from '../../../ui/GlassNavBar.vue'
 import SheetModal from '../../../ui/SheetModal.vue'
 import flashCallHeroImg from '../../../../assets/img/phone_settings/flash_call_hero.png'
+import ChevronRight from '../../../ui/ChevronRight.vue'
 
 const phoneStore = usePhoneStore()
 const emit = defineEmits(['back'])
@@ -99,9 +100,7 @@ defineExpose({
               </svg>
               <span class="add-text">新增自定义快捷回复</span>
             </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2">
-              <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronRight :size="16" color="#C7C7CC" :stroke-width="2" />
           </div>
         </div>
       </template>
